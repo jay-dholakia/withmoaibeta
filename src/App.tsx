@@ -11,9 +11,13 @@ import CoachLogin from "./pages/CoachLogin";
 import ClientLogin from "./pages/ClientLogin";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import InvitationsPage from "./pages/admin/InvitationsPage";
+import ClientsPage from "./pages/admin/ClientsPage";
+import CoachesPage from "./pages/admin/CoachesPage";
+import RegisterPage from "./pages/Register";
 
-// Placeholder Dashboard pages - will be implemented later
-const AdminDashboard = () => <div>Admin Dashboard</div>;
+// Placeholder Dashboard pages for coach and client
 const CoachDashboard = () => <div>Coach Dashboard</div>;
 const ClientDashboard = () => <div>Client Dashboard</div>;
 
@@ -32,7 +36,15 @@ const App = () => (
               <Route path="/admin" element={<AdminLogin />} />
               <Route path="/coach" element={<CoachLogin />} />
               <Route path="/client" element={<ClientLogin />} />
+              <Route path="/register" element={<RegisterPage />} />
+              
+              {/* Admin Dashboard Routes */}
               <Route path="/admin-dashboard" element={<AdminDashboard />} />
+              <Route path="/admin-dashboard/invitations" element={<InvitationsPage />} />
+              <Route path="/admin-dashboard/clients" element={<ClientsPage />} />
+              <Route path="/admin-dashboard/coaches" element={<CoachesPage />} />
+              
+              {/* Coach and Client Dashboard Routes */}
               <Route path="/coach-dashboard" element={<CoachDashboard />} />
               <Route path="/client-dashboard" element={<ClientDashboard />} />
               <Route path="*" element={<NotFound />} />

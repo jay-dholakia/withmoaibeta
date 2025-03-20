@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      invitations: {
+        Row: {
+          accepted: boolean | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          token: string
+          user_type: string
+        }
+        Insert: {
+          accepted?: boolean | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          invited_by: string
+          token: string
+          user_type: string
+        }
+        Update: {
+          accepted?: boolean | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          token?: string
+          user_type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -32,7 +65,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_and_send_invitation: {
+        Args: {
+          p_email: string
+          p_user_type: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

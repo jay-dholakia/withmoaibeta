@@ -29,11 +29,8 @@ export const Logo: React.FC<LogoProps> = ({
 
   return (
     <div className="flex items-center">
-      <div className={`${getSize()} font-bold ${getColor()} mr-1`}>
-        Portal
-      </div>
-      <div className={`${getSize()} font-light text-muted-foreground`}>
-        System
+      <div className={`${getSize()} font-bold ${getColor()}`}>
+        Moai
       </div>
     </div>
   );

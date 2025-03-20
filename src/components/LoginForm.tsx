@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LoginFormProps {
   variant: 'admin' | 'coach' | 'client';
-  onSubmit: (email: string, password: string) => void;
+  onSubmit?: (email: string, password: string) => void;
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({
@@ -16,17 +17,22 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const { signIn, signUp, loading } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      onSubmit(email, password);
-      setIsLoading(false);
-    }, 1000);
+    if (isRegistering) {
+      await signUp(email, password, variant);
+    } else {
+      if (onSubmit) {
+        // For backward compatibility
+        onSubmit(email, password);
+      } else {
+        await signIn(email, password, variant);
+      }
+    }
   };
 
   const getVariantStyles = () => {
@@ -114,18 +120,30 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={loading}
           className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${styles.buttonClass} btn-hover-effect`}
         >
-          {isLoading ? (
+          {loading ? (
             <span className="flex items-center justify-center">
               <Loader2 size={18} className="animate-spin mr-2" />
-              Signing in...
+              {isRegistering ? 'Signing up...' : 'Signing in...'}
             </span>
           ) : (
-            'Sign in'
+            isRegistering ? 'Sign up' : 'Sign in'
           )}
         </button>
+
+        <div className="text-center text-sm">
+          <button
+            type="button"
+            onClick={() => setIsRegistering(!isRegistering)}
+            className={`${styles.textColor} hover:underline`}
+          >
+            {isRegistering 
+              ? 'Already have an account? Sign in' 
+              : `Don't have an account? Sign up`}
+          </button>
+        </div>
       </form>
     </motion.div>
   );

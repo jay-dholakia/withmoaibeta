@@ -10,6 +10,12 @@ import AdminLogin from "./pages/AdminLogin";
 import CoachLogin from "./pages/CoachLogin";
 import ClientLogin from "./pages/ClientLogin";
 import NotFound from "./pages/NotFound";
+import { AuthProvider } from "./contexts/AuthContext";
+
+// Placeholder Dashboard pages - will be implemented later
+const AdminDashboard = () => <div>Admin Dashboard</div>;
+const CoachDashboard = () => <div>Coach Dashboard</div>;
+const ClientDashboard = () => <div>Client Dashboard</div>;
 
 const queryClient = new QueryClient();
 
@@ -19,15 +25,20 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AnimatePresence mode="wait">
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/admin" element={<AdminLogin />} />
-            <Route path="/coach" element={<CoachLogin />} />
-            <Route path="/client" element={<ClientLogin />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AnimatePresence>
+        <AuthProvider>
+          <AnimatePresence mode="wait">
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/admin" element={<AdminLogin />} />
+              <Route path="/coach" element={<CoachLogin />} />
+              <Route path="/client" element={<ClientLogin />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
+              <Route path="/coach-dashboard" element={<CoachDashboard />} />
+              <Route path="/client-dashboard" element={<ClientDashboard />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AnimatePresence>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

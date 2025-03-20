@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +27,7 @@ interface Invitation {
   accepted: boolean;
   token: string;
   expires_at: string;
+  accepted_at?: string;
 }
 
 const InvitationsPage: React.FC = () => {
@@ -39,14 +39,12 @@ const InvitationsPage: React.FC = () => {
   const navigate = useNavigate();
   const { userType: currentUserType, session } = useAuth();
   
-  // Redirect if not admin
   React.useEffect(() => {
     if (currentUserType !== 'admin') {
       navigate('/admin');
     }
   }, [currentUserType, navigate]);
 
-  // Query to fetch all invitations
   const { data: invitations, isLoading } = useQuery({
     queryKey: ['invitations'],
     queryFn: async () => {
@@ -61,7 +59,6 @@ const InvitationsPage: React.FC = () => {
     enabled: currentUserType === 'admin'
   });
   
-  // Mutation to send an invitation
   const sendInvitation = useMutation({
     mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' }) => {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invitation`, {
@@ -91,13 +88,11 @@ const InvitationsPage: React.FC = () => {
     }
   });
   
-  // Function to handle copying invite link
   const copyToClipboard = () => {
     navigator.clipboard.writeText(inviteLink);
     toast.success('Invitation link copied to clipboard');
   };
   
-  // Function to handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
@@ -108,7 +103,6 @@ const InvitationsPage: React.FC = () => {
     setIsDialogOpen(false);
   };
 
-  // Function to format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString(undefined, {
       year: 'numeric',
@@ -119,7 +113,6 @@ const InvitationsPage: React.FC = () => {
     });
   };
 
-  // Get pending and expired invitations
   const pendingInvitations = invitations?.filter(inv => 
     !inv.accepted && new Date(inv.expires_at) > new Date()
   ) || [];
@@ -361,8 +354,6 @@ const InvitationsPage: React.FC = () => {
                               variant="ghost" 
                               size="sm"
                               onClick={() => {
-                                // Resend invitation logic would go here
-                                // For now just show a toast
                                 toast.info('Resend invitation functionality will be implemented soon');
                               }}
                             >
@@ -415,8 +406,7 @@ const InvitationsPage: React.FC = () => {
                           </TableCell>
                           <TableCell>{formatDate(invitation.created_at)}</TableCell>
                           <TableCell>
-                            {/* This would be updated when we add the accepted_at field */}
-                            {formatDate(invitation.updated_at || invitation.created_at)}
+                            {formatDate(invitation.accepted_at || invitation.created_at)}
                           </TableCell>
                           <TableCell>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">

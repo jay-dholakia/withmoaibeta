@@ -78,8 +78,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      setProfile(data);
-      setUserType(data.user_type);
+      if (data) {
+        setProfile(data as Profile);
+        setUserType(data.user_type as UserType);
+      }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
     }
@@ -111,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         // Verify that the user is of the correct type
-        if (profileData.user_type !== userType) {
+        if (profileData && profileData.user_type !== userType) {
           toast.error(`This account is not registered as a ${userType}. Please use the correct portal.`);
           await supabase.auth.signOut();
           return;

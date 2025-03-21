@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchClientWorkoutHistory, fetchClientPrograms } from '@/services/client-service';
+import { fetchClientWorkoutHistory } from '@/services/workout-history-service';
+import { fetchClientPrograms } from '@/services/program-service';
 import { Loader2, Calendar, Dumbbell, Clock, Award, User } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';

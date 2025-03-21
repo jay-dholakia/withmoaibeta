@@ -38,6 +38,20 @@ export interface Workout {
   created_at: string;
 }
 
+export interface WorkoutBasic {
+  id: string;
+  title: string;
+  description?: string;
+  day_of_week: number;
+  week_id: string;
+  week?: {
+    week_number: number;
+    program?: {
+      title: string;
+    }
+  } | null;
+}
+
 export interface WorkoutExercise {
   id: string;
   workout_id: string;
@@ -61,6 +75,16 @@ export interface ProgramAssignment {
   start_date: string;
   end_date: string | null;
   created_at: string;
+}
+
+export interface WorkoutHistoryItem {
+  id: string;
+  completed_at: string;
+  notes?: string;
+  rating?: number;
+  user_id: string;
+  workout_id: string;
+  workout?: WorkoutBasic | null;
 }
 
 export const DAYS_OF_WEEK = [

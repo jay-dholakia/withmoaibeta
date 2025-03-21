@@ -14,7 +14,8 @@ import {
   fetchCoachGroups, 
   fixCoachGroupAssignment, 
   fetchAllGroups,
-  createGroupForCoach 
+  createGroupForCoach,
+  syncCoachEmailWithGroups
 } from '@/services/coach-service';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,6 +35,7 @@ const CoachDashboard = () => {
   const { user, userType, loading } = useAuth();
   const navigate = useNavigate();
   const [isFixingAssignment, setIsFixingAssignment] = useState(false);
+  const [isSyncingGroups, setIsSyncingGroups] = useState(false);
   const [diagnosticInfo, setDiagnosticInfo] = useState<{
     allGroups: any[];
     availableGroups: any[];
@@ -120,17 +122,38 @@ const CoachDashboard = () => {
     try {
       const result = await fixCoachGroupAssignment(user.id, groupId);
       
-      if (result.success) {
+      if (result) {
         toast.success('Group assignment fixed successfully!');
         refetchGroups();
       } else {
-        toast.error('Failed to fix group assignment: ' + result.message);
+        toast.error('Failed to fix group assignment');
       }
     } catch (error) {
       console.error('Error trying to fix assignment:', error);
       toast.error('An unexpected error occurred while fixing assignment');
     } finally {
       setIsFixingAssignment(false);
+    }
+  };
+
+  const handleSyncGroups = async () => {
+    if (!user) return;
+    
+    setIsSyncingGroups(true);
+    try {
+      const result = await syncCoachEmailWithGroups();
+      
+      if (result.success) {
+        toast.success(result.message);
+        refetchGroups();
+      } else {
+        toast.error(`Failed to sync groups: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Error syncing coach groups:', error);
+      toast.error('An unexpected error occurred while syncing groups');
+    } finally {
+      setIsSyncingGroups(false);
     }
   };
 
@@ -232,8 +255,9 @@ const CoachDashboard = () => {
               {showDiagnostics && (
                 <div className="mt-4 text-left">
                   <Tabs defaultValue="diagnostic" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-3">
                       <TabsTrigger value="diagnostic">Diagnostics</TabsTrigger>
+                      <TabsTrigger value="sync">Sync Groups</TabsTrigger>
                       <TabsTrigger value="create">Create Group</TabsTrigger>
                     </TabsList>
                     
@@ -245,14 +269,16 @@ const CoachDashboard = () => {
                         </AlertTitle>
                         <AlertDescription className="space-y-2">
                           <div>
-                            <p>Your Coach ID: <span className="font-mono text-xs bg-muted p-1 rounded">{user.id}</span></p>
+                            <p>Your Coach ID: <span className="font-mono text-xs bg-muted p-1 rounded">{user?.id}</span></p>
                             {userEmail && (
                               <p>Your Email: <span className="font-mono text-xs bg-muted p-1 rounded">{userEmail}</span></p>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            You were assigned to a group in Supabase as <strong>jdholakia12@gmail.com</strong>, but we're having trouble matching that to your account.
-                          </p>
+                          {userEmail === 'jdholakia12@gmail.com' && (
+                            <p className="text-sm text-muted-foreground mt-2">
+                              You are using a special account that should have access to Moai groups.
+                            </p>
+                          )}
                         </AlertDescription>
                       </Alert>
                       
@@ -281,6 +307,36 @@ const CoachDashboard = () => {
                       ) : (
                         <p className="text-sm text-muted-foreground">No groups found in the system.</p>
                       )}
+                    </TabsContent>
+                    
+                    <TabsContent value="sync">
+                      <p className="text-sm mb-4">
+                        If you're having trouble with group assignments, try syncing your email with the groups:
+                      </p>
+                      
+                      <div className="space-y-4">
+                        <Alert>
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertTitle>Email-Group Sync</AlertTitle>
+                          <AlertDescription>
+                            This will ensure that your account has the correct group assignments based on your email.
+                            {userEmail === 'jdholakia12@gmail.com' && (
+                              <p className="text-sm font-medium mt-1">
+                                For jdholakia12@gmail.com, this will make sure you have access to Moai groups.
+                              </p>
+                            )}
+                          </AlertDescription>
+                        </Alert>
+                        
+                        <Button 
+                          className="w-full"
+                          onClick={handleSyncGroups}
+                          disabled={isSyncingGroups}
+                        >
+                          {isSyncingGroups ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                          Sync Group Assignments
+                        </Button>
+                      </div>
                     </TabsContent>
                     
                     <TabsContent value="create">
@@ -434,4 +490,3 @@ const CoachDashboard = () => {
 };
 
 export default CoachDashboard;
-

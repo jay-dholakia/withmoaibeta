@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { ensureCoachGroupAssignment } from './coach-group-service';
 
 /**
  * Fetches all groups in the system

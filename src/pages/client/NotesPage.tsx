@@ -1,81 +1,166 @@
 
-import React, { useState } from 'react';
-import { Pencil, Save, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Pencil, Save, Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Note {
+  id: string;
+  content: string;
+  created_at: string;
+  updated_at?: string;
+  editing: boolean;
+}
 
 const NotesPage = () => {
-  const [notes, setNotes] = useState<{ id: number; content: string; date: string; editing: boolean }[]>(() => {
-    const savedNotes = localStorage.getItem('clientNotes');
-    return savedNotes ? JSON.parse(savedNotes) : [
-      { id: 1, content: 'Welcome to your notes! This is where you can track your fitness journey.', date: new Date().toISOString(), editing: false }
-    ];
-  });
-  
+  const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
   
-  const handleSaveNotes = (updatedNotes: typeof notes) => {
-    localStorage.setItem('clientNotes', JSON.stringify(updatedNotes));
-    setNotes(updatedNotes);
-  };
+  // Fetch notes from Supabase
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchNotes = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('client_notes')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
+        
+        // Transform data to include editing state
+        const notesWithEditState = data.map(note => ({
+          ...note,
+          editing: false
+        }));
+        
+        setNotes(notesWithEditState);
+      } catch (error) {
+        console.error('Error fetching notes:', error);
+        toast.error('Failed to load notes');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchNotes();
+  }, [user]);
   
-  const addNewNote = () => {
+  const addNewNote = async () => {
+    if (!user) {
+      toast.error('You must be logged in to add notes');
+      return;
+    }
+    
     if (!newNote.trim()) {
       toast.error('Note cannot be empty');
       return;
     }
     
-    const updatedNotes = [
-      {
-        id: Date.now(),
-        content: newNote,
-        date: new Date().toISOString(),
-        editing: false
-      },
-      ...notes
-    ];
-    
-    handleSaveNotes(updatedNotes);
-    setNewNote('');
-    toast.success('Note added successfully');
+    try {
+      const { data, error } = await supabase
+        .from('client_notes')
+        .insert({
+          user_id: user.id,
+          content: newNote
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      // Add the new note to the state with editing false
+      setNotes([
+        {
+          ...data,
+          editing: false
+        },
+        ...notes
+      ]);
+      
+      setNewNote('');
+      toast.success('Note added successfully');
+    } catch (error) {
+      console.error('Error adding note:', error);
+      toast.error('Failed to add note');
+    }
   };
   
-  const toggleEditMode = (id: number) => {
+  const toggleEditMode = (id: string) => {
     const updatedNotes = notes.map(note => 
       note.id === id ? { ...note, editing: !note.editing } : note
     );
     setNotes(updatedNotes);
   };
   
-  const updateNoteContent = (id: number, content: string) => {
+  const updateNoteContent = (id: string, content: string) => {
     const updatedNotes = notes.map(note => 
       note.id === id ? { ...note, content } : note
     );
     setNotes(updatedNotes);
   };
   
-  const saveNote = (id: number) => {
+  const saveNote = async (id: string) => {
     const noteToSave = notes.find(note => note.id === id);
-    if (noteToSave && !noteToSave.content.trim()) {
+    
+    if (!noteToSave) {
+      toast.error('Note not found');
+      return;
+    }
+    
+    if (!noteToSave.content.trim()) {
       toast.error('Note cannot be empty');
       return;
     }
     
-    const updatedNotes = notes.map(note => 
-      note.id === id ? { ...note, editing: false, date: new Date().toISOString() } : note
-    );
-    
-    handleSaveNotes(updatedNotes);
-    toast.success('Note updated successfully');
+    try {
+      const { error } = await supabase
+        .from('client_notes')
+        .update({ 
+          content: noteToSave.content,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      const updatedNotes = notes.map(note => 
+        note.id === id ? { ...note, editing: false, updated_at: new Date().toISOString() } : note
+      );
+      
+      setNotes(updatedNotes);
+      toast.success('Note updated successfully');
+    } catch (error) {
+      console.error('Error updating note:', error);
+      toast.error('Failed to update note');
+    }
   };
   
-  const deleteNote = (id: number) => {
-    const updatedNotes = notes.filter(note => note.id !== id);
-    handleSaveNotes(updatedNotes);
-    toast.success('Note deleted successfully');
+  const deleteNote = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('client_notes')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      const updatedNotes = notes.filter(note => note.id !== id);
+      setNotes(updatedNotes);
+      toast.success('Note deleted successfully');
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      toast.error('Failed to delete note');
+    }
   };
   
   const formatDate = (dateString: string) => {
@@ -117,7 +202,11 @@ const NotesPage = () => {
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Your Notes</h2>
         
-        {notes.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-client" />
+          </div>
+        ) : notes.length === 0 ? (
           <Card className="p-6 text-center text-muted-foreground">
             No notes yet. Add your first note above!
           </Card>
@@ -129,7 +218,7 @@ const NotesPage = () => {
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-sm text-muted-foreground">
-                        {formatDate(note.date)}
+                        {formatDate(note.created_at)}
                       </CardTitle>
                       <div className="flex space-x-1">
                         {note.editing ? (

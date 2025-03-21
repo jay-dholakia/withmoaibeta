@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Users, Dumbbell, BarChart3, Award, Heart, FileText } from 'lucide-react';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -16,14 +16,21 @@ const CoachDashboard = () => {
   const { user, userType, loading } = useAuth();
   const navigate = useNavigate();
 
-  const { data: coachGroups, isLoading: groupsLoading } = useQuery({
+  // Debugging: Log user details when component mounts
+  useEffect(() => {
+    if (user) {
+      console.log('Coach dashboard mounted for user:', user.id, 'with type:', userType);
+    }
+  }, [user, userType]);
+
+  const { data: coachGroups, isLoading: groupsLoading, refetch: refetchGroups } = useQuery({
     queryKey: ['coach-groups', user?.id],
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
       
       console.log('Fetching coach groups for coach ID:', user.id);
       
-      // Get groups the coach is assigned to
+      // Get groups the coach is assigned to - using explicit coach_id condition
       const { data: groupCoaches, error: groupCoachesError } = await supabase
         .from('group_coaches')
         .select('group_id')
@@ -38,6 +45,16 @@ const CoachDashboard = () => {
       
       if (!groupCoaches || groupCoaches.length === 0) {
         console.log('No groups found for coach');
+        
+        // For debugging: Check all group_coaches entries to see if the coach exists with a different ID
+        const { data: allGroupCoaches, error: allGroupCoachesError } = await supabase
+          .from('group_coaches')
+          .select('*');
+          
+        if (!allGroupCoachesError && allGroupCoaches) {
+          console.log('All group coaches in the system:', allGroupCoaches);
+        }
+        
         return [];
       }
       
@@ -57,6 +74,13 @@ const CoachDashboard = () => {
     },
     enabled: !!user && userType === 'coach'
   });
+
+  // Force a refetch when the component mounts
+  useEffect(() => {
+    if (user && userType === 'coach') {
+      refetchGroups();
+    }
+  }, [user, userType, refetchGroups]);
 
   const { data: workoutPrograms, isLoading: programsLoading } = useQuery({
     queryKey: ['coach-workout-programs', user?.id],
@@ -115,6 +139,13 @@ const CoachDashboard = () => {
           ) : (
             <div className="text-center py-6 bg-muted/30 rounded-lg">
               <p>You haven't been assigned to any groups yet.</p>
+              <Button 
+                variant="ghost" 
+                className="text-coach mt-2"
+                onClick={() => refetchGroups()}
+              >
+                Refresh Groups
+              </Button>
             </div>
           )}
         </Card>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -9,7 +10,8 @@ import {
   Calendar, 
   Clock, 
   Users,
-  Edit
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { 
   Dialog,
@@ -33,6 +35,7 @@ import {
 } from '@/services/workout-service';
 import { WorkoutProgram, WorkoutWeek, Workout, DAYS_OF_WEEK } from '@/types/workout';
 import { toast } from 'sonner';
+import { ScrollArea as NewScrollArea } from '@/components/ui/scroll-area';
 
 const WorkoutProgramDetailPage = () => {
   const { programId } = useParams<{ programId: string }>();
@@ -44,11 +47,12 @@ const WorkoutProgramDetailPage = () => {
   const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
   const [isCreatingWeek, setIsCreatingWeek] = useState(false);
   const [isSubmittingWeek, setIsSubmittingWeek] = useState(false);
-  const [workoutsByDay, setWorkoutsByDay] = useState<Record<number, Workout>>({});
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [configuredDays, setConfiguredDays] = useState<{ [key: string]: string }>({});
   const [openDialogId, setOpenDialogId] = useState<string | null>(null);
+  const [isNewWorkoutDialogOpen, setIsNewWorkoutDialogOpen] = useState(false);
+  const [isEditingWorkout, setIsEditingWorkout] = useState<string | null>(null);
   
   useEffect(() => {
     if (!programId) return;
@@ -83,17 +87,7 @@ const WorkoutProgramDetailPage = () => {
       const loadWorkouts = async () => {
         try {
           const workouts = await fetchWorkouts(selectedWeek);
-          
-          const byDay: Record<number, Workout> = {};
-          const configuredDaysMap: { [key: string]: string } = {};
-          
-          workouts.forEach(workout => {
-            byDay[workout.day_of_week] = workout;
-            configuredDaysMap[`${selectedWeek}-${workout.day_of_week}`] = workout.id;
-          });
-          
-          setWorkoutsByDay(byDay);
-          setConfiguredDays(prev => ({...prev, ...configuredDaysMap}));
+          setWorkouts(workouts);
         } catch (error) {
           console.error('Error loading workouts:', error);
           toast.error('Failed to load workouts for this week');
@@ -132,39 +126,17 @@ const WorkoutProgramDetailPage = () => {
     }
   };
   
-  const handleSaveWorkout = async (values: any, dayIndex: number) => {
-    if (!selectedWeek) return;
-    
-    try {
-      const workout = await createWorkout({
-        week_id: selectedWeek,
-        day_of_week: dayIndex,
-        title: values.title,
-        description: values.description || null
+  const handleSaveWorkout = (workoutId: string) => {
+    if (selectedWeek) {
+      // Refresh workouts after saving
+      fetchWorkouts(selectedWeek).then(workouts => {
+        setWorkouts(workouts);
       });
       
-      setConfiguredDays(prev => ({
-        ...prev,
-        [`${selectedWeek}-${dayIndex}`]: workout.id
-      }));
-      
-      toast.success(`Workout saved for ${DAYS_OF_WEEK[dayIndex]}`);
-      
-      return workout.id;
-    } catch (error) {
-      console.error('Error saving workout:', error);
-      toast.error('Failed to save workout');
-      return null;
-    }
-  };
-
-  const handleDayFormSave = (workoutId: string, dayIndex: number) => {
-    if (selectedWeek) {
-      setConfiguredDays(prev => ({
-        ...prev,
-        [`${selectedWeek}-${dayIndex}`]: workoutId
-      }));
+      // Close any open dialogs
       setOpenDialogId(null);
+      setIsNewWorkoutDialogOpen(false);
+      setIsEditingWorkout(null);
     }
   };
   
@@ -298,7 +270,7 @@ const WorkoutProgramDetailPage = () => {
                   ))}
                 </TabsList>
                 
-                <ScrollArea className="h-[calc(100vh-20rem)] w-full">
+                <NewScrollArea className="h-[calc(100vh-25rem)]">
                   {weeks.map((week) => (
                     <TabsContent key={week.id} value={week.id}>
                       <div className="mb-4">
@@ -308,87 +280,110 @@ const WorkoutProgramDetailPage = () => {
                         )}
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {DAYS_OF_WEEK.map((day, index) => {
-                          const dayConfigKey = `${selectedWeek}-${index}`;
-                          const hasWorkout = dayConfigKey in configuredDays;
-                          const workoutId = configuredDays[dayConfigKey];
-                          
-                          if (hasWorkout) {
-                            return (
-                              <Card key={index}>
-                                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                  <CardTitle className="text-lg">{day}</CardTitle>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                    <Edit className="h-4 w-4" />
-                                    <span className="sr-only">Edit {day} workout</span>
-                                  </Button>
-                                </CardHeader>
-                                <CardContent>
-                                  <p className="text-sm text-muted-foreground">
-                                    Workout configured
-                                  </p>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="mt-4 w-full"
-                                    onClick={() => navigate(`/coach-dashboard/workouts/${programId}/weeks/${week.id}/days/${index}`)}
-                                  >
-                                    View Workout
-                                  </Button>
-                                </CardContent>
-                              </Card>
-                            );
-                          }
-                          
-                          return (
-                            <Card key={index}>
-                              <CardHeader>
-                                <CardTitle className="text-lg">{day}</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <Dialog 
-                                  open={openDialogId === `day-${week.id}-${index}`}
-                                  onOpenChange={(isOpen) => {
-                                    setOpenDialogId(isOpen ? `day-${week.id}-${index}` : null);
+                      <div className="flex justify-end mb-4">
+                        <Dialog 
+                          open={isNewWorkoutDialogOpen && selectedWeek === week.id} 
+                          onOpenChange={(open) => setIsNewWorkoutDialogOpen(open)}
+                        >
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="gap-2"
+                            >
+                              <Plus className="h-4 w-4" />
+                              Add Workout
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl">
+                            <DialogHeader>
+                              <DialogTitle>Create New Workout</DialogTitle>
+                              <DialogDescription>
+                                Add a new workout to this week with custom exercises.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="mt-4">
+                              <WorkoutDayForm
+                                weekId={week.id}
+                                onSave={handleSaveWorkout}
+                              />
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      
+                      {workouts.length === 0 ? (
+                        <div className="text-center py-10 border rounded-lg">
+                          <h3 className="font-medium mb-2">No workouts added yet</h3>
+                          <p className="text-muted-foreground mb-6">
+                            Add workouts to create your training plan for this week
+                          </p>
+                          <Button 
+                            onClick={() => setIsNewWorkoutDialogOpen(true)}
+                            className="gap-2"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Add First Workout
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                          {workouts.map((workout) => (
+                            <Card key={workout.id}>
+                              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-lg truncate" title={workout.title}>
+                                  {workout.title}
+                                </CardTitle>
+                                <Dialog
+                                  open={isEditingWorkout === workout.id}
+                                  onOpenChange={(open) => {
+                                    if (!open) setIsEditingWorkout(null);
+                                    else setIsEditingWorkout(workout.id);
                                   }}
                                 >
                                   <DialogTrigger asChild>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      className="w-full gap-2"
-                                      onClick={() => setOpenDialogId(`day-${week.id}-${index}`)}
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                      Add Workout
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                      <Edit className="h-4 w-4" />
+                                      <span className="sr-only">Edit workout</span>
                                     </Button>
                                   </DialogTrigger>
                                   <DialogContent className="max-w-4xl">
                                     <DialogHeader>
-                                      <DialogTitle>Configure {day} Workout</DialogTitle>
-                                      <DialogDescription>
-                                        Add exercises and details for the {day.toLowerCase()} workout.
-                                      </DialogDescription>
+                                      <DialogTitle>Edit Workout</DialogTitle>
                                     </DialogHeader>
                                     <div className="mt-4">
                                       <WorkoutDayForm
-                                        dayName={day}
-                                        dayNumber={index}
                                         weekId={week.id}
-                                        onSave={(workoutId) => handleDayFormSave(workoutId, index)}
+                                        workoutId={workout.id}
+                                        onSave={handleSaveWorkout}
+                                        mode="edit"
                                       />
                                     </div>
                                   </DialogContent>
                                 </Dialog>
+                              </CardHeader>
+                              <CardContent>
+                                {workout.description && (
+                                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                                    {workout.description}
+                                  </p>
+                                )}
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="w-full"
+                                  onClick={() => setIsEditingWorkout(workout.id)}
+                                >
+                                  View & Edit
+                                </Button>
                               </CardContent>
                             </Card>
-                          );
-                        })}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </TabsContent>
                   ))}
-                </ScrollArea>
+                </NewScrollArea>
               </Tabs>
             </div>
           </div>

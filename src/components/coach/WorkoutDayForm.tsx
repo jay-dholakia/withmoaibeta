@@ -19,7 +19,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { createWorkout, createWorkoutExercise, fetchWorkoutExercises } from '@/services/workout-service';
+import { 
+  createWorkout, 
+  createWorkoutExercise, 
+  fetchWorkoutExercises,
+  updateWorkout,
+  updateWorkoutExercise,
+  deleteWorkoutExercise 
+} from '@/services/workout-service';
 import { toast } from 'sonner';
 
 const formSchema = z.object({
@@ -30,11 +37,12 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 interface WorkoutDayFormProps {
-  dayName: string;
-  dayNumber: number;
+  dayName?: string;
+  dayNumber?: number;
   weekId: string;
   workoutId?: string;
   onSave: (workoutId: string) => void;
+  mode?: 'create' | 'edit';
 }
 
 export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
@@ -42,25 +50,29 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   dayNumber,
   weekId,
   workoutId,
-  onSave
+  onSave,
+  mode = 'create'
 }) => {
   const [exercises, setExercises] = useState<(Exercise & { tempId?: string })[]>([]);
   const [exerciseData, setExerciseData] = useState<Record<string, {
+    id?: string;
     sets: number;
     reps: string;
     rest_seconds?: number;
     notes?: string;
+    orderIndex?: number;
   }>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingWorkout, setIsSavingWorkout] = useState(false);
   const [existingExercises, setExistingExercises] = useState<WorkoutExercise[]>([]);
   const [isLoading, setIsLoading] = useState(!!workoutId);
   const [savedExercisesCount, setSavedExercisesCount] = useState(0);
+  const [removedExerciseIds, setRemovedExerciseIds] = useState<string[]>([]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: `${dayName} Workout`,
+      title: dayName ? `${dayName} Workout` : 'New Workout',
       description: ''
     }
   });
@@ -72,16 +84,28 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           const exercises = await fetchWorkoutExercises(workoutId);
           setExistingExercises(exercises);
           
+          if (exercises.length > 0 && mode === 'edit') {
+            const workout = exercises[0]?.workout;
+            if (workout) {
+              form.reset({
+                title: workout.title,
+                description: workout.description || ''
+              });
+            }
+          }
+          
           const loadedExercises = exercises.map(item => item.exercise!);
           setExercises(loadedExercises);
           
           const exerciseFormData: Record<string, any> = {};
           exercises.forEach(item => {
             exerciseFormData[item.exercise_id] = {
+              id: item.id,
               sets: item.sets,
               reps: item.reps,
               rest_seconds: item.rest_seconds || undefined,
-              notes: item.notes || undefined
+              notes: item.notes || undefined,
+              orderIndex: item.order_index
             };
           });
           setExerciseData(exerciseFormData);
@@ -97,7 +121,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       
       loadWorkoutDetails();
     }
-  }, [workoutId]);
+  }, [workoutId, form, mode]);
 
   const handleAddExercise = (exercise: Exercise) => {
     const exerciseWithTempId = {...exercise, tempId: Date.now().toString()};
@@ -109,6 +133,11 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     const removed = newExercises.splice(index, 1)[0];
     
     if (removed.id in exerciseData) {
+      // If this is an existing exercise and we're in edit mode, track it for deletion
+      if (mode === 'edit' && exerciseData[removed.id]?.id) {
+        setRemovedExerciseIds(prev => [...prev, exerciseData[removed.id].id!]);
+      }
+      
       const newExerciseData = {...exerciseData};
       delete newExerciseData[removed.id];
       setExerciseData(newExerciseData);
@@ -120,10 +149,21 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   const handleSaveExercise = (exercise: Exercise, index: number, data: any) => {
     setExerciseData({
       ...exerciseData,
-      [exercise.id]: data
+      [exercise.id]: {
+        ...data,
+        id: exerciseData[exercise.id]?.id,
+        orderIndex: index
+      }
     });
     
-    setSavedExercisesCount(prev => prev + 1);
+    setSavedExercisesCount(prev => {
+      // Only increment if this is a new exercise save
+      if (!exerciseData[exercise.id]) {
+        return prev + 1;
+      }
+      return prev;
+    });
+    
     toast.success(`Added ${exercise.name} to workout`);
   };
 
@@ -143,9 +183,10 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       setIsSavingWorkout(true);
       
       if (!workoutId) {
+        // Create new workout
         const workoutData = {
           week_id: weekId,
-          day_of_week: dayNumber,
+          day_of_week: dayNumber || 0,
           title: values.title,
           description: values.description || null
         };
@@ -174,7 +215,50 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
         toast.success('Workout saved successfully');
         onSave(newWorkout.id);
       } else {
-        toast.success('Workout saved successfully');
+        // Update existing workout
+        await updateWorkout(workoutId, {
+          title: values.title,
+          description: values.description || null
+        });
+        
+        // Delete removed exercises
+        for (const exerciseId of removedExerciseIds) {
+          await deleteWorkoutExercise(exerciseId);
+        }
+        
+        // Update or create exercises
+        await Promise.all(exercises.map((exercise, index) => {
+          const exerciseFormData = exerciseData[exercise.id];
+          
+          if (!exerciseFormData) {
+            console.warn(`No form data for exercise ${exercise.name}`);
+            return null;
+          }
+          
+          if (exerciseFormData.id) {
+            // Update existing exercise
+            return updateWorkoutExercise(exerciseFormData.id, {
+              sets: exerciseFormData.sets,
+              reps: exerciseFormData.reps,
+              rest_seconds: exerciseFormData.rest_seconds || null,
+              notes: exerciseFormData.notes || null,
+              order_index: index
+            });
+          } else {
+            // Create new exercise
+            return createWorkoutExercise({
+              workout_id: workoutId,
+              exercise_id: exercise.id,
+              sets: exerciseFormData.sets,
+              reps: exerciseFormData.reps,
+              rest_seconds: exerciseFormData.rest_seconds || null,
+              notes: exerciseFormData.notes || null,
+              order_index: index
+            });
+          }
+        }));
+        
+        toast.success('Workout updated successfully');
         onSave(workoutId);
       }
     } catch (error) {
@@ -189,7 +273,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">{dayName} Workout</CardTitle>
+          <CardTitle className="text-lg">{mode === 'edit' ? 'Edit Workout' : `${dayName} Workout`}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
@@ -208,7 +292,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">{dayName} Workout</CardTitle>
+        <CardTitle className="text-lg">{mode === 'edit' ? 'Edit Workout' : dayName ? `${dayName} Workout` : 'New Workout'}</CardTitle>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[calc(80vh-8rem)] pr-4">
@@ -221,7 +305,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
                   <FormItem>
                     <FormLabel>Workout Title</FormLabel>
                     <FormControl>
-                      <Input placeholder={`${dayName} Workout`} {...field} />
+                      <Input placeholder="e.g., Upper Body, Push, Leg Day" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -289,7 +373,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
                   disabled={isSavingWorkout}
                   onClick={form.handleSubmit(onSubmit)}
                 >
-                  {isSavingWorkout ? 'Saving...' : 'Save Workout'}
+                  {isSavingWorkout ? 'Saving...' : mode === 'edit' ? 'Update Workout' : 'Save Workout'}
                 </Button>
               </div>
             </div>

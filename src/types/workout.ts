@@ -47,6 +47,7 @@ export interface WorkoutExercise {
   created_at: string;
   // Optional joined data
   exercise?: Exercise;
+  workout?: Workout;
 }
 
 export interface ProgramAssignment {

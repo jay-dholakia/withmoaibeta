@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Exercise, 
@@ -128,6 +129,22 @@ export const createWorkout = async (workout: Omit<Workout, 'id' | 'created_at'>)
   return data as Workout;
 };
 
+export const updateWorkout = async (workoutId: string, updates: Partial<Omit<Workout, 'id' | 'created_at'>>): Promise<Workout> => {
+  const { data, error } = await supabase
+    .from('workouts')
+    .update(updates)
+    .eq('id', workoutId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(`Error updating workout ${workoutId}:`, error);
+    throw error;
+  }
+
+  return data as Workout;
+};
+
 export const fetchWorkouts = async (weekId: string): Promise<Workout[]> => {
   const { data, error } = await supabase
     .from('workouts')
@@ -141,6 +158,21 @@ export const fetchWorkouts = async (weekId: string): Promise<Workout[]> => {
   }
 
   return data as Workout[];
+};
+
+export const fetchWorkout = async (workoutId: string): Promise<Workout> => {
+  const { data, error } = await supabase
+    .from('workouts')
+    .select('*')
+    .eq('id', workoutId)
+    .single();
+
+  if (error) {
+    console.error(`Error fetching workout ${workoutId}:`, error);
+    throw error;
+  }
+
+  return data as Workout;
 };
 
 // Workout Exercise related functions
@@ -159,12 +191,44 @@ export const createWorkoutExercise = async (workoutExercise: Omit<WorkoutExercis
   return data as WorkoutExercise;
 };
 
+export const updateWorkoutExercise = async (
+  exerciseId: string, 
+  updates: Partial<Omit<WorkoutExercise, 'id' | 'created_at' | 'workout_id' | 'exercise_id'>>
+): Promise<WorkoutExercise> => {
+  const { data, error } = await supabase
+    .from('workout_exercises')
+    .update(updates)
+    .eq('id', exerciseId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(`Error updating workout exercise ${exerciseId}:`, error);
+    throw error;
+  }
+
+  return data as WorkoutExercise;
+};
+
+export const deleteWorkoutExercise = async (exerciseId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('workout_exercises')
+    .delete()
+    .eq('id', exerciseId);
+
+  if (error) {
+    console.error(`Error deleting workout exercise ${exerciseId}:`, error);
+    throw error;
+  }
+};
+
 export const fetchWorkoutExercises = async (workoutId: string): Promise<WorkoutExercise[]> => {
   const { data, error } = await supabase
     .from('workout_exercises')
     .select(`
       *,
-      exercise:exercise_id (*)
+      exercise:exercise_id (*),
+      workout:workout_id (*)
     `)
     .eq('workout_id', workoutId)
     .order('order_index');

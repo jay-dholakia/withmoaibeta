@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Client Profile Types
@@ -19,15 +18,12 @@ export interface ClientProfile {
   updated_at?: string;
 }
 
-// Coach Profile Types
+// Coach Profile Types - Updated to match the actual database schema
 export interface CoachProfile {
   id?: string;
-  first_name: string | null;
-  last_name: string | null;
   bio: string | null;
-  specializations: string[];
-  certifications: string[];
   avatar_url: string | null;
+  favorite_movements: string[] | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -254,7 +250,7 @@ export const uploadClientAvatar = async (userId: string, file: File): Promise<st
   }
 };
 
-// Coach Profile Functions
+// Coach Profile Functions - Updated to match the database schema
 export const fetchCoachProfile = async (coachId: string): Promise<CoachProfile | null> => {
   try {
     const { data, error } = await supabase

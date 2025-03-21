@@ -96,13 +96,19 @@ const AdminSetup = () => {
         throw new Error('Failed to create admin account');
       }
       
-      // Now insert directly into profiles table with SQL RPC for the first admin
-      // This bypasses RLS for the first user creation
-      const { error: insertError } = await supabase.rpc('create_initial_admin', {
-        user_id: signUpData.user.id,
-      });
+      // Directly upsert the profile with admin role
+      // This might be blocked by RLS but we have policies that allow users to insert their own profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: signUpData.user.id,
+          user_type: 'admin',
+        });
       
-      if (insertError) throw insertError;
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        throw new Error('Failed to create admin profile. Error: ' + profileError.message);
+      }
       
       toast.success('Admin account created successfully! Please log in.');
       navigate('/admin');

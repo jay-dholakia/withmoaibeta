@@ -11,13 +11,15 @@ interface AuthLayoutProps {
   variant?: 'admin' | 'coach' | 'client' | 'default';
   title: string;
   subtitle?: string;
+  extraContent?: React.ReactNode; // Add the missing extraContent prop
 }
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({
   children,
   variant = 'default',
   title,
-  subtitle
+  subtitle,
+  extraContent
 }) => {
   return (
     <div className="min-h-screen w-full flex flex-col">
@@ -42,6 +44,12 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           </div>
           
           {children}
+          
+          {extraContent && (
+            <div className="mt-6 w-full max-w-md">
+              {extraContent}
+            </div>
+          )}
         </main>
       </PageTransition>
       

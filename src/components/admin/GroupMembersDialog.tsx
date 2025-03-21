@@ -68,9 +68,16 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
   // Update available clients whenever clients or groupMembers change
   useEffect(() => {
     const groupMemberIds = groupMembers.map(member => member.id);
+    
+    // Fixed: Show all clients who aren't in THIS group (not just those without any group)
     const available = clients.filter(
-      client => !groupMemberIds.includes(client.id) && !client.group_id
+      client => !groupMemberIds.includes(client.id)
     );
+    
+    console.log("All clients:", clients.length);
+    console.log("Available clients for selection:", available.length);
+    console.log("Current group members:", groupMemberIds.length);
+    
     setAvailableClients(available);
     
     // Reset selection if selected client is no longer available
@@ -127,12 +134,15 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
         }
       }
 
+      console.log("Total clients fetched:", clientsData.length);
       setClients(clientsData);
 
       // Get members of this specific group
       const groupMembersData = clientsData.filter(
         client => userGroupMap[client.id] === group.id
       );
+      
+      console.log("Members in this group:", groupMembersData.length);
       setGroupMembers(groupMembersData);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -256,7 +266,7 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Note: Only clients who are not already assigned to any group are shown.
+              Note: Only clients who are not already in this group are shown.
             </p>
           </div>
           

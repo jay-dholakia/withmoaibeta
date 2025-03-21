@@ -95,25 +95,57 @@ const GroupCoachesDialog: React.FC<GroupCoachesDialogProps> = ({
         throw profilesError;
       }
 
-      // Fetch user emails separately
-      const userIds = profilesData.map(profile => profile.id);
+      console.log('Coach profiles fetched:', profilesData?.length || 0);
       
-      // Get user emails from auth.users via getUser (can't query auth.users directly)
-      const coachesData: Coach[] = [];
-      
-      for (const profileId of userIds) {
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profileId);
-        
-        if (!userError && userData?.user) {
-          coachesData.push({
-            id: profileId,
-            email: userData.user.email || 'Unknown email',
-            created_at: profilesData.find(p => p.id === profileId)?.created_at || new Date().toISOString()
-          });
-        }
+      if (!profilesData || profilesData.length === 0) {
+        setCoaches([]);
+        setIsLoading(false);
+        return;
       }
 
-      setCoaches(coachesData);
+      // Fetch user emails via RPC function
+      const userIds = profilesData.map(profile => profile.id);
+      
+      try {
+        const { data: emailsData, error: emailsError } = await supabase.rpc(
+          'get_users_email',
+          { user_ids: userIds }
+        );
+        
+        if (emailsError) {
+          throw emailsError;
+        }
+        
+        console.log('Successfully fetched email data:', emailsData);
+        
+        // Check if emailsData is an array before using it
+        if (emailsData && Array.isArray(emailsData)) {
+          const coachesData: Coach[] = profilesData.map(profile => {
+            const emailRecord = emailsData.find((e: any) => e.id === profile.id);
+            return {
+              id: profile.id,
+              email: emailRecord?.email || `${profile.id.split('-')[0]}@coach.com`,
+              created_at: profile.created_at
+            };
+          });
+          
+          console.log('Total coaches transformed:', coachesData.length);
+          setCoaches(coachesData);
+        } else {
+          console.error('Unexpected response format from get_users_email:', emailsData);
+          throw new Error('Invalid response format from get_users_email');
+        }
+      } catch (emailError) {
+        console.error('Error fetching coach emails:', emailError);
+        // Fallback to formatted IDs
+        const fallbackCoaches: Coach[] = profilesData.map(profile => ({
+          id: profile.id,
+          email: `${profile.id.split('-')[0]}@coach.com`,
+          created_at: profile.created_at
+        }));
+        
+        setCoaches(fallbackCoaches);
+      }
     } catch (error) {
       console.error('Error fetching coaches:', error);
       toast.error('Failed to load coaches');
@@ -225,7 +257,11 @@ const GroupCoachesDialog: React.FC<GroupCoachesDialogProps> = ({
                   <SelectValue placeholder="Select a coach" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableCoaches.length > 0 ? (
+                  {isLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading coaches...
+                    </SelectItem>
+                  ) : availableCoaches.length > 0 ? (
                     availableCoaches.map(coach => (
                       <SelectItem key={coach.id} value={coach.id}>
                         {coach.email}

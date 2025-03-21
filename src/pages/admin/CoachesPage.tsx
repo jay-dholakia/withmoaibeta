@@ -36,29 +36,64 @@ const CoachesPage: React.FC = () => {
   const { data: coaches, isLoading } = useQuery({
     queryKey: ['coaches'],
     queryFn: async () => {
+      console.log('Fetching coaches...');
+      
       // First get all coach profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_type', 'coach');
       
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error('Error fetching coach profiles:', profilesError);
+        throw profilesError;
+      }
       
-      // Then get the user emails
-      const coachesWithEmail = await Promise.all(
-        profiles.map(async (profile) => {
-          const { data: authUser, error: userError } = await supabase.auth.admin.getUserById(profile.id);
-          
-          if (userError || !authUser) {
-            console.error('Error fetching user details:', userError);
-            return { ...profile, email: 'Unknown' };
-          }
-          
-          return { ...profile, email: authUser.user.email };
-        })
-      );
+      console.log('Coach profiles fetched:', profiles?.length || 0);
       
-      return coachesWithEmail as CoachProfile[];
+      if (!profiles || profiles.length === 0) {
+        return [];
+      }
+      
+      const userIds = profiles.map(profile => profile.id);
+      
+      // Try to get coach emails from RPC function
+      try {
+        const { data: emailsData, error: emailsError } = await supabase.rpc(
+          'get_users_email',
+          { user_ids: userIds }
+        );
+        
+        if (emailsError) {
+          throw emailsError;
+        }
+        
+        console.log('Successfully fetched email data:', emailsData);
+        
+        // Check if emailsData is an array before using it
+        if (emailsData && Array.isArray(emailsData)) {
+          const coachesWithEmail = profiles.map(profile => {
+            const emailRecord = emailsData.find((e: any) => e.id === profile.id);
+            return {
+              ...profile,
+              email: emailRecord?.email || `${profile.id.split('-')[0]}@coach.com`
+            };
+          });
+          
+          console.log('Total coaches transformed:', coachesWithEmail.length);
+          return coachesWithEmail as CoachProfile[];
+        } else {
+          console.error('Unexpected response format from get_users_email:', emailsData);
+          throw new Error('Invalid response format from get_users_email');
+        }
+      } catch (emailError) {
+        console.error('Error fetching coach emails:', emailError);
+        // Fall back to formatted IDs
+        return profiles.map(profile => ({
+          ...profile,
+          email: `${profile.id.split('-')[0]}@coach.com`
+        })) as CoachProfile[];
+      }
     },
     enabled: currentUserType === 'admin'
   });

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,7 +23,7 @@ const ProfileBuilder = () => {
 
   console.log('ProfileBuilder: Rendering with user ID:', user?.id);
 
-  // Fetch client profile
+  // Fetch client profile with error handling
   const { data: profile, isLoading, error, refetch } = useQuery({
     queryKey: ['client-profile', user?.id],
     queryFn: async () => {
@@ -170,7 +169,6 @@ const ProfileBuilder = () => {
     );
   }
 
-  // Even if there's an error, we can proceed with an empty profile
   return (
     <PageTransition>
       <ProfileBuilderLayout step={currentStep} totalSteps={TOTAL_STEPS}>

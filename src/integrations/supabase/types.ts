@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      client_profiles: {
+        Row: {
+          avatar_url: string | null
+          birthday: string | null
+          city: string | null
+          created_at: string | null
+          favorite_movements: string[] | null
+          first_name: string | null
+          fitness_goals: string[] | null
+          height: string | null
+          id: string
+          last_name: string | null
+          profile_completed: boolean | null
+          state: string | null
+          updated_at: string | null
+          weight: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          birthday?: string | null
+          city?: string | null
+          created_at?: string | null
+          favorite_movements?: string[] | null
+          first_name?: string | null
+          fitness_goals?: string[] | null
+          height?: string | null
+          id: string
+          last_name?: string | null
+          profile_completed?: boolean | null
+          state?: string | null
+          updated_at?: string | null
+          weight?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          birthday?: string | null
+          city?: string | null
+          created_at?: string | null
+          favorite_movements?: string[] | null
+          first_name?: string | null
+          fitness_goals?: string[] | null
+          height?: string | null
+          id?: string
+          last_name?: string | null
+          profile_completed?: boolean | null
+          state?: string | null
+          updated_at?: string | null
+          weight?: string | null
+        }
+        Relationships: []
+      }
       coach_profiles: {
         Row: {
           avatar_url: string | null

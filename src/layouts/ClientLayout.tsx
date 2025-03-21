@@ -1,0 +1,94 @@
+
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Dumbbell, Users, Trophy, Settings, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { PageTransition } from '@/components/PageTransition';
+import { toast } from 'sonner';
+
+interface ClientLayoutProps {
+  children: React.ReactNode;
+}
+
+export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
+  const { signOut } = useAuth();
+  const location = useLocation();
+  
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success('Signed out successfully');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      toast.error('Failed to sign out');
+    }
+  };
+
+  const isActive = (path: string) => {
+    return location.pathname.includes(path);
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm border-b border-gray-200 py-4">
+        <div className="container mx-auto px-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <h1 className="text-xl font-bold text-client">Client Portal</h1>
+          </div>
+          <button 
+            onClick={handleSignOut}
+            className="flex items-center text-gray-500 hover:text-gray-700"
+          >
+            <LogOut className="h-4 w-4 mr-1" />
+            <span className="text-sm">Sign Out</span>
+          </button>
+        </div>
+      </header>
+      
+      <main className="flex-grow container mx-auto px-4 py-6 mb-16">
+        <PageTransition>
+          {children}
+        </PageTransition>
+      </main>
+      
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md">
+        <div className="container mx-auto">
+          <nav className="flex justify-around">
+            <Link 
+              to="/client-dashboard/workouts" 
+              className={`flex flex-col items-center py-3 px-4 ${isActive('/workouts') ? 'text-client' : 'text-gray-500'}`}
+            >
+              <Dumbbell className="h-5 w-5" />
+              <span className="text-xs mt-1">Workouts</span>
+            </Link>
+            
+            <Link 
+              to="/client-dashboard/moai" 
+              className={`flex flex-col items-center py-3 px-4 ${isActive('/moai') ? 'text-client' : 'text-gray-500'}`}
+            >
+              <Users className="h-5 w-5" />
+              <span className="text-xs mt-1">Your Moai</span>
+            </Link>
+            
+            <Link 
+              to="/client-dashboard/leaderboard" 
+              className={`flex flex-col items-center py-3 px-4 ${isActive('/leaderboard') ? 'text-client' : 'text-gray-500'}`}
+            >
+              <Trophy className="h-5 w-5" />
+              <span className="text-xs mt-1">Leaderboard</span>
+            </Link>
+            
+            <Link 
+              to="/client-dashboard/settings" 
+              className={`flex flex-col items-center py-3 px-4 ${isActive('/settings') ? 'text-client' : 'text-gray-500'}`}
+            >
+              <Settings className="h-5 w-5" />
+              <span className="text-xs mt-1">Settings</span>
+            </Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
+  );
+};

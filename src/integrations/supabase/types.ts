@@ -175,6 +175,51 @@ export type Database = {
         }
         Relationships: []
       }
+      personal_records: {
+        Row: {
+          achieved_at: string
+          exercise_id: string
+          id: string
+          reps: number
+          user_id: string
+          weight: number
+          workout_completion_id: string | null
+        }
+        Insert: {
+          achieved_at?: string
+          exercise_id: string
+          id?: string
+          reps: number
+          user_id: string
+          weight: number
+          workout_completion_id?: string | null
+        }
+        Update: {
+          achieved_at?: string
+          exercise_id?: string
+          id?: string
+          reps?: number
+          user_id?: string
+          weight?: number
+          workout_completion_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_records_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_records_workout_completion_id_fkey"
+            columns: ["workout_completion_id"]
+            isOneToOne: false
+            referencedRelation: "workout_completions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -346,6 +391,54 @@ export type Database = {
           weeks?: number
         }
         Relationships: []
+      }
+      workout_set_completions: {
+        Row: {
+          completed: boolean
+          created_at: string
+          id: string
+          reps_completed: number | null
+          set_number: number
+          weight: number | null
+          workout_completion_id: string
+          workout_exercise_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          reps_completed?: number | null
+          set_number: number
+          weight?: number | null
+          workout_completion_id: string
+          workout_exercise_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          reps_completed?: number | null
+          set_number?: number
+          weight?: number | null
+          workout_completion_id?: string
+          workout_exercise_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_set_completions_workout_completion_id_fkey"
+            columns: ["workout_completion_id"]
+            isOneToOne: false
+            referencedRelation: "workout_completions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_set_completions_workout_exercise_id_fkey"
+            columns: ["workout_exercise_id"]
+            isOneToOne: false
+            referencedRelation: "workout_exercises"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workout_weeks: {
         Row: {

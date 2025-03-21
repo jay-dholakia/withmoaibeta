@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,11 +29,10 @@ import CoachClientsPage from "./pages/coach/ClientsPage";
 import ProfilePage from "./pages/coach/ProfilePage";
 import LeaderboardPage from './pages/coach/LeaderboardPage';
 import ProfileBuilder from './pages/client/ProfileBuilder';
+import ClientDashboard from './pages/client/ClientDashboard';
 import { useQuery } from "@tanstack/react-query";
 import { fetchClientProfile } from "./services/client-service";
 import { Loader2 } from "lucide-react";
-
-const ClientDashboard = () => <div>Client Dashboard</div>;
 
 const ClientProtectedRoute = ({ children, redirectTo = "/client" }) => {
   const { user, userType, loading } = useAuth();
@@ -96,6 +96,7 @@ function App() {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/admin-setup" element={<AdminSetup />} />
                 
+                {/* Admin routes */}
                 <Route 
                   path="/admin-dashboard" 
                   element={
@@ -145,6 +146,7 @@ function App() {
                   } 
                 />
                 
+                {/* Coach routes */}
                 <Route 
                   path="/coach-dashboard" 
                   element={
@@ -210,6 +212,7 @@ function App() {
                   } 
                 />
                 
+                {/* Client routes */}
                 <Route 
                   path="/client-profile-builder" 
                   element={
@@ -220,7 +223,7 @@ function App() {
                 />
                 
                 <Route 
-                  path="/client-dashboard" 
+                  path="/client-dashboard/*" 
                   element={
                     <ClientProtectedRoute redirectTo="/client">
                       <ClientDashboard />

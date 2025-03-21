@@ -42,7 +42,31 @@ export interface ClientProfile {
   updated_at: string;
 }
 
-// Fetch all clients that the coach has access to
+export interface WorkoutSetCompletion {
+  id: string;
+  workout_completion_id: string;
+  workout_exercise_id: string;
+  set_number: number;
+  weight: number | null;
+  reps_completed: number | null;
+  completed: boolean;
+  created_at: string;
+}
+
+export interface PersonalRecord {
+  id: string;
+  user_id: string;
+  exercise_id: string;
+  weight: number;
+  reps: number;
+  achieved_at: string;
+  workout_completion_id: string | null;
+  exercise?: {
+    name: string;
+    category: string;
+  };
+}
+
 export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> => {
   const { data, error } = await supabase
     .rpc('get_coach_clients', { coach_id: coachId });
@@ -55,7 +79,6 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
   return data || [];
 };
 
-// Fetch all groups the coach is assigned to
 export const fetchCoachGroups = async (coachId: string): Promise<GroupData[]> => {
   const { data: groupCoaches, error: groupCoachesError } = await supabase
     .from('group_coaches')
@@ -66,7 +89,6 @@ export const fetchCoachGroups = async (coachId: string): Promise<GroupData[]> =>
   
   if (groupCoaches.length === 0) return [];
   
-  // Get the actual group details
   const { data: groups, error: groupsError } = await supabase
     .from('groups')
     .select('*')
@@ -77,7 +99,6 @@ export const fetchCoachGroups = async (coachId: string): Promise<GroupData[]> =>
   return groups || [];
 };
 
-// Fetch workout completion history for a client
 export const fetchClientWorkoutHistory = async (clientId: string): Promise<any[]> => {
   const { data, error } = await supabase
     .from('workout_completions')
@@ -102,7 +123,6 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<any[]
   return data || [];
 };
 
-// Fetch client's assigned workout programs
 export const fetchClientPrograms = async (clientId: string): Promise<any[]> => {
   const { data, error } = await supabase
     .from('program_assignments')
@@ -121,9 +141,7 @@ export const fetchClientPrograms = async (clientId: string): Promise<any[]> => {
   return data || [];
 };
 
-// Fetch coach profile
 export const fetchCoachProfile = async (coachId: string): Promise<CoachProfile | null> => {
-  // Using a raw query is a workaround since supabase.from('coach_profiles') doesn't work with TypeScript
   const { data, error } = await supabase
     .from('coach_profiles')
     .select('id, bio, avatar_url, favorite_movements')
@@ -138,9 +156,7 @@ export const fetchCoachProfile = async (coachId: string): Promise<CoachProfile |
   return data as CoachProfile | null;
 };
 
-// Update coach profile
 export const updateCoachProfile = async (coachId: string, profile: Partial<CoachProfile>): Promise<CoachProfile> => {
-  // Using a raw query as a workaround
   const { data, error } = await supabase
     .from('coach_profiles')
     .upsert({ 
@@ -161,7 +177,6 @@ export const updateCoachProfile = async (coachId: string, profile: Partial<Coach
   return data as CoachProfile;
 };
 
-// Upload coach avatar
 export const uploadCoachAvatar = async (coachId: string, file: File): Promise<string> => {
   const fileExt = file.name.split('.').pop();
   const fileName = `${coachId}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
@@ -186,7 +201,6 @@ export const uploadCoachAvatar = async (coachId: string, file: File): Promise<st
   return data.publicUrl;
 };
 
-// Fetch all groups for leaderboard (not just the ones the coach is assigned to)
 export const fetchAllGroups = async (): Promise<GroupData[]> => {
   const { data: groups, error } = await supabase
     .from('groups')
@@ -201,7 +215,6 @@ export const fetchAllGroups = async (): Promise<GroupData[]> => {
   return groups || [];
 };
 
-// New function to fetch group workout leaderboard data
 export interface LeaderboardEntry {
   user_id: string;
   email: string;
@@ -246,9 +259,7 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<Lea
   return data as LeaderboardEntry[] || [];
 };
 
-// Client profile functions
 export const fetchClientProfile = async (clientId: string): Promise<ClientProfile | null> => {
-  // Type assertion to any to work around TypeScript limitations
   const { data, error } = await (supabase
     .from('client_profiles' as any)
     .select('*')
@@ -264,7 +275,6 @@ export const fetchClientProfile = async (clientId: string): Promise<ClientProfil
 };
 
 export const updateClientProfile = async (clientId: string, profile: Partial<ClientProfile>): Promise<ClientProfile> => {
-  // Type assertion to any to work around TypeScript limitations
   const { data, error } = await (supabase
     .from('client_profiles' as any)
     .update({ 
@@ -306,3 +316,297 @@ export const uploadClientAvatar = async (clientId: string, file: File): Promise<
   return data.publicUrl;
 };
 
+export const startWorkout = async (userId: string, workoutId: string): Promise<string> => {
+  const { data, error } = await supabase
+    .from('workout_completions')
+    .insert({
+      user_id: userId,
+      workout_id: workoutId,
+      completed_at: new Date().toISOString()
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error starting workout:', error);
+    throw error;
+  }
+
+  return data.id;
+};
+
+export const fetchOngoingWorkout = async (userId: string): Promise<any | null> => {
+  const oneDayAgo = new Date();
+  oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+  const { data: completions, error: completionsError } = await supabase
+    .from('workout_completions')
+    .select(`
+      *,
+      workout:workout_id (
+        *,
+        workout_exercises:workout_exercises (
+          *,
+          exercise:exercise_id (*)
+        )
+      ),
+      workout_set_completions (*)
+    `)
+    .eq('user_id', userId)
+    .gte('completed_at', oneDayAgo.toISOString())
+    .order('completed_at', { ascending: false })
+    .limit(5);
+
+  if (completionsError) {
+    console.error('Error fetching ongoing workout:', completionsError);
+    throw completionsError;
+  }
+
+  if (!completions || completions.length === 0) {
+    return null;
+  }
+
+  for (const completion of completions) {
+    const exercises = completion.workout.workout_exercises;
+    const totalSets = exercises.reduce((acc: number, ex: any) => acc + ex.sets, 0);
+    const completedSets = completion.workout_set_completions.filter((set: any) => set.completed).length;
+
+    if (completedSets < totalSets) {
+      return completion;
+    }
+  }
+
+  return null;
+};
+
+export const trackWorkoutSet = async (
+  workoutCompletionId: string,
+  workoutExerciseId: string,
+  userId: string,
+  setNumber: number,
+  weight: number | null,
+  repsCompleted: number | null
+): Promise<WorkoutSetCompletion> => {
+  const { data: existingSets, error: existingSetsError } = await supabase
+    .from('workout_set_completions')
+    .select('*')
+    .eq('workout_completion_id', workoutCompletionId)
+    .eq('workout_exercise_id', workoutExerciseId)
+    .eq('set_number', setNumber);
+
+  if (existingSetsError) {
+    console.error('Error checking for existing set:', existingSetsError);
+    throw existingSetsError;
+  }
+
+  if (existingSets && existingSets.length > 0) {
+    const { data, error } = await supabase
+      .from('workout_set_completions')
+      .update({
+        weight,
+        reps_completed: repsCompleted,
+        completed: true
+      })
+      .eq('id', existingSets[0].id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating workout set:', error);
+      throw error;
+    }
+
+    return data as WorkoutSetCompletion;
+  } else {
+    const { data, error } = await supabase
+      .from('workout_set_completions')
+      .insert({
+        workout_completion_id: workoutCompletionId,
+        workout_exercise_id: workoutExerciseId,
+        set_number: setNumber,
+        weight,
+        reps_completed: repsCompleted,
+        completed: true,
+        user_id: userId
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating workout set:', error);
+      throw error;
+    }
+
+    return data as WorkoutSetCompletion;
+  }
+};
+
+export const completeWorkout = async (
+  workoutCompletionId: string,
+  rating: number | null,
+  notes: string | null
+): Promise<void> => {
+  const { error } = await supabase
+    .from('workout_completions')
+    .update({
+      rating,
+      notes,
+      completed_at: new Date().toISOString()
+    })
+    .eq('id', workoutCompletionId);
+
+  if (error) {
+    console.error('Error completing workout:', error);
+    throw error;
+  }
+};
+
+export const fetchPersonalRecords = async (userId: string): Promise<PersonalRecord[]> => {
+  const { data, error } = await supabase
+    .from('personal_records')
+    .select(`
+      *,
+      exercise:exercise_id (*)
+    `)
+    .eq('user_id', userId)
+    .order('achieved_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching personal records:', error);
+    throw error;
+  }
+
+  return data as PersonalRecord[];
+};
+
+export const fetchCurrentProgram = async (userId: string): Promise<any | null> => {
+  const { data, error } = await supabase
+    .from('program_assignments')
+    .select(`
+      *,
+      program:program_id (
+        *,
+        weeks:workout_weeks (
+          *,
+          workouts (
+            *,
+            workout_exercises (
+              *,
+              exercise:exercise_id (*)
+            )
+          )
+        )
+      )
+    `)
+    .eq('user_id', userId)
+    .lte('start_date', new Date().toISOString())
+    .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`)
+    .order('start_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching current program:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+export const fetchGroupWeeklyProgress = async (groupId: string): Promise<any> => {
+  const startOfWeek = new Date();
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Back to Sunday
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const { data: members, error: membersError } = await supabase
+    .from('group_members')
+    .select(`
+      user_id,
+      profiles!inner (
+        *
+      )
+    `)
+    .eq('group_id', groupId);
+
+  if (membersError) {
+    console.error('Error fetching group members:', membersError);
+    throw membersError;
+  }
+  
+  const memberProgress = [];
+  
+  for (const member of members) {
+    const { data: userData, error: userError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', member.user_id)
+      .maybeSingle();
+
+    if (userError) {
+      console.error('Error fetching user data:', userError);
+      continue;
+    }
+    
+    const { data: completions, error: completionsError } = await supabase
+      .from('workout_completions')
+      .select('*, workout:workout_id (*)')
+      .eq('user_id', member.user_id)
+      .gte('completed_at', startOfWeek.toISOString())
+      .order('completed_at', { ascending: true });
+      
+    if (completionsError) {
+      console.error('Error fetching completions:', completionsError);
+      continue;
+    }
+    
+    const { data: assignedWorkouts, error: assignedError } = await supabase
+      .rpc('get_user_weekly_assigned_workouts', { 
+        user_id_param: member.user_id,
+        start_date_param: startOfWeek.toISOString()
+      });
+      
+    if (assignedError) {
+      console.error('Error fetching assigned workouts:', assignedError);
+      continue;
+    }
+    
+    const weekData = Array(7).fill(null);
+    
+    for (const completion of completions) {
+      const date = new Date(completion.completed_at);
+      const dayOfWeek = date.getDay();
+      
+      weekData[dayOfWeek] = {
+        completed: true,
+        workoutId: completion.workout_id,
+        workoutTitle: completion.workout?.title || 'Workout',
+        completionId: completion.id
+      };
+    }
+    
+    memberProgress.push({
+      userId: member.user_id,
+      email: await getUserEmail(member.user_id),
+      weekData,
+      totalAssigned: assignedWorkouts?.length || 0,
+      totalCompleted: completions.length
+    });
+  }
+  
+  return {
+    members: memberProgress,
+    startOfWeek: startOfWeek.toISOString()
+  };
+};
+
+const getUserEmail = async (userId: string): Promise<string> => {
+  const { data, error } = await supabase
+    .rpc('get_user_email', { user_id_param: userId });
+    
+  if (error) {
+    console.error('Error fetching user email:', error);
+    return `user_${userId.substring(0, 8)}`;
+  }
+  
+  return data || `user_${userId.substring(0, 8)}`;
+};

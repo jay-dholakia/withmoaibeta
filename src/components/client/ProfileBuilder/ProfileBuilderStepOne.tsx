@@ -185,7 +185,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
             id="height" 
             value={height} 
             onChange={(e) => setHeight(e.target.value)} 
-            placeholder="e.g. 5'10\""
+            placeholder="e.g. 5'10&quot;"
           />
         </div>
         

@@ -37,113 +37,66 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     return null;
   }
   
-  // Format today's date in ISO format (YYYY-MM-DD)
-  const today = new Date();
-  const todayISODate = today.toISOString().split('T')[0];
-  console.log("Today's date for comparison:", todayISODate);
-  
   try {
-    // First, check if we can identify the user by email if we have a userId
-    let userEmail = null;
-    if (userId) {
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', userId)
-        .single();
-      
-      if (userData) {
-        const { data: authUserData } = await supabase.auth.admin.getUserById(userId);
-        if (authUserData && authUserData.user) {
-          userEmail = authUserData.user.email;
-          console.log("Found user email:", userEmail);
-        }
-      }
-    }
+    // Get user email for better logging
+    const { data: authData } = await supabase.auth.getUser();
+    const userEmail = authData?.user?.email;
+    console.log(`Looking up program for user ${userId}${userEmail ? ` (${userEmail})` : ''}`);
     
-    // Get program assignments for this user
+    // Get all program assignments for this user
     const { data: assignments, error: assignmentsError } = await supabase
       .from('program_assignments')
       .select('*')
-      .eq('user_id', userId);
-    
-    console.log(`All program assignments for user ${userId}${userEmail ? ` (${userEmail})` : ''}:`, assignments);
+      .eq('user_id', userId)
+      .order('start_date', { ascending: false });
     
     if (assignmentsError) {
       console.error('Error fetching program assignments:', assignmentsError);
       throw assignmentsError;
     }
     
+    console.log(`Found ${assignments?.length || 0} program assignments for user ${userId}`);
+    
     if (!assignments || assignments.length === 0) {
-      console.log(`No program assignments found for user ${userId}${userEmail ? ` (${userEmail})` : ''}`);
+      console.log(`No program assignments found for user ${userId}`);
       return null;
     }
     
-    // Log details about each assignment for debugging
-    assignments.forEach((assignment, index) => {
-      console.log(`Assignment ${index + 1}:`, {
-        id: assignment.id,
-        program_id: assignment.program_id,
-        start_date: assignment.start_date,
-        end_date: assignment.end_date || "No end date (ongoing)"
-      });
-    });
+    // Get current date in YYYY-MM-DD format for comparison
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    console.log("Today's date for comparison:", todayStr);
     
-    // Filter active assignments in JavaScript for better control and debugging
-    let activeAssignments = assignments.filter(assignment => {
-      // Make sure start_date is a string in YYYY-MM-DD format
-      let startDate = assignment.start_date;
-      if (typeof startDate !== 'string') {
-        startDate = new Date(startDate).toISOString().split('T')[0];
-      }
+    // Find active program assignments (start date is in the past or today, and end date is in the future or null)
+    const activeAssignments = assignments.filter(assignment => {
+      const startDate = new Date(assignment.start_date);
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const isStartValid = startDateStr <= todayStr;
       
-      // Check if start_date is today or in the past
-      const isStartValid = startDate <= todayISODate;
-      
-      // For end_date, if it's null, treat as valid (program doesn't expire)
-      // If it has a value, make sure it's in future or today
       let isEndValid = true;
       if (assignment.end_date) {
-        let endDate = assignment.end_date;
-        if (typeof endDate !== 'string') {
-          endDate = new Date(endDate).toISOString().split('T')[0];
-        }
-        isEndValid = endDate >= todayISODate;
+        const endDate = new Date(assignment.end_date);
+        const endDateStr = endDate.toISOString().split('T')[0];
+        isEndValid = endDateStr >= todayStr;
       }
       
-      console.log(`Assignment ${assignment.id}: start=${startDate} (valid=${isStartValid}), end=${assignment.end_date} (valid=${isEndValid})`);
+      console.log(`Assignment ${assignment.id}: start=${startDateStr} (valid=${isStartValid}), end=${assignment.end_date || 'ongoing'} (valid=${isEndValid})`);
       
       return isStartValid && isEndValid;
     });
     
-    console.log("Active program assignments after filtering:", activeAssignments.length, activeAssignments);
+    console.log(`Found ${activeAssignments.length} active assignments`);
     
-    if (activeAssignments.length === 0) {
-      console.log("No active program assignments found for user after filtering");
-      
-      // If no active assignments but we have assignments, debug the issue
-      if (assignments.length > 0) {
-        console.log("Program was assigned but not active. Checking first assignment:");
-        const firstAssignment = assignments[0];
-        console.log("First assignment:", firstAssignment);
-        
-        // Use the most recent assignment regardless of dates as a fallback
-        console.log("IMPORTANT: Using most recent assignment as fallback since no active assignments found");
-        activeAssignments = [assignments[0]];
-      } else {
-        return null;
-      }
+    // If no active assignments, use the most recent assignment as a fallback
+    const currentAssignment = activeAssignments.length > 0 
+      ? activeAssignments[0] 
+      : assignments[0];  // Most recent assignment (already sorted by start_date desc)
+    
+    if (activeAssignments.length === 0 && assignments.length > 0) {
+      console.log("No active assignments found. Using most recent assignment as fallback:", currentAssignment.id);
+    } else {
+      console.log("Using active assignment:", currentAssignment.id);
     }
-    
-    // Sort by start date (newest first) and take the most recent one
-    activeAssignments.sort((a, b) => {
-      const dateA = new Date(a.start_date).getTime();
-      const dateB = new Date(b.start_date).getTime();
-      return dateB - dateA;
-    });
-    
-    const currentAssignment = activeAssignments[0];
-    console.log("Using program assignment:", currentAssignment);
     
     const programId = currentAssignment.program_id;
     
@@ -152,7 +105,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       return null;
     }
     
-    // Get the program details
+    // Fetch the complete program data with weeks and workouts
     const { data: programData, error: programError } = await supabase
       .from('workout_programs')
       .select('*')
@@ -164,18 +117,18 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       throw programError;
     }
     
-    console.log("Program data fetched:", programData);
-    
     if (!programData) {
       console.log("No program details found for program ID:", programId);
       return null;
     }
     
+    console.log("Found program:", programData.title);
+    
     // Get the program weeks
     const { data: weeksData, error: weeksError } = await supabase
       .from('workout_weeks')
       .select('*')
-      .eq('program_id', programData.id)
+      .eq('program_id', programId)
       .order('week_number', { ascending: true });
     
     if (weeksError) {
@@ -183,11 +136,11 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       throw weeksError;
     }
     
-    console.log("Program weeks fetched:", weeksData?.length || 0, weeksData);
+    console.log(`Found ${weeksData?.length || 0} weeks for program`);
     
+    // For each week, get the workouts with exercises
     const weeksWithWorkouts = [];
     
-    // For each week, get the workouts
     for (const week of weeksData || []) {
       const { data: workoutsData, error: workoutsError } = await supabase
         .from('workouts')
@@ -206,7 +159,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
         continue;
       }
       
-      console.log(`Week ${week.week_number} workouts:`, workoutsData?.length || 0, workoutsData);
+      console.log(`Week ${week.week_number}: Found ${workoutsData?.length || 0} workouts`);
       
       weeksWithWorkouts.push({
         ...week,
@@ -223,7 +176,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       }
     };
     
-    console.log("Full program data constructed:", 
+    console.log("Successfully built program data:", 
       fullProgramData.program.title, 
       "with", fullProgramData.program.weeks.length, "weeks"
     );

@@ -506,42 +506,29 @@ export const fetchPersonalRecords = async (userId: string): Promise<any[]> => {
 
 export const fetchClientWorkoutHistory = async (clientId: string): Promise<any[]> => {
   try {
-    // First, fetch basic workout completion data without excessive nesting
+    // Use a simpler query that doesn't cause TypeScript's type instantiation to go too deep
     const { data, error } = await supabase
       .from('workout_completions')
-      .select(`
-        id,
-        completed_at,
-        notes,
-        rating,
-        user_id,
-        workout_id
-      `)
+      .select('id, completed_at, notes, rating, user_id, workout_id')
       .eq('user_id', clientId)
       .order('completed_at', { ascending: false });
     
     if (error) throw error;
     
-    // If we have completion data, fetch the related workouts
+    // If we have completion data, fetch the related workouts separately
     if (data && data.length > 0) {
       const workoutIds = data.map(completion => completion.workout_id);
       
       const { data: workoutsData, error: workoutsError } = await supabase
         .from('workouts')
-        .select(`
-          id,
-          title,
-          description,
-          day_of_week,
-          week_id
-        `)
+        .select('id, title, description, day_of_week, week_id')
         .in('id', workoutIds);
       
       if (workoutsError) throw workoutsError;
       
       // Combine the workout data with the completion data
       return data.map(completion => {
-        const workout = workoutsData?.find(w => w.id === completion.workout_id) || null;
+        const workout = workoutsData ? workoutsData.find(w => w.id === completion.workout_id) : null;
         return {
           ...completion,
           workout

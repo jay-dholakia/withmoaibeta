@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import AuthLayout from '@/layouts/AuthLayout';
+import { AuthLayout } from '@/layouts/AuthLayout';
 
 const ResetPassword: React.FC = () => {
   const [password, setPassword] = useState('');
@@ -16,11 +15,9 @@ const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Get the type from the URL to determine which portal to return to
   const userType = searchParams.get('type') || 'client';
   
   useEffect(() => {
-    // Check if we have a valid hash in the URL (this means user came from a password reset email)
     const hash = window.location.hash;
     if (!hash || !hash.includes('type=recovery')) {
       toast.error('Invalid or expired password reset link');
@@ -58,7 +55,6 @@ const ResetPassword: React.FC = () => {
       setSuccess(true);
       toast.success('Password updated successfully');
       
-      // Redirect after a delay
       setTimeout(() => {
         navigate(`/${userType}`);
       }, 3000);

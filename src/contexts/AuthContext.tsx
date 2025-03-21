@@ -36,40 +36,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log("Setting up auth state listener...");
+    let isMounted = true;
+    
+    // This function ensures we only update state if the component is still mounted
+    const safeSetState = (callback: () => void) => {
+      if (isMounted) callback();
+    };
     
     // Set up the auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
+        
+        safeSetState(() => {
+          setSession(session);
+          setUser(session?.user ?? null);
+        });
         
         if (session?.user) {
           await fetchUserProfile(session.user.id);
         } else {
-          setProfile(null);
-          setUserType(null);
-          setLoading(false);
+          safeSetState(() => {
+            setProfile(null);
+            setUserType(null);
+            setLoading(false);
+          });
         }
       }
     );
 
     // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.id);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserProfile(session.user.id);
-      } else {
-        // Make sure to reset loading if there's no session
-        setLoading(false);
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Initial session check:', session?.user?.id);
+        
+        safeSetState(() => {
+          setSession(session);
+          setUser(session?.user ?? null);
+        });
+        
+        if (session?.user) {
+          await fetchUserProfile(session.user.id);
+        } else {
+          safeSetState(() => setLoading(false));
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+        safeSetState(() => setLoading(false));
       }
-    });
+    };
+
+    checkSession();
 
     return () => {
       console.log("Cleaning up auth subscription");
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -96,6 +118,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Profile loaded:', data);
         setProfile(data as Profile);
         setUserType(data.user_type as UserType);
+      } else {
+        console.warn('No profile found for user:', userId);
       }
       
       setLoading(false);
@@ -123,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success('Sign in successful!');
       
       // Note: AuthStateChange will handle loading user profile
-      // but we need to make sure loading gets reset if there's an issue
+      // Explicitly verify if we got user data and if not, reset loading
       if (!data.user) {
         console.error('No user data returned from sign in');
         toast.error('Sign in failed - no user data returned');
@@ -168,6 +192,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setUserType(null);
       navigate('/');
       toast.success('Logged out successfully');
       setLoading(false);

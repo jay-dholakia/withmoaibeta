@@ -2,47 +2,64 @@
 import React, { useEffect, useState } from 'react';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { LoginForm } from '../components/LoginForm';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const AdminLogin = () => {
-  const { user, userType, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { user, userType, loading: authLoading } = useAuth();
   const [localLoading, setLocalLoading] = useState(false);
+  const [hasAttemptedRedirect, setHasAttemptedRedirect] = useState(false);
 
   console.log('AdminLogin rendering with:', {
     userId: user?.id,
     userType,
     authLoading,
     localLoading,
+    hasAttemptedRedirect,
     pathname: window.location.pathname
   });
 
   useEffect(() => {
-    console.log('AdminLogin useEffect - Auth state:', {
+    // Reset the redirect attempt tracking when auth state changes
+    if (authLoading) {
+      setHasAttemptedRedirect(false);
+    }
+  }, [authLoading]);
+
+  useEffect(() => {
+    console.log('AdminLogin redirect effect - Auth state:', {
       userId: user?.id,
       userType,
       authLoading,
-      localLoading
+      localLoading,
+      hasAttemptedRedirect
     });
     
-    // Only redirect when we have a valid admin user and auth is fully loaded
-    if (user && userType === 'admin' && !authLoading) {
-      console.log('Admin user detected, navigating to dashboard immediately');
-      navigate('/admin-dashboard');
-    } 
-    // Handle case where user is logged in but not as admin
-    else if (user && userType !== 'admin' && !authLoading) {
-      console.log('User logged in as non-admin:', userType);
-      toast.error('You are logged in but not as an admin. Please log in with an admin account.');
+    // Only attempt to redirect when we have auth state and haven't tried yet
+    if (!authLoading && !hasAttemptedRedirect) {
+      setHasAttemptedRedirect(true);
+      
+      // User is logged in as admin, redirect to dashboard
+      if (user && userType === 'admin') {
+        console.log('Admin user detected, navigating to dashboard');
+        navigate('/admin-dashboard');
+      } 
+      // User is logged in but not as admin
+      else if (user && userType !== 'admin') {
+        console.log('User logged in as non-admin:', userType);
+        toast.error('You are logged in but not as an admin. Please log in with an admin account.');
+      }
+      // User is not logged in at all - just stay on the login page
     }
-  }, [user, userType, authLoading, navigate, localLoading]);
+  }, [user, userType, authLoading, navigate, hasAttemptedRedirect]);
 
-  // Combined loading state - show loading when either auth is loading or we're in local transition
-  if (authLoading || localLoading) {
+  // Show loading indicator when either auth is loading or we're in local transition
+  const isLoading = authLoading || localLoading;
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

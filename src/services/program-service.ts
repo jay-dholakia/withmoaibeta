@@ -42,33 +42,77 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
   console.log("Today's date for comparison:", todayISODate);
   
   try {
-    const { data: assignments, error: assignmentError } = await supabase
-      .from('program_assignments')
-      .select('*')
+    // First check client_workout_info table for current_program_id
+    const { data: workoutInfo, error: workoutInfoError } = await supabase
+      .from('client_workout_info')
+      .select('current_program_id')
       .eq('user_id', userId)
-      .lte('start_date', todayISODate)
-      .or(`end_date.is.null,end_date.gte.${todayISODate}`)
-      .order('start_date', { ascending: false });
+      .single();
       
-    if (assignmentError) {
-      console.error('Error fetching program assignments:', assignmentError);
-      throw assignmentError;
+    if (workoutInfoError && workoutInfoError.code !== 'PGRST116') {
+      console.error('Error fetching workout info:', workoutInfoError);
     }
     
-    console.log("Program assignments found:", assignments?.length || 0, assignments);
+    let programId = workoutInfo?.current_program_id;
+    console.log("Program ID from workout info:", programId);
     
-    if (!assignments || assignments.length === 0) {
-      console.log("No active program assignments found for user", userId);
+    // If no program ID found in workout info, check program assignments
+    if (!programId) {
+      const { data: assignments, error: assignmentError } = await supabase
+        .from('program_assignments')
+        .select('*')
+        .eq('user_id', userId)
+        .lte('start_date', todayISODate)
+        .or(`end_date.is.null,end_date.gte.${todayISODate}`)
+        .order('start_date', { ascending: false });
+        
+      if (assignmentError) {
+        console.error('Error fetching program assignments:', assignmentError);
+        throw assignmentError;
+      }
+      
+      console.log("Program assignments found:", assignments?.length || 0, assignments);
+      
+      if (!assignments || assignments.length === 0) {
+        console.log("No active program assignments found for user", userId);
+        return null;
+      }
+      
+      const currentAssignment = assignments[0];
+      console.log("Using program assignment:", currentAssignment);
+      programId = currentAssignment.program_id;
+    }
+    
+    if (!programId) {
+      console.log("No program ID found for user");
       return null;
     }
     
-    const currentAssignment = assignments[0];
-    console.log("Using program assignment:", currentAssignment);
+    // Get the program assignment details
+    const { data: assignmentData, error: assignmentQueryError } = await supabase
+      .from('program_assignments')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('program_id', programId)
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .single();
+      
+    if (assignmentQueryError && assignmentQueryError.code !== 'PGRST116') {
+      console.error('Error fetching program assignment:', assignmentQueryError);
+    }
+    
+    const currentAssignment = assignmentData || {
+      program_id: programId,
+      user_id: userId,
+      start_date: todayISODate,
+      end_date: null
+    };
     
     const { data: programData, error: programError } = await supabase
       .from('workout_programs')
       .select('*')
-      .eq('id', currentAssignment.program_id)
+      .eq('id', programId)
       .single();
       
     if (programError) {
@@ -136,6 +180,16 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       fullProgramData.program.title, 
       "with", fullProgramData.program.weeks.length, "weeks"
     );
+    
+    // Ensure client_workout_info has this program marked as current
+    await supabase
+      .from('client_workout_info')
+      .upsert({
+        user_id: userId,
+        current_program_id: programId
+      }, {
+        onConflict: 'user_id'
+      });
     
     return fullProgramData;
   } catch (err) {

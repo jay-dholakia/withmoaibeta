@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -50,6 +51,9 @@ const WorkoutProgramDetailPage = () => {
   const [isEditingWeek, setIsEditingWeek] = useState<string | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Add the missing state variable for editing workouts
+  const [isEditingWorkout, setIsEditingWorkout] = useState<string | null>(null);
   
   const [openDialogId, setOpenDialogId] = useState<string | null>(null);
   const [isNewWorkoutDialogOpen, setIsNewWorkoutDialogOpen] = useState(false);

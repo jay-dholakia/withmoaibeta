@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
@@ -36,31 +35,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log("Setting up auth state listener...");
-    let isMounted = true;
     
-    // This function ensures we only update state if the component is still mounted
-    const safeSetState = (callback: () => void) => {
-      if (isMounted) callback();
-    };
+    // Immediately set an initializing timeout to ensure the loading state doesn't get stuck
+    const loadingTimeout = setTimeout(() => {
+      console.log("Auth loading timeout triggered - resetting loading state");
+      setLoading(false);
+    }, 5000); // Fail-safe: reset loading after 5 seconds if nothing happens
     
-    // Set up the auth state listener first
+    // Set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
         
-        safeSetState(() => {
-          setSession(session);
-          setUser(session?.user ?? null);
-        });
+        // Clear the timeout since we received an auth event
+        clearTimeout(loadingTimeout);
+        
+        setSession(session);
+        setUser(session?.user ?? null);
         
         if (session?.user) {
           await fetchUserProfile(session.user.id);
         } else {
-          safeSetState(() => {
-            setProfile(null);
-            setUserType(null);
-            setLoading(false);
-          });
+          setProfile(null);
+          setUserType(null);
+          setLoading(false); // Always ensure loading is reset when there's no user
         }
       }
     );
@@ -71,19 +69,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session } } = await supabase.auth.getSession();
         console.log('Initial session check:', session?.user?.id);
         
-        safeSetState(() => {
-          setSession(session);
-          setUser(session?.user ?? null);
-        });
+        setSession(session);
+        setUser(session?.user ?? null);
         
         if (session?.user) {
           await fetchUserProfile(session.user.id);
         } else {
-          safeSetState(() => setLoading(false));
+          setLoading(false); // Always ensure loading is reset when there's no user
         }
       } catch (error) {
         console.error('Error checking session:', error);
-        safeSetState(() => setLoading(false));
+        setLoading(false); // Always ensure loading is reset on error
       }
     };
 
@@ -91,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       console.log("Cleaning up auth subscription");
-      isMounted = false;
+      clearTimeout(loadingTimeout); // Clear timeout on cleanup
       subscription.unsubscribe();
     };
   }, []);
@@ -99,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserProfile = async (userId: string) => {
     try {
       console.log('Fetching profile for user:', userId);
-      setLoading(true);
+      // Don't set loading to true here as it may already be true
       
       const { data, error } = await supabase
         .from('profiles')
@@ -110,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Error fetching user profile:', error);
         toast.error('Error fetching user profile');
-        setLoading(false);
+        setLoading(false); // Always reset loading on error
         return;
       }
 
@@ -122,10 +118,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('No profile found for user:', userId);
       }
       
-      setLoading(false);
+      setLoading(false); // Always reset loading after profile fetch attempt
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
-      setLoading(false);
+      setLoading(false); // Always reset loading on error
     }
   };
 
@@ -139,24 +135,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Sign in error:', error.message);
         toast.error(error.message);
-        setLoading(false);
+        setLoading(false); // Explicit reset on error
         return;
       }
       
       console.log('Sign in successful, user ID:', data.user?.id);
       toast.success('Sign in successful!');
       
-      // Note: AuthStateChange will handle loading user profile
-      // Explicitly verify if we got user data and if not, reset loading
-      if (!data.user) {
-        console.error('No user data returned from sign in');
-        toast.error('Sign in failed - no user data returned');
+      // We don't need to explicitly set loading to false here as fetchUserProfile will handle that
+      // or the auth state listener will do it 
+      
+      // But as a fallback, ensure loading is reset after a reasonable time
+      setTimeout(() => {
         setLoading(false);
-      }
+      }, 2000);
     } catch (error) {
       console.error('Error in signIn:', error);
       toast.error('An unexpected error occurred');
-      setLoading(false);
+      setLoading(false); // Always reset loading on error
     }
   };
 
@@ -192,17 +188,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       await supabase.auth.signOut();
+      
+      // Reset all auth state immediately rather than waiting for the listener
       setSession(null);
       setUser(null);
       setProfile(null);
       setUserType(null);
+      
       navigate('/');
       toast.success('Logged out successfully');
+      
       setLoading(false);
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('An error occurred while logging out');
-      setLoading(false);
+      setLoading(false); // Always reset loading on error
     }
   };
 

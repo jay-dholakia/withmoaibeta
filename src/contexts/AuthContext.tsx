@@ -38,6 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up the auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -52,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -67,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -75,10 +78,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error fetching user profile:', error);
+        // Don't reset user state on profile fetch error
+        // Just log the error and continue
+        toast.error('Error fetching user profile');
         return;
       }
 
       if (data) {
+        console.log('Profile loaded:', data);
         setProfile(data as Profile);
         setUserType(data.user_type as UserType);
       }
@@ -98,30 +105,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data.user) {
-        // Fetch the user profile to check user type
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('user_type')
-          .eq('id', data.user.id)
-          .single();
-          
-        if (profileError) {
-          toast.error('Error fetching user profile');
-          // Sign out if we can't verify user type
-          await supabase.auth.signOut();
-          return;
-        }
+        // We'll wait for onAuthStateChange to fetch the profile and verify user type
+        console.log('Sign in successful:', data.user.id);
         
-        // Verify that the user is of the correct type
-        if (profileData && profileData.user_type !== userType) {
-          toast.error(`This account is not registered as a ${userType}. Please use the correct portal.`);
-          await supabase.auth.signOut();
-          return;
-        }
-        
-        // Redirect based on user type
-        navigate(`/${userType === 'admin' ? 'admin-dashboard' : userType === 'coach' ? 'coach-dashboard' : 'client-dashboard'}`);
-        toast.success(`${userType} login successful!`);
+        // Redirect based on user type after profile is verified in onAuthStateChange
+        setTimeout(() => {
+          if (userType === 'admin') {
+            navigate('/admin-dashboard');
+          } else if (userType === 'coach') {
+            navigate('/coach-dashboard');
+          } else {
+            navigate('/client-dashboard');
+          }
+          toast.success(`Sign in successful!`);
+        }, 500);
       }
     } catch (error) {
       console.error('Error in signIn:', error);

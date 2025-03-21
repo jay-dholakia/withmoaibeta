@@ -4,8 +4,22 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { LoginForm } from '../components/LoginForm';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 const AdminLogin = () => {
+  const { user, userType, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // If user is already logged in as admin, redirect to dashboard
+  useEffect(() => {
+    if (user && userType === 'admin' && !loading) {
+      console.log('Admin already logged in, redirecting to dashboard');
+      navigate('/admin-dashboard');
+    }
+  }, [user, userType, loading, navigate]);
+
   return (
     <AuthLayout
       title="Admin Login"

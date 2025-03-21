@@ -3,7 +3,7 @@ import React from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mail, Users, UserPlus } from 'lucide-react';
+import { Mail, Users, UserPlus, UserSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -39,6 +39,24 @@ const AdminDashboard: React.FC = () => {
             >
               <Mail className="w-4 h-4 mr-2" />
               View Invitations
+            </Button>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-l-4 border-l-violet-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl">Groups</CardTitle>
+            <CardDescription>
+              Manage client groups and coaches
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              className="w-full" 
+              onClick={() => navigate('/admin-dashboard/groups')}
+            >
+              <UserSquare className="w-4 h-4 mr-2" />
+              Manage Groups
             </Button>
           </CardContent>
         </Card>

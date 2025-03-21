@@ -15,6 +15,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import InvitationsPage from "./pages/admin/InvitationsPage";
 import ClientsPage from "./pages/admin/ClientsPage";
 import CoachesPage from "./pages/admin/CoachesPage";
+import GroupsPage from "./pages/admin/GroupsPage";
+import GroupDetailsPage from "./pages/admin/GroupDetailsPage";
 import RegisterPage from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
 import AdminSetup from "./pages/AdminSetup";
@@ -47,6 +49,8 @@ const App = () => (
               <Route path="/admin-dashboard/invitations" element={<InvitationsPage />} />
               <Route path="/admin-dashboard/clients" element={<ClientsPage />} />
               <Route path="/admin-dashboard/coaches" element={<CoachesPage />} />
+              <Route path="/admin-dashboard/groups" element={<GroupsPage />} />
+              <Route path="/admin-dashboard/groups/:groupId" element={<GroupDetailsPage />} />
               
               {/* Coach and Client Dashboard Routes */}
               <Route path="/coach-dashboard" element={<CoachDashboard />} />

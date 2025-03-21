@@ -3,7 +3,8 @@ import React, { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Users, Mail, UserPlus, LogOut, 
-  BarChart, Settings, ChevronDown
+  BarChart, Settings, ChevronDown, 
+  UserSquare, CircleDashed
 } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { Logo } from '@/components/Logo';
@@ -43,6 +44,11 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
       icon: <Mail className="w-5 h-5" />,
     },
     {
+      name: 'Groups',
+      path: '/admin-dashboard/groups',
+      icon: <UserSquare className="w-5 h-5" />,
+    },
+    {
       name: 'Clients',
       path: '/admin-dashboard/clients',
       icon: <Users className="w-5 h-5" />,
@@ -73,7 +79,7 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
               key={item.path}
               to={item.path}
               className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors
-                ${location.pathname === item.path 
+                ${location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
                   ? 'bg-admin/10 text-admin' 
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}

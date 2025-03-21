@@ -1,153 +1,159 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
+import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-  Table, TableBody, TableCell, 
-  TableHead, TableHeader, TableRow 
-} from '@/components/ui/table';
-import { Plus, Loader2, Search } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-interface ClientProfile {
+interface Client {
   id: string;
+  email: string;
   created_at: string;
-  user_type: string;
-  email?: string;
+  group_name: string | null;
 }
 
+const fetchClients = async (): Promise<Client[]> => {
+  // Fetch client profiles
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select(`
+      id,
+      created_at,
+      auth_users:id(email)
+    `)
+    .eq('user_type', 'client')
+    .order('created_at', { ascending: false });
+
+  if (profilesError) {
+    throw profilesError;
+  }
+
+  // Get all group memberships
+  const { data: groupMembers, error: groupMembersError } = await supabase
+    .from('group_members')
+    .select('user_id, group_id');
+
+  if (groupMembersError) {
+    throw groupMembersError;
+  }
+
+  // Create a map of user_id to group_id
+  const userGroupMap = groupMembers.reduce((map, item) => {
+    map[item.user_id] = item.group_id;
+    return map;
+  }, {} as Record<string, string>);
+
+  // Get all group names
+  const { data: groups, error: groupsError } = await supabase
+    .from('groups')
+    .select('id, name');
+
+  if (groupsError) {
+    throw groupsError;
+  }
+
+  // Create a map of group_id to group_name
+  const groupNameMap = groups.reduce((map, group) => {
+    map[group.id] = group.name;
+    return map;
+  }, {} as Record<string, string>);
+
+  // Transform profile data and add group info
+  return profiles.map(profile => ({
+    id: profile.id,
+    email: profile.auth_users?.email || 'Unknown email',
+    created_at: profile.created_at,
+    group_name: userGroupMap[profile.id] ? groupNameMap[userGroupMap[profile.id]] || null : null
+  }));
+};
+
 const ClientsPage: React.FC = () => {
-  const [searchTerm, setSearchTerm] = React.useState('');
+  const { userType } = useAuth();
   const navigate = useNavigate();
-  const { userType: currentUserType } = useAuth();
   
   // Redirect if not admin
-  React.useEffect(() => {
-    if (currentUserType !== 'admin') {
+  useEffect(() => {
+    if (userType !== 'admin') {
       navigate('/admin');
     }
-  }, [currentUserType, navigate]);
+  }, [userType, navigate]);
 
-  // Query to fetch all clients
-  const { data: clients, isLoading } = useQuery({
+  const { data: clients, isLoading, error, refetch } = useQuery({
     queryKey: ['clients'],
-    queryFn: async () => {
-      // First get all client profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_type', 'client');
-      
-      if (profilesError) throw profilesError;
-      
-      // Then get the user emails (in a real app, we'd use joins or RPC, but for simplicity we'll do it this way)
-      const clientsWithEmail = await Promise.all(
-        profiles.map(async (profile) => {
-          const { data: authUser, error: userError } = await supabase.auth.admin.getUserById(profile.id);
-          
-          if (userError || !authUser) {
-            console.error('Error fetching user details:', userError);
-            return { ...profile, email: 'Unknown' };
-          }
-          
-          return { ...profile, email: authUser.user.email };
-        })
-      );
-      
-      return clientsWithEmail as ClientProfile[];
-    },
-    enabled: currentUserType === 'admin'
+    queryFn: fetchClients,
   });
-  
-  // Filter clients based on search term
-  const filteredClients = React.useMemo(() => {
-    if (!clients) return [];
-    if (!searchTerm) return clients;
-    
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return clients.filter(client => 
-      client.email?.toLowerCase().includes(lowerSearchTerm) ||
-      client.id.toLowerCase().includes(lowerSearchTerm)
-    );
-  }, [clients, searchTerm]);
 
-  // Function to format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+  useEffect(() => {
+    if (error) {
+      console.error('Error fetching clients:', error);
+      toast.error('Failed to load clients');
+    }
+  }, [error]);
 
-  if (currentUserType !== 'admin') {
+  if (userType !== 'admin') {
     return null;
   }
 
   return (
-    <AdminDashboardLayout title="Manage Clients">
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="relative w-64">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search clients..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <Button 
-            onClick={() => navigate('/admin-dashboard/invitations')}
-            className="bg-client hover:bg-client/90"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Invite Client
+    <AdminDashboardLayout title="Clients">
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h2 className="text-muted-foreground text-sm">
+            Manage client accounts and group assignments
+          </h2>
+        </div>
+        <div>
+          <Button variant="outline" onClick={() => refetch()}>
+            Refresh
           </Button>
         </div>
-        
-        <div className="rounded-md border">
+      </div>
+
+      <Card>
+        <CardContent className="p-6">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Email</TableHead>
-                <TableHead>User ID</TableHead>
-                <TableHead>Registration Date</TableHead>
+                <TableHead>Group</TableHead>
+                <TableHead>Joined</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center py-10">
-                    <Loader2 className="w-6 h-6 mx-auto animate-spin" />
+                  <TableCell colSpan={3} className="text-center py-8">
+                    Loading clients...
                   </TableCell>
                 </TableRow>
-              ) : filteredClients.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
-                    {searchTerm ? 'No clients found matching your search' : 'No clients registered yet'}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredClients.map((client) => (
+              ) : clients && clients.length > 0 ? (
+                clients.map(client => (
                   <TableRow key={client.id}>
-                    <TableCell className="font-medium">{client.email}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {client.id}
+                    <TableCell>{client.email}</TableCell>
+                    <TableCell>
+                      {client.group_name || 'Not assigned to any group'}
                     </TableCell>
-                    <TableCell>{formatDate(client.created_at)}</TableCell>
+                    <TableCell>
+                      {new Date(client.created_at).toLocaleDateString()}
+                    </TableCell>
                   </TableRow>
                 ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center py-8">
+                    No clients found.
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </AdminDashboardLayout>
   );
 };

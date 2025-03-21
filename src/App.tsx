@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,11 +26,10 @@ import WorkoutProgramDetailPage from "./pages/coach/WorkoutProgramDetailPage";
 import ProgramAssignmentPage from "./pages/coach/ProgramAssignmentPage";
 import CoachClientsPage from "./pages/coach/ClientsPage";
 import ProfilePage from "./pages/coach/ProfilePage";
+import LeaderboardPage from './pages/coach/LeaderboardPage';
 
-// Placeholder Dashboard page for client
 const ClientDashboard = () => <div>Client Dashboard</div>;
 
-// Protected route component
 const ProtectedRoute = ({ children, userType, redirectTo = "/" }) => {
   const { user, userType: authUserType, loading } = useAuth();
   
@@ -48,147 +46,154 @@ const ProtectedRoute = ({ children, userType, redirectTo = "/" }) => {
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <AnimatePresence mode="wait">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/admin" element={<AdminLogin />} />
-              <Route path="/coach" element={<CoachLogin />} />
-              <Route path="/client" element={<ClientLogin />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/admin-setup" element={<AdminSetup />} />
-              
-              {/* Admin Dashboard Routes */}
-              <Route 
-                path="/admin-dashboard" 
-                element={
-                  <ProtectedRoute userType="admin" redirectTo="/admin">
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin-dashboard/invitations" 
-                element={
-                  <ProtectedRoute userType="admin" redirectTo="/admin">
-                    <InvitationsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin-dashboard/clients" 
-                element={
-                  <ProtectedRoute userType="admin" redirectTo="/admin">
-                    <ClientsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin-dashboard/coaches" 
-                element={
-                  <ProtectedRoute userType="admin" redirectTo="/admin">
-                    <CoachesPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin-dashboard/groups" 
-                element={
-                  <ProtectedRoute userType="admin" redirectTo="/admin">
-                    <GroupsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin-dashboard/groups/:groupId" 
-                element={
-                  <ProtectedRoute userType="admin" redirectTo="/admin">
-                    <GroupDetailsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Coach Dashboard Routes */}
-              <Route 
-                path="/coach-dashboard" 
-                element={
-                  <ProtectedRoute userType="coach" redirectTo="/coach">
-                    <CoachDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/coach-dashboard/workouts" 
-                element={
-                  <ProtectedRoute userType="coach" redirectTo="/coach">
-                    <WorkoutProgramsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/coach-dashboard/workouts/new" 
-                element={
-                  <ProtectedRoute userType="coach" redirectTo="/coach">
-                    <CreateWorkoutProgramPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/coach-dashboard/workouts/:programId" 
-                element={
-                  <ProtectedRoute userType="coach" redirectTo="/coach">
-                    <WorkoutProgramDetailPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/coach-dashboard/workouts/:programId/assign" 
-                element={
-                  <ProtectedRoute userType="coach" redirectTo="/coach">
-                    <ProgramAssignmentPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/coach-dashboard/clients" 
-                element={
-                  <ProtectedRoute userType="coach" redirectTo="/coach">
-                    <CoachClientsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/coach-dashboard/profile" 
-                element={
-                  <ProtectedRoute userType="coach" redirectTo="/coach">
-                    <ProfilePage />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Client Dashboard Routes */}
-              <Route 
-                path="/client-dashboard" 
-                element={
-                  <ProtectedRoute userType="client" redirectTo="/client">
-                    <ClientDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AnimatePresence>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <AnimatePresence mode="wait">
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/admin" element={<AdminLogin />} />
+                <Route path="/coach" element={<CoachLogin />} />
+                <Route path="/client" element={<ClientLogin />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/admin-setup" element={<AdminSetup />} />
+                
+                <Route 
+                  path="/admin-dashboard" 
+                  element={
+                    <ProtectedRoute userType="admin" redirectTo="/admin">
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin-dashboard/invitations" 
+                  element={
+                    <ProtectedRoute userType="admin" redirectTo="/admin">
+                      <InvitationsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin-dashboard/clients" 
+                  element={
+                    <ProtectedRoute userType="admin" redirectTo="/admin">
+                      <ClientsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin-dashboard/coaches" 
+                  element={
+                    <ProtectedRoute userType="admin" redirectTo="/admin">
+                      <CoachesPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin-dashboard/groups" 
+                  element={
+                    <ProtectedRoute userType="admin" redirectTo="/admin">
+                      <GroupsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin-dashboard/groups/:groupId" 
+                  element={
+                    <ProtectedRoute userType="admin" redirectTo="/admin">
+                      <GroupDetailsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/coach-dashboard" 
+                  element={
+                    <ProtectedRoute userType="coach" redirectTo="/coach">
+                      <CoachDashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/coach-dashboard/workouts" 
+                  element={
+                    <ProtectedRoute userType="coach" redirectTo="/coach">
+                      <WorkoutProgramsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/coach-dashboard/workouts/new" 
+                  element={
+                    <ProtectedRoute userType="coach" redirectTo="/coach">
+                      <CreateWorkoutProgramPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/coach-dashboard/workouts/:programId" 
+                  element={
+                    <ProtectedRoute userType="coach" redirectTo="/coach">
+                      <WorkoutProgramDetailPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/coach-dashboard/workouts/:programId/assign" 
+                  element={
+                    <ProtectedRoute userType="coach" redirectTo="/coach">
+                      <ProgramAssignmentPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/coach-dashboard/clients" 
+                  element={
+                    <ProtectedRoute userType="coach" redirectTo="/coach">
+                      <CoachClientsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/coach-dashboard/profile" 
+                  element={
+                    <ProtectedRoute userType="coach" redirectTo="/coach">
+                      <ProfilePage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/coach-dashboard/leaderboards" 
+                  element={
+                    <ProtectedRoute userType="coach" redirectTo="/coach">
+                      <LeaderboardPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/client-dashboard" 
+                  element={
+                    <ProtectedRoute userType="client" redirectTo="/client">
+                      <ClientDashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AnimatePresence>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

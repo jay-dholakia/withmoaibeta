@@ -175,8 +175,14 @@ const CoachDashboard = () => {
             <Award className="h-5 w-5 text-coach" />
             <h2 className="text-xl font-semibold">Leaderboards</h2>
           </div>
-          <div className="text-center py-8 bg-muted/30 rounded-lg">
-            <p>Leaderboard functionality coming soon!</p>
+          <div className="flex flex-col items-center py-6 bg-muted/30 rounded-lg">
+            <p className="mb-4">Track your clients' workout completions!</p>
+            <Button 
+              onClick={() => navigate('/coach-dashboard/leaderboards')}
+              className="bg-coach hover:bg-coach/90"
+            >
+              View Leaderboards
+            </Button>
           </div>
         </Card>
 

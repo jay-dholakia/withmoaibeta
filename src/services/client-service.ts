@@ -169,3 +169,48 @@ export const uploadCoachAvatar = async (coachId: string, file: File): Promise<st
 
   return data.publicUrl;
 };
+
+// New function to fetch group workout leaderboard data
+export interface LeaderboardEntry {
+  user_id: string;
+  email: string;
+  total_workouts: number;
+}
+
+export const fetchGroupLeaderboardWeekly = async (groupId: string): Promise<LeaderboardEntry[]> => {
+  const startOfWeek = new Date();
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Start of current week (Sunday)
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const { data, error } = await supabase
+    .rpc('get_group_weekly_leaderboard', { 
+      group_id: groupId,
+      start_date: startOfWeek.toISOString() 
+    });
+
+  if (error) {
+    console.error('Error fetching weekly leaderboard:', error);
+    throw error;
+  }
+
+  return data || [];
+};
+
+export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<LeaderboardEntry[]> => {
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1); // Start of current month
+  startOfMonth.setHours(0, 0, 0, 0);
+  
+  const { data, error } = await supabase
+    .rpc('get_group_monthly_leaderboard', { 
+      group_id: groupId,
+      start_date: startOfMonth.toISOString() 
+    });
+
+  if (error) {
+    console.error('Error fetching monthly leaderboard:', error);
+    throw error;
+  }
+
+  return data || [];
+};

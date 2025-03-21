@@ -293,7 +293,7 @@ serve(async (req) => {
       // Capitalize the user type for better readability in the email
       const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
       
-      // Send the email with Resend
+      // Send the email with Resend - UPDATED FROM ADDRESS
       const { data: emailResult, error: emailError } = await resend.emails.send({
         from: "Moai <jay@withmoai.co>",
         to: [email],

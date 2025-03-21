@@ -17,7 +17,7 @@ const MoaiPage = () => {
   const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
   const [isFixingGroup, setIsFixingGroup] = useState(false);
   
-  // First, fetch the user's groups with improved error handling and logging
+  // Fetch the user's groups with improved error handling and logging
   const { data: userGroups, isLoading: isLoadingGroups, refetch } = useQuery({
     queryKey: ['client-groups', user?.id],
     queryFn: async () => {
@@ -27,7 +27,26 @@ const MoaiPage = () => {
       }
       
       console.log('Fetching groups for user ID:', user.id);
-      return fetchUserGroups(user.id);
+      try {
+        // First do a direct database query to check membership
+        const { data: membershipData, error: membershipError } = await supabase
+          .from('group_members')
+          .select('group_id')
+          .eq('user_id', user.id);
+          
+        if (membershipError) {
+          console.error('Direct membership check error:', membershipError);
+        } else {
+          console.log('Direct membership check result:', membershipData);
+        }
+        
+        // Then use the service function to get full group details
+        const groups = await fetchUserGroups(user.id);
+        return groups;
+      } catch (err) {
+        console.error('Error fetching groups:', err);
+        return [];
+      }
     },
     enabled: !!user?.id,
     refetchOnWindowFocus: true,
@@ -68,7 +87,7 @@ const MoaiPage = () => {
         .from('profiles')
         .select('id, user_type')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
         
       if (profileError) {
         console.error('PROFILE VERIFICATION ERROR:', profileError);
@@ -140,7 +159,7 @@ const MoaiPage = () => {
         toast.error('User profile not found in database!');
       }
       
-      // Check for direct group membership
+      // Check for direct group membership using raw query
       const { data: membershipData, error: membershipError } = await supabase
         .from('group_members')
         .select('*')
@@ -171,18 +190,6 @@ const MoaiPage = () => {
         }
       } else {
         toast.error(`Diagnostic failed: ${result.message}`);
-      }
-      
-      // Check available groups in the system
-      const { data: groupsData, error: groupsError } = await supabase
-        .from('groups')
-        .select('id, name');
-        
-      if (groupsError) {
-        console.error('Error checking available groups:', groupsError);
-      } else {
-        console.log('Available groups in system:', groupsData);
-        toast.info(`System has ${groupsData.length} groups available`);
       }
       
       // Force a fresh reload of groups data
@@ -249,12 +256,30 @@ const MoaiPage = () => {
             {diagnosticDetails && (
               <div className="mt-6 p-4 border rounded text-left text-sm bg-gray-50">
                 <h3 className="font-medium mb-2">Diagnostic Results:</h3>
-                <div>
+                <div className="space-y-1">
                   <p>Status: {diagnosticDetails.success ? 'Success' : 'Failed'}</p>
                   <p>Has Memberships: {diagnosticDetails.hasGroupMemberships ? 'Yes' : 'No'}</p>
                   {diagnosticDetails.message && <p>Message: {diagnosticDetails.message}</p>}
-                  {diagnosticDetails.groupMemberships && (
-                    <p>Memberships: {JSON.stringify(diagnosticDetails.groupMemberships)}</p>
+                  {diagnosticDetails.groupMembershipsCount !== undefined && (
+                    <p>Membership Count: {diagnosticDetails.groupMembershipsCount}</p>
+                  )}
+                  {diagnosticDetails.groupMemberships && diagnosticDetails.groupMemberships.length > 0 && (
+                    <div>
+                      <p className="font-medium">Membership Details:</p>
+                      <pre className="text-xs bg-gray-100 p-2 overflow-auto max-h-32">
+                        {JSON.stringify(diagnosticDetails.groupMemberships, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                  {diagnosticDetails.availableGroups && diagnosticDetails.availableGroups.length > 0 && (
+                    <div>
+                      <p className="font-medium">Available Groups:</p>
+                      <ul className="list-disc pl-5 text-xs">
+                        {diagnosticDetails.availableGroups.map((g: any) => (
+                          <li key={g.id}>{g.name} ({g.id.substring(0, 8)}...)</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               </div>

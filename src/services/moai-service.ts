@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -10,10 +9,10 @@ export const verifyUserGroupMembership = async (userId: string) => {
   try {
     console.log('Verifying group membership for user:', userId);
     
-    // First try directly fetching memberships
-    const { data, error } = await supabase
+    // Use maybeSingle() instead of single() to avoid errors when no records found
+    const { data, error, count } = await supabase
       .from('group_members')
-      .select('group_id')
+      .select('*', { count: 'exact' })
       .eq('user_id', userId);
       
     if (error) {
@@ -22,42 +21,9 @@ export const verifyUserGroupMembership = async (userId: string) => {
     }
     
     console.log('User group membership data:', data);
+    console.log('User group membership count:', count);
     
-    // If no memberships found, check for available groups to join
-    if (!data || data.length === 0) {
-      // Check if there are any groups in the system
-      const { data: availableGroups, error: groupsError } = await supabase
-        .from('groups')
-        .select('id, name')
-        .limit(1);
-        
-      if (groupsError) {
-        console.error('Error checking for available groups:', groupsError);
-      } else {
-        console.log('Available groups to join:', availableGroups);
-        
-        // If there are groups available, create a membership for this user
-        if (availableGroups && availableGroups.length > 0) {
-          const groupId = availableGroups[0].id;
-          console.log(`Attempting to assign user ${userId} to group ${groupId}`);
-          
-          // Insert the user into the group_members table
-          const { data: newMembership, error: insertError } = await supabase
-            .from('group_members')
-            .insert([{ user_id: userId, group_id: groupId }])
-            .select();
-            
-          if (insertError) {
-            console.error('Error auto-assigning user to group:', insertError);
-          } else {
-            console.log('User automatically assigned to group:', newMembership);
-            // Return true since we've now created a membership
-            return true;
-          }
-        }
-      }
-    }
-    
+    // Return true if we found any memberships
     return data && data.length > 0;
   } catch (err) {
     console.error('Unexpected error in verifyUserGroupMembership:', err);
@@ -74,40 +40,16 @@ export const fetchUserGroups = async (userId: string) => {
   try {
     console.log('Fetching groups for user:', userId);
     
-    // First, check if the user has any group memberships
-    const { data: memberships, error: membershipError } = await supabase
-      .from('group_members')
-      .select('group_id')
-      .eq('user_id', userId);
-      
-    if (membershipError) {
-      console.error('Error checking user memberships:', membershipError);
-      return [];
-    }
-    
-    // If user has no memberships, try to assign them to a group
-    if (!memberships || memberships.length === 0) {
-      console.log('No existing memberships found, trying to assign user to a group');
-      const assignResult = await ensureUserHasGroup(userId);
-      
-      if (assignResult.success) {
-        console.log('User was successfully assigned to a group:', assignResult);
-        // If assignment was successful, re-fetch the groups
-        return fetchUserGroups(userId);
-      } else {
-        console.log('Could not assign user to a group:', assignResult.message);
-        return [];
-      }
-    }
-    
-    // Fetch the group details for all memberships
+    // Direct query for group memberships with inner join to groups
+    // This is more reliable than the previous approach
     const { data, error } = await supabase
       .from('group_members')
       .select(`
+        id, 
         group_id,
-        group:group_id (
-          id,
-          name,
+        groups:group_id (
+          id, 
+          name, 
           description
         )
       `)
@@ -123,9 +65,9 @@ export const fetchUserGroups = async (userId: string) => {
       return [];
     }
     
-    // Filter out any null groups and return
+    // Map the results to extract group details
     const groups = data
-      .map(item => item.group)
+      .map(item => item.groups)
       .filter(group => group !== null);
       
     console.log('Found groups for user:', groups);
@@ -153,7 +95,7 @@ export const diagnoseGroupAccess = async (userId: string) => {
       .from('profiles')
       .select('id, user_type')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
       
     if (profileError) {
       console.error('DIAGNOSIS: User profile not found:', profileError);
@@ -166,10 +108,10 @@ export const diagnoseGroupAccess = async (userId: string) => {
     
     console.log('DIAGNOSIS: User profile exists:', profileData);
     
-    // 2. Check direct access to group_members table
-    const { data: groupMembersData, error: groupMembersError } = await supabase
+    // 2. Direct check for group memberships with exact count
+    const { data: groupMembersData, error: groupMembersError, count: membershipCount } = await supabase
       .from('group_members')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('user_id', userId);
       
     if (groupMembersError) {
@@ -182,84 +124,47 @@ export const diagnoseGroupAccess = async (userId: string) => {
     }
     
     console.log('DIAGNOSIS: group_members access result:', groupMembersData);
+    console.log('DIAGNOSIS: group_members count:', membershipCount);
     
-    // 3. If no group assignments found, check if there's any data in group_members at all
-    if (!groupMembersData || groupMembersData.length === 0) {
-      const { count, error: countError } = await supabase
-        .from('group_members')
-        .select('*', { count: 'exact', head: true });
-        
-      console.log('DIAGNOSIS: Total group_members count:', count);
+    // 3. If memberships found, fetch the associated group details
+    let groupDetails = [];
+    if (groupMembersData && groupMembersData.length > 0) {
+      const groupIds = groupMembersData.map(m => m.group_id);
       
-      if (countError) {
-        console.error('DIAGNOSIS: Error counting group_members:', countError);
-      }
-      
-      // Also check available groups 
-      const { data: availableGroups, error: groupsError } = await supabase
+      const { data: groups, error: groupsError } = await supabase
         .from('groups')
-        .select('id, name');
+        .select('id, name, description')
+        .in('id', groupIds);
         
       if (groupsError) {
-        console.error('DIAGNOSIS: Error checking available groups:', groupsError);
+        console.error('DIAGNOSIS: Error fetching group details:', groupsError);
       } else {
-        console.log('DIAGNOSIS: Available groups:', availableGroups);
-        
-        // If groups exist but user isn't in any, try to add them
-        if (availableGroups && availableGroups.length > 0) {
-          console.log('DIAGNOSIS: Found groups but user isn\'t assigned, attempting assignment');
-          
-          const groupId = availableGroups[0].id;
-          console.log(`DIAGNOSIS: Attempting to assign user ${userId} to group ${groupId}`);
-          
-          // Insert the user into the group_members table
-          const { data: newMembership, error: insertError } = await supabase
-            .from('group_members')
-            .insert([{ user_id: userId, group_id: groupId }])
-            .select();
-            
-          if (insertError) {
-            console.error('DIAGNOSIS: Error auto-assigning user to group:', insertError);
-          } else {
-            console.log('DIAGNOSIS: User automatically assigned to group:', newMembership);
-            
-            // Return updated diagnosis with the new membership
-            return {
-              success: true,
-              message: 'User was automatically assigned to a group',
-              hasGroupMemberships: true,
-              groupMembershipsCount: 1,
-              groupMemberships: newMembership,
-              autoAssigned: true
-            };
-          }
-        }
+        groupDetails = groups;
+        console.log('DIAGNOSIS: Group details:', groups);
       }
     }
     
-    // 4. For each group membership, check if we can access the group data
-    if (groupMembersData && groupMembersData.length > 0) {
-      for (const membership of groupMembersData) {
-        const { data: groupData, error: groupError } = await supabase
-          .from('groups')
-          .select('id, name, description')
-          .eq('id', membership.group_id)
-          .single();
-          
-        if (groupError) {
-          console.error(`DIAGNOSIS: Cannot access group (${membership.group_id}):`, groupError);
-        } else {
-          console.log(`DIAGNOSIS: Successfully accessed group:`, groupData);
-        }
-      }
+    // 4. Also directly query all available groups in the system
+    const { data: availableGroups, error: availableGroupsError } = await supabase
+      .from('groups')
+      .select('id, name')
+      .order('created_at', { ascending: false });
+      
+    if (availableGroupsError) {
+      console.error('DIAGNOSIS: Error fetching available groups:', availableGroupsError);
+    } else {
+      console.log('DIAGNOSIS: Available groups in system:', availableGroups);
     }
     
+    // Return comprehensive diagnosis including all details
     return {
       success: true,
       message: 'Diagnosis complete',
-      hasGroupMemberships: groupMembersData && groupMembersData.length > 0,
-      groupMembershipsCount: groupMembersData?.length || 0,
-      groupMemberships: groupMembersData
+      hasGroupMemberships: membershipCount > 0,
+      groupMembershipsCount: membershipCount || 0,
+      groupMemberships: groupMembersData || [],
+      groupDetails: groupDetails,
+      availableGroups: availableGroups || []
     };
   } catch (err) {
     console.error('DIAGNOSIS: Unexpected error during diagnosis:', err);

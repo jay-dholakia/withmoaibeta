@@ -54,10 +54,10 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
       
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md">
         <div className="container mx-auto">
-          <nav className="flex justify-around">
+          <nav className="flex justify-between px-2 md:justify-around">
             <Link 
               to="/client-dashboard/leaderboard" 
-              className={`flex flex-col items-center py-3 px-4 ${isActive('/leaderboard') ? 'text-client' : 'text-gray-500'}`}
+              className={`flex flex-col items-center py-3 px-2 md:px-4 ${isActive('/leaderboard') ? 'text-client' : 'text-gray-500'}`}
             >
               <Trophy className="h-5 w-5" />
               <span className="text-xs mt-1">Leaderboard</span>
@@ -65,7 +65,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
             
             <Link 
               to="/client-dashboard/workouts" 
-              className={`flex flex-col items-center py-3 px-4 ${isActive('/workouts') ? 'text-client' : 'text-gray-500'}`}
+              className={`flex flex-col items-center py-3 px-2 md:px-4 ${isActive('/workouts') ? 'text-client' : 'text-gray-500'}`}
             >
               <Dumbbell className="h-5 w-5" />
               <span className="text-xs mt-1">Workouts</span>
@@ -73,7 +73,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
             
             <Link 
               to="/client-dashboard/moai" 
-              className={`flex flex-col items-center py-3 px-4 ${isActive('/moai') ? 'text-client' : 'text-gray-500'}`}
+              className={`flex flex-col items-center py-3 px-2 md:px-4 ${isActive('/moai') ? 'text-client' : 'text-gray-500'}`}
             >
               <Users className="h-5 w-5" />
               <span className="text-xs mt-1 whitespace-nowrap">Your Moai</span>
@@ -81,7 +81,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
             
             <Link 
               to="/client-dashboard/notes" 
-              className={`flex flex-col items-center py-3 px-4 ${isActive('/notes') ? 'text-client' : 'text-gray-500'}`}
+              className={`flex flex-col items-center py-3 px-2 md:px-4 ${isActive('/notes') ? 'text-client' : 'text-gray-500'}`}
             >
               <FileText className="h-5 w-5" />
               <span className="text-xs mt-1">Notes</span>
@@ -89,7 +89,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
             
             <Link 
               to="/client-dashboard/settings" 
-              className={`flex flex-col items-center py-3 px-4 ${isActive('/settings') ? 'text-client' : 'text-gray-500'}`}
+              className={`flex flex-col items-center py-3 px-2 md:px-4 ${isActive('/settings') ? 'text-client' : 'text-gray-500'}`}
             >
               <Settings className="h-5 w-5" />
               <span className="text-xs mt-1">Settings</span>

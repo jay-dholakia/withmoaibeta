@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -227,10 +228,11 @@ const InvitationsPage: React.FC = () => {
       setInviteLink(data.inviteLink);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       
+      // Show a single, clear message based on whether the email was sent successfully
       if (data.emailSent) {
         toast.success(`Invitation resent to ${invitation.email} successfully!`);
       } else {
-        toast.info(`Invitation updated for ${invitation.email}, but email service is unavailable. Please share the invitation link manually.`, {
+        toast.info(`Invitation updated for ${invitation.email}. Email service is unavailable - please share the invitation link manually.`, {
           duration: 5000
         });
       }

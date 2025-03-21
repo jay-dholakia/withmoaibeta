@@ -31,28 +31,18 @@ serve(async (req) => {
     const siteUrl = Deno.env.get("SITE_URL");
     
     // Enhanced logging for better diagnosis
-    console.log("Environment variables:", {
-      supabaseUrlSet: !!supabaseUrl,
-      serviceRoleKeySet: !!supabaseServiceRoleKey,
-      resendApiKeySet: !!resendApiKey,
-      resendApiKeyLength: resendApiKey ? resendApiKey.length : 0,
-      resendApiKeyFirst10Chars: resendApiKey ? resendApiKey.substring(0, 10) : "not set",
-      siteUrlSet: !!siteUrl,
-      siteUrlValue: siteUrl || "Not set",
-      allEnvKeys: Object.keys(Deno.env.toObject())
+    console.log("Environment check:", {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceRoleKey: !!supabaseServiceRoleKey,
+      hasResendApiKey: !!resendApiKey,
+      hasSiteUrl: !!siteUrl
     });
     
-    // More detailed logging for the actual API key value (partial, for security)
-    if (resendApiKey) {
-      console.log(`Resend API key starts with: ${resendApiKey.substring(0, 10)}... and ends with: ...${resendApiKey.substring(resendApiKey.length - 5)}`);
-      console.log(`Resend API key length: ${resendApiKey.length}`);
-      // Check if it matches the expected format for Resend keys
-      if (!resendApiKey.startsWith('re_')) {
-        console.warn("Warning: Resend API key doesn't start with 're_' which is the expected format");
-      }
-    } else {
-      console.error("CRITICAL: Resend API key is completely missing");
-    }
+    console.log("Resend API key details:", {
+      isSet: !!resendApiKey,
+      length: resendApiKey ? resendApiKey.length : 0,
+      prefix: resendApiKey ? resendApiKey.substring(0, 3) + "..." : "not set",
+    });
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       console.error("Missing required Supabase environment variables");
@@ -87,7 +77,6 @@ serve(async (req) => {
       console.log("Resend client initialized successfully");
     } catch (resendError) {
       console.error("Failed to initialize Resend client:", resendError);
-      console.error("Error details:", JSON.stringify(resendError, null, 2));
       return new Response(
         JSON.stringify({ 
           error: "Email service initialization failed", 
@@ -295,8 +284,8 @@ serve(async (req) => {
 
     // Send the invitation email using Resend with enhanced error handling
     try {
-      console.log("Sending email to:", email);
-      console.log("Using Resend API key starting with:", resendApiKey.substring(0, 10) + "...");
+      console.log("Sending email to:", payload.email);
+      console.log("Using Resend API key starting with:", resendApiKey.substring(0, 3) + "...");
       
       // Ensure resend object is valid before proceeding
       if (!resend || typeof resend.emails?.send !== 'function') {
@@ -304,12 +293,12 @@ serve(async (req) => {
       }
       
       // Capitalize the user type for better readability in the email
-      const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
+      const userTypeCapitalized = payload.userType.charAt(0).toUpperCase() + payload.userType.slice(1);
       
       // Additional debugging before sending
       console.log("Email configuration:", {
         fromEmail: "jay@withmoai.co",
-        toEmail: email,
+        toEmail: payload.email,
         subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
         hasHtmlContent: true
       });
@@ -317,7 +306,7 @@ serve(async (req) => {
       // Attempt to send the email with Resend
       const { data: emailResult, error: emailError } = await resend.emails.send({
         from: "Moai <jay@withmoai.co>",
-        to: [email],
+        to: [payload.email],
         subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -340,12 +329,10 @@ serve(async (req) => {
       
       if (emailError) {
         console.error("Error sending email with Resend:", emailError);
-        console.error("Full error details:", JSON.stringify(emailError, null, 2));
         return new Response(
           JSON.stringify({ 
             error: "Failed to send email", 
             details: emailError.message,
-            fullError: JSON.stringify(emailError),
             invitation: {
               id: invitation.id,
               token: invitation.token,
@@ -360,13 +347,10 @@ serve(async (req) => {
       }
     } catch (emailSendError) {
       console.error("Exception sending email with Resend:", emailSendError);
-      console.error("Stack trace:", emailSendError.stack);
-      console.error("Full error details:", JSON.stringify(emailSendError, null, 2));
       return new Response(
         JSON.stringify({ 
           error: "Exception sending email", 
           details: emailSendError.message,
-          stack: emailSendError.stack,
           invitation: {
             id: invitation.id,
             token: invitation.token,
@@ -382,7 +366,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: isResend ? `Invitation resent to ${email}` : `Invitation sent to ${email}`,
+        message: payload.resend ? `Invitation resent to ${payload.email}` : `Invitation sent to ${payload.email}`,
         invitationId: invitation.id,
         token: invitation.token,
         expiresAt: invitation.expires_at,
@@ -392,9 +376,8 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in send-invitation function:", error);
-    console.error("Stack trace:", error.stack);
     return new Response(
-      JSON.stringify({ error: error.message || "An unexpected error occurred", stack: error.stack }),
+      JSON.stringify({ error: error.message || "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

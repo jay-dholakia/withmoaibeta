@@ -34,6 +34,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("Setting up auth state listener...");
+    
     // Set up the auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -61,17 +63,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         fetchUserProfile(session.user.id);
+      } else {
+        // Make sure to reset loading if there's no session
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log("Cleaning up auth subscription");
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
     try {
       console.log('Fetching profile for user:', userId);
+      setLoading(true);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -81,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Error fetching user profile:', error);
         toast.error('Error fetching user profile');
+        setLoading(false);
         return;
       }
 
@@ -89,8 +98,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(data as Profile);
         setUserType(data.user_type as UserType);
       }
+      
+      setLoading(false);
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
+      setLoading(false);
     }
   };
 
@@ -104,25 +116,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Sign in error:', error.message);
         toast.error(error.message);
-        setLoading(false); // Reset loading state on error
+        setLoading(false);
         return;
       }
       
       if (data.user) {
         console.log('Sign in successful, user ID:', data.user.id);
         
-        // Navigation will occur automatically by the useEffect that
-        // listens to the auth state change
+        // Successfully signed in, the onAuthStateChange listener will handle 
+        // updating the state and profile
         toast.success('Sign in successful!');
+        
+        // Note: Don't need to set loading=false here as the onAuthStateChange 
+        // event will reset it when it processes the login
       } else {
         console.error('No user data returned from sign in');
         toast.error('Sign in failed - no user data returned');
-        setLoading(false); // Reset loading state if no user
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error in signIn:', error);
       toast.error('An unexpected error occurred');
-      setLoading(false); // Reset loading state on error
+      setLoading(false);
     }
   };
 

@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const AdminLogin = () => {
   const { user, userType, loading: authLoading } = useAuth();
@@ -16,17 +17,23 @@ const AdminLogin = () => {
     // Check if user is logged in as admin
     if (user && userType === 'admin' && !authLoading) {
       console.log('Admin already logged in, redirecting to dashboard');
-      setIsRedirecting(true);
       
-      // Add a small timeout to ensure state updates before navigation
-      const redirectTimer = setTimeout(() => {
+      // Only set redirecting if we haven't already to prevent loops
+      if (!isRedirecting) {
+        setIsRedirecting(true);
+        
+        // Navigate immediately - no need for timeout which can cause issues
         navigate('/admin-dashboard');
-        setIsRedirecting(false); // Reset the redirecting state after navigation
-      }, 100);
-      
-      return () => clearTimeout(redirectTimer);
+      }
+    } else if (user && userType !== 'admin' && !authLoading) {
+      // Handle case where user is logged in but not as admin
+      toast.error('You are logged in but not as an admin. Please log in with an admin account.');
+      setIsRedirecting(false);
+    } else if (!user && !authLoading && isRedirecting) {
+      // Reset redirecting state if user is not logged in
+      setIsRedirecting(false);
     }
-  }, [user, userType, authLoading, navigate]);
+  }, [user, userType, authLoading, navigate, isRedirecting]);
 
   // If loading or redirecting, show spinner
   if (isRedirecting || (authLoading && user)) {

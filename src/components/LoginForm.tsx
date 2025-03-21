@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
@@ -69,10 +70,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         if (onSubmit) {
           // For backward compatibility
           onSubmit(email, password);
+          setLocalLoading(false);
+          setIsSubmitting(false);
         } else {
           console.log(`Signing in as ${variant} with email: ${email}`);
           await signIn(email, password, variant);
-          // The useEffect will handle resetting the loading state
+          // Don't reset loading states here, let the useEffect handle it when authLoading changes
         }
       }
     } catch (error) {

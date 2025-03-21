@@ -12,6 +12,7 @@ const WorkoutsPage = () => {
       <Route index element={<WorkoutsList />} />
       <Route path="active/:workoutCompletionId" element={<ActiveWorkout />} />
       <Route path="complete/:workoutCompletionId" element={<WorkoutComplete />} />
+      <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
     </Routes>
   );
 };

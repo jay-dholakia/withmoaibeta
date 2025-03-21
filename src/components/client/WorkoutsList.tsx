@@ -7,7 +7,7 @@ import { fetchCurrentProgram, fetchOngoingWorkout } from '@/services/client-serv
 import { DAYS_OF_WEEK } from '@/types/workout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, ArrowRight, Play, Dumbbell } from 'lucide-react';
+import { Loader2, Calendar, Play, Dumbbell } from 'lucide-react';
 import { toast } from 'sonner';
 
 const WorkoutsList = () => {
@@ -99,9 +99,11 @@ const WorkoutsList = () => {
     );
   }
 
-  // Show assigned program if available
+  // Check if we have program data
   if (!currentProgram || !currentProgram.program) {
     console.log("No active program found for user:", user?.id);
+    
+    // Add a button to refresh the page
     return (
       <div className="text-center py-12">
         <Dumbbell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -109,6 +111,13 @@ const WorkoutsList = () => {
         <p className="text-muted-foreground mb-6">
           You don't have an active workout program assigned yet.
         </p>
+        <Button 
+          onClick={() => window.location.reload()}
+          variant="outline"
+          className="mt-4"
+        >
+          Refresh
+        </Button>
       </div>
     );
   }
@@ -121,12 +130,15 @@ const WorkoutsList = () => {
   
   console.log("Current week number:", currentWeekNumber);
   
-  // Find current week
-  const currentWeek = program.weeks?.find((week: any) => week.week_number === currentWeekNumber);
+  // Find current week - ensure weeks exists and is an array
+  const weeks = Array.isArray(program.weeks) ? program.weeks : [];
+  const currentWeek = weeks.find((week: any) => week.week_number === currentWeekNumber);
   
   console.log("Current week:", currentWeek);
+  console.log("Workouts in week:", currentWeek?.workouts);
   
-  if (!currentWeek || !currentWeek.workouts || currentWeek.workouts.length === 0) {
+  // Handle case where there are no workouts this week
+  if (!currentWeek || !currentWeek.workouts || !Array.isArray(currentWeek.workouts) || currentWeek.workouts.length === 0) {
     return (
       <div className="text-center py-12">
         <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -138,6 +150,13 @@ const WorkoutsList = () => {
             ? "You've completed all weeks in this program!" 
             : "There are no workouts scheduled for this week."}
         </p>
+        <Button 
+          onClick={() => window.location.reload()}
+          variant="outline"
+          className="mt-4"
+        >
+          Refresh
+        </Button>
       </div>
     );
   }
@@ -147,7 +166,7 @@ const WorkoutsList = () => {
       <div>
         <h1 className="text-2xl font-bold">{program.title}</h1>
         <p className="text-muted-foreground">
-          Week {currentWeekNumber} of {program.weeks.length}
+          Week {currentWeekNumber} of {weeks.length}
         </p>
       </div>
       
@@ -175,7 +194,7 @@ const WorkoutsList = () => {
             <CardContent className="pt-4">
               <p className="text-sm mb-4">{workout.description || 'Complete all exercises in this workout'}</p>
               <div className="flex gap-1 flex-wrap">
-                {workout.workout_exercises && workout.workout_exercises.map((exercise: any, index: number) => (
+                {workout.workout_exercises && Array.isArray(workout.workout_exercises) && workout.workout_exercises.map((exercise: any, index: number) => (
                   <div 
                     key={exercise.id}
                     className="text-xs bg-muted px-2 py-1 rounded"

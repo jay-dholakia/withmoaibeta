@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.37.0";
+import { Resend } from "https://esm.sh/resend@1.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,11 +26,13 @@ serve(async (req) => {
     // Get environment variables
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
     
     // Log environment variable availability (not the actual values)
     console.log("Environment check:", { 
       hasSupabaseUrl: !!supabaseUrl, 
-      hasServiceRoleKey: !!supabaseServiceRoleKey
+      hasServiceRoleKey: !!supabaseServiceRoleKey,
+      hasResendApiKey: !!resendApiKey
     });
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
@@ -39,9 +42,20 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    if (!resendApiKey) {
+      console.error("Missing Resend API key");
+      return new Response(
+        JSON.stringify({ error: "Email service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     // Create a Supabase client with the service role key
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+    
+    // Initialize Resend
+    const resend = new Resend(resendApiKey);
 
     // Parse the request body
     let payload: InvitationPayload;
@@ -177,6 +191,48 @@ serve(async (req) => {
       token: invitation.token,
       expiresAt: invitation.expires_at
     });
+
+    // Send the invitation email using Resend
+    try {
+      console.log("Sending email to:", email);
+      
+      // Capitalize the user type for better readability in the email
+      const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
+      
+      const { data: emailResult, error: emailError } = await resend.emails.send({
+        from: "Moai <jay@withmoai.co>",
+        to: [email],
+        subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #333; margin-bottom: 20px;">Moai Invitation</h1>
+            <p>You've been invited to join Moai as a ${userTypeCapitalized}.</p>
+            <p>Click the button below to create your account:</p>
+            <div style="margin: 30px 0;">
+              <a href="${inviteLink}" style="background-color: #0066cc; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Accept Invitation</a>
+            </div>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; font-size: 14px; color: #666;">${inviteLink}</p>
+            <p>This invitation will expire in 7 days.</p>
+            <p>If you did not expect this invitation, you can safely ignore this email.</p>
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #999;">
+              <p>© Moai. All rights reserved.</p>
+            </div>
+          </div>
+        `
+      });
+      
+      if (emailError) {
+        console.error("Error sending email:", emailError);
+        // We don't return an error here, as the invitation was created successfully
+        // Just log the error for debugging
+      } else {
+        console.log("Email sent successfully:", emailResult);
+      }
+    } catch (emailSendError) {
+      console.error("Exception sending email:", emailSendError);
+      // Again, we don't fail the whole request since the invitation is created
+    }
 
     // Return success
     return new Response(

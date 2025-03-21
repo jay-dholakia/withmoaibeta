@@ -1,2 +1,8 @@
 
 project_id = "gjrheltyxjilxcphbzdj"
+
+[functions.send-invitation]
+verify_jwt = false
+
+[functions.send-invitation.environment]
+RESEND_API_KEY = "re_bauJYLU3_5kduYi8Z3TktcHLdgciCT733"

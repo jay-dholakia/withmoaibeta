@@ -11,7 +11,7 @@ export interface WorkoutProgram {
   id: string;
   title: string;
   description: string | null;
-  weeks: number;
+  weeks: WorkoutWeek[] | number;
   coach_id: string;
   created_at: string;
   updated_at: string;
@@ -27,6 +27,7 @@ export interface WorkoutWeek {
   program?: {
     title: string;
   } | null;
+  workouts?: Workout[];
 }
 
 export interface Workout {
@@ -36,6 +37,7 @@ export interface Workout {
   title: string;
   description: string | null;
   created_at: string;
+  workout_exercises?: WorkoutExercise[];
 }
 
 export interface WorkoutBasic {

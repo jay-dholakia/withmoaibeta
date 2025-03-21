@@ -1,6 +1,10 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { ProgramAssignment, WorkoutExercise, WorkoutProgram, WorkoutWeek } from "@/types/workout";
 
+/**
+ * Fetches all programs assigned to a client
+ */
 export const fetchClientPrograms = async (clientId: string): Promise<any[]> => {
   try {
     const { data, error } = await supabase
@@ -29,102 +33,48 @@ export const fetchClientPrograms = async (clientId: string): Promise<any[]> => {
   }
 };
 
-export const fetchCurrentProgram = async (userId: string): Promise<any | null> => {
-  console.log("Fetching current program for user:", userId);
+/**
+ * Determines if a program assignment is currently active
+ */
+const isActiveAssignment = (assignment: ProgramAssignment): boolean => {
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
   
-  if (!userId) {
-    console.error("Cannot fetch current program: No user ID provided");
-    return null;
+  // Check if start date is in the past or today
+  const startDate = new Date(assignment.start_date);
+  const startDateStr = startDate.toISOString().split('T')[0];
+  const isStartValid = startDateStr <= todayStr;
+  
+  // Check if end date is in the future or not set
+  let isEndValid = true;
+  if (assignment.end_date) {
+    const endDate = new Date(assignment.end_date);
+    const endDateStr = endDate.toISOString().split('T')[0];
+    isEndValid = endDateStr >= todayStr;
   }
   
+  return isStartValid && isEndValid;
+};
+
+/**
+ * Fetches program details including weeks and workouts
+ */
+const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgram | null> => {
   try {
-    // Get user email for better logging
-    const { data: authData } = await supabase.auth.getUser();
-    const userEmail = authData?.user?.email;
-    console.log(`Looking up program for user ${userId}${userEmail ? ` (${userEmail})` : ''}`);
-    
-    // Get all program assignments for this user
-    const { data: assignments, error: assignmentsError } = await supabase
-      .from('program_assignments')
-      .select('*')
-      .eq('user_id', userId)
-      .order('start_date', { ascending: false });
-    
-    if (assignmentsError) {
-      console.error('Error fetching program assignments:', assignmentsError);
-      throw assignmentsError;
-    }
-    
-    console.log(`Found ${assignments?.length || 0} program assignments for user ${userId}`);
-    
-    if (!assignments || assignments.length === 0) {
-      console.log(`No program assignments found for user ${userId}`);
-      return null;
-    }
-    
-    // Get current date in YYYY-MM-DD format for comparison
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    console.log("Today's date for comparison:", todayStr);
-    
-    // Find active program assignments (start date is in the past or today, and end date is in the future or null)
-    const activeAssignments = assignments.filter(assignment => {
-      const startDate = new Date(assignment.start_date);
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const isStartValid = startDateStr <= todayStr;
-      
-      let isEndValid = true;
-      if (assignment.end_date) {
-        const endDate = new Date(assignment.end_date);
-        const endDateStr = endDate.toISOString().split('T')[0];
-        isEndValid = endDateStr >= todayStr;
-      }
-      
-      console.log(`Assignment ${assignment.id}: start=${startDateStr} (valid=${isStartValid}), end=${assignment.end_date || 'ongoing'} (valid=${isEndValid})`);
-      
-      return isStartValid && isEndValid;
-    });
-    
-    console.log(`Found ${activeAssignments.length} active assignments`);
-    
-    // If no active assignments, use the most recent assignment as a fallback
-    const currentAssignment = activeAssignments.length > 0 
-      ? activeAssignments[0] 
-      : assignments[0];  // Most recent assignment (already sorted by start_date desc)
-    
-    if (activeAssignments.length === 0 && assignments.length > 0) {
-      console.log("No active assignments found. Using most recent assignment as fallback:", currentAssignment.id);
-    } else {
-      console.log("Using active assignment:", currentAssignment.id);
-    }
-    
-    const programId = currentAssignment.program_id;
-    
-    if (!programId) {
-      console.log("No program ID found in assignment");
-      return null;
-    }
-    
-    // Fetch the complete program data with weeks and workouts
+    // Fetch basic program data
     const { data: programData, error: programError } = await supabase
       .from('workout_programs')
       .select('*')
       .eq('id', programId)
       .single();
     
-    if (programError) {
+    if (programError || !programData) {
       console.error('Error fetching program details:', programError);
-      throw programError;
-    }
-    
-    if (!programData) {
-      console.log("No program details found for program ID:", programId);
       return null;
     }
     
-    console.log("Found program:", programData.title);
-    
-    // Get the program weeks
+    // Fetch program weeks
     const { data: weeksData, error: weeksError } = await supabase
       .from('workout_weeks')
       .select('*')
@@ -133,12 +83,10 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     
     if (weeksError) {
       console.error('Error fetching program weeks:', weeksError);
-      throw weeksError;
+      return null;
     }
     
-    console.log(`Found ${weeksData?.length || 0} weeks for program`);
-    
-    // For each week, get the workouts with exercises
+    // For each week, fetch the workouts with exercises
     const weeksWithWorkouts = [];
     
     for (const week of weeksData || []) {
@@ -159,21 +107,106 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
         continue;
       }
       
-      console.log(`Week ${week.week_number}: Found ${workoutsData?.length || 0} workouts`);
-      
       weeksWithWorkouts.push({
         ...week,
         workouts: workoutsData || []
       });
     }
     
+    return {
+      ...programData,
+      weeks: weeksWithWorkouts
+    };
+  } catch (error) {
+    console.error("Error fetching full program details:", error);
+    return null;
+  }
+};
+
+/**
+ * Fetches all program assignments for a user
+ */
+const fetchUserProgramAssignments = async (userId: string): Promise<ProgramAssignment[] | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('program_assignments')
+      .select('*')
+      .eq('user_id', userId)
+      .order('start_date', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching program assignments:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in fetchUserProgramAssignments:", error);
+    return null;
+  }
+};
+
+/**
+ * Fetches the current active program for a user
+ */
+export const fetchCurrentProgram = async (userId: string): Promise<any | null> => {
+  console.log("Fetching current program for user:", userId);
+  
+  if (!userId) {
+    console.error("Cannot fetch current program: No user ID provided");
+    return null;
+  }
+  
+  try {
+    // Get user email for better logging
+    const { data: authData } = await supabase.auth.getUser();
+    const userEmail = authData?.user?.email;
+    console.log(`Looking up program for user ${userId}${userEmail ? ` (${userEmail})` : ''}`);
+    
+    // Get all program assignments for this user
+    const assignments = await fetchUserProgramAssignments(userId);
+    
+    if (!assignments || assignments.length === 0) {
+      console.log(`No program assignments found for user ${userId}`);
+      return null;
+    }
+    
+    console.log(`Found ${assignments.length} program assignments for user ${userId}`);
+    
+    // Find active assignments
+    const activeAssignments = assignments.filter(isActiveAssignment);
+    console.log(`Found ${activeAssignments.length} active assignments`);
+    
+    // Use the most recent active assignment, or fall back to the most recent assignment
+    const currentAssignment = activeAssignments.length > 0 
+      ? activeAssignments[0] 
+      : assignments[0];
+    
+    if (activeAssignments.length === 0 && assignments.length > 0) {
+      console.log("No active assignments found. Using most recent assignment as fallback:", currentAssignment.id);
+    } else {
+      console.log("Using active assignment:", currentAssignment.id);
+    }
+    
+    const programId = currentAssignment.program_id;
+    
+    if (!programId) {
+      console.log("No program ID found in assignment");
+      return null;
+    }
+    
+    // Fetch the complete program data
+    const programData = await fetchFullProgramDetails(programId);
+    
+    if (!programData) {
+      console.log("No program details found for program ID:", programId);
+      return null;
+    }
+    
     // Construct full program data
     const fullProgramData = {
       ...currentAssignment,
-      program: {
-        ...programData,
-        weeks: weeksWithWorkouts
-      }
+      program: programData
     };
     
     console.log("Successfully built program data:", 
@@ -184,6 +217,6 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     return fullProgramData;
   } catch (err) {
     console.error("Error in fetchCurrentProgram:", err);
-    throw err;
+    return null;
   }
 };

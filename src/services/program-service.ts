@@ -42,80 +42,41 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
   console.log("Today's date for comparison:", todayISODate);
   
   try {
-    // First check if we have a current program ID stored somewhere
+    // First check if we have a current program ID from program assignments
     let programId = null;
     
-    // Query workout info using profiles.metadata since client_workout_info is a view
-    // This is safer than using RPC directly since we're not sure of all RPC functions
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('metadata')
-      .eq('id', userId)
-      .maybeSingle();
+    // Query program assignments to find active program
+    const { data: assignments, error: assignmentError } = await supabase
+      .from('program_assignments')
+      .select('*')
+      .eq('user_id', userId)
+      .lte('start_date', todayISODate)
+      .or(`end_date.is.null,end_date.gte.${todayISODate}`)
+      .order('start_date', { ascending: false });
       
-    if (profileData?.metadata?.current_program_id) {
-      programId = profileData.metadata.current_program_id;
-      console.log("Program ID from profile metadata:", programId);
+    if (assignmentError) {
+      console.error('Error fetching program assignments:', assignmentError);
+      throw assignmentError;
     }
     
-    // If no program ID found in workout info, check program assignments
-    if (!programId) {
-      const { data: assignments, error: assignmentError } = await supabase
-        .from('program_assignments')
-        .select('*')
-        .eq('user_id', userId)
-        .lte('start_date', todayISODate)
-        .or(`end_date.is.null,end_date.gte.${todayISODate}`)
-        .order('start_date', { ascending: false });
-        
-      if (assignmentError) {
-        console.error('Error fetching program assignments:', assignmentError);
-        throw assignmentError;
-      }
-      
-      console.log("Program assignments found:", assignments?.length || 0, assignments);
-      
-      if (!assignments || assignments.length === 0) {
-        console.log("No active program assignments found for user", userId);
-        return null;
-      }
-      
-      const currentAssignment = assignments[0];
-      console.log("Using program assignment:", currentAssignment);
-      programId = currentAssignment.program_id;
+    console.log("Program assignments found:", assignments?.length || 0, assignments);
+    
+    if (!assignments || assignments.length === 0) {
+      console.log("No active program assignments found for user", userId);
+      return null;
     }
+    
+    const currentAssignment = assignments[0];
+    console.log("Using program assignment:", currentAssignment);
+    programId = currentAssignment.program_id;
     
     if (!programId) {
       console.log("No program ID found for user");
       return null;
     }
     
-    // Get the program assignment details
-    const { data: assignmentData, error: assignmentQueryError } = await supabase
-      .from('program_assignments')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('program_id', programId)
-      .order('start_date', { ascending: false })
-      .limit(1)
-      .single();
-      
-    if (assignmentQueryError && assignmentQueryError.code !== 'PGRST116') {
-      console.error('Error fetching program assignment:', assignmentQueryError);
-    }
-    
-    // Create a fallback assignment object with an id field to fix the TypeScript error
-    const fallbackAssignment = {
-      id: `${userId}_${programId}`,  // Generate a predictable ID for the fallback
-      program_id: programId,
-      user_id: userId,
-      start_date: todayISODate,
-      end_date: null as string | null,
-      assigned_by: userId,
-      created_at: new Date().toISOString()
-    };
-    
-    const currentAssignment = assignmentData || fallbackAssignment;
+    // Get the program assignment details (reuse the one we already fetched)
+    const assignmentData = currentAssignment;
     
     const { data: programData, error: programError } = await supabase
       .from('workout_programs')
@@ -177,7 +138,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     }
     
     const fullProgramData = {
-      ...currentAssignment,
+      ...assignmentData,
       program: {
         ...programData,
         weeks: weeksWithWorkouts
@@ -189,26 +150,9 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       "with", fullProgramData.program.weeks.length, "weeks"
     );
     
-    // Update client program info in the profiles metadata
-    try {
-      await supabase
-        .from('profiles')
-        .update({
-          metadata: {
-            current_program_id: programId
-          }
-        })
-        .eq('id', userId);
-      console.log("Updated client program info in profiles metadata");
-    } catch (error) {
-      console.error("Error updating profiles metadata:", error);
-      // Continue execution even if this update fails
-    }
-    
     return fullProgramData;
   } catch (err) {
     console.error("Error in fetchCurrentProgram:", err);
     throw err;
   }
 };
-

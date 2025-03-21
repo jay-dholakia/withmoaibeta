@@ -16,6 +16,11 @@ import {
 import { WorkoutProgram, ProgramAssignment } from '@/types/workout';
 import { toast } from 'sonner';
 
+interface ClientInfo {
+  id: string;
+  displayName: string;
+}
+
 const ProgramAssignmentPage = () => {
   const { programId } = useParams<{ programId: string }>();
   const { user } = useAuth();
@@ -23,6 +28,7 @@ const ProgramAssignmentPage = () => {
   
   const [program, setProgram] = useState<WorkoutProgram | null>(null);
   const [assignments, setAssignments] = useState<ProgramAssignment[]>([]);
+  const [clientsMap, setClientsMap] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -41,9 +47,15 @@ const ProgramAssignmentPage = () => {
         const assignmentsData = await fetchAssignedUsers(programId);
         setAssignments(assignmentsData);
         
-        // Debug: Fetch all clients to see what's available
+        // Fetch all clients to build a map of id -> displayName
         const clientsData = await fetchAllClients();
-        console.log('Available clients:', clientsData);
+        const clientsMapData = clientsData.reduce((acc, client) => {
+          acc[client.id] = client.email; // 'email' is actually displayName after our update
+          return acc;
+        }, {} as Record<string, string>);
+        
+        setClientsMap(clientsMapData);
+        console.log('Client display names map:', clientsMapData);
         
         setIsLoading(false);
       } catch (error) {
@@ -89,6 +101,11 @@ const ProgramAssignmentPage = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+  
+  // Helper to get client display name from ID
+  const getClientDisplayName = (userId: string): string => {
+    return clientsMap[userId] || `Client ${userId.slice(0, 6)}...`;
   };
   
   if (isLoading) {
@@ -178,7 +195,7 @@ const ProgramAssignmentPage = () => {
                     >
                       <div className="flex justify-between">
                         <div>
-                          <div className="font-medium">{assignment.user_id}</div>
+                          <div className="font-medium">{getClientDisplayName(assignment.user_id)}</div>
                           <div className="text-sm text-muted-foreground">
                             {new Date(assignment.start_date).toLocaleDateString()} to {assignment.end_date ? new Date(assignment.end_date).toLocaleDateString() : 'Ongoing'}
                           </div>

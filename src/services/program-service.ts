@@ -37,12 +37,14 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     return null;
   }
   
+  // Format today's date in ISO format (YYYY-MM-DD)
   const today = new Date();
   const todayISODate = today.toISOString().split('T')[0];
   console.log("Today's date for comparison:", todayISODate);
   
   try {
     // Query program assignments to find active program
+    // Using explicit format for date comparison
     const { data: assignments, error: assignmentError } = await supabase
       .from('program_assignments')
       .select('*')
@@ -50,7 +52,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       .lte('start_date', todayISODate)
       .or(`end_date.is.null,end_date.gte.${todayISODate}`)
       .order('start_date', { ascending: false });
-      
+    
     if (assignmentError) {
       console.error('Error fetching program assignments:', assignmentError);
       throw assignmentError;
@@ -78,7 +80,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       .select('*')
       .eq('id', programId)
       .single();
-      
+    
     if (programError) {
       console.error('Error fetching program details:', programError);
       throw programError;
@@ -97,7 +99,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       .select('*')
       .eq('program_id', programData.id)
       .order('week_number', { ascending: true });
-      
+    
     if (weeksError) {
       console.error('Error fetching program weeks:', weeksError);
       throw weeksError;
@@ -120,7 +122,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
         `)
         .eq('week_id', week.id)
         .order('day_of_week', { ascending: true });
-        
+      
       if (workoutsError) {
         console.error(`Error fetching workouts for week ${week.week_number}:`, workoutsError);
         continue;

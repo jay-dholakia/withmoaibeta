@@ -25,7 +25,7 @@ const WorkoutsList = () => {
     queryKey: ['client-current-program', user?.id],
     queryFn: () => fetchCurrentProgram(user?.id || ''),
     enabled: !!user?.id,
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 60000, // 1 minute
     refetchOnWindowFocus: true,
   });
 
@@ -39,7 +39,7 @@ const WorkoutsList = () => {
     queryKey: ['client-ongoing-workout', user?.id],
     queryFn: () => fetchOngoingWorkout(user?.id || ''),
     enabled: !!user?.id,
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 60000, // 1 minute
   });
 
   const handleStartWorkout = async (workoutId: string) => {

@@ -96,15 +96,13 @@ const AdminSetup = () => {
         throw new Error('Failed to create admin account');
       }
       
-      // Update the user in profiles table to be admin
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: signUpData.user.id,
-          user_type: 'admin',
-        });
+      // Now insert directly into profiles table with SQL RPC for the first admin
+      // This bypasses RLS for the first user creation
+      const { error: insertError } = await supabase.rpc('create_initial_admin', {
+        user_id: signUpData.user.id,
+      });
       
-      if (profileError) throw profileError;
+      if (insertError) throw insertError;
       
       toast.success('Admin account created successfully! Please log in.');
       navigate('/admin');

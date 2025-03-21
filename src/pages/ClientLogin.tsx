@@ -11,6 +11,7 @@ const ClientLogin = () => {
   const { user, userType, loading } = useAuth();
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [redirectAttempts, setRedirectAttempts] = useState(0);
 
   useEffect(() => {
     const checkUserAndRedirect = async () => {
@@ -28,21 +29,29 @@ const ClientLogin = () => {
           
           if (profile && profile.profile_completed) {
             console.log('ClientLogin: Profile complete, redirecting to dashboard');
-            setTimeout(() => navigate('/client-dashboard'), 100);
+            navigate('/client-dashboard');
           } else {
             console.log('ClientLogin: Profile incomplete, redirecting to profile builder');
-            setTimeout(() => navigate('/client-profile-builder'), 100);
+            navigate('/client-profile-builder');
           }
         } catch (error) {
           console.error('ClientLogin: Error checking profile:', error);
-          // If we can't check the profile, default to profile builder
-          setTimeout(() => navigate('/client-profile-builder'), 100);
+          setRedirectAttempts(prev => prev + 1);
+          
+          // Even with errors, try to navigate to profile builder
+          if (redirectAttempts < 2) {
+            console.log('ClientLogin: Retrying navigation to profile builder');
+            setTimeout(() => navigate('/client-profile-builder'), 500);
+          } else {
+            // If multiple attempts fail, reset state and let user try again
+            setIsRedirecting(false);
+          }
         }
       }
     };
     
     checkUserAndRedirect();
-  }, [user, userType, loading, navigate]);
+  }, [user, userType, loading, navigate, redirectAttempts]);
 
   // If we're already logged in, show a loading state until the redirect happens
   if (isRedirecting || (!loading && user && userType === 'client')) {

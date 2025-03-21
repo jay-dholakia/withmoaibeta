@@ -20,16 +20,18 @@ const ProfileBuilder = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [profileData, setProfileData] = useState<Partial<ClientProfile>>({});
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [attemptedFetch, setAttemptedFetch] = useState(false);
 
   console.log('ProfileBuilder: Rendering with user ID:', user?.id);
 
   // Fetch client profile
-  const { data: profile, isLoading, error } = useQuery({
+  const { data: profile, isLoading, error, refetch } = useQuery({
     queryKey: ['client-profile', user?.id],
     queryFn: async () => {
       console.log('ProfileBuilder: Fetching profile for user:', user?.id);
       if (!user?.id) throw new Error('User not authenticated');
       try {
+        setAttemptedFetch(true);
         const result = await fetchClientProfile(user.id);
         console.log('ProfileBuilder: Fetch result:', result);
         return result;
@@ -39,7 +41,8 @@ const ProfileBuilder = () => {
       }
     },
     enabled: !!user?.id,
-    retry: 1,
+    retry: 3,
+    retryDelay: 1000,
     staleTime: 30000, // 30 seconds
   });
 
@@ -79,6 +82,37 @@ const ProfileBuilder = () => {
       }
     }
   }, [profile, navigate]);
+
+  // Handle error cases by retrying or using fallback profile
+  useEffect(() => {
+    if (error && attemptedFetch) {
+      console.log('Error detected, using fallback profile');
+      
+      // Create a fallback empty profile
+      if (!profileData || Object.keys(profileData).length === 0) {
+        setProfileData({
+          id: user?.id,
+          first_name: null,
+          last_name: null,
+          city: null,
+          state: null,
+          fitness_goals: [],
+          favorite_movements: [],
+          profile_completed: false
+        });
+      }
+      
+      // Try to refetch after a delay
+      const timer = setTimeout(() => {
+        if (user?.id) {
+          console.log('Retrying profile fetch...');
+          refetch();
+        }
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [error, attemptedFetch, profileData, user?.id, refetch]);
 
   // Debug log for profile status
   useEffect(() => {
@@ -128,7 +162,7 @@ const ProfileBuilder = () => {
     );
   }
 
-  if (isLoading) {
+  if (isLoading && !profileData.id) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-client" />
@@ -136,13 +170,7 @@ const ProfileBuilder = () => {
     );
   }
 
-  if (error) {
-    console.error('Error loading profile:', error);
-    // Redirect to login if there's an error (likely auth issue)
-    navigate('/client');
-    return null;
-  }
-
+  // Even if there's an error, we can proceed with an empty profile
   return (
     <PageTransition>
       <ProfileBuilderLayout step={currentStep} totalSteps={TOTAL_STEPS}>

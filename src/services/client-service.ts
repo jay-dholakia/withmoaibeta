@@ -1,5 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface ClientData {
   id: string;
@@ -261,42 +261,184 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<Lea
 };
 
 export const fetchClientProfile = async (clientId: string): Promise<ClientProfile | null> => {
-  // Type assertion to bypass TypeScript error with client_profiles table
-  const { data, error } = await supabase
-    .from('client_profiles' as any)
-    .select('*')
-    .eq('id', clientId)
-    .maybeSingle();
+  try {
+    const tableExists = await ensureClientProfilesTable();
+    
+    if (!tableExists) {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, created_at')
+        .eq('id', clientId)
+        .maybeSingle();
+        
+      if (profileError) {
+        console.error('Error fetching profile fallback:', profileError);
+        throw profileError;
+      }
+      
+      if (!profileData) return null;
+      
+      return {
+        id: profileData.id,
+        first_name: null,
+        last_name: null,
+        city: null,
+        state: null,
+        birthday: null,
+        height: null,
+        weight: null,
+        avatar_url: null,
+        fitness_goals: [],
+        favorite_movements: [],
+        profile_completed: false,
+        created_at: profileData.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    }
+    
+    const { data, error } = await supabase
+      .from('client_profiles')
+      .select('*')
+      .eq('id', clientId)
+      .maybeSingle();
 
-  if (error) {
-    console.error('Error fetching client profile:', error);
-    throw error;
+    if (error) {
+      console.error('Error fetching client profile:', error);
+      
+      if (error.code === 'PGRST116') {
+        const initialProfile = {
+          id: clientId,
+          first_name: null,
+          last_name: null,
+          city: null,
+          state: null,
+          birthday: null,
+          height: null,
+          weight: null,
+          avatar_url: null,
+          fitness_goals: [],
+          favorite_movements: [],
+          profile_completed: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        const { error: insertError } = await supabase
+          .from('client_profiles')
+          .insert(initialProfile);
+          
+        if (insertError) {
+          console.error('Error creating initial profile:', insertError);
+          throw insertError;
+        }
+        
+        return initialProfile;
+      }
+      
+      throw error;
+    }
+
+    if (!data) {
+      const initialProfile = {
+        id: clientId,
+        first_name: null,
+        last_name: null,
+        city: null,
+        state: null,
+        birthday: null,
+        height: null,
+        weight: null,
+        avatar_url: null,
+        fitness_goals: [],
+        favorite_movements: [],
+        profile_completed: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      const { error: insertError } = await supabase
+        .from('client_profiles')
+        .insert(initialProfile);
+        
+      if (insertError) {
+        console.error('Error creating initial profile:', insertError);
+        throw insertError;
+      }
+      
+      return initialProfile;
+    }
+
+    return data as ClientProfile;
+  } catch (error) {
+    console.error('Error in fetchClientProfile:', error);
+    return {
+      id: clientId,
+      first_name: null,
+      last_name: null,
+      city: null,
+      state: null,
+      birthday: null,
+      height: null,
+      weight: null,
+      avatar_url: null,
+      fitness_goals: [],
+      favorite_movements: [],
+      profile_completed: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
   }
-
-  // First convert to unknown, then to ClientProfile to avoid type errors
-  if (!data) return null;
-  return data as unknown as ClientProfile;
 };
 
 export const updateClientProfile = async (clientId: string, profile: Partial<ClientProfile>): Promise<ClientProfile> => {
-  // Type assertion to bypass TypeScript error with client_profiles table
-  const { data, error } = await supabase
-    .from('client_profiles' as any)
-    .update({ 
-      ...profile,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', clientId)
-    .select('*')
-    .single();
+  try {
+    await ensureClientProfilesTable();
+    
+    const existingProfile = await fetchClientProfile(clientId);
+    
+    if (!existingProfile) {
+      throw new Error('Could not find or create client profile');
+    }
+    
+    const { data, error } = await supabase
+      .from('client_profiles')
+      .update({ 
+        ...profile,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', clientId)
+      .select('*')
+      .single();
 
-  if (error) {
-    console.error('Error updating client profile:', error);
-    throw error;
+    if (error) {
+      console.error('Error updating client profile:', error);
+      throw error;
+    }
+
+    return data as ClientProfile;
+  } catch (error) {
+    console.error('Error in updateClientProfile:', error);
+    try {
+      const updatedProfile = {
+        id: clientId,
+        ...profile,
+        updated_at: new Date().toISOString()
+      };
+      
+      const { data, error } = await supabase
+        .from('client_profiles')
+        .upsert(updatedProfile)
+        .select('*')
+        .single();
+        
+      if (error) throw error;
+      return data as ClientProfile;
+    } catch (fallbackError) {
+      console.error('Fallback error in updateClientProfile:', fallbackError);
+      toast.error('Failed to update profile. Please try again.');
+      throw fallbackError;
+    }
   }
-
-  // Proper type assertion with unknown as intermediate step
-  return data as unknown as ClientProfile;
 };
 
 export const uploadClientAvatar = async (clientId: string, file: File): Promise<string> => {
@@ -377,15 +519,12 @@ export const fetchOngoingWorkout = async (userId: string): Promise<any | null> =
       continue;
     }
     
-    // Ensure workout_exercises is treated as an array
     const exercises = Array.isArray(completion.workout.workout_exercises) 
       ? completion.workout.workout_exercises 
       : [];
       
-    // Calculate total sets
     const totalSets = exercises.reduce((acc: number, ex: any) => acc + ex.sets, 0);
     
-    // Check completed sets
     const completedSets = Array.isArray(completion.workout_set_completions) 
       ? completion.workout_set_completions.filter((set: any) => set.completed).length 
       : 0;
@@ -578,7 +717,6 @@ export const fetchGroupWeeklyProgress = async (groupId: string): Promise<any> =>
       continue;
     }
     
-    // For assigned workouts, we need a direct SQL query through a custom function
     const assignedWorkouts = Array.isArray(completions) ? completions : [];
       
     const weekData = Array(7).fill(null);
@@ -597,7 +735,6 @@ export const fetchGroupWeeklyProgress = async (groupId: string): Promise<any> =>
       }
     }
     
-    // Get user email using a safer approach
     let emailAddress = `user_${member.user_id.substring(0, 8)}`;
     try {
       const { data: profile } = await supabase
@@ -607,7 +744,6 @@ export const fetchGroupWeeklyProgress = async (groupId: string): Promise<any> =>
         .single();
         
       if (profile) {
-        // Use ID instead of email since profile doesn't have email field
         emailAddress = `user_${profile.id.substring(0, 8)}`;
       }
     } catch (error) {
@@ -631,7 +767,6 @@ export const fetchGroupWeeklyProgress = async (groupId: string): Promise<any> =>
 
 const getUserEmail = async (userId: string): Promise<string> => {
   try {
-    // Since we can't use the direct RPC call, we'll try to get the email another way
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -643,10 +778,34 @@ const getUserEmail = async (userId: string): Promise<string> => {
       return `user_${userId.substring(0, 8)}`;
     }
     
-    // Use a fallback approach since we can't directly access the email
     return `user_${userId.substring(0, 8)}`;
   } catch (error) {
     console.error('Error fetching user email:', error);
     return `user_${userId.substring(0, 8)}`;
+  }
+};
+
+const ensureClientProfilesTable = async () => {
+  try {
+    const { error } = await supabase.from('client_profiles').select('id').limit(1);
+    
+    if (error && error.code === '42P01') {
+      console.log('Creating client_profiles table...');
+      
+      const { error: createError } = await supabase.rpc('create_client_profiles_table');
+      
+      if (createError) {
+        console.error('Error creating client_profiles table:', createError);
+        return false;
+      }
+      
+      console.log('client_profiles table created successfully');
+      return true;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error ensuring client_profiles table:', error);
+    return false;
   }
 };

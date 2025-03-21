@@ -20,6 +20,8 @@ const WorkoutsList = () => {
     enabled: !!user?.id,
   });
 
+  console.log("Current program data:", currentProgram);
+
   const { data: ongoingWorkout, isLoading: isOngoingLoading } = useQuery({
     queryKey: ['client-ongoing-workout', user?.id],
     queryFn: () => fetchOngoingWorkout(user?.id || ''),
@@ -88,6 +90,7 @@ const WorkoutsList = () => {
 
   // Show assigned program if available
   if (!currentProgram || !currentProgram.program) {
+    console.log("No active program found for user:", user?.id);
     return (
       <div className="text-center py-12">
         <Dumbbell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -99,20 +102,31 @@ const WorkoutsList = () => {
     );
   }
 
+  console.log("Program found:", currentProgram.program.title);
+  console.log("Program weeks:", currentProgram.program.weeks);
+  
   const program = currentProgram.program;
   const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
   const currentWeekNumber = getCurrentWeekNumber(currentProgram.start_date);
   
-  // Find current week
-  const currentWeek = program.weeks.find((week: any) => week.week_number === currentWeekNumber);
+  console.log("Current week number:", currentWeekNumber);
   
-  if (!currentWeek) {
+  // Find current week
+  const currentWeek = program.weeks?.find((week: any) => week.week_number === currentWeekNumber);
+  
+  console.log("Current week:", currentWeek);
+  
+  if (!currentWeek || !currentWeek.workouts || currentWeek.workouts.length === 0) {
     return (
       <div className="text-center py-12">
         <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-        <h2 className="text-xl font-medium mb-2">Program Complete</h2>
+        <h2 className="text-xl font-medium mb-2">
+          {!currentWeek ? "Program Complete" : "No Workouts This Week"}
+        </h2>
         <p className="text-muted-foreground">
-          You've completed all weeks in this program!
+          {!currentWeek 
+            ? "You've completed all weeks in this program!" 
+            : "There are no workouts scheduled for this week."}
         </p>
       </div>
     );
@@ -151,12 +165,12 @@ const WorkoutsList = () => {
             <CardContent className="pt-4">
               <p className="text-sm mb-4">{workout.description || 'Complete all exercises in this workout'}</p>
               <div className="flex gap-1 flex-wrap">
-                {workout.workout_exercises.map((exercise: any, index: number) => (
+                {workout.workout_exercises && workout.workout_exercises.map((exercise: any, index: number) => (
                   <div 
                     key={exercise.id}
                     className="text-xs bg-muted px-2 py-1 rounded"
                   >
-                    {exercise.exercise.name}
+                    {exercise.exercise?.name || 'Unknown exercise'}
                     {index < workout.workout_exercises.length - 1 ? ', ' : ''}
                   </div>
                 ))}

@@ -6,6 +6,7 @@ import ActiveWorkout from '@/components/client/ActiveWorkout';
 import WorkoutComplete from '@/components/client/WorkoutComplete';
 
 const WorkoutsPage = () => {
+  console.log("WorkoutsPage component rendering");
   return (
     <Routes>
       <Route index element={<WorkoutsList />} />

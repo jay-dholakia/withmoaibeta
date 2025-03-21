@@ -579,6 +579,8 @@ export const fetchPersonalRecords = async (userId: string): Promise<PersonalReco
 };
 
 export const fetchCurrentProgram = async (userId: string): Promise<any | null> => {
+  console.log("Fetching current program for user:", userId);
+  
   const { data, error } = await supabase
     .from('program_assignments')
     .select(`
@@ -607,6 +609,31 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
   if (error) {
     console.error('Error fetching current program:', error);
     throw error;
+  }
+
+  console.log("Current program data fetched:", data);
+  
+  if (!data) {
+    console.log("No current program found for user", userId);
+    return null;
+  }
+  
+  // Log detailed program structure for debugging
+  if (data.program) {
+    console.log("Program title:", data.program.title);
+    console.log("Program weeks count:", data.program.weeks);
+    
+    if (data.program.weeks && Array.isArray(data.program.weeks)) {
+      console.log("Weeks data available:", data.program.weeks.length, "weeks");
+      
+      // Check if weeks have workouts
+      data.program.weeks.forEach((week: any, index: number) => {
+        const workoutsCount = week.workouts ? week.workouts.length : 0;
+        console.log(`Week ${week.week_number}: ${workoutsCount} workouts`);
+      });
+    } else {
+      console.log("Weeks data is missing or not an array");
+    }
   }
 
   return data;
@@ -742,3 +769,4 @@ const ensureClientProfilesTable = async (): Promise<boolean> => {
     return false;
   }
 };
+

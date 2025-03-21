@@ -9,6 +9,7 @@ import SettingsPage from './SettingsPage';
 import NotesPage from './NotesPage';
 
 const ClientDashboard = () => {
+  console.log("ClientDashboard component rendering");
   return (
     <ClientLayout>
       <Routes>

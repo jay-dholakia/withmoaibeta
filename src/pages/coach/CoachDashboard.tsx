@@ -7,10 +7,15 @@ import { CoachLayout } from '@/layouts/CoachLayout';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { WorkoutProgramList } from '@/components/coach/WorkoutProgramList';
+import { fetchWorkoutPrograms } from '@/services/workout-service';
 
 const CoachDashboard = () => {
   const { user, userType, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('groups');
+  const navigate = useNavigate();
 
   const { data: coachGroups, isLoading: groupsLoading } = useQuery({
     queryKey: ['coach-groups', user?.id],
@@ -36,6 +41,15 @@ const CoachDashboard = () => {
       if (groupsError) throw groupsError;
       
       return groups;
+    },
+    enabled: !!user && userType === 'coach'
+  });
+
+  const { data: workoutPrograms, isLoading: programsLoading } = useQuery({
+    queryKey: ['coach-workout-programs', user?.id],
+    queryFn: async () => {
+      if (!user) throw new Error('Not authenticated');
+      return fetchWorkoutPrograms(user.id);
     },
     enabled: !!user && userType === 'coach'
   });
@@ -116,11 +130,26 @@ const CoachDashboard = () => {
           </TabsContent>
           
           <TabsContent value="workouts">
-            <h2 className="text-xl font-semibold">Workout Programs</h2>
-            <p className="text-muted-foreground mb-4">Design workout programs for your clients.</p>
-            <div className="text-center py-8 bg-muted/30 rounded-lg">
-              <p>Workout program builder coming soon!</p>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-semibold">Workout Programs</h2>
+                <p className="text-muted-foreground">Design workout programs for your clients.</p>
+              </div>
+              <Button onClick={() => navigate('/coach-dashboard/workouts/new')}>
+                Create Program
+              </Button>
             </div>
+            
+            {programsLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-coach" />
+              </div>
+            ) : (
+              <WorkoutProgramList 
+                programs={workoutPrograms || []} 
+                isLoading={programsLoading} 
+              />
+            )}
           </TabsContent>
           
           <TabsContent value="performance">

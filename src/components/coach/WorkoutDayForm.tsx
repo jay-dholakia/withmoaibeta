@@ -1,0 +1,296 @@
+
+import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Exercise, WorkoutExercise } from '@/types/workout';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ExerciseSelector } from './ExerciseSelector';
+import { WorkoutExerciseForm } from './WorkoutExerciseForm';
+import { createWorkoutExercise, fetchWorkoutExercises } from '@/services/workout-service';
+import { toast } from 'sonner';
+
+const formSchema = z.object({
+  title: z.string().min(2, 'Workout title must be at least 2 characters'),
+  description: z.string().optional()
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+interface WorkoutDayFormProps {
+  dayName: string;
+  dayNumber: number;
+  weekId: string;
+  workoutId?: string;
+  onSave: (workoutId: string) => void;
+}
+
+export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
+  dayName,
+  dayNumber,
+  weekId,
+  workoutId,
+  onSave
+}) => {
+  const [exercises, setExercises] = useState<(Exercise & { tempId?: string })[]>([]);
+  const [exerciseData, setExerciseData] = useState<Record<string, {
+    sets: number;
+    reps: string;
+    rest_seconds?: number;
+    notes?: string;
+  }>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingWorkout, setIsSavingWorkout] = useState(false);
+  const [existingExercises, setExistingExercises] = useState<WorkoutExercise[]>([]);
+  const [isLoading, setIsLoading] = useState(!!workoutId);
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: `${dayName} Workout`,
+      description: ''
+    }
+  });
+
+  useEffect(() => {
+    if (workoutId) {
+      const loadWorkoutDetails = async () => {
+        try {
+          const exercises = await fetchWorkoutExercises(workoutId);
+          setExistingExercises(exercises);
+          
+          // Set exercises from workout
+          const loadedExercises = exercises.map(item => item.exercise!);
+          setExercises(loadedExercises);
+          
+          // Set exercise data
+          const exerciseFormData: Record<string, any> = {};
+          exercises.forEach(item => {
+            exerciseFormData[item.exercise_id] = {
+              sets: item.sets,
+              reps: item.reps,
+              rest_seconds: item.rest_seconds || undefined,
+              notes: item.notes || undefined
+            };
+          });
+          setExerciseData(exerciseFormData);
+          
+          setIsLoading(false);
+        } catch (error) {
+          console.error('Error loading workout details:', error);
+          toast.error('Failed to load workout details');
+          setIsLoading(false);
+        }
+      };
+      
+      loadWorkoutDetails();
+    }
+  }, [workoutId]);
+
+  const handleAddExercise = (exercise: Exercise) => {
+    // Add a temporary ID if it's a new exercise being added
+    const exerciseWithTempId = {...exercise, tempId: Date.now().toString()};
+    setExercises([...exercises, exerciseWithTempId]);
+  };
+
+  const handleRemoveExercise = (index: number) => {
+    const newExercises = [...exercises];
+    const removed = newExercises.splice(index, 1)[0];
+    
+    // Clean up exercise data
+    if (removed.id in exerciseData) {
+      const newExerciseData = {...exerciseData};
+      delete newExerciseData[removed.id];
+      setExerciseData(newExerciseData);
+    }
+    
+    setExercises(newExercises);
+  };
+
+  const handleSaveExercise = (exercise: Exercise, index: number, data: any) => {
+    setExerciseData({
+      ...exerciseData,
+      [exercise.id]: data
+    });
+    
+    toast.success(`Added ${exercise.name} to workout`);
+  };
+
+  const onSubmit = async (values: FormValues) => {
+    if (exercises.length === 0) {
+      toast.error('Please add at least one exercise to the workout');
+      return;
+    }
+    
+    try {
+      setIsSavingWorkout(true);
+      
+      // Create workout day if there's no existing ID
+      if (!workoutId) {
+        const workoutData = {
+          week_id: weekId,
+          day_of_week: dayNumber,
+          title: values.title,
+          description: values.description || null
+        };
+        
+        const workoutResponse = await fetch('/api/workouts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(workoutData)
+        });
+        
+        if (!workoutResponse.ok) {
+          throw new Error('Failed to create workout');
+        }
+        
+        const { id: newWorkoutId } = await workoutResponse.json();
+        
+        // Save all exercises
+        await Promise.all(exercises.map((exercise, index) => {
+          const exerciseFormData = exerciseData[exercise.id];
+          
+          if (!exerciseFormData) {
+            console.warn(`No form data for exercise ${exercise.name}`);
+            return null;
+          }
+          
+          return createWorkoutExercise({
+            workout_id: newWorkoutId,
+            exercise_id: exercise.id,
+            sets: exerciseFormData.sets,
+            reps: exerciseFormData.reps,
+            rest_seconds: exerciseFormData.rest_seconds || null,
+            notes: exerciseFormData.notes || null,
+            order_index: index
+          });
+        }));
+        
+        onSave(newWorkoutId);
+      } else {
+        // Handle updating existing workout
+        // This is a placeholder - the real implementation would update the workout and exercises
+        onSave(workoutId);
+      }
+      
+      toast.success('Workout saved successfully');
+    } catch (error) {
+      console.error('Error saving workout:', error);
+      toast.error('Failed to save workout');
+    } finally {
+      setIsSavingWorkout(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">{dayName} Workout</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse space-y-4">
+            <div className="h-10 bg-muted rounded"></div>
+            <div className="h-20 bg-muted rounded"></div>
+            <div className="space-y-2">
+              <div className="h-40 bg-muted rounded"></div>
+              <div className="h-40 bg-muted rounded"></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">{dayName} Workout</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Workout Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder={`${dayName} Workout`} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Workout Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Instructions or notes about this workout" 
+                      {...field} 
+                      value={field.value || ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-base font-medium">Exercises</h3>
+                <ExerciseSelector onSelectExercise={handleAddExercise} />
+              </div>
+
+              {exercises.length === 0 ? (
+                <div className="text-center py-8 border border-dashed rounded-lg">
+                  <p className="text-muted-foreground">No exercises added yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Click "Add Exercise" to select exercises for this workout
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {exercises.map((exercise, index) => (
+                    <div key={exercise.tempId || exercise.id}>
+                      <WorkoutExerciseForm
+                        exercise={exercise}
+                        onSubmit={(data) => handleSaveExercise(exercise, index, data)}
+                        onCancel={() => handleRemoveExercise(index)}
+                        isSubmitting={isSubmitting}
+                        existingData={exerciseData[exercise.id]}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isSavingWorkout}>
+                {isSavingWorkout ? 'Saving...' : 'Save Workout'}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+};

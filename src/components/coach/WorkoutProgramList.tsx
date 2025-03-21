@@ -1,0 +1,87 @@
+
+import React from 'react';
+import { WorkoutProgram } from '@/types/workout';
+import { Button } from '@/components/ui/button';
+import { PlusCircle, Calendar, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+interface WorkoutProgramListProps {
+  programs: WorkoutProgram[];
+  isLoading: boolean;
+}
+
+export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({ programs, isLoading }) => {
+  const navigate = useNavigate();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="border rounded-lg p-6 animate-pulse">
+            <div className="h-6 bg-muted/60 rounded w-1/3 mb-3"></div>
+            <div className="h-4 bg-muted/60 rounded w-2/3 mb-6"></div>
+            <div className="flex gap-4">
+              <div className="h-8 bg-muted/60 rounded w-24"></div>
+              <div className="h-8 bg-muted/60 rounded w-24"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (programs.length === 0) {
+    return (
+      <div className="text-center p-10 border rounded-lg bg-muted/10">
+        <h3 className="font-medium text-lg mb-2">No workout programs yet</h3>
+        <p className="text-muted-foreground mb-6">Create your first workout program to get started</p>
+        <Button 
+          onClick={() => navigate('/coach-dashboard/workouts/new')}
+          className="gap-2"
+        >
+          <PlusCircle className="h-4 w-4" />
+          Create Workout Program
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {programs.map((program) => (
+        <div key={program.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
+          <h3 className="font-medium text-lg">{program.title}</h3>
+          <p className="text-muted-foreground mb-4 line-clamp-2">
+            {program.description || 'No description'}
+          </p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {program.weeks} {program.weeks === 1 ? 'week' : 'weeks'}
+            </span>
+            <span className="bg-muted px-2 py-1 rounded-full text-xs">
+              Created: {new Date(program.created_at).toLocaleDateString()}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate(`/coach-dashboard/workouts/${program.id}`)}
+            >
+              View Details
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate(`/coach-dashboard/workouts/${program.id}/assign`)}
+            >
+              <Users className="h-4 w-4 mr-1" />
+              Assign to Clients
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};

@@ -21,6 +21,10 @@ import RegisterPage from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
 import AdminSetup from "./pages/AdminSetup";
 import CoachDashboard from "./pages/coach/CoachDashboard";
+import WorkoutProgramsPage from "./pages/coach/WorkoutProgramsPage";
+import CreateWorkoutProgramPage from "./pages/coach/CreateWorkoutProgramPage";
+import WorkoutProgramDetailPage from "./pages/coach/WorkoutProgramDetailPage";
+import ProgramAssignmentPage from "./pages/coach/ProgramAssignmentPage";
 
 // Placeholder Dashboard page for client
 const ClientDashboard = () => <div>Client Dashboard</div>;
@@ -109,7 +113,7 @@ const App = () => (
                 } 
               />
               
-              {/* Coach and Client Dashboard Routes */}
+              {/* Coach Dashboard Routes */}
               <Route 
                 path="/coach-dashboard" 
                 element={
@@ -118,6 +122,40 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
+              <Route 
+                path="/coach-dashboard/workouts" 
+                element={
+                  <ProtectedRoute userType="coach" redirectTo="/coach">
+                    <WorkoutProgramsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/coach-dashboard/workouts/new" 
+                element={
+                  <ProtectedRoute userType="coach" redirectTo="/coach">
+                    <CreateWorkoutProgramPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/coach-dashboard/workouts/:programId" 
+                element={
+                  <ProtectedRoute userType="coach" redirectTo="/coach">
+                    <WorkoutProgramDetailPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/coach-dashboard/workouts/:programId/assign" 
+                element={
+                  <ProtectedRoute userType="coach" redirectTo="/coach">
+                    <ProgramAssignmentPage />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Client Dashboard Routes */}
               <Route 
                 path="/client-dashboard" 
                 element={

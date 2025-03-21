@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,7 +59,7 @@ const ProfileBuilder = () => {
       if (updatedProfile.profile_completed) {
         toast.success('Your profile has been completed!');
         setIsRedirecting(true);
-        setTimeout(() => navigate('/client-dashboard'), 500);
+        setTimeout(() => navigate('/client-dashboard'), 1500);
       }
     },
     onError: (error) => {
@@ -71,13 +72,16 @@ const ProfileBuilder = () => {
   useEffect(() => {
     if (profile) {
       console.log('Profile data loaded:', profile);
-      setProfileData(profile);
+      setProfileData(prevData => {
+        // Merge the fetched profile with any existing data
+        return { ...prevData, ...profile };
+      });
       
       // If profile is already completed, redirect to dashboard
       if (profile.profile_completed) {
         console.log('Profile is complete, redirecting to dashboard');
         setIsRedirecting(true);
-        setTimeout(() => navigate('/client-dashboard'), 300);
+        setTimeout(() => navigate('/client-dashboard'), 1500);
       }
     }
   }, [profile, navigate]);
@@ -138,17 +142,26 @@ const ProfileBuilder = () => {
 
   // Handle updates to profile data
   const handleUpdateProfile = (data: Partial<ClientProfile>) => {
-    setProfileData(prev => ({ ...prev, ...data }));
+    // Update local state first
+    setProfileData(prev => {
+      const merged = { ...prev, ...data };
+      console.log('Updated profile data:', merged);
+      return merged;
+    });
+    
+    // Then update in database
     updateProfileMutation.mutate(data);
   };
 
   // Handle completion of the profile setup
   const handleComplete = () => {
+    // Create final data combining all existing profile data
     const finalData = {
       ...profileData,
       profile_completed: true
     };
     
+    console.log('Submitting final profile data:', finalData);
     updateProfileMutation.mutate(finalData);
   };
 

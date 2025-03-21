@@ -296,23 +296,44 @@ export const fetchClientProfile = async (clientId: string): Promise<ClientProfil
       return initialProfile;
     }
 
-    // Convert the profile data to ClientProfile type
-    return {
+    // Extract existing client profile properties if they exist in metadata
+    let profile: Partial<ClientProfile> = {
       id: data.id,
-      first_name: null,
-      last_name: null,
-      city: null,
-      state: null,
-      birthday: null,
-      height: null,
-      weight: null,
-      avatar_url: null,
-      fitness_goals: [],
-      favorite_movements: [],
-      profile_completed: false,
       created_at: data.created_at,
       updated_at: new Date().toISOString()
     };
+
+    // Try to get metadata fields
+    try {
+      const { data: metadata } = await supabase
+        .from('profiles')
+        .select('metadata')
+        .eq('id', clientId)
+        .maybeSingle();
+
+      if (metadata && metadata.metadata) {
+        // If metadata exists, parse it for client profile fields
+        const clientData = metadata.metadata.client_profile || {};
+        profile = {
+          ...profile,
+          first_name: clientData.first_name || null,
+          last_name: clientData.last_name || null,
+          city: clientData.city || null,
+          state: clientData.state || null,
+          birthday: clientData.birthday || null,
+          height: clientData.height || null,
+          weight: clientData.weight || null,
+          avatar_url: clientData.avatar_url || null,
+          fitness_goals: clientData.fitness_goals || [],
+          favorite_movements: clientData.favorite_movements || [],
+          profile_completed: clientData.profile_completed || false
+        };
+      }
+    } catch (metadataError) {
+      console.log('No metadata found for client profile, using defaults');
+    }
+
+    return profile as ClientProfile;
   } catch (error) {
     console.error('Error in fetchClientProfile:', error);
     // Return a minimal profile with the ID
@@ -344,12 +365,22 @@ export const updateClientProfile = async (clientId: string, profile: Partial<Cli
       throw new Error('Could not find or create client profile');
     }
     
-    // Use profiles table as a workaround
+    // Merge the existing profile with the updates
+    const updatedProfile = {
+      ...existingProfile,
+      ...profile,
+      updated_at: new Date().toISOString()
+    };
+    
+    console.log('Updating profile with merged data:', updatedProfile);
+    
+    // Store client profile data in metadata field of profiles table
     const { data, error } = await supabase
       .from('profiles')
       .update({ 
-        // Only update timestamp in profiles table
-        // We can't update other fields because they don't exist in profiles
+        metadata: {
+          client_profile: updatedProfile
+        }
       })
       .eq('id', clientId);
 
@@ -358,12 +389,7 @@ export const updateClientProfile = async (clientId: string, profile: Partial<Cli
       throw error;
     }
 
-    // Return the updated profile (merged with existing)
-    return {
-      ...existingProfile,
-      ...profile,
-      updated_at: new Date().toISOString()
-    };
+    return updatedProfile as ClientProfile;
   } catch (error) {
     console.error('Error in updateClientProfile:', error);
     try {
@@ -742,16 +768,16 @@ const getUserEmail = async (userId: string): Promise<string> => {
 // Helper function to check if client_profiles table exists
 const ensureClientProfilesTable = async (): Promise<boolean> => {
   try {
-    // Instead of directly querying information_schema.tables,
-    // we'll try to do a simple query on client_profiles and catch any errors
-    const { count, error } = await supabase
-      .from('client_profiles')
-      .select('*', { count: 'exact', head: true });
+    // Just check if profiles table is accessible
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .limit(1);
     
     // If no error, the table exists
     return !error;
   } catch (error) {
-    console.error('Error checking client_profiles table existence:', error);
+    console.error('Error checking profiles table existence:', error);
     return false;
   }
 };

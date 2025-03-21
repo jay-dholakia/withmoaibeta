@@ -109,19 +109,9 @@ const WorkoutsList = () => {
     );
   }
 
-  // Improved program data handling - check for both program and program.weeks
-  if (!currentProgram || !currentProgram.program || 
-      !currentProgram.program.weeks || !Array.isArray(currentProgram.program.weeks) || 
-      currentProgram.program.weeks.length === 0) {
-    
+  // Check if program data exists and has a valid structure
+  if (!currentProgram || !currentProgram.program || !currentProgram.program.weeks || !Array.isArray(currentProgram.program.weeks) || currentProgram.program.weeks.length === 0) {
     console.log("No active program data found for user:", user?.id);
-    
-    // If the program exists but weeks array is empty, show specific message
-    if (currentProgram && currentProgram.program && 
-        (!currentProgram.program.weeks || !Array.isArray(currentProgram.program.weeks) || 
-         currentProgram.program.weeks.length === 0)) {
-      console.log("Program exists but has no weeks:", currentProgram.program.title);
-    }
     
     return (
       <div className="text-center py-12">
@@ -153,7 +143,7 @@ const WorkoutsList = () => {
     );
   }
 
-  // Log more detailed info for debugging
+  // The program has been found, display it
   console.log("Program found:", currentProgram.program.title);
   
   const program = currentProgram.program;
@@ -162,16 +152,10 @@ const WorkoutsList = () => {
   
   console.log("Current week number:", currentWeekNumber);
   
-  // Find current week - ensure weeks exists and is an array
-  const weeks = Array.isArray(program.weeks) ? program.weeks : [];
-  console.log("Weeks array:", weeks);
-  
-  const currentWeek = weeks.find((week: any) => week.week_number === currentWeekNumber);
+  // Find current week in the weeks array
+  const currentWeek = program.weeks.find((week) => week.week_number === currentWeekNumber);
   
   console.log("Current week:", currentWeek);
-  if (currentWeek) {
-    console.log("Workouts in week:", currentWeek.workouts);
-  }
   
   // Handle case where there are no workouts this week
   if (!currentWeek || !currentWeek.workouts || !Array.isArray(currentWeek.workouts) || currentWeek.workouts.length === 0) {
@@ -180,7 +164,7 @@ const WorkoutsList = () => {
         <div>
           <h1 className="text-2xl font-bold">{program.title}</h1>
           <p className="text-muted-foreground">
-            Week {currentWeekNumber} of {weeks.length}
+            Week {currentWeekNumber} of {program.weeks.length}
           </p>
         </div>
         
@@ -209,13 +193,14 @@ const WorkoutsList = () => {
     );
   }
 
+  // Show the workouts for the current week
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">{program.title}</h1>
           <p className="text-muted-foreground">
-            Week {currentWeekNumber} of {weeks.length}
+            Week {currentWeekNumber} of {program.weeks.length}
           </p>
         </div>
         <Button 
@@ -230,7 +215,7 @@ const WorkoutsList = () => {
       </div>
       
       <div className="grid gap-4">
-        {currentWeek.workouts.map((workout: any) => (
+        {currentWeek.workouts.map((workout) => (
           <Card 
             key={workout.id} 
             className={workout.day_of_week === today ? "border-client" : ""}
@@ -253,7 +238,7 @@ const WorkoutsList = () => {
             <CardContent className="pt-4">
               <p className="text-sm mb-4">{workout.description || 'Complete all exercises in this workout'}</p>
               <div className="flex gap-1 flex-wrap">
-                {workout.workout_exercises && Array.isArray(workout.workout_exercises) && workout.workout_exercises.map((exercise: any, index: number) => (
+                {workout.workout_exercises && Array.isArray(workout.workout_exercises) && workout.workout_exercises.map((exercise, index) => (
                   <div 
                     key={exercise.id}
                     className="text-xs bg-muted px-2 py-1 rounded"

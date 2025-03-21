@@ -685,13 +685,23 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
         .eq('user_id', userId)
         .maybeSingle();
         
-      if (!clientInfoError && clientInfo) {
-        await supabase
-          .from('client_workout_info')
-          .update({
-            current_program_id: programData.id
-          })
-          .eq('user_id', userId);
+      if (!clientInfoError) {
+        if (clientInfo) {
+          await supabase
+            .from('client_workout_info')
+            .update({
+              current_program_id: programData.id
+            })
+            .eq('user_id', userId);
+        } else {
+          await supabase
+            .from('client_workout_info')
+            .insert({
+              user_id: userId,
+              current_program_id: programData.id,
+              total_workouts_completed: 0
+            });
+        }
       }
     } catch (err) {
       console.error('Error updating client workout info:', err);
@@ -888,3 +898,4 @@ export const fetchAllClientProfiles = async (): Promise<any[]> => {
     return [];
   }
 };
+

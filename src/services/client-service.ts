@@ -262,9 +262,9 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<Lea
 
 export const fetchClientProfile = async (clientId: string): Promise<ClientProfile | null> => {
   try {
-    // Try to fetch from profiles table
+    // Try to fetch directly from client_profiles table
     const { data, error } = await supabase
-      .from('profiles')
+      .from('client_profiles')
       .select('*')
       .eq('id', clientId)
       .maybeSingle();
@@ -296,44 +296,8 @@ export const fetchClientProfile = async (clientId: string): Promise<ClientProfil
       return initialProfile;
     }
 
-    // Extract existing client profile properties if they exist in metadata
-    let profile: Partial<ClientProfile> = {
-      id: data.id,
-      created_at: data.created_at,
-      updated_at: new Date().toISOString()
-    };
-
-    // Try to get metadata fields
-    try {
-      const { data: metadata } = await supabase
-        .from('profiles')
-        .select('metadata')
-        .eq('id', clientId)
-        .maybeSingle();
-
-      if (metadata && metadata.metadata) {
-        // If metadata exists, parse it for client profile fields
-        const clientData = metadata.metadata.client_profile || {};
-        profile = {
-          ...profile,
-          first_name: clientData.first_name || null,
-          last_name: clientData.last_name || null,
-          city: clientData.city || null,
-          state: clientData.state || null,
-          birthday: clientData.birthday || null,
-          height: clientData.height || null,
-          weight: clientData.weight || null,
-          avatar_url: clientData.avatar_url || null,
-          fitness_goals: clientData.fitness_goals || [],
-          favorite_movements: clientData.favorite_movements || [],
-          profile_completed: clientData.profile_completed || false
-        };
-      }
-    } catch (metadataError) {
-      console.log('No metadata found for client profile, using defaults');
-    }
-
-    return profile as ClientProfile;
+    // Return the profile data
+    return data as ClientProfile;
   } catch (error) {
     console.error('Error in fetchClientProfile:', error);
     // Return a minimal profile with the ID
@@ -374,22 +338,19 @@ export const updateClientProfile = async (clientId: string, profile: Partial<Cli
     
     console.log('Updating profile with merged data:', updatedProfile);
     
-    // Store client profile data in metadata field of profiles table
+    // Store profile directly in client_profiles table
     const { data, error } = await supabase
-      .from('profiles')
-      .update({ 
-        metadata: {
-          client_profile: updatedProfile
-        }
-      })
-      .eq('id', clientId);
+      .from('client_profiles')
+      .upsert(updatedProfile)
+      .select()
+      .single();
 
     if (error) {
       console.error('Error updating client profile:', error);
       throw error;
     }
 
-    return updatedProfile as ClientProfile;
+    return data as ClientProfile;
   } catch (error) {
     console.error('Error in updateClientProfile:', error);
     try {
@@ -768,16 +729,16 @@ const getUserEmail = async (userId: string): Promise<string> => {
 // Helper function to check if client_profiles table exists
 const ensureClientProfilesTable = async (): Promise<boolean> => {
   try {
-    // Just check if profiles table is accessible
+    // Just check if client_profiles table is accessible
     const { data, error } = await supabase
-      .from('profiles')
+      .from('client_profiles')
       .select('id')
       .limit(1);
     
     // If no error, the table exists
     return !error;
   } catch (error) {
-    console.error('Error checking profiles table existence:', error);
+    console.error('Error checking client_profiles table existence:', error);
     return false;
   }
 };

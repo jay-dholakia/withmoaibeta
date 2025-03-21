@@ -106,7 +106,6 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
       }
       
       console.log("Profiles fetched:", profilesData?.length || 0);
-      console.log("Raw profiles data:", JSON.stringify(profilesData));
 
       // Get all group members for all groups
       const { data: allGroupMembers, error: groupMembersError } = await supabase
@@ -125,19 +124,35 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
         return map;
       }, {} as Record<string, string>);
       
-      // Get emails for all clients
+      // Get emails for all clients from auth.users table
       const clientEmails = new Map<string, string>();
       
       try {
-        // Try to use profiles table for basic info
-        for (const profile of profilesData) {
-          // For now, use a formatted client ID as email since we can't access the real emails
-          // Format: client_[first 8 chars of ID]@example.com
-          const displayEmail = `${profile.id.split('-')[0]}@client.com`;
-          clientEmails.set(profile.id, displayEmail);
+        // Try to fetch emails directly from auth.users using RPC function
+        const { data: authUsersData, error: authError } = await supabase.rpc(
+          'get_users_email',
+          { user_ids: profilesData.map(profile => profile.id) }
+        );
+        
+        if (authError) {
+          console.error("Error fetching client emails with RPC:", authError);
+          throw authError;
+        }
+        
+        if (authUsersData && Array.isArray(authUsersData)) {
+          authUsersData.forEach(user => {
+            if (user.id && user.email) {
+              clientEmails.set(user.id, user.email);
+            }
+          });
         }
       } catch (emailError) {
         console.error("Error fetching client emails:", emailError);
+        // Fallback to using the formatted IDs as emails
+        for (const profile of profilesData) {
+          const displayEmail = `${profile.id.split('-')[0]}@client.com`;
+          clientEmails.set(profile.id, displayEmail);
+        }
       }
       
       // Create client data from profiles with the email information
@@ -151,11 +166,6 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
       });
 
       console.log("Total clients transformed:", clientsData.length);
-      
-      // Debug: Log each client
-      clientsData.forEach(client => {
-        console.log(`Client: ${client.id} (${client.email}), Group: ${client.group_id || 'None'}`);
-      });
       
       setClients(clientsData);
 

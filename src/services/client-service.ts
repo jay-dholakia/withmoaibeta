@@ -784,11 +784,42 @@ export const fetchAllClientProfiles = async (): Promise<any[]> => {
     }
     
     console.log("Client profiles fetched:", data?.length || 0);
-    data?.forEach(profile => {
-      console.log(`Profile ID: ${profile.id}, Type: ${profile.user_type}, Created: ${profile.created_at}`);
-    });
     
-    return data || [];
+    // Try to get real email addresses using RPC function
+    try {
+      const clientIds = data.map(profile => profile.id);
+      
+      if (clientIds.length === 0) {
+        return data || [];
+      }
+      
+      const { data: emailsData, error: emailsError } = await supabase.rpc(
+        'get_users_email',
+        { user_ids: clientIds }
+      );
+      
+      if (emailsError) {
+        throw emailsError;
+      }
+      
+      // Map the emails to the profile data
+      const clientsWithEmails = data.map(client => {
+        const emailRecord = emailsData.find((e: any) => e.id === client.id);
+        return {
+          ...client,
+          email: emailRecord?.email || `${client.id.split('-')[0]}@client.com`
+        };
+      });
+      
+      return clientsWithEmails;
+    } catch (emailError) {
+      console.error('Error fetching real emails:', emailError);
+      // Return data with formatted emails as fallback
+      return data.map(client => ({
+        ...client,
+        email: `${client.id.split('-')[0]}@client.com`
+      }));
+    }
   } catch (error) {
     console.error('Error in fetchAllClientProfiles:', error);
     return [];

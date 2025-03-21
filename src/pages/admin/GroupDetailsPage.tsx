@@ -103,6 +103,29 @@ const GroupDetailsPage: React.FC = () => {
         return;
       }
       
+      // Try to get coach emails from RPC function
+      try {
+        const { data: coachEmails, error: rpcError } = await supabase.rpc(
+          'get_users_email',
+          { user_ids: coachIds }
+        );
+        
+        if (rpcError) {
+          throw rpcError;
+        }
+        
+        const coachesData: Coach[] = coachEmails.map((coach: any) => ({
+          id: coach.id,
+          email: coach.email || `${coach.id.split('-')[0]}@coach.com`
+        }));
+        
+        setCoaches(coachesData);
+        return;
+      } catch (rpcError) {
+        console.error('Error fetching coach emails:', rpcError);
+        // Fall back to profile lookup
+      }
+      
       // Fetch coach profiles from the profiles table
       const { data: coachProfiles, error: profilesError } = await supabase
         .from('profiles')
@@ -114,7 +137,7 @@ const GroupDetailsPage: React.FC = () => {
         throw profilesError;
       }
       
-      // Create coach data with formatted emails since we can't directly access auth.users
+      // Create coach data with formatted emails since we couldn't get real emails
       const coachesData: Coach[] = coachProfiles.map(coach => ({
         id: coach.id,
         email: `${coach.id.split('-')[0]}@coach.com` // Simplified display for coaches
@@ -145,6 +168,29 @@ const GroupDetailsPage: React.FC = () => {
         return;
       }
       
+      // Try to get client emails from RPC function
+      try {
+        const { data: clientEmails, error: rpcError } = await supabase.rpc(
+          'get_users_email',
+          { user_ids: clientIds }
+        );
+        
+        if (rpcError) {
+          throw rpcError;
+        }
+        
+        const clientsData: Client[] = clientEmails.map((client: any) => ({
+          id: client.id,
+          email: client.email || `${client.id.split('-')[0]}@client.com`
+        }));
+        
+        setClients(clientsData);
+        return;
+      } catch (rpcError) {
+        console.error('Error fetching client emails:', rpcError);
+        // Fall back to profile lookup
+      }
+      
       // Fetch client profiles from the profiles table
       const { data: clientProfiles, error: profilesError } = await supabase
         .from('profiles')
@@ -156,7 +202,7 @@ const GroupDetailsPage: React.FC = () => {
         throw profilesError;
       }
       
-      // Create client data with formatted emails since we can't directly access auth.users
+      // Create client data with formatted emails since we couldn't get real emails
       const clientsData: Client[] = clientProfiles.map(client => ({
         id: client.id,
         email: `${client.id.split('-')[0]}@client.com` // Simplified display for clients

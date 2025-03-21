@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ensureCoachGroupAssignment } from './coach-group-service';
 import { ClientData } from './client-service';
@@ -54,7 +55,10 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       
       // Transform the direct query data to match the expected format
       return directData.map(client => {
-        const workoutInfo = client.client_workout_info[0] || {};
+        const workoutInfo = client.client_workout_info && client.client_workout_info.length > 0 
+          ? client.client_workout_info[0] 
+          : { last_workout_at: null, total_workouts_completed: 0, current_program_id: null };
+          
         const program = client.workout_programs && client.workout_programs.length > 0 
           ? client.workout_programs[0] 
           : null;

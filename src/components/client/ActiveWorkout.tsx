@@ -94,8 +94,10 @@ const ActiveWorkout = () => {
     if (workoutData?.workout?.workout_exercises) {
       const initialState: any = {};
       
-      // Type assertion to handle the type error
-      const workoutExercises = workoutData.workout.workout_exercises as any[];
+      // Check if workout_exercises is an array before using forEach
+      const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
+        ? workoutData.workout.workout_exercises 
+        : [];
       
       workoutExercises.forEach((exercise: any) => {
         // Create array for sets
@@ -172,8 +174,10 @@ const ActiveWorkout = () => {
   const isWorkoutComplete = () => {
     if (!workoutData?.workout?.workout_exercises || !exerciseStates) return false;
     
-    // Type assertion to handle the type error
-    const workoutExercises = workoutData.workout.workout_exercises as any[];
+    // Check if workout_exercises is an array before using every
+    const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
+      ? workoutData.workout.workout_exercises 
+      : [];
     
     // Check if all sets of all exercises are completed
     return workoutExercises.every((exercise: any) => {
@@ -211,6 +215,11 @@ const ActiveWorkout = () => {
     );
   }
 
+  // Check if workout_exercises is an array before using map
+  const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
+    ? workoutData.workout.workout_exercises 
+    : [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -228,8 +237,7 @@ const ActiveWorkout = () => {
       </div>
 
       <div className="space-y-4">
-        {/* Type assertion to handle the type error */}
-        {(workoutData.workout.workout_exercises as any[]).map((exercise: any) => (
+        {workoutExercises.map((exercise: any) => (
           <Card key={exercise.id} className="overflow-hidden">
             <CardHeader 
               className="cursor-pointer bg-client/5" 

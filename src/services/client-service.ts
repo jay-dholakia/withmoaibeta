@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ClientData {
@@ -293,7 +292,7 @@ export const updateClientProfile = async (clientId: string, profile: Partial<Cli
     throw error;
   }
 
-  return data as ClientProfile;
+  return data as unknown as ClientProfile;
 };
 
 export const uploadClientAvatar = async (clientId: string, file: File): Promise<string> => {
@@ -365,14 +364,27 @@ export const fetchOngoingWorkout = async (userId: string): Promise<any | null> =
     throw completionsError;
   }
 
-  if (!completions || completions.length === 0) {
+  if (!completions || !Array.isArray(completions) || completions.length === 0) {
     return null;
   }
 
   for (const completion of completions) {
-    const exercises = completion.workout.workout_exercises;
+    if (!completion.workout || !completion.workout.workout_exercises) {
+      continue;
+    }
+    
+    // Ensure workout_exercises is treated as an array
+    const exercises = Array.isArray(completion.workout.workout_exercises) 
+      ? completion.workout.workout_exercises 
+      : [];
+      
+    // Calculate total sets
     const totalSets = exercises.reduce((acc: number, ex: any) => acc + ex.sets, 0);
-    const completedSets = completion.workout_set_completions.filter((set: any) => set.completed).length;
+    
+    // Check completed sets
+    const completedSets = Array.isArray(completion.workout_set_completions) 
+      ? completion.workout_set_completions.filter((set: any) => set.completed).length 
+      : 0;
 
     if (completedSets < totalSets) {
       return completion;
@@ -563,24 +575,39 @@ export const fetchGroupWeeklyProgress = async (groupId: string): Promise<any> =>
     }
     
     // For assigned workouts, we need a direct SQL query through a custom function
-    // Since this requires custom RPC, we'll mock it with existing data for now
     const assignedWorkouts = Array.isArray(completions) ? completions : [];
       
     const weekData = Array(7).fill(null);
     
-    for (const completion of completions) {
-      const date = new Date(completion.completed_at);
-      const dayOfWeek = date.getDay();
-      
-      weekData[dayOfWeek] = {
-        completed: true,
-        workoutId: completion.workout_id,
-        workoutTitle: completion.workout?.title || 'Workout',
-        completionId: completion.id
-      };
+    if (Array.isArray(completions)) {
+      for (const completion of completions) {
+        const date = new Date(completion.completed_at);
+        const dayOfWeek = date.getDay();
+        
+        weekData[dayOfWeek] = {
+          completed: true,
+          workoutId: completion.workout_id,
+          workoutTitle: completion.workout?.title || 'Workout',
+          completionId: completion.id
+        };
+      }
     }
     
-    const emailAddress = await getUserEmail(member.user_id);
+    // Get user email using a safer approach
+    let emailAddress = `user_${member.user_id.substring(0, 8)}`;
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', member.user_id)
+        .single();
+        
+      if (profile) {
+        emailAddress = profile.email || emailAddress;
+      }
+    } catch (error) {
+      console.error('Error fetching user email:', error);
+    }
     
     memberProgress.push({
       userId: member.user_id,

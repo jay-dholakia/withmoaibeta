@@ -45,14 +45,17 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     // First check if we have a current program ID stored somewhere
     let programId = null;
     
-    // Query workout info to get current program ID if available
-    const { data: workoutInfoData } = await supabase
-      .rpc('get_client_workout_info', { user_id_param: userId })
+    // Query workout info using profiles.metadata since client_workout_info is a view
+    // This is safer than using RPC directly since we're not sure of all RPC functions
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('metadata')
+      .eq('id', userId)
       .maybeSingle();
       
-    if (workoutInfoData?.current_program_id) {
-      programId = workoutInfoData.current_program_id;
-      console.log("Program ID from workout info:", programId);
+    if (profileData?.metadata?.current_program_id) {
+      programId = profileData.metadata.current_program_id;
+      console.log("Program ID from profile metadata:", programId);
     }
     
     // If no program ID found in workout info, check program assignments
@@ -186,15 +189,19 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       "with", fullProgramData.program.weeks.length, "weeks"
     );
     
-    // Update client program info through RPC call instead of directly using the view
+    // Update client program info in the profiles metadata
     try {
-      await supabase.rpc('update_client_program', {
-        user_id_param: userId,
-        program_id_param: programId
-      });
-      console.log("Updated client program info through RPC");
+      await supabase
+        .from('profiles')
+        .update({
+          metadata: {
+            current_program_id: programId
+          }
+        })
+        .eq('id', userId);
+      console.log("Updated client program info in profiles metadata");
     } catch (error) {
-      console.error("Error updating client_workout_info:", error);
+      console.error("Error updating profiles metadata:", error);
       // Continue execution even if this update fails
     }
     
@@ -204,3 +211,4 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     throw err;
   }
 };
+

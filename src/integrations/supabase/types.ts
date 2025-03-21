@@ -630,6 +630,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      get_client_workout_info: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: {
+          user_id: string
+          user_type: string
+          current_program_id: string
+          last_workout_at: string
+          total_workouts_completed: number
+        }[]
+      }
       get_coach_clients: {
         Args: {
           coach_id: string
@@ -683,6 +695,13 @@ export type Database = {
           client_id: string
         }
         Returns: boolean
+      }
+      update_client_program: {
+        Args: {
+          user_id_param: string
+          program_id_param: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

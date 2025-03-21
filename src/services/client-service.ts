@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Client Profile Types
@@ -507,27 +506,26 @@ export const fetchPersonalRecords = async (userId: string): Promise<any[]> => {
 
 export const fetchClientWorkoutHistory = async (clientId: string): Promise<any[]> => {
   try {
-    // Simplified query to avoid excessive nesting that causes type issues
+    // First, fetch basic workout completion data without excessive nesting
     const { data, error } = await supabase
       .from('workout_completions')
       .select(`
         id,
         completed_at,
-        status,
-        rating,
         notes,
-        workout_id,
-        user_id
+        rating,
+        user_id,
+        workout_id
       `)
       .eq('user_id', clientId)
-      .eq('status', 'completed')
       .order('completed_at', { ascending: false });
     
     if (error) throw error;
     
-    // If we need workout details, we can fetch them in a separate query
+    // If we have completion data, fetch the related workouts
     if (data && data.length > 0) {
       const workoutIds = data.map(completion => completion.workout_id);
+      
       const { data: workoutsData, error: workoutsError } = await supabase
         .from('workouts')
         .select(`
@@ -541,9 +539,9 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<any[]
       
       if (workoutsError) throw workoutsError;
       
-      // Map workout data to completions
+      // Combine the workout data with the completion data
       return data.map(completion => {
-        const workout = workoutsData.find(w => w.id === completion.workout_id) || null;
+        const workout = workoutsData?.find(w => w.id === completion.workout_id) || null;
         return {
           ...completion,
           workout

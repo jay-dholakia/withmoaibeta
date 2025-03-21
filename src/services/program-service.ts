@@ -43,13 +43,31 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
   console.log("Today's date for comparison:", todayISODate);
   
   try {
+    // First, check if we can identify the user by email if we have a userId
+    let userEmail = null;
+    if (userId) {
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+      
+      if (userData) {
+        const { data: authUserData } = await supabase.auth.admin.getUserById(userId);
+        if (authUserData && authUserData.user) {
+          userEmail = authUserData.user.email;
+          console.log("Found user email:", userEmail);
+        }
+      }
+    }
+    
     // Get program assignments for this user
     const { data: assignments, error: assignmentsError } = await supabase
       .from('program_assignments')
       .select('*')
       .eq('user_id', userId);
     
-    console.log("All program assignments for user:", assignments);
+    console.log(`All program assignments for user ${userId}${userEmail ? ` (${userEmail})` : ''}:`, assignments);
     
     if (assignmentsError) {
       console.error('Error fetching program assignments:', assignmentsError);
@@ -57,9 +75,19 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     }
     
     if (!assignments || assignments.length === 0) {
-      console.log("No program assignments found for user:", userId);
+      console.log(`No program assignments found for user ${userId}${userEmail ? ` (${userEmail})` : ''}`);
       return null;
     }
+    
+    // Log details about each assignment for debugging
+    assignments.forEach((assignment, index) => {
+      console.log(`Assignment ${index + 1}:`, {
+        id: assignment.id,
+        program_id: assignment.program_id,
+        start_date: assignment.start_date,
+        end_date: assignment.end_date || "No end date (ongoing)"
+      });
+    });
     
     // Filter active assignments in JavaScript for better control and debugging
     let activeAssignments = assignments.filter(assignment => {

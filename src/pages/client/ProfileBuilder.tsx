@@ -52,14 +52,26 @@ const ProfileBuilder = () => {
   // Initialize profileData from fetched profile
   useEffect(() => {
     if (profile) {
+      console.log('Profile data loaded:', profile);
       setProfileData(profile);
       
       // If profile is already completed, redirect to dashboard
       if (profile.profile_completed) {
+        console.log('Profile is complete, redirecting to dashboard');
         navigate('/client-dashboard');
       }
     }
   }, [profile, navigate]);
+
+  // Debug log for profile status
+  useEffect(() => {
+    if (!isLoading) {
+      console.log('Profile builder loaded with profile:', profile);
+      if (!profile) {
+        console.log('No profile found, creating empty profile');
+      }
+    }
+  }, [isLoading, profile]);
 
   // Handle navigation between steps
   const handleNext = () => {
@@ -99,6 +111,7 @@ const ProfileBuilder = () => {
   }
 
   if (error) {
+    console.error('Error loading profile:', error);
     // Redirect to login if there's an error (likely auth issue)
     navigate('/client');
     return null;

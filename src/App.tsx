@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -39,7 +38,13 @@ const ClientProtectedRoute = ({ children, redirectTo = "/client" }) => {
   
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['client-profile-check', user?.id],
-    queryFn: () => fetchClientProfile(user?.id || ''),
+    queryFn: async () => {
+      console.log('Checking profile completion for user:', user?.id);
+      if (!user?.id) return null;
+      const result = await fetchClientProfile(user.id);
+      console.log('Profile check result:', result);
+      return result;
+    },
     enabled: !!user && userType === 'client',
   });
   
@@ -52,13 +57,16 @@ const ClientProtectedRoute = ({ children, redirectTo = "/client" }) => {
   }
   
   if (!user || userType !== 'client') {
+    console.log('User not authenticated or not a client, redirecting to', redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
   
-  if (profile && !profile.profile_completed) {
+  if (!profile || !profile.profile_completed) {
+    console.log('Profile incomplete, redirecting to profile builder');
     return <Navigate to="/client-profile-builder" replace />;
   }
   
+  console.log('Profile complete, showing client dashboard');
   return children;
 };
 

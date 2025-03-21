@@ -31,12 +31,14 @@ serve(async (req) => {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const siteUrl = Deno.env.get("SITE_URL");
     
-    // Log environment variable availability (not the actual values)
+    // Log environment variable availability and actual values (only first few chars for keys)
     console.log("Environment check:", { 
       hasSupabaseUrl: !!supabaseUrl, 
       hasServiceRoleKey: !!supabaseServiceRoleKey,
       hasResendApiKey: !!resendApiKey,
-      hasSiteUrl: !!siteUrl
+      hasSiteUrl: !!siteUrl,
+      resendApiKeyPrefix: resendApiKey ? resendApiKey.substring(0, 5) + "..." : "missing",
+      siteUrlValue: siteUrl
     });
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
@@ -48,9 +50,9 @@ serve(async (req) => {
     }
 
     if (!resendApiKey) {
-      console.error("Missing Resend API key");
+      console.error("Missing Resend API key, unable to send emails");
       return new Response(
-        JSON.stringify({ error: "Email service not configured: Missing Resend API key" }),
+        JSON.stringify({ error: "Email service not configured: Missing Resend API key", details: "The RESEND_API_KEY environment variable is not set or not accessible by the Edge Function." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -259,6 +261,13 @@ serve(async (req) => {
     // Send the invitation email using Resend
     try {
       console.log("Sending email to:", email, "using Resend API");
+      console.log("Using Resend API key starting with:", resendApiKey.substring(0, 5) + "...");
+      
+      // Validate Resend instance
+      if (!resend || typeof resend.emails?.send !== 'function') {
+        console.error("Resend instance is invalid:", resend);
+        throw new Error("Failed to initialize Resend client");
+      }
       
       // Capitalize the user type for better readability in the email
       const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);

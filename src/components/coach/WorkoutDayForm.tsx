@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
-import { createWorkoutExercise, fetchWorkoutExercises } from '@/services/workout-service';
+import { createWorkout, createWorkoutExercise, fetchWorkoutExercises } from '@/services/workout-service';
 import { toast } from 'sonner';
 
 const formSchema = z.object({
@@ -70,11 +69,9 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           const exercises = await fetchWorkoutExercises(workoutId);
           setExistingExercises(exercises);
           
-          // Set exercises from workout
           const loadedExercises = exercises.map(item => item.exercise!);
           setExercises(loadedExercises);
           
-          // Set exercise data
           const exerciseFormData: Record<string, any> = {};
           exercises.forEach(item => {
             exerciseFormData[item.exercise_id] = {
@@ -99,7 +96,6 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   }, [workoutId]);
 
   const handleAddExercise = (exercise: Exercise) => {
-    // Add a temporary ID if it's a new exercise being added
     const exerciseWithTempId = {...exercise, tempId: Date.now().toString()};
     setExercises([...exercises, exerciseWithTempId]);
   };
@@ -108,7 +104,6 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     const newExercises = [...exercises];
     const removed = newExercises.splice(index, 1)[0];
     
-    // Clean up exercise data
     if (removed.id in exerciseData) {
       const newExerciseData = {...exerciseData};
       delete newExerciseData[removed.id];
@@ -136,7 +131,6 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     try {
       setIsSavingWorkout(true);
       
-      // Create workout day if there's no existing ID
       if (!workoutId) {
         const workoutData = {
           week_id: weekId,
@@ -145,19 +139,8 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           description: values.description || null
         };
         
-        const workoutResponse = await fetch('/api/workouts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(workoutData)
-        });
+        const newWorkout = await createWorkout(workoutData);
         
-        if (!workoutResponse.ok) {
-          throw new Error('Failed to create workout');
-        }
-        
-        const { id: newWorkoutId } = await workoutResponse.json();
-        
-        // Save all exercises
         await Promise.all(exercises.map((exercise, index) => {
           const exerciseFormData = exerciseData[exercise.id];
           
@@ -167,7 +150,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           }
           
           return createWorkoutExercise({
-            workout_id: newWorkoutId,
+            workout_id: newWorkout.id,
             exercise_id: exercise.id,
             sets: exerciseFormData.sets,
             reps: exerciseFormData.reps,
@@ -177,10 +160,8 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           });
         }));
         
-        onSave(newWorkoutId);
+        onSave(newWorkout.id);
       } else {
-        // Handle updating existing workout
-        // This is a placeholder - the real implementation would update the workout and exercises
         onSave(workoutId);
       }
       

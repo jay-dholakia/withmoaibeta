@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // Client Profile Types
@@ -55,6 +56,28 @@ export interface LeaderboardEntry {
   user_id: string;
   email: string;
   total_workouts: number;
+}
+
+// Workout History Types
+export interface WorkoutCompletionBasic {
+  id: string;
+  completed_at: string;
+  notes?: string;
+  rating?: number;
+  user_id: string;
+  workout_id: string;
+}
+
+export interface WorkoutBasic {
+  id: string;
+  title: string;
+  description?: string;
+  day_of_week: number;
+  week_id: string;
+}
+
+export interface WorkoutHistoryItem extends WorkoutCompletionBasic {
+  workout?: WorkoutBasic | null;
 }
 
 // Current Program Fetching Function
@@ -504,41 +527,56 @@ export const fetchPersonalRecords = async (userId: string): Promise<any[]> => {
   }
 };
 
-export const fetchClientWorkoutHistory = async (clientId: string): Promise<any[]> => {
+export const fetchClientWorkoutHistory = async (clientId: string): Promise<WorkoutHistoryItem[]> => {
   try {
-    // Use a simpler query that doesn't cause TypeScript's type instantiation to go too deep
-    const { data, error } = await supabase
+    // First, get the basic completion data
+    const { data: completions, error: completionsError } = await supabase
       .from('workout_completions')
       .select('id, completed_at, notes, rating, user_id, workout_id')
       .eq('user_id', clientId)
       .order('completed_at', { ascending: false });
     
-    if (error) throw error;
+    if (completionsError) {
+      console.error("Error fetching workout completions:", completionsError);
+      throw completionsError;
+    }
     
-    // If we have completion data, fetch the related workouts separately
-    if (data && data.length > 0) {
-      const workoutIds = data.map(completion => completion.workout_id);
-      
-      const { data: workoutsData, error: workoutsError } = await supabase
-        .from('workouts')
-        .select('id, title, description, day_of_week, week_id')
-        .in('id', workoutIds);
-      
-      if (workoutsError) throw workoutsError;
-      
-      // Combine the workout data with the completion data
-      return data.map(completion => {
-        const workout = workoutsData ? workoutsData.find(w => w.id === completion.workout_id) : null;
-        return {
-          ...completion,
-          workout
-        };
+    if (!completions || completions.length === 0) {
+      return [];
+    }
+    
+    // Create a set of unique workout IDs
+    const workoutIds = [...new Set(completions.map(c => c.workout_id))];
+    
+    // Fetch workout details separately
+    const { data: workouts, error: workoutsError } = await supabase
+      .from('workouts')
+      .select('id, title, description, day_of_week, week_id')
+      .in('id', workoutIds);
+    
+    if (workoutsError) {
+      console.error("Error fetching workouts:", workoutsError);
+      throw workoutsError;
+    }
+    
+    // Create a Map for faster workout lookups
+    const workoutMap = new Map();
+    if (workouts) {
+      workouts.forEach(workout => {
+        workoutMap.set(workout.id, workout);
       });
     }
     
-    return data || [];
+    // Combine the data
+    return completions.map(completion => {
+      const workoutDetails = workoutMap.get(completion.workout_id) || null;
+      return {
+        ...completion,
+        workout: workoutDetails
+      };
+    });
   } catch (error) {
-    console.error("Error fetching client workout history:", error);
+    console.error("Error in fetchClientWorkoutHistory:", error);
     return [];
   }
 };

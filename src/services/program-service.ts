@@ -42,9 +42,6 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
   console.log("Today's date for comparison:", todayISODate);
   
   try {
-    // First check if we have a current program ID from program assignments
-    let programId = null;
-    
     // Query program assignments to find active program
     const { data: assignments, error: assignmentError } = await supabase
       .from('program_assignments')
@@ -68,16 +65,14 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     
     const currentAssignment = assignments[0];
     console.log("Using program assignment:", currentAssignment);
-    programId = currentAssignment.program_id;
+    const programId = currentAssignment.program_id;
     
     if (!programId) {
       console.log("No program ID found for user");
       return null;
     }
     
-    // Get the program assignment details (reuse the one we already fetched)
-    const assignmentData = currentAssignment;
-    
+    // Get the program details
     const { data: programData, error: programError } = await supabase
       .from('workout_programs')
       .select('*')
@@ -96,6 +91,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       return null;
     }
     
+    // Get the program weeks
     const { data: weeksData, error: weeksError } = await supabase
       .from('workout_weeks')
       .select('*')
@@ -111,6 +107,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     
     const weeksWithWorkouts = [];
     
+    // For each week, get the workouts
     for (const week of weeksData || []) {
       const { data: workoutsData, error: workoutsError } = await supabase
         .from('workouts')
@@ -137,8 +134,9 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       });
     }
     
+    // Construct full program data
     const fullProgramData = {
-      ...assignmentData,
+      ...currentAssignment,
       program: {
         ...programData,
         weeks: weeksWithWorkouts

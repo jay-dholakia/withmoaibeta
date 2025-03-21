@@ -26,22 +26,13 @@ export const fetchCoachGroups = async (coachId: string) => {
     if (!groupCoaches || groupCoaches.length === 0) {
       console.log('Service: No exact UUID matches found, attempting email lookup');
       
-      // Get user email
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', coachId)
-        .single();
-        
-      if (userError) {
-        console.error('Service: Error fetching user profile:', userError);
-      }
-      
-      const { data: authUser } = await supabase.auth.admin.getUserById(coachId);
-      const userEmail = authUser?.user?.email;
+      // Get user email directly from the session - more reliable than admin API
+      const { data: { session } } = await supabase.auth.getSession();
+      const userEmail = session?.user?.email;
       
       console.log(`Service: Looking up groups for email: ${userEmail}`);
       
+      // Special handling for jdholakia12@gmail.com account
       if (userEmail === 'jdholakia12@gmail.com') {
         console.log('Service: Found target jdholakia12@gmail.com account, looking for Moai groups');
         

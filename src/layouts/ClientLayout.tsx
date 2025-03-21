@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Dumbbell, Users, Trophy, Settings, LogOut, FileText } from 'lucide-react';
+import { Dumbbell, Users, LayoutDashboard, Settings, LogOut, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
 import { toast } from 'sonner';
@@ -60,8 +60,8 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                 to="/client-dashboard/leaderboard" 
                 className={`flex flex-col items-center py-3 px-2 ${isActive('/leaderboard') ? 'text-client' : 'text-gray-500'}`}
               >
-                <Trophy className="h-5 w-5" />
-                <span className="text-xs mt-1">Leaderboard</span>
+                <LayoutDashboard className="h-5 w-5" />
+                <span className="text-xs mt-1">Dashboard</span>
               </Link>
               
               <Link 

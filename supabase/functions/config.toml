@@ -5,5 +5,5 @@ project_id = "gjrheltyxjilxcphbzdj"
 verify_jwt = false
 
 [functions.send-invitation.environment]
-RESEND_API_KEY = "re_bauJYLU3_5kduYi8Z3TktcHLdgciCT733"
+RESEND_API_KEY = "re_jhUbi5kf_MTmHMCagpEXAfCfaRsDCPfPb"
 SITE_URL = "https://b6a84091-4644-4e34-aa23-8e5607f4a294.lovableproject.com"

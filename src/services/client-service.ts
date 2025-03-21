@@ -262,103 +262,84 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<Lea
 
 export const fetchClientProfile = async (clientId: string): Promise<ClientProfile | null> => {
   try {
-    // First check if the client_profiles table exists, if not try to create it
-    const { data: tableExists, error: tableCheckError } = await supabase.rpc(
-      'create_client_profiles_table'
-    );
+    // Check if the client_profiles table exists
+    const tableExists = await ensureClientProfilesTable();
     
-    if (tableCheckError) {
-      console.error('Error checking/creating client_profiles table:', tableCheckError);
-      
-      // Fallback: if the table doesn't exist or function fails, get basic info from profiles
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, created_at')
-        .eq('id', clientId)
-        .maybeSingle();
-        
-      if (profileError) {
-        console.error('Error fetching profile fallback:', profileError);
-        throw profileError;
+    if (tableExists) {
+      // If table exists, try to fetch from client_profiles
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', clientId)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching client profile:', error);
+          throw error;
+        }
+
+        if (!data) {
+          // Create a minimal profile if no data found
+          const initialProfile = {
+            id: clientId,
+            first_name: null,
+            last_name: null,
+            city: null,
+            state: null,
+            birthday: null,
+            height: null,
+            weight: null,
+            avatar_url: null,
+            fitness_goals: [],
+            favorite_movements: [],
+            profile_completed: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          
+          return initialProfile;
+        }
+
+        // Convert the profile data to ClientProfile type
+        return {
+          id: data.id,
+          first_name: null,
+          last_name: null,
+          city: null,
+          state: null,
+          birthday: null,
+          height: null,
+          weight: null,
+          avatar_url: null,
+          fitness_goals: [],
+          favorite_movements: [],
+          profile_completed: false,
+          created_at: data.created_at,
+          updated_at: new Date().toISOString()
+        };
+      } catch (error) {
+        console.error('Error fetching from client_profiles:', error);
       }
-      
-      if (!profileData) return null;
-      
-      // Return a minimal profile with empty values
-      return {
-        id: profileData.id,
-        first_name: null,
-        last_name: null,
-        city: null,
-        state: null,
-        birthday: null,
-        height: null,
-        weight: null,
-        avatar_url: null,
-        fitness_goals: [],
-        favorite_movements: [],
-        profile_completed: false,
-        created_at: profileData.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
     }
     
-    // If we reach here, the table should exist, try to query it
-    const { data, error } = await supabase
-      .from('profiles') // Use profiles table instead as a workaround
-      .select('*')
+    // Fallback: get basic info from profiles
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, created_at')
       .eq('id', clientId)
       .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching client profile:', error);
       
-      // Create a minimal profile as fallback
-      const initialProfile = {
-        id: clientId,
-        first_name: null,
-        last_name: null,
-        city: null,
-        state: null,
-        birthday: null,
-        height: null,
-        weight: null,
-        avatar_url: null,
-        fitness_goals: [],
-        favorite_movements: [],
-        profile_completed: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      return initialProfile;
+    if (profileError) {
+      console.error('Error fetching profile fallback:', profileError);
+      throw profileError;
     }
-
-    if (!data) {
-      // Create a minimal profile if no data found
-      const initialProfile = {
-        id: clientId,
-        first_name: null,
-        last_name: null,
-        city: null,
-        state: null,
-        birthday: null,
-        height: null,
-        weight: null,
-        avatar_url: null,
-        fitness_goals: [],
-        favorite_movements: [],
-        profile_completed: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      return initialProfile;
-    }
-
-    // Convert the profile data to ClientProfile type
+    
+    if (!profileData) return null;
+    
+    // Return a minimal profile with empty values
     return {
-      id: data.id,
+      id: profileData.id,
       first_name: null,
       last_name: null,
       city: null,
@@ -370,7 +351,7 @@ export const fetchClientProfile = async (clientId: string): Promise<ClientProfil
       fitness_goals: [],
       favorite_movements: [],
       profile_completed: false,
-      created_at: data.created_at,
+      created_at: profileData.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
   } catch (error) {
@@ -397,14 +378,11 @@ export const fetchClientProfile = async (clientId: string): Promise<ClientProfil
 
 export const updateClientProfile = async (clientId: string, profile: Partial<ClientProfile>): Promise<ClientProfile> => {
   try {
-    // First check if the client_profiles table exists
-    const { data: tableExists, error: tableCheckError } = await supabase.rpc(
-      'create_client_profiles_table'
-    );
+    // Check if the client_profiles table exists
+    const tableExists = await ensureClientProfilesTable();
     
-    if (tableCheckError) {
-      console.error('Error checking/creating client_profiles table:', tableCheckError);
-      throw tableCheckError;
+    if (!tableExists) {
+      console.log('Client profiles table does not exist, using fallback');
     }
     
     // Get the existing profile to merge with updates
@@ -809,18 +787,25 @@ const getUserEmail = async (userId: string): Promise<string> => {
   }
 };
 
-const ensureClientProfilesTable = async () => {
+const ensureClientProfilesTable = async (): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.rpc('create_client_profiles_table');
+    // Check if the client_profiles table exists
+    const { data: tableExists, error: checkError } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .eq('table_name', 'client_profiles')
+      .eq('table_schema', 'public')
+      .single();
     
-    if (error) {
-      console.error('Error creating client_profiles table:', error);
+    if (checkError || !tableExists) {
+      console.log('Client profiles table does not exist, using fallback');
       return false;
     }
     
     return true;
   } catch (error) {
-    console.error('Error ensuring client_profiles table:', error);
+    console.error('Error checking client_profiles table:', error);
     return false;
   }
 };
+

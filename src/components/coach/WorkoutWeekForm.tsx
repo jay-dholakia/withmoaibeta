@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { WorkoutWeek } from '@/types/workout';
 
 const formSchema = z.object({
   title: z.string().min(2, 'Week title must be at least 2 characters'),
@@ -27,19 +28,23 @@ interface WorkoutWeekFormProps {
   onSubmit: (values: FormValues) => void;
   isSubmitting: boolean;
   onCancel: () => void;
+  initialData?: WorkoutWeek;
+  mode?: 'create' | 'edit';
 }
 
 export const WorkoutWeekForm: React.FC<WorkoutWeekFormProps> = ({ 
   weekNumber, 
   onSubmit, 
   isSubmitting,
-  onCancel
+  onCancel,
+  initialData,
+  mode = 'create'
 }) => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: `Week ${weekNumber}`,
-      description: ''
+      title: initialData?.title || `Week ${weekNumber}`,
+      description: initialData?.description || ''
     }
   });
 
@@ -83,7 +88,7 @@ export const WorkoutWeekForm: React.FC<WorkoutWeekFormProps> = ({
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : 'Save Week'}
+            {isSubmitting ? 'Saving...' : mode === 'create' ? 'Save Week' : 'Update Week'}
           </Button>
         </div>
       </form>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -30,6 +29,7 @@ import {
   fetchWorkoutProgram, 
   fetchWorkoutWeeks,
   createWorkoutWeek,
+  updateWorkoutWeek,
   fetchWorkouts,
   createWorkout
 } from '@/services/workout-service';
@@ -47,12 +47,12 @@ const WorkoutProgramDetailPage = () => {
   const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
   const [isCreatingWeek, setIsCreatingWeek] = useState(false);
   const [isSubmittingWeek, setIsSubmittingWeek] = useState(false);
+  const [isEditingWeek, setIsEditingWeek] = useState<string | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [openDialogId, setOpenDialogId] = useState<string | null>(null);
   const [isNewWorkoutDialogOpen, setIsNewWorkoutDialogOpen] = useState(false);
-  const [isEditingWorkout, setIsEditingWorkout] = useState<string | null>(null);
   
   useEffect(() => {
     if (!programId) return;
@@ -126,14 +126,35 @@ const WorkoutProgramDetailPage = () => {
     }
   };
   
+  const handleUpdateWeek = async (weekId: string, values: { title: string; description?: string }) => {
+    if (!programId || !user) return;
+    
+    try {
+      setIsSubmittingWeek(true);
+      
+      const updatedWeek = await updateWorkoutWeek(weekId, {
+        title: values.title,
+        description: values.description || null
+      });
+      
+      setWeeks(prev => prev.map(week => week.id === weekId ? updatedWeek : week));
+      setIsEditingWeek(null);
+      
+      toast.success('Week updated successfully');
+    } catch (error) {
+      console.error('Error updating week:', error);
+      toast.error('Failed to update week');
+    } finally {
+      setIsSubmittingWeek(false);
+    }
+  };
+  
   const handleSaveWorkout = (workoutId: string) => {
     if (selectedWeek) {
-      // Refresh workouts after saving
       fetchWorkouts(selectedWeek).then(workouts => {
         setWorkouts(workouts);
       });
       
-      // Close any open dialogs
       setOpenDialogId(null);
       setIsNewWorkoutDialogOpen(false);
       setIsEditingWorkout(null);
@@ -273,11 +294,22 @@ const WorkoutProgramDetailPage = () => {
                 <NewScrollArea className="h-[calc(100vh-25rem)]">
                   {weeks.map((week) => (
                     <TabsContent key={week.id} value={week.id}>
-                      <div className="mb-4">
-                        <h3 className="text-lg font-medium">{week.title}</h3>
-                        {week.description && (
-                          <p className="text-muted-foreground text-sm mt-1">{week.description}</p>
-                        )}
+                      <div className="mb-4 flex justify-between items-start">
+                        <div>
+                          <h3 className="text-lg font-medium">{week.title}</h3>
+                          {week.description && (
+                            <p className="text-muted-foreground text-sm mt-1">{week.description}</p>
+                          )}
+                        </div>
+                        <Button 
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsEditingWeek(week.id)}
+                          className="gap-1"
+                        >
+                          <Edit className="h-4 w-4" />
+                          Edit Week
+                        </Button>
                       </div>
                       
                       <div className="flex justify-end mb-4">
@@ -404,6 +436,26 @@ const WorkoutProgramDetailPage = () => {
             </div>
           </DialogContent>
         </Dialog>
+        
+        {isEditingWeek && weeks.find(week => week.id === isEditingWeek) && (
+          <Dialog open={!!isEditingWeek} onOpenChange={(open) => !open && setIsEditingWeek(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Week</DialogTitle>
+              </DialogHeader>
+              <div className="mt-4">
+                <WorkoutWeekForm
+                  weekNumber={weeks.find(week => week.id === isEditingWeek)?.week_number || 1}
+                  initialData={weeks.find(week => week.id === isEditingWeek)}
+                  onSubmit={(values) => handleUpdateWeek(isEditingWeek, values)}
+                  isSubmitting={isSubmittingWeek}
+                  onCancel={() => setIsEditingWeek(null)}
+                  mode="edit"
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </CoachLayout>
   );

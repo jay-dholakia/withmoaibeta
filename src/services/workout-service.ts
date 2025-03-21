@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Exercise, 
@@ -92,6 +91,25 @@ export const createWorkoutWeek = async (week: Omit<WorkoutWeek, 'id' | 'created_
 
   if (error) {
     console.error('Error creating workout week:', error);
+    throw error;
+  }
+
+  return data as WorkoutWeek;
+};
+
+export const updateWorkoutWeek = async (
+  weekId: string,
+  updates: Partial<Omit<WorkoutWeek, 'id' | 'created_at' | 'program_id'>>
+): Promise<WorkoutWeek> => {
+  const { data, error } = await supabase
+    .from('workout_weeks')
+    .update(updates)
+    .eq('id', weekId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(`Error updating workout week ${weekId}:`, error);
     throw error;
   }
 

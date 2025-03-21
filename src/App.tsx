@@ -46,6 +46,8 @@ const ClientProtectedRoute = ({ children, redirectTo = "/client" }) => {
       return result;
     },
     enabled: !!user && userType === 'client',
+    retry: 2,
+    retryDelay: 500,
   });
   
   if (loading || profileLoading) {
@@ -84,7 +86,14 @@ const ProtectedRoute = ({ children, userType, redirectTo = "/" }) => {
   return children;
 };
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 function App() {
   return (
@@ -104,7 +113,6 @@ function App() {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/admin-setup" element={<AdminSetup />} />
                 
-                {/* Admin routes */}
                 <Route 
                   path="/admin-dashboard" 
                   element={
@@ -154,7 +162,6 @@ function App() {
                   } 
                 />
                 
-                {/* Coach routes */}
                 <Route 
                   path="/coach-dashboard" 
                   element={
@@ -220,7 +227,6 @@ function App() {
                   } 
                 />
                 
-                {/* Client routes */}
                 <Route 
                   path="/client-profile-builder" 
                   element={

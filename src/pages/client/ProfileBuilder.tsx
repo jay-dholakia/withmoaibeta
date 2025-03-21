@@ -19,20 +19,33 @@ const ProfileBuilder = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [profileData, setProfileData] = useState<Partial<ClientProfile>>({});
 
+  console.log('ProfileBuilder: Rendering with user ID:', user?.id);
+
   // Fetch client profile
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ['client-profile', user?.id],
     queryFn: async () => {
+      console.log('ProfileBuilder: Fetching profile for user:', user?.id);
       if (!user?.id) throw new Error('User not authenticated');
-      return fetchClientProfile(user.id);
+      try {
+        const result = await fetchClientProfile(user.id);
+        console.log('ProfileBuilder: Fetch result:', result);
+        return result;
+      } catch (error) {
+        console.error('ProfileBuilder: Error fetching profile:', error);
+        throw error;
+      }
     },
     enabled: !!user?.id,
+    retry: 1,
+    staleTime: 30000, // 30 seconds
   });
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: (data: Partial<ClientProfile>) => {
       if (!user?.id) throw new Error('User not authenticated');
+      console.log('ProfileBuilder: Updating profile with data:', data);
       return updateClientProfile(user.id, data);
     },
     onSuccess: (updatedProfile) => {

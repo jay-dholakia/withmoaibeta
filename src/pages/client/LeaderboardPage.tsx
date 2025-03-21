@@ -55,7 +55,6 @@ const LeaderboardPage = () => {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
         <div className="flex justify-center items-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-client" />
         </div>
@@ -66,8 +65,6 @@ const LeaderboardPage = () => {
   if (!userGroups || userGroups.length === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        
         <Card className="text-center py-12">
           <CardContent>
             <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -96,7 +93,6 @@ const LeaderboardPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">Group: {group.name}</p>
       </div>
       

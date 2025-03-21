@@ -37,7 +37,6 @@ const MoaiPage = () => {
   if (isLoadingGroups) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Your Moai</h1>
         <p className="text-muted-foreground mb-4">
           Your fitness community and accountability group
         </p>
@@ -52,8 +51,6 @@ const MoaiPage = () => {
   if (!userGroups || userGroups.length === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Your Moai</h1>
-        
         <Card className="text-center py-12">
           <CardContent>
             <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -73,7 +70,6 @@ const MoaiPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Your Moai</h1>
         <p className="text-muted-foreground">Group: {group.name}</p>
         {group.description && (
           <p className="text-muted-foreground mt-1 text-sm">{group.description}</p>

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +15,8 @@ const WorkoutsList = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  console.log("Rendering WorkoutsList component, user ID:", user?.id);
+
   // Fetch the current program
   const { 
     data: currentProgram, 
@@ -25,11 +27,18 @@ const WorkoutsList = () => {
     queryKey: ['client-current-program', user?.id],
     queryFn: () => fetchCurrentProgram(user?.id || ''),
     enabled: !!user?.id,
-    staleTime: 60000, // 1 minute
+    staleTime: 30000, // 30 seconds - reduced for more frequent refreshes
     refetchOnWindowFocus: true,
   });
 
-  console.log("Current program data:", currentProgram);
+  useEffect(() => {
+    if (programError) {
+      console.error("Error fetching program:", programError);
+      toast.error("Failed to load your workout program");
+    }
+  }, [programError]);
+
+  console.log("Current program data from query:", currentProgram);
   
   // Fetch any ongoing workouts
   const { 
@@ -39,7 +48,7 @@ const WorkoutsList = () => {
     queryKey: ['client-ongoing-workout', user?.id],
     queryFn: () => fetchOngoingWorkout(user?.id || ''),
     enabled: !!user?.id,
-    staleTime: 60000, // 1 minute
+    staleTime: 30000, // 30 seconds
   });
 
   const handleStartWorkout = async (workoutId: string) => {
@@ -142,6 +151,8 @@ const WorkoutsList = () => {
   }
 
   const program = currentProgram.program;
+  console.log("Current program:", program.title, "Start date:", currentProgram.start_date);
+  
   const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
   const currentWeekNumber = getCurrentWeekNumber(currentProgram.start_date);
   
@@ -232,7 +243,7 @@ const WorkoutsList = () => {
             <CardContent className="pt-4">
               <p className="text-sm mb-4">{workout.description || 'Complete all exercises in this workout'}</p>
               <div className="flex gap-1 flex-wrap">
-                {workout.workout_exercises && workout.workout_exercises.map((exercise, index) => (
+                {workout.workout_exercises && workout.workout_exercises.map((exercise) => (
                   <div 
                     key={exercise.id}
                     className="text-xs bg-muted px-2 py-1 rounded"
@@ -259,13 +270,32 @@ const WorkoutsList = () => {
 };
 
 const getCurrentWeekNumber = (startDateString: string): number => {
-  const startDate = new Date(startDateString);
-  const today = new Date();
-  
-  const diffTime = Math.abs(today.getTime() - startDate.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  return Math.floor(diffDays / 7) + 1;
+  try {
+    console.log("Calculating current week number from start date:", startDateString);
+    const startDate = new Date(startDateString);
+    console.log("Parsed start date:", startDate);
+    
+    const today = new Date();
+    console.log("Today's date for week calculation:", today);
+    
+    // Check if start date is valid
+    if (isNaN(startDate.getTime())) {
+      console.error("Invalid start date:", startDateString);
+      return 1; // Default to week 1 if date is invalid
+    }
+    
+    const diffTime = Math.abs(today.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    console.log("Days difference:", diffDays);
+    const weekNumber = Math.floor(diffDays / 7) + 1;
+    console.log("Calculated week number:", weekNumber);
+    
+    return weekNumber;
+  } catch (error) {
+    console.error("Error calculating week number:", error);
+    return 1; // Default to week 1 on error
+  }
 };
 
 export default WorkoutsList;

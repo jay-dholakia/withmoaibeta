@@ -43,6 +43,14 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
   console.log("Today's date for comparison:", todayISODate);
   
   try {
+    // Debug log to show all program assignments for the user
+    const { data: allAssignments } = await supabase
+      .from('program_assignments')
+      .select('*')
+      .eq('user_id', userId);
+    
+    console.log("All program assignments for user:", allAssignments);
+    
     // Query program assignments to find active program
     // Using explicit format for date comparison
     const { data: assignments, error: assignmentError } = await supabase
@@ -62,11 +70,32 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     
     if (!assignments || assignments.length === 0) {
       console.log("No active program assignments found for user", userId);
+      
+      // Additional debug log to check all program assignments
+      console.log("Let's try a simpler query without date filtering");
+      const { data: allPrograms } = await supabase
+        .from('program_assignments')
+        .select('*')
+        .eq('user_id', userId);
+      
+      console.log("All programs without date filtering:", allPrograms);
+      
       return null;
     }
     
     const currentAssignment = assignments[0];
     console.log("Using program assignment:", currentAssignment);
+    console.log("Start date type:", typeof currentAssignment.start_date);
+    console.log("End date type:", typeof currentAssignment.end_date);
+    
+    // Print date comparison details
+    if (currentAssignment.end_date) {
+      console.log("End date:", currentAssignment.end_date);
+      console.log("Is end date >= today?", currentAssignment.end_date >= todayISODate);
+    } else {
+      console.log("End date is null, program is considered active");
+    }
+    
     const programId = currentAssignment.program_id;
     
     if (!programId) {
@@ -105,7 +134,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       throw weeksError;
     }
     
-    console.log("Program weeks fetched:", weeksData?.length || 0);
+    console.log("Program weeks fetched:", weeksData?.length || 0, weeksData);
     
     const weeksWithWorkouts = [];
     
@@ -128,7 +157,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
         continue;
       }
       
-      console.log(`Week ${week.week_number} workouts:`, workoutsData?.length || 0);
+      console.log(`Week ${week.week_number} workouts:`, workoutsData?.length || 0, workoutsData);
       
       weeksWithWorkouts.push({
         ...week,

@@ -654,17 +654,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
         console.log("Weeks data available:", weeksArray.length, "weeks");
         
         try {
-          const { error: updateError } = await supabase
-            .from('client_workout_info')
-            .upsert({
-              user_id: userId,
-              current_program_id: data.program_id
-            })
-            .eq('user_id', userId);
-            
-          if (updateError) {
-            console.error('Error updating client_workout_info:', updateError);
-          }
+          console.log(`User ${userId} is currently on program ${data.program_id}`);
         } catch (err) {
           console.error('Error updating client program info:', err);
         }

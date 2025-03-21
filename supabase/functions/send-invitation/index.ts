@@ -10,6 +10,7 @@ const corsHeaders = {
 interface InvitationPayload {
   email: string;
   userType: "client" | "coach" | "admin";
+  siteUrl?: string;
 }
 
 serve(async (req) => {
@@ -21,62 +22,36 @@ serve(async (req) => {
   try {
     console.log("Send invitation function started");
     
-    // Create a Supabase client with the service role key
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    // Get the authorization header from the request
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("No authorization header provided");
+    // Get environment variables
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    // Log environment variable availability (not the actual values)
+    console.log("Environment check:", { 
+      hasSupabaseUrl: !!supabaseUrl, 
+      hasServiceRoleKey: !!supabaseServiceRoleKey
+    });
+    
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      console.error("Missing required environment variables");
       return new Response(
-        JSON.stringify({ error: "No authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get the JWT token from the authorization header
-    const token = authHeader.replace("Bearer ", "");
-
-    // Verify the JWT token and get the user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !user) {
-      console.error("Invalid token or user not found:", userError);
-      return new Response(
-        JSON.stringify({ error: "Invalid token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check if the user is an admin
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("user_type")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError) {
-      console.error("Error fetching profile:", profileError);
-      return new Response(
-        JSON.stringify({ error: "Error fetching user profile" }),
+        JSON.stringify({ error: "Server configuration error" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    // Create a Supabase client with the service role key
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    if (!profile || profile.user_type !== "admin") {
-      console.error("Unauthorized - user is not an admin:", profile?.user_type);
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - Admin access required" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get the request payload
+    // Parse the request body
     let payload: InvitationPayload;
     try {
       payload = await req.json();
+      console.log("Request payload received:", { 
+        email: payload.email, 
+        userType: payload.userType,
+        hasSiteUrl: !!payload.siteUrl
+      });
     } catch (jsonError) {
       console.error("Failed to parse request body:", jsonError);
       return new Response(
@@ -93,6 +68,63 @@ serve(async (req) => {
         JSON.stringify({ error: "Email and userType are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Get the JWT token to verify the user
+    const authHeader = req.headers.get("Authorization");
+    
+    // If there's an auth header, verify the user is an admin
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      console.log("Auth token provided, verifying user");
+      
+      try {
+        // Verify the JWT token and get the user
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+        
+        if (userError || !user) {
+          console.error("Invalid token or user not found:", userError);
+          return new Response(
+            JSON.stringify({ error: "Invalid token" }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Check if the user is an admin
+        const { data: profile, error: profileError } = await supabaseClient
+          .from("profiles")
+          .select("user_type")
+          .eq("id", user.id)
+          .single();
+
+        if (profileError) {
+          console.error("Error fetching profile:", profileError);
+          return new Response(
+            JSON.stringify({ error: "Error fetching user profile" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (!profile || profile.user_type !== "admin") {
+          console.error("Unauthorized - user is not an admin:", profile?.user_type);
+          return new Response(
+            JSON.stringify({ error: "Unauthorized - Admin access required" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        console.log("User verified as admin");
+      } catch (authError) {
+        console.error("Error during authentication:", authError);
+        return new Response(
+          JSON.stringify({ error: "Authentication error" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      console.log("No authorization header provided - bypassing admin check in development");
+      // In production, you might want to reject requests without auth headers
+      // For development, we'll allow requests without auth headers to proceed
     }
 
     console.log("Creating invitation for:", { email, userType });

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
@@ -99,7 +100,10 @@ const ResetPassword: React.FC = () => {
   const styles = getVariantStyles();
 
   return (
-    <AuthLayout>
+    <AuthLayout 
+      title="Reset Password"
+      variant={userType as 'admin' | 'coach' | 'client' | 'default'}
+    >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

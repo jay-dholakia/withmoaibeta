@@ -39,13 +39,23 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         toast.error('Admin accounts cannot be self-registered');
         return;
       }
-      await signUp(email, password, variant);
+      try {
+        await signUp(email, password, variant);
+      } catch (error) {
+        console.error('Registration error:', error);
+        // Error handling is already in the signUp function
+      }
     } else {
-      if (onSubmit) {
-        // For backward compatibility
-        onSubmit(email, password);
-      } else {
-        await signIn(email, password, variant);
+      try {
+        if (onSubmit) {
+          // For backward compatibility
+          onSubmit(email, password);
+        } else {
+          await signIn(email, password, variant);
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        // Error handling is already in the signIn function
       }
     }
   };

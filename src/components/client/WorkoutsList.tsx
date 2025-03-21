@@ -7,7 +7,7 @@ import { fetchCurrentProgram, fetchOngoingWorkout } from '@/services/client-serv
 import { DAYS_OF_WEEK } from '@/types/workout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, Play, Dumbbell, RefreshCw } from 'lucide-react';
+import { Loader2, Calendar, Play, Dumbbell, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const WorkoutsList = () => {
@@ -121,6 +121,12 @@ const WorkoutsList = () => {
           You don't have an active workout program assigned yet.
         </p>
         <div className="flex flex-col space-y-3 items-center">
+          <div className="flex flex-col items-center p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-800 max-w-md mb-4">
+            <AlertCircle className="h-5 w-5 mb-2" />
+            <p className="text-sm text-center">
+              If your coach has recently assigned you a program, please click the refresh button below.
+            </p>
+          </div>
           <p className="text-sm text-muted-foreground">
             User ID: {user?.id || 'Not logged in'}
           </p>

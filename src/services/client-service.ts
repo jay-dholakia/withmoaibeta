@@ -596,7 +596,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       throw assignmentError;
     }
     
-    console.log("Program assignments found:", assignments?.length || 0);
+    console.log("Program assignments found:", assignments?.length || 0, assignments);
     
     if (!assignments || assignments.length === 0) {
       console.log("No active program assignments found for user", userId);
@@ -628,19 +628,20 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       .single();
 
     if (error) {
-      console.error('Error fetching current program:', error);
+      console.error('Error fetching current program details:', error);
       throw error;
     }
 
     console.log("Current program data fetched:", data ? "Success" : "No data");
     
-    if (!data) {
-      console.log("No current program found for user", userId);
+    if (!data || !data.program) {
+      console.log("No program details found for assignment", currentAssignment.id);
       return null;
     }
     
     if (data.program) {
       console.log("Program title:", data.program.title);
+      console.log("Program ID:", data.program_id);
       
       const weeksArray = data.program.weeks && Array.isArray(data.program.weeks) 
         ? data.program.weeks 

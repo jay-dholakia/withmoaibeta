@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -53,6 +53,42 @@ const InvitationsPage: React.FC = () => {
     },
     enabled: currentUserType === 'admin'
   });
+  
+  // Set up realtime subscription for invitation updates
+  useEffect(() => {
+    if (currentUserType !== 'admin') return;
+    
+    console.log('Setting up realtime subscription for invitations');
+    
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for all changes: INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'invitations'
+        },
+        (payload) => {
+          console.log('Realtime invitation update:', payload);
+          // Invalidate the invitations query to refresh the data
+          queryClient.invalidateQueries({ queryKey: ['invitations'] });
+          
+          // If this is an invitation being accepted, show a toast notification
+          if (payload.eventType === 'UPDATE' && 
+              payload.new.accepted === true && 
+              payload.old.accepted === false) {
+            toast.success(`Invitation for ${payload.new.email} has been accepted!`);
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      console.log('Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserType, queryClient]);
   
   const sendInvitation = useMutation({
     mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' | 'admin' }): Promise<InvitationResponse> => {

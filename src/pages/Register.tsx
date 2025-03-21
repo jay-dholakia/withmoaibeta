@@ -116,12 +116,13 @@ const RegisterPage = () => {
       const signUpResult = await signUp(values.email, values.password, type as 'client' | 'coach' | 'admin');
       console.log('Signup result:', signUpResult);
       
-      // Mark the invitation as accepted
+      // Mark the invitation as accepted with a timestamp
+      const now = new Date().toISOString();
       const { error: updateError } = await supabase
         .from('invitations')
         .update({ 
           accepted: true,
-          accepted_at: new Date().toISOString()
+          accepted_at: now
         })
         .eq('id', invitation.id);
       

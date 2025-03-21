@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.37.0";
 import { Resend } from "https://esm.sh/resend@1.0.0";
@@ -25,22 +24,35 @@ serve(async (req) => {
   try {
     console.log("Send invitation function started");
     
-    // Get environment variables
+    // Get environment variables with detailed logging
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const siteUrl = Deno.env.get("SITE_URL");
     
-    // More detailed logging for environment variables
+    // Enhanced logging for better diagnosis
     console.log("Environment variables:", {
       supabaseUrlSet: !!supabaseUrl,
       serviceRoleKeySet: !!supabaseServiceRoleKey,
       resendApiKeySet: !!resendApiKey,
-      resendApiKeyValue: resendApiKey ? `${resendApiKey.substring(0, 10)}...` : "not set",
+      resendApiKeyLength: resendApiKey ? resendApiKey.length : 0,
+      resendApiKeyFirst10Chars: resendApiKey ? resendApiKey.substring(0, 10) : "not set",
       siteUrlSet: !!siteUrl,
       siteUrlValue: siteUrl || "Not set",
       allEnvKeys: Object.keys(Deno.env.toObject())
     });
+    
+    // More detailed logging for the actual API key value (partial, for security)
+    if (resendApiKey) {
+      console.log(`Resend API key starts with: ${resendApiKey.substring(0, 10)}... and ends with: ...${resendApiKey.substring(resendApiKey.length - 5)}`);
+      console.log(`Resend API key length: ${resendApiKey.length}`);
+      // Check if it matches the expected format for Resend keys
+      if (!resendApiKey.startsWith('re_')) {
+        console.warn("Warning: Resend API key doesn't start with 're_' which is the expected format");
+      }
+    } else {
+      console.error("CRITICAL: Resend API key is completely missing");
+    }
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       console.error("Missing required Supabase environment variables");
@@ -68,13 +80,14 @@ serve(async (req) => {
     // Create a Supabase client with the service role key
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Initialize Resend with explicit error handling
+    // Initialize Resend with explicit error handling and logging
     let resend;
     try {
       resend = new Resend(resendApiKey);
       console.log("Resend client initialized successfully");
     } catch (resendError) {
       console.error("Failed to initialize Resend client:", resendError);
+      console.error("Error details:", JSON.stringify(resendError, null, 2));
       return new Response(
         JSON.stringify({ 
           error: "Email service initialization failed", 
@@ -280,7 +293,7 @@ serve(async (req) => {
     const inviteLink = `${effectiveSiteUrl}/register?token=${invitation.token}&type=${userType}`;
     console.log("Generated invite link:", inviteLink);
 
-    // Send the invitation email using Resend
+    // Send the invitation email using Resend with enhanced error handling
     try {
       console.log("Sending email to:", email);
       console.log("Using Resend API key starting with:", resendApiKey.substring(0, 10) + "...");
@@ -293,7 +306,15 @@ serve(async (req) => {
       // Capitalize the user type for better readability in the email
       const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
       
-      // Send the email with Resend - UPDATED FROM ADDRESS
+      // Additional debugging before sending
+      console.log("Email configuration:", {
+        fromEmail: "jay@withmoai.co",
+        toEmail: email,
+        subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
+        hasHtmlContent: true
+      });
+      
+      // Attempt to send the email with Resend
       const { data: emailResult, error: emailError } = await resend.emails.send({
         from: "Moai <jay@withmoai.co>",
         to: [email],
@@ -319,10 +340,12 @@ serve(async (req) => {
       
       if (emailError) {
         console.error("Error sending email with Resend:", emailError);
+        console.error("Full error details:", JSON.stringify(emailError, null, 2));
         return new Response(
           JSON.stringify({ 
             error: "Failed to send email", 
             details: emailError.message,
+            fullError: JSON.stringify(emailError),
             invitation: {
               id: invitation.id,
               token: invitation.token,
@@ -337,10 +360,13 @@ serve(async (req) => {
       }
     } catch (emailSendError) {
       console.error("Exception sending email with Resend:", emailSendError);
+      console.error("Stack trace:", emailSendError.stack);
+      console.error("Full error details:", JSON.stringify(emailSendError, null, 2));
       return new Response(
         JSON.stringify({ 
           error: "Exception sending email", 
           details: emailSendError.message,
+          stack: emailSendError.stack,
           invitation: {
             id: invitation.id,
             token: invitation.token,
@@ -366,8 +392,9 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in send-invitation function:", error);
+    console.error("Stack trace:", error.stack);
     return new Response(
-      JSON.stringify({ error: error.message || "An unexpected error occurred" }),
+      JSON.stringify({ error: error.message || "An unexpected error occurred", stack: error.stack }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

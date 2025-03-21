@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -47,39 +46,18 @@ const InvitationsPage: React.FC = () => {
       
       console.log("Sending invitation request with session token:", session?.access_token?.slice(0, 10) + "...");
       
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invitation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({ email, userType, siteUrl })
+      // Use Supabase functions.invoke instead of direct fetch
+      const { data, error } = await supabase.functions.invoke("send-invitation", {
+        body: { email, userType, siteUrl }
       });
       
-      if (!response.ok) {
-        const text = await response.text();
-        console.error("Error response from send-invitation:", { 
-          status: response.status, 
-          statusText: response.statusText,
-          responseText: text
-        });
-        
-        let errorMessage;
-        try {
-          // Try to parse as JSON first
-          const errorData = JSON.parse(text);
-          errorMessage = errorData.error || `Request failed with status ${response.status}`;
-        } catch (e) {
-          // If it's not valid JSON, use the text directly
-          errorMessage = `Request failed with status ${response.status}: ${text.substring(0, 100)}...`;
-        }
-        
-        throw new Error(errorMessage);
+      if (error) {
+        console.error("Error invoking send-invitation function:", error);
+        throw new Error(error.message || "Failed to send invitation");
       }
       
-      const responseData = await response.json();
-      console.log("Invitation response:", responseData);
-      return responseData;
+      console.log("Invitation response:", data);
+      return data;
     },
     onSuccess: (data, variables) => {
       setInviteLink(data.inviteLink || `${window.location.origin}/register?token=${data.token}&type=${variables.userType}`);

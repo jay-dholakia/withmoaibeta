@@ -129,7 +129,7 @@ serve(async (req) => {
       );
     }
 
-    const siteUrl = Deno.env.get("SITE_URL") || "";
+    const siteUrl = Deno.env.get("SITE_URL") || payload.siteUrl || "";
     const inviteLink = `${siteUrl}/register?token=${invitation.token}&type=${userType}`;
 
     console.log("Invitation created successfully:", { invitationId, inviteLink });

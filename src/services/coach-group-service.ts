@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { fetchGroupDetails } from './group-service';
 
@@ -10,13 +11,7 @@ export const fetchCoachGroups = async (coachId: string) => {
   console.log('Service: Fetching coach groups for coach ID:', coachId);
   
   try {
-    // 1. Get user email from session - this is the most reliable source
-    const { data: { session } } = await supabase.auth.getSession();
-    const userEmail = session?.user?.email;
-    
-    console.log(`Service: Current user email from session: ${userEmail}`);
-    
-    // 2. First try the direct approach - look for existing assignments by coach ID
+    // First, get all coach-group assignments
     const { data: groupCoaches, error: groupCoachesError } = await supabase
       .from('group_coaches')
       .select('group_id, id, coach_id')
@@ -27,11 +22,24 @@ export const fetchCoachGroups = async (coachId: string) => {
       throw groupCoachesError;
     }
     
-    console.log('Service: Group coaches data for exact ID match:', groupCoaches);
+    console.log('Service: Found coach-group assignments:', groupCoaches);
     
-    let groupsData = [];
+    // If there are group assignments, fetch the details for those groups
+    if (groupCoaches && groupCoaches.length > 0) {
+      const groupIds = groupCoaches.map(gc => gc.group_id);
+      const groups = await fetchGroupDetails(groupIds);
+      console.log('Service: Retrieved group details:', groups);
+      return groups;
+    }
     
-    // 3. Special handling for jdholakia12@gmail.com account - maintain backward compatibility
+    // If no assignments were found, check if this is a special user (jdholakia12@gmail.com)
+    // 1. Get user email from session - this is the most reliable source
+    const { data: { session } } = await supabase.auth.getSession();
+    const userEmail = session?.user?.email;
+    
+    console.log(`Service: Current user email from session: ${userEmail}`);
+    
+    // Special handling for jdholakia12@gmail.com account - maintain backward compatibility
     if (userEmail === 'jdholakia12@gmail.com') {
       console.log('Service: Found jdholakia12@gmail.com account, looking for Moai groups');
       
@@ -53,9 +61,9 @@ export const fetchCoachGroups = async (coachId: string) => {
           }
           
           // Return Moai groups since assignments are now guaranteed
-          groupsData = moaiGroups;
-        } else if (groupCoaches && groupCoaches.length === 0) {
-          // No Moai groups and no assignments - create a new Moai group
+          return moaiGroups;
+        } else {
+          // No Moai groups - create a new Moai group
           console.log('Service: No Moai groups found, creating one');
           
           try {
@@ -75,7 +83,7 @@ export const fetchCoachGroups = async (coachId: string) => {
               
               // Create assignment for the new group
               await ensureCoachGroupAssignment(coachId, newGroup[0].id);
-              groupsData = newGroup;
+              return newGroup;
             }
           } catch (err) {
             console.error('Service: Error in Moai group creation:', err);
@@ -84,17 +92,10 @@ export const fetchCoachGroups = async (coachId: string) => {
       }
     }
     
-    // 4. If we have groups by now (either from direct match or Moai special case), return them
-    if (groupsData.length > 0) {
-      return groupsData;
-    }
+    // If we reach here, we need to create a new default group or assign an existing one
+    console.log('Service: No groups found for coach, fetching all groups in system');
     
-    // 5. If we have existing assignments from step 2, fetch the group details
-    if (groupCoaches && groupCoaches.length > 0) {
-      return await fetchGroupDetails(groupCoaches.map(gc => gc.group_id));
-    }
-    
-    // 6. Fallback - look for any groups in the system
+    // Fallback - look for any groups in the system
     const { data: allGroups, error: allGroupsError } = await supabase
       .from('groups')
       .select('*');
@@ -106,14 +107,14 @@ export const fetchCoachGroups = async (coachId: string) => {
     
     console.log('Service: All groups in system:', allGroups);
     
-    // 7. If there are groups but no assignments, create one for the first group as a fallback
+    // If there are groups but no assignments, create one for the first group as a fallback
     if (allGroups && allGroups.length > 0) {
       const firstGroup = allGroups[0];
       await ensureCoachGroupAssignment(coachId, firstGroup.id);
       return allGroups;
     }
     
-    // 8. Last resort - create a new default group and assign the coach
+    // Last resort - create a new default group and assign the coach
     console.log('Service: No groups found at all, creating a new default group');
     
     try {

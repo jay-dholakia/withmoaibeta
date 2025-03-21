@@ -55,17 +55,23 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       
       // Transform the direct query data to match the expected format
       return directData.map(client => {
-        const workoutInfo = client.client_workout_info && client.client_workout_info.length > 0 
-          ? client.client_workout_info[0] 
-          : { last_workout_at: null, total_workouts_completed: 0, current_program_id: null };
+        // Safely handle client_workout_info which should be an array
+        const workoutInfo = client.client_workout_info && 
+          Array.isArray(client.client_workout_info) && 
+          client.client_workout_info.length > 0 
+            ? client.client_workout_info[0] 
+            : { last_workout_at: null, total_workouts_completed: 0, current_program_id: null };
           
-        const program = client.workout_programs && client.workout_programs.length > 0 
-          ? client.workout_programs[0] 
-          : null;
+        // Safely handle workout_programs which should be an array
+        const program = client.workout_programs && 
+          Array.isArray(client.workout_programs) && 
+          client.workout_programs.length > 0 
+            ? client.workout_programs[0] 
+            : null;
         
         // Calculate days since last workout
         let daysSinceLastWorkout = null;
-        if (workoutInfo.last_workout_at) {
+        if (workoutInfo && typeof workoutInfo === 'object' && workoutInfo.last_workout_at) {
           const lastWorkout = new Date(workoutInfo.last_workout_at);
           const today = new Date();
           const diffTime = Math.abs(today.getTime() - lastWorkout.getTime());
@@ -77,10 +83,10 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
           id: client.id,
           email: '', // Will be populated in separate call
           user_type: client.user_type,
-          last_workout_at: workoutInfo.last_workout_at || null,
-          total_workouts_completed: workoutInfo.total_workouts_completed || 0,
-          current_program_id: workoutInfo.current_program_id || null,
-          current_program_title: program ? program.title : null,
+          last_workout_at: workoutInfo && typeof workoutInfo === 'object' ? workoutInfo.last_workout_at || null : null,
+          total_workouts_completed: workoutInfo && typeof workoutInfo === 'object' ? workoutInfo.total_workouts_completed || 0 : 0,
+          current_program_id: workoutInfo && typeof workoutInfo === 'object' ? workoutInfo.current_program_id || null : null,
+          current_program_title: program && typeof program === 'object' ? program.title || null : null,
           days_since_last_workout: daysSinceLastWorkout,
           group_ids: [] // Will be populated in separate call
         };

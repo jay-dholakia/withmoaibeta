@@ -23,6 +23,8 @@ interface InvitationResponse {
   inviteLink: string;
   emailError?: string;
   email?: string;
+  emailErrorCode?: string;
+  emailResult?: any;
 }
 
 const InvitationsPage: React.FC = () => {
@@ -81,6 +83,7 @@ const InvitationsPage: React.FC = () => {
         const inviteLink = `${siteUrl}/register?token=${token}&type=${userType}`;
         
         try {
+          console.log("Invoking send-invitation edge function");
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
             body: {
               email,
@@ -101,6 +104,23 @@ const InvitationsPage: React.FC = () => {
             throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
           }
           
+          // Check if the email was actually sent
+          const responseData = edgeFunctionResponse.data;
+          if (responseData && responseData.emailSent === false) {
+            console.warn("Email was not sent due to service error:", responseData.emailError);
+            return {
+              success: true,
+              emailSent: false,
+              invitationId: data.id,
+              token: data.token,
+              expiresAt: data.expires_at,
+              inviteLink,
+              emailError: responseData.emailError,
+              emailErrorCode: responseData.emailErrorCode,
+              email
+            };
+          }
+          
           return {
             success: true,
             emailSent: true,
@@ -108,7 +128,8 @@ const InvitationsPage: React.FC = () => {
             token: data.token,
             expiresAt: data.expires_at,
             inviteLink,
-            email
+            email,
+            emailResult: responseData?.emailResult
           };
         } catch (emailError) {
           console.error("Failed to send email, but invitation created:", emailError);
@@ -134,9 +155,10 @@ const InvitationsPage: React.FC = () => {
       
       if (data.emailSent) {
         toast.success(`Invitation sent to ${data.email || 'user'} successfully!`);
+        console.log("Email send result:", data.emailResult);
       } else {
-        toast.info(`Invitation created for ${data.email || 'user'}, but email service is unavailable. Please share the invitation link manually.`, {
-          duration: 5000
+        toast.info(`Invitation created for ${data.email || 'user'}, but email could not be sent: ${data.emailError || 'Unknown error'}. Please share the invitation link manually.`, {
+          duration: 8000
         });
       }
     },

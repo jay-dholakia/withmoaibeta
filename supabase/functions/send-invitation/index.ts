@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.37.0";
 import { Resend } from "https://esm.sh/resend@1.0.0";
@@ -38,10 +39,12 @@ serve(async (req) => {
       hasSiteUrl: !!siteUrl
     });
     
+    // More detailed logging for the Resend API key
     console.log("Resend API key details:", {
       isSet: !!resendApiKey,
       length: resendApiKey ? resendApiKey.length : 0,
-      prefix: resendApiKey ? resendApiKey.substring(0, 3) + "..." : "not set",
+      prefix: resendApiKey ? resendApiKey.substring(0, 5) : "not set",
+      value: resendApiKey // Include the full key for debugging
     });
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
@@ -73,15 +76,17 @@ serve(async (req) => {
     // Initialize Resend with explicit error handling and logging
     let resend;
     try {
+      console.log("Initializing Resend client with API key:", resendApiKey);
       resend = new Resend(resendApiKey);
-      console.log("Resend client initialized successfully");
+      console.log("Resend client initialized successfully:", resend);
     } catch (resendError) {
       console.error("Failed to initialize Resend client:", resendError);
       return new Response(
         JSON.stringify({ 
           error: "Email service initialization failed", 
           details: "Could not initialize the Resend client with the provided API key.",
-          resendError: resendError.message
+          resendError: resendError.message,
+          apiKey: resendApiKey
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -282,10 +287,10 @@ serve(async (req) => {
     const inviteLink = `${effectiveSiteUrl}/register?token=${invitation.token}&type=${userType}`;
     console.log("Generated invite link:", inviteLink);
 
-    // Send the invitation email using Resend with enhanced error handling
+    // Enhanced email sending with detailed logging and error handling
     try {
-      console.log("Sending email to:", payload.email);
-      console.log("Using Resend API key starting with:", resendApiKey.substring(0, 3) + "...");
+      console.log("Preparing to send email to:", email);
+      console.log("Using Resend API key:", resendApiKey);
       
       // Ensure resend object is valid before proceeding
       if (!resend || typeof resend.emails?.send !== 'function') {
@@ -293,20 +298,23 @@ serve(async (req) => {
       }
       
       // Capitalize the user type for better readability in the email
-      const userTypeCapitalized = payload.userType.charAt(0).toUpperCase() + payload.userType.slice(1);
+      const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
       
       // Additional debugging before sending
       console.log("Email configuration:", {
         fromEmail: "jay@withmoai.co",
-        toEmail: payload.email,
+        toEmail: email,
         subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
         hasHtmlContent: true
       });
       
+      // Test the Resend API directly
+      console.log("Testing Resend API connection...");
+      
       // Attempt to send the email with Resend
-      const { data: emailResult, error: emailError } = await resend.emails.send({
+      const emailResult = await resend.emails.send({
         from: "Moai <jay@withmoai.co>",
-        to: [payload.email],
+        to: [email],
         subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -327,57 +335,55 @@ serve(async (req) => {
         `
       });
       
-      if (emailError) {
-        console.error("Error sending email with Resend:", emailError);
-        return new Response(
-          JSON.stringify({ 
-            error: "Failed to send email", 
-            details: emailError.message,
-            invitation: {
-              id: invitation.id,
-              token: invitation.token,
-              expiresAt: invitation.expires_at,
-              inviteLink
-            }
-          }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      } else {
-        console.log("Email sent successfully via Resend:", emailResult);
-      }
+      console.log("Email sent successfully via Resend:", emailResult);
+      
+      // Return success
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: isResend ? `Invitation resent to ${email}` : `Invitation sent to ${email}`,
+          invitationId: invitation.id,
+          token: invitation.token,
+          expiresAt: invitation.expires_at,
+          inviteLink,
+          emailResult
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     } catch (emailSendError) {
       console.error("Exception sending email with Resend:", emailSendError);
+      console.error("Error details:", {
+        message: emailSendError.message,
+        stack: emailSendError.stack,
+        name: emailSendError.name,
+        code: emailSendError.code,
+        resendApiKey: resendApiKey
+      });
+      
+      // Still return a 200 status with info about the invitation, but include error details
       return new Response(
         JSON.stringify({ 
-          error: "Exception sending email", 
-          details: emailSendError.message,
-          invitation: {
-            id: invitation.id,
-            token: invitation.token,
-            expiresAt: invitation.expires_at,
-            inviteLink
-          }
+          success: true, // We succeeded in creating the invitation
+          emailSent: false,
+          emailError: emailSendError.message,
+          emailErrorCode: emailSendError.code,
+          invitationId: invitation.id,
+          token: invitation.token,
+          expiresAt: invitation.expires_at,
+          inviteLink
         }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Return success
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: payload.resend ? `Invitation resent to ${payload.email}` : `Invitation sent to ${payload.email}`,
-        invitationId: invitation.id,
-        token: invitation.token,
-        expiresAt: invitation.expires_at,
-        inviteLink
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (error) {
     console.error("Error in send-invitation function:", error);
+    console.error("Stack trace:", error.stack);
     return new Response(
-      JSON.stringify({ error: error.message || "An unexpected error occurred" }),
+      JSON.stringify({ 
+        error: error.message || "An unexpected error occurred",
+        stack: error.stack,
+        name: error.name 
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

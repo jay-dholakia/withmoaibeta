@@ -10,6 +10,7 @@ import { ProfileBuilderStepOne } from '@/components/client/ProfileBuilder/Profil
 import { ProfileBuilderStepTwo } from '@/components/client/ProfileBuilder/ProfileBuilderStepTwo';
 import { ProfileBuilderStepThree } from '@/components/client/ProfileBuilder/ProfileBuilderStepThree';
 import { Loader2 } from 'lucide-react';
+import { PageTransition } from '@/components/PageTransition';
 
 const TOTAL_STEPS = 3;
 
@@ -18,6 +19,7 @@ const ProfileBuilder = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [profileData, setProfileData] = useState<Partial<ClientProfile>>({});
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   console.log('ProfileBuilder: Rendering with user ID:', user?.id);
 
@@ -53,6 +55,7 @@ const ProfileBuilder = () => {
       // If profile is now complete, redirect to client dashboard
       if (updatedProfile.profile_completed) {
         toast.success('Your profile has been completed!');
+        setIsRedirecting(true);
         setTimeout(() => navigate('/client-dashboard'), 500);
       }
     },
@@ -71,7 +74,8 @@ const ProfileBuilder = () => {
       // If profile is already completed, redirect to dashboard
       if (profile.profile_completed) {
         console.log('Profile is complete, redirecting to dashboard');
-        navigate('/client-dashboard');
+        setIsRedirecting(true);
+        setTimeout(() => navigate('/client-dashboard'), 300);
       }
     }
   }, [profile, navigate]);
@@ -115,6 +119,15 @@ const ProfileBuilder = () => {
     updateProfileMutation.mutate(finalData);
   };
 
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-client" />
+        <span className="ml-2 text-client">Redirecting to dashboard...</span>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -131,33 +144,35 @@ const ProfileBuilder = () => {
   }
 
   return (
-    <ProfileBuilderLayout step={currentStep} totalSteps={TOTAL_STEPS}>
-      {currentStep === 1 && (
-        <ProfileBuilderStepOne
-          profile={profileData}
-          onUpdate={handleUpdateProfile}
-          onNext={handleNext}
-        />
-      )}
+    <PageTransition>
+      <ProfileBuilderLayout step={currentStep} totalSteps={TOTAL_STEPS}>
+        {currentStep === 1 && (
+          <ProfileBuilderStepOne
+            profile={profileData}
+            onUpdate={handleUpdateProfile}
+            onNext={handleNext}
+          />
+        )}
 
-      {currentStep === 2 && (
-        <ProfileBuilderStepTwo
-          profile={profileData}
-          onUpdate={handleUpdateProfile}
-          onNext={handleNext}
-          onBack={handleBack}
-        />
-      )}
+        {currentStep === 2 && (
+          <ProfileBuilderStepTwo
+            profile={profileData}
+            onUpdate={handleUpdateProfile}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        )}
 
-      {currentStep === 3 && (
-        <ProfileBuilderStepThree
-          profile={profileData}
-          onUpdate={handleUpdateProfile}
-          onComplete={handleComplete}
-          onBack={handleBack}
-        />
-      )}
-    </ProfileBuilderLayout>
+        {currentStep === 3 && (
+          <ProfileBuilderStepThree
+            profile={profileData}
+            onUpdate={handleUpdateProfile}
+            onComplete={handleComplete}
+            onBack={handleBack}
+          />
+        )}
+      </ProfileBuilderLayout>
+    </PageTransition>
   );
 };
 

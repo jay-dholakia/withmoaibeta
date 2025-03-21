@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -41,19 +42,27 @@ const ClientProtectedRoute = ({ children, redirectTo = "/client" }) => {
     queryFn: async () => {
       console.log('Checking profile completion for user:', user?.id);
       if (!user?.id) return null;
-      const result = await fetchClientProfile(user.id);
-      console.log('Profile check result:', result);
-      return result;
+      try {
+        const result = await fetchClientProfile(user.id);
+        console.log('Profile check result:', result);
+        return result;
+      } catch (error) {
+        console.error('Profile check error:', error);
+        // Return null on error to avoid continuous redirects
+        return null;
+      }
     },
     enabled: !!user && userType === 'client',
-    retry: 2,
-    retryDelay: 500,
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 30000, // 30 seconds
   });
   
   if (loading || profileLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-screen bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-client" />
+        <span className="ml-2 text-muted-foreground">Loading your profile...</span>
       </div>
     );
   }
@@ -91,6 +100,7 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
+      staleTime: 30000, // 30 seconds
     },
   },
 });

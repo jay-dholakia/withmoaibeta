@@ -51,7 +51,7 @@ const MoaiPage = () => {
     enabled: !!user?.id,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    staleTime: 0,
+    staleTime: 0, 
     gcTime: 10000, // Short cache time
   });
   
@@ -124,6 +124,21 @@ const MoaiPage = () => {
     toast.info('Attempting to fix group assignment...');
     
     try {
+      // First, check available groups
+      const { data: availableGroups, error: groupsError } = await supabase
+        .from('groups')
+        .select('id, name')
+        .order('created_at', { ascending: false });
+        
+      if (groupsError) {
+        console.error('Error checking available groups:', groupsError);
+        toast.error('Failed to check available groups');
+        return;
+      }
+      
+      console.log('Available groups before fix:', availableGroups);
+      
+      // Proceed with fix attempt
       const result = await ensureUserHasGroup(user.id);
       console.log('Group assignment fix result:', result);
       
@@ -136,6 +151,7 @@ const MoaiPage = () => {
         setDiagnosticDetails(diagResult);
       } else {
         toast.error(`Failed to fix group assignment: ${result.message}`);
+        console.error('Fix error details:', result.details);
       }
     } catch (err) {
       console.error('Error fixing group assignment:', err);
@@ -174,6 +190,23 @@ const MoaiPage = () => {
           toast.warning('No direct group memberships found');
         } else {
           toast.success(`Found ${membershipData.length} group memberships`);
+        }
+      }
+      
+      // Check for available groups
+      const { data: availableGroups, error: groupsError } = await supabase
+        .from('groups')
+        .select('id, name');
+        
+      if (groupsError) {
+        console.error('Error checking available groups:', groupsError);
+        toast.error('Failed to check available groups');
+      } else {
+        console.log('Available groups:', availableGroups);
+        if (availableGroups.length === 0) {
+          toast.warning('No groups exist in the system yet');
+        } else {
+          toast.info(`There are ${availableGroups.length} groups in the system`);
         }
       }
       

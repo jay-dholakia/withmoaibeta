@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ensureCoachGroupAssignment } from './coach-group-service';
 
@@ -83,4 +82,65 @@ export const fetchGroupDetails = async (groupIds: string[]) => {
   
   console.log('Groups data:', groups);
   return groups || [];
+};
+
+/**
+ * Create a default Moai group if none exists
+ */
+export const createDefaultMoaiGroupIfNeeded = async (adminId: string) => {
+  try {
+    // Check if any Moai groups exist
+    const { data: existingGroups, error: checkError } = await supabase
+      .from('groups')
+      .select('id, name')
+      .ilike('name', 'Moai%');
+      
+    if (checkError) {
+      console.error('Error checking for Moai groups:', checkError);
+      return {
+        success: false,
+        message: 'Failed to check for existing Moai groups'
+      };
+    }
+    
+    // If Moai groups already exist, we don't need to create one
+    if (existingGroups && existingGroups.length > 0) {
+      console.log('Moai groups already exist:', existingGroups);
+      return {
+        success: true,
+        message: 'Moai groups already exist',
+        groups: existingGroups
+      };
+    }
+    
+    // Create a new Moai group
+    const { data: newGroup, error: createError } = await supabase
+      .from('groups')
+      .insert({
+        name: 'Moai Fitness Group',
+        description: 'A supportive community for your fitness journey',
+        created_by: adminId
+      })
+      .select();
+      
+    if (createError) {
+      console.error('Error creating Moai group:', createError);
+      return {
+        success: false,
+        message: 'Failed to create Moai group'
+      };
+    }
+    
+    return {
+      success: true,
+      message: 'Successfully created default Moai group',
+      group: newGroup[0]
+    };
+  } catch (error) {
+    console.error('Unexpected error in createDefaultMoaiGroupIfNeeded:', error);
+    return {
+      success: false,
+      message: 'Unexpected error creating default Moai group'
+    };
+  }
 };

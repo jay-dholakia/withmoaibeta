@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -315,8 +316,9 @@ export const ensureUserHasGroup = async (userId: string) => {
     }
     
     if (!availableGroups || availableGroups.length === 0) {
-      console.log('No groups available to assign user to');
-      // Create a default group if none exists
+      console.log('No groups available to assign user to, will create a default group');
+      
+      // Create a default group
       const { data: newGroup, error: createError } = await supabase
         .from('groups')
         .insert([{ 
@@ -336,7 +338,15 @@ export const ensureUserHasGroup = async (userId: string) => {
       }
       
       console.log('Created default group:', newGroup);
-      return assignUserToGroup(userId, newGroup[0].id);
+      if (!newGroup || newGroup.length === 0) {
+        return {
+          success: false,
+          message: 'Created group but received empty response'
+        };
+      }
+      
+      // Now assign the user to the newly created group
+      return await assignUserToGroup(userId, newGroup[0].id);
     }
     
     // Assign user to the first available group

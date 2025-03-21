@@ -48,10 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setProfile(null);
           setUserType(null);
+          setLoading(false);
         }
-        
-        // Always reset loading state after auth state changes
-        setLoading(false);
       }
     );
 
@@ -122,13 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data.user) {
         console.log('Sign in successful, user ID:', data.user.id);
-        
-        // Successfully signed in, the onAuthStateChange listener will handle 
-        // updating the state and profile
         toast.success('Sign in successful!');
-        
-        // Note: Don't need to set loading=false here as the onAuthStateChange 
-        // event will reset it when it processes the login
       } else {
         console.error('No user data returned from sign in');
         toast.error('Sign in failed - no user data returned');

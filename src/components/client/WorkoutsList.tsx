@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -28,7 +27,7 @@ const WorkoutsList = () => {
     queryFn: () => fetchCurrentProgram(user?.id || ''),
     enabled: !!user?.id,
     staleTime: 0, // No stale time - always fetch fresh data
-    cacheTime: 0, // Don't cache the data
+    gcTime: 0, // Don't cache the data (formerly cacheTime)
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });

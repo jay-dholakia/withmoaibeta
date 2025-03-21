@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -52,7 +51,6 @@ const WorkoutProgramDetailPage = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Add the missing state variable for editing workouts
   const [isEditingWorkout, setIsEditingWorkout] = useState<string | null>(null);
   
   const [openDialogId, setOpenDialogId] = useState<string | null>(null);
@@ -136,7 +134,6 @@ const WorkoutProgramDetailPage = () => {
     try {
       setIsSubmittingWeek(true);
       
-      // Make sure title is required here by adding validation
       if (!values.title) {
         toast.error('Week title is required');
         return;

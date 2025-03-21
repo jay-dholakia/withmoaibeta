@@ -16,12 +16,17 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { WorkoutWeek } from '@/types/workout';
 
+// Update the schema to clearly mark title as required
 const formSchema = z.object({
   title: z.string().min(2, 'Week title must be at least 2 characters'),
   description: z.string().optional()
 });
 
-type FormValues = z.infer<typeof formSchema>;
+// Explicitly type the form values to match the schema
+type FormValues = {
+  title: string; // Note: no ? here to ensure title is required
+  description?: string;
+};
 
 interface WorkoutWeekFormProps {
   weekNumber: number;

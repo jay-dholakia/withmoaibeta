@@ -103,19 +103,22 @@ const GroupDetailsPage: React.FC = () => {
         return;
       }
       
-      // Fetch coach details with email
-      const coachesData: Coach[] = [];
-      
-      for (const coachId of coachIds) {
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(coachId);
+      // Fetch coach profiles from the profiles table
+      const { data: coachProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, user_type')
+        .in('id', coachIds)
+        .eq('user_type', 'coach');
         
-        if (!userError && userData?.user) {
-          coachesData.push({
-            id: coachId,
-            email: userData.user.email || 'Unknown email'
-          });
-        }
+      if (profilesError) {
+        throw profilesError;
       }
+      
+      // Create coach data with formatted emails since we can't directly access auth.users
+      const coachesData: Coach[] = coachProfiles.map(coach => ({
+        id: coach.id,
+        email: `${coach.id.split('-')[0]}@coach.com` // Simplified display for coaches
+      }));
       
       setCoaches(coachesData);
     } catch (error) {
@@ -142,19 +145,22 @@ const GroupDetailsPage: React.FC = () => {
         return;
       }
       
-      // Fetch client details with email
-      const clientsData: Client[] = [];
-      
-      for (const clientId of clientIds) {
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(clientId);
+      // Fetch client profiles from the profiles table
+      const { data: clientProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, user_type')
+        .in('id', clientIds)
+        .eq('user_type', 'client');
         
-        if (!userError && userData?.user) {
-          clientsData.push({
-            id: clientId,
-            email: userData.user.email || 'Unknown email'
-          });
-        }
+      if (profilesError) {
+        throw profilesError;
       }
+      
+      // Create client data with formatted emails since we can't directly access auth.users
+      const clientsData: Client[] = clientProfiles.map(client => ({
+        id: client.id,
+        email: `${client.id.split('-')[0]}@client.com` // Simplified display for clients
+      }));
       
       setClients(clientsData);
     } catch (error) {

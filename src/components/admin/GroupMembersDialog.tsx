@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { fetchAllClientProfiles } from '@/services/client-service';
 
 interface Client {
   id: string;
@@ -80,10 +81,6 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
     console.log("Available clients for selection:", available.length);
     console.log("Current group members:", groupMemberIds.length);
     
-    // Debug: List all client IDs for debugging
-    console.log("All client IDs:", clients.map(c => c.id));
-    console.log("Group member IDs:", groupMemberIds);
-    
     setAvailableClients(available);
     
     // Reset selection if selected client is no longer available
@@ -92,31 +89,13 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
     }
   }, [clients, groupMembers]);
 
-  // This is a helper function to get user's email from auth.users table
-  // Note: This requires admin access to Supabase
-  const getUserEmail = async (userId: string): Promise<string> => {
-    try {
-      const { data, error } = await supabase.auth.admin.getUserById(userId);
-      
-      if (error) {
-        console.error('Error fetching user email:', error);
-        return `client_${userId.substring(0, 8)}`;
-      }
-      
-      return data.user?.email || `client_${userId.substring(0, 8)}`;
-    } catch (error) {
-      console.error('Error in getUserEmail:', error);
-      return `client_${userId.substring(0, 8)}`;
-    }
-  };
-
   const fetchData = async () => {
     setIsLoading(true);
     setError(null);
     try {
       console.log("Fetching data for group:", group.id);
       
-      // Get all client profiles - fixed the query to not use a relationship that doesn't exist
+      // Get all client profiles with user_type = 'client'
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, created_at, user_type')
@@ -146,18 +125,30 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
         return map;
       }, {} as Record<string, string>);
       
-      // Create client data from profiles and fetch real emails for each client
-      const clientsData: Client[] = [];
+      // Get emails for all clients
+      const clientEmails = new Map<string, string>();
       
-      for (const profile of profilesData) {
-        const email = await getUserEmail(profile.id);
-        clientsData.push({
+      try {
+        // Try to use profiles table for basic info
+        for (const profile of profilesData) {
+          // For now, use a formatted client ID as email since we can't access the real emails
+          // Format: client_[first 8 chars of ID]@example.com
+          const displayEmail = `${profile.id.split('-')[0]}@client.com`;
+          clientEmails.set(profile.id, displayEmail);
+        }
+      } catch (emailError) {
+        console.error("Error fetching client emails:", emailError);
+      }
+      
+      // Create client data from profiles with the email information
+      const clientsData: Client[] = profilesData.map(profile => {
+        return {
           id: profile.id,
-          email: email,
+          email: clientEmails.get(profile.id) || `${profile.id.substring(0, 8)}@client.com`,
           created_at: profile.created_at,
           group_id: userGroupMap[profile.id] || null
-        });
-      }
+        };
+      });
 
       console.log("Total clients transformed:", clientsData.length);
       

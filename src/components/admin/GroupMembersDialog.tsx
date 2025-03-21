@@ -16,7 +16,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { UserPlus, X } from 'lucide-react';
+import { UserPlus, X, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -57,6 +57,7 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [groupMembers, setGroupMembers] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch data when dialog opens
   useEffect(() => {
@@ -88,6 +89,7 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
 
   const fetchData = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       // Get all client profiles
       const { data: profilesData, error: profilesError } = await supabase
@@ -95,13 +97,18 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
         .select(`
           id,
           created_at,
-          user_type
+          user_type,
+          email:id (
+            email
+          )
         `)
         .eq('user_type', 'client');
 
       if (profilesError) {
         throw profilesError;
       }
+      
+      console.log("Profiles fetched:", profilesData?.length || 0);
 
       // Get all group members for all groups
       const { data: allGroupMembers, error: groupMembersError } = await supabase
@@ -117,24 +124,19 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
         map[item.user_id] = item.group_id;
         return map;
       }, {} as Record<string, string>);
-
-      // Fetch user emails separately
-      const clientsData: Client[] = [];
       
-      for (const profile of profilesData) {
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
-        
-        if (!userError && userData?.user) {
-          clientsData.push({
-            id: profile.id,
-            email: userData.user.email || 'Unknown email',
-            created_at: profile.created_at,
-            group_id: userGroupMap[profile.id] || null
-          });
-        }
-      }
+      // Create client data from profiles
+      const clientsData: Client[] = profilesData.map(profile => {
+        return {
+          id: profile.id,
+          // Using profile ID as the email for display since we don't have access to auth.users
+          email: `client_${profile.id.substring(0, 8)}`,
+          created_at: profile.created_at,
+          group_id: userGroupMap[profile.id] || null
+        };
+      });
 
-      console.log("Total clients fetched:", clientsData.length);
+      console.log("Total clients transformed:", clientsData.length);
       setClients(clientsData);
 
       // Get members of this specific group
@@ -146,6 +148,7 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
       setGroupMembers(groupMembersData);
     } catch (error) {
       console.error('Error fetching data:', error);
+      setError('Failed to load client data. Please try again.');
       toast.error('Failed to load data');
     } finally {
       setIsLoading(false);
@@ -237,7 +240,25 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
         <div className="space-y-6">
           {/* Add new member */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Add Client to Group</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Add Client to Group</h3>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={fetchData} 
+                disabled={isLoading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+            
+            {error && (
+              <div className="text-sm text-red-500">
+                {error}
+              </div>
+            )}
+            
             <div className="flex gap-2">
               <Select
                 value={selectedClient}
@@ -260,7 +281,7 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
                   )}
                 </SelectContent>
               </Select>
-              <Button onClick={handleAddMember} disabled={!selectedClient}>
+              <Button onClick={handleAddMember} disabled={!selectedClient || isLoading}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add to Group
               </Button>
@@ -278,7 +299,7 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Email</TableHead>
+                  <TableHead>Client</TableHead>
                   <TableHead className="w-24 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>

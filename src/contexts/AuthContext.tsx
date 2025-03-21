@@ -101,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         toast.error(error.message);
+        setLoading(false);
         return;
       }
       
@@ -118,12 +119,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             navigate('/client-dashboard');
           }
           toast.success(`Sign in successful!`);
+          setLoading(false);
         }, 500);
       }
     } catch (error) {
       console.error('Error in signIn:', error);
       toast.error('An unexpected error occurred');
-    } finally {
       setLoading(false);
     }
   };
@@ -143,15 +144,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         toast.error(error.message);
+        setLoading(false);
         return;
       }
       
       toast.success('Registration successful! Please check your email to confirm your account.');
-      
+      setLoading(false);
     } catch (error) {
       console.error('Error in signUp:', error);
       toast.error('An unexpected error occurred');
-    } finally {
       setLoading(false);
     }
   };
@@ -162,10 +163,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await supabase.auth.signOut();
       navigate('/');
       toast.success('Logged out successfully');
+      setLoading(false);
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('An error occurred while logging out');
-    } finally {
       setLoading(false);
     }
   };

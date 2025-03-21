@@ -1,7 +1,7 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Dumbbell, BarChart3, Award, Heart, FileText } from 'lucide-react';
+import { Loader2, Users, Dumbbell, BarChart3, Award, Heart, FileText, RefreshCw } from 'lucide-react';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -11,11 +11,18 @@ import { Button } from '@/components/ui/button';
 import { WorkoutProgramList } from '@/components/coach/WorkoutProgramList';
 import { fetchWorkoutPrograms } from '@/services/workout-service';
 import { Card } from '@/components/ui/card';
-import { fetchCoachGroups } from '@/services/coach-service';
+import { fetchCoachGroups, fixCoachGroupAssignment } from '@/services/coach-service';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const CoachDashboard = () => {
   const { user, userType, loading } = useAuth();
   const navigate = useNavigate();
+  const [isFixingAssignment, setIsFixingAssignment] = useState(false);
+  const [diagnosticInfo, setDiagnosticInfo] = useState<{
+    allGroups: any[];
+    availableGroups: any[];
+  } | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   // Debugging: Log user details when component mounts
   useEffect(() => {
@@ -34,43 +41,23 @@ const CoachDashboard = () => {
       try {
         const groups = await fetchCoachGroups(user.id);
         
-        // If no groups are found, check the group_coaches table directly for debugging
+        // If no groups are found, run additional diagnostics
         if (!groups || groups.length === 0) {
-          console.log('No groups found from service, checking group_coaches table directly');
+          console.log('No groups found from service, checking all groups');
           
-          // For debugging: Get all group_coaches entries for this specific coach
-          const { data: specificCoachAssignments, error: specificError } = await supabase
-            .from('group_coaches')
-            .select('*')
-            .eq('coach_id', user.id);
-            
-          if (specificError) {
-            console.error('Error fetching specific coach assignments:', specificError);
-          } else {
-            console.log('Direct query for coach assignments:', specificCoachAssignments);
-          }
-          
-          // Check all group_coaches entries to see if the coach exists with a different ID format
-          const { data: allGroupCoaches, error: allGroupCoachesError } = await supabase
-            .from('group_coaches')
+          // Get all groups for diagnostics
+          const { data: allGroups, error: groupsError } = await supabase
+            .from('groups')
             .select('*');
             
-          if (allGroupCoachesError) {
-            console.error('Error fetching all group coaches:', allGroupCoachesError);
+          if (groupsError) {
+            console.error('Error fetching all groups:', groupsError);
           } else {
-            console.log('All group coaches in the system:', allGroupCoaches);
-            
-            // Check if this coach ID exists in a different format (case sensitivity, etc.)
-            if (allGroupCoaches && allGroupCoaches.length > 0) {
-              const possibleMatches = allGroupCoaches.filter(gc => 
-                gc.coach_id.toLowerCase() === user.id.toLowerCase() || 
-                gc.coach_id.replace(/-/g, '') === user.id.replace(/-/g, '')
-              );
-              
-              if (possibleMatches.length > 0) {
-                console.log('Possible matches with different ID format:', possibleMatches);
-              }
-            }
+            console.log('All available groups in the system:', allGroups);
+            setDiagnosticInfo({
+              allGroups: allGroups || [],
+              availableGroups: allGroups || []
+            });
           }
         }
         
@@ -99,6 +86,27 @@ const CoachDashboard = () => {
     },
     enabled: !!user && userType === 'coach'
   });
+
+  const handleFixAssignment = async (groupId: string) => {
+    if (!user) return;
+    
+    setIsFixingAssignment(true);
+    try {
+      const result = await fixCoachGroupAssignment(user.id, groupId);
+      
+      if (result.success) {
+        toast.success('Group assignment fixed successfully!');
+        refetchGroups();
+      } else {
+        toast.error('Failed to fix group assignment: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error trying to fix assignment:', error);
+      toast.error('An unexpected error occurred while fixing assignment');
+    } finally {
+      setIsFixingAssignment(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -148,15 +156,62 @@ const CoachDashboard = () => {
           ) : (
             <div className="text-center py-6 bg-muted/30 rounded-lg">
               <p>You haven't been assigned to any groups yet.</p>
-              <Button 
-                variant="ghost" 
-                className="text-coach mt-2"
-                onClick={() => refetchGroups()}
-              >
-                Refresh Groups
-              </Button>
+              <div className="flex justify-center gap-2 mt-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => refetchGroups()}
+                  disabled={groupsLoading}
+                  className="flex gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${groupsLoading ? 'animate-spin' : ''}`} />
+                  Refresh Groups
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowDiagnostics(!showDiagnostics)}
+                >
+                  {showDiagnostics ? 'Hide' : 'Show'} Diagnostics
+                </Button>
+              </div>
+              
+              {showDiagnostics && diagnosticInfo && (
+                <div className="mt-4 text-left">
+                  <Alert className="mb-2">
+                    <AlertTitle>Diagnostic Information</AlertTitle>
+                    <AlertDescription>
+                      Your Coach ID: <span className="font-mono text-xs bg-muted p-1 rounded">{user.id}</span>
+                    </AlertDescription>
+                  </Alert>
+                  
+                  {diagnosticInfo.allGroups.length > 0 ? (
+                    <>
+                      <p className="text-sm mb-2 font-semibold">Available Groups:</p>
+                      <div className="space-y-2 max-h-60 overflow-y-auto p-2 bg-muted/40 rounded-md">
+                        {diagnosticInfo.allGroups.map(group => (
+                          <div key={group.id} className="border bg-card p-2 rounded-md flex justify-between items-center">
+                            <div>
+                              <p className="font-medium text-sm">{group.name}</p>
+                              <p className="text-xs text-muted-foreground">{group.id}</p>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleFixAssignment(group.id)}
+                              disabled={isFixingAssignment}
+                            >
+                              {isFixingAssignment ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Fix Assignment'}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No groups found in the system.</p>
+                  )}
+                </div>
+              )}
+              
               <div className="mt-3 text-xs text-muted-foreground">
-                <p>Your Coach ID: {user.id}</p>
                 <p>If this issue persists, please contact the admin.</p>
               </div>
             </div>

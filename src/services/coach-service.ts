@@ -10,7 +10,7 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
   if (!coachId) throw new Error('Coach ID is required');
   
   try {
-    // First try using RPC function
+    // First try using RPC function - we'll fix the ambiguous coach_id error by using parameter name
     const { data: rpcData, error: rpcError } = await supabase.rpc('get_coach_clients', {
       coach_id: coachId
     });
@@ -20,12 +20,47 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       
       // Fallback to direct query if RPC fails
       console.log('Falling back to direct query for clients');
-      const { data: directData, error: directError } = await supabase
+      
+      // Get the group IDs this coach is assigned to
+      const { data: groupCoaches } = await supabase
+        .from('group_coaches')
+        .select('group_id')
+        .eq('coach_id', coachId);
+      
+      if (!groupCoaches || groupCoaches.length === 0) {
+        console.log('No group assignments found for coach');
+        return [];
+      }
+      
+      const groupIds = groupCoaches.map(gc => gc.group_id);
+      console.log('Coach is assigned to these groups:', groupIds);
+      
+      // Get client IDs from these groups
+      const { data: groupMembers, error: membersError } = await supabase
+        .from('group_members')
+        .select('user_id')
+        .in('group_id', groupIds);
+      
+      if (membersError) {
+        console.error('Error fetching group members:', membersError);
+        return [];
+      }
+      
+      if (!groupMembers || groupMembers.length === 0) {
+        console.log('No clients found in coach groups');
+        return [];
+      }
+      
+      const clientIds = groupMembers.map(gm => gm.user_id);
+      console.log('Found client IDs:', clientIds);
+      
+      // Now fetch the actual client profiles with these IDs
+      const { data: clientProfiles, error: profilesError } = await supabase
         .from('profiles')
         .select(`
           id,
           user_type,
-          client_workout_info!inner (
+          client_workout_info (
             last_workout_at,
             total_workouts_completed,
             current_program_id
@@ -36,39 +71,53 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
           )
         `)
         .eq('user_type', 'client')
-        .filter('id', 'in', (
-          supabase
-            .from('group_members')
-            .select('user_id')
-            .filter('group_id', 'in', (
-              supabase
-                .from('group_coaches')
-                .select('group_id')
-                .eq('coach_id', coachId)
-            ))
-        ));
+        .in('id', clientIds);
       
-      if (directError) {
-        console.error('Error with direct client fetch:', directError);
+      if (profilesError) {
+        console.error('Error fetching client profiles:', profilesError);
         return [];
       }
       
-      // Transform the direct query data to match the expected format
-      return directData.map(client => {
-        // Safely handle client_workout_info which should be an array
+      if (!clientProfiles || clientProfiles.length === 0) {
+        return [];
+      }
+      
+      // Get emails for these clients
+      const { data: emails } = await supabase.rpc('get_users_email', {
+        user_ids: clientIds
+      });
+      
+      // Create a map of id -> email
+      const emailMap = new Map();
+      if (emails) {
+        emails.forEach(e => emailMap.set(e.id, e.email));
+      }
+      
+      // Create a map of id -> group_ids
+      const groupMap = new Map();
+      for (const member of groupMembers) {
+        if (!groupMap.has(member.user_id)) {
+          groupMap.set(member.user_id, []);
+        }
+        groupMap.get(member.user_id).push(groupCoaches.find(gc => gc.group_id === member.group_id)?.group_id);
+      }
+      
+      // Transform the data to match expected format
+      return clientProfiles.map(client => {
+        // Get workout info
         const workoutInfo = client.client_workout_info && 
           Array.isArray(client.client_workout_info) && 
           client.client_workout_info.length > 0 
             ? client.client_workout_info[0] 
             : { last_workout_at: null, total_workouts_completed: 0, current_program_id: null };
-          
-        // Safely handle workout_programs which should be an array
+            
+        // Get program info
         const program = client.workout_programs && 
           Array.isArray(client.workout_programs) && 
           client.workout_programs.length > 0 
             ? client.workout_programs[0] 
             : null;
-        
+          
         // Calculate days since last workout
         let daysSinceLastWorkout = null;
         if (workoutInfo && typeof workoutInfo === 'object' && workoutInfo.last_workout_at) {
@@ -77,18 +126,17 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
           const diffTime = Math.abs(today.getTime() - lastWorkout.getTime());
           daysSinceLastWorkout = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         }
-        
-        // Get the user email from auth.users
+          
         return {
           id: client.id,
-          email: '', // Will be populated in separate call
+          email: emailMap.get(client.id) || 'Unknown',
           user_type: client.user_type,
           last_workout_at: workoutInfo && typeof workoutInfo === 'object' ? workoutInfo.last_workout_at || null : null,
           total_workouts_completed: workoutInfo && typeof workoutInfo === 'object' ? workoutInfo.total_workouts_completed || 0 : 0,
           current_program_id: workoutInfo && typeof workoutInfo === 'object' ? workoutInfo.current_program_id || null : null,
           current_program_title: program && typeof program === 'object' ? program.title || null : null,
           days_since_last_workout: daysSinceLastWorkout,
-          group_ids: [] // Will be populated in separate call
+          group_ids: groupMap.get(client.id) || []
         };
       });
     }

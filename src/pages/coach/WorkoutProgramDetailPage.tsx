@@ -136,6 +136,12 @@ const WorkoutProgramDetailPage = () => {
     try {
       setIsSubmittingWeek(true);
       
+      // Make sure title is required here by adding validation
+      if (!values.title) {
+        toast.error('Week title is required');
+        return;
+      }
+      
       const updatedWeek = await updateWorkoutWeek(weekId, {
         title: values.title,
         description: values.description || null
@@ -451,7 +457,13 @@ const WorkoutProgramDetailPage = () => {
                 <WorkoutWeekForm
                   weekNumber={weeks.find(week => week.id === isEditingWeek)?.week_number || 1}
                   initialData={weeks.find(week => week.id === isEditingWeek)}
-                  onSubmit={(values) => handleUpdateWeek(isEditingWeek, values)}
+                  onSubmit={(values) => {
+                    if (!values.title) {
+                      toast.error('Week title is required');
+                      return;
+                    }
+                    handleUpdateWeek(isEditingWeek, values);
+                  }}
                   isSubmitting={isSubmittingWeek}
                   onCancel={() => setIsEditingWeek(null)}
                   mode="edit"

@@ -573,11 +573,39 @@ export const fetchPersonalRecords = async (userId: string): Promise<PersonalReco
 export const fetchCurrentProgram = async (userId: string): Promise<any | null> => {
   console.log("Fetching current program for user:", userId);
   
+  if (!userId) {
+    console.error("Cannot fetch current program: No user ID provided");
+    return null;
+  }
+  
   const today = new Date();
   const todayISODate = today.toISOString().split('T')[0];
   console.log("Today's date for comparison:", todayISODate);
   
   try {
+    const { data: assignments, error: assignmentError } = await supabase
+      .from('program_assignments')
+      .select('*')
+      .eq('user_id', userId)
+      .lte('start_date', todayISODate)
+      .or(`end_date.is.null,end_date.gte.${todayISODate}`)
+      .order('start_date', { ascending: false });
+      
+    if (assignmentError) {
+      console.error('Error fetching program assignments:', assignmentError);
+      throw assignmentError;
+    }
+    
+    console.log("Program assignments found:", assignments?.length || 0);
+    
+    if (!assignments || assignments.length === 0) {
+      console.log("No active program assignments found for user", userId);
+      return null;
+    }
+    
+    const currentAssignment = assignments[0];
+    console.log("Using program assignment:", currentAssignment);
+    
     const { data, error } = await supabase
       .from('program_assignments')
       .select(`
@@ -596,19 +624,15 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
           )
         )
       `)
-      .eq('user_id', userId)
-      .lte('start_date', todayISODate)
-      .or(`end_date.is.null,end_date.gte.${todayISODate}`)
-      .order('start_date', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq('id', currentAssignment.id)
+      .single();
 
     if (error) {
       console.error('Error fetching current program:', error);
       throw error;
     }
 
-    console.log("Current program data fetched:", data);
+    console.log("Current program data fetched:", data ? "Success" : "No data");
     
     if (!data) {
       console.log("No current program found for user", userId);
@@ -625,15 +649,48 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       console.log("Program weeks count:", weeksArray.length || 0);
       
       if (weeksArray.length > 0) {
+        weeksArray.sort((a: any, b: any) => a.week_number - b.week_number);
+        
         console.log("Weeks data available:", weeksArray.length, "weeks");
         
+        try {
+          const { error: updateError } = await supabase
+            .from('client_workout_info')
+            .upsert({
+              user_id: userId,
+              current_program_id: data.program_id
+            })
+            .eq('user_id', userId);
+            
+          if (updateError) {
+            console.error('Error updating client_workout_info:', updateError);
+          }
+        } catch (err) {
+          console.error('Error updating client program info:', err);
+        }
+        
         weeksArray.forEach((week: any) => {
-          const workoutsCount = week.workouts ? week.workouts.length : 0;
+          const workoutsArray = week.workouts && Array.isArray(week.workouts) 
+            ? week.workouts 
+            : [];
+          const workoutsCount = workoutsArray.length || 0;
+          
           console.log(`Week ${week.week_number}: ${workoutsCount} workouts`);
+          
+          if (workoutsCount > 0) {
+            workoutsArray.forEach((workout: any) => {
+              const exercisesArray = workout.workout_exercises && Array.isArray(workout.workout_exercises)
+                ? workout.workout_exercises
+                : [];
+              console.log(`  Workout "${workout.title}": ${exercisesArray.length} exercises`);
+            });
+          }
         });
       } else {
         console.log("Weeks data is missing or not an array");
       }
+    } else {
+      console.log("Program data is missing");
     }
 
     return data;
@@ -785,7 +842,6 @@ export const fetchAllClientProfiles = async (): Promise<any[]> => {
     
     console.log("Client profiles fetched:", data?.length || 0);
     
-    // Try to get real email addresses using RPC function
     try {
       const clientIds = data.map(profile => profile.id);
       
@@ -802,9 +858,7 @@ export const fetchAllClientProfiles = async (): Promise<any[]> => {
         throw emailsError;
       }
       
-      // Check if emailsData is an array before using it
       if (emailsData && Array.isArray(emailsData)) {
-        // Map the emails to the profile data
         const clientsWithEmails = data.map(client => {
           const emailRecord = emailsData.find((e: any) => e.id === client.id);
           return {
@@ -820,7 +874,6 @@ export const fetchAllClientProfiles = async (): Promise<any[]> => {
       }
     } catch (emailError) {
       console.error('Error fetching real emails:', emailError);
-      // Return data with formatted emails as fallback
       return data.map(client => ({
         ...client,
         email: `${client.id.split('-')[0]}@client.com`

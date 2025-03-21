@@ -7,20 +7,25 @@ import { fetchCurrentProgram, fetchOngoingWorkout } from '@/services/client-serv
 import { DAYS_OF_WEEK } from '@/types/workout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, Play, Dumbbell } from 'lucide-react';
+import { Loader2, Calendar, Play, Dumbbell, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 const WorkoutsList = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: currentProgram, isLoading: isProgramLoading, error: programError } = useQuery({
+  const { 
+    data: currentProgram, 
+    isLoading: isProgramLoading, 
+    error: programError,
+    refetch: refetchProgram 
+  } = useQuery({
     queryKey: ['client-current-program', user?.id],
     queryFn: () => fetchCurrentProgram(user?.id || ''),
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: true,
-    retry: 2,
+    retry: 3,
   });
 
   console.log("Current program data:", currentProgram);
@@ -53,6 +58,11 @@ const WorkoutsList = () => {
 
   const resumeWorkout = (workoutCompletionId: string) => {
     navigate(`/client-dashboard/workouts/active/${workoutCompletionId}`);
+  };
+
+  const handleRefresh = () => {
+    refetchProgram();
+    toast.info('Refreshing program data...');
   };
 
   if (isProgramLoading || isOngoingLoading) {
@@ -103,7 +113,6 @@ const WorkoutsList = () => {
   if (!currentProgram || !currentProgram.program) {
     console.log("No active program found for user:", user?.id);
     
-    // Add a button to refresh the page
     return (
       <div className="text-center py-12">
         <Dumbbell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -111,13 +120,19 @@ const WorkoutsList = () => {
         <p className="text-muted-foreground mb-6">
           You don't have an active workout program assigned yet.
         </p>
-        <Button 
-          onClick={() => window.location.reload()}
-          variant="outline"
-          className="mt-4"
-        >
-          Refresh
-        </Button>
+        <div className="flex flex-col space-y-3 items-center">
+          <p className="text-sm text-muted-foreground">
+            User ID: {user?.id || 'Not logged in'}
+          </p>
+          <Button 
+            onClick={handleRefresh}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
       </div>
     );
   }
@@ -140,34 +155,57 @@ const WorkoutsList = () => {
   // Handle case where there are no workouts this week
   if (!currentWeek || !currentWeek.workouts || !Array.isArray(currentWeek.workouts) || currentWeek.workouts.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-        <h2 className="text-xl font-medium mb-2">
-          {!currentWeek ? "Program Complete" : "No Workouts This Week"}
-        </h2>
-        <p className="text-muted-foreground">
-          {!currentWeek 
-            ? "You've completed all weeks in this program!" 
-            : "There are no workouts scheduled for this week."}
-        </p>
-        <Button 
-          onClick={() => window.location.reload()}
-          variant="outline"
-          className="mt-4"
-        >
-          Refresh
-        </Button>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">{program.title}</h1>
+          <p className="text-muted-foreground">
+            Week {currentWeekNumber} of {weeks.length}
+          </p>
+        </div>
+        
+        <div className="text-center py-12 border border-dashed rounded-lg">
+          <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <h2 className="text-xl font-medium mb-2">
+            {!currentWeek ? "Program Week Not Found" : "No Workouts This Week"}
+          </h2>
+          <p className="text-muted-foreground">
+            {!currentWeek 
+              ? `Week ${currentWeekNumber} is not defined in this program.` 
+              : "There are no workouts scheduled for this week."}
+          </p>
+          <div className="mt-4 flex justify-center">
+            <Button 
+              onClick={handleRefresh}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{program.title}</h1>
-        <p className="text-muted-foreground">
-          Week {currentWeekNumber} of {weeks.length}
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">{program.title}</h1>
+          <p className="text-muted-foreground">
+            Week {currentWeekNumber} of {weeks.length}
+          </p>
+        </div>
+        <Button 
+          onClick={handleRefresh}
+          variant="ghost"
+          size="sm"
+          className="flex items-center gap-1"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Refresh
+        </Button>
       </div>
       
       <div className="grid gap-4">

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -44,11 +45,15 @@ const InvitationsPage: React.FC = () => {
       // Make sure we have the site URL
       const siteUrl = window.location.origin;
       
-      console.log("Sending invitation request with session token:", session?.access_token?.slice(0, 10) + "...");
+      console.log("Session token available:", !!session?.access_token);
+      console.log("Sending invitation request to:", email, "user type:", userType);
       
-      // Use Supabase functions.invoke instead of direct fetch
+      // Use Supabase functions.invoke with proper headers
       const { data, error } = await supabase.functions.invoke("send-invitation", {
-        body: { email, userType, siteUrl }
+        body: { email, userType, siteUrl },
+        headers: session?.access_token ? {
+          Authorization: `Bearer ${session.access_token}`
+        } : undefined
       });
       
       if (error) {

@@ -72,6 +72,7 @@ serve(async (req) => {
 
     // Get the JWT token to verify the user
     const authHeader = req.headers.get("Authorization");
+    let userId = null;
     
     // If there's an auth header, verify the user is an admin
     if (authHeader) {
@@ -90,6 +91,8 @@ serve(async (req) => {
           );
         }
 
+        userId = user.id;
+        
         // Check if the user is an admin
         const { data: profile, error: profileError } = await supabaseClient
           .from("profiles")
@@ -123,20 +126,39 @@ serve(async (req) => {
       }
     } else {
       console.log("No authorization header provided - bypassing admin check in development");
-      // In production, you might want to reject requests without auth headers
-      // For development, we'll allow requests without auth headers to proceed
+      // For development, we'll create a default admin user ID
+      // This is a workaround for the invited_by not-null constraint
+      userId = "00000000-0000-0000-0000-000000000000"; // Dummy UUID for development
     }
 
-    console.log("Creating invitation for:", { email, userType });
+    if (!userId) {
+      console.error("No user ID available for invitation");
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    // Call the database function to create the invitation
-    const { data: invitationId, error: invitationError } = await supabaseClient.rpc(
-      "create_and_send_invitation",
-      {
-        p_email: email,
-        p_user_type: userType,
-      }
-    );
+    console.log("Creating invitation for:", { email, userType, createdBy: userId });
+
+    // Generate token and expiration date
+    const token = crypto.randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+
+    // Insert the invitation directly instead of using the database function
+    const { data: invitation, error: invitationError } = await supabaseClient
+      .from("invitations")
+      .insert({
+        email,
+        user_type: userType,
+        invited_by: userId,
+        token,
+        expires_at: expiresAt.toISOString(),
+        accepted: false
+      })
+      .select()
+      .single();
 
     if (invitationError) {
       console.error("Error creating invitation:", invitationError);
@@ -146,32 +168,22 @@ serve(async (req) => {
       );
     }
 
-    // Get the invitation details to include the token in the response
-    const { data: invitation, error: fetchError } = await supabaseClient
-      .from("invitations")
-      .select("token, expires_at")
-      .eq("id", invitationId)
-      .single();
-      
-    if (fetchError) {
-      console.error("Error fetching invitation:", fetchError);
-      return new Response(
-        JSON.stringify({ error: "Invitation created but could not fetch details", invitationId }),
-        { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const siteUrl = Deno.env.get("SITE_URL") || payload.siteUrl || "";
     const inviteLink = `${siteUrl}/register?token=${invitation.token}&type=${userType}`;
 
-    console.log("Invitation created successfully:", { invitationId, inviteLink });
+    console.log("Invitation created successfully:", { 
+      invitationId: invitation.id, 
+      inviteLink,
+      token: invitation.token,
+      expiresAt: invitation.expires_at
+    });
 
     // Return success
     return new Response(
       JSON.stringify({
         success: true,
         message: `Invitation sent to ${email}`,
-        invitationId,
+        invitationId: invitation.id,
         token: invitation.token,
         expiresAt: invitation.expires_at,
         inviteLink

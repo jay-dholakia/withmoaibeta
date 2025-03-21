@@ -18,7 +18,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogDescription
+  DialogDescription,
+  DialogFooter,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -31,7 +40,10 @@ import {
   createWorkoutWeek,
   updateWorkoutWeek,
   fetchWorkouts,
-  createWorkout
+  createWorkout,
+  deleteWorkout,
+  deleteWorkoutWeek,
+  deleteWorkoutProgram
 } from '@/services/workout-service';
 import { WorkoutProgram, WorkoutWeek, Workout, DAYS_OF_WEEK } from '@/types/workout';
 import { toast } from 'sonner';
@@ -55,6 +67,11 @@ const WorkoutProgramDetailPage = () => {
   
   const [openDialogId, setOpenDialogId] = useState<string | null>(null);
   const [isNewWorkoutDialogOpen, setIsNewWorkoutDialogOpen] = useState(false);
+
+  const [deleteWorkoutId, setDeleteWorkoutId] = useState<string | null>(null);
+  const [deleteWeekId, setDeleteWeekId] = useState<string | null>(null);
+  const [isConfirmDeleteProgram, setIsConfirmDeleteProgram] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   useEffect(() => {
     if (!programId) return;
@@ -167,6 +184,71 @@ const WorkoutProgramDetailPage = () => {
       setIsEditingWorkout(null);
     }
   };
+
+  const handleDeleteWorkout = async () => {
+    if (!deleteWorkoutId) return;
+    
+    try {
+      setIsDeleting(true);
+      await deleteWorkout(deleteWorkoutId);
+      
+      if (selectedWeek) {
+        const updatedWorkouts = await fetchWorkouts(selectedWeek);
+        setWorkouts(updatedWorkouts);
+      }
+      
+      toast.success('Workout deleted successfully');
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      toast.error('Failed to delete workout');
+    } finally {
+      setIsDeleting(false);
+      setDeleteWorkoutId(null);
+    }
+  };
+
+  const handleDeleteWeek = async () => {
+    if (!deleteWeekId || !programId) return;
+    
+    try {
+      setIsDeleting(true);
+      await deleteWorkoutWeek(deleteWeekId);
+      
+      const updatedWeeks = await fetchWorkoutWeeks(programId);
+      setWeeks(updatedWeeks);
+      
+      if (deleteWeekId === selectedWeek && updatedWeeks.length > 0) {
+        setSelectedWeek(updatedWeeks[0].id);
+      } else if (updatedWeeks.length === 0) {
+        setSelectedWeek(null);
+      }
+      
+      toast.success('Week deleted successfully');
+    } catch (error) {
+      console.error('Error deleting week:', error);
+      toast.error('Failed to delete week');
+    } finally {
+      setIsDeleting(false);
+      setDeleteWeekId(null);
+    }
+  };
+
+  const handleDeleteProgram = async () => {
+    if (!programId) return;
+    
+    try {
+      setIsDeleting(true);
+      await deleteWorkoutProgram(programId);
+      navigate('/coach-dashboard/workouts');
+      toast.success('Workout program deleted successfully');
+    } catch (error) {
+      console.error('Error deleting program:', error);
+      toast.error('Failed to delete workout program');
+    } finally {
+      setIsDeleting(false);
+      setIsConfirmDeleteProgram(false);
+    }
+  };
   
   if (isLoading) {
     return (
@@ -221,14 +303,25 @@ const WorkoutProgramDetailPage = () => {
                 <p className="text-muted-foreground mt-1">{program.description}</p>
               )}
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => navigate(`/coach-dashboard/workouts/${programId}/assign`)}
-              className="gap-2"
-            >
-              <Users className="h-4 w-4" />
-              Assign Program
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(`/coach-dashboard/workouts/${programId}/assign`)}
+                className="gap-2"
+              >
+                <Users className="h-4 w-4" />
+                Assign Program
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setIsConfirmDeleteProgram(true)}
+                className="gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Program
+              </Button>
+            </div>
           </div>
           
           <div className="flex flex-wrap gap-2 mt-4">
@@ -308,15 +401,26 @@ const WorkoutProgramDetailPage = () => {
                             <p className="text-muted-foreground text-sm mt-1">{week.description}</p>
                           )}
                         </div>
-                        <Button 
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsEditingWeek(week.id)}
-                          className="gap-1"
-                        >
-                          <Edit className="h-4 w-4" />
-                          Edit Week
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsEditingWeek(week.id)}
+                            className="gap-1"
+                          >
+                            <Edit className="h-4 w-4" />
+                            Edit Week
+                          </Button>
+                          <Button 
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteWeekId(week.id)}
+                            className="gap-1 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete Week
+                          </Button>
+                        </div>
                       </div>
                       
                       <div className="flex justify-end mb-4">
@@ -373,33 +477,44 @@ const WorkoutProgramDetailPage = () => {
                                 <CardTitle className="text-lg truncate" title={workout.title}>
                                   {workout.title}
                                 </CardTitle>
-                                <Dialog
-                                  open={isEditingWorkout === workout.id}
-                                  onOpenChange={(open) => {
-                                    if (!open) setIsEditingWorkout(null);
-                                    else setIsEditingWorkout(workout.id);
-                                  }}
-                                >
-                                  <DialogTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                      <Edit className="h-4 w-4" />
-                                      <span className="sr-only">Edit workout</span>
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-4xl">
-                                    <DialogHeader>
-                                      <DialogTitle>Edit Workout</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="mt-4">
-                                      <WorkoutDayForm
-                                        weekId={week.id}
-                                        workoutId={workout.id}
-                                        onSave={handleSaveWorkout}
-                                        mode="edit"
-                                      />
-                                    </div>
-                                  </DialogContent>
-                                </Dialog>
+                                <div className="flex items-center gap-1">
+                                  <Dialog
+                                    open={isEditingWorkout === workout.id}
+                                    onOpenChange={(open) => {
+                                      if (!open) setIsEditingWorkout(null);
+                                      else setIsEditingWorkout(workout.id);
+                                    }}
+                                  >
+                                    <DialogTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                        <Edit className="h-4 w-4" />
+                                        <span className="sr-only">Edit workout</span>
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-4xl">
+                                      <DialogHeader>
+                                        <DialogTitle>Edit Workout</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="mt-4">
+                                        <WorkoutDayForm
+                                          weekId={week.id}
+                                          workoutId={workout.id}
+                                          onSave={handleSaveWorkout}
+                                          mode="edit"
+                                        />
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                    onClick={() => setDeleteWorkoutId(workout.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Delete workout</span>
+                                  </Button>
+                                </div>
                               </CardHeader>
                               <CardContent>
                                 {workout.description && (
@@ -469,6 +584,78 @@ const WorkoutProgramDetailPage = () => {
             </DialogContent>
           </Dialog>
         )}
+
+        <AlertDialog 
+          open={deleteWorkoutId !== null}
+          onOpenChange={(open) => !open && setDeleteWorkoutId(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Workout</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this workout? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteWorkout}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog 
+          open={deleteWeekId !== null}
+          onOpenChange={(open) => !open && setDeleteWeekId(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Week</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this week and all its workouts? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteWeek}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog 
+          open={isConfirmDeleteProgram}
+          onOpenChange={setIsConfirmDeleteProgram}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Workout Program</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this entire workout program including all weeks and workouts? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteProgram}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </CoachLayout>
   );

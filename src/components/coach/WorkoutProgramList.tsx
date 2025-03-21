@@ -2,15 +2,20 @@
 import React from 'react';
 import { WorkoutProgram } from '@/types/workout';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar, Users } from 'lucide-react';
+import { PlusCircle, Calendar, Users, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface WorkoutProgramListProps {
   programs: WorkoutProgram[];
   isLoading: boolean;
+  onDeleteProgram?: (programId: string) => void;
 }
 
-export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({ programs, isLoading }) => {
+export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({ 
+  programs, 
+  isLoading, 
+  onDeleteProgram 
+}) => {
   const navigate = useNavigate();
 
   if (isLoading) {
@@ -79,6 +84,20 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({ programs
               <Users className="h-4 w-4 mr-1" />
               Assign to Clients
             </Button>
+            {onDeleteProgram && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/40"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteProgram(program.id);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
+              </Button>
+            )}
           </div>
         </div>
       ))}

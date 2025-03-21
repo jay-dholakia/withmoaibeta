@@ -81,6 +81,27 @@ export const fetchWorkoutProgram = async (programId: string): Promise<WorkoutPro
   return data as WorkoutProgram;
 };
 
+export const deleteWorkoutProgram = async (programId: string): Promise<void> => {
+  // First, fetch all weeks for this program
+  const weeks = await fetchWorkoutWeeks(programId);
+  
+  // Delete all weeks (which will cascade to delete workouts and exercises)
+  for (const week of weeks) {
+    await deleteWorkoutWeek(week.id);
+  }
+  
+  // Finally, delete the program itself
+  const { error } = await supabase
+    .from('workout_programs')
+    .delete()
+    .eq('id', programId);
+
+  if (error) {
+    console.error(`Error deleting workout program ${programId}:`, error);
+    throw error;
+  }
+};
+
 // Workout Week related functions
 export const createWorkoutWeek = async (week: Omit<WorkoutWeek, 'id' | 'created_at'>): Promise<WorkoutWeek> => {
   const { data, error } = await supabase
@@ -129,6 +150,27 @@ export const fetchWorkoutWeeks = async (programId: string): Promise<WorkoutWeek[
   }
 
   return data as WorkoutWeek[];
+};
+
+export const deleteWorkoutWeek = async (weekId: string): Promise<void> => {
+  // First, fetch all workouts for this week
+  const workouts = await fetchWorkouts(weekId);
+  
+  // Delete all workouts (which will cascade to delete workout exercises)
+  for (const workout of workouts) {
+    await deleteWorkout(workout.id);
+  }
+  
+  // Finally, delete the week itself
+  const { error } = await supabase
+    .from('workout_weeks')
+    .delete()
+    .eq('id', weekId);
+
+  if (error) {
+    console.error(`Error deleting workout week ${weekId}:`, error);
+    throw error;
+  }
 };
 
 // Workout (daily) related functions
@@ -191,6 +233,30 @@ export const fetchWorkout = async (workoutId: string): Promise<Workout> => {
   }
 
   return data as Workout;
+};
+
+export const deleteWorkout = async (workoutId: string): Promise<void> => {
+  // First, delete all workout exercises for this workout
+  const { error: exercisesError } = await supabase
+    .from('workout_exercises')
+    .delete()
+    .eq('workout_id', workoutId);
+
+  if (exercisesError) {
+    console.error(`Error deleting workout exercises for workout ${workoutId}:`, exercisesError);
+    throw exercisesError;
+  }
+  
+  // Then delete the workout itself
+  const { error } = await supabase
+    .from('workouts')
+    .delete()
+    .eq('id', workoutId);
+
+  if (error) {
+    console.error(`Error deleting workout ${workoutId}:`, error);
+    throw error;
+  }
 };
 
 // Workout Exercise related functions

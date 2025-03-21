@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Users, Dumbbell, BarChart3, Award, Heart, FileText, RefreshCw, Plus, AlertCircle } from 'lucide-react';
@@ -11,12 +12,16 @@ import { WorkoutProgramList } from '@/components/coach/WorkoutProgramList';
 import { fetchWorkoutPrograms } from '@/services/workout-service';
 import { Card } from '@/components/ui/card';
 import { 
-  fetchCoachGroups, 
-  fixCoachGroupAssignment, 
-  fetchAllGroups,
-  createGroupForCoach,
   syncCoachEmailWithGroups
 } from '@/services/coach-service';
+import {
+  fetchCoachGroups,
+  fixCoachGroupAssignment
+} from '@/services/coach-group-service';
+import {
+  fetchAllGroups,
+  createGroupForCoach
+} from '@/services/group-service';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {

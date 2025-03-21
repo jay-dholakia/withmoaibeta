@@ -79,6 +79,10 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
     console.log("Available clients for selection:", available.length);
     console.log("Current group members:", groupMemberIds.length);
     
+    // Debug: List all client IDs for debugging
+    console.log("All client IDs:", clients.map(c => c.id));
+    console.log("Group member IDs:", groupMemberIds);
+    
     setAvailableClients(available);
     
     // Reset selection if selected client is no longer available
@@ -91,6 +95,8 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
     setIsLoading(true);
     setError(null);
     try {
+      console.log("Fetching data for group:", group.id);
+      
       // Get all client profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -109,6 +115,7 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
       }
       
       console.log("Profiles fetched:", profilesData?.length || 0);
+      console.log("Raw profiles data:", JSON.stringify(profilesData));
 
       // Get all group members for all groups
       const { data: allGroupMembers, error: groupMembersError } = await supabase
@@ -118,6 +125,8 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
       if (groupMembersError) {
         throw groupMembersError;
       }
+      
+      console.log("All group members fetched:", allGroupMembers?.length || 0);
 
       // Create a map of user_id to group_id
       const userGroupMap = allGroupMembers.reduce((map, item) => {
@@ -137,6 +146,12 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
       });
 
       console.log("Total clients transformed:", clientsData.length);
+      
+      // Debug: Log each client
+      clientsData.forEach(client => {
+        console.log(`Client: ${client.id} (${client.email}), Group: ${client.group_id || 'None'}`);
+      });
+      
       setClients(clientsData);
 
       // Get members of this specific group
@@ -162,6 +177,8 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
     }
 
     try {
+      console.log("Adding client to group:", selectedClient, "to group:", group.id);
+      
       const { error } = await supabase
         .from('group_members')
         .insert([
@@ -200,6 +217,8 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
 
   const handleRemoveMember = async (clientId: string) => {
     try {
+      console.log("Removing client from group:", clientId, "from group:", group.id);
+      
       const { error } = await supabase
         .from('group_members')
         .delete()

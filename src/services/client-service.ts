@@ -770,3 +770,27 @@ const ensureClientProfilesTable = async (): Promise<boolean> => {
     return false;
   }
 };
+
+export const fetchAllClientProfiles = async (): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_type', 'client');
+      
+    if (error) {
+      console.error('Error fetching client profiles:', error);
+      throw error;
+    }
+    
+    console.log("Client profiles fetched:", data?.length || 0);
+    data?.forEach(profile => {
+      console.log(`Profile ID: ${profile.id}, Type: ${profile.user_type}, Created: ${profile.created_at}`);
+    });
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in fetchAllClientProfiles:', error);
+    return [];
+  }
+};

@@ -151,7 +151,10 @@ const MoaiPage = () => {
         setDiagnosticDetails(diagResult);
       } else {
         toast.error(`Failed to fix group assignment: ${result.message}`);
-        console.error('Fix error details:', result.details);
+        // Fixed: Safely access details property only if it exists
+        if ('details' in result && result.details) {
+          console.error('Fix error details:', result.details);
+        }
       }
     } catch (err) {
       console.error('Error fixing group assignment:', err);

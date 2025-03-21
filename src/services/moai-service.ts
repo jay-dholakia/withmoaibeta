@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -341,7 +340,8 @@ export const ensureUserHasGroup = async (userId: string) => {
       if (!newGroup || newGroup.length === 0) {
         return {
           success: false,
-          message: 'Created group but received empty response'
+          message: 'Created group but received empty response',
+          details: 'Empty group creation response'
         };
       }
       

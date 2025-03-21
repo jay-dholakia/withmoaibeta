@@ -41,7 +41,7 @@ const InvitationsPage: React.FC = () => {
   });
   
   const sendInvitation = useMutation({
-    mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' }) => {
+    mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' | 'admin' }) => {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invitation`, {
         method: 'POST',
         headers: {
@@ -68,7 +68,7 @@ const InvitationsPage: React.FC = () => {
     }
   });
   
-  const handleInvite = (email: string, userType: 'client' | 'coach') => {
+  const handleInvite = (email: string, userType: 'client' | 'coach' | 'admin') => {
     sendInvitation.mutate({ email, userType });
   };
 

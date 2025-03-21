@@ -123,6 +123,8 @@ const RegisterPage = () => {
         navigate('/client-dashboard');
       } else if (type === 'coach') {
         navigate('/coach-dashboard');
+      } else if (type === 'admin') {
+        navigate('/admin-dashboard');
       }
     } catch (error) {
       console.error('Error in registration:', error);
@@ -134,7 +136,7 @@ const RegisterPage = () => {
     return (
       <AuthLayout 
         title="Validating Invitation" 
-        variant={type as 'client' | 'coach' | 'admin' | 'default'}
+        variant={(type as 'client' | 'coach' | 'admin' | 'default') || 'default'}
       >
         <div className="flex justify-center items-center p-8">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -161,7 +163,7 @@ const RegisterPage = () => {
     <AuthLayout 
       title={`Create Your ${type?.charAt(0).toUpperCase() + type?.slice(1)} Account`}
       subtitle="Complete your registration to get started"
-      variant={type as 'client' | 'coach' | 'admin' | 'default'}
+      variant={(type as 'client' | 'coach' | 'admin' | 'default') || 'default'}
     >
       <div className="w-full max-w-md">
         <Form {...form}>

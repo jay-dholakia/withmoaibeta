@@ -9,7 +9,7 @@ const corsHeaders = {
 
 interface InvitationPayload {
   email: string;
-  userType: "client" | "coach";
+  userType: "client" | "coach" | "admin";
 }
 
 serve(async (req) => {
@@ -19,6 +19,7 @@ serve(async (req) => {
   }
 
   try {
+    // Create a Supabase client with the service role key
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -86,11 +87,6 @@ serve(async (req) => {
       );
     }
 
-    // In a real application, you would send an email here with a link containing the token
-    // For now, we're just logging it
-    console.log(`Invitation sent to ${email} for user type: ${userType}`);
-    console.log(`Invitation ID: ${invitationId}`);
-    
     // Get the invitation details to include the token in the response
     const { data: invitation, error: fetchError } = await supabaseClient
       .from("invitations")

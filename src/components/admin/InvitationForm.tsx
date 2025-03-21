@@ -10,7 +10,7 @@ import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface InvitationFormProps {
-  onInvite: (email: string, userType: 'client' | 'coach') => void;
+  onInvite: (email: string, userType: 'client' | 'coach' | 'admin') => void;
   isLoading: boolean;
 }
 
@@ -19,7 +19,7 @@ export const InvitationForm: React.FC<InvitationFormProps> = ({
   isLoading
 }) => {
   const [email, setEmail] = useState('');
-  const [userType, setUserType] = useState<'client' | 'coach'>('client');
+  const [userType, setUserType] = useState<'client' | 'coach' | 'admin'>('client');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -45,7 +45,7 @@ export const InvitationForm: React.FC<InvitationFormProps> = ({
         <DialogHeader>
           <DialogTitle>Send New Invitation</DialogTitle>
           <DialogDescription>
-            Invite a new user to create a client or coach account.
+            Invite a new user to create a client, coach or admin account.
           </DialogDescription>
         </DialogHeader>
         
@@ -85,6 +85,14 @@ export const InvitationForm: React.FC<InvitationFormProps> = ({
               >
                 Coach
               </Button>
+              <Button
+                type="button"
+                variant={userType === 'admin' ? 'default' : 'outline'}
+                onClick={() => setUserType('admin')}
+                className={userType === 'admin' ? 'bg-blue-500 text-white' : ''}
+              >
+                Admin
+              </Button>
             </div>
           </div>
           
@@ -92,7 +100,11 @@ export const InvitationForm: React.FC<InvitationFormProps> = ({
             <Button 
               type="submit" 
               disabled={isLoading}
-              className={userType === 'client' ? 'bg-client hover:bg-client/90' : 'bg-coach hover:bg-coach/90'}
+              className={
+                userType === 'client' ? 'bg-client hover:bg-client/90' : 
+                userType === 'coach' ? 'bg-coach hover:bg-coach/90' : 
+                'bg-blue-500 hover:bg-blue-600'
+              }
             >
               {isLoading && (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

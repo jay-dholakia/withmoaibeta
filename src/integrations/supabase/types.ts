@@ -468,6 +468,28 @@ export type Database = {
           group_ids: string[]
         }[]
       }
+      get_group_monthly_leaderboard: {
+        Args: {
+          group_id: string
+          start_date: string
+        }
+        Returns: {
+          user_id: string
+          email: string
+          total_workouts: number
+        }[]
+      }
+      get_group_weekly_leaderboard: {
+        Args: {
+          group_id: string
+          start_date: string
+        }
+        Returns: {
+          user_id: string
+          email: string
+          total_workouts: number
+        }[]
+      }
       is_coach_for_client: {
         Args: {
           coach_id: string

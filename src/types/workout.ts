@@ -24,6 +24,9 @@ export interface WorkoutWeek {
   title: string;
   description: string | null;
   created_at: string;
+  program?: {
+    title: string;
+  } | null;
 }
 
 export interface Workout {

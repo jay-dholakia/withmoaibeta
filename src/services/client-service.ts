@@ -598,6 +598,18 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
       throw workoutsError;
     }
     
+    // Create workout objects with week property initialized to null
+    const workoutMap: Map<string, WorkoutBasic> = new Map();
+    
+    if (workouts) {
+      workouts.forEach(workout => {
+        workoutMap.set(workout.id, {
+          ...workout,
+          week: null
+        });
+      });
+    }
+    
     // Fetch the week data for the workouts
     if (workouts && workouts.length > 0) {
       const weekIds = [...new Set(workouts.map(w => w.week_id))];
@@ -630,29 +642,32 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           });
         }
         
-        // Add week data to workouts
+        // Create a map of weeks with program data
         const weekMap = new Map();
-        weeks.forEach(week => {
-          const program = programMap.get(week.program_id);
-          weekMap.set(week.id, {
-            ...week,
-            program: program || null
+        if (weeks) {
+          weeks.forEach(week => {
+            const program = programMap.get(week.program_id);
+            weekMap.set(week.id, {
+              ...week,
+              program: program || null
+            });
           });
-        });
+        }
         
-        // Add week data to each workout
-        workouts.forEach(workout => {
-          workout.week = weekMap.get(workout.week_id) || null;
+        // Add week data to each workout in workoutMap
+        workoutMap.forEach((workout, workoutId) => {
+          const weekData = weekMap.get(workout.week_id);
+          if (weekData) {
+            workoutMap.set(workoutId, {
+              ...workout,
+              week: {
+                week_number: weekData.week_number,
+                program: weekData.program
+              }
+            });
+          }
         });
       }
-    }
-    
-    // Create a Map for faster workout lookups
-    const workoutMap = new Map();
-    if (workouts) {
-      workouts.forEach(workout => {
-        workoutMap.set(workout.id, workout);
-      });
     }
     
     // Combine the data

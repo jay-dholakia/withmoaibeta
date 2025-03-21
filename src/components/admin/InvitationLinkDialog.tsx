@@ -6,7 +6,7 @@ import {
   Dialog, DialogContent, DialogDescription, 
   DialogHeader, DialogTitle, DialogTrigger 
 } from '@/components/ui/dialog';
-import { Copy } from 'lucide-react';
+import { Copy, Mail, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface InvitationLinkDialogProps {
@@ -31,9 +31,12 @@ export const InvitationLinkDialog: React.FC<InvitationLinkDialogProps> = ({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Invitation Link</DialogTitle>
-          <DialogDescription>
-            Email sending failed. Share this link directly with the invited user.
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-500" />
+            Manual Invitation Sharing Required
+          </DialogTitle>
+          <DialogDescription className="text-amber-500">
+            Email service is currently unavailable. You need to share this invitation link manually.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-4">
@@ -47,14 +50,24 @@ export const InvitationLinkDialog: React.FC<InvitationLinkDialogProps> = ({
               <Copy className="w-4 h-4" />
             </Button>
           </div>
-          <div className="bg-muted p-3 rounded-md text-sm">
-            <p className="font-medium mb-2">Instructions for sharing:</p>
-            <ol className="list-decimal pl-5 space-y-1">
-              <li>Copy the link above</li>
-              <li>Send it to the user via your preferred messaging app</li>
-              <li>Inform them that this link will allow them to create their account</li>
+          
+          <div className="bg-muted p-4 rounded-md text-sm border border-amber-200">
+            <p className="font-medium mb-2 flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Instructions for manual sharing:
+            </p>
+            <ol className="list-decimal pl-5 space-y-2">
+              <li>Copy the invitation link above</li>
+              <li>Send it to <strong>{inviteLink.includes('token=') ? inviteLink.split('token=')[1].split('&')[0].substring(0, 8) + '...' : 'the user'}</strong> via email or messaging</li>
+              <li>Let them know this link will give them access to create their account</li>
               <li>The link will expire in 30 days</li>
             </ol>
+            <div className="mt-3 pt-3 border-t border-amber-200">
+              <p className="text-xs text-muted-foreground">
+                <strong>Note:</strong> To enable automatic email sending, 
+                the Resend API key needs to be configured in your Supabase project.
+              </p>
+            </div>
           </div>
         </div>
       </DialogContent>

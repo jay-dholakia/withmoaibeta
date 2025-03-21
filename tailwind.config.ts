@@ -74,9 +74,9 @@ export default {
 					muted: 'hsl(160, 50%, 90%)',
 				},
 				client: {
-					DEFAULT: 'hsl(35, 90%, 55%)',
+					DEFAULT: 'hsl(220, 70%, 40%)', // Changed from orange to midnight blue
 					foreground: 'hsl(0, 0%, 100%)',
-					muted: 'hsl(35, 80%, 90%)',
+					muted: 'hsl(220, 60%, 90%)', // Updated muted color to match
 				}
 			},
 			borderRadius: {

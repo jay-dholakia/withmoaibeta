@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
@@ -48,6 +47,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setProfile(null);
           setUserType(null);
         }
+        
+        // Always reset loading state after auth state changes
+        setLoading(false);
       }
     );
 
@@ -78,8 +80,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error fetching user profile:', error);
-        // Don't reset user state on profile fetch error
-        // Just log the error and continue
         toast.error('Error fetching user profile');
         return;
       }
@@ -104,33 +104,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Sign in error:', error.message);
         toast.error(error.message);
-        setLoading(false); // Ensure loading state is reset on error
+        setLoading(false); // Reset loading state on error
         return;
       }
       
       if (data.user) {
         console.log('Sign in successful, user ID:', data.user.id);
         
-        // Navigate immediately based on user type
-        if (userType === 'admin') {
-          navigate('/admin-dashboard');
-        } else if (userType === 'coach') {
-          navigate('/coach-dashboard');
-        } else {
-          navigate('/client-dashboard');
-        }
-        
+        // Navigation will occur automatically by the useEffect that
+        // listens to the auth state change
         toast.success('Sign in successful!');
-        // We'll rely on onAuthStateChange to update profile and finish loading
       } else {
         console.error('No user data returned from sign in');
         toast.error('Sign in failed - no user data returned');
-        setLoading(false);
+        setLoading(false); // Reset loading state if no user
       }
     } catch (error) {
       console.error('Error in signIn:', error);
       toast.error('An unexpected error occurred');
-      setLoading(false); // Ensure loading state is reset on error
+      setLoading(false); // Reset loading state on error
     }
   };
 

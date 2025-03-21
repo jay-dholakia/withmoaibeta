@@ -12,15 +12,23 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // If user is already logged in as admin, redirect to dashboard
   useEffect(() => {
+    // Check if user is logged in as admin
     if (user && userType === 'admin' && !authLoading) {
       console.log('Admin already logged in, redirecting to dashboard');
       setIsRedirecting(true);
-      navigate('/admin-dashboard');
+      
+      // Add a small timeout to ensure state updates before navigation
+      const redirectTimer = setTimeout(() => {
+        navigate('/admin-dashboard');
+        setIsRedirecting(false); // Reset the redirecting state after navigation
+      }, 100);
+      
+      return () => clearTimeout(redirectTimer);
     }
   }, [user, userType, authLoading, navigate]);
 
+  // If loading or redirecting, show spinner
   if (isRedirecting || (authLoading && user)) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="text-center">

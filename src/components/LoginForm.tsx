@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
@@ -23,18 +22,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [forgotPassword, setForgotPassword] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
   const { signIn, signUp, loading: authLoading } = useAuth();
-
-  // Track submission state separately to prevent multiple form submissions
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset local loading state when auth loading state changes
   useEffect(() => {
     console.log('Auth loading state changed:', authLoading);
-    if (!authLoading && isSubmitting) {
+    if (!authLoading) {
+      // When auth is no longer loading, reset our local states
       setLocalLoading(false);
       setIsSubmitting(false);
     }
-  }, [authLoading, isSubmitting]);
+  }, [authLoading]);
 
   // Prevent self-registration for admin accounts
   useEffect(() => {
@@ -48,7 +46,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     e.preventDefault();
     
     // Prevent double submission
-    if (localLoading || isSubmitting) {
+    if (localLoading || isSubmitting || authLoading) {
+      console.log('Preventing resubmission: local loading or already submitting');
       return;
     }
     
@@ -65,15 +64,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           return;
         }
         await signUp(email, password, variant);
+        // The useEffect will handle resetting the loading state
       } else {
         if (onSubmit) {
           // For backward compatibility
           onSubmit(email, password);
-          // We'll rely on the onSubmit function to handle loading state
         } else {
           console.log(`Signing in as ${variant} with email: ${email}`);
           await signIn(email, password, variant);
-          // We'll let the useEffect handle resetting the loading state
+          // The useEffect will handle resetting the loading state
         }
       }
     } catch (error) {
@@ -113,7 +112,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   };
 
   const styles = getVariantStyles();
-  const isDisabled = localLoading || isSubmitting || (variant === 'admin' && isRegistering);
+  const isDisabled = localLoading || isSubmitting || authLoading || (variant === 'admin' && isRegistering);
 
   if (forgotPassword) {
     return <ForgotPasswordForm onBack={() => setForgotPassword(false)} variant={variant} />;
@@ -193,7 +192,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           disabled={isDisabled}
           className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${styles.buttonClass} btn-hover-effect ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {localLoading || isSubmitting ? (
+          {(localLoading || isSubmitting || authLoading) ? (
             <span className="flex items-center justify-center">
               <Loader2 size={18} className="animate-spin mr-2" />
               {isRegistering ? 'Signing up...' : 'Signing in...'}

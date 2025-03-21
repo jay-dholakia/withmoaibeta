@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const GroupsPage: React.FC = () => {
-  const { userType } = useAuth();
+  const { userType, user } = useAuth();
   const navigate = useNavigate();
   
   // Check if we need to create a default Moai group for testing
@@ -32,12 +32,18 @@ const GroupsPage: React.FC = () => {
         if (!existingGroups || existingGroups.length === 0) {
           console.log('No Moai group found, creating one...');
           
+          if (!user?.id) {
+            console.error('User ID is required to create a group');
+            return;
+          }
+          
           const { data: newGroup, error: createError } = await supabase
             .from('groups')
-            .insert([{
+            .insert({
               name: 'Moai - 1',
-              description: 'Default Moai group for testing'
-            }])
+              description: 'Default Moai group for testing',
+              created_by: user.id
+            })
             .select();
             
           if (createError) {
@@ -58,7 +64,7 @@ const GroupsPage: React.FC = () => {
     if (userType === 'admin') {
       checkAndCreateMoaiGroup();
     }
-  }, [userType]);
+  }, [userType, user]);
   
   // Redirect if not admin
   useEffect(() => {

@@ -21,15 +21,25 @@ const CoachDashboard = () => {
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
       
+      console.log('Fetching coach groups for coach ID:', user.id);
+      
       // Get groups the coach is assigned to
       const { data: groupCoaches, error: groupCoachesError } = await supabase
         .from('group_coaches')
         .select('group_id')
         .eq('coach_id', user.id);
         
-      if (groupCoachesError) throw groupCoachesError;
+      if (groupCoachesError) {
+        console.error('Error fetching group_coaches:', groupCoachesError);
+        throw groupCoachesError;
+      }
       
-      if (groupCoaches.length === 0) return [];
+      console.log('Group coaches data:', groupCoaches);
+      
+      if (!groupCoaches || groupCoaches.length === 0) {
+        console.log('No groups found for coach');
+        return [];
+      }
       
       // Get the actual group details
       const { data: groups, error: groupsError } = await supabase
@@ -37,9 +47,13 @@ const CoachDashboard = () => {
         .select('*')
         .in('id', groupCoaches.map(gc => gc.group_id));
         
-      if (groupsError) throw groupsError;
+      if (groupsError) {
+        console.error('Error fetching groups:', groupsError);
+        throw groupsError;
+      }
       
-      return groups;
+      console.log('Groups data:', groups);
+      return groups || [];
     },
     enabled: !!user && userType === 'coach'
   });
@@ -80,7 +94,7 @@ const CoachDashboard = () => {
             <div className="flex justify-center py-6">
               <Loader2 className="w-6 h-6 animate-spin text-coach" />
             </div>
-          ) : coachGroups?.length ? (
+          ) : coachGroups && coachGroups.length > 0 ? (
             <div className="space-y-3">
               {coachGroups.slice(0, 3).map(group => (
                 <div key={group.id} className="border rounded-lg p-3 hover:bg-accent/50 transition-colors">

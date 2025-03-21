@@ -412,4 +412,3 @@ export const fetchAllClients = async (): Promise<{ id: string; email: string }[]
     throw error;
   }
 };
-

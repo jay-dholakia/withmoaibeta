@@ -79,7 +79,7 @@ const ProgramAssignmentPage = () => {
       
       // Calculate end date based on program duration
       const endDate = new Date(startDate);
-      if (program) {
+      if (program && typeof program.weeks === 'number') {
         endDate.setDate(endDate.getDate() + (program.weeks * 7));
       }
       

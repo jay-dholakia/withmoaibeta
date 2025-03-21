@@ -113,9 +113,10 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
       });
     }
     
+    // Return program with week data in the new format
     return {
       ...programData,
-      weeks: weeksWithWorkouts
+      weekData: weeksWithWorkouts
     };
   } catch (error) {
     console.error("Error fetching full program details:", error);
@@ -211,7 +212,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     
     console.log("Successfully built program data:", 
       fullProgramData.program.title, 
-      "with", fullProgramData.program.weeks.length, "weeks"
+      "with", fullProgramData.program.weekData?.length || 0, "weeks"
     );
     
     return fullProgramData;

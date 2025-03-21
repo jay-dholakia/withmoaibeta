@@ -11,10 +11,12 @@ export interface WorkoutProgram {
   id: string;
   title: string;
   description: string | null;
-  weeks: WorkoutWeek[] | number;
+  weeks: number; // Changed from 'WorkoutWeek[] | number' to just 'number'
   coach_id: string;
   created_at: string;
   updated_at: string;
+  // Add a field to store the actual weeks data when needed
+  weekData?: WorkoutWeek[];
 }
 
 export interface WorkoutWeek {

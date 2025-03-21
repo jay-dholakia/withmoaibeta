@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ClientData {
@@ -17,6 +16,13 @@ export interface GroupData {
   id: string;
   name: string;
   description: string | null;
+}
+
+export interface CoachProfile {
+  id: string;
+  bio: string | null;
+  avatar_url: string | null;
+  favorite_movements: string[] | null;
 }
 
 // Fetch all clients that the coach has access to
@@ -96,4 +102,61 @@ export const fetchClientPrograms = async (clientId: string): Promise<any[]> => {
   }
 
   return data || [];
+};
+
+// Fetch coach profile
+export const fetchCoachProfile = async (coachId: string): Promise<CoachProfile | null> => {
+  const { data, error } = await supabase
+    .from('coach_profiles')
+    .select('*')
+    .eq('id', coachId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" which just means profile doesn't exist yet
+    console.error('Error fetching coach profile:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Update coach profile
+export const updateCoachProfile = async (coachId: string, profile: Partial<CoachProfile>): Promise<CoachProfile> => {
+  const { data, error } = await supabase
+    .from('coach_profiles')
+    .upsert({ id: coachId, ...profile })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating coach profile:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Upload coach avatar
+export const uploadCoachAvatar = async (coachId: string, file: File): Promise<string> => {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${coachId}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+  const filePath = `${coachId}/${fileName}`;
+
+  const { error } = await supabase.storage
+    .from('avatars')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true
+    });
+
+  if (error) {
+    console.error('Error uploading avatar:', error);
+    throw error;
+  }
+
+  const { data } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
 };

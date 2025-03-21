@@ -25,7 +25,7 @@ const WorkoutsList = () => {
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: true,
-    retry: 3,
+    retry: 2,
   });
 
   console.log("Current program data:", currentProgram);
@@ -110,11 +110,16 @@ const WorkoutsList = () => {
   }
 
   // Improved program data handling - check for both program and program.weeks
-  if (!currentProgram || !currentProgram.program || !currentProgram.program.weeks || !Array.isArray(currentProgram.program.weeks) || currentProgram.program.weeks.length === 0) {
+  if (!currentProgram || !currentProgram.program || 
+      !currentProgram.program.weeks || !Array.isArray(currentProgram.program.weeks) || 
+      currentProgram.program.weeks.length === 0) {
+    
     console.log("No active program data found for user:", user?.id);
     
     // If the program exists but weeks array is empty, show specific message
-    if (currentProgram && currentProgram.program && (!currentProgram.program.weeks || !Array.isArray(currentProgram.program.weeks) || currentProgram.program.weeks.length === 0)) {
+    if (currentProgram && currentProgram.program && 
+        (!currentProgram.program.weeks || !Array.isArray(currentProgram.program.weeks) || 
+         currentProgram.program.weeks.length === 0)) {
       console.log("Program exists but has no weeks:", currentProgram.program.title);
     }
     

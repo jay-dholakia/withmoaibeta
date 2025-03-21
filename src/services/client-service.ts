@@ -606,85 +606,98 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     const currentAssignment = assignments[0];
     console.log("Using program assignment:", currentAssignment);
     
-    const { data, error } = await supabase
-      .from('program_assignments')
-      .select(`
-        *,
-        program:program_id (
-          *,
-          weeks:workout_weeks (
-            *,
-            workouts (
-              *,
-              workout_exercises (
-                *,
-                exercise:exercise_id (*)
-              )
-            )
-          )
-        )
-      `)
-      .eq('id', currentAssignment.id)
+    const { data: programData, error: programError } = await supabase
+      .from('workout_programs')
+      .select('*')
+      .eq('id', currentAssignment.program_id)
       .single();
-
-    if (error) {
-      console.error('Error fetching current program details:', error);
-      throw error;
+      
+    if (programError) {
+      console.error('Error fetching program details:', programError);
+      throw programError;
     }
-
-    console.log("Current program data fetched:", data ? "Success" : "No data");
     
-    if (!data || !data.program) {
+    console.log("Program data fetched:", programData);
+    
+    if (!programData) {
       console.log("No program details found for assignment", currentAssignment.id);
       return null;
     }
     
-    if (data.program) {
-      console.log("Program title:", data.program.title);
-      console.log("Program ID:", data.program_id);
+    const { data: weeksData, error: weeksError } = await supabase
+      .from('workout_weeks')
+      .select('*')
+      .eq('program_id', programData.id)
+      .order('week_number', { ascending: true });
       
-      const weeksArray = data.program.weeks && Array.isArray(data.program.weeks) 
-        ? data.program.weeks 
-        : [];
-      
-      console.log("Program weeks count:", weeksArray.length || 0);
-      
-      if (weeksArray.length > 0) {
-        weeksArray.sort((a: any, b: any) => a.week_number - b.week_number);
-        
-        console.log("Weeks data available:", weeksArray.length, "weeks");
-        
-        try {
-          console.log(`User ${userId} is currently on program ${data.program_id}`);
-        } catch (err) {
-          console.error('Error updating client program info:', err);
-        }
-        
-        weeksArray.forEach((week: any) => {
-          const workoutsArray = week.workouts && Array.isArray(week.workouts) 
-            ? week.workouts 
-            : [];
-          const workoutsCount = workoutsArray.length || 0;
-          
-          console.log(`Week ${week.week_number}: ${workoutsCount} workouts`);
-          
-          if (workoutsCount > 0) {
-            workoutsArray.forEach((workout: any) => {
-              const exercisesArray = workout.workout_exercises && Array.isArray(workout.workout_exercises)
-                ? workout.workout_exercises
-                : [];
-              console.log(`  Workout "${workout.title}": ${exercisesArray.length} exercises`);
-            });
-          }
-        });
-      } else {
-        console.log("Weeks data is missing or not an array");
-      }
-    } else {
-      console.log("Program data is missing");
+    if (weeksError) {
+      console.error('Error fetching program weeks:', weeksError);
+      throw weeksError;
     }
-
-    return data;
+    
+    console.log("Program weeks fetched:", weeksData?.length || 0);
+    
+    const weeksWithWorkouts = [];
+    
+    for (const week of weeksData || []) {
+      const { data: workoutsData, error: workoutsError } = await supabase
+        .from('workouts')
+        .select(`
+          *,
+          workout_exercises (
+            *,
+            exercise:exercise_id (*)
+          )
+        `)
+        .eq('week_id', week.id)
+        .order('day_of_week', { ascending: true });
+        
+      if (workoutsError) {
+        console.error(`Error fetching workouts for week ${week.week_number}:`, workoutsError);
+        continue;
+      }
+      
+      console.log(`Week ${week.week_number} workouts:`, workoutsData?.length || 0);
+      
+      weeksWithWorkouts.push({
+        ...week,
+        workouts: workoutsData || []
+      });
+    }
+    
+    const fullProgramData = {
+      ...currentAssignment,
+      program: {
+        ...programData,
+        weeks: weeksWithWorkouts
+      }
+    };
+    
+    console.log("Full program data constructed:", 
+      fullProgramData.program.title, 
+      "with", fullProgramData.program.weeks.length, "weeks"
+    );
+    
+    try {
+      const { data: clientInfo, error: clientInfoError } = await supabase
+        .from('client_workout_info')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+        
+      if (!clientInfoError && clientInfo) {
+        await supabase
+          .from('client_workout_info')
+          .update({
+            current_program_id: programData.id
+          })
+          .eq('user_id', userId);
+      }
+    } catch (err) {
+      console.error('Error updating client workout info:', err);
+    }
+    
+    return fullProgramData;
   } catch (err) {
     console.error("Error in fetchCurrentProgram:", err);
     throw err;

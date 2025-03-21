@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ClientData {
@@ -272,8 +273,9 @@ export const fetchClientProfile = async (clientId: string): Promise<ClientProfil
     throw error;
   }
 
-  // Add null check and ensure data is valid before returning
-  return data as ClientProfile | null;
+  // First convert to unknown, then to ClientProfile to avoid type errors
+  if (!data) return null;
+  return data as unknown as ClientProfile;
 };
 
 export const updateClientProfile = async (clientId: string, profile: Partial<ClientProfile>): Promise<ClientProfile> => {
@@ -605,7 +607,8 @@ export const fetchGroupWeeklyProgress = async (groupId: string): Promise<any> =>
         .single();
         
       if (profile) {
-        emailAddress = profile.email || emailAddress;
+        // Use ID instead of email since profile doesn't have email field
+        emailAddress = `user_${profile.id.substring(0, 8)}`;
       }
     } catch (error) {
       console.error('Error fetching user email:', error);
@@ -647,4 +650,3 @@ const getUserEmail = async (userId: string): Promise<string> => {
     return `user_${userId.substring(0, 8)}`;
   }
 };
-

@@ -248,11 +248,12 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<Lea
 
 // Client profile functions
 export const fetchClientProfile = async (clientId: string): Promise<ClientProfile | null> => {
-  const { data, error } = await supabase
-    .from('client_profiles')
+  // Type assertion to any to work around TypeScript limitations
+  const { data, error } = await (supabase
+    .from('client_profiles' as any)
     .select('*')
     .eq('id', clientId)
-    .maybeSingle();
+    .maybeSingle() as any);
 
   if (error) {
     console.error('Error fetching client profile:', error);
@@ -263,15 +264,16 @@ export const fetchClientProfile = async (clientId: string): Promise<ClientProfil
 };
 
 export const updateClientProfile = async (clientId: string, profile: Partial<ClientProfile>): Promise<ClientProfile> => {
-  const { data, error } = await supabase
-    .from('client_profiles')
+  // Type assertion to any to work around TypeScript limitations
+  const { data, error } = await (supabase
+    .from('client_profiles' as any)
     .update({ 
       ...profile,
       updated_at: new Date().toISOString()
     })
     .eq('id', clientId)
     .select('*')
-    .single();
+    .single() as any);
 
   if (error) {
     console.error('Error updating client profile:', error);
@@ -303,3 +305,4 @@ export const uploadClientAvatar = async (clientId: string, file: File): Promise<
 
   return data.publicUrl;
 };
+

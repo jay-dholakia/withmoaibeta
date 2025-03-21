@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Dumbbell, Users, Trophy, Settings, LogOut } from 'lucide-react';
+import { Dumbbell, Users, Trophy, Settings, LogOut, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
 import { toast } from 'sonner';
@@ -56,6 +56,14 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
         <div className="container mx-auto">
           <nav className="flex justify-around">
             <Link 
+              to="/client-dashboard/leaderboard" 
+              className={`flex flex-col items-center py-3 px-4 ${isActive('/leaderboard') ? 'text-client' : 'text-gray-500'}`}
+            >
+              <Trophy className="h-5 w-5" />
+              <span className="text-xs mt-1">Leaderboard</span>
+            </Link>
+            
+            <Link 
               to="/client-dashboard/workouts" 
               className={`flex flex-col items-center py-3 px-4 ${isActive('/workouts') ? 'text-client' : 'text-gray-500'}`}
             >
@@ -72,11 +80,11 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
             </Link>
             
             <Link 
-              to="/client-dashboard/leaderboard" 
-              className={`flex flex-col items-center py-3 px-4 ${isActive('/leaderboard') ? 'text-client' : 'text-gray-500'}`}
+              to="/client-dashboard/notes" 
+              className={`flex flex-col items-center py-3 px-4 ${isActive('/notes') ? 'text-client' : 'text-gray-500'}`}
             >
-              <Trophy className="h-5 w-5" />
-              <span className="text-xs mt-1">Leaderboard</span>
+              <FileText className="h-5 w-5" />
+              <span className="text-xs mt-1">Notes</span>
             </Link>
             
             <Link 

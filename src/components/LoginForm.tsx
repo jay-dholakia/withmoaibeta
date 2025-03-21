@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
@@ -6,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface LoginFormProps {
   variant: 'admin' | 'coach' | 'client';
@@ -120,6 +122,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     return <ForgotPasswordForm onBack={() => setForgotPassword(false)} variant={variant} />;
   }
 
+  // Helper function to focus the input when its container is clicked
+  const handleContainerClick = (inputId: string) => {
+    document.getElementById(inputId)?.focus();
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -137,16 +144,19 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       )}
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium">
+        <div 
+          className="space-y-2 relative"
+          onClick={() => handleContainerClick('email')}
+        >
+          <Label htmlFor="email" className="text-sm font-medium">
             Email
-          </label>
+          </Label>
           <Input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={`${styles.inputFocusRing} bg-background/50 transition-all duration-200`}
+            className={`${styles.inputFocusRing} bg-background/50 transition-all duration-200 cursor-text`}
             placeholder="Enter your email"
             required
             disabled={isDisabled}
@@ -155,32 +165,41 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         
         <div className="space-y-2">
           <div className="flex justify-between">
-            <label htmlFor="password" className="text-sm font-medium">
+            <Label htmlFor="password" className="text-sm font-medium">
               Password
-            </label>
+            </Label>
             <button 
               type="button"
-              onClick={() => setForgotPassword(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setForgotPassword(true);
+              }}
               className={`text-sm ${styles.textColor} hover:underline`}
               disabled={isDisabled}
             >
               Forgot password?
             </button>
           </div>
-          <div className="relative">
+          <div 
+            className="relative" 
+            onClick={() => handleContainerClick('password')}
+          >
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={`${styles.inputFocusRing} bg-background/50 transition-all duration-200`}
+              className={`${styles.inputFocusRing} bg-background/50 transition-all duration-200 cursor-text`}
               placeholder="Enter your password"
               required
               disabled={isDisabled}
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPassword(!showPassword);
+              }}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               disabled={isDisabled}
             >

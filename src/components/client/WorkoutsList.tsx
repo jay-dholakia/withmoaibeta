@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -73,7 +72,6 @@ const WorkoutsList = () => {
     );
   }
 
-  // Show ongoing workout if available
   if (ongoingWorkout) {
     return (
       <div className="space-y-6">
@@ -109,7 +107,6 @@ const WorkoutsList = () => {
     );
   }
 
-  // Check if program data exists and has a valid structure
   if (!currentProgram || !currentProgram.program || !currentProgram.program.weeks || !Array.isArray(currentProgram.program.weeks) || currentProgram.program.weeks.length === 0) {
     console.log("No active program data found for user:", user?.id);
     
@@ -143,21 +140,16 @@ const WorkoutsList = () => {
     );
   }
 
-  // The program has been found, display it
-  console.log("Program found:", currentProgram.program.title);
-  
   const program = currentProgram.program;
   const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
   const currentWeekNumber = getCurrentWeekNumber(currentProgram.start_date);
   
   console.log("Current week number:", currentWeekNumber);
   
-  // Find current week in the weeks array
   const currentWeek = program.weeks.find((week) => week.week_number === currentWeekNumber);
   
   console.log("Current week:", currentWeek);
   
-  // Handle case where there are no workouts this week
   if (!currentWeek || !currentWeek.workouts || !Array.isArray(currentWeek.workouts) || currentWeek.workouts.length === 0) {
     return (
       <div className="space-y-6">
@@ -193,7 +185,6 @@ const WorkoutsList = () => {
     );
   }
 
-  // Show the workouts for the current week
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -265,16 +256,13 @@ const WorkoutsList = () => {
   );
 };
 
-// Helper function to calculate current week number
 const getCurrentWeekNumber = (startDateString: string): number => {
   const startDate = new Date(startDateString);
   const today = new Date();
   
-  // Calculate difference in milliseconds
   const diffTime = Math.abs(today.getTime() - startDate.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
-  // Calculate week number (starting at 1)
   return Math.floor(diffDays / 7) + 1;
 };
 

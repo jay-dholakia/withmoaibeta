@@ -357,23 +357,59 @@ export const fetchAssignedUsers = async (programId: string): Promise<ProgramAssi
 };
 
 export const fetchAllClients = async (): Promise<{ id: string; email: string }[]> => {
-  // We'll query a view that joins profiles with auth.users email info,
-  // which has been set up by the database administrator
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, user_type')
-    .eq('user_type', 'client');
+  try {
+    // Query to get all users with user_type = 'client'
+    const { data: profiles, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_type', 'client');
 
-  if (error) {
-    console.error('Error fetching clients:', error);
+    if (error) {
+      console.error('Error fetching clients:', error);
+      throw error;
+    }
+
+    if (!profiles || profiles.length === 0) {
+      return [];
+    }
+
+    // Load more detailed client information - fetch from client_profiles if available
+    const clientsWithDetails = [];
+    for (const profile of profiles) {
+      try {
+        const { data: clientProfile } = await supabase
+          .from('client_profiles')
+          .select('id, first_name, last_name')
+          .eq('id', profile.id)
+          .maybeSingle();
+          
+        // Create a display name using whatever info we have
+        let displayName = `Client ${profile.id.slice(0, 6)}`;
+        if (clientProfile && (clientProfile.first_name || clientProfile.last_name)) {
+          displayName = [clientProfile.first_name, clientProfile.last_name]
+            .filter(Boolean)
+            .join(' ') || displayName;
+        }
+        
+        clientsWithDetails.push({
+          id: profile.id,
+          email: displayName
+        });
+      } catch (detailError) {
+        console.error('Error fetching client details:', detailError);
+        // Still include the client even if details fetch fails
+        clientsWithDetails.push({
+          id: profile.id,
+          email: `Client ${profile.id.slice(0, 6)}`
+        });
+      }
+    }
+
+    console.log('Processed clients with details:', clientsWithDetails);
+    return clientsWithDetails;
+  } catch (error) {
+    console.error('Error in fetchAllClients:', error);
     throw error;
   }
-
-  // For now, we'll return client IDs with placeholder emails
-  // In a production app, this would need to be implemented differently,
-  // perhaps with a database view, function, or edge function
-  return data.map(profile => ({
-    id: profile.id,
-    email: `client_${profile.id.slice(0, 6)}@example.com` 
-  }));
 };
+

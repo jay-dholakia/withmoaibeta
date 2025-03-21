@@ -623,11 +623,13 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     console.log("Program title:", data.program.title);
     console.log("Program weeks count:", data.program.weeks);
     
-    if (data.program.weeks && Array.isArray(data.program.weeks)) {
-      console.log("Weeks data available:", data.program.weeks.length, "weeks");
+    // Check if weeks property exists and is an array before accessing its properties
+    const weeksArray = data.program.weeks || [];
+    if (Array.isArray(weeksArray)) {
+      console.log("Weeks data available:", weeksArray.length, "weeks");
       
       // Check if weeks have workouts
-      data.program.weeks.forEach((week: any, index: number) => {
+      weeksArray.forEach((week: any, index: number) => {
         const workoutsCount = week.workouts ? week.workouts.length : 0;
         console.log(`Week ${week.week_number}: ${workoutsCount} workouts`);
       });
@@ -769,4 +771,3 @@ const ensureClientProfilesTable = async (): Promise<boolean> => {
     return false;
   }
 };
-

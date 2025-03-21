@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // Client Profile Types
@@ -506,23 +507,50 @@ export const fetchPersonalRecords = async (userId: string): Promise<any[]> => {
 
 export const fetchClientWorkoutHistory = async (clientId: string): Promise<any[]> => {
   try {
+    // Simplified query to avoid excessive nesting that causes type issues
     const { data, error } = await supabase
       .from('workout_completions')
       .select(`
-        *,
-        workout:workout_id (
-          *,
-          week:week_id (
-            *,
-            program:program_id (*)
-          )
-        )
+        id,
+        completed_at,
+        status,
+        rating,
+        notes,
+        workout_id,
+        user_id
       `)
       .eq('user_id', clientId)
       .eq('status', 'completed')
       .order('completed_at', { ascending: false });
     
     if (error) throw error;
+    
+    // If we need workout details, we can fetch them in a separate query
+    if (data && data.length > 0) {
+      const workoutIds = data.map(completion => completion.workout_id);
+      const { data: workoutsData, error: workoutsError } = await supabase
+        .from('workouts')
+        .select(`
+          id,
+          title,
+          description,
+          day_of_week,
+          week_id
+        `)
+        .in('id', workoutIds);
+      
+      if (workoutsError) throw workoutsError;
+      
+      // Map workout data to completions
+      return data.map(completion => {
+        const workout = workoutsData.find(w => w.id === completion.workout_id) || null;
+        return {
+          ...completion,
+          workout
+        };
+      });
+    }
+    
     return data || [];
   } catch (error) {
     console.error("Error fetching client workout history:", error);
@@ -535,8 +563,17 @@ export const fetchClientPrograms = async (clientId: string): Promise<any[]> => {
     const { data, error } = await supabase
       .from('program_assignments')
       .select(`
-        *,
-        program:program_id (*)
+        id,
+        start_date,
+        end_date,
+        user_id,
+        program_id,
+        program:program_id (
+          id,
+          title,
+          description,
+          weeks
+        )
       `)
       .eq('user_id', clientId)
       .order('start_date', { ascending: false });

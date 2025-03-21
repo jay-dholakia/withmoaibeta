@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -574,66 +573,70 @@ export const fetchPersonalRecords = async (userId: string): Promise<PersonalReco
 export const fetchCurrentProgram = async (userId: string): Promise<any | null> => {
   console.log("Fetching current program for user:", userId);
   
-  // Convert today's date to ISO string format and extract just the date part (YYYY-MM-DD)
-  const todayISODate = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  const todayISODate = today.toISOString().split('T')[0];
   console.log("Today's date for comparison:", todayISODate);
   
-  const { data, error } = await supabase
-    .from('program_assignments')
-    .select(`
-      *,
-      program:program_id (
+  try {
+    const { data, error } = await supabase
+      .from('program_assignments')
+      .select(`
         *,
-        weeks:workout_weeks (
+        program:program_id (
           *,
-          workouts (
+          weeks:workout_weeks (
             *,
-            workout_exercises (
+            workouts (
               *,
-              exercise:exercise_id (*)
+              workout_exercises (
+                *,
+                exercise:exercise_id (*)
+              )
             )
           )
         )
-      )
-    `)
-    .eq('user_id', userId)
-    // Fix: Use proper date string comparison instead of timestamp comparison
-    .lte('start_date', todayISODate)
-    .or(`end_date.is.null,end_date.gte.${todayISODate}`)
-    .order('start_date', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+      `)
+      .eq('user_id', userId)
+      .lte('start_date', todayISODate)
+      .or(`end_date.is.null,end_date.gte.${todayISODate}`)
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-  if (error) {
-    console.error('Error fetching current program:', error);
-    throw error;
-  }
-
-  console.log("Current program data fetched:", data);
-  
-  if (!data) {
-    console.log("No current program found for user", userId);
-    return null;
-  }
-  
-  if (data.program) {
-    console.log("Program title:", data.program.title);
-    console.log("Program weeks count:", data.program.weeks);
-    
-    const weeksArray: any[] = data.program.weeks || [];
-    if (Array.isArray(weeksArray)) {
-      console.log("Weeks data available:", weeksArray.length, "weeks");
-      
-      weeksArray.forEach((week: any) => {
-        const workoutsCount = week.workouts ? week.workouts.length : 0;
-        console.log(`Week ${week.week_number}: ${workoutsCount} workouts`);
-      });
-    } else {
-      console.log("Weeks data is missing or not an array");
+    if (error) {
+      console.error('Error fetching current program:', error);
+      throw error;
     }
-  }
 
-  return data;
+    console.log("Current program data fetched:", data);
+    
+    if (!data) {
+      console.log("No current program found for user", userId);
+      return null;
+    }
+    
+    if (data.program) {
+      console.log("Program title:", data.program.title);
+      console.log("Program weeks count:", data.program.weeks?.length || 0);
+      
+      const weeksArray = data.program.weeks || [];
+      if (Array.isArray(weeksArray)) {
+        console.log("Weeks data available:", weeksArray.length, "weeks");
+        
+        weeksArray.forEach((week: any) => {
+          const workoutsCount = week.workouts ? week.workouts.length : 0;
+          console.log(`Week ${week.week_number}: ${workoutsCount} workouts`);
+        });
+      } else {
+        console.log("Weeks data is missing or not an array");
+      }
+    }
+
+    return data;
+  } catch (err) {
+    console.error("Error in fetchCurrentProgram:", err);
+    throw err;
+  }
 };
 
 export const fetchGroupWeeklyProgress = async (groupId: string): Promise<any> => {

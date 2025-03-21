@@ -14,19 +14,30 @@ const WorkoutsList = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: currentProgram, isLoading: isProgramLoading } = useQuery({
+  const { data: currentProgram, isLoading: isProgramLoading, error: programError } = useQuery({
     queryKey: ['client-current-program', user?.id],
     queryFn: () => fetchCurrentProgram(user?.id || ''),
     enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: true,
+    retry: 2,
   });
 
   console.log("Current program data:", currentProgram);
+  if (programError) {
+    console.error("Error loading program:", programError);
+  }
 
-  const { data: ongoingWorkout, isLoading: isOngoingLoading } = useQuery({
+  const { data: ongoingWorkout, isLoading: isOngoingLoading, error: ongoingError } = useQuery({
     queryKey: ['client-ongoing-workout', user?.id],
     queryFn: () => fetchOngoingWorkout(user?.id || ''),
     enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
+
+  if (ongoingError) {
+    console.error("Error loading ongoing workout:", ongoingError);
+  }
 
   const startWorkout = async (workoutId: string) => {
     try {
@@ -103,7 +114,6 @@ const WorkoutsList = () => {
   }
 
   console.log("Program found:", currentProgram.program.title);
-  console.log("Program weeks:", currentProgram.program.weeks);
   
   const program = currentProgram.program;
   const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -137,7 +147,7 @@ const WorkoutsList = () => {
       <div>
         <h1 className="text-2xl font-bold">{program.title}</h1>
         <p className="text-muted-foreground">
-          Week {currentWeekNumber} of {program.weeks}
+          Week {currentWeekNumber} of {program.weeks.length}
         </p>
       </div>
       

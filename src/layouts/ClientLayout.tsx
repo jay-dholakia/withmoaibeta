@@ -6,6 +6,7 @@ import { Dumbbell, Users, LayoutDashboard, Settings, LogOut, FileText } from 'lu
 import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
 import { toast } from 'sonner';
+import { Logo } from '@/components/Logo';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -34,7 +35,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
       <header className="bg-white shadow-sm border-b border-gray-200 py-4">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center">
-            <h1 className="text-xl font-bold text-client">Client Portal</h1>
+            <Logo variant="client" size="md" />
           </div>
           <button 
             onClick={handleSignOut}

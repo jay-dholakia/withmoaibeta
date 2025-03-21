@@ -43,63 +43,70 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
   console.log("Today's date for comparison:", todayISODate);
   
   try {
-    // Debug log to show all program assignments for the user
-    const { data: allAssignments } = await supabase
+    // First get ALL program assignments for this user to see what's available
+    const { data: allAssignments, error: allAssignmentsError } = await supabase
       .from('program_assignments')
       .select('*')
       .eq('user_id', userId);
     
     console.log("All program assignments for user:", allAssignments);
     
-    // Query program assignments to find active program
-    // Using explicit format for date comparison
-    const { data: assignments, error: assignmentError } = await supabase
-      .from('program_assignments')
-      .select('*')
-      .eq('user_id', userId)
-      .lte('start_date', todayISODate)
-      .or(`end_date.is.null,end_date.gte.${todayISODate}`)
-      .order('start_date', { ascending: false });
-    
-    if (assignmentError) {
-      console.error('Error fetching program assignments:', assignmentError);
-      throw assignmentError;
+    if (allAssignmentsError) {
+      console.error('Error fetching all program assignments:', allAssignmentsError);
+      throw allAssignmentsError;
     }
     
-    console.log("Program assignments found:", assignments?.length || 0, assignments);
-    
-    if (!assignments || assignments.length === 0) {
-      console.log("No active program assignments found for user", userId);
-      
-      // Additional debug log to check all program assignments
-      console.log("Let's try a simpler query without date filtering");
-      const { data: allPrograms } = await supabase
-        .from('program_assignments')
-        .select('*')
-        .eq('user_id', userId);
-      
-      console.log("All programs without date filtering:", allPrograms);
-      
+    if (!allAssignments || allAssignments.length === 0) {
+      console.log("No program assignments found for user:", userId);
       return null;
     }
     
-    const currentAssignment = assignments[0];
-    console.log("Using program assignment:", currentAssignment);
-    console.log("Start date type:", typeof currentAssignment.start_date);
-    console.log("End date type:", typeof currentAssignment.end_date);
+    // Instead of using supabase filtering, let's get all assignments and filter in JS
+    // This gives us more control and better debugging
+    let activeAssignments = allAssignments.filter(assignment => {
+      // Convert start_date to string format if it's not already
+      const startDate = typeof assignment.start_date === 'string' 
+        ? assignment.start_date 
+        : new Date(assignment.start_date).toISOString().split('T')[0];
+      
+      // Check if start_date is today or in the past
+      const isStartValid = startDate <= todayISODate;
+      
+      // Check if end_date is null or in the future
+      let isEndValid = true;
+      if (assignment.end_date) {
+        const endDate = typeof assignment.end_date === 'string'
+          ? assignment.end_date
+          : new Date(assignment.end_date).toISOString().split('T')[0];
+        isEndValid = endDate >= todayISODate;
+      }
+      
+      console.log(`Assignment ${assignment.id}: start=${startDate} (valid=${isStartValid}), end=${assignment.end_date} (valid=${isEndValid})`);
+      
+      return isStartValid && isEndValid;
+    });
     
-    // Print date comparison details
-    if (currentAssignment.end_date) {
-      console.log("End date:", currentAssignment.end_date);
-      console.log("Is end date >= today?", currentAssignment.end_date >= todayISODate);
-    } else {
-      console.log("End date is null, program is considered active");
+    console.log("Active program assignments after filtering:", activeAssignments.length, activeAssignments);
+    
+    if (activeAssignments.length === 0) {
+      console.log("No active program assignments found for user after filtering");
+      return null;
     }
+    
+    // Sort by start date (newest first) and take the most recent one
+    activeAssignments.sort((a, b) => {
+      const dateA = new Date(a.start_date).getTime();
+      const dateB = new Date(b.start_date).getTime();
+      return dateB - dateA;
+    });
+    
+    const currentAssignment = activeAssignments[0];
+    console.log("Using program assignment:", currentAssignment);
     
     const programId = currentAssignment.program_id;
     
     if (!programId) {
-      console.log("No program ID found for user");
+      console.log("No program ID found in assignment");
       return null;
     }
     
@@ -118,7 +125,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     console.log("Program data fetched:", programData);
     
     if (!programData) {
-      console.log("No program details found for assignment", currentAssignment.id);
+      console.log("No program details found for program ID:", programId);
       return null;
     }
     

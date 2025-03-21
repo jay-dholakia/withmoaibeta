@@ -27,8 +27,10 @@ const WorkoutsList = () => {
     queryKey: ['client-current-program', user?.id],
     queryFn: () => fetchCurrentProgram(user?.id || ''),
     enabled: !!user?.id,
-    staleTime: 30000, // 30 seconds - reduced for more frequent refreshes
+    staleTime: 0, // No stale time - always fetch fresh data
+    cacheTime: 0, // Don't cache the data
     refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   useEffect(() => {
@@ -50,6 +52,13 @@ const WorkoutsList = () => {
     enabled: !!user?.id,
     staleTime: 30000, // 30 seconds
   });
+
+  // Force refresh data when component mounts
+  useEffect(() => {
+    if (user?.id) {
+      refetchProgram();
+    }
+  }, [user?.id, refetchProgram]);
 
   const handleStartWorkout = async (workoutId: string) => {
     try {

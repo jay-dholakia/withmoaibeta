@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { createWorkout, createWorkoutExercise, fetchWorkoutExercises } from '@/services/workout-service';
 import { toast } from 'sonner';
 
@@ -209,88 +211,90 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
         <CardTitle className="text-lg">{dayName} Workout</CardTitle>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <div className="space-y-6">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Workout Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder={`${dayName} Workout`} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <ScrollArea className="h-[calc(80vh-8rem)] pr-4">
+          <Form {...form}>
+            <div className="space-y-6">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Workout Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder={`${dayName} Workout`} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Workout Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Instructions or notes about this workout" 
-                      {...field} 
-                      value={field.value || ''}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-base font-medium">Exercises</h3>
-                <ExerciseSelector onSelectExercise={handleAddExercise} />
-              </div>
-
-              {exercises.length === 0 ? (
-                <div className="text-center py-8 border border-dashed rounded-lg">
-                  <p className="text-muted-foreground">No exercises added yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Click "Add Exercise" to select exercises for this workout
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {exercises.map((exercise, index) => (
-                    <div key={exercise.tempId || exercise.id}>
-                      <WorkoutExerciseForm
-                        exercise={exercise}
-                        onSubmit={(data) => handleSaveExercise(exercise, index, data)}
-                        onCancel={() => handleRemoveExercise(index)}
-                        isSubmitting={isSubmitting}
-                        existingData={exerciseData[exercise.id]}
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Workout Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Instructions or notes about this workout" 
+                        {...field} 
+                        value={field.value || ''}
                       />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <div className="flex justify-between items-center">
-              <div>
-                {exercises.length > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    {savedExercisesCount}/{exercises.length} exercises saved
-                  </p>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-medium">Exercises</h3>
+                  <ExerciseSelector onSelectExercise={handleAddExercise} />
+                </div>
+
+                {exercises.length === 0 ? (
+                  <div className="text-center py-8 border border-dashed rounded-lg">
+                    <p className="text-muted-foreground">No exercises added yet</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Click "Add Exercise" to select exercises for this workout
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {exercises.map((exercise, index) => (
+                      <div key={exercise.tempId || exercise.id}>
+                        <WorkoutExerciseForm
+                          exercise={exercise}
+                          onSubmit={(data) => handleSaveExercise(exercise, index, data)}
+                          onCancel={() => handleRemoveExercise(index)}
+                          isSubmitting={isSubmitting}
+                          existingData={exerciseData[exercise.id]}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              <Button 
-                type="button" 
-                disabled={isSavingWorkout}
-                onClick={form.handleSubmit(onSubmit)}
-              >
-                {isSavingWorkout ? 'Saving...' : 'Save Workout'}
-              </Button>
+
+              <div className="flex justify-between items-center">
+                <div>
+                  {exercises.length > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      {savedExercisesCount}/{exercises.length} exercises saved
+                    </p>
+                  )}
+                </div>
+                <Button 
+                  type="button" 
+                  disabled={isSavingWorkout}
+                  onClick={form.handleSubmit(onSubmit)}
+                >
+                  {isSavingWorkout ? 'Saving...' : 'Save Workout'}
+                </Button>
+              </div>
             </div>
-          </div>
-        </Form>
+          </Form>
+        </ScrollArea>
       </CardContent>
     </Card>
   );

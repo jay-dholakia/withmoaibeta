@@ -20,6 +20,7 @@ import {
   DialogDescription
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutWeekForm } from '@/components/coach/WorkoutWeekForm';
 import { WorkoutDayForm } from '@/components/coach/WorkoutDayForm';
@@ -297,95 +298,97 @@ const WorkoutProgramDetailPage = () => {
                   ))}
                 </TabsList>
                 
-                {weeks.map((week) => (
-                  <TabsContent key={week.id} value={week.id}>
-                    <div className="mb-4">
-                      <h3 className="text-lg font-medium">{week.title}</h3>
-                      {week.description && (
-                        <p className="text-muted-foreground text-sm mt-1">{week.description}</p>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {DAYS_OF_WEEK.map((day, index) => {
-                        const dayConfigKey = `${selectedWeek}-${index}`;
-                        const hasWorkout = dayConfigKey in configuredDays;
-                        const workoutId = configuredDays[dayConfigKey];
-                        
-                        if (hasWorkout) {
-                          return (
-                            <Card key={index}>
-                              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-lg">{day}</CardTitle>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <Edit className="h-4 w-4" />
-                                  <span className="sr-only">Edit {day} workout</span>
-                                </Button>
-                              </CardHeader>
-                              <CardContent>
-                                <p className="text-sm text-muted-foreground">
-                                  Workout configured
-                                </p>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="mt-4 w-full"
-                                  onClick={() => navigate(`/coach-dashboard/workouts/${programId}/weeks/${week.id}/days/${index}`)}
-                                >
-                                  View Workout
-                                </Button>
-                              </CardContent>
-                            </Card>
-                          );
-                        }
-                        
-                        return (
-                          <Card key={index}>
-                            <CardHeader>
-                              <CardTitle className="text-lg">{day}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <Dialog 
-                                open={openDialogId === `day-${week.id}-${index}`}
-                                onOpenChange={(isOpen) => {
-                                  setOpenDialogId(isOpen ? `day-${week.id}-${index}` : null);
-                                }}
-                              >
-                                <DialogTrigger asChild>
+                <ScrollArea className="h-[calc(100vh-20rem)] w-full">
+                  {weeks.map((week) => (
+                    <TabsContent key={week.id} value={week.id}>
+                      <div className="mb-4">
+                        <h3 className="text-lg font-medium">{week.title}</h3>
+                        {week.description && (
+                          <p className="text-muted-foreground text-sm mt-1">{week.description}</p>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {DAYS_OF_WEEK.map((day, index) => {
+                          const dayConfigKey = `${selectedWeek}-${index}`;
+                          const hasWorkout = dayConfigKey in configuredDays;
+                          const workoutId = configuredDays[dayConfigKey];
+                          
+                          if (hasWorkout) {
+                            return (
+                              <Card key={index}>
+                                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                  <CardTitle className="text-lg">{day}</CardTitle>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <Edit className="h-4 w-4" />
+                                    <span className="sr-only">Edit {day} workout</span>
+                                  </Button>
+                                </CardHeader>
+                                <CardContent>
+                                  <p className="text-sm text-muted-foreground">
+                                    Workout configured
+                                  </p>
                                   <Button 
                                     variant="outline" 
                                     size="sm" 
-                                    className="w-full gap-2"
-                                    onClick={() => setOpenDialogId(`day-${week.id}-${index}`)}
+                                    className="mt-4 w-full"
+                                    onClick={() => navigate(`/coach-dashboard/workouts/${programId}/weeks/${week.id}/days/${index}`)}
                                   >
-                                    <Plus className="h-4 w-4" />
-                                    Add Workout
+                                    View Workout
                                   </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-4xl">
-                                  <DialogHeader>
-                                    <DialogTitle>Configure {day} Workout</DialogTitle>
-                                    <DialogDescription>
-                                      Add exercises and details for the {day.toLowerCase()} workout.
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="mt-4">
-                                    <WorkoutDayForm
-                                      dayName={day}
-                                      dayNumber={index}
-                                      weekId={week.id}
-                                      onSave={(workoutId) => handleDayFormSave(workoutId, index)}
-                                    />
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  </TabsContent>
-                ))}
+                                </CardContent>
+                              </Card>
+                            );
+                          }
+                          
+                          return (
+                            <Card key={index}>
+                              <CardHeader>
+                                <CardTitle className="text-lg">{day}</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <Dialog 
+                                  open={openDialogId === `day-${week.id}-${index}`}
+                                  onOpenChange={(isOpen) => {
+                                    setOpenDialogId(isOpen ? `day-${week.id}-${index}` : null);
+                                  }}
+                                >
+                                  <DialogTrigger asChild>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="w-full gap-2"
+                                      onClick={() => setOpenDialogId(`day-${week.id}-${index}`)}
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                      Add Workout
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-4xl">
+                                    <DialogHeader>
+                                      <DialogTitle>Configure {day} Workout</DialogTitle>
+                                      <DialogDescription>
+                                        Add exercises and details for the {day.toLowerCase()} workout.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="mt-4">
+                                      <WorkoutDayForm
+                                        dayName={day}
+                                        dayNumber={index}
+                                        weekId={week.id}
+                                        onSave={(workoutId) => handleDayFormSave(workoutId, index)}
+                                      />
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </TabsContent>
+                  ))}
+                </ScrollArea>
               </Tabs>
             </div>
           </div>

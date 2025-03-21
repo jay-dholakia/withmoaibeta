@@ -12,27 +12,30 @@ const AdminLogin = () => {
   const { user, userType, loading: authLoading } = useAuth();
   const [localLoading, setLocalLoading] = useState(false);
   const [hasAttemptedRedirect, setHasAttemptedRedirect] = useState(false);
-  const [forceRender, setForceRender] = useState(0);
+  const [forceSafetyReset, setForceSafetyReset] = useState(false);
 
+  // Debug information
   console.log('AdminLogin rendering with:', {
     userId: user?.id,
     userType,
     authLoading,
     localLoading,
     hasAttemptedRedirect,
-    pathname: window.location.pathname,
-    forceRender
+    pathname: window.location.pathname
   });
 
-  // Add a fail-safe to ensure the component re-renders if auth loading gets stuck
+  // Safety net: If loading states get stuck for more than 5 seconds after login attempt, reset them
   useEffect(() => {
-    const timer = setTimeout(() => {
-      console.log('Force re-render timer triggered');
-      setForceRender(prev => prev + 1);
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, [forceRender]);
+    if (localLoading) {
+      const timer = setTimeout(() => {
+        console.log('Safety reset triggered - forcibly resetting loading states');
+        setLocalLoading(false);
+        setForceSafetyReset(true);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [localLoading]);
 
   // Reset redirect state when auth loading changes
   useEffect(() => {
@@ -75,11 +78,34 @@ const AdminLogin = () => {
 
   // Show a clear loading state with debugging info
   if (authLoading || localLoading) {
+    // If we triggered the safety reset, show a special message
+    if (forceSafetyReset) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center p-6 bg-red-50 rounded-lg border border-red-200 max-w-md">
+            <h2 className="text-xl font-semibold text-red-700 mb-2">Authentication Timeout</h2>
+            <p className="mb-4 text-gray-700">The authentication process is taking longer than expected.</p>
+            <p className="mb-4 text-sm text-gray-600">
+              User ID: {user?.id || 'Not set'}<br/>
+              User Type: {userType || 'Not determined'}<br/>
+              Auth Loading: {authLoading ? 'Yes' : 'No'}<br/>
+            </p>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Reload Page
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-admin border-opacity-50 border-t-admin rounded-full mx-auto mb-4"></div>
-          <p>{authLoading ? "Checking authentication..." : "Processing..."}</p>
+          <p className="mb-2">{authLoading ? "Checking authentication..." : "Processing..."}</p>
           <p className="text-xs text-gray-500 mt-2">
             Auth loading: {authLoading ? "Yes" : "No"} | 
             Local loading: {localLoading ? "Yes" : "No"} |
@@ -107,8 +133,15 @@ const AdminLogin = () => {
     >
       <LoginForm
         variant="admin"
-        onLoginStart={() => setLocalLoading(true)}
-        onLoginEnd={() => setLocalLoading(false)}
+        onLoginStart={() => {
+          console.log('Login start callback triggered');
+          setLocalLoading(true);
+          setForceSafetyReset(false); // Reset safety flag on new login attempt
+        }}
+        onLoginEnd={() => {
+          console.log('Login end callback triggered');
+          setLocalLoading(false);
+        }}
       />
     </AuthLayout>
   );

@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface LoginFormProps {
   variant: 'admin' | 'coach' | 'client';
@@ -20,10 +21,22 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [isRegistering, setIsRegistering] = useState(false);
   const { signIn, signUp, loading } = useAuth();
 
+  // Prevent self-registration for admin accounts
+  useEffect(() => {
+    if (isRegistering && variant === 'admin') {
+      toast.error('Admin accounts cannot be self-registered. Please contact the system administrator.');
+      setIsRegistering(false);
+    }
+  }, [isRegistering, variant]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (isRegistering) {
+      if (variant === 'admin') {
+        toast.error('Admin accounts cannot be self-registered');
+        return;
+      }
       await signUp(email, password, variant);
     } else {
       if (onSubmit) {
@@ -73,6 +86,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       transition={{ duration: 0.3, delay: 0.1 }}
       className="w-full max-w-md mx-auto form-shine glass-card rounded-xl p-8"
     >
+      {variant === 'admin' && isRegistering && (
+        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive flex items-start">
+          <AlertCircle size={16} className="mr-2 mt-0.5 shrink-0" />
+          <p className="text-sm">
+            Admin accounts cannot be self-registered. Please contact the system administrator.
+          </p>
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
           <label htmlFor="email" className="text-sm font-medium">
@@ -86,6 +108,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             className={`w-full px-4 py-3 rounded-lg bg-background/50 border border-input ${styles.inputFocusRing} focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:outline-none transition-all duration-200`}
             placeholder="Enter your email"
             required
+            disabled={variant === 'admin' && isRegistering}
           />
         </div>
         
@@ -107,11 +130,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               className={`w-full px-4 py-3 rounded-lg bg-background/50 border border-input ${styles.inputFocusRing} focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:outline-none transition-all duration-200`}
               placeholder="Enter your password"
               required
+              disabled={variant === 'admin' && isRegistering}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              disabled={variant === 'admin' && isRegistering}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -120,8 +145,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         
         <button
           type="submit"
-          disabled={loading}
-          className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${styles.buttonClass} btn-hover-effect`}
+          disabled={loading || (variant === 'admin' && isRegistering)}
+          className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${styles.buttonClass} btn-hover-effect ${(variant === 'admin' && isRegistering) ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {loading ? (
             <span className="flex items-center justify-center">
@@ -134,15 +159,34 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         </button>
 
         <div className="text-center text-sm">
-          <button
-            type="button"
-            onClick={() => setIsRegistering(!isRegistering)}
-            className={`${styles.textColor} hover:underline`}
-          >
-            {isRegistering 
-              ? 'Already have an account? Sign in' 
-              : `Don't have an account? Sign up`}
-          </button>
+          {variant !== 'admin' ? (
+            <button
+              type="button"
+              onClick={() => setIsRegistering(!isRegistering)}
+              className={`${styles.textColor} hover:underline`}
+            >
+              {isRegistering 
+                ? 'Already have an account? Sign in' 
+                : `Don't have an account? Sign up`}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                if (!isRegistering) {
+                  setIsRegistering(true);
+                  toast.info('Admin accounts must be created by an existing admin');
+                } else {
+                  setIsRegistering(false);
+                }
+              }}
+              className={`${styles.textColor} hover:underline`}
+            >
+              {isRegistering 
+                ? 'Back to sign in' 
+                : `Don't have an account? Sign up`}
+            </button>
+          )}
         </div>
       </form>
     </motion.div>

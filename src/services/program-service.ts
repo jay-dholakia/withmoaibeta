@@ -43,41 +43,43 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
   console.log("Today's date for comparison:", todayISODate);
   
   try {
-    // First get ALL program assignments for this user to see what's available
-    const { data: allAssignments, error: allAssignmentsError } = await supabase
+    // Get program assignments for this user
+    const { data: assignments, error: assignmentsError } = await supabase
       .from('program_assignments')
       .select('*')
       .eq('user_id', userId);
     
-    console.log("All program assignments for user:", allAssignments);
+    console.log("All program assignments for user:", assignments);
     
-    if (allAssignmentsError) {
-      console.error('Error fetching all program assignments:', allAssignmentsError);
-      throw allAssignmentsError;
+    if (assignmentsError) {
+      console.error('Error fetching program assignments:', assignmentsError);
+      throw assignmentsError;
     }
     
-    if (!allAssignments || allAssignments.length === 0) {
+    if (!assignments || assignments.length === 0) {
       console.log("No program assignments found for user:", userId);
       return null;
     }
     
-    // Instead of using supabase filtering, let's get all assignments and filter in JS
-    // This gives us more control and better debugging
-    let activeAssignments = allAssignments.filter(assignment => {
-      // Convert start_date to string format if it's not already
-      const startDate = typeof assignment.start_date === 'string' 
-        ? assignment.start_date 
-        : new Date(assignment.start_date).toISOString().split('T')[0];
+    // Filter active assignments in JavaScript for better control and debugging
+    let activeAssignments = assignments.filter(assignment => {
+      // Make sure start_date is a string in YYYY-MM-DD format
+      let startDate = assignment.start_date;
+      if (typeof startDate !== 'string') {
+        startDate = new Date(startDate).toISOString().split('T')[0];
+      }
       
       // Check if start_date is today or in the past
       const isStartValid = startDate <= todayISODate;
       
-      // Check if end_date is null or in the future
+      // For end_date, if it's null, treat as valid (program doesn't expire)
+      // If it has a value, make sure it's in future or today
       let isEndValid = true;
       if (assignment.end_date) {
-        const endDate = typeof assignment.end_date === 'string'
-          ? assignment.end_date
-          : new Date(assignment.end_date).toISOString().split('T')[0];
+        let endDate = assignment.end_date;
+        if (typeof endDate !== 'string') {
+          endDate = new Date(endDate).toISOString().split('T')[0];
+        }
         isEndValid = endDate >= todayISODate;
       }
       
@@ -90,7 +92,19 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     
     if (activeAssignments.length === 0) {
       console.log("No active program assignments found for user after filtering");
-      return null;
+      
+      // If no active assignments but we have assignments, debug the issue
+      if (assignments.length > 0) {
+        console.log("Program was assigned but not active. Checking first assignment:");
+        const firstAssignment = assignments[0];
+        console.log("First assignment:", firstAssignment);
+        
+        // Use the most recent assignment regardless of dates as a fallback
+        console.log("IMPORTANT: Using most recent assignment as fallback since no active assignments found");
+        activeAssignments = [assignments[0]];
+      } else {
+        return null;
+      }
     }
     
     // Sort by start date (newest first) and take the most recent one

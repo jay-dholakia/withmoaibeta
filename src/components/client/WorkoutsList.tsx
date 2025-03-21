@@ -109,9 +109,14 @@ const WorkoutsList = () => {
     );
   }
 
-  // Check if we have program data
-  if (!currentProgram || !currentProgram.program) {
-    console.log("No active program found for user:", user?.id);
+  // Improved program data handling - check for both program and program.weeks
+  if (!currentProgram || !currentProgram.program || !currentProgram.program.weeks || !Array.isArray(currentProgram.program.weeks) || currentProgram.program.weeks.length === 0) {
+    console.log("No active program data found for user:", user?.id);
+    
+    // If the program exists but weeks array is empty, show specific message
+    if (currentProgram && currentProgram.program && (!currentProgram.program.weeks || !Array.isArray(currentProgram.program.weeks) || currentProgram.program.weeks.length === 0)) {
+      console.log("Program exists but has no weeks:", currentProgram.program.title);
+    }
     
     return (
       <div className="text-center py-12">
@@ -143,6 +148,7 @@ const WorkoutsList = () => {
     );
   }
 
+  // Log more detailed info for debugging
   console.log("Program found:", currentProgram.program.title);
   
   const program = currentProgram.program;
@@ -153,10 +159,14 @@ const WorkoutsList = () => {
   
   // Find current week - ensure weeks exists and is an array
   const weeks = Array.isArray(program.weeks) ? program.weeks : [];
+  console.log("Weeks array:", weeks);
+  
   const currentWeek = weeks.find((week: any) => week.week_number === currentWeekNumber);
   
   console.log("Current week:", currentWeek);
-  console.log("Workouts in week:", currentWeek?.workouts);
+  if (currentWeek) {
+    console.log("Workouts in week:", currentWeek.workouts);
+  }
   
   // Handle case where there are no workouts this week
   if (!currentWeek || !currentWeek.workouts || !Array.isArray(currentWeek.workouts) || currentWeek.workouts.length === 0) {

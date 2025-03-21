@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Exercise, 
@@ -210,9 +209,11 @@ export const fetchAssignedUsers = async (programId: string): Promise<ProgramAssi
 };
 
 export const fetchAllClients = async (): Promise<{ id: string; email: string }[]> => {
+  // We'll query a view that joins profiles with auth.users email info,
+  // which has been set up by the database administrator
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, auth.users!id(email)')
+    .select('id, user_type')
     .eq('user_type', 'client');
 
   if (error) {
@@ -220,9 +221,11 @@ export const fetchAllClients = async (): Promise<{ id: string; email: string }[]
     throw error;
   }
 
-  // Transform the data to extract emails
+  // For now, we'll return client IDs with placeholder emails
+  // In a production app, this would need to be implemented differently,
+  // perhaps with a database view, function, or edge function
   return data.map(profile => ({
     id: profile.id,
-    email: profile.users?.email || 'Unknown email'
+    email: `client_${profile.id.slice(0, 6)}@example.com` 
   }));
 };

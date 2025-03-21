@@ -15,7 +15,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { ClientData, GroupData } from '@/services/client-service';
+import { ClientData } from '@/services/client-service';
 import { fetchCoachClients } from '@/services/coach-service';
 import { fetchCoachGroups } from '@/services/coach-group-service';
 import { ClientDetailView } from '@/components/coach/ClientDetailView';
@@ -29,6 +29,14 @@ import {
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination';
+
+interface Group {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  created_by: string;
+}
 
 const ClientsPage = () => {
   const { user } = useAuth();
@@ -160,7 +168,7 @@ const ClientsPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Groups</SelectItem>
-                  {groups?.map((group: GroupData) => (
+                  {groups?.map((group: Group) => (
                     <SelectItem key={group.id} value={group.id}>
                       {group.name}
                     </SelectItem>

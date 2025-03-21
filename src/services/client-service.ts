@@ -2,9 +2,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./workout-history-service";
+import { fetchCoachGroups } from "./coach-group-service";
 
 // Re-export the functions from other services so existing imports still work
-export { fetchClientPrograms, fetchCurrentProgram, fetchClientWorkoutHistory };
+export { fetchClientPrograms, fetchCurrentProgram, fetchClientWorkoutHistory, fetchCoachGroups };
 
 // Client Profile Types
 export interface ClientProfile {

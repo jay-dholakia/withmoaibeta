@@ -16,7 +16,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { ClientData, GroupData, fetchCoachClients, fetchCoachGroups } from '@/services/client-service';
+import { ClientData, GroupData } from '@/services/client-service';
+import { fetchCoachClients } from '@/services/coach-service';
+import { fetchCoachGroups } from '@/services/coach-group-service';
 import { ClientDetailView } from '@/components/coach/ClientDetailView';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';

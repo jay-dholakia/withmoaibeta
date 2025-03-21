@@ -39,10 +39,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     }
   }, [authLoading, onLoginEnd]);
 
-  // Prevent self-registration for admin accounts
+  // For admin and coach, prevent registration mode
   useEffect(() => {
-    if (isRegistering && variant === 'admin') {
-      toast.error('Admin accounts cannot be self-registered. Please contact the system administrator.');
+    if (isRegistering && (variant === 'admin' || variant === 'coach')) {
       setIsRegistering(false);
     }
   }, [isRegistering, variant]);
@@ -64,8 +63,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     
     try {
       if (isRegistering) {
-        if (variant === 'admin') {
-          toast.error('Admin accounts cannot be self-registered');
+        if (variant === 'admin' || variant === 'coach') {
+          toast.error(`${variant.charAt(0).toUpperCase() + variant.slice(1)} accounts cannot be self-registered`);
           setLocalLoading(false);
           setIsSubmitting(false);
           if (onLoginEnd) onLoginEnd();
@@ -124,7 +123,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   };
 
   const styles = getVariantStyles();
-  const isDisabled = localLoading || isSubmitting || authLoading || (variant === 'admin' && isRegistering);
+  const isDisabled = localLoading || isSubmitting || authLoading;
 
   if (forgotPassword) {
     return <ForgotPasswordForm onBack={() => setForgotPassword(false)} variant={variant} />;
@@ -137,11 +136,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       transition={{ duration: 0.3, delay: 0.1 }}
       className="w-full max-w-md mx-auto form-shine glass-card rounded-xl p-8"
     >
-      {variant === 'admin' && isRegistering && (
+      {(variant === 'admin' || variant === 'coach') && isRegistering && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive flex items-start">
           <AlertCircle size={16} className="mr-2 mt-0.5 shrink-0" />
           <p className="text-sm">
-            Admin accounts cannot be self-registered. Please contact the system administrator.
+            {variant.charAt(0).toUpperCase() + variant.slice(1)} accounts cannot be self-registered. Please contact an administrator.
           </p>
         </div>
       )}
@@ -214,8 +213,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           )}
         </button>
 
-        <div className="text-center text-sm">
-          {variant !== 'admin' ? (
+        {variant === 'client' && (
+          <div className="text-center text-sm">
             <button
               type="button"
               onClick={() => setIsRegistering(!isRegistering)}
@@ -226,26 +225,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 ? 'Already have an account? Sign in' 
                 : `Don't have an account? Sign up`}
             </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                if (!isRegistering) {
-                  setIsRegistering(true);
-                  toast.info('Admin accounts must be created by an existing admin');
-                } else {
-                  setIsRegistering(false);
-                }
-              }}
-              className={`${styles.textColor} hover:underline`}
-              disabled={isDisabled}
-            >
-              {isRegistering 
-                ? 'Back to sign in' 
-                : `Don't have an account? Sign up`}
-            </button>
-          )}
-        </div>
+          </div>
+        )}
       </form>
     </motion.div>
   );

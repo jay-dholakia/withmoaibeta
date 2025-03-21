@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Lightbulb } from 'lucide-react';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -122,12 +123,26 @@ const AdminLogin = () => {
       subtitle="Sign in to access the admin dashboard"
       variant="admin"
       extraContent={
-        <div className="mt-4 text-center">
-          <Link to="/admin-setup">
-            <Button variant="link" className="text-sm text-blue-500 hover:text-blue-700">
-              First time setup? Create admin account
-            </Button>
-          </Link>
+        <div className="mt-6 space-y-4">
+          <div className="bg-admin/5 border border-admin/10 rounded-lg p-4 text-sm">
+            <div className="flex items-start gap-3">
+              <Lightbulb className="h-5 w-5 text-admin shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-admin mb-1">Need an admin account?</p>
+                <p className="text-gray-600">
+                  Initial admin setup can be done through the setup page. After that, only existing admins can create new admin accounts.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="text-center">
+            <Link to="/admin-setup">
+              <Button variant="link" className="text-sm text-blue-500 hover:text-blue-700">
+                First time setup? Create admin account
+              </Button>
+            </Link>
+          </div>
         </div>
       }
     >

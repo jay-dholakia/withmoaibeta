@@ -617,10 +617,14 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     
     if (data.program) {
       console.log("Program title:", data.program.title);
-      console.log("Program weeks count:", data.program.weeks?.length || 0);
       
-      const weeksArray = data.program.weeks || [];
-      if (Array.isArray(weeksArray)) {
+      const weeksArray = data.program.weeks && Array.isArray(data.program.weeks) 
+        ? data.program.weeks 
+        : [];
+      
+      console.log("Program weeks count:", weeksArray.length || 0);
+      
+      if (weeksArray.length > 0) {
         console.log("Weeks data available:", weeksArray.length, "weeks");
         
         weeksArray.forEach((week: any) => {

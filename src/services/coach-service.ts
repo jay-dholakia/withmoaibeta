@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ensureCoachGroupAssignment } from './coach-group-service';
 import { ClientData } from './client-service';
@@ -38,7 +37,7 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       // Get client IDs from these groups
       const { data: groupMembers, error: membersError } = await supabase
         .from('group_members')
-        .select('user_id')
+        .select('user_id, group_id')  // Include group_id in the selection
         .in('group_id', groupIds);
       
       if (membersError) {
@@ -59,16 +58,7 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
         .from('profiles')
         .select(`
           id,
-          user_type,
-          client_workout_info (
-            last_workout_at,
-            total_workouts_completed,
-            current_program_id
-          ),
-          workout_programs (
-            id,
-            title
-          )
+          user_type
         `)
         .eq('user_type', 'client')
         .in('id', clientIds);
@@ -80,6 +70,33 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       
       if (!clientProfiles || clientProfiles.length === 0) {
         return [];
+      }
+      
+      // Get client workout info
+      const { data: workoutInfo, error: workoutInfoError } = await supabase
+        .from('client_workout_info')
+        .select('*')
+        .in('user_id', clientIds);
+        
+      if (workoutInfoError) {
+        console.error('Error fetching client workout info:', workoutInfoError);
+      }
+      
+      // Get program info for clients with program assignments
+      const programIds = workoutInfo?.filter(wi => wi.current_program_id).map(wi => wi.current_program_id) || [];
+      
+      let programs = [];
+      if (programIds.length > 0) {
+        const { data: programData, error: programError } = await supabase
+          .from('workout_programs')
+          .select('id, title')
+          .in('id', programIds);
+          
+        if (programError) {
+          console.error('Error fetching programs:', programError);
+        } else {
+          programs = programData || [];
+        }
       }
       
       // Get emails for these clients
@@ -99,29 +116,35 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
         if (!groupMap.has(member.user_id)) {
           groupMap.set(member.user_id, []);
         }
-        groupMap.get(member.user_id).push(groupCoaches.find(gc => gc.group_id === member.group_id)?.group_id);
+        groupMap.get(member.user_id).push(member.group_id);
+      }
+      
+      // Create map of id -> workout info
+      const workoutInfoMap = new Map();
+      if (workoutInfo) {
+        workoutInfo.forEach(wi => workoutInfoMap.set(wi.user_id, wi));
+      }
+      
+      // Create map of id -> program
+      const programMap = new Map();
+      if (programs) {
+        programs.forEach(p => programMap.set(p.id, p));
       }
       
       // Transform the data to match expected format
       return clientProfiles.map(client => {
-        // Get workout info
-        const workoutInfo = client.client_workout_info && 
-          Array.isArray(client.client_workout_info) && 
-          client.client_workout_info.length > 0 
-            ? client.client_workout_info[0] 
-            : { last_workout_at: null, total_workouts_completed: 0, current_program_id: null };
-            
-        // Get program info
-        const program = client.workout_programs && 
-          Array.isArray(client.workout_programs) && 
-          client.workout_programs.length > 0 
-            ? client.workout_programs[0] 
-            : null;
+        // Get workout info from map
+        const clientWorkoutInfo = workoutInfoMap.get(client.id);
+        
+        // Get program info if available
+        const program = clientWorkoutInfo?.current_program_id 
+          ? programMap.get(clientWorkoutInfo.current_program_id)
+          : null;
           
         // Calculate days since last workout
         let daysSinceLastWorkout = null;
-        if (workoutInfo && typeof workoutInfo === 'object' && workoutInfo.last_workout_at) {
-          const lastWorkout = new Date(workoutInfo.last_workout_at);
+        if (clientWorkoutInfo?.last_workout_at) {
+          const lastWorkout = new Date(clientWorkoutInfo.last_workout_at);
           const today = new Date();
           const diffTime = Math.abs(today.getTime() - lastWorkout.getTime());
           daysSinceLastWorkout = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -131,10 +154,10 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
           id: client.id,
           email: emailMap.get(client.id) || 'Unknown',
           user_type: client.user_type,
-          last_workout_at: workoutInfo && typeof workoutInfo === 'object' ? workoutInfo.last_workout_at || null : null,
-          total_workouts_completed: workoutInfo && typeof workoutInfo === 'object' ? workoutInfo.total_workouts_completed || 0 : 0,
-          current_program_id: workoutInfo && typeof workoutInfo === 'object' ? workoutInfo.current_program_id || null : null,
-          current_program_title: program && typeof program === 'object' ? program.title || null : null,
+          last_workout_at: clientWorkoutInfo?.last_workout_at || null,
+          total_workouts_completed: clientWorkoutInfo?.total_workouts_completed || 0,
+          current_program_id: clientWorkoutInfo?.current_program_id || null,
+          current_program_title: program?.title || null,
           days_since_last_workout: daysSinceLastWorkout,
           group_ids: groupMap.get(client.id) || []
         };

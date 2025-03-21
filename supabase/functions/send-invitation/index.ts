@@ -29,18 +29,20 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    const siteUrl = Deno.env.get("SITE_URL");
     
     // Log environment variable availability (not the actual values)
     console.log("Environment check:", { 
       hasSupabaseUrl: !!supabaseUrl, 
       hasServiceRoleKey: !!supabaseServiceRoleKey,
-      hasResendApiKey: !!resendApiKey
+      hasResendApiKey: !!resendApiKey,
+      hasSiteUrl: !!siteUrl
     });
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
-      console.error("Missing required environment variables");
+      console.error("Missing required Supabase environment variables");
       return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
+        JSON.stringify({ error: "Server configuration error: Missing Supabase credentials" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -48,7 +50,7 @@ serve(async (req) => {
     if (!resendApiKey) {
       console.error("Missing Resend API key");
       return new Response(
-        JSON.stringify({ error: "Email service not configured" }),
+        JSON.stringify({ error: "Email service not configured: Missing Resend API key" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -245,12 +247,18 @@ serve(async (req) => {
       });
     }
 
-    const siteUrl = Deno.env.get("SITE_URL") || payload.siteUrl || "";
-    const inviteLink = `${siteUrl}/register?token=${invitation.token}&type=${userType}`;
+    // Determine site URL from environment or payload
+    const effectiveSiteUrl = siteUrl || payload.siteUrl || "";
+    if (!effectiveSiteUrl) {
+      console.warn("No site URL provided for invitation link");
+    }
+    
+    const inviteLink = `${effectiveSiteUrl}/register?token=${invitation.token}&type=${userType}`;
+    console.log("Generated invite link:", inviteLink);
 
     // Send the invitation email using Resend
     try {
-      console.log("Sending email to:", email);
+      console.log("Sending email to:", email, "using Resend API");
       
       // Capitalize the user type for better readability in the email
       const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
@@ -279,15 +287,38 @@ serve(async (req) => {
       });
       
       if (emailError) {
-        console.error("Error sending email:", emailError);
-        // We don't return an error here, as the invitation was created successfully
-        // Just log the error for debugging
+        console.error("Error sending email with Resend:", emailError);
+        return new Response(
+          JSON.stringify({ 
+            error: "Failed to send email", 
+            details: emailError.message,
+            invitation: {
+              id: invitation.id,
+              token: invitation.token,
+              expiresAt: invitation.expires_at,
+              inviteLink
+            }
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       } else {
-        console.log("Email sent successfully:", emailResult);
+        console.log("Email sent successfully via Resend:", emailResult);
       }
     } catch (emailSendError) {
-      console.error("Exception sending email:", emailSendError);
-      // Again, we don't fail the whole request since the invitation is created
+      console.error("Exception sending email with Resend:", emailSendError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Exception sending email", 
+          details: emailSendError.message,
+          invitation: {
+            id: invitation.id,
+            token: invitation.token,
+            expiresAt: invitation.expires_at,
+            inviteLink
+          }
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Return success

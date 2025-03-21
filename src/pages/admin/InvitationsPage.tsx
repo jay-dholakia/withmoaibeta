@@ -98,7 +98,13 @@ const InvitationsPage: React.FC = () => {
       });
       
       if (error) {
+        console.error("Resend invitation function error:", error);
         throw new Error(error.message || "Failed to resend invitation");
+      }
+      
+      if (data.error) {
+        console.error("Resend invitation error from response:", data.error);
+        throw new Error(data.error);
       }
       
       return data;
@@ -107,6 +113,12 @@ const InvitationsPage: React.FC = () => {
       // Clear the resending state
       setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
+      
+      // If we have the invite link, update it
+      if (data.inviteLink) {
+        setInviteLink(data.inviteLink);
+      }
+      
       toast.success(`Invitation resent to ${invitation.email}`);
     },
     onError: (error: Error, invitation) => {

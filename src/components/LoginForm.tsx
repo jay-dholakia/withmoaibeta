@@ -21,7 +21,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
-  const { signIn, signUp, loading } = useAuth();
+  const [localLoading, setLocalLoading] = useState(false);
+  const { signIn, signUp, loading: authLoading } = useAuth();
+
+  // Reset local loading state when auth loading state changes
+  useEffect(() => {
+    if (!authLoading) {
+      setLocalLoading(false);
+    }
+  }, [authLoading]);
 
   // Prevent self-registration for admin accounts
   useEffect(() => {
@@ -33,30 +41,27 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLocalLoading(true);
     
-    if (isRegistering) {
-      if (variant === 'admin') {
-        toast.error('Admin accounts cannot be self-registered');
-        return;
-      }
-      try {
+    try {
+      if (isRegistering) {
+        if (variant === 'admin') {
+          toast.error('Admin accounts cannot be self-registered');
+          setLocalLoading(false);
+          return;
+        }
         await signUp(email, password, variant);
-      } catch (error) {
-        console.error('Registration error:', error);
-        // Error handling is already in the signUp function
-      }
-    } else {
-      try {
+      } else {
         if (onSubmit) {
           // For backward compatibility
           onSubmit(email, password);
         } else {
           await signIn(email, password, variant);
         }
-      } catch (error) {
-        console.error('Login error:', error);
-        // Error handling is already in the signIn function
       }
+    } catch (error) {
+      console.error(isRegistering ? 'Registration error:' : 'Login error:', error);
+      setLocalLoading(false);
     }
   };
 
@@ -124,7 +129,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             className={`w-full px-4 py-3 rounded-lg bg-background/50 border border-input ${styles.inputFocusRing} focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:outline-none transition-all duration-200`}
             placeholder="Enter your email"
             required
-            disabled={variant === 'admin' && isRegistering}
+            disabled={variant === 'admin' && isRegistering || localLoading}
           />
         </div>
         
@@ -137,6 +142,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               type="button"
               onClick={() => setForgotPassword(true)}
               className={`text-sm ${styles.textColor} hover:underline`}
+              disabled={localLoading}
             >
               Forgot password?
             </button>
@@ -150,13 +156,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               className={`w-full px-4 py-3 rounded-lg bg-background/50 border border-input ${styles.inputFocusRing} focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:outline-none transition-all duration-200`}
               placeholder="Enter your password"
               required
-              disabled={variant === 'admin' && isRegistering}
+              disabled={variant === 'admin' && isRegistering || localLoading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              disabled={variant === 'admin' && isRegistering}
+              disabled={variant === 'admin' && isRegistering || localLoading}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -165,10 +171,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         
         <button
           type="submit"
-          disabled={loading || (variant === 'admin' && isRegistering)}
-          className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${styles.buttonClass} btn-hover-effect ${(variant === 'admin' && isRegistering) ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={localLoading || (variant === 'admin' && isRegistering)}
+          className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${styles.buttonClass} btn-hover-effect ${(variant === 'admin' && isRegistering) || localLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {loading ? (
+          {localLoading ? (
             <span className="flex items-center justify-center">
               <Loader2 size={18} className="animate-spin mr-2" />
               {isRegistering ? 'Signing up...' : 'Signing in...'}
@@ -184,6 +190,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               type="button"
               onClick={() => setIsRegistering(!isRegistering)}
               className={`${styles.textColor} hover:underline`}
+              disabled={localLoading}
             >
               {isRegistering 
                 ? 'Already have an account? Sign in' 
@@ -201,6 +208,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 }
               }}
               className={`${styles.textColor} hover:underline`}
+              disabled={localLoading}
             >
               {isRegistering 
                 ? 'Back to sign in' 

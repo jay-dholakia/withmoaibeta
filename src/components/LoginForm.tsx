@@ -5,6 +5,7 @@ import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { ForgotPasswordForm } from './ForgotPasswordForm';
 
 interface LoginFormProps {
   variant: 'admin' | 'coach' | 'client';
@@ -19,6 +20,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
   const { signIn, signUp, loading } = useAuth();
 
   // Prevent self-registration for admin accounts
@@ -79,6 +81,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   const styles = getVariantStyles();
 
+  if (forgotPassword) {
+    return <ForgotPasswordForm onBack={() => setForgotPassword(false)} variant={variant} />;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -117,9 +123,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             <label htmlFor="password" className="text-sm font-medium">
               Password
             </label>
-            <Link to="/forgot-password" className={`text-sm ${styles.textColor} hover:underline`}>
+            <button 
+              type="button"
+              onClick={() => setForgotPassword(true)}
+              className={`text-sm ${styles.textColor} hover:underline`}
+            >
               Forgot password?
-            </Link>
+            </button>
           </div>
           <div className="relative">
             <input

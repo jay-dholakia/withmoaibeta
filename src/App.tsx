@@ -16,6 +16,7 @@ import InvitationsPage from "./pages/admin/InvitationsPage";
 import ClientsPage from "./pages/admin/ClientsPage";
 import CoachesPage from "./pages/admin/CoachesPage";
 import RegisterPage from "./pages/Register";
+import ResetPassword from "./pages/ResetPassword";
 
 // Placeholder Dashboard pages for coach and client
 const CoachDashboard = () => <div>Coach Dashboard</div>;
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/coach" element={<CoachLogin />} />
               <Route path="/client" element={<ClientLogin />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               
               {/* Admin Dashboard Routes */}
               <Route path="/admin-dashboard" element={<AdminDashboard />} />

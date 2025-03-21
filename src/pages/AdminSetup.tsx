@@ -79,8 +79,8 @@ const AdminSetup = () => {
     setLoading(true);
     
     try {
-      // Create admin user
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      // First create the admin user with service role to bypass RLS
+      const { error: signUpError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
@@ -92,16 +92,23 @@ const AdminSetup = () => {
       
       if (signUpError) throw signUpError;
       
-      if (!signUpData.user) {
-        throw new Error('Failed to create admin account');
+      // Now sign in to get valid session
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password
+      });
+      
+      if (signInError) throw signInError;
+      
+      if (!signInData.user) {
+        throw new Error('Failed to sign in after account creation');
       }
       
-      // Directly upsert the profile with admin role
-      // This might be blocked by RLS but we have policies that allow users to insert their own profile
+      // Now create profile with valid session
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
-          id: signUpData.user.id,
+          id: signInData.user.id,
           user_type: 'admin',
         });
       
@@ -110,8 +117,8 @@ const AdminSetup = () => {
         throw new Error('Failed to create admin profile. Error: ' + profileError.message);
       }
       
-      toast.success('Admin account created successfully! Please log in.');
-      navigate('/admin');
+      toast.success('Admin account created successfully! You are now logged in.');
+      navigate('/admin-dashboard');
       
     } catch (error: any) {
       console.error('Setup error:', error);

@@ -1,61 +1,30 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, UserRound } from 'lucide-react';
+import { Loader2, Users, UserRound, AlertTriangle } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import { toast } from 'sonner';
+import { fetchUserGroups, diagnoseGroupAccess } from '@/services/moai-service';
+import { Button } from '@/components/ui/button';
 
 const MoaiPage = () => {
   const { user } = useAuth();
   
   // First, fetch the user's groups with improved error handling and logging
-  const { data: userGroups, isLoading: isLoadingGroups } = useQuery({
+  const { data: userGroups, isLoading: isLoadingGroups, refetch } = useQuery({
     queryKey: ['client-groups', user?.id],
     queryFn: async () => {
-      console.log('Fetching groups for user ID:', user?.id);
-      
-      try {
-        const { data, error } = await supabase
-          .from('group_members')
-          .select(`
-            group_id,
-            group:group_id (
-              id,
-              name,
-              description
-            )
-          `)
-          .eq('user_id', user?.id || '');
-          
-        if (error) {
-          console.error('Error fetching user groups:', error);
-          throw error;
-        }
-        
-        console.log('Retrieved group members data:', data);
-        
-        if (!data || data.length === 0) {
-          console.log('No group assignments found for user');
-          return [];
-        }
-        
-        // Extract and filter out any null group values
-        const groups = data
-          .map(item => item.group)
-          .filter(group => group !== null);
-          
-        console.log('Extracted groups:', groups);
-        return groups;
-      } catch (err) {
-        console.error('Unexpected error in group fetch:', err);
-        toast.error('Failed to load your groups');
+      if (!user?.id) {
+        console.log('No user ID available for group fetch');
         return [];
       }
+      
+      console.log('Fetching groups for user ID:', user.id);
+      return fetchUserGroups(user.id);
     },
     enabled: !!user?.id,
     refetchOnWindowFocus: true,
@@ -63,6 +32,50 @@ const MoaiPage = () => {
     staleTime: 0,
     gcTime: 10000, // Short cache time
   });
+  
+  // Run diagnostics on mount to help identify permission issues
+  useEffect(() => {
+    if (user?.id) {
+      diagnoseGroupAccess(user.id)
+        .then(result => {
+          console.log('Group access diagnosis result:', result);
+          if (!result.success) {
+            toast.error('Diagnostic check failed. Check console for details.');
+          } else if (!result.hasGroupMemberships) {
+            console.warn('Diagnostic confirms user has no group memberships');
+          }
+        });
+    }
+  }, [user?.id]);
+  
+  const runDiagnostics = async () => {
+    if (!user?.id) {
+      toast.error('No user ID available');
+      return;
+    }
+    
+    toast.info('Running group access diagnostics...');
+    try {
+      const result = await diagnoseGroupAccess(user.id);
+      console.log('Diagnostic result:', result);
+      
+      if (result.success) {
+        if (result.hasGroupMemberships) {
+          toast.success(`Found ${result.groupMembershipsCount} group membership(s)`);
+        } else {
+          toast.warning('Diagnostic complete. No group memberships found.');
+        }
+      } else {
+        toast.error(`Diagnostic failed: ${result.message}`);
+      }
+      
+      // Force a fresh reload of groups data
+      refetch();
+    } catch (err) {
+      console.error('Error running diagnostics:', err);
+      toast.error('Diagnostic failed with an error');
+    }
+  };
   
   if (isLoadingGroups) {
     return (
@@ -96,6 +109,17 @@ const MoaiPage = () => {
             <p className="text-sm text-muted-foreground mt-4">
               User ID: {user?.id || 'Not logged in'}
             </p>
+            
+            <div className="mt-6 flex justify-center">
+              <Button 
+                variant="outline"
+                onClick={runDiagnostics}
+                className="flex items-center gap-2"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                Diagnose Group Access
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

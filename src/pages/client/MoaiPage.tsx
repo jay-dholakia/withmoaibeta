@@ -4,17 +4,18 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, UserRound, AlertTriangle, Search } from 'lucide-react';
+import { Loader2, Users, UserRound, AlertTriangle, Search, RefreshCw } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import { toast } from 'sonner';
-import { fetchUserGroups, diagnoseGroupAccess, verifyUserGroupMembership } from '@/services/moai-service';
+import { fetchUserGroups, diagnoseGroupAccess, verifyUserGroupMembership, ensureUserHasGroup } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 
 const MoaiPage = () => {
   const { user } = useAuth();
   const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
+  const [isFixingGroup, setIsFixingGroup] = useState(false);
   
   // First, fetch the user's groups with improved error handling and logging
   const { data: userGroups, isLoading: isLoadingGroups, refetch } = useQuery({
@@ -48,6 +49,12 @@ const MoaiPage = () => {
             toast.error('Diagnostic check failed. Check console for details.');
           } else if (!result.hasGroupMemberships) {
             console.warn('Diagnostic confirms user has no group memberships');
+          }
+          
+          // If auto-assigned to a group during diagnosis, refresh the groups
+          if (result.autoAssigned) {
+            toast.success('You were automatically assigned to a group!');
+            refetch();
           }
         });
     }
@@ -85,6 +92,37 @@ const MoaiPage = () => {
     } catch (err) {
       console.error('Error verifying user:', err);
       return false;
+    }
+  };
+  
+  const fixGroupAssignment = async () => {
+    if (!user?.id) {
+      toast.error('No user ID available');
+      return;
+    }
+    
+    setIsFixingGroup(true);
+    toast.info('Attempting to fix group assignment...');
+    
+    try {
+      const result = await ensureUserHasGroup(user.id);
+      console.log('Group assignment fix result:', result);
+      
+      if (result.success) {
+        toast.success('Successfully fixed group assignment!');
+        // Refresh the data
+        refetch();
+        // Re-run diagnostics
+        const diagResult = await diagnoseGroupAccess(user.id);
+        setDiagnosticDetails(diagResult);
+      } else {
+        toast.error(`Failed to fix group assignment: ${result.message}`);
+      }
+    } catch (err) {
+      console.error('Error fixing group assignment:', err);
+      toast.error('Unexpected error fixing group assignment');
+    } finally {
+      setIsFixingGroup(false);
     }
   };
   
@@ -188,7 +226,16 @@ const MoaiPage = () => {
               User ID: {user?.id || 'Not logged in'}
             </p>
             
-            <div className="mt-6 flex justify-center">
+            <div className="mt-6 flex justify-center gap-3">
+              <Button 
+                onClick={fixGroupAssignment}
+                className="flex items-center gap-2"
+                disabled={isFixingGroup}
+              >
+                <RefreshCw className={`h-4 w-4 ${isFixingGroup ? 'animate-spin' : ''}`} />
+                {isFixingGroup ? 'Fixing...' : 'Fix Group Assignment'}
+              </Button>
+              
               <Button 
                 variant="outline"
                 onClick={runDiagnostics}
@@ -206,6 +253,9 @@ const MoaiPage = () => {
                   <p>Status: {diagnosticDetails.success ? 'Success' : 'Failed'}</p>
                   <p>Has Memberships: {diagnosticDetails.hasGroupMemberships ? 'Yes' : 'No'}</p>
                   {diagnosticDetails.message && <p>Message: {diagnosticDetails.message}</p>}
+                  {diagnosticDetails.groupMemberships && (
+                    <p>Memberships: {JSON.stringify(diagnosticDetails.groupMemberships)}</p>
+                  )}
                 </div>
               </div>
             )}

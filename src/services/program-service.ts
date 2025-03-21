@@ -42,19 +42,18 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
   console.log("Today's date for comparison:", todayISODate);
   
   try {
-    // First check client_workout_info table for current_program_id
-    const { data: workoutInfo, error: workoutInfoError } = await supabase
-      .from('client_workout_info')
-      .select('current_program_id')
-      .eq('user_id', userId)
-      .single();
-      
-    if (workoutInfoError && workoutInfoError.code !== 'PGRST116') {
-      console.error('Error fetching workout info:', workoutInfoError);
-    }
+    // First check if we have a current program ID stored somewhere
+    let programId = null;
     
-    let programId = workoutInfo?.current_program_id;
-    console.log("Program ID from workout info:", programId);
+    // Query workout info to get current program ID if available
+    const { data: workoutInfoData } = await supabase
+      .rpc('get_client_workout_info', { user_id_param: userId })
+      .maybeSingle();
+      
+    if (workoutInfoData?.current_program_id) {
+      programId = workoutInfoData.current_program_id;
+      console.log("Program ID from workout info:", programId);
+    }
     
     // If no program ID found in workout info, check program assignments
     if (!programId) {
@@ -187,37 +186,13 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       "with", fullProgramData.program.weeks.length, "weeks"
     );
     
-    // Fix the upsert operation to match the table schema
+    // Update client program info through RPC call instead of directly using the view
     try {
-      // Query the structure of the table first to see existing entries
-      const { data: existingInfo } = await supabase
-        .from('client_workout_info')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-      
-      // Use the maybeSingle result to determine if we need to insert or update
-      if (existingInfo) {
-        // Update existing record
-        await supabase
-          .from('client_workout_info')
-          .update({
-            current_program_id: programId,
-            user_type: 'client'
-          })
-          .eq('user_id', userId);
-      } else {
-        // Insert new record
-        await supabase
-          .from('client_workout_info')
-          .insert({
-            user_id: userId,
-            current_program_id: programId,
-            last_workout_at: null,
-            total_workouts_completed: null,
-            user_type: 'client'
-          });
-      }
+      await supabase.rpc('update_client_program', {
+        user_id_param: userId,
+        program_id_param: programId
+      });
+      console.log("Updated client program info through RPC");
     } catch (error) {
       console.error("Error updating client_workout_info:", error);
       // Continue execution even if this update fails

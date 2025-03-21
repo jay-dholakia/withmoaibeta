@@ -70,9 +70,9 @@ const MoaiPage = () => {
             console.warn('Diagnostic confirms user has no group memberships');
           }
           
-          // If auto-assigned to a group during diagnosis, refresh the groups
-          if (result.autoAssigned) {
-            toast.success('You were automatically assigned to a group!');
+          // If we found new group memberships that weren't showing before, refresh the groups
+          if (result.hasGroupMemberships && (!userGroups || userGroups.length === 0)) {
+            toast.success('Group memberships detected, refreshing...');
             refetch();
           }
         });

@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import Index from "./pages/Index";
 import AdminLogin from "./pages/AdminLogin";
@@ -25,6 +25,21 @@ import CoachDashboard from "./pages/coach/CoachDashboard";
 // Placeholder Dashboard page for client
 const ClientDashboard = () => <div>Client Dashboard</div>;
 
+// Protected route component
+const ProtectedRoute = ({ children, userType, redirectTo = "/" }) => {
+  const { user, userType: authUserType, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+  
+  if (!user || (userType && authUserType !== userType)) {
+    return <Navigate to={redirectTo} replace />;
+  }
+  
+  return children;
+};
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -45,16 +60,72 @@ const App = () => (
               <Route path="/admin-setup" element={<AdminSetup />} />
               
               {/* Admin Dashboard Routes */}
-              <Route path="/admin-dashboard" element={<AdminDashboard />} />
-              <Route path="/admin-dashboard/invitations" element={<InvitationsPage />} />
-              <Route path="/admin-dashboard/clients" element={<ClientsPage />} />
-              <Route path="/admin-dashboard/coaches" element={<CoachesPage />} />
-              <Route path="/admin-dashboard/groups" element={<GroupsPage />} />
-              <Route path="/admin-dashboard/groups/:groupId" element={<GroupDetailsPage />} />
+              <Route 
+                path="/admin-dashboard" 
+                element={
+                  <ProtectedRoute userType="admin" redirectTo="/admin">
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin-dashboard/invitations" 
+                element={
+                  <ProtectedRoute userType="admin" redirectTo="/admin">
+                    <InvitationsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin-dashboard/clients" 
+                element={
+                  <ProtectedRoute userType="admin" redirectTo="/admin">
+                    <ClientsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin-dashboard/coaches" 
+                element={
+                  <ProtectedRoute userType="admin" redirectTo="/admin">
+                    <CoachesPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin-dashboard/groups" 
+                element={
+                  <ProtectedRoute userType="admin" redirectTo="/admin">
+                    <GroupsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin-dashboard/groups/:groupId" 
+                element={
+                  <ProtectedRoute userType="admin" redirectTo="/admin">
+                    <GroupDetailsPage />
+                  </ProtectedRoute>
+                } 
+              />
               
               {/* Coach and Client Dashboard Routes */}
-              <Route path="/coach-dashboard" element={<CoachDashboard />} />
-              <Route path="/client-dashboard" element={<ClientDashboard />} />
+              <Route 
+                path="/coach-dashboard" 
+                element={
+                  <ProtectedRoute userType="coach" redirectTo="/coach">
+                    <CoachDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/client-dashboard" 
+                element={
+                  <ProtectedRoute userType="client" redirectTo="/client">
+                    <ClientDashboard />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AnimatePresence>

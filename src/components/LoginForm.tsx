@@ -76,13 +76,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         if (onSubmit) {
           // For backward compatibility
           onSubmit(email, password);
-          setLocalLoading(false);
-          setIsSubmitting(false);
-          if (onLoginEnd) onLoginEnd();
         } else {
           console.log(`Signing in as ${variant} with email: ${email}`);
           await signIn(email, password, variant);
-          // Don't reset loading states here, let the useEffect handle it when authLoading changes
+          // Don't manually navigate here - let the parent component handle it
         }
       }
     } catch (error) {

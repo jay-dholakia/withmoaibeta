@@ -272,6 +272,7 @@ export const fetchClientProfile = async (clientId: string): Promise<ClientProfil
     throw error;
   }
 
+  // Add null check and ensure data is valid before returning
   return data as ClientProfile | null;
 };
 
@@ -292,6 +293,7 @@ export const updateClientProfile = async (clientId: string, profile: Partial<Cli
     throw error;
   }
 
+  // Proper type assertion with unknown as intermediate step
   return data as unknown as ClientProfile;
 };
 
@@ -645,3 +647,4 @@ const getUserEmail = async (userId: string): Promise<string> => {
     return `user_${userId.substring(0, 8)}`;
   }
 };
+

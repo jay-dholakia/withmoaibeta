@@ -1,6 +1,5 @@
 
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Users, Dumbbell, BarChart3, Award, Heart, FileText } from 'lucide-react';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -11,10 +10,10 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { WorkoutProgramList } from '@/components/coach/WorkoutProgramList';
 import { fetchWorkoutPrograms } from '@/services/workout-service';
+import { Card } from '@/components/ui/card';
 
 const CoachDashboard = () => {
   const { user, userType, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('groups');
   const navigate = useNavigate();
 
   const { data: coachGroups, isLoading: groupsLoading } = useQuery({
@@ -68,122 +67,135 @@ const CoachDashboard = () => {
 
   return (
     <CoachLayout>
-      <div className="container mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold text-coach mb-6">Coach Dashboard</h1>
-        
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-6 mb-8">
-            <TabsTrigger value="groups" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">My Groups</span>
-            </TabsTrigger>
-            <TabsTrigger value="workouts" className="flex items-center gap-2">
-              <Dumbbell className="w-4 h-4" />
-              <span className="hidden sm:inline">Workout Programs</span>
-            </TabsTrigger>
-            <TabsTrigger value="performance" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Performance</span>
-            </TabsTrigger>
-            <TabsTrigger value="leaderboards" className="flex items-center gap-2">
-              <Award className="w-4 h-4" />
-              <span className="hidden sm:inline">Leaderboards</span>
-            </TabsTrigger>
-            <TabsTrigger value="health" className="flex items-center gap-2">
-              <Heart className="w-4 h-4" />
-              <span className="hidden sm:inline">Health Metrics</span>
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">Coach Bio</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="groups" className="space-y-4">
+      <h1 className="text-3xl font-bold text-coach mb-8">Coach Dashboard</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card className="p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="h-5 w-5 text-coach" />
             <h2 className="text-xl font-semibold">My Groups and Clients</h2>
-            <p className="text-muted-foreground mb-4">View and manage the groups and clients assigned to you.</p>
-            
-            {groupsLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-coach" />
-              </div>
-            ) : coachGroups?.length ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {coachGroups.map(group => (
-                  <div key={group.id} className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                    <h3 className="font-medium text-lg">{group.name}</h3>
-                    <p className="text-sm text-muted-foreground">{group.description || 'No description'}</p>
-                    <button 
-                      className="mt-3 text-sm text-coach hover:underline"
-                      onClick={() => toast.info('Group details coming soon!')}
-                    >
-                      View Members
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 bg-muted/30 rounded-lg">
-                <p>You haven't been assigned to any groups yet.</p>
-              </div>
-            )}
-          </TabsContent>
+          </div>
           
-          <TabsContent value="workouts">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-xl font-semibold">Workout Programs</h2>
-                <p className="text-muted-foreground">Design workout programs for your clients.</p>
+          {groupsLoading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-6 h-6 animate-spin text-coach" />
+            </div>
+          ) : coachGroups?.length ? (
+            <div className="space-y-3">
+              {coachGroups.slice(0, 3).map(group => (
+                <div key={group.id} className="border rounded-lg p-3 hover:bg-accent/50 transition-colors">
+                  <h3 className="font-medium">{group.name}</h3>
+                  <p className="text-sm text-muted-foreground">{group.description || 'No description'}</p>
+                </div>
+              ))}
+              {coachGroups.length > 3 && (
+                <Button 
+                  variant="ghost" 
+                  className="text-coach hover:text-coach/80 w-full"
+                  onClick={() => navigate('/coach-dashboard/clients')}
+                >
+                  View all {coachGroups.length} groups
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-6 bg-muted/30 rounded-lg">
+              <p>You haven't been assigned to any groups yet.</p>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Dumbbell className="h-5 w-5 text-coach" />
+            <h2 className="text-xl font-semibold">Workout Programs</h2>
+          </div>
+          
+          {programsLoading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-6 h-6 animate-spin text-coach" />
+            </div>
+          ) : workoutPrograms?.length ? (
+            <div className="space-y-3">
+              {workoutPrograms.slice(0, 3).map(program => (
+                <div 
+                  key={program.id} 
+                  className="border rounded-lg p-3 hover:bg-accent/50 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/coach-dashboard/workouts/${program.id}`)}
+                >
+                  <h3 className="font-medium">{program.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {program.description?.substring(0, 60) || 'No description'}
+                    {program.description && program.description.length > 60 ? '...' : ''}
+                  </p>
+                </div>
+              ))}
+              
+              <div className="flex gap-2 pt-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => navigate('/coach-dashboard/workouts')}
+                >
+                  View all programs
+                </Button>
+                <Button 
+                  variant="default" 
+                  className="bg-coach hover:bg-coach/90"
+                  onClick={() => navigate('/coach-dashboard/workouts/new')}
+                >
+                  Create program
+                </Button>
               </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center py-6 bg-muted/30 rounded-lg">
+              <p className="mb-4">You haven't created any workout programs yet.</p>
               <Button onClick={() => navigate('/coach-dashboard/workouts/new')}>
-                Create Program
+                Create Your First Program
               </Button>
             </div>
-            
-            {programsLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-coach" />
-              </div>
-            ) : (
-              <WorkoutProgramList 
-                programs={workoutPrograms || []} 
-                isLoading={programsLoading} 
-              />
-            )}
-          </TabsContent>
-          
-          <TabsContent value="performance">
+          )}
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="h-5 w-5 text-coach" />
             <h2 className="text-xl font-semibold">Performance Analytics</h2>
-            <p className="text-muted-foreground mb-4">Monitor your clients' workout frequency and performance.</p>
-            <div className="text-center py-8 bg-muted/30 rounded-lg">
-              <p>Performance analytics dashboard coming soon!</p>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="leaderboards">
-            <h2 className="text-xl font-semibold">Group Leaderboards</h2>
-            <p className="text-muted-foreground mb-4">Compare workout consistency across groups.</p>
-            <div className="text-center py-8 bg-muted/30 rounded-lg">
-              <p>Leaderboard functionality coming soon!</p>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="health">
-            <h2 className="text-xl font-semibold">Client Health Metrics</h2>
-            <p className="text-muted-foreground mb-4">Track and analyze health and fitness metrics.</p>
-            <div className="text-center py-8 bg-muted/30 rounded-lg">
-              <p>Health metrics tracking coming soon!</p>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="profile">
+          </div>
+          <div className="text-center py-8 bg-muted/30 rounded-lg">
+            <p>Performance analytics coming soon!</p>
+          </div>
+        </Card>
+
+        <Card className="p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Award className="h-5 w-5 text-coach" />
+            <h2 className="text-xl font-semibold">Leaderboards</h2>
+          </div>
+          <div className="text-center py-8 bg-muted/30 rounded-lg">
+            <p>Leaderboard functionality coming soon!</p>
+          </div>
+        </Card>
+
+        <Card className="p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="h-5 w-5 text-coach" />
             <h2 className="text-xl font-semibold">Coach Bio</h2>
-            <p className="text-muted-foreground mb-4">Write your professional bio for clients to view.</p>
-            <div className="text-center py-8 bg-muted/30 rounded-lg">
-              <p>Coach bio editor coming soon!</p>
-            </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+          <div className="text-center py-8 bg-muted/30 rounded-lg">
+            <p>Coach bio editor coming soon!</p>
+            <Button 
+              variant="ghost" 
+              className="mt-2 text-coach"
+              onClick={() => navigate('/coach-dashboard/profile')}
+            >
+              Set up your profile
+            </Button>
+          </div>
+        </Card>
       </div>
     </CoachLayout>
   );

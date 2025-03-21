@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { WorkoutProgramList } from '@/components/coach/WorkoutProgramList';
 import { fetchWorkoutPrograms } from '@/services/workout-service';
 import { Card } from '@/components/ui/card';
+import { fetchCoachGroups } from '@/services/coach-service';
 
 const CoachDashboard = () => {
   const { user, userType, loading } = useAuth();
@@ -23,54 +24,62 @@ const CoachDashboard = () => {
     }
   }, [user, userType]);
 
+  // Use the fetchCoachGroups service instead of inline query
   const { data: coachGroups, isLoading: groupsLoading, refetch: refetchGroups } = useQuery({
     queryKey: ['coach-groups', user?.id],
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
       
-      console.log('Fetching coach groups for coach ID:', user.id);
-      
-      // Get groups the coach is assigned to - using explicit coach_id condition
-      const { data: groupCoaches, error: groupCoachesError } = await supabase
-        .from('group_coaches')
-        .select('group_id')
-        .eq('coach_id', user.id);
+      console.log('Using coach service to fetch groups for coach ID:', user.id);
+      try {
+        const groups = await fetchCoachGroups(user.id);
         
-      if (groupCoachesError) {
-        console.error('Error fetching group_coaches:', groupCoachesError);
-        throw groupCoachesError;
-      }
-      
-      console.log('Group coaches data:', groupCoaches);
-      
-      if (!groupCoaches || groupCoaches.length === 0) {
-        console.log('No groups found for coach');
-        
-        // For debugging: Check all group_coaches entries to see if the coach exists with a different ID
-        const { data: allGroupCoaches, error: allGroupCoachesError } = await supabase
-          .from('group_coaches')
-          .select('*');
+        // If no groups are found, check the group_coaches table directly for debugging
+        if (!groups || groups.length === 0) {
+          console.log('No groups found from service, checking group_coaches table directly');
           
-        if (!allGroupCoachesError && allGroupCoaches) {
-          console.log('All group coaches in the system:', allGroupCoaches);
+          // For debugging: Get all group_coaches entries for this specific coach
+          const { data: specificCoachAssignments, error: specificError } = await supabase
+            .from('group_coaches')
+            .select('*')
+            .eq('coach_id', user.id);
+            
+          if (specificError) {
+            console.error('Error fetching specific coach assignments:', specificError);
+          } else {
+            console.log('Direct query for coach assignments:', specificCoachAssignments);
+          }
+          
+          // Check all group_coaches entries to see if the coach exists with a different ID format
+          const { data: allGroupCoaches, error: allGroupCoachesError } = await supabase
+            .from('group_coaches')
+            .select('*');
+            
+          if (allGroupCoachesError) {
+            console.error('Error fetching all group coaches:', allGroupCoachesError);
+          } else {
+            console.log('All group coaches in the system:', allGroupCoaches);
+            
+            // Check if this coach ID exists in a different format (case sensitivity, etc.)
+            if (allGroupCoaches && allGroupCoaches.length > 0) {
+              const possibleMatches = allGroupCoaches.filter(gc => 
+                gc.coach_id.toLowerCase() === user.id.toLowerCase() || 
+                gc.coach_id.replace(/-/g, '') === user.id.replace(/-/g, '')
+              );
+              
+              if (possibleMatches.length > 0) {
+                console.log('Possible matches with different ID format:', possibleMatches);
+              }
+            }
+          }
         }
         
+        return groups;
+      } catch (error) {
+        console.error('Error in coach groups query function:', error);
+        toast.error('Error loading your assigned groups');
         return [];
       }
-      
-      // Get the actual group details
-      const { data: groups, error: groupsError } = await supabase
-        .from('groups')
-        .select('*')
-        .in('id', groupCoaches.map(gc => gc.group_id));
-        
-      if (groupsError) {
-        console.error('Error fetching groups:', groupsError);
-        throw groupsError;
-      }
-      
-      console.log('Groups data:', groups);
-      return groups || [];
     },
     enabled: !!user && userType === 'coach'
   });
@@ -146,6 +155,10 @@ const CoachDashboard = () => {
               >
                 Refresh Groups
               </Button>
+              <div className="mt-3 text-xs text-muted-foreground">
+                <p>Your Coach ID: {user.id}</p>
+                <p>If this issue persists, please contact the admin.</p>
+              </div>
             </div>
           )}
         </Card>

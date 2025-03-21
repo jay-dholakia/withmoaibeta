@@ -12,7 +12,7 @@ export const fetchCoachGroups = async (coachId: string) => {
   // Get groups the coach is assigned to
   const { data: groupCoaches, error: groupCoachesError } = await supabase
     .from('group_coaches')
-    .select('group_id')
+    .select('group_id, id, coach_id')  // Added more fields for better debugging
     .eq('coach_id', coachId);
     
   if (groupCoachesError) {
@@ -24,6 +24,15 @@ export const fetchCoachGroups = async (coachId: string) => {
   
   if (!groupCoaches || groupCoaches.length === 0) {
     console.log('Service: No groups found for coach');
+    
+    // Additional debugging: log the specific coach ID we're using and its format
+    console.log('Service: Coach ID format check:', {
+      original: coachId,
+      lowercase: coachId.toLowerCase(),
+      noHyphens: coachId.replace(/-/g, ''),
+      length: coachId.length
+    });
+    
     return [];
   }
   

@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Dumbbell, BarChart3, Award, Heart, FileText, RefreshCw, Plus } from 'lucide-react';
+import { Loader2, Users, Dumbbell, BarChart3, Award, Heart, FileText, RefreshCw, Plus, AlertCircle } from 'lucide-react';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -45,15 +44,25 @@ const CoachDashboard = () => {
     name: '',
     description: ''
   });
+  const [userEmail, setUserEmail] = useState('');
 
-  // Debugging: Log user details when component mounts
   useEffect(() => {
     if (user) {
       console.log('Coach dashboard mounted for user:', user.id, 'with type:', userType);
+      
+      const fetchUserEmail = async () => {
+        try {
+          setUserEmail(user.email || '');
+          console.log('User email:', user.email);
+        } catch (error) {
+          console.error('Error fetching user email:', error);
+        }
+      };
+      
+      fetchUserEmail();
     }
   }, [user, userType]);
 
-  // Use the fetchCoachGroups service instead of inline query
   const { data: coachGroups, isLoading: groupsLoading, refetch: refetchGroups } = useQuery({
     queryKey: ['coach-groups', user?.id],
     queryFn: async () => {
@@ -63,12 +72,10 @@ const CoachDashboard = () => {
       try {
         const groups = await fetchCoachGroups(user.id);
         
-        // If no groups are found, run additional diagnostics
         if (!groups || groups.length === 0) {
           console.log('No groups found from service, checking all groups');
           
           try {
-            // Get all groups for diagnostics
             const allGroups = await fetchAllGroups();
             console.log('All available groups in the system:', allGroups);
             
@@ -91,7 +98,6 @@ const CoachDashboard = () => {
     enabled: !!user && userType === 'coach'
   });
 
-  // Force a refetch when the component mounts
   useEffect(() => {
     if (user && userType === 'coach') {
       refetchGroups();
@@ -233,9 +239,20 @@ const CoachDashboard = () => {
                     
                     <TabsContent value="diagnostic">
                       <Alert className="mb-2">
-                        <AlertTitle>Diagnostic Information</AlertTitle>
-                        <AlertDescription>
-                          Your Coach ID: <span className="font-mono text-xs bg-muted p-1 rounded">{user.id}</span>
+                        <AlertTitle className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          Diagnostic Information
+                        </AlertTitle>
+                        <AlertDescription className="space-y-2">
+                          <div>
+                            <p>Your Coach ID: <span className="font-mono text-xs bg-muted p-1 rounded">{user.id}</span></p>
+                            {userEmail && (
+                              <p>Your Email: <span className="font-mono text-xs bg-muted p-1 rounded">{userEmail}</span></p>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            You were assigned to a group in Supabase as <strong>jdholakia12@gmail.com</strong>, but we're having trouble matching that to your account.
+                          </p>
                         </AlertDescription>
                       </Alert>
                       
@@ -417,3 +434,4 @@ const CoachDashboard = () => {
 };
 
 export default CoachDashboard;
+

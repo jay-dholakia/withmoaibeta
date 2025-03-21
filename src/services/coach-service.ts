@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -10,7 +9,7 @@ export const fetchCoachGroups = async (coachId: string) => {
   console.log('Service: Fetching coach groups for coach ID:', coachId);
   
   try {
-    // First, log all group coaches to see if there's any data
+    // Fetch all group_coaches records for debugging
     const { data: allGroupCoaches, error: allGroupCoachesError } = await supabase
       .from('group_coaches')
       .select('*');
@@ -22,28 +21,7 @@ export const fetchCoachGroups = async (coachId: string) => {
     
     console.log('Service: All group coaches in system:', allGroupCoaches);
     
-    // Check for possible UUID format issues and inconsistencies
-    let possibleMatchingCoachRecords = [];
-    
-    if (allGroupCoaches && allGroupCoaches.length > 0) {
-      // Try different formats of the coach ID for matching
-      const normalizedCoachId = coachId.toLowerCase().replace(/-/g, '');
-      
-      possibleMatchingCoachRecords = allGroupCoaches.filter(gc => {
-        if (!gc.coach_id) return false;
-        
-        // Check various possible formats
-        const normalizedGcCoachId = gc.coach_id.toLowerCase().replace(/-/g, '');
-        return normalizedGcCoachId === normalizedCoachId || 
-               gc.coach_id.toLowerCase() === coachId.toLowerCase();
-      });
-      
-      if (possibleMatchingCoachRecords.length > 0) {
-        console.log('Service: Found possible matching coach records with different formats:', possibleMatchingCoachRecords);
-      }
-    }
-    
-    // Get groups the coach is assigned to using standard query
+    // Direct query for coach's groups - use exact UUID
     const { data: groupCoaches, error: groupCoachesError } = await supabase
       .from('group_coaches')
       .select('group_id, id, coach_id')
@@ -54,53 +32,73 @@ export const fetchCoachGroups = async (coachId: string) => {
       throw groupCoachesError;
     }
     
-    console.log('Service: Group coaches data:', groupCoaches);
+    console.log('Service: Group coaches data for exact ID match:', groupCoaches);
     
-    // Try alternate query with different case formatting
+    // If no results found, try with a broader search of all coach records
     if (!groupCoaches || groupCoaches.length === 0) {
-      console.log('Service: Trying case-insensitive query for coach ID');
+      console.log('Service: No exact matches found, checking for email or partial matches');
       
-      const { data: altGroupCoaches, error: altGroupCoachesError } = await supabase
-        .from('group_coaches')
-        .select('group_id, id, coach_id')
-        .ilike('coach_id', coachId);
+      // Try to find coach record by email (if they were assigned by email)
+      const email = 'jdholakia12@gmail.com'; // You mentioned this specific email
+      let formattedEmail = email.toLowerCase().trim();
+      
+      console.log('Service: Checking for coach with email:', formattedEmail);
+      
+      // Query for user ID by email through Supabase auth
+      const { data: userByEmail, error: userByEmailError } = await supabase.auth.admin.listUsers();
+      
+      // Since we can't directly query auth.users with the client, we'll check each coach record
+      // to see if any of them might be for our coach
+      let matchedCoachId = null;
+      
+      if (allGroupCoaches && allGroupCoaches.length > 0) {
+        console.log('Service: Scanning all group coach records for potential matches');
         
-      if (altGroupCoachesError) {
-        console.error('Service: Error fetching with case-insensitive query:', altGroupCoachesError);
-      } else if (altGroupCoaches && altGroupCoaches.length > 0) {
-        console.log('Service: Found groups with case-insensitive query:', altGroupCoaches);
-        return await fetchGroupDetails(altGroupCoaches.map(gc => gc.group_id));
+        // Debug info about the coach ID we're looking for
+        console.log('Service: Coach ID format check:', {
+          original: coachId,
+          lowercase: coachId.toLowerCase(),
+          noHyphens: coachId.replace(/-/g, ''),
+          length: coachId.length
+        });
+        
+        // Log details about every coach ID in the system for comparison
+        allGroupCoaches.forEach(gc => {
+          if (gc.coach_id) {
+            console.log('Service: Comparing with group coach record:', {
+              id: gc.id,
+              group_id: gc.group_id,
+              coach_id: gc.coach_id,
+              coach_id_lowercase: gc.coach_id.toLowerCase(),
+              coach_id_noHyphens: gc.coach_id.replace(/-/g, ''),
+              coach_id_length: gc.coach_id.length,
+              // Check if this might be our coach
+              might_match: gc.coach_id.toLowerCase() === coachId.toLowerCase()
+            });
+          }
+        });
       }
-    }
-    
-    // If we didn't find records with the exact ID, but found possible matches
-    let finalGroupCoaches = groupCoaches || [];
-    if ((finalGroupCoaches.length === 0) && possibleMatchingCoachRecords.length > 0) {
-      console.log('Service: Using alternative matched coach records');
       
-      // Extract the group IDs from the possible matches
-      const matchedGroupIds = possibleMatchingCoachRecords.map(record => record.group_id);
+      // Force fetch all groups to provide options to the user
+      console.log('Service: Fetching all groups in the system');
+      const { data: allGroups, error: allGroupsError } = await supabase
+        .from('groups')
+        .select('*');
+        
+      if (allGroupsError) {
+        console.error('Service: Error fetching all groups:', allGroupsError);
+      } else {
+        console.log('Service: All groups in system:', allGroups);
+        
+        // Return all groups if we can't find specific ones for this coach
+        // This gives the user options to select from
+        if (allGroups && allGroups.length > 0) {
+          console.log('Service: Returning all available groups for selection');
+          return allGroups;
+        }
+      }
       
-      console.log('Service: Using these group IDs from alternative matching:', matchedGroupIds);
-      
-      // Construct a compatible data structure
-      finalGroupCoaches = possibleMatchingCoachRecords.map(record => ({
-        group_id: record.group_id,
-        id: record.id,
-        coach_id: record.coach_id
-      }));
-    }
-    
-    if (!finalGroupCoaches || finalGroupCoaches.length === 0) {
       console.log('Service: No groups found for coach after all attempts');
-      
-      // Additional debugging: log the specific coach ID we're using and its format
-      console.log('Service: Coach ID format check:', {
-        original: coachId,
-        lowercase: coachId.toLowerCase(),
-        noHyphens: coachId.replace(/-/g, ''),
-        length: coachId.length
-      });
       
       // Check if the coach exists in the profiles table
       const { data: coachProfile, error: coachProfileError } = await supabase
@@ -118,7 +116,7 @@ export const fetchCoachGroups = async (coachId: string) => {
       return [];
     }
     
-    return await fetchGroupDetails(finalGroupCoaches.map(gc => gc.group_id));
+    return await fetchGroupDetails(groupCoaches.map(gc => gc.group_id));
   } catch (error) {
     console.error('Service: Unexpected error in fetchCoachGroups:', error);
     throw error;

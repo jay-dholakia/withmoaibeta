@@ -47,7 +47,7 @@ const InvitationsPage: React.FC = () => {
         // Generate token and expiration date directly
         const token = crypto.randomUUID();
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+        expiresAt.setDate(expiresAt.getDate() + 30); // Extending to 30 days from now
         
         // Using the supabase client directly to create the invitation
         const { data, error } = await supabase
@@ -74,14 +74,50 @@ const InvitationsPage: React.FC = () => {
         const siteUrl = window.location.origin;
         const inviteLink = `${siteUrl}/register?token=${token}&type=${userType}`;
         
-        // Since email sending is not working, return the invitation data and link
-        return {
-          success: true,
-          invitationId: data.id,
-          token: data.token,
-          expiresAt: data.expires_at,
-          inviteLink
-        };
+        // Try to send the email via edge function, but don't block on it
+        try {
+          const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
+            body: {
+              email,
+              userType,
+              siteUrl,
+              invitationId: data.id
+            },
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          console.log("Edge function response:", edgeFunctionResponse);
+          
+          if (edgeFunctionResponse.error) {
+            console.error("Edge function error:", edgeFunctionResponse.error);
+            throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
+          }
+          
+          // If we get here, email was sent successfully
+          return {
+            success: true,
+            emailSent: true,
+            invitationId: data.id,
+            token: data.token,
+            expiresAt: data.expires_at,
+            inviteLink
+          };
+        } catch (emailError) {
+          console.error("Failed to send email, but invitation created:", emailError);
+          // Return success with the invitation link even if email fails
+          return {
+            success: true,
+            emailSent: false,
+            invitationId: data.id,
+            token: data.token,
+            expiresAt: data.expires_at,
+            inviteLink,
+            emailError: emailError.message
+          };
+        }
       } catch (error: any) {
         console.error("Error in sendInvitation:", error);
         throw error;
@@ -90,8 +126,13 @@ const InvitationsPage: React.FC = () => {
     onSuccess: (data) => {
       setInviteLink(data.inviteLink);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
-      toast.success(`Invitation created successfully!`);
-      toast.info(`Email service is currently unavailable. Please copy and share the invitation link manually.`);
+      
+      if (data.emailSent) {
+        toast.success(`Invitation sent to ${data.email || 'user'} successfully!`);
+      } else {
+        toast.success(`Invitation created successfully!`);
+        toast.info(`Email service is currently unavailable. Please copy and share the invitation link manually.`);
+      }
     },
     onError: (error: Error) => {
       console.error("Invitation error details:", error);
@@ -108,7 +149,7 @@ const InvitationsPage: React.FC = () => {
         // Generate a new token and expiration date
         const newToken = crypto.randomUUID();
         const newExpiresAt = new Date();
-        newExpiresAt.setDate(newExpiresAt.getDate() + 7); // 7 days from now
+        newExpiresAt.setDate(newExpiresAt.getDate() + 30); // Extended to 30 days
         
         // Update the invitation
         const { data, error } = await supabase
@@ -131,13 +172,51 @@ const InvitationsPage: React.FC = () => {
         const siteUrl = window.location.origin;
         const inviteLink = `${siteUrl}/register?token=${newToken}&type=${invitation.user_type}`;
         
-        return {
-          success: true,
-          invitationId: data.id,
-          token: data.token,
-          expiresAt: data.expires_at,
-          inviteLink
-        };
+        // Try to send email via edge function, but don't block on it
+        try {
+          const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
+            body: {
+              email: invitation.email,
+              userType: invitation.user_type,
+              siteUrl,
+              resend: true,
+              invitationId: invitation.id
+            },
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          console.log("Edge function response for resend:", edgeFunctionResponse);
+          
+          if (edgeFunctionResponse.error) {
+            console.error("Edge function error for resend:", edgeFunctionResponse.error);
+            throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
+          }
+          
+          // If we get here, email was sent successfully
+          return {
+            success: true,
+            emailSent: true,
+            invitationId: data.id,
+            token: data.token,
+            expiresAt: data.expires_at,
+            inviteLink
+          };
+        } catch (emailError) {
+          console.error("Failed to send email, but invitation updated:", emailError);
+          // Return success with the invitation link even if email fails
+          return {
+            success: true,
+            emailSent: false,
+            invitationId: data.id,
+            token: data.token,
+            expiresAt: data.expires_at,
+            inviteLink,
+            emailError: emailError.message
+          };
+        }
       } catch (error: any) {
         console.error("Error in resendInvitation:", error);
         throw error;
@@ -148,8 +227,13 @@ const InvitationsPage: React.FC = () => {
       setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
       setInviteLink(data.inviteLink);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
-      toast.success(`Invitation updated successfully!`);
-      toast.info(`Email service is currently unavailable. Please copy and share the invitation link manually.`);
+      
+      if (data.emailSent) {
+        toast.success(`Invitation resent to ${invitation.email} successfully!`);
+      } else {
+        toast.success(`Invitation updated successfully!`);
+        toast.info(`Email service is currently unavailable. Please copy and share the invitation link manually.`);
+      }
     },
     onError: (error: Error, invitation) => {
       // Clear the resending state
@@ -174,6 +258,7 @@ const InvitationsPage: React.FC = () => {
     toast.success('Invitation link copied to clipboard');
   };
 
+  // Filter invitations by their status
   const pendingInvitations = invitations?.filter(inv => 
     !inv.accepted && new Date(inv.expires_at) > new Date()
   ) || [];

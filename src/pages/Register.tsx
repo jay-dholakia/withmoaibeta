@@ -35,6 +35,7 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(true);
   const [isValid, setIsValid] = useState(false);
   const [invitationEmail, setInvitationEmail] = useState('');
+  const [invitation, setInvitation] = useState<any>(null);
   const navigate = useNavigate();
   const { signUp } = useAuth();
   
@@ -59,13 +60,17 @@ const RegisterPage = () => {
       }
       
       try {
+        console.log(`Validating token: ${token} for type: ${type}`);
+        
         // Check if token exists and is not expired
         const { data, error } = await supabase
           .from('invitations')
-          .select('email, accepted, expires_at')
+          .select('id, email, accepted, expires_at')
           .eq('token', token)
           .eq('user_type', type)
           .single();
+        
+        console.log('Invitation validation response:', { data, error });
         
         if (error || !data) {
           console.error('Error validating invitation:', error);
@@ -75,11 +80,14 @@ const RegisterPage = () => {
           setIsValid(false);
           toast.error('This invitation has already been used');
         } else if (new Date(data.expires_at) < new Date()) {
+          console.log('Invitation expired on:', new Date(data.expires_at), 'Current time:', new Date());
           setIsValid(false);
           toast.error('This invitation has expired');
         } else {
+          console.log('Invitation is valid:', data);
           setIsValid(true);
           setInvitationEmail(data.email);
+          setInvitation(data);
           form.setValue('email', data.email);
         }
       } catch (error) {
@@ -96,24 +104,32 @@ const RegisterPage = () => {
   
   // Handle form submission
   const onSubmit = async (values: RegisterFormValues) => {
-    if (!isValid || !type) {
+    if (!isValid || !type || !invitation) {
       toast.error('Invalid invitation');
       return;
     }
     
     try {
+      console.log('Starting registration with values:', values);
+      
       // Register the user
-      await signUp(values.email, values.password, type as 'client' | 'coach' | 'admin');
+      const signUpResult = await signUp(values.email, values.password, type as 'client' | 'coach' | 'admin');
+      console.log('Signup result:', signUpResult);
       
       // Mark the invitation as accepted
       const { error: updateError } = await supabase
         .from('invitations')
-        .update({ accepted: true })
-        .eq('token', token);
+        .update({ 
+          accepted: true,
+          accepted_at: new Date().toISOString()
+        })
+        .eq('id', invitation.id);
       
       if (updateError) {
         console.error('Error updating invitation:', updateError);
         // Continue anyway since the user has been created
+      } else {
+        console.log('Invitation marked as accepted successfully');
       }
       
       toast.success('Registration successful!');
@@ -152,9 +168,14 @@ const RegisterPage = () => {
         subtitle="This invitation link is invalid or has expired."
         variant="default"
       >
-        <Button onClick={() => navigate('/')}>
-          Return to Home
-        </Button>
+        <div className="space-y-4">
+          <p className="text-center text-sm text-muted-foreground">
+            Please contact the administrator to request a new invitation.
+          </p>
+          <Button className="w-full" onClick={() => navigate('/')}>
+            Return to Home
+          </Button>
+        </div>
       </AuthLayout>
     );
   }

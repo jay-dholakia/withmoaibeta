@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,7 +21,7 @@ interface InvitationResponse {
   expiresAt: string;
   inviteLink: string;
   emailError?: string;
-  email?: string; // Add this to fix the TypeScript error
+  email?: string;
 }
 
 const InvitationsPage: React.FC = () => {
@@ -55,12 +54,10 @@ const InvitationsPage: React.FC = () => {
   const sendInvitation = useMutation({
     mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' | 'admin' }): Promise<InvitationResponse> => {
       try {
-        // Generate token and expiration date directly
         const token = crypto.randomUUID();
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30); // Extending to 30 days from now
+        expiresAt.setDate(expiresAt.getDate() + 30);
         
-        // Using the supabase client directly to create the invitation
         const { data, error } = await supabase
           .from('invitations')
           .insert({
@@ -79,13 +76,9 @@ const InvitationsPage: React.FC = () => {
           throw error;
         }
         
-        console.log("Created invitation:", data);
-        
-        // Generate the invite link
         const siteUrl = window.location.origin;
         const inviteLink = `${siteUrl}/register?token=${token}&type=${userType}`;
         
-        // Try to send the email via edge function, but don't block on it
         try {
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
             body: {
@@ -107,7 +100,6 @@ const InvitationsPage: React.FC = () => {
             throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
           }
           
-          // If we get here, email was sent successfully
           return {
             success: true,
             emailSent: true,
@@ -119,7 +111,6 @@ const InvitationsPage: React.FC = () => {
           };
         } catch (emailError) {
           console.error("Failed to send email, but invitation created:", emailError);
-          // Return success with the invitation link even if email fails
           return {
             success: true,
             emailSent: false,
@@ -143,9 +134,9 @@ const InvitationsPage: React.FC = () => {
       if (data.emailSent) {
         toast.success(`Invitation sent to ${data.email || 'user'} successfully!`);
       } else {
-        // Only show a single toast message when email fails
-        toast.success(`Invitation created for ${data.email || 'user'}.`);
-        toast.info(`Email service is currently unavailable. Please copy and share the invitation link manually.`);
+        toast.info(`Invitation created for ${data.email || 'user'}, but email service is unavailable. Please share the invitation link manually.`, {
+          duration: 5000
+        });
       }
     },
     onError: (error: Error) => {
@@ -157,15 +148,12 @@ const InvitationsPage: React.FC = () => {
   const resendInvitation = useMutation({
     mutationFn: async (invitation: Invitation): Promise<InvitationResponse> => {
       try {
-        // Mark this invitation as being resent
         setResendingInvitations(prev => ({ ...prev, [invitation.id]: true }));
         
-        // Generate a new token and expiration date
         const newToken = crypto.randomUUID();
         const newExpiresAt = new Date();
-        newExpiresAt.setDate(newExpiresAt.getDate() + 30); // Extended to 30 days
+        newExpiresAt.setDate(newExpiresAt.getDate() + 30);
         
-        // Update the invitation
         const { data, error } = await supabase
           .from('invitations')
           .update({
@@ -182,11 +170,9 @@ const InvitationsPage: React.FC = () => {
           throw error;
         }
         
-        // Generate the invite link
         const siteUrl = window.location.origin;
         const inviteLink = `${siteUrl}/register?token=${newToken}&type=${invitation.user_type}`;
         
-        // Try to send email via edge function, but don't block on it
         try {
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
             body: {
@@ -209,7 +195,6 @@ const InvitationsPage: React.FC = () => {
             throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
           }
           
-          // If we get here, email was sent successfully
           return {
             success: true,
             emailSent: true,
@@ -221,7 +206,6 @@ const InvitationsPage: React.FC = () => {
           };
         } catch (emailError) {
           console.error("Failed to send email, but invitation updated:", emailError);
-          // Return success with the invitation link even if email fails
           return {
             success: true,
             emailSent: false,
@@ -239,7 +223,6 @@ const InvitationsPage: React.FC = () => {
       }
     },
     onSuccess: (data, invitation) => {
-      // Clear the resending state
       setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
       setInviteLink(data.inviteLink);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
@@ -247,13 +230,12 @@ const InvitationsPage: React.FC = () => {
       if (data.emailSent) {
         toast.success(`Invitation resent to ${invitation.email} successfully!`);
       } else {
-        // Only show a single toast message for successful creation but failed email
-        toast.success(`Invitation updated for ${invitation.email}.`);
-        toast.info(`Email service is currently unavailable. Please copy and share the invitation link manually.`);
+        toast.info(`Invitation updated for ${invitation.email}, but email service is unavailable. Please share the invitation link manually.`, {
+          duration: 5000
+        });
       }
     },
     onError: (error: Error, invitation) => {
-      // Clear the resending state
       setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
       console.error("Resend invitation error:", error);
       toast.error(`Failed to update invitation: ${error.message}`);
@@ -275,7 +257,6 @@ const InvitationsPage: React.FC = () => {
     toast.success('Invitation link copied to clipboard');
   };
 
-  // Filter invitations by their status
   const pendingInvitations = invitations?.filter(inv => 
     !inv.accepted && new Date(inv.expires_at) > new Date()
   ) || [];

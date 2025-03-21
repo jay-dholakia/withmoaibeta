@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./workout-history-service";
@@ -235,7 +234,7 @@ export const fetchAllClientProfiles = async (): Promise<any[]> => {
 };
 
 // Group Functions
-export const fetchCoachGroups = async (coachId: string): Promise<GroupData[]> => {
+export const fetchClientGroups = async (coachId: string): Promise<GroupData[]> => {
   try {
     const { data, error } = await supabase
       .from('groups')

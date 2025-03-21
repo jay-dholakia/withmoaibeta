@@ -183,10 +183,10 @@ export const fetchGroupLeaderboardWeekly = async (groupId: string): Promise<Lead
   startOfWeek.setHours(0, 0, 0, 0);
   
   const { data, error } = await supabase
-    .from('get_group_weekly_leaderboard')
-    .select('*')
-    .eq('group_id', groupId)
-    .eq('start_date', startOfWeek.toISOString());
+    .rpc('get_group_weekly_leaderboard', {
+      group_id: groupId,
+      start_date: startOfWeek.toISOString()
+    });
 
   if (error) {
     console.error('Error fetching weekly leaderboard:', error);
@@ -202,10 +202,10 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<Lea
   startOfMonth.setHours(0, 0, 0, 0);
   
   const { data, error } = await supabase
-    .from('get_group_monthly_leaderboard')
-    .select('*')
-    .eq('group_id', groupId)
-    .eq('start_date', startOfMonth.toISOString());
+    .rpc('get_group_monthly_leaderboard', {
+      group_id: groupId,
+      start_date: startOfMonth.toISOString()
+    });
 
   if (error) {
     console.error('Error fetching monthly leaderboard:', error);

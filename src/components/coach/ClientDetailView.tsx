@@ -104,7 +104,7 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                           <TableCell className="font-medium">
                             {entry.workout?.title}
                             <div className="text-xs text-muted-foreground">
-                              {DAYS_OF_WEEK[entry.workout?.day_of_week]}, Week {entry.workout?.week?.week_number}
+                              {DAYS_OF_WEEK[entry.workout?.day_of_week]}{entry.workout?.week?.week_number ? `, Week ${entry.workout.week.week_number}` : ''}
                             </div>
                           </TableCell>
                           <TableCell>

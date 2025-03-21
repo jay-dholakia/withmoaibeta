@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Client Profile Types
@@ -74,6 +73,12 @@ export interface WorkoutBasic {
   description?: string;
   day_of_week: number;
   week_id: string;
+  week?: {
+    week_number: number;
+    program?: {
+      title: string;
+    }
+  } | null;
 }
 
 export interface WorkoutHistoryItem extends WorkoutCompletionBasic {
@@ -483,26 +488,60 @@ export const completeWorkout = async (
   }
 };
 
+// Simplify the fetchOngoingWorkout function to avoid deep type instantiation
 export const fetchOngoingWorkout = async (userId: string): Promise<any | null> => {
   try {
-    const { data, error } = await supabase
+    // First fetch the workout completion
+    const { data: completion, error: completionError } = await supabase
       .from('workout_completions')
-      .select(`
-        *,
-        workout:workout_id (
-          *,
-          workout_exercises (
-            *,
-            exercise:exercise_id (*)
-          )
-        )
-      `)
+      .select('*')
       .eq('user_id', userId)
-      .eq('status', 'in_progress')
+      .is('completed_at', null)
       .maybeSingle();
     
-    if (error) throw error;
-    return data;
+    if (completionError) {
+      console.error("Error fetching ongoing workout completion:", completionError);
+      throw completionError;
+    }
+    
+    if (!completion) {
+      return null;
+    }
+    
+    // Then fetch the workout details
+    const { data: workout, error: workoutError } = await supabase
+      .from('workouts')
+      .select('*')
+      .eq('id', completion.workout_id)
+      .maybeSingle();
+    
+    if (workoutError) {
+      console.error("Error fetching workout details:", workoutError);
+      throw workoutError;
+    }
+    
+    // Finally fetch the workout exercises
+    const { data: exercises, error: exercisesError } = await supabase
+      .from('workout_exercises')
+      .select(`
+        *,
+        exercise:exercise_id (*)
+      `)
+      .eq('workout_id', completion.workout_id);
+    
+    if (exercisesError) {
+      console.error("Error fetching workout exercises:", exercisesError);
+      throw exercisesError;
+    }
+    
+    // Combine the data
+    return {
+      ...completion,
+      workout: {
+        ...workout,
+        workout_exercises: exercises || []
+      }
+    };
   } catch (error) {
     console.error("Error fetching ongoing workout:", error);
     return null;
@@ -557,6 +596,55 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
     if (workoutsError) {
       console.error("Error fetching workouts:", workoutsError);
       throw workoutsError;
+    }
+    
+    // Fetch the week data for the workouts
+    if (workouts && workouts.length > 0) {
+      const weekIds = [...new Set(workouts.map(w => w.week_id))];
+      
+      const { data: weeks, error: weeksError } = await supabase
+        .from('workout_weeks')
+        .select('id, week_number, program_id')
+        .in('id', weekIds);
+      
+      if (weeksError) {
+        console.error("Error fetching workout weeks:", weeksError);
+      } else if (weeks && weeks.length > 0) {
+        // Get program info
+        const programIds = [...new Set(weeks.map(w => w.program_id))];
+        
+        const { data: programs, error: programsError } = await supabase
+          .from('workout_programs')
+          .select('id, title')
+          .in('id', programIds);
+        
+        if (programsError) {
+          console.error("Error fetching programs:", programsError);
+        }
+        
+        // Create a map of programs for quick lookup
+        const programMap = new Map();
+        if (programs) {
+          programs.forEach(program => {
+            programMap.set(program.id, program);
+          });
+        }
+        
+        // Add week data to workouts
+        const weekMap = new Map();
+        weeks.forEach(week => {
+          const program = programMap.get(week.program_id);
+          weekMap.set(week.id, {
+            ...week,
+            program: program || null
+          });
+        });
+        
+        // Add week data to each workout
+        workouts.forEach(workout => {
+          workout.week = weekMap.get(workout.week_id) || null;
+        });
+      }
     }
     
     // Create a Map for faster workout lookups

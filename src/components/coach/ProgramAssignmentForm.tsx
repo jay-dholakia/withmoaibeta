@@ -30,6 +30,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { fetchAllClients } from '@/services/workout-service';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const formSchema = z.object({
   userId: z.string({
@@ -55,7 +56,8 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
 }) => {
   const [clients, setClients] = useState<{ id: string; email: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  const { user } = useAuth();
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -66,7 +68,9 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   useEffect(() => {
     const loadClients = async () => {
       try {
+        setIsLoading(true);
         const data = await fetchAllClients();
+        console.log('Fetched clients:', data); // Debug log to see what clients are being fetched
         setClients(data);
         setIsLoading(false);
       } catch (error) {

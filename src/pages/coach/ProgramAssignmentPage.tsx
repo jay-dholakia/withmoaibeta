@@ -10,7 +10,8 @@ import { ProgramAssignmentForm } from '@/components/coach/ProgramAssignmentForm'
 import { 
   fetchWorkoutProgram, 
   fetchAssignedUsers,
-  assignProgramToUser
+  assignProgramToUser,
+  fetchAllClients
 } from '@/services/workout-service';
 import { WorkoutProgram, ProgramAssignment } from '@/types/workout';
 import { toast } from 'sonner';
@@ -39,6 +40,10 @@ const ProgramAssignmentPage = () => {
         // Fetch assignments
         const assignmentsData = await fetchAssignedUsers(programId);
         setAssignments(assignmentsData);
+        
+        // Debug: Fetch all clients to see what's available
+        const clientsData = await fetchAllClients();
+        console.log('Available clients:', clientsData);
         
         setIsLoading(false);
       } catch (error) {

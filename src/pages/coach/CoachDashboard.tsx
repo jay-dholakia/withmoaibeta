@@ -123,7 +123,7 @@ const CoachDashboard = () => {
                   className="border rounded-lg p-3 hover:bg-accent/50 transition-colors cursor-pointer"
                   onClick={() => navigate(`/coach-dashboard/workouts/${program.id}`)}
                 >
-                  <h3 className="font-medium">{program.name}</h3>
+                  <h3 className="font-medium">{program.title}</h3>
                   <p className="text-sm text-muted-foreground">
                     {program.description?.substring(0, 60) || 'No description'}
                     {program.description && program.description.length > 60 ? '...' : ''}

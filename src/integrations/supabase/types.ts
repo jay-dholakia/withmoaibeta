@@ -204,6 +204,41 @@ export type Database = {
           },
         ]
       }
+      workout_completions: {
+        Row: {
+          completed_at: string
+          id: string
+          notes: string | null
+          rating: number | null
+          user_id: string
+          workout_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          notes?: string | null
+          rating?: number | null
+          user_id: string
+          workout_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          notes?: string | null
+          rating?: number | null
+          user_id?: string
+          workout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_completions_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workout_exercises: {
         Row: {
           created_at: string
@@ -357,7 +392,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      client_workout_info: {
+        Row: {
+          current_program_id: string | null
+          last_workout_at: string | null
+          total_workouts_completed: number | null
+          user_id: string | null
+          user_type: string | null
+        }
+        Insert: {
+          current_program_id?: never
+          last_workout_at?: never
+          total_workouts_completed?: never
+          user_id?: string | null
+          user_type?: string | null
+        }
+        Update: {
+          current_program_id?: never
+          last_workout_at?: never
+          total_workouts_completed?: never
+          user_id?: string | null
+          user_type?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       create_and_send_invitation: {
@@ -366,6 +424,29 @@ export type Database = {
           p_user_type: string
         }
         Returns: string
+      }
+      get_coach_clients: {
+        Args: {
+          coach_id: string
+        }
+        Returns: {
+          id: string
+          email: string
+          user_type: string
+          last_workout_at: string
+          total_workouts_completed: number
+          current_program_id: string
+          current_program_title: string
+          days_since_last_workout: number
+          group_ids: string[]
+        }[]
+      }
+      is_coach_for_client: {
+        Args: {
+          coach_id: string
+          client_id: string
+        }
+        Returns: boolean
       }
     }
     Enums: {

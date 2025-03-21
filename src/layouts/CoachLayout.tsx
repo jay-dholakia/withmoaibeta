@@ -21,7 +21,8 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
   };
 
   const isActiveRoute = (path: string) => {
-    return location.pathname.includes(path);
+    return location.pathname === path || 
+           (path !== '/coach-dashboard' && location.pathname.startsWith(path));
   };
 
   const navItems = [
@@ -70,8 +71,8 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
                   key={item.path}
                   to={item.path}
                   className={`
-                    flex items-center gap-2 px-4 py-2 rounded-md transition-colors
-                    ${isActiveRoute(item.path) && !item.path.includes('/workouts') ? 
+                    flex items-center gap-2 px-4 py-2 rounded-md transition-colors whitespace-nowrap
+                    ${isActiveRoute(item.path) ? 
                       'bg-accent text-accent-foreground font-medium' : 
                       'hover:bg-accent/50'
                     }

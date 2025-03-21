@@ -42,34 +42,58 @@ const InvitationsPage: React.FC = () => {
   
   const sendInvitation = useMutation({
     mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' | 'admin' }) => {
+      // Make sure we have the site URL
+      const siteUrl = window.location.origin;
+      
+      console.log("Sending invitation request with session token:", session?.access_token?.slice(0, 10) + "...");
+      
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invitation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token}`
         },
-        body: JSON.stringify({ email, userType })
+        body: JSON.stringify({ email, userType, siteUrl })
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send invitation');
+        const text = await response.text();
+        console.error("Error response from send-invitation:", { 
+          status: response.status, 
+          statusText: response.statusText,
+          responseText: text
+        });
+        
+        let errorMessage;
+        try {
+          // Try to parse as JSON first
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || `Request failed with status ${response.status}`;
+        } catch (e) {
+          // If it's not valid JSON, use the text directly
+          errorMessage = `Request failed with status ${response.status}: ${text.substring(0, 100)}...`;
+        }
+        
+        throw new Error(errorMessage);
       }
       
-      return await response.json();
+      const responseData = await response.json();
+      console.log("Invitation response:", responseData);
+      return responseData;
     },
     onSuccess: (data, variables) => {
-      setInviteLink(`${window.location.origin}/register?token=${data.token}&type=${variables.userType}`);
+      setInviteLink(data.inviteLink || `${window.location.origin}/register?token=${data.token}&type=${variables.userType}`);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       toast.success(`Invitation sent to ${variables.email}`);
     },
     onError: (error: Error) => {
+      console.error("Invitation error details:", error);
       toast.error(`Failed to send invitation: ${error.message}`);
     }
   });
   
-  const handleInvite = (email: string, userType: 'client' | 'coach' | 'admin') => {
-    sendInvitation.mutate({ email, userType });
+  const handleInvite = async (email: string, userType: 'client' | 'coach' | 'admin') => {
+    return sendInvitation.mutateAsync({ email, userType });
   };
 
   const handleCopyInvite = (token: string, userType: string) => {

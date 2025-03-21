@@ -21,16 +21,26 @@ export const InvitationForm: React.FC<InvitationFormProps> = ({
   const [email, setEmail] = useState('');
   const [userType, setUserType] = useState<'client' | 'coach' | 'admin'>('client');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!email) {
       toast.error('Please enter an email address');
       return;
     }
-    onInvite(email, userType);
-    setIsDialogOpen(false);
-    setEmail('');
+    
+    try {
+      setIsSubmitting(true);
+      await onInvite(email, userType);
+      setIsDialogOpen(false);
+      setEmail('');
+      setIsSubmitting(false);
+    } catch (error) {
+      console.error('Error submitting invitation:', error);
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -99,14 +109,14 @@ export const InvitationForm: React.FC<InvitationFormProps> = ({
           <DialogFooter>
             <Button 
               type="submit" 
-              disabled={isLoading}
+              disabled={isLoading || isSubmitting}
               className={
                 userType === 'client' ? 'bg-client hover:bg-client/90' : 
                 userType === 'coach' ? 'bg-coach hover:bg-coach/90' : 
                 'bg-blue-500 hover:bg-blue-600'
               }
             >
-              {isLoading && (
+              {(isLoading || isSubmitting) && (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               )}
               Send Invitation

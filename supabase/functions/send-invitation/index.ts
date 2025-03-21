@@ -19,6 +19,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Send invitation function started");
+    
     // Create a Supabase client with the service role key
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -28,6 +30,7 @@ serve(async (req) => {
     // Get the authorization header from the request
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("No authorization header provided");
       return new Response(
         JSON.stringify({ error: "No authorization header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -40,6 +43,7 @@ serve(async (req) => {
     // Verify the JWT token and get the user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) {
+      console.error("Invalid token or user not found:", userError);
       return new Response(
         JSON.stringify({ error: "Invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -53,7 +57,16 @@ serve(async (req) => {
       .eq("id", user.id)
       .single();
 
-    if (profileError || !profile || profile.user_type !== "admin") {
+    if (profileError) {
+      console.error("Error fetching profile:", profileError);
+      return new Response(
+        JSON.stringify({ error: "Error fetching user profile" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!profile || profile.user_type !== "admin") {
+      console.error("Unauthorized - user is not an admin:", profile?.user_type);
       return new Response(
         JSON.stringify({ error: "Unauthorized - Admin access required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -61,14 +74,28 @@ serve(async (req) => {
     }
 
     // Get the request payload
-    const { email, userType }: InvitationPayload = await req.json();
+    let payload: InvitationPayload;
+    try {
+      payload = await req.json();
+    } catch (jsonError) {
+      console.error("Failed to parse request body:", jsonError);
+      return new Response(
+        JSON.stringify({ error: "Invalid request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { email, userType } = payload;
 
     if (!email || !userType) {
+      console.error("Missing required fields:", { email, userType });
       return new Response(
         JSON.stringify({ error: "Email and userType are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log("Creating invitation for:", { email, userType });
 
     // Call the database function to create the invitation
     const { data: invitationId, error: invitationError } = await supabaseClient.rpc(
@@ -97,10 +124,15 @@ serve(async (req) => {
     if (fetchError) {
       console.error("Error fetching invitation:", fetchError);
       return new Response(
-        JSON.stringify({ error: "Invitation created but could not fetch details" }),
+        JSON.stringify({ error: "Invitation created but could not fetch details", invitationId }),
         { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const siteUrl = Deno.env.get("SITE_URL") || "";
+    const inviteLink = `${siteUrl}/register?token=${invitation.token}&type=${userType}`;
+
+    console.log("Invitation created successfully:", { invitationId, inviteLink });
 
     // Return success
     return new Response(
@@ -110,14 +142,14 @@ serve(async (req) => {
         invitationId,
         token: invitation.token,
         expiresAt: invitation.expires_at,
-        inviteLink: `${Deno.env.get("SITE_URL") || window.location.origin}/register?token=${invitation.token}&type=${userType}`
+        inviteLink
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error in send-invitation function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

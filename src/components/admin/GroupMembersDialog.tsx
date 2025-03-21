@@ -92,6 +92,24 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
     }
   }, [clients, groupMembers]);
 
+  // This is a helper function to get user's email from auth.users table
+  // Note: This requires admin access to Supabase
+  const getUserEmail = async (userId: string): Promise<string> => {
+    try {
+      const { data, error } = await supabase.auth.admin.getUserById(userId);
+      
+      if (error) {
+        console.error('Error fetching user email:', error);
+        return `client_${userId.substring(0, 8)}`;
+      }
+      
+      return data.user?.email || `client_${userId.substring(0, 8)}`;
+    } catch (error) {
+      console.error('Error in getUserEmail:', error);
+      return `client_${userId.substring(0, 8)}`;
+    }
+  };
+
   const fetchData = async () => {
     setIsLoading(true);
     setError(null);
@@ -128,16 +146,18 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
         return map;
       }, {} as Record<string, string>);
       
-      // Create client data from profiles
-      const clientsData: Client[] = profilesData.map(profile => {
-        return {
+      // Create client data from profiles and fetch real emails for each client
+      const clientsData: Client[] = [];
+      
+      for (const profile of profilesData) {
+        const email = await getUserEmail(profile.id);
+        clientsData.push({
           id: profile.id,
-          // Use profile ID truncated as the display name since we can't access emails directly
-          email: `client_${profile.id.substring(0, 8)}`,
+          email: email,
           created_at: profile.created_at,
           group_id: userGroupMap[profile.id] || null
-        };
-      });
+        });
+      }
 
       console.log("Total clients transformed:", clientsData.length);
       

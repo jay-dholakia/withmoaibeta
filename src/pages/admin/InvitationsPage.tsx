@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,104 +43,119 @@ const InvitationsPage: React.FC = () => {
   
   const sendInvitation = useMutation({
     mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' | 'admin' }) => {
-      // Make sure we have the site URL
-      const siteUrl = window.location.origin;
-      
-      console.log("Session token available:", !!session?.access_token);
-      console.log("Sending invitation request to:", email, "user type:", userType);
-      
-      // Use Supabase functions.invoke with proper headers
-      const { data, error } = await supabase.functions.invoke("send-invitation", {
-        body: { email, userType, siteUrl },
-        headers: session?.access_token ? {
-          Authorization: `Bearer ${session.access_token}`
-        } : undefined
-      });
-      
-      if (error) {
-        console.error("Error invoking send-invitation function:", error);
-        throw new Error(error.message || "Failed to send invitation");
+      try {
+        // Generate token and expiration date directly
+        const token = crypto.randomUUID();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+        
+        // Using the supabase client directly to create the invitation
+        const { data, error } = await supabase
+          .from('invitations')
+          .insert({
+            email,
+            user_type: userType,
+            invited_by: session?.user.id,
+            token,
+            expires_at: expiresAt.toISOString(),
+            accepted: false
+          })
+          .select()
+          .single();
+        
+        if (error) {
+          console.error("Error creating invitation:", error);
+          throw error;
+        }
+        
+        console.log("Created invitation:", data);
+        
+        // Generate the invite link
+        const siteUrl = window.location.origin;
+        const inviteLink = `${siteUrl}/register?token=${token}&type=${userType}`;
+        
+        // Since email sending is not working, return the invitation data and link
+        return {
+          success: true,
+          invitationId: data.id,
+          token: data.token,
+          expiresAt: data.expires_at,
+          inviteLink
+        };
+      } catch (error: any) {
+        console.error("Error in sendInvitation:", error);
+        throw error;
       }
-      
-      if (data.error) {
-        console.error("Error from send-invitation function:", data.error, data.details);
-        throw new Error(data.error);
-      }
-      
-      console.log("Invitation response:", data);
-      return data;
     },
-    onSuccess: (data, variables) => {
-      setInviteLink(data.inviteLink || `${window.location.origin}/register?token=${data.token}&type=${variables.userType}`);
+    onSuccess: (data) => {
+      setInviteLink(data.inviteLink);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
-      toast.success(`Invitation sent to ${variables.email}`);
+      toast.success(`Invitation created successfully!`);
+      toast.info(`Email service is currently unavailable. Please copy and share the invitation link manually.`);
     },
     onError: (error: Error) => {
       console.error("Invitation error details:", error);
-      
-      if (error.message.includes("Missing Resend API key")) {
-        toast.error("Email service configuration issue. Please contact system administrator.");
-      } else {
-        toast.error(`Failed to send invitation: ${error.message}`);
-      }
+      toast.error(`Failed to create invitation: ${error.message}`);
     }
   });
   
   const resendInvitation = useMutation({
     mutationFn: async (invitation: Invitation) => {
-      // Mark this invitation as being resent
-      setResendingInvitations(prev => ({ ...prev, [invitation.id]: true }));
-      
-      const siteUrl = window.location.origin;
-      
-      // Call the same function but passing the original invitation data
-      const { data, error } = await supabase.functions.invoke("send-invitation", {
-        body: { 
-          email: invitation.email, 
-          userType: invitation.user_type, 
-          siteUrl,
-          resend: true,
-          invitationId: invitation.id
-        },
-        headers: session?.access_token ? {
-          Authorization: `Bearer ${session.access_token}`
-        } : undefined
-      });
-      
-      if (error) {
-        console.error("Resend invitation function error:", error);
-        throw new Error(error.message || "Failed to resend invitation");
+      try {
+        // Mark this invitation as being resent
+        setResendingInvitations(prev => ({ ...prev, [invitation.id]: true }));
+        
+        // Generate a new token and expiration date
+        const newToken = crypto.randomUUID();
+        const newExpiresAt = new Date();
+        newExpiresAt.setDate(newExpiresAt.getDate() + 7); // 7 days from now
+        
+        // Update the invitation
+        const { data, error } = await supabase
+          .from('invitations')
+          .update({
+            token: newToken,
+            expires_at: newExpiresAt.toISOString(),
+            created_at: new Date().toISOString(),
+          })
+          .eq('id', invitation.id)
+          .select()
+          .single();
+        
+        if (error) {
+          console.error("Error updating invitation:", error);
+          throw error;
+        }
+        
+        // Generate the invite link
+        const siteUrl = window.location.origin;
+        const inviteLink = `${siteUrl}/register?token=${newToken}&type=${invitation.user_type}`;
+        
+        return {
+          success: true,
+          invitationId: data.id,
+          token: data.token,
+          expiresAt: data.expires_at,
+          inviteLink
+        };
+      } catch (error: any) {
+        console.error("Error in resendInvitation:", error);
+        throw error;
       }
-      
-      if (data.error) {
-        console.error("Resend invitation error from response:", data.error, data.details);
-        throw new Error(data.error);
-      }
-      
-      return data;
     },
     onSuccess: (data, invitation) => {
       // Clear the resending state
       setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
+      setInviteLink(data.inviteLink);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
-      
-      // If we have the invite link, update it
-      if (data.inviteLink) {
-        setInviteLink(data.inviteLink);
-      }
-      
-      toast.success(`Invitation resent to ${invitation.email}`);
+      toast.success(`Invitation updated successfully!`);
+      toast.info(`Email service is currently unavailable. Please copy and share the invitation link manually.`);
     },
     onError: (error: Error, invitation) => {
       // Clear the resending state
       setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
       console.error("Resend invitation error:", error);
-      
-      if (error.message.includes("Missing Resend API key")) {
-        toast.error("Email service configuration issue. Please contact system administrator.");
-      } else {
-        toast.error(`Failed to resend invitation: ${error.message}`);
-      }
+      toast.error(`Failed to update invitation: ${error.message}`);
     }
   });
   

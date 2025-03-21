@@ -165,3 +165,164 @@ export const diagnoseGroupAccess = async (userId: string) => {
     };
   }
 };
+
+/**
+ * Assign a user to a group if they are not already assigned
+ */
+export const assignUserToGroup = async (userId: string, groupId: string) => {
+  if (!userId || !groupId) {
+    console.error('Cannot assign: User ID or Group ID is missing');
+    return { success: false, message: 'User ID and Group ID are required' };
+  }
+  
+  try {
+    console.log(`Checking if user ${userId} is already in group ${groupId}`);
+    
+    // Check if the user is already in the group
+    const { data: existingMembership, error: checkError } = await supabase
+      .from('group_members')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('group_id', groupId);
+      
+    if (checkError) {
+      console.error('Error checking group membership:', checkError);
+      return { 
+        success: false, 
+        message: 'Error checking group membership', 
+        details: checkError 
+      };
+    }
+    
+    // If user is already in the group, return success
+    if (existingMembership && existingMembership.length > 0) {
+      console.log('User is already a member of this group');
+      return { 
+        success: true, 
+        message: 'User is already a member of this group',
+        membership: existingMembership[0]
+      };
+    }
+    
+    // First, verify that the group exists
+    const { data: groupData, error: groupError } = await supabase
+      .from('groups')
+      .select('id, name')
+      .eq('id', groupId)
+      .maybeSingle();
+      
+    if (groupError || !groupData) {
+      console.error('Error finding group:', groupError || 'Group not found');
+      return { 
+        success: false, 
+        message: 'Group not found or error accessing group', 
+        details: groupError 
+      };
+    }
+    
+    console.log(`Group found: ${groupData.name}, assigning user`);
+    
+    // Assign the user to the group
+    const { data: newMembership, error: assignError } = await supabase
+      .from('group_members')
+      .insert([{ user_id: userId, group_id: groupId }])
+      .select();
+      
+    if (assignError) {
+      console.error('Error assigning user to group:', assignError);
+      return { 
+        success: false, 
+        message: 'Error assigning user to group', 
+        details: assignError 
+      };
+    }
+    
+    console.log('User successfully assigned to group:', newMembership);
+    return { 
+      success: true, 
+      message: `User assigned to group: ${groupData.name}`,
+      membership: newMembership[0]
+    };
+  } catch (err) {
+    console.error('Unexpected error in assignUserToGroup:', err);
+    return { 
+      success: false, 
+      message: 'Unexpected error assigning user to group', 
+      details: err 
+    };
+  }
+};
+
+/**
+ * Find available groups and assign user to the first one if needed
+ */
+export const ensureUserHasGroup = async (userId: string) => {
+  if (!userId) {
+    return { success: false, message: 'User ID is required' };
+  }
+  
+  try {
+    console.log('Checking if user needs group assignment:', userId);
+    
+    // First check if user already has any group assignments
+    const { data: existingMemberships, error: membershipError } = await supabase
+      .from('group_members')
+      .select('group_id')
+      .eq('user_id', userId);
+      
+    if (membershipError) {
+      console.error('Error checking existing memberships:', membershipError);
+      return { 
+        success: false, 
+        message: 'Error checking existing memberships', 
+        details: membershipError 
+      };
+    }
+    
+    // If user already has group assignments, no need to add more
+    if (existingMemberships && existingMemberships.length > 0) {
+      console.log('User already has group assignments:', existingMemberships);
+      return { 
+        success: true, 
+        message: 'User already has group assignments',
+        existingGroups: existingMemberships
+      };
+    }
+    
+    // Find available groups
+    const { data: availableGroups, error: groupsError } = await supabase
+      .from('groups')
+      .select('id, name')
+      .order('created_at', { ascending: false });
+      
+    if (groupsError) {
+      console.error('Error fetching available groups:', groupsError);
+      return { 
+        success: false, 
+        message: 'Error fetching available groups', 
+        details: groupsError 
+      };
+    }
+    
+    if (!availableGroups || availableGroups.length === 0) {
+      console.log('No groups available to assign user to');
+      return { 
+        success: false, 
+        message: 'No groups available to assign user to' 
+      };
+    }
+    
+    // Assign user to the first available group
+    const firstGroup = availableGroups[0];
+    console.log(`Assigning user to group: ${firstGroup.name} (${firstGroup.id})`);
+    
+    return await assignUserToGroup(userId, firstGroup.id);
+  } catch (err) {
+    console.error('Unexpected error in ensureUserHasGroup:', err);
+    return { 
+      success: false, 
+      message: 'Unexpected error ensuring user has group', 
+      details: err 
+    };
+  }
+};

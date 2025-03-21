@@ -16,6 +16,7 @@ import { InvitationLinkDialog } from '@/components/admin/InvitationLinkDialog';
 
 const InvitationsPage: React.FC = () => {
   const [inviteLink, setInviteLink] = useState('');
+  const [resendingInvitations, setResendingInvitations] = useState<Record<string, boolean>>({});
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { userType: currentUserType, session } = useAuth();
@@ -75,8 +76,53 @@ const InvitationsPage: React.FC = () => {
     }
   });
   
+  const resendInvitation = useMutation({
+    mutationFn: async (invitation: Invitation) => {
+      // Mark this invitation as being resent
+      setResendingInvitations(prev => ({ ...prev, [invitation.id]: true }));
+      
+      const siteUrl = window.location.origin;
+      
+      // Call the same function but passing the original invitation data
+      const { data, error } = await supabase.functions.invoke("send-invitation", {
+        body: { 
+          email: invitation.email, 
+          userType: invitation.user_type, 
+          siteUrl,
+          resend: true,
+          invitationId: invitation.id
+        },
+        headers: session?.access_token ? {
+          Authorization: `Bearer ${session.access_token}`
+        } : undefined
+      });
+      
+      if (error) {
+        throw new Error(error.message || "Failed to resend invitation");
+      }
+      
+      return data;
+    },
+    onSuccess: (data, invitation) => {
+      // Clear the resending state
+      setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
+      queryClient.invalidateQueries({ queryKey: ['invitations'] });
+      toast.success(`Invitation resent to ${invitation.email}`);
+    },
+    onError: (error: Error, invitation) => {
+      // Clear the resending state
+      setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
+      console.error("Resend invitation error:", error);
+      toast.error(`Failed to resend invitation: ${error.message}`);
+    }
+  });
+  
   const handleInvite = async (email: string, userType: 'client' | 'coach' | 'admin') => {
     return sendInvitation.mutateAsync({ email, userType });
+  };
+  
+  const handleResendInvite = (invitation: Invitation) => {
+    resendInvitation.mutate(invitation);
   };
 
   const handleCopyInvite = (token: string, userType: string) => {
@@ -134,6 +180,8 @@ const InvitationsPage: React.FC = () => {
               invitations={pendingInvitations}
               isLoading={isLoading}
               onCopyInvite={handleCopyInvite}
+              onResendInvite={handleResendInvite}
+              isResending={resendingInvitations}
             />
           </TabsContent>
           
@@ -141,6 +189,8 @@ const InvitationsPage: React.FC = () => {
             <ExpiredInvitationsTab 
               invitations={expiredInvitations}
               isLoading={isLoading}
+              onResendInvite={handleResendInvite}
+              isResending={resendingInvitations}
             />
           </TabsContent>
           

@@ -25,6 +25,8 @@ interface InvitationTableProps {
   emptyMessage: string;
   type: 'pending' | 'expired' | 'accepted';
   onCopyInvite?: (token: string, userType: string) => void;
+  onResendInvite?: (invitation: Invitation) => void;
+  isResending?: Record<string, boolean>;
 }
 
 export const formatDate = (dateString: string) => {
@@ -42,7 +44,9 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
   isLoading,
   emptyMessage,
   type,
-  onCopyInvite
+  onCopyInvite,
+  onResendInvite,
+  isResending = {}
 }) => {
   return (
     <Table>
@@ -102,19 +106,27 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
               </TableCell>
               {type !== 'accepted' && (
                 <TableCell>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => {
-                      if (type === 'pending' && onCopyInvite) {
-                        onCopyInvite(invitation.token, invitation.user_type);
-                      } else if (type === 'expired') {
-                        toast.info('Resend invitation functionality will be implemented soon');
-                      }
-                    }}
-                  >
-                    {type === 'pending' ? <Copy className="w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
-                  </Button>
+                  <div className="flex gap-2">
+                    {type === 'pending' && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => onCopyInvite && onCopyInvite(invitation.token, invitation.user_type)}
+                        title="Copy invitation link"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => onResendInvite && onResendInvite(invitation)}
+                      disabled={isResending[invitation.id]}
+                      title="Resend invitation"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isResending[invitation.id] ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
                 </TableCell>
               )}
             </TableRow>

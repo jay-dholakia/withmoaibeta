@@ -7,12 +7,16 @@ interface PendingInvitationsTabProps {
   invitations: Invitation[];
   isLoading: boolean;
   onCopyInvite: (token: string, userType: string) => void;
+  onResendInvite: (invitation: Invitation) => void;
+  isResending: Record<string, boolean>;
 }
 
 export const PendingInvitationsTab: React.FC<PendingInvitationsTabProps> = ({
   invitations,
   isLoading,
-  onCopyInvite
+  onCopyInvite,
+  onResendInvite,
+  isResending
 }) => {
   return (
     <Card>
@@ -23,6 +27,8 @@ export const PendingInvitationsTab: React.FC<PendingInvitationsTabProps> = ({
           emptyMessage="No pending invitations found"
           type="pending"
           onCopyInvite={onCopyInvite}
+          onResendInvite={onResendInvite}
+          isResending={isResending}
         />
       </CardContent>
     </Card>

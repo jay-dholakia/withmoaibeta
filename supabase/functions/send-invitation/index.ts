@@ -12,6 +12,8 @@ interface InvitationPayload {
   email: string;
   userType: "client" | "coach" | "admin";
   siteUrl?: string;
+  resend?: boolean;
+  invitationId?: string;
 }
 
 serve(async (req) => {
@@ -64,7 +66,9 @@ serve(async (req) => {
       console.log("Request payload received:", { 
         email: payload.email, 
         userType: payload.userType,
-        hasSiteUrl: !!payload.siteUrl
+        hasSiteUrl: !!payload.siteUrl,
+        resend: payload.resend,
+        invitationId: payload.invitationId
       });
     } catch (jsonError) {
       console.error("Failed to parse request body:", jsonError);
@@ -74,7 +78,7 @@ serve(async (req) => {
       );
     }
 
-    const { email, userType } = payload;
+    const { email, userType, resend: isResend, invitationId } = payload;
 
     if (!email || !userType) {
       console.error("Missing required fields:", { email, userType });
@@ -153,44 +157,96 @@ serve(async (req) => {
       );
     }
 
-    console.log("Creating invitation for:", { email, userType, createdBy: userId });
+    let invitation;
+    
+    if (isResend && invitationId) {
+      console.log("Resending invitation:", invitationId);
+      
+      // Get the existing invitation
+      const { data: existingInvitation, error: getInvitationError } = await supabaseClient
+        .from("invitations")
+        .select("*")
+        .eq("id", invitationId)
+        .single();
+        
+      if (getInvitationError || !existingInvitation) {
+        console.error("Error fetching invitation:", getInvitationError);
+        return new Response(
+          JSON.stringify({ error: "Invitation not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Update the existing invitation - set a new expiration date and token
+      const newToken = crypto.randomUUID();
+      const newExpiresAt = new Date();
+      newExpiresAt.setDate(newExpiresAt.getDate() + 7); // 7 days from now
+      
+      const { data: updatedInvitation, error: updateError } = await supabaseClient
+        .from("invitations")
+        .update({
+          token: newToken,
+          expires_at: newExpiresAt.toISOString(),
+          created_at: new Date().toISOString(), // Update the created_at time as well
+        })
+        .eq("id", invitationId)
+        .select()
+        .single();
+        
+      if (updateError) {
+        console.error("Error updating invitation:", updateError);
+        return new Response(
+          JSON.stringify({ error: updateError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      invitation = updatedInvitation;
+      console.log("Invitation updated successfully:", { 
+        invitationId: invitation.id, 
+        token: invitation.token,
+        expiresAt: invitation.expires_at
+      });
+    } else {
+      console.log("Creating new invitation for:", { email, userType, createdBy: userId });
 
-    // Generate token and expiration date
-    const token = crypto.randomUUID();
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+      // Generate token and expiration date
+      const token = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
 
-    // Insert the invitation directly instead of using the database function
-    const { data: invitation, error: invitationError } = await supabaseClient
-      .from("invitations")
-      .insert({
-        email,
-        user_type: userType,
-        invited_by: userId,
-        token,
-        expires_at: expiresAt.toISOString(),
-        accepted: false
-      })
-      .select()
-      .single();
+      // Insert the invitation directly instead of using the database function
+      const { data: newInvitation, error: invitationError } = await supabaseClient
+        .from("invitations")
+        .insert({
+          email,
+          user_type: userType,
+          invited_by: userId,
+          token,
+          expires_at: expiresAt.toISOString(),
+          accepted: false
+        })
+        .select()
+        .single();
 
-    if (invitationError) {
-      console.error("Error creating invitation:", invitationError);
-      return new Response(
-        JSON.stringify({ error: invitationError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (invitationError) {
+        console.error("Error creating invitation:", invitationError);
+        return new Response(
+          JSON.stringify({ error: invitationError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      invitation = newInvitation;
+      console.log("Invitation created successfully:", { 
+        invitationId: invitation.id, 
+        token: invitation.token,
+        expiresAt: invitation.expires_at
+      });
     }
 
     const siteUrl = Deno.env.get("SITE_URL") || payload.siteUrl || "";
     const inviteLink = `${siteUrl}/register?token=${invitation.token}&type=${userType}`;
-
-    console.log("Invitation created successfully:", { 
-      invitationId: invitation.id, 
-      inviteLink,
-      token: invitation.token,
-      expiresAt: invitation.expires_at
-    });
 
     // Send the invitation email using Resend
     try {
@@ -238,7 +294,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Invitation sent to ${email}`,
+        message: isResend ? `Invitation resent to ${email}` : `Invitation sent to ${email}`,
         invitationId: invitation.id,
         token: invitation.token,
         expiresAt: invitation.expires_at,

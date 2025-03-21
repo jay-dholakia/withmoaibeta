@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -122,7 +121,6 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       [exercise.id]: data
     });
     
-    // Increment saved exercises count to track progress
     setSavedExercisesCount(prev => prev + 1);
     toast.success(`Added ${exercise.name} to workout`);
   };
@@ -133,7 +131,6 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       return;
     }
     
-    // Check if all exercises have data
     const missingExerciseData = exercises.some(exercise => !exerciseData[exercise.id]);
     if (missingExerciseData) {
       toast.error('Please save all exercises before continuing');
@@ -172,12 +169,12 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           });
         }));
         
+        toast.success('Workout saved successfully');
         onSave(newWorkout.id);
       } else {
+        toast.success('Workout saved successfully');
         onSave(workoutId);
       }
-      
-      toast.success('Workout saved successfully');
     } catch (error) {
       console.error('Error saving workout:', error);
       toast.error('Failed to save workout');
@@ -213,10 +210,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            form.handleSubmit(onSubmit)(e);
-          }} className="space-y-6">
+          <div className="space-y-6">
             <FormField
               control={form.control}
               name="title"
@@ -287,11 +281,15 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
                   </p>
                 )}
               </div>
-              <Button type="submit" disabled={isSavingWorkout}>
+              <Button 
+                type="button" 
+                disabled={isSavingWorkout}
+                onClick={form.handleSubmit(onSubmit)}
+              >
                 {isSavingWorkout ? 'Saving...' : 'Save Workout'}
               </Button>
             </div>
-          </form>
+          </div>
         </Form>
       </CardContent>
     </Card>

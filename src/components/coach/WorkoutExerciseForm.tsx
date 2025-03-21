@@ -75,10 +75,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       </div>
 
       <Form {...form}>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          form.handleSubmit(handleSubmit)(e);
-        }} className="space-y-4">
+        <div className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <FormField
               control={form.control}
@@ -148,11 +145,15 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
           />
 
           <div className="flex justify-end">
-            <Button type="submit" disabled={isSubmitting}>
+            <Button 
+              type="button" 
+              disabled={isSubmitting}
+              onClick={form.handleSubmit(handleSubmit)}
+            >
               {isSubmitting ? 'Saving...' : 'Save Exercise'}
             </Button>
           </div>
-        </form>
+        </div>
       </Form>
     </div>
   );

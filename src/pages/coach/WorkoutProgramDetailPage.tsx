@@ -47,6 +47,7 @@ const WorkoutProgramDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   const [configuredDays, setConfiguredDays] = useState<{ [key: string]: string }>({});
+  const [openDialogId, setOpenDialogId] = useState<string | null>(null);
   
   useEffect(() => {
     if (!programId) return;
@@ -153,6 +154,16 @@ const WorkoutProgramDetailPage = () => {
       console.error('Error saving workout:', error);
       toast.error('Failed to save workout');
       return null;
+    }
+  };
+
+  const handleDayFormSave = (workoutId: string, dayIndex: number) => {
+    if (selectedWeek) {
+      setConfiguredDays(prev => ({
+        ...prev,
+        [`${selectedWeek}-${dayIndex}`]: workoutId
+      }));
+      setOpenDialogId(null);
     }
   };
   
@@ -334,9 +345,19 @@ const WorkoutProgramDetailPage = () => {
                               <CardTitle className="text-lg">{day}</CardTitle>
                             </CardHeader>
                             <CardContent>
-                              <Dialog>
+                              <Dialog 
+                                open={openDialogId === `day-${week.id}-${index}`}
+                                onOpenChange={(isOpen) => {
+                                  setOpenDialogId(isOpen ? `day-${week.id}-${index}` : null);
+                                }}
+                              >
                                 <DialogTrigger asChild>
-                                  <Button variant="outline" size="sm" className="w-full gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="w-full gap-2"
+                                    onClick={() => setOpenDialogId(`day-${week.id}-${index}`)}
+                                  >
                                     <Plus className="h-4 w-4" />
                                     Add Workout
                                   </Button>
@@ -353,14 +374,7 @@ const WorkoutProgramDetailPage = () => {
                                       dayName={day}
                                       dayNumber={index}
                                       weekId={week.id}
-                                      onSave={(workoutId) => {
-                                        setConfiguredDays(prev => ({
-                                          ...prev,
-                                          [`${selectedWeek}-${index}`]: workoutId
-                                        }));
-                                        toast.success(`${day} workout saved successfully`);
-                                        document.querySelector('[data-radix-collection-item]')?.closest('button')?.click();
-                                      }}
+                                      onSave={(workoutId) => handleDayFormSave(workoutId, index)}
                                     />
                                   </div>
                                 </DialogContent>

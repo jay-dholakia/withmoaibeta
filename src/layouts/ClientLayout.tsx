@@ -68,7 +68,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
               className={`flex flex-col items-center py-3 px-4 ${isActive('/moai') ? 'text-client' : 'text-gray-500'}`}
             >
               <Users className="h-5 w-5" />
-              <span className="text-xs mt-1">Your Moai</span>
+              <span className="text-xs mt-1 whitespace-nowrap">Your Moai</span>
             </Link>
             
             <Link 

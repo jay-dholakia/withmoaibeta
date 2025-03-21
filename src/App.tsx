@@ -25,6 +25,7 @@ import WorkoutProgramsPage from "./pages/coach/WorkoutProgramsPage";
 import CreateWorkoutProgramPage from "./pages/coach/CreateWorkoutProgramPage";
 import WorkoutProgramDetailPage from "./pages/coach/WorkoutProgramDetailPage";
 import ProgramAssignmentPage from "./pages/coach/ProgramAssignmentPage";
+import CoachClientsPage from "./pages/coach/ClientsPage";
 
 // Placeholder Dashboard page for client
 const ClientDashboard = () => <div>Client Dashboard</div>;
@@ -151,6 +152,14 @@ const App = () => (
                 element={
                   <ProtectedRoute userType="coach" redirectTo="/coach">
                     <ProgramAssignmentPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/coach-dashboard/clients" 
+                element={
+                  <ProtectedRoute userType="coach" redirectTo="/coach">
+                    <CoachClientsPage />
                   </ProtectedRoute>
                 } 
               />

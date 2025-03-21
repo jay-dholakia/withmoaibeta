@@ -1,18 +1,20 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, UserRound, AlertTriangle } from 'lucide-react';
+import { Loader2, Users, UserRound, AlertTriangle, Search } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import { toast } from 'sonner';
-import { fetchUserGroups, diagnoseGroupAccess } from '@/services/moai-service';
+import { fetchUserGroups, diagnoseGroupAccess, verifyUserGroupMembership } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 const MoaiPage = () => {
   const { user } = useAuth();
+  const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
   
   // First, fetch the user's groups with improved error handling and logging
   const { data: userGroups, isLoading: isLoadingGroups, refetch } = useQuery({
@@ -33,12 +35,15 @@ const MoaiPage = () => {
     gcTime: 10000, // Short cache time
   });
   
-  // Run diagnostics on mount to help identify permission issues
+  // Enhanced diagnostics on mount
   useEffect(() => {
     if (user?.id) {
+      verifyUserExistsInAuth(user.id);
       diagnoseGroupAccess(user.id)
         .then(result => {
           console.log('Group access diagnosis result:', result);
+          setDiagnosticDetails(result);
+          
           if (!result.success) {
             toast.error('Diagnostic check failed. Check console for details.');
           } else if (!result.hasGroupMemberships) {
@@ -48,6 +53,41 @@ const MoaiPage = () => {
     }
   }, [user?.id]);
   
+  // Verify the user actually exists in auth
+  const verifyUserExistsInAuth = async (userId: string) => {
+    try {
+      console.log('Verifying user existence in auth for ID:', userId);
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, user_type')
+        .eq('id', userId)
+        .single();
+        
+      if (profileError) {
+        console.error('PROFILE VERIFICATION ERROR:', profileError);
+        return false;
+      }
+      
+      console.log('User profile exists:', profileData);
+      
+      // Also check group_members count in the entire table
+      const { count, error: countError } = await supabase
+        .from('group_members')
+        .select('*', { count: 'exact', head: true });
+        
+      if (countError) {
+        console.error('ERROR counting group_members:', countError);
+      } else {
+        console.log('TOTAL group_members in database:', count);
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error verifying user:', err);
+      return false;
+    }
+  };
+  
   const runDiagnostics = async () => {
     if (!user?.id) {
       toast.error('No user ID available');
@@ -56,8 +96,34 @@ const MoaiPage = () => {
     
     toast.info('Running group access diagnostics...');
     try {
+      // Verify user exists first
+      const userExists = await verifyUserExistsInAuth(user.id);
+      if (!userExists) {
+        toast.error('User profile not found in database!');
+      }
+      
+      // Check for direct group membership
+      const { data: membershipData, error: membershipError } = await supabase
+        .from('group_members')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      if (membershipError) {
+        console.error('Error checking memberships:', membershipError);
+        toast.error('Error checking group memberships');
+      } else {
+        console.log('Direct membership check:', membershipData);
+        if (membershipData.length === 0) {
+          toast.warning('No direct group memberships found');
+        } else {
+          toast.success(`Found ${membershipData.length} group memberships`);
+        }
+      }
+      
+      // Run the full diagnostic
       const result = await diagnoseGroupAccess(user.id);
-      console.log('Diagnostic result:', result);
+      console.log('Comprehensive diagnostic result:', result);
+      setDiagnosticDetails(result);
       
       if (result.success) {
         if (result.hasGroupMemberships) {
@@ -67,6 +133,18 @@ const MoaiPage = () => {
         }
       } else {
         toast.error(`Diagnostic failed: ${result.message}`);
+      }
+      
+      // Check available groups in the system
+      const { data: groupsData, error: groupsError } = await supabase
+        .from('groups')
+        .select('id, name');
+        
+      if (groupsError) {
+        console.error('Error checking available groups:', groupsError);
+      } else {
+        console.log('Available groups in system:', groupsData);
+        toast.info(`System has ${groupsData.length} groups available`);
       }
       
       // Force a fresh reload of groups data
@@ -116,10 +194,21 @@ const MoaiPage = () => {
                 onClick={runDiagnostics}
                 className="flex items-center gap-2"
               >
-                <AlertTriangle className="h-4 w-4" />
-                Diagnose Group Access
+                <Search className="h-4 w-4" />
+                Deep Diagnostic Scan
               </Button>
             </div>
+            
+            {diagnosticDetails && (
+              <div className="mt-6 p-4 border rounded text-left text-sm bg-gray-50">
+                <h3 className="font-medium mb-2">Diagnostic Results:</h3>
+                <div>
+                  <p>Status: {diagnosticDetails.success ? 'Success' : 'Failed'}</p>
+                  <p>Has Memberships: {diagnosticDetails.hasGroupMemberships ? 'Yes' : 'No'}</p>
+                  {diagnosticDetails.message && <p>Message: {diagnosticDetails.message}</p>}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

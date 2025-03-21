@@ -188,20 +188,36 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     );
     
     // Fix the upsert operation to match the table schema
-    // Using explicit types to avoid the never type issues
     try {
-      await supabase
+      // Query the structure of the table first to see existing entries
+      const { data: existingInfo } = await supabase
         .from('client_workout_info')
-        .upsert({
-          user_id: userId,
-          current_program_id: programId,
-          // Include these nullable fields with null values to avoid type errors
-          last_workout_at: null,
-          total_workouts_completed: null,
-          user_type: 'client'
-        }, {
-          onConflict: 'user_id'
-        });
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      // Use the maybeSingle result to determine if we need to insert or update
+      if (existingInfo) {
+        // Update existing record
+        await supabase
+          .from('client_workout_info')
+          .update({
+            current_program_id: programId,
+            user_type: 'client'
+          })
+          .eq('user_id', userId);
+      } else {
+        // Insert new record
+        await supabase
+          .from('client_workout_info')
+          .insert({
+            user_id: userId,
+            current_program_id: programId,
+            last_workout_at: null,
+            total_workouts_completed: null,
+            user_type: 'client'
+          });
+      }
     } catch (error) {
       console.error("Error updating client_workout_info:", error);
       // Continue execution even if this update fails

@@ -16,7 +16,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { UserPlus, X, RefreshCw } from 'lucide-react';
+import { UserPlus, X, RefreshCw, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Client {
   id: string;
@@ -97,17 +98,10 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
     try {
       console.log("Fetching data for group:", group.id);
       
-      // Get all client profiles
+      // Get all client profiles - fixed the query to not use a relationship that doesn't exist
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          created_at,
-          user_type,
-          email:id (
-            email
-          )
-        `)
+        .select('id, created_at, user_type')
         .eq('user_type', 'client');
 
       if (profilesError) {
@@ -138,7 +132,7 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
       const clientsData: Client[] = profilesData.map(profile => {
         return {
           id: profile.id,
-          // Using profile ID as the email for display since we don't have access to auth.users
+          // Use profile ID truncated as the display name since we can't access emails directly
           email: `client_${profile.id.substring(0, 8)}`,
           created_at: profile.created_at,
           group_id: userGroupMap[profile.id] || null
@@ -273,9 +267,13 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
             </div>
             
             {error && (
-              <div className="text-sm text-red-500">
-                {error}
-              </div>
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
+                  {error}
+                </AlertDescription>
+              </Alert>
             )}
             
             <div className="flex gap-2">

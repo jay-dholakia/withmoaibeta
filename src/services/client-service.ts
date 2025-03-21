@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -573,6 +574,10 @@ export const fetchPersonalRecords = async (userId: string): Promise<PersonalReco
 export const fetchCurrentProgram = async (userId: string): Promise<any | null> => {
   console.log("Fetching current program for user:", userId);
   
+  // Convert today's date to ISO string format and extract just the date part (YYYY-MM-DD)
+  const todayISODate = new Date().toISOString().split('T')[0];
+  console.log("Today's date for comparison:", todayISODate);
+  
   const { data, error } = await supabase
     .from('program_assignments')
     .select(`
@@ -592,8 +597,9 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       )
     `)
     .eq('user_id', userId)
-    .lte('start_date', new Date().toISOString())
-    .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`)
+    // Fix: Use proper date string comparison instead of timestamp comparison
+    .lte('start_date', todayISODate)
+    .or(`end_date.is.null,end_date.gte.${todayISODate}`)
     .order('start_date', { ascending: false })
     .limit(1)
     .maybeSingle();

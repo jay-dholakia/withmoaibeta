@@ -94,7 +94,10 @@ const ActiveWorkout = () => {
     if (workoutData?.workout?.workout_exercises) {
       const initialState: any = {};
       
-      workoutData.workout.workout_exercises.forEach((exercise: any) => {
+      // Type assertion to handle the type error
+      const workoutExercises = workoutData.workout.workout_exercises as any[];
+      
+      workoutExercises.forEach((exercise: any) => {
         // Create array for sets
         const sets = Array.from({ length: exercise.sets }, (_, i) => {
           // Check if we have existing data for this set
@@ -169,8 +172,11 @@ const ActiveWorkout = () => {
   const isWorkoutComplete = () => {
     if (!workoutData?.workout?.workout_exercises || !exerciseStates) return false;
     
+    // Type assertion to handle the type error
+    const workoutExercises = workoutData.workout.workout_exercises as any[];
+    
     // Check if all sets of all exercises are completed
-    return workoutData.workout.workout_exercises.every((exercise: any) => {
+    return workoutExercises.every((exercise: any) => {
       const exerciseState = exerciseStates[exercise.id];
       if (!exerciseState) return false;
       
@@ -222,7 +228,8 @@ const ActiveWorkout = () => {
       </div>
 
       <div className="space-y-4">
-        {workoutData.workout.workout_exercises.map((exercise: any) => (
+        {/* Type assertion to handle the type error */}
+        {(workoutData.workout.workout_exercises as any[]).map((exercise: any) => (
           <Card key={exercise.id} className="overflow-hidden">
             <CardHeader 
               className="cursor-pointer bg-client/5" 

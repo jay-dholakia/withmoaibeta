@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
@@ -95,36 +96,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string, userType: UserType) => {
     try {
+      console.log(`Attempting to sign in with email: ${email} and userType: ${userType}`);
       setLoading(true);
+      
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
+        console.error('Sign in error:', error.message);
         toast.error(error.message);
-        setLoading(false); // Make sure we reset loading state on error
+        setLoading(false); // Ensure loading state is reset on error
         return;
       }
       
       if (data.user) {
-        // We'll wait for onAuthStateChange to fetch the profile and verify user type
-        console.log('Sign in successful:', data.user.id);
+        console.log('Sign in successful, user ID:', data.user.id);
         
-        // Redirect based on user type after profile is verified in onAuthStateChange
-        setTimeout(() => {
-          if (userType === 'admin') {
-            navigate('/admin-dashboard');
-          } else if (userType === 'coach') {
-            navigate('/coach-dashboard');
-          } else {
-            navigate('/client-dashboard');
-          }
-          toast.success(`Sign in successful!`);
-          setLoading(false); // Reset loading state after successful authentication
-        }, 500);
+        // Navigate immediately based on user type
+        if (userType === 'admin') {
+          navigate('/admin-dashboard');
+        } else if (userType === 'coach') {
+          navigate('/coach-dashboard');
+        } else {
+          navigate('/client-dashboard');
+        }
+        
+        toast.success('Sign in successful!');
+        // We'll rely on onAuthStateChange to update profile and finish loading
+      } else {
+        console.error('No user data returned from sign in');
+        toast.error('Sign in failed - no user data returned');
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error in signIn:', error);
       toast.error('An unexpected error occurred');
-      setLoading(false); // Make sure we reset loading state on error
+      setLoading(false); // Ensure loading state is reset on error
     }
   };
 

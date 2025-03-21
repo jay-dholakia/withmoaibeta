@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
@@ -23,12 +24,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [localLoading, setLocalLoading] = useState(false);
   const { signIn, signUp, loading: authLoading } = useAuth();
 
+  // Track submission state separately to prevent multiple form submissions
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Reset local loading state when auth loading state changes
   useEffect(() => {
-    if (!authLoading) {
+    console.log('Auth loading state changed:', authLoading);
+    if (!authLoading && isSubmitting) {
       setLocalLoading(false);
+      setIsSubmitting(false);
     }
-  }, [authLoading]);
+  }, [authLoading, isSubmitting]);
 
   // Prevent self-registration for admin accounts
   useEffect(() => {
@@ -40,13 +46,22 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (localLoading || isSubmitting) {
+      return;
+    }
+    
+    console.log(`Submitting ${isRegistering ? 'registration' : 'login'} form for ${variant}`);
     setLocalLoading(true);
+    setIsSubmitting(true);
     
     try {
       if (isRegistering) {
         if (variant === 'admin') {
           toast.error('Admin accounts cannot be self-registered');
           setLocalLoading(false);
+          setIsSubmitting(false);
           return;
         }
         await signUp(email, password, variant);
@@ -54,13 +69,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         if (onSubmit) {
           // For backward compatibility
           onSubmit(email, password);
+          // We'll rely on the onSubmit function to handle loading state
         } else {
+          console.log(`Signing in as ${variant} with email: ${email}`);
           await signIn(email, password, variant);
+          // We'll let the useEffect handle resetting the loading state
         }
       }
     } catch (error) {
       console.error(isRegistering ? 'Registration error:' : 'Login error:', error);
       setLocalLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -94,6 +113,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   };
 
   const styles = getVariantStyles();
+  const isDisabled = localLoading || isSubmitting || (variant === 'admin' && isRegistering);
 
   if (forgotPassword) {
     return <ForgotPasswordForm onBack={() => setForgotPassword(false)} variant={variant} />;
@@ -128,7 +148,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             className={`w-full px-4 py-3 rounded-lg bg-background/50 border border-input ${styles.inputFocusRing} focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:outline-none transition-all duration-200`}
             placeholder="Enter your email"
             required
-            disabled={variant === 'admin' && isRegistering || localLoading}
+            disabled={isDisabled}
           />
         </div>
         
@@ -141,7 +161,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               type="button"
               onClick={() => setForgotPassword(true)}
               className={`text-sm ${styles.textColor} hover:underline`}
-              disabled={localLoading}
+              disabled={isDisabled}
             >
               Forgot password?
             </button>
@@ -155,13 +175,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               className={`w-full px-4 py-3 rounded-lg bg-background/50 border border-input ${styles.inputFocusRing} focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:outline-none transition-all duration-200`}
               placeholder="Enter your password"
               required
-              disabled={variant === 'admin' && isRegistering || localLoading}
+              disabled={isDisabled}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              disabled={variant === 'admin' && isRegistering || localLoading}
+              disabled={isDisabled}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -170,10 +190,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         
         <button
           type="submit"
-          disabled={localLoading || (variant === 'admin' && isRegistering)}
-          className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${styles.buttonClass} btn-hover-effect ${(variant === 'admin' && isRegistering) || localLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={isDisabled}
+          className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${styles.buttonClass} btn-hover-effect ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {localLoading ? (
+          {localLoading || isSubmitting ? (
             <span className="flex items-center justify-center">
               <Loader2 size={18} className="animate-spin mr-2" />
               {isRegistering ? 'Signing up...' : 'Signing in...'}
@@ -189,7 +209,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               type="button"
               onClick={() => setIsRegistering(!isRegistering)}
               className={`${styles.textColor} hover:underline`}
-              disabled={localLoading}
+              disabled={isDisabled}
             >
               {isRegistering 
                 ? 'Already have an account? Sign in' 
@@ -207,7 +227,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 }
               }}
               className={`${styles.textColor} hover:underline`}
-              disabled={localLoading}
+              disabled={isDisabled}
             >
               {isRegistering 
                 ? 'Back to sign in' 

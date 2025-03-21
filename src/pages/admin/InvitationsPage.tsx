@@ -14,6 +14,17 @@ import { AcceptedInvitationsTab } from '@/components/admin/AcceptedInvitationsTa
 import { InvitationForm } from '@/components/admin/InvitationForm';
 import { InvitationLinkDialog } from '@/components/admin/InvitationLinkDialog';
 
+interface InvitationResponse {
+  success: boolean;
+  emailSent: boolean;
+  invitationId: string;
+  token: string;
+  expiresAt: string;
+  inviteLink: string;
+  emailError?: string;
+  email?: string; // Add this to fix the TypeScript error
+}
+
 const InvitationsPage: React.FC = () => {
   const [inviteLink, setInviteLink] = useState('');
   const [resendingInvitations, setResendingInvitations] = useState<Record<string, boolean>>({});
@@ -42,7 +53,7 @@ const InvitationsPage: React.FC = () => {
   });
   
   const sendInvitation = useMutation({
-    mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' | 'admin' }) => {
+    mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' | 'admin' }): Promise<InvitationResponse> => {
       try {
         // Generate token and expiration date directly
         const token = crypto.randomUUID();
@@ -103,7 +114,8 @@ const InvitationsPage: React.FC = () => {
             invitationId: data.id,
             token: data.token,
             expiresAt: data.expires_at,
-            inviteLink
+            inviteLink,
+            email
           };
         } catch (emailError) {
           console.error("Failed to send email, but invitation created:", emailError);
@@ -115,7 +127,8 @@ const InvitationsPage: React.FC = () => {
             token: data.token,
             expiresAt: data.expires_at,
             inviteLink,
-            emailError: emailError.message
+            emailError: emailError.message,
+            email
           };
         }
       } catch (error: any) {
@@ -130,7 +143,8 @@ const InvitationsPage: React.FC = () => {
       if (data.emailSent) {
         toast.success(`Invitation sent to ${data.email || 'user'} successfully!`);
       } else {
-        toast.success(`Invitation created successfully!`);
+        // Only show a single toast message when email fails
+        toast.success(`Invitation created for ${data.email || 'user'}.`);
         toast.info(`Email service is currently unavailable. Please copy and share the invitation link manually.`);
       }
     },
@@ -141,7 +155,7 @@ const InvitationsPage: React.FC = () => {
   });
   
   const resendInvitation = useMutation({
-    mutationFn: async (invitation: Invitation) => {
+    mutationFn: async (invitation: Invitation): Promise<InvitationResponse> => {
       try {
         // Mark this invitation as being resent
         setResendingInvitations(prev => ({ ...prev, [invitation.id]: true }));
@@ -202,7 +216,8 @@ const InvitationsPage: React.FC = () => {
             invitationId: data.id,
             token: data.token,
             expiresAt: data.expires_at,
-            inviteLink
+            inviteLink,
+            email: invitation.email
           };
         } catch (emailError) {
           console.error("Failed to send email, but invitation updated:", emailError);
@@ -214,7 +229,8 @@ const InvitationsPage: React.FC = () => {
             token: data.token,
             expiresAt: data.expires_at,
             inviteLink,
-            emailError: emailError.message
+            emailError: emailError.message,
+            email: invitation.email
           };
         }
       } catch (error: any) {
@@ -231,7 +247,8 @@ const InvitationsPage: React.FC = () => {
       if (data.emailSent) {
         toast.success(`Invitation resent to ${invitation.email} successfully!`);
       } else {
-        toast.success(`Invitation updated successfully!`);
+        // Only show a single toast message for successful creation but failed email
+        toast.success(`Invitation updated for ${invitation.email}.`);
         toast.info(`Email service is currently unavailable. Please copy and share the invitation link manually.`);
       }
     },

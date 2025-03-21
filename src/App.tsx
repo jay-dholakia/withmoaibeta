@@ -10,7 +10,7 @@ import AdminLogin from "./pages/AdminLogin";
 import CoachLogin from "./pages/CoachLogin";
 import ClientLogin from "./pages/ClientLogin";
 import NotFound from "./pages/NotFound";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import InvitationsPage from "./pages/admin/InvitationsPage";
 import ClientsPage from "./pages/admin/ClientsPage";

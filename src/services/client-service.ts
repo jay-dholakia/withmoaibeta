@@ -802,16 +802,22 @@ export const fetchAllClientProfiles = async (): Promise<any[]> => {
         throw emailsError;
       }
       
-      // Map the emails to the profile data
-      const clientsWithEmails = data.map(client => {
-        const emailRecord = emailsData.find((e: any) => e.id === client.id);
-        return {
-          ...client,
-          email: emailRecord?.email || `${client.id.split('-')[0]}@client.com`
-        };
-      });
-      
-      return clientsWithEmails;
+      // Check if emailsData is an array before using it
+      if (emailsData && Array.isArray(emailsData)) {
+        // Map the emails to the profile data
+        const clientsWithEmails = data.map(client => {
+          const emailRecord = emailsData.find((e: any) => e.id === client.id);
+          return {
+            ...client,
+            email: emailRecord?.email || `${client.id.split('-')[0]}@client.com`
+          };
+        });
+        
+        return clientsWithEmails;
+      } else {
+        console.error('Unexpected response format from get_users_email:', emailsData);
+        throw new Error('Invalid response format from get_users_email');
+      }
     } catch (emailError) {
       console.error('Error fetching real emails:', emailError);
       // Return data with formatted emails as fallback

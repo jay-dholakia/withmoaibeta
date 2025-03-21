@@ -105,19 +105,17 @@ const GroupDetailsPage: React.FC = () => {
       
       // Try to get coach emails from RPC function
       try {
-        const { data: coachEmails, error: rpcError } = await supabase.rpc(
-          'get_users_email',
-          { user_ids: coachIds }
-        );
+        const { data: coachEmails, error: rpcError } = await supabase
+          .rpc('get_users_email', { user_ids: coachIds });
         
         if (rpcError) {
           throw rpcError;
         }
         
-        const coachesData: Coach[] = coachEmails.map((coach: any) => ({
+        const coachesData: Coach[] = Array.isArray(coachEmails) ? coachEmails.map((coach: any) => ({
           id: coach.id,
           email: coach.email || `${coach.id.split('-')[0]}@coach.com`
-        }));
+        })) : [];
         
         setCoaches(coachesData);
         return;
@@ -170,19 +168,17 @@ const GroupDetailsPage: React.FC = () => {
       
       // Try to get client emails from RPC function
       try {
-        const { data: clientEmails, error: rpcError } = await supabase.rpc(
-          'get_users_email',
-          { user_ids: clientIds }
-        );
+        const { data: clientEmails, error: rpcError } = await supabase
+          .rpc('get_users_email', { user_ids: clientIds });
         
         if (rpcError) {
           throw rpcError;
         }
         
-        const clientsData: Client[] = clientEmails.map((client: any) => ({
+        const clientsData: Client[] = Array.isArray(clientEmails) ? clientEmails.map((client: any) => ({
           id: client.id,
           email: client.email || `${client.id.split('-')[0]}@client.com`
-        }));
+        })) : [];
         
         setClients(clientsData);
         return;

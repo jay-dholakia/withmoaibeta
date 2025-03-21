@@ -668,6 +668,15 @@ export type Database = {
           total_workouts: number
         }[]
       }
+      get_users_email: {
+        Args: {
+          user_ids: string[]
+        }
+        Returns: {
+          id: string
+          email: string
+        }[]
+      }
       is_coach_for_client: {
         Args: {
           coach_id: string

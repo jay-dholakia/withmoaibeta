@@ -124,13 +124,13 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
         return map;
       }, {} as Record<string, string>);
       
-      // Get emails for all clients from auth.users table
+      // Get emails for all clients from auth.users table using the RPC function
       const clientEmails = new Map<string, string>();
       
       try {
-        // Try to fetch emails directly from auth.users using RPC function
+        // Try to fetch emails using the RPC function
         const { data: authUsersData, error: authError } = await supabase.rpc(
-          'get_users_email',
+          'get_users_email', 
           { user_ids: profilesData.map(profile => profile.id) }
         );
         
@@ -139,12 +139,17 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
           throw authError;
         }
         
+        // Check if authUsersData is an array before mapping
         if (authUsersData && Array.isArray(authUsersData)) {
-          authUsersData.forEach(user => {
+          authUsersData.forEach((user: any) => {
             if (user.id && user.email) {
               clientEmails.set(user.id, user.email);
             }
           });
+          console.log("Successfully fetched email data for", authUsersData.length, "users");
+        } else {
+          console.error("Unexpected data format from get_users_email:", authUsersData);
+          throw new Error("Invalid response from get_users_email");
         }
       } catch (emailError) {
         console.error("Error fetching client emails:", emailError);

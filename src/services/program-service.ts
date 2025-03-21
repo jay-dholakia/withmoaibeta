@@ -102,12 +102,18 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       console.error('Error fetching program assignment:', assignmentQueryError);
     }
     
-    const currentAssignment = assignmentData || {
+    // Create a fallback assignment object with an id field to fix the TypeScript error
+    const fallbackAssignment = {
+      id: `${userId}_${programId}`,  // Generate a predictable ID for the fallback
       program_id: programId,
       user_id: userId,
       start_date: todayISODate,
-      end_date: null
+      end_date: null as string | null,
+      assigned_by: userId,
+      created_at: new Date().toISOString()
     };
+    
+    const currentAssignment = assignmentData || fallbackAssignment;
     
     const { data: programData, error: programError } = await supabase
       .from('workout_programs')
@@ -181,15 +187,25 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       "with", fullProgramData.program.weeks.length, "weeks"
     );
     
-    // Ensure client_workout_info has this program marked as current
-    await supabase
-      .from('client_workout_info')
-      .upsert({
-        user_id: userId,
-        current_program_id: programId
-      }, {
-        onConflict: 'user_id'
-      });
+    // Fix the upsert operation to match the table schema
+    // Using explicit types to avoid the never type issues
+    try {
+      await supabase
+        .from('client_workout_info')
+        .upsert({
+          user_id: userId,
+          current_program_id: programId,
+          // Include these nullable fields with null values to avoid type errors
+          last_workout_at: null,
+          total_workouts_completed: null,
+          user_type: 'client'
+        }, {
+          onConflict: 'user_id'
+        });
+    } catch (error) {
+      console.error("Error updating client_workout_info:", error);
+      // Continue execution even if this update fails
+    }
     
     return fullProgramData;
   } catch (err) {

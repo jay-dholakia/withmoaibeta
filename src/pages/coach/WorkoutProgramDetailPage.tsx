@@ -353,7 +353,14 @@ const WorkoutProgramDetailPage = () => {
                                       dayName={day}
                                       dayNumber={index}
                                       weekId={week.id}
-                                      onSave={(workoutId) => handleSaveWorkout({}, index)}
+                                      onSave={(workoutId) => {
+                                        setConfiguredDays(prev => ({
+                                          ...prev,
+                                          [`${selectedWeek}-${index}`]: workoutId
+                                        }));
+                                        toast.success(`${day} workout saved successfully`);
+                                        document.querySelector('[data-radix-collection-item]')?.closest('button')?.click();
+                                      }}
                                     />
                                   </div>
                                 </DialogContent>

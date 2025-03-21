@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -74,7 +75,10 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit(handleSubmit)(e);
+        }} className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <FormField
               control={form.control}

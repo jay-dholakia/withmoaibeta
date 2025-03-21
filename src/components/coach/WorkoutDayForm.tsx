@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -53,6 +54,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   const [isSavingWorkout, setIsSavingWorkout] = useState(false);
   const [existingExercises, setExistingExercises] = useState<WorkoutExercise[]>([]);
   const [isLoading, setIsLoading] = useState(!!workoutId);
+  const [savedExercisesCount, setSavedExercisesCount] = useState(0);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -82,6 +84,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
             };
           });
           setExerciseData(exerciseFormData);
+          setSavedExercisesCount(exercises.length);
           
           setIsLoading(false);
         } catch (error) {
@@ -119,12 +122,21 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       [exercise.id]: data
     });
     
+    // Increment saved exercises count to track progress
+    setSavedExercisesCount(prev => prev + 1);
     toast.success(`Added ${exercise.name} to workout`);
   };
 
   const onSubmit = async (values: FormValues) => {
     if (exercises.length === 0) {
       toast.error('Please add at least one exercise to the workout');
+      return;
+    }
+    
+    // Check if all exercises have data
+    const missingExerciseData = exercises.some(exercise => !exerciseData[exercise.id]);
+    if (missingExerciseData) {
+      toast.error('Please save all exercises before continuing');
       return;
     }
     
@@ -201,7 +213,10 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            form.handleSubmit(onSubmit)(e);
+          }} className="space-y-6">
             <FormField
               control={form.control}
               name="title"
@@ -264,7 +279,14 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
               )}
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
+              <div>
+                {exercises.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    {savedExercisesCount}/{exercises.length} exercises saved
+                  </p>
+                )}
+              </div>
               <Button type="submit" disabled={isSavingWorkout}>
                 {isSavingWorkout ? 'Saving...' : 'Save Workout'}
               </Button>

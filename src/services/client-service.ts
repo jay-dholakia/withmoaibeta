@@ -148,7 +148,7 @@ export const uploadClientAvatar = async (userId: string, file: File): Promise<st
   }
 };
 
-// Coach Profile Functions - Updated to match the database schema
+// Coach Profile Functions - Updated to properly handle profile creation if it doesn't exist
 export const fetchCoachProfile = async (coachId: string): Promise<CoachProfile | null> => {
   try {
     const { data, error } = await supabase
@@ -157,7 +157,19 @@ export const fetchCoachProfile = async (coachId: string): Promise<CoachProfile |
       .eq('id', coachId)
       .single();
     
-    if (error) throw error;
+    if (error) {
+      // If error is "no rows returned", it means the profile doesn't exist yet
+      if (error.code === 'PGRST116') {
+        console.log("Coach profile doesn't exist yet, will be created on first update");
+        return {
+          id: coachId,
+          bio: null,
+          avatar_url: null,
+          favorite_movements: []
+        };
+      }
+      throw error;
+    }
     return data as CoachProfile;
   } catch (error) {
     console.error("Error fetching coach profile:", error);
@@ -167,14 +179,44 @@ export const fetchCoachProfile = async (coachId: string): Promise<CoachProfile |
 
 export const updateCoachProfile = async (coachId: string, profileData: Partial<CoachProfile>): Promise<CoachProfile> => {
   try {
-    const { data, error } = await supabase
+    // First check if profile exists
+    const { count, error: countError } = await supabase
       .from('coach_profiles')
-      .update(profileData)
-      .eq('id', coachId)
-      .select()
-      .single();
+      .select('*', { count: 'exact', head: true })
+      .eq('id', coachId);
     
-    if (error) throw error;
+    if (countError) throw countError;
+    
+    let data;
+    
+    // If profile doesn't exist, create it
+    if (count === 0) {
+      console.log("Creating new coach profile");
+      const { data: insertData, error: insertError } = await supabase
+        .from('coach_profiles')
+        .insert({ 
+          id: coachId,
+          ...profileData 
+        })
+        .select()
+        .single();
+      
+      if (insertError) throw insertError;
+      data = insertData;
+    } else {
+      // Otherwise update it
+      console.log("Updating existing coach profile");
+      const { data: updateData, error: updateError } = await supabase
+        .from('coach_profiles')
+        .update(profileData)
+        .eq('id', coachId)
+        .select()
+        .single();
+      
+      if (updateError) throw updateError;
+      data = updateData;
+    }
+    
     return data as CoachProfile;
   } catch (error) {
     console.error("Error updating coach profile:", error);

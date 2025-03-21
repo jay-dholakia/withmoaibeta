@@ -25,6 +25,23 @@ export interface CoachProfile {
   favorite_movements: string[] | null;
 }
 
+export interface ClientProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  city: string | null;
+  state: string | null;
+  birthday: string | null;
+  height: string | null;
+  weight: string | null;
+  avatar_url: string | null;
+  fitness_goals: string[] | null;
+  favorite_movements: string[] | null;
+  profile_completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // Fetch all clients that the coach has access to
 export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> => {
   const { data, error } = await supabase
@@ -227,4 +244,62 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<Lea
   }
 
   return data as LeaderboardEntry[] || [];
+};
+
+// Client profile functions
+export const fetchClientProfile = async (clientId: string): Promise<ClientProfile | null> => {
+  const { data, error } = await supabase
+    .from('client_profiles')
+    .select('*')
+    .eq('id', clientId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching client profile:', error);
+    throw error;
+  }
+
+  return data as ClientProfile | null;
+};
+
+export const updateClientProfile = async (clientId: string, profile: Partial<ClientProfile>): Promise<ClientProfile> => {
+  const { data, error } = await supabase
+    .from('client_profiles')
+    .update({ 
+      ...profile,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', clientId)
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error updating client profile:', error);
+    throw error;
+  }
+
+  return data as ClientProfile;
+};
+
+export const uploadClientAvatar = async (clientId: string, file: File): Promise<string> => {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${clientId}/${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+
+  const { error } = await supabase.storage
+    .from('avatars')
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: true
+    });
+
+  if (error) {
+    console.error('Error uploading avatar:', error);
+    throw error;
+  }
+
+  const { data } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
 };

@@ -27,8 +27,40 @@ import ProgramAssignmentPage from "./pages/coach/ProgramAssignmentPage";
 import CoachClientsPage from "./pages/coach/ClientsPage";
 import ProfilePage from "./pages/coach/ProfilePage";
 import LeaderboardPage from './pages/coach/LeaderboardPage';
+import ProfileBuilder from './pages/client/ProfileBuilder';
+import { useQuery } from "@tanstack/react-query";
+import { fetchClientProfile } from "./services/client-service";
+import { Loader2 } from "lucide-react";
 
 const ClientDashboard = () => <div>Client Dashboard</div>;
+
+const ClientProtectedRoute = ({ children, redirectTo = "/client" }) => {
+  const { user, userType, loading } = useAuth();
+  
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['client-profile-check', user?.id],
+    queryFn: () => fetchClientProfile(user?.id || ''),
+    enabled: !!user && userType === 'client',
+  });
+  
+  if (loading || profileLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-client" />
+      </div>
+    );
+  }
+  
+  if (!user || userType !== 'client') {
+    return <Navigate to={redirectTo} replace />;
+  }
+  
+  if (profile && !profile.profile_completed) {
+    return <Navigate to="/client-profile-builder" replace />;
+  }
+  
+  return children;
+};
 
 const ProtectedRoute = ({ children, userType, redirectTo = "/" }) => {
   const { user, userType: authUserType, loading } = useAuth();
@@ -179,11 +211,20 @@ function App() {
                 />
                 
                 <Route 
-                  path="/client-dashboard" 
+                  path="/client-profile-builder" 
                   element={
                     <ProtectedRoute userType="client" redirectTo="/client">
-                      <ClientDashboard />
+                      <ProfileBuilder />
                     </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/client-dashboard" 
+                  element={
+                    <ClientProtectedRoute redirectTo="/client">
+                      <ClientDashboard />
+                    </ClientProtectedRoute>
                   } 
                 />
                 <Route path="*" element={<NotFound />} />

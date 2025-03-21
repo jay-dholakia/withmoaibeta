@@ -8,7 +8,7 @@ const ClientLogin = () => {
     <AuthLayout 
       variant="client"
       title="Client Portal"
-      subtitle="Sign in to access your personal dashboard"
+      subtitle="Sign in or sign up to access your personal dashboard"
     >
       <LoginForm variant="client" />
     </AuthLayout>

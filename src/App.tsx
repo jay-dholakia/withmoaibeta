@@ -20,9 +20,9 @@ import GroupDetailsPage from "./pages/admin/GroupDetailsPage";
 import RegisterPage from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
 import AdminSetup from "./pages/AdminSetup";
+import CoachDashboard from "./pages/coach/CoachDashboard";
 
-// Placeholder Dashboard pages for coach and client
-const CoachDashboard = () => <div>Coach Dashboard</div>;
+// Placeholder Dashboard page for client
 const ClientDashboard = () => <div>Client Dashboard</div>;
 
 const queryClient = new QueryClient();

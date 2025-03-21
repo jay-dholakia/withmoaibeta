@@ -37,7 +37,7 @@ const RegisterPage = () => {
   const [invitationEmail, setInvitationEmail] = useState('');
   const [invitation, setInvitation] = useState<any>(null);
   const navigate = useNavigate();
-  const { signUp } = useAuth();
+  const { signUp, user } = useAuth();
   
   // Form setup
   const form = useForm<RegisterFormValues>({
@@ -48,6 +48,20 @@ const RegisterPage = () => {
       confirmPassword: '',
     },
   });
+  
+  // Handle redirection after successful registration
+  useEffect(() => {
+    if (user && type) {
+      console.log('User authenticated, redirecting to dashboard for type:', type);
+      if (type === 'client') {
+        navigate('/client-dashboard');
+      } else if (type === 'coach') {
+        navigate('/coach-dashboard');
+      } else if (type === 'admin') {
+        navigate('/admin-dashboard');
+      }
+    }
+  }, [user, type, navigate]);
   
   // Validate the invitation token
   useEffect(() => {
@@ -135,14 +149,7 @@ const RegisterPage = () => {
       
       toast.success('Registration successful!');
       
-      // Redirect to the appropriate dashboard
-      if (type === 'client') {
-        navigate('/client-dashboard');
-      } else if (type === 'coach') {
-        navigate('/coach-dashboard');
-      } else if (type === 'admin') {
-        navigate('/admin-dashboard');
-      }
+      // The useEffect hook will handle redirection after authentication
     } catch (error) {
       console.error('Error in registration:', error);
       toast.error('Registration failed. Please try again.');

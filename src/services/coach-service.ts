@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -7,6 +8,14 @@ export const fetchCoachGroups = async (coachId: string) => {
   if (!coachId) throw new Error('Coach ID is required');
   
   console.log('Service: Fetching coach groups for coach ID:', coachId);
+  
+  // Add specific logging for the requested coach ID
+  const targetCoachId = "f77956bd-43b3-488e-a9e9-abffc496220f";
+  const isTargetCoach = coachId === targetCoachId;
+  
+  if (isTargetCoach) {
+    console.log('Service: This is the target coach ID we want to check:', targetCoachId);
+  }
   
   try {
     // Fetch all group_coaches records for debugging
@@ -20,6 +29,18 @@ export const fetchCoachGroups = async (coachId: string) => {
     }
     
     console.log('Service: All group coaches in system:', allGroupCoaches);
+    
+    // If we're looking for the target coach, log each record in detail
+    if (isTargetCoach && allGroupCoaches) {
+      console.log(`Service: Found ${allGroupCoaches.length} total group-coach assignments`);
+      
+      // Check for any assignments for our target coach
+      const targetCoachAssignments = allGroupCoaches.filter(gc => 
+        gc.coach_id && gc.coach_id.toLowerCase() === targetCoachId.toLowerCase()
+      );
+      
+      console.log(`Service: Target coach has ${targetCoachAssignments.length} group assignments:`, targetCoachAssignments);
+    }
     
     // Direct query for coach's groups - use exact UUID
     const { data: groupCoaches, error: groupCoachesError } = await supabase

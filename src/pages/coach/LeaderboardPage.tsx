@@ -4,17 +4,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Loader2, Trophy } from 'lucide-react';
-import { fetchCoachGroups } from '@/services/client-service';
+import { fetchAllGroups } from '@/services/client-service';
 import GroupLeaderboard from '@/components/coach/GroupLeaderboard';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
 
   const { data: groups, isLoading } = useQuery({
-    queryKey: ['coach-groups', user?.id],
+    queryKey: ['all-groups'],
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
-      return fetchCoachGroups(user.id);
+      return fetchAllGroups();
     },
     enabled: !!user?.id,
   });
@@ -39,8 +39,8 @@ const LeaderboardPage = () => {
 
         {!groups || groups.length === 0 ? (
           <div className="bg-muted/30 p-8 rounded-lg text-center">
-            <p className="text-lg mb-2">You haven't been assigned to any groups yet.</p>
-            <p className="text-muted-foreground">Leaderboards will appear here once you're assigned to a group.</p>
+            <p className="text-lg mb-2">No groups have been created yet.</p>
+            <p className="text-muted-foreground">Leaderboards will appear here once groups are created.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6">

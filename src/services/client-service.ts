@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ClientData {
@@ -168,6 +167,21 @@ export const uploadCoachAvatar = async (coachId: string, file: File): Promise<st
     .getPublicUrl(filePath);
 
   return data.publicUrl;
+};
+
+// Fetch all groups for leaderboard (not just the ones the coach is assigned to)
+export const fetchAllGroups = async (): Promise<GroupData[]> => {
+  const { data: groups, error } = await supabase
+    .from('groups')
+    .select('*')
+    .order('name');
+    
+  if (error) {
+    console.error('Error fetching all groups:', error);
+    throw error;
+  }
+  
+  return groups || [];
 };
 
 // New function to fetch group workout leaderboard data

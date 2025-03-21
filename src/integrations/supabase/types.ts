@@ -60,6 +60,36 @@ export type Database = {
         }
         Relationships: []
       }
+      coach_notes: {
+        Row: {
+          coach_id: string
+          created_at: string | null
+          group_id: string
+          id: string
+          member_id: string
+          notes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          coach_id: string
+          created_at?: string | null
+          group_id: string
+          id?: string
+          member_id: string
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          coach_id?: string
+          created_at?: string | null
+          group_id?: string
+          id?: string
+          member_id?: string
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       coach_profiles: {
         Row: {
           avatar_url: string | null
@@ -595,6 +625,10 @@ export type Database = {
           p_user_type: string
         }
         Returns: string
+      }
+      create_client_profiles_table: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       get_coach_clients: {
         Args: {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
@@ -6,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
+import { Input } from '@/components/ui/input';
 
 interface LoginFormProps {
   variant: 'admin' | 'coach' | 'client';
@@ -29,18 +29,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const { signIn, signUp, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Reset local loading state when auth loading state changes
   useEffect(() => {
     console.log('Auth loading state changed:', authLoading);
     if (!authLoading) {
-      // When auth is no longer loading, reset our local states
       setLocalLoading(false);
       setIsSubmitting(false);
       if (onLoginEnd) onLoginEnd();
     }
   }, [authLoading, onLoginEnd]);
 
-  // For admin and coach, prevent registration mode
   useEffect(() => {
     if (isRegistering && (variant === 'admin' || variant === 'coach')) {
       setIsRegistering(false);
@@ -50,7 +47,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Prevent double submission
     if (localLoading || isSubmitting || authLoading) {
       console.log('Preventing resubmission: local loading or already submitting');
       return;
@@ -72,15 +68,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           return;
         }
         await signUp(email, password, variant);
-        // The useEffect will handle resetting the loading state
       } else {
         if (onSubmit) {
-          // For backward compatibility
           onSubmit(email, password);
         } else {
           console.log(`Signing in as ${variant} with email: ${email}`);
           await signIn(email, password, variant);
-          // Don't manually navigate here - let the parent component handle it
         }
       }
     } catch (error) {
@@ -148,12 +141,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           <label htmlFor="email" className="text-sm font-medium">
             Email
           </label>
-          <input
+          <Input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg bg-background/50 border border-input ${styles.inputFocusRing} focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:outline-none transition-all duration-200`}
+            className={`${styles.inputFocusRing} bg-background/50 transition-all duration-200`}
             placeholder="Enter your email"
             required
             disabled={isDisabled}
@@ -175,12 +168,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             </button>
           </div>
           <div className="relative">
-            <input
+            <Input
               id="password"
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg bg-background/50 border border-input ${styles.inputFocusRing} focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:outline-none transition-all duration-200`}
+              className={`${styles.inputFocusRing} bg-background/50 transition-all duration-200`}
               placeholder="Enter your password"
               required
               disabled={isDisabled}

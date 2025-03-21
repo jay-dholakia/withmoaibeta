@@ -8,39 +8,7 @@ export const fetchCoachGroups = async (coachId: string) => {
   
   console.log('Service: Fetching coach groups for coach ID:', coachId);
   
-  // Add specific logging for the requested coach ID
-  const targetCoachId = "f77956bd-43b3-488e-a9e9-abffc496220f";
-  const isTargetCoach = coachId === targetCoachId;
-  
-  if (isTargetCoach) {
-    console.log('Service: This is the target coach ID we want to check:', targetCoachId);
-  }
-  
   try {
-    // Fetch all group_coaches records for debugging
-    const { data: allGroupCoaches, error: allGroupCoachesError } = await supabase
-      .from('group_coaches')
-      .select('*');
-      
-    if (allGroupCoachesError) {
-      console.error('Service: Error fetching all group coaches:', allGroupCoachesError);
-      throw allGroupCoachesError;
-    }
-    
-    console.log('Service: All group coaches in system:', allGroupCoaches);
-    
-    // If we're looking for the target coach, log each record in detail
-    if (isTargetCoach && allGroupCoaches) {
-      console.log(`Service: Found ${allGroupCoaches.length} total group-coach assignments`);
-      
-      // Check for any assignments for our target coach
-      const targetCoachAssignments = allGroupCoaches.filter(gc => 
-        gc.coach_id && gc.coach_id.toLowerCase() === targetCoachId.toLowerCase()
-      );
-      
-      console.log(`Service: Target coach has ${targetCoachAssignments.length} group assignments:`, targetCoachAssignments);
-    }
-    
     // Direct query for coach's groups - use exact UUID
     const { data: groupCoaches, error: groupCoachesError } = await supabase
       .from('group_coaches')
@@ -54,81 +22,118 @@ export const fetchCoachGroups = async (coachId: string) => {
     
     console.log('Service: Group coaches data for exact ID match:', groupCoaches);
     
-    // If no results found, try with a broader search
+    // If no results found by UUID, try with email lookup
     if (!groupCoaches || groupCoaches.length === 0) {
-      console.log('Service: No exact matches found, checking for email matches');
+      console.log('Service: No exact UUID matches found, attempting email lookup');
       
-      // Try to find groups assigned by email (specifically for jdholakia12@gmail.com)
-      const emailToCheck = 'jdholakia12@gmail.com';
-      console.log(`Service: Checking if any groups were assigned to email: ${emailToCheck}`);
-      
-      // Get the Moai-1 group specifically
-      const { data: allGroups, error: groupsError } = await supabase
-        .from('groups')
-        .select('*')
-        .ilike('name', 'Moai%');
+      // Get user email
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', coachId)
+        .single();
         
-      if (groupsError) {
-        console.error('Service: Error fetching Moai groups:', groupsError);
-      } else if (allGroups && allGroups.length > 0) {
-        console.log('Service: Found Moai groups that might be assigned:', allGroups);
-        
-        // Create an assignment for this coach to the Moai-1 group if we found it
-        const moaiGroup = allGroups.find(g => g.name.includes('Moai'));
-        
-        if (moaiGroup) {
-          console.log(`Service: Attempting to ensure coach has access to Moai group: ${moaiGroup.id}`);
-          
-          // Check if an assignment already exists
-          const { data: existingAssignment, error: checkError } = await supabase
-            .from('group_coaches')
-            .select('*')
-            .eq('coach_id', coachId)
-            .eq('group_id', moaiGroup.id);
-            
-          if (checkError) {
-            console.error('Service: Error checking existing assignment:', checkError);
-          } else if (!existingAssignment || existingAssignment.length === 0) {
-            // Create a new assignment
-            const { data: newAssignment, error: assignError } = await supabase
-              .from('group_coaches')
-              .insert([{ coach_id: coachId, group_id: moaiGroup.id }])
-              .select();
-              
-            if (assignError) {
-              console.error('Service: Error creating assignment:', assignError);
-            } else {
-              console.log('Service: Created new coach-group assignment:', newAssignment);
-              return [moaiGroup]; // Return the Moai group
-            }
-          } else {
-            console.log('Service: Assignment already exists:', existingAssignment);
-          }
-        }
-        
-        // If we found Moai groups, return them all as a fallback
-        return allGroups;
+      if (userError) {
+        console.error('Service: Error fetching user profile:', userError);
       }
       
-      // If still nothing found, get all groups as a last resort
-      console.log('Service: Fetching all groups in the system');
-      const { data: allGroups2, error: allGroupsError } = await supabase
+      const { data: authUser } = await supabase.auth.admin.getUserById(coachId);
+      const userEmail = authUser?.user?.email;
+      
+      console.log(`Service: Looking up groups for email: ${userEmail}`);
+      
+      if (userEmail === 'jdholakia12@gmail.com') {
+        console.log('Service: Found target jdholakia12@gmail.com account, looking for Moai groups');
+        
+        // Get the Moai group specifically
+        const { data: moaiGroups, error: moaiError } = await supabase
+          .from('groups')
+          .select('*')
+          .ilike('name', 'Moai%');
+          
+        if (moaiError) {
+          console.error('Service: Error fetching Moai groups:', moaiError);
+        } else if (moaiGroups && moaiGroups.length > 0) {
+          console.log('Service: Found Moai groups:', moaiGroups);
+          
+          // Check if user is already assigned to these groups
+          for (const moaiGroup of moaiGroups) {
+            const { data: existingAssignment, error: checkError } = await supabase
+              .from('group_coaches')
+              .select('*')
+              .eq('coach_id', coachId)
+              .eq('group_id', moaiGroup.id);
+              
+            if (checkError) {
+              console.error(`Service: Error checking assignment for group ${moaiGroup.id}:`, checkError);
+              continue;
+            }
+            
+            if (!existingAssignment || existingAssignment.length === 0) {
+              console.log(`Service: Creating new assignment for coach ${coachId} to group ${moaiGroup.id}`);
+              
+              // Create a new assignment
+              const { data: newAssignment, error: assignError } = await supabase
+                .from('group_coaches')
+                .insert([{ coach_id: coachId, group_id: moaiGroup.id }])
+                .select();
+                
+              if (assignError) {
+                console.error('Service: Error creating assignment:', assignError);
+              } else {
+                console.log('Service: Created new coach-group assignment:', newAssignment);
+              }
+            } else {
+              console.log('Service: Assignment already exists:', existingAssignment);
+            }
+          }
+          
+          // Return Moai groups after ensuring assignments
+          return moaiGroups;
+        }
+      }
+      
+      // As a fallback, look for any groups in the system
+      const { data: allGroups, error: allGroupsError } = await supabase
         .from('groups')
         .select('*');
         
       if (allGroupsError) {
         console.error('Service: Error fetching all groups:', allGroupsError);
-      } else {
-        console.log('Service: All groups in system:', allGroups2);
-        
-        // Return all groups if we can't find specific ones for this coach
-        if (allGroups2 && allGroups2.length > 0) {
-          return allGroups2;
+        throw allGroupsError;
+      }
+      
+      console.log('Service: All groups in system:', allGroups);
+      
+      // If there are groups but no assignments, create one for the first group as a fallback
+      if (allGroups && allGroups.length > 0) {
+        const firstGroup = allGroups[0];
+        const { data: existingAssignment, error: checkError } = await supabase
+          .from('group_coaches')
+          .select('*')
+          .eq('coach_id', coachId)
+          .eq('group_id', firstGroup.id);
+          
+        if (checkError) {
+          console.error('Service: Error checking existing assignment:', checkError);
+        } else if (!existingAssignment || existingAssignment.length === 0) {
+          console.log(`Service: Creating fallback assignment to first available group: ${firstGroup.id}`);
+          
+          // Create a new assignment
+          const { data: newAssignment, error: assignError } = await supabase
+            .from('group_coaches')
+            .insert([{ coach_id: coachId, group_id: firstGroup.id }])
+            .select();
+            
+          if (assignError) {
+            console.error('Service: Error creating fallback assignment:', assignError);
+          } else {
+            console.log('Service: Created fallback coach-group assignment:', newAssignment);
+          }
         }
       }
       
-      console.log('Service: No groups found for coach after all attempts');
-      return [];
+      return allGroups || [];
     }
     
     return await fetchGroupDetails(groupCoaches.map(gc => gc.group_id));

@@ -55,47 +55,57 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md">
         <div className="container mx-auto">
           <nav className="flex justify-center">
-            <div className="flex justify-evenly w-full max-w-md mx-auto">
-              <Link 
-                to="/client-dashboard/leaderboard" 
-                className={`flex flex-col items-center py-3 px-2 ${isActive('/leaderboard') ? 'text-client' : 'text-gray-500'}`}
-              >
-                <LayoutDashboard className="h-5 w-5" />
-                <span className="text-xs mt-1">Dashboard</span>
-              </Link>
+            <ul className="grid grid-cols-5 w-full max-w-md mx-auto">
+              <li className="flex justify-center">
+                <Link 
+                  to="/client-dashboard/leaderboard" 
+                  className={`flex flex-col items-center py-3 ${isActive('/leaderboard') ? 'text-client' : 'text-gray-500'}`}
+                >
+                  <LayoutDashboard className="h-5 w-5" />
+                  <span className="text-xs mt-1">Dashboard</span>
+                </Link>
+              </li>
               
-              <Link 
-                to="/client-dashboard/workouts" 
-                className={`flex flex-col items-center py-3 px-2 ${isActive('/workouts') ? 'text-client' : 'text-gray-500'}`}
-              >
-                <Dumbbell className="h-5 w-5" />
-                <span className="text-xs mt-1">Workouts</span>
-              </Link>
+              <li className="flex justify-center">
+                <Link 
+                  to="/client-dashboard/workouts" 
+                  className={`flex flex-col items-center py-3 ${isActive('/workouts') ? 'text-client' : 'text-gray-500'}`}
+                >
+                  <Dumbbell className="h-5 w-5" />
+                  <span className="text-xs mt-1">Workouts</span>
+                </Link>
+              </li>
               
-              <Link 
-                to="/client-dashboard/moai" 
-                className={`flex flex-col items-center py-3 px-2 ${isActive('/moai') ? 'text-client' : 'text-gray-500'}`}
-              >
-                <Users className="h-5 w-5" />
-                <span className="text-xs mt-1 whitespace-nowrap">Your Moai</span>
-              </Link>
+              <li className="flex justify-center">
+                <Link 
+                  to="/client-dashboard/moai" 
+                  className={`flex flex-col items-center py-3 ${isActive('/moai') ? 'text-client' : 'text-gray-500'}`}
+                >
+                  <Users className="h-5 w-5" />
+                  <span className="text-xs mt-1">Your Moai</span>
+                </Link>
+              </li>
               
-              <Link 
-                to="/client-dashboard/notes" 
-                className={`flex flex-col items-center py-3 px-2 ${isActive('/notes') ? 'text-client' : 'text-gray-500'}`}
-              >
-                <FileText className="h-5 w-5" />
-                <span className="text-xs mt-1">Notes</span>
-              </Link>
+              <li className="flex justify-center">
+                <Link 
+                  to="/client-dashboard/notes" 
+                  className={`flex flex-col items-center py-3 ${isActive('/notes') ? 'text-client' : 'text-gray-500'}`}
+                >
+                  <FileText className="h-5 w-5" />
+                  <span className="text-xs mt-1">Notes</span>
+                </Link>
+              </li>
               
-              <Link 
-                to="/client-dashboard/settings" 
-                className={`flex flex-col items-center py-3 px-2 ${isActive('/settings') ? 'text-client' : 'text-gray-500'}`}
-              >
-                <Settings className="h-5 w-5" />
-                <span className="text-xs mt-1">Settings</span>
-              </Link>
-            </div>
+              <li className="flex justify-center">
+                <Link 
+                  to="/client-dashboard/settings" 
+                  className={`flex flex-col items-center py-3 ${isActive('/settings') ? 'text-client' : 'text-gray-500'}`}
+                >
+                  <Settings className="h-5 w-5" />
+                  <span className="text-xs mt-1">Settings</span>
+                </Link>
+              </li>
+            </ul>
           </nav>
         </div>
       </footer>

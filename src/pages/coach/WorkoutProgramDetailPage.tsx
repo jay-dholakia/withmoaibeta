@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -18,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,7 +27,8 @@ import {
   fetchWorkoutProgram, 
   fetchWorkoutWeeks,
   createWorkoutWeek,
-  fetchWorkouts
+  fetchWorkouts,
+  createWorkout
 } from '@/services/workout-service';
 import { WorkoutProgram, WorkoutWeek, Workout, DAYS_OF_WEEK } from '@/types/workout';
 import { toast } from 'sonner';
@@ -45,7 +46,6 @@ const WorkoutProgramDetailPage = () => {
   const [workoutsByDay, setWorkoutsByDay] = useState<Record<number, Workout>>({});
   const [isLoading, setIsLoading] = useState(true);
   
-  // Track which days have workouts
   const [configuredDays, setConfiguredDays] = useState<{ [key: string]: string }>({});
   
   useEffect(() => {
@@ -55,15 +55,12 @@ const WorkoutProgramDetailPage = () => {
       try {
         setIsLoading(true);
         
-        // Fetch program details
         const programData = await fetchWorkoutProgram(programId);
         setProgram(programData);
         
-        // Fetch weeks
         const weeksData = await fetchWorkoutWeeks(programId);
         setWeeks(weeksData);
         
-        // Select the first week by default if available
         if (weeksData.length > 0) {
           setSelectedWeek(weeksData[0].id);
         }
@@ -85,7 +82,6 @@ const WorkoutProgramDetailPage = () => {
         try {
           const workouts = await fetchWorkouts(selectedWeek);
           
-          // Organize workouts by day of week
           const byDay: Record<number, Workout> = {};
           const configuredDaysMap: { [key: string]: string } = {};
           
@@ -134,13 +130,30 @@ const WorkoutProgramDetailPage = () => {
     }
   };
   
-  const handleSaveWorkout = (dayIndex: number, workoutId: string) => {
-    setConfiguredDays(prev => ({
-      ...prev,
-      [`${selectedWeek}-${dayIndex}`]: workoutId
-    }));
+  const handleSaveWorkout = async (values: any, dayIndex: number) => {
+    if (!selectedWeek) return;
     
-    toast.success(`Workout saved for ${DAYS_OF_WEEK[dayIndex]}`);
+    try {
+      const workout = await createWorkout({
+        week_id: selectedWeek,
+        day_of_week: dayIndex,
+        title: values.title,
+        description: values.description || null
+      });
+      
+      setConfiguredDays(prev => ({
+        ...prev,
+        [`${selectedWeek}-${dayIndex}`]: workout.id
+      }));
+      
+      toast.success(`Workout saved for ${DAYS_OF_WEEK[dayIndex]}`);
+      
+      return workout.id;
+    } catch (error) {
+      console.error('Error saving workout:', error);
+      toast.error('Failed to save workout');
+      return null;
+    }
   };
   
   if (isLoading) {
@@ -331,13 +344,16 @@ const WorkoutProgramDetailPage = () => {
                                 <DialogContent className="max-w-4xl">
                                   <DialogHeader>
                                     <DialogTitle>Configure {day} Workout</DialogTitle>
+                                    <DialogDescription>
+                                      Add exercises and details for the {day.toLowerCase()} workout.
+                                    </DialogDescription>
                                   </DialogHeader>
                                   <div className="mt-4">
                                     <WorkoutDayForm
                                       dayName={day}
                                       dayNumber={index}
                                       weekId={week.id}
-                                      onSave={(workoutId) => handleSaveWorkout(index, workoutId)}
+                                      onSave={(workoutId) => handleSaveWorkout({}, index)}
                                     />
                                   </div>
                                 </DialogContent>

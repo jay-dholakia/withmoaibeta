@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -62,6 +61,11 @@ const InvitationsPage: React.FC = () => {
         throw new Error(error.message || "Failed to send invitation");
       }
       
+      if (data.error) {
+        console.error("Error from send-invitation function:", data.error, data.details);
+        throw new Error(data.error);
+      }
+      
       console.log("Invitation response:", data);
       return data;
     },
@@ -72,7 +76,12 @@ const InvitationsPage: React.FC = () => {
     },
     onError: (error: Error) => {
       console.error("Invitation error details:", error);
-      toast.error(`Failed to send invitation: ${error.message}`);
+      
+      if (error.message.includes("Missing Resend API key")) {
+        toast.error("Email service configuration issue. Please contact system administrator.");
+      } else {
+        toast.error(`Failed to send invitation: ${error.message}`);
+      }
     }
   });
   
@@ -103,7 +112,7 @@ const InvitationsPage: React.FC = () => {
       }
       
       if (data.error) {
-        console.error("Resend invitation error from response:", data.error);
+        console.error("Resend invitation error from response:", data.error, data.details);
         throw new Error(data.error);
       }
       
@@ -125,7 +134,12 @@ const InvitationsPage: React.FC = () => {
       // Clear the resending state
       setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
       console.error("Resend invitation error:", error);
-      toast.error(`Failed to resend invitation: ${error.message}`);
+      
+      if (error.message.includes("Missing Resend API key")) {
+        toast.error("Email service configuration issue. Please contact system administrator.");
+      } else {
+        toast.error(`Failed to resend invitation: ${error.message}`);
+      }
     }
   });
   

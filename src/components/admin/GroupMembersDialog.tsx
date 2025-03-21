@@ -88,10 +88,9 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
         .select(`
           id,
           created_at,
-          auth_users:id(email)
+          user_type
         `)
-        .eq('user_type', 'client')
-        .order('created_at', { ascending: false });
+        .eq('user_type', 'client');
 
       if (profilesError) {
         throw profilesError;
@@ -112,13 +111,21 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
         return map;
       }, {} as Record<string, string>);
 
-      // Transform profile data and add group_id if available
-      const clientsData = profilesData.map(profile => ({
-        id: profile.id,
-        email: profile.auth_users?.email || 'Unknown email',
-        created_at: profile.created_at,
-        group_id: userGroupMap[profile.id] || null
-      }));
+      // Fetch user emails separately
+      const clientsData: Client[] = [];
+      
+      for (const profile of profilesData) {
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
+        
+        if (!userError && userData?.user) {
+          clientsData.push({
+            id: profile.id,
+            email: userData.user.email || 'Unknown email',
+            created_at: profile.created_at,
+            group_id: userGroupMap[profile.id] || null
+          });
+        }
+      }
 
       setClients(clientsData);
 

@@ -89,21 +89,34 @@ const GroupDetailsPage: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('group_coaches')
-        .select(`
-          coach_id,
-          coaches:coach_id(id, email)
-        `)
+        .select('coach_id')
         .eq('group_id', groupId);
 
       if (error) {
         throw error;
       }
 
-      const coachesData = data.map(item => ({
-        id: item.coach_id,
-        email: item.coaches?.email || 'Unknown'
-      }));
-
+      const coachIds = data.map(item => item.coach_id);
+      
+      if (coachIds.length === 0) {
+        setCoaches([]);
+        return;
+      }
+      
+      // Fetch coach details with email
+      const coachesData: Coach[] = [];
+      
+      for (const coachId of coachIds) {
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(coachId);
+        
+        if (!userError && userData?.user) {
+          coachesData.push({
+            id: coachId,
+            email: userData.user.email || 'Unknown email'
+          });
+        }
+      }
+      
       setCoaches(coachesData);
     } catch (error) {
       console.error('Error fetching group coaches:', error);
@@ -115,21 +128,34 @@ const GroupDetailsPage: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('group_members')
-        .select(`
-          user_id,
-          clients:user_id(id, email)
-        `)
+        .select('user_id')
         .eq('group_id', groupId);
 
       if (error) {
         throw error;
       }
 
-      const clientsData = data.map(item => ({
-        id: item.user_id,
-        email: item.clients?.email || 'Unknown'
-      }));
-
+      const clientIds = data.map(item => item.user_id);
+      
+      if (clientIds.length === 0) {
+        setClients([]);
+        return;
+      }
+      
+      // Fetch client details with email
+      const clientsData: Client[] = [];
+      
+      for (const clientId of clientIds) {
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(clientId);
+        
+        if (!userError && userData?.user) {
+          clientsData.push({
+            id: clientId,
+            email: userData.user.email || 'Unknown email'
+          });
+        }
+      }
+      
       setClients(clientsData);
     } catch (error) {
       console.error('Error fetching group clients:', error);

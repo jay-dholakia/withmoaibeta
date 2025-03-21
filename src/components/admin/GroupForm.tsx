@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useAuth } from '@/contexts/AuthContext';
 
 const groupFormSchema = z.object({
   name: z.string().min(1, 'Group name is required').max(100, 'Group name is too long'),
@@ -21,6 +22,7 @@ type GroupFormValues = z.infer<typeof groupFormSchema>;
 
 const GroupForm: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const form = useForm<GroupFormValues>({
     resolver: zodResolver(groupFormSchema),
@@ -31,15 +33,19 @@ const GroupForm: React.FC = () => {
   });
   
   const onSubmit = async (values: GroupFormValues) => {
+    if (!user?.id) {
+      toast.error('You must be logged in to create a group');
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('groups')
-        .insert([
-          {
-            name: values.name,
-            description: values.description || null,
-          }
-        ])
+        .insert({
+          name: values.name,
+          description: values.description || null,
+          created_by: user.id
+        })
         .select();
         
       if (error) {

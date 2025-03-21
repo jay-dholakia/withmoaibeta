@@ -82,26 +82,36 @@ const GroupCoachesDialog: React.FC<GroupCoachesDialogProps> = ({
     setIsLoading(true);
     try {
       // Get all users with coach role from profiles
-      const { data, error } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select(`
           id,
           created_at,
-          auth_users:id(email)
+          user_type
         `)
-        .eq('user_type', 'coach')
-        .order('created_at', { ascending: false });
+        .eq('user_type', 'coach');
 
-      if (error) {
-        throw error;
+      if (profilesError) {
+        throw profilesError;
       }
 
-      // Transform data to get the email from the joined auth.users record
-      const coachesData = data.map(coach => ({
-        id: coach.id,
-        email: coach.auth_users?.email || 'Unknown email',
-        created_at: coach.created_at
-      }));
+      // Fetch user emails separately
+      const userIds = profilesData.map(profile => profile.id);
+      
+      // Get user emails from auth.users via getUser (can't query auth.users directly)
+      const coachesData: Coach[] = [];
+      
+      for (const profileId of userIds) {
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profileId);
+        
+        if (!userError && userData?.user) {
+          coachesData.push({
+            id: profileId,
+            email: userData.user.email || 'Unknown email',
+            created_at: profilesData.find(p => p.id === profileId)?.created_at || new Date().toISOString()
+          });
+        }
+      }
 
       setCoaches(coachesData);
     } catch (error) {

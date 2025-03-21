@@ -24,7 +24,7 @@ const fetchClients = async (): Promise<Client[]> => {
     .select(`
       id,
       created_at,
-      auth_users:id(email)
+      user_type
     `)
     .eq('user_type', 'client')
     .order('created_at', { ascending: false });
@@ -63,13 +63,23 @@ const fetchClients = async (): Promise<Client[]> => {
     return map;
   }, {} as Record<string, string>);
 
-  // Transform profile data and add group info
-  return profiles.map(profile => ({
-    id: profile.id,
-    email: profile.auth_users?.email || 'Unknown email',
-    created_at: profile.created_at,
-    group_name: userGroupMap[profile.id] ? groupNameMap[userGroupMap[profile.id]] || null : null
-  }));
+  // Fetch user emails from auth.users
+  const clientsData: Client[] = [];
+  
+  for (const profile of profiles) {
+    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
+    
+    if (!userError && userData?.user) {
+      clientsData.push({
+        id: profile.id,
+        email: userData.user.email || 'Unknown email',
+        created_at: profile.created_at,
+        group_name: userGroupMap[profile.id] ? groupNameMap[userGroupMap[profile.id]] || null : null
+      });
+    }
+  }
+
+  return clientsData;
 };
 
 const ClientsPage: React.FC = () => {

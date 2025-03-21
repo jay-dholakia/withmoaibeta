@@ -1,24 +1,92 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ensureCoachGroupAssignment } from './coach-group-service';
+import { ClientData } from './client-service';
 
 /**
  * Fetches all clients associated with the coach's groups
  */
-export const fetchCoachClients = async (coachId: string) => {
+export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> => {
   if (!coachId) throw new Error('Coach ID is required');
   
   try {
-    const { data, error } = await supabase.rpc('get_coach_clients', {
+    // First try using RPC function
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_coach_clients', {
       coach_id: coachId
     });
     
-    if (error) throw error;
+    if (rpcError) {
+      console.error('Error with RPC client fetch:', rpcError);
+      
+      // Fallback to direct query if RPC fails
+      console.log('Falling back to direct query for clients');
+      const { data: directData, error: directError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          user_type,
+          client_workout_info!inner (
+            last_workout_at,
+            total_workouts_completed,
+            current_program_id
+          ),
+          workout_programs (
+            id,
+            title
+          )
+        `)
+        .eq('user_type', 'client')
+        .filter('id', 'in', (
+          supabase
+            .from('group_members')
+            .select('user_id')
+            .filter('group_id', 'in', (
+              supabase
+                .from('group_coaches')
+                .select('group_id')
+                .eq('coach_id', coachId)
+            ))
+        ));
+      
+      if (directError) {
+        console.error('Error with direct client fetch:', directError);
+        return [];
+      }
+      
+      // Transform the direct query data to match the expected format
+      return directData.map(client => {
+        const workoutInfo = client.client_workout_info[0] || {};
+        const program = client.workout_programs && client.workout_programs.length > 0 
+          ? client.workout_programs[0] 
+          : null;
+        
+        // Calculate days since last workout
+        let daysSinceLastWorkout = null;
+        if (workoutInfo.last_workout_at) {
+          const lastWorkout = new Date(workoutInfo.last_workout_at);
+          const today = new Date();
+          const diffTime = Math.abs(today.getTime() - lastWorkout.getTime());
+          daysSinceLastWorkout = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+        
+        // Get the user email from auth.users
+        return {
+          id: client.id,
+          email: '', // Will be populated in separate call
+          user_type: client.user_type,
+          last_workout_at: workoutInfo.last_workout_at || null,
+          total_workouts_completed: workoutInfo.total_workouts_completed || 0,
+          current_program_id: workoutInfo.current_program_id || null,
+          current_program_title: program ? program.title : null,
+          days_since_last_workout: daysSinceLastWorkout,
+          group_ids: [] // Will be populated in separate call
+        };
+      });
+    }
     
-    return data || [];
+    return rpcData || [];
   } catch (error) {
     console.error('Error fetching coach clients:', error);
-    throw error;
+    return [];
   }
 };
 

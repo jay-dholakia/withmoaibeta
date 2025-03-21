@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -38,20 +37,36 @@ const ClientsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const { data: clients, isLoading: isLoadingClients } = useQuery({
+  const { data: clients, isLoading: isLoadingClients, error: clientsError } = useQuery({
     queryKey: ['coach-clients', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
-      return fetchCoachClients(user.id);
+      try {
+        const clientData = await fetchCoachClients(user.id);
+        console.log('Fetched clients:', clientData);
+        return clientData;
+      } catch (error) {
+        console.error('Error in client fetch query function:', error);
+        toast.error('Failed to load clients. Please try again later.');
+        return [];
+      }
     },
     enabled: !!user?.id,
   });
 
-  const { data: groups, isLoading: isLoadingGroups } = useQuery({
+  const { data: groups, isLoading: isLoadingGroups, error: groupsError } = useQuery({
     queryKey: ['coach-groups', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
-      return fetchCoachGroups(user.id);
+      try {
+        const groupData = await fetchCoachGroups(user.id);
+        console.log('Fetched groups:', groupData);
+        return groupData;
+      } catch (error) {
+        console.error('Error in group fetch query function:', error);
+        toast.error('Failed to load groups. Please try again later.');
+        return [];
+      }
     },
     enabled: !!user?.id,
   });
@@ -60,7 +75,6 @@ const ClientsPage = () => {
     selectedGroupId === 'all' || client.group_ids.includes(selectedGroupId)
   ) || [];
 
-  // Pagination logic
   const totalPages = Math.ceil((filteredClients?.length || 0) / itemsPerPage);
   const paginatedClients = filteredClients.slice(
     (currentPage - 1) * itemsPerPage, 
@@ -100,6 +114,32 @@ const ClientsPage = () => {
     );
   }
 
+  if (clientsError || groupsError) {
+    return (
+      <CoachLayout>
+        <div className="space-y-6">
+          <h1 className="text-3xl font-bold text-coach flex items-center gap-2">
+            <Users className="h-8 w-8" /> Clients
+          </h1>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+                <p className="font-medium">Error loading data</p>
+                <p className="text-sm mt-1">There was a problem loading your client data. Please refresh the page or try again later.</p>
+              </div>
+              <Button 
+                className="mt-4" 
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </CoachLayout>
+    );
+  }
+
   return (
     <CoachLayout>
       <div className="space-y-6">
@@ -113,7 +153,7 @@ const ClientsPage = () => {
               <span className="text-sm text-muted-foreground mr-2">Filter by group:</span>
               <Select value={selectedGroupId} onValueChange={(value) => {
                 setSelectedGroupId(value);
-                setCurrentPage(1); // Reset to first page when filter changes
+                setCurrentPage(1);
               }}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="All Groups" />

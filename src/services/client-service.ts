@@ -224,7 +224,7 @@ export interface LeaderboardEntry {
 
 export const fetchGroupLeaderboardWeekly = async (groupId: string): Promise<LeaderboardEntry[]> => {
   const startOfWeek = new Date();
-  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Start of current week (Sunday)
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
   
   const { data, error } = await supabase
@@ -243,7 +243,7 @@ export const fetchGroupLeaderboardWeekly = async (groupId: string): Promise<Lead
 
 export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<LeaderboardEntry[]> => {
   const startOfMonth = new Date();
-  startOfMonth.setDate(1); // Start of current month
+  startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
   
   const { data, error } = await supabase
@@ -262,7 +262,6 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<Lea
 
 export const fetchClientProfile = async (clientId: string): Promise<ClientProfile | null> => {
   try {
-    // Try to fetch directly from client_profiles table
     const { data, error } = await supabase
       .from('client_profiles')
       .select('*')
@@ -275,7 +274,6 @@ export const fetchClientProfile = async (clientId: string): Promise<ClientProfil
     }
 
     if (!data) {
-      // Create a minimal profile if no data found
       const initialProfile = {
         id: clientId,
         first_name: null,
@@ -296,11 +294,9 @@ export const fetchClientProfile = async (clientId: string): Promise<ClientProfil
       return initialProfile;
     }
 
-    // Return the profile data
     return data as ClientProfile;
   } catch (error) {
     console.error('Error in fetchClientProfile:', error);
-    // Return a minimal profile with the ID
     return {
       id: clientId,
       first_name: null,
@@ -322,14 +318,12 @@ export const fetchClientProfile = async (clientId: string): Promise<ClientProfil
 
 export const updateClientProfile = async (clientId: string, profile: Partial<ClientProfile>): Promise<ClientProfile> => {
   try {
-    // Get the existing profile to merge with updates
     const existingProfile = await fetchClientProfile(clientId);
     
     if (!existingProfile) {
       throw new Error('Could not find or create client profile');
     }
     
-    // Merge the existing profile with the updates
     const updatedProfile = {
       ...existingProfile,
       ...profile,
@@ -338,7 +332,6 @@ export const updateClientProfile = async (clientId: string, profile: Partial<Cli
     
     console.log('Updating profile with merged data:', updatedProfile);
     
-    // Store profile directly in client_profiles table
     const { data, error } = await supabase
       .from('client_profiles')
       .upsert(updatedProfile)
@@ -354,7 +347,6 @@ export const updateClientProfile = async (clientId: string, profile: Partial<Cli
   } catch (error) {
     console.error('Error in updateClientProfile:', error);
     try {
-      // Just return the profile data as if it were updated
       const updatedProfile = {
         id: clientId,
         ...profile,
@@ -618,18 +610,15 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     return null;
   }
   
-  // Log detailed program structure for debugging
   if (data.program) {
     console.log("Program title:", data.program.title);
     console.log("Program weeks count:", data.program.weeks);
     
-    // Check if weeks property exists and is an array before accessing its properties
-    const weeksArray = data.program.weeks || [];
+    const weeksArray: any[] = data.program.weeks || [];
     if (Array.isArray(weeksArray)) {
       console.log("Weeks data available:", weeksArray.length, "weeks");
       
-      // Check if weeks have workouts
-      weeksArray.forEach((week: any, index: number) => {
+      weeksArray.forEach((week: any) => {
         const workoutsCount = week.workouts ? week.workouts.length : 0;
         console.log(`Week ${week.week_number}: ${workoutsCount} workouts`);
       });
@@ -643,7 +632,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
 
 export const fetchGroupWeeklyProgress = async (groupId: string): Promise<any> => {
   const startOfWeek = new Date();
-  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Back to Sunday
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
   
   const { data: members, error: membersError } = await supabase
@@ -755,16 +744,13 @@ const getUserEmail = async (userId: string): Promise<string> => {
   }
 };
 
-// Helper function to check if client_profiles table exists
 const ensureClientProfilesTable = async (): Promise<boolean> => {
   try {
-    // Just check if client_profiles table is accessible
     const { data, error } = await supabase
       .from('client_profiles')
       .select('id')
       .limit(1);
     
-    // If no error, the table exists
     return !error;
   } catch (error) {
     console.error('Error checking client_profiles table existence:', error);

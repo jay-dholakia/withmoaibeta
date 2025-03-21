@@ -4,11 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, UserRound, AlertTriangle } from 'lucide-react';
+import { Loader2, Users, UserRound, AlertTriangle, UserPlus } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import { toast } from 'sonner';
-import { fetchUserGroups, diagnoseGroupAccess } from '@/services/moai-service';
+import { fetchUserGroups, diagnoseGroupAccess, ensureUserHasGroup } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
 
 const MoaiPage = () => {
@@ -77,6 +77,30 @@ const MoaiPage = () => {
     }
   };
   
+  const joinGroup = async () => {
+    if (!user?.id) {
+      toast.error('No user ID available');
+      return;
+    }
+    
+    toast.info('Attempting to join your group...');
+    try {
+      const result = await ensureUserHasGroup(user.id);
+      console.log('Join group result:', result);
+      
+      if (result.success) {
+        toast.success('Successfully joined your group!');
+        // Force a fresh reload of groups data
+        refetch();
+      } else {
+        toast.error(`Failed to join group: ${result.message}`);
+      }
+    } catch (err) {
+      console.error('Error joining group:', err);
+      toast.error('Failed to join group');
+    }
+  };
+  
   if (isLoadingGroups) {
     return (
       <div className="space-y-6">
@@ -110,7 +134,7 @@ const MoaiPage = () => {
               User ID: {user?.id || 'Not logged in'}
             </p>
             
-            <div className="mt-6 flex justify-center">
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
               <Button 
                 variant="outline"
                 onClick={runDiagnostics}
@@ -118,6 +142,15 @@ const MoaiPage = () => {
               >
                 <AlertTriangle className="h-4 w-4" />
                 Diagnose Group Access
+              </Button>
+              
+              <Button 
+                variant="default"
+                onClick={joinGroup}
+                className="flex items-center gap-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                Join Your Group
               </Button>
             </div>
           </CardContent>

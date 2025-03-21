@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
@@ -101,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         toast.error(error.message);
-        setLoading(false);
+        setLoading(false); // Make sure we reset loading state on error
         return;
       }
       
@@ -119,13 +118,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             navigate('/client-dashboard');
           }
           toast.success(`Sign in successful!`);
-          setLoading(false);
+          setLoading(false); // Reset loading state after successful authentication
         }, 500);
       }
     } catch (error) {
       console.error('Error in signIn:', error);
       toast.error('An unexpected error occurred');
-      setLoading(false);
+      setLoading(false); // Make sure we reset loading state on error
     }
   };
 

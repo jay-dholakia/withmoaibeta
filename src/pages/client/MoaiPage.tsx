@@ -4,11 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, UserRound, AlertTriangle, Plus } from 'lucide-react';
+import { Loader2, Users, UserRound, AlertTriangle } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import { toast } from 'sonner';
-import { fetchUserGroups, diagnoseGroupAccess, ensureUserHasGroup } from '@/services/moai-service';
+import { fetchUserGroups, diagnoseGroupAccess } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
 
 const MoaiPage = () => {
@@ -77,30 +77,6 @@ const MoaiPage = () => {
     }
   };
   
-  const fixGroupAssignment = async () => {
-    if (!user?.id) {
-      toast.error('No user ID available');
-      return;
-    }
-    
-    toast.info('Attempting to fix group assignment...');
-    try {
-      const result = await ensureUserHasGroup(user.id);
-      console.log('Fix group assignment result:', result);
-      
-      if (result.success) {
-        toast.success(result.message);
-        // Force a fresh reload of groups data
-        refetch();
-      } else {
-        toast.error(`Failed to fix group assignment: ${result.message}`);
-      }
-    } catch (err) {
-      console.error('Error fixing group assignment:', err);
-      toast.error('Failed to fix group assignment');
-    }
-  };
-  
   if (isLoadingGroups) {
     return (
       <div className="space-y-6">
@@ -134,7 +110,7 @@ const MoaiPage = () => {
               User ID: {user?.id || 'Not logged in'}
             </p>
             
-            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="mt-6 flex justify-center">
               <Button 
                 variant="outline"
                 onClick={runDiagnostics}
@@ -142,15 +118,6 @@ const MoaiPage = () => {
               >
                 <AlertTriangle className="h-4 w-4" />
                 Diagnose Group Access
-              </Button>
-              
-              <Button 
-                variant="default"
-                onClick={fixGroupAssignment}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Fix Group Assignment
               </Button>
             </div>
           </CardContent>

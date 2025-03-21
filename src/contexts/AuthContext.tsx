@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
@@ -118,10 +119,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      if (data.user) {
-        console.log('Sign in successful, user ID:', data.user.id);
-        toast.success('Sign in successful!');
-      } else {
+      console.log('Sign in successful, user ID:', data.user?.id);
+      toast.success('Sign in successful!');
+      
+      // Note: AuthStateChange will handle loading user profile
+      // but we need to make sure loading gets reset if there's an issue
+      if (!data.user) {
         console.error('No user data returned from sign in');
         toast.error('Sign in failed - no user data returned');
         setLoading(false);

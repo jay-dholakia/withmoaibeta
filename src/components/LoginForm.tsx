@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
@@ -10,11 +9,15 @@ import { ForgotPasswordForm } from './ForgotPasswordForm';
 interface LoginFormProps {
   variant: 'admin' | 'coach' | 'client';
   onSubmit?: (email: string, password: string) => void;
+  onLoginStart?: () => void;
+  onLoginEnd?: () => void;
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({
   variant,
-  onSubmit
+  onSubmit,
+  onLoginStart,
+  onLoginEnd
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,8 +35,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       // When auth is no longer loading, reset our local states
       setLocalLoading(false);
       setIsSubmitting(false);
+      if (onLoginEnd) onLoginEnd();
     }
-  }, [authLoading]);
+  }, [authLoading, onLoginEnd]);
 
   // Prevent self-registration for admin accounts
   useEffect(() => {
@@ -56,12 +60,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     setLocalLoading(true);
     setIsSubmitting(true);
     
+    if (onLoginStart) onLoginStart();
+    
     try {
       if (isRegistering) {
         if (variant === 'admin') {
           toast.error('Admin accounts cannot be self-registered');
           setLocalLoading(false);
           setIsSubmitting(false);
+          if (onLoginEnd) onLoginEnd();
           return;
         }
         await signUp(email, password, variant);
@@ -72,6 +79,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           onSubmit(email, password);
           setLocalLoading(false);
           setIsSubmitting(false);
+          if (onLoginEnd) onLoginEnd();
         } else {
           console.log(`Signing in as ${variant} with email: ${email}`);
           await signIn(email, password, variant);
@@ -82,6 +90,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       console.error(isRegistering ? 'Registration error:' : 'Login error:', error);
       setLocalLoading(false);
       setIsSubmitting(false);
+      if (onLoginEnd) onLoginEnd();
     }
   };
 

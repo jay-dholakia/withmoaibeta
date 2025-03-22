@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -29,6 +28,7 @@ import CoachClientsPage from "./pages/coach/ClientsPage";
 import ProfilePage from "./pages/coach/ProfilePage";
 import LeaderboardPage from './pages/coach/LeaderboardPage';
 import ProfileBuilder from './pages/client/ProfileBuilder';
+import ProfileEditor from './pages/client/ProfileEditor';
 import ClientDashboard from './pages/client/ClientDashboard';
 import { useQuery } from "@tanstack/react-query";
 import { fetchClientProfile } from "./services/client-service";
@@ -48,7 +48,6 @@ const ClientProtectedRoute = ({ children, redirectTo = "/client" }) => {
         return result;
       } catch (error) {
         console.error('Profile check error:', error);
-        // Return null on error to avoid continuous redirects
         return null;
       }
     },
@@ -242,6 +241,15 @@ function App() {
                   element={
                     <ProtectedRoute userType="client" redirectTo="/client">
                       <ProfileBuilder />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/client-profile-editor" 
+                  element={
+                    <ProtectedRoute userType="client" redirectTo="/client">
+                      <ProfileEditor />
                     </ProtectedRoute>
                   } 
                 />

@@ -90,7 +90,7 @@ const SettingsPage = () => {
         <CardFooter className="flex justify-end border-t pt-4">
           <Button
             variant="outline"
-            onClick={() => navigate('/client-profile-builder')}
+            onClick={() => navigate('/client-profile-editor')}
             className="flex items-center"
           >
             <Edit className="mr-2 h-4 w-4" />

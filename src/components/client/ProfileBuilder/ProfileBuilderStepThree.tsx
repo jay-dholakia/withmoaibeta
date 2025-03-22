@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ClientProfile } from '@/services/client-service';
@@ -20,7 +19,6 @@ import {
   Ship,
   Map,
   Footprints,
-  Swimming,
   Bird,
   Heart,
   Timer,
@@ -54,7 +52,7 @@ export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = (
   const movementOptions: MovementOption[] = [
     { label: 'Walking', icon: <Footprints className="h-5 w-5" /> },
     { label: 'Running', icon: <User2 className="h-5 w-5" /> },
-    { label: 'Swimming', icon: <Swimming className="h-5 w-5" /> },
+    { label: 'Swimming', icon: <Waves className="h-5 w-5" /> },
     { label: 'Cycling', icon: <Bike className="h-5 w-5" /> },
     { label: 'Weight Training', icon: <Dumbbell className="h-5 w-5" /> },
     { label: 'Yoga', icon: <Activity className="h-5 w-5 rotate-45" /> },

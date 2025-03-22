@@ -35,6 +35,78 @@ export const getRemainingPasses = async (userId: string): Promise<number> => {
   return Math.max(0, MAX_MONTHLY_PASSES - usedPasses);
 };
 
+// Find a dummy workout ID to use for life happens pass
+// This helps us satisfy the non-null constraint on the workout_id column
+const getFirstAvailableWorkoutId = async (): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('id')
+      .limit(1);
+    
+    if (error) {
+      console.error("Error getting workout ID:", error);
+      return null;
+    }
+    
+    if (!data || data.length === 0) {
+      console.error("No workouts found in the database");
+      return null;
+    }
+    
+    return data[0]?.id || null;
+  } catch (error) {
+    console.error("Error getting workout ID:", error);
+    return null;
+  }
+};
+
+// Create a new workout completion with a life happens pass
+export const createLifeHappensCompletion = async (
+  userId: string,
+  notes: string = "Life happens pass used"
+): Promise<string | null> => {
+  try {
+    console.log("Creating life happens completion for user:", userId);
+    
+    // Get a workout ID to use (required by the database constraint)
+    const workoutId = await getFirstAvailableWorkoutId();
+    
+    if (!workoutId) {
+      console.error("Could not find a workout ID to use for life happens pass");
+      return null;
+    }
+    
+    console.log("Using workout ID:", workoutId);
+    
+    const now = new Date().toISOString();
+    console.log("Timestamp for completion:", now);
+    
+    const { data, error } = await supabase
+      .from('workout_completions')
+      .insert({
+        user_id: userId,
+        workout_id: workoutId,
+        completed_at: now,
+        notes: notes,
+        life_happens_pass: true
+      })
+      .select('id')
+      .single();
+    
+    if (error) {
+      console.error("Error creating life happens completion:", error);
+      throw error;
+    }
+    
+    console.log("Successfully created life happens completion with ID:", data?.id);
+    return data?.id || null;
+  } catch (error) {
+    console.error("Error creating life happens completion:", error);
+    return null;
+  }
+};
+
 // Use a life happens pass for a workout
 export const useLifeHappensPass = async (
   workoutCompletionId: string,
@@ -56,62 +128,5 @@ export const useLifeHappensPass = async (
   } catch (error) {
     console.error("Error using life happens pass:", error);
     return false;
-  }
-};
-
-// Find a dummy workout ID to use for life happens pass
-// This helps us satisfy the non-null constraint on the workout_id column
-const getFirstAvailableWorkoutId = async (): Promise<string | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('workouts')
-      .select('id')
-      .limit(1)
-      .single();
-    
-    if (error) {
-      console.error("Error getting workout ID:", error);
-      return null;
-    }
-    
-    return data?.id || null;
-  } catch (error) {
-    console.error("Error getting workout ID:", error);
-    return null;
-  }
-};
-
-// Create a new workout completion with a life happens pass
-export const createLifeHappensCompletion = async (
-  userId: string,
-  notes: string = "Life happens pass used"
-): Promise<string | null> => {
-  try {
-    // Get a workout ID to use (required by the database constraint)
-    const workoutId = await getFirstAvailableWorkoutId();
-    
-    if (!workoutId) {
-      console.error("Could not find a workout ID to use for life happens pass");
-      return null;
-    }
-    
-    const { data, error } = await supabase
-      .from('workout_completions')
-      .insert({
-        user_id: userId,
-        workout_id: workoutId, // Use the first available workout ID instead of null
-        completed_at: new Date().toISOString(),
-        notes: notes,
-        life_happens_pass: true
-      })
-      .select('id')
-      .single();
-    
-    if (error) throw error;
-    
-    return data.id;
-  } catch (error) {
-    console.error("Error creating life happens completion:", error);
-    return null;
   }
 };

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Umbrella, Loader2 } from 'lucide-react';
@@ -32,14 +33,18 @@ const LifeHappensButton = () => {
     mutationFn: async () => {
       if (!user?.id) return false;
       
-      // Use the updated createLifeHappensCompletion function
+      console.log("Starting life happens mutation for user:", user.id);
+      
+      // Use the createLifeHappensCompletion function
       const completionId = await createLifeHappensCompletion(user.id, "Life happens pass used");
+      console.log("Completion ID from mutation:", completionId);
       return !!completionId;
     },
     onSuccess: () => {
       toast.success('Life happens pass used successfully!');
       queryClient.invalidateQueries({ queryKey: ['life-happens-passes'] });
       queryClient.invalidateQueries({ queryKey: ['workouts'] });
+      queryClient.invalidateQueries({ queryKey: ['workout-history'] });
       setDialogOpen(false);
     },
     onError: (error) => {
@@ -60,6 +65,7 @@ const LifeHappensButton = () => {
   };
 
   const handleConfirmUsePass = () => {
+    console.log("Confirming use of life happens pass");
     lifeHappensMutation.mutate();
   };
 

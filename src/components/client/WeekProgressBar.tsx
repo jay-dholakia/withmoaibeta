@@ -31,13 +31,27 @@ export const WeekProgressBar = ({
   // Create array of days for the current week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   
+  // Convert dates to ISO strings for logging and debugging
+  console.log("Completed dates:", completedDates.map(d => d.toISOString()));
+  console.log("Life happens dates:", lifeHappensDates.map(d => d.toISOString()));
+  
   // Calculate percentage complete - including both completed workouts and life happens passes
   const completedDaysThisWeek = count !== undefined 
     ? count 
-    : completedDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length + 
-      lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
+    : completedDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
   
-  const percentComplete = (completedDaysThisWeek / total) * 100;
+  const lifeHappensDaysThisWeek = lifeHappensDates.filter(date => 
+    isThisWeek(date, { weekStartsOn: 0 })
+  ).length;
+  
+  console.log("Completed days this week:", completedDaysThisWeek);
+  console.log("Life happens days this week:", lifeHappensDaysThisWeek);
+  
+  const totalCompletedCount = completedDaysThisWeek + lifeHappensDaysThisWeek;
+  const percentComplete = (totalCompletedCount / total) * 100;
+  
+  console.log("Total completed count:", totalCompletedCount);
+  console.log("Percent complete:", percentComplete);
 
   return (
     <div className="space-y-2 mb-8 bg-white rounded-xl p-5 shadow-sm">
@@ -45,7 +59,7 @@ export const WeekProgressBar = ({
         <div>
           <h3 className="text-base font-semibold">{label}</h3>
           <p className="text-sm text-slate-500">
-            {completedDaysThisWeek} of {total} workouts completed
+            {totalCompletedCount} of {total} workouts completed
           </p>
         </div>
         <span className={`text-lg font-bold ${textColor}`}>{Math.round(percentComplete)}%</span>

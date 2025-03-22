@@ -1,72 +1,59 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { Exercise } from "@/types/workout";
 
 export interface CustomWorkout {
   id: string;
-  title: string;
-  description?: string | null;
-  duration_minutes?: number | null;
   user_id: string;
+  title: string;
+  description: string | null;
+  duration_minutes: number | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface CustomWorkoutExercise {
   id: string;
   workout_id: string;
-  exercise_id?: string | null;
-  custom_exercise_name?: string | null;
-  sets?: number | null;
-  reps?: string | null;
-  rest_seconds?: number | null;
-  notes?: string | null;
+  exercise_id: string | null;
+  custom_exercise_name: string | null;
+  sets: number | null;
+  reps: string | null;
+  rest_seconds: number | null;
+  notes: string | null;
   order_index: number;
-  exercise?: {
-    id: string;
-    name: string;
-    description?: string | null;
-    category?: string | null;
-    equipment?: string | null;
-  } | null;
+  created_at: string;
+  exercise?: Exercise;
 }
 
 export interface CreateCustomWorkoutParams {
   title: string;
   description?: string;
   duration_minutes?: number;
-  user_id?: string;
 }
 
 export interface CreateCustomWorkoutExerciseParams {
   workout_id: string;
   exercise_id?: string;
-  custom_exercise_name?: string | null;
-  sets?: number | null;
-  reps?: string | null;
-  rest_seconds?: number | null;
-  notes?: string | null;
+  custom_exercise_name?: string;
+  sets?: number;
+  reps?: string;
+  rest_seconds?: number;
+  notes?: string;
   order_index: number;
 }
 
-export const createCustomWorkout = async (params: CreateCustomWorkoutParams) => {
-  // Get current user if user_id not provided
-  if (!params.user_id) {
-    const { data: { user } } = await supabase.auth.getUser();
-    params.user_id = user?.id;
-
-    if (!params.user_id) {
-      throw new Error('User not authenticated');
-    }
-  }
-
+// Create a new custom workout
+export const createCustomWorkout = async (params: CreateCustomWorkoutParams): Promise<CustomWorkout> => {
   const { data, error } = await supabase
     .from('client_custom_workouts')
     .insert({
+      user_id: (await supabase.auth.getUser()).data.user?.id,
       title: params.title,
       description: params.description || null,
       duration_minutes: params.duration_minutes || null,
-      user_id: params.user_id
     })
-    .select()
+    .select('*')
     .single();
 
   if (error) {
@@ -74,23 +61,24 @@ export const createCustomWorkout = async (params: CreateCustomWorkoutParams) => 
     throw error;
   }
 
-  return data;
+  return data as CustomWorkout;
 };
 
-export const createCustomWorkoutExercise = async (params: CreateCustomWorkoutExerciseParams) => {
+// Create a custom workout exercise
+export const createCustomWorkoutExercise = async (params: CreateCustomWorkoutExerciseParams): Promise<CustomWorkoutExercise> => {
   const { data, error } = await supabase
     .from('client_custom_workout_exercises')
     .insert({
       workout_id: params.workout_id,
       exercise_id: params.exercise_id || null,
       custom_exercise_name: params.custom_exercise_name || null,
-      sets: params.sets,
-      reps: params.reps,
-      rest_seconds: params.rest_seconds,
-      notes: params.notes,
-      order_index: params.order_index
+      sets: params.sets || null,
+      reps: params.reps || null,
+      rest_seconds: params.rest_seconds || null,
+      notes: params.notes || null,
+      order_index: params.order_index,
     })
-    .select()
+    .select('*')
     .single();
 
   if (error) {
@@ -98,20 +86,14 @@ export const createCustomWorkoutExercise = async (params: CreateCustomWorkoutExe
     throw error;
   }
 
-  return data;
+  return data as CustomWorkoutExercise;
 };
 
+// Fetch custom workouts for the current user
 export const fetchCustomWorkouts = async (): Promise<CustomWorkout[]> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
   const { data, error } = await supabase
     .from('client_custom_workouts')
     .select('*')
-    .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -119,30 +101,10 @@ export const fetchCustomWorkouts = async (): Promise<CustomWorkout[]> => {
     throw error;
   }
 
-  return data || [];
+  return data as CustomWorkout[];
 };
 
-export const fetchCustomWorkout = async (workoutId: string) => {
-  const { data, error } = await supabase
-    .from('client_custom_workouts')
-    .select(`
-      *,
-      client_custom_workout_exercises (
-        *,
-        exercise:exercise_id (*)
-      )
-    `)
-    .eq('id', workoutId)
-    .single();
-
-  if (error) {
-    console.error('Error fetching custom workout:', error);
-    throw error;
-  }
-
-  return data;
-};
-
+// Fetch exercises for a custom workout
 export const fetchCustomWorkoutExercises = async (workoutId: string): Promise<CustomWorkoutExercise[]> => {
   const { data, error } = await supabase
     .from('client_custom_workout_exercises')
@@ -151,121 +113,38 @@ export const fetchCustomWorkoutExercises = async (workoutId: string): Promise<Cu
       exercise:exercise_id (*)
     `)
     .eq('workout_id', workoutId)
-    .order('order_index', { ascending: true });
+    .order('order_index');
 
   if (error) {
     console.error('Error fetching custom workout exercises:', error);
     throw error;
   }
 
-  return data || [];
+  return data as CustomWorkoutExercise[];
 };
 
+// Delete a custom workout
 export const deleteCustomWorkout = async (workoutId: string): Promise<void> => {
-  // First delete all exercises associated with this workout
-  const { error: exercisesError } = await supabase
-    .from('client_custom_workout_exercises')
-    .delete()
-    .eq('workout_id', workoutId);
-
-  if (exercisesError) {
-    console.error('Error deleting custom workout exercises:', exercisesError);
-    throw exercisesError;
-  }
-
-  // Then delete the workout itself
-  const { error: workoutError } = await supabase
+  const { error } = await supabase
     .from('client_custom_workouts')
     .delete()
     .eq('id', workoutId);
 
-  if (workoutError) {
-    console.error('Error deleting custom workout:', workoutError);
-    throw workoutError;
+  if (error) {
+    console.error('Error deleting custom workout:', error);
+    throw error;
   }
 };
 
-export const startCustomWorkout = async (workoutId: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
-  const { data, error } = await supabase
-    .from('workout_completions')
-    .insert({
-      user_id: user.id,
-      workout_id: workoutId,
-      status: 'in_progress'
-    })
-    .select()
-    .single();
+// Delete a custom workout exercise
+export const deleteCustomWorkoutExercise = async (exerciseId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('client_custom_workout_exercises')
+    .delete()
+    .eq('id', exerciseId);
 
   if (error) {
-    console.error('Error starting workout:', error);
+    console.error('Error deleting custom workout exercise:', error);
     throw error;
   }
-
-  return data;
-};
-
-export const trackCustomWorkoutSet = async (
-  workoutCompletionId: string,
-  exerciseId: string,
-  setNumber: number,
-  weight?: number | null,
-  reps?: number | null
-) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
-  const { data, error } = await supabase
-    .from('workout_set_completions')
-    .upsert({
-      workout_completion_id: workoutCompletionId,
-      workout_exercise_id: exerciseId,
-      user_id: user.id,
-      set_number: setNumber,
-      weight: weight || null,
-      reps_completed: reps || null,
-      completed: true
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error tracking workout set:', error);
-    throw error;
-  }
-
-  return data;
-};
-
-export const completeCustomWorkout = async (
-  workoutCompletionId: string,
-  rating?: number | null,
-  notes?: string
-) => {
-  const { data, error } = await supabase
-    .from('workout_completions')
-    .update({
-      completed_at: new Date().toISOString(),
-      status: 'completed',
-      rating: rating || null,
-      notes: notes || null
-    })
-    .eq('id', workoutCompletionId)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error completing workout:', error);
-    throw error;
-  }
-
-  return data;
 };

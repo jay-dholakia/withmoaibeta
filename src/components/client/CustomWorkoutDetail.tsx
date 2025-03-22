@@ -1,60 +1,73 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Clock, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Trash2, Clock, PlayCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import {
-  fetchCustomWorkout,
+  fetchCustomWorkouts,
   fetchCustomWorkoutExercises,
   deleteCustomWorkout,
   CustomWorkout,
-  CustomWorkoutExercise,
+  CustomWorkoutExercise
 } from '@/services/client-custom-workout-service';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const CustomWorkoutDetail = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
   const navigate = useNavigate();
-  
   const [workout, setWorkout] = useState<CustomWorkout | null>(null);
   const [exercises, setExercises] = useState<CustomWorkoutExercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const loadWorkoutData = async () => {
-      if (!workoutId) {
-        navigate('/client-dashboard/workouts');
-        return;
-      }
-
+    const loadWorkoutDetails = async () => {
+      if (!workoutId) return;
+      
       try {
         setIsLoading(true);
         
         // Fetch workout details
-        const workoutData = await fetchCustomWorkout(workoutId);
-        setWorkout(workoutData);
+        const workouts = await fetchCustomWorkouts();
+        const currentWorkout = workouts.find(w => w.id === workoutId);
+        
+        if (!currentWorkout) {
+          toast.error('Workout not found');
+          navigate('/client-dashboard/workouts');
+          return;
+        }
+        
+        setWorkout(currentWorkout);
         
         // Fetch workout exercises
         const exercisesData = await fetchCustomWorkoutExercises(workoutId);
         setExercises(exercisesData);
-        
-        setIsLoading(false);
       } catch (error) {
-        console.error('Error loading workout:', error);
+        console.error('Error loading workout details:', error);
         toast.error('Failed to load workout details');
-        navigate('/client-dashboard/workouts');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    loadWorkoutData();
+    loadWorkoutDetails();
   }, [workoutId, navigate]);
 
-  const handleDelete = async () => {
-    if (!workoutId || !workout) return;
+  const handleDeleteWorkout = async () => {
+    if (!workoutId) return;
     
     try {
       setIsDeleting(true);
@@ -68,29 +81,18 @@ const CustomWorkoutDetail = () => {
     }
   };
 
-  const startWorkout = () => {
-    if (!workoutId) return;
-    navigate(`/client-dashboard/workouts/custom/${workoutId}/active`);
-  };
-
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-client" />
+      <div className="py-12 flex justify-center">
+        <p className="text-muted-foreground">Loading workout details...</p>
       </div>
     );
   }
 
   if (!workout) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-xl font-medium mb-2">Workout Not Found</h2>
-        <p className="text-muted-foreground mb-6">
-          The workout you're looking for doesn't exist or you don't have permission to view it.
-        </p>
-        <Button onClick={() => navigate('/client-dashboard/workouts')}>
-          Back to Workouts
-        </Button>
+      <div className="py-12 flex justify-center">
+        <p className="text-muted-foreground">Workout not found</p>
       </div>
     );
   }
@@ -98,110 +100,110 @@ const CustomWorkoutDetail = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/client-dashboard/workouts')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-bold">{workout.title}</h1>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="destructive" 
-            size="sm" 
-            onClick={handleDelete} 
-            disabled={isDeleting}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
-          <Button 
-            variant="default" 
-            size="sm" 
-            onClick={startWorkout}
-            className="bg-client hover:bg-client/90"
-          >
-            <PlayCircle className="mr-2 h-4 w-4" />
-            Start Workout
-          </Button>
-        </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate('/client-dashboard/workouts')}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Workouts
+        </Button>
+        
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm" disabled={isDeleting}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              {isDeleting ? 'Deleting...' : 'Delete Workout'}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the custom workout and cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteWorkout}>
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
-      {workout.description && (
-        <div className="bg-muted/50 p-4 rounded-lg">
-          <p>{workout.description}</p>
+      <div>
+        <h1 className="text-2xl font-bold mb-2">{workout.title}</h1>
+        
+        <div className="flex items-center text-muted-foreground mb-4">
+          {workout.duration_minutes && (
+            <div className="flex items-center mr-4">
+              <Clock className="h-4 w-4 mr-1" />
+              <span>{workout.duration_minutes} minutes</span>
+            </div>
+          )}
+          <div>Created: {new Date(workout.created_at).toLocaleDateString()}</div>
         </div>
-      )}
-
-      <div className="flex items-center gap-2">
-        <Clock className="h-4 w-4 text-muted-foreground" />
-        <span className="text-muted-foreground">
-          {workout.duration_minutes ? `${workout.duration_minutes} minutes` : 'Duration not specified'}
-        </span>
+        
+        {workout.description && (
+          <p className="text-muted-foreground mb-6">{workout.description}</p>
+        )}
       </div>
 
       <Separator />
-
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Exercises</h2>
+      
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Exercises</h2>
         
         {exercises.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center">
-              <p className="text-muted-foreground">No exercises added yet.</p>
-            </CardContent>
-          </Card>
+          <p className="text-muted-foreground">No exercises found in this workout.</p>
         ) : (
           <div className="space-y-4">
-            {exercises.map((exercise, index) => {
-              const exerciseName = exercise.exercise?.name || exercise.custom_exercise_name || 'Unknown Exercise';
-              
-              return (
-                <Card key={exercise.id}>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-base">{exerciseName}</CardTitle>
-                        {exercise.exercise?.category && (
-                          <CardDescription>{exercise.exercise.category}</CardDescription>
+            {exercises.map((exercise, index) => (
+              <Card key={exercise.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-medium">
+                        {exercise.exercise?.name || exercise.custom_exercise_name || 'Unnamed Exercise'}
+                      </h3>
+                      
+                      <div className="flex flex-wrap gap-x-4 mt-2 text-sm">
+                        {exercise.sets && (
+                          <div className="text-muted-foreground">
+                            <span className="font-medium">Sets:</span> {exercise.sets}
+                          </div>
+                        )}
+                        
+                        {exercise.reps && (
+                          <div className="text-muted-foreground">
+                            <span className="font-medium">Reps:</span> {exercise.reps}
+                          </div>
+                        )}
+                        
+                        {exercise.rest_seconds && (
+                          <div className="text-muted-foreground">
+                            <span className="font-medium">Rest:</span> {exercise.rest_seconds}s
+                          </div>
                         )}
                       </div>
-                      <Badge variant="outline">#{index + 1}</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      {exercise.sets && (
-                        <div>
-                          <p className="font-medium">Sets</p>
-                          <p>{exercise.sets}</p>
-                        </div>
-                      )}
                       
-                      {exercise.reps && (
-                        <div>
-                          <p className="font-medium">Reps</p>
-                          <p>{exercise.reps}</p>
-                        </div>
-                      )}
-                      
-                      {exercise.rest_seconds && (
-                        <div>
-                          <p className="font-medium">Rest</p>
-                          <p>{exercise.rest_seconds} sec</p>
+                      {exercise.notes && (
+                        <div className="mt-2 text-sm">
+                          <div className="font-medium">Notes:</div>
+                          <p className="text-muted-foreground">{exercise.notes}</p>
                         </div>
                       )}
                     </div>
                     
-                    {exercise.notes && (
-                      <div className="mt-3 text-sm">
-                        <p className="font-medium">Notes</p>
-                        <p className="text-muted-foreground">{exercise.notes}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    <div className="bg-muted h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground font-medium">
+                      {index + 1}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </div>

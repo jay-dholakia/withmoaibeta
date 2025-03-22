@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -130,10 +129,8 @@ export const WeekProgressSection = ({
     );
   }
   
-  // Calculate total workouts completed by the group this week
   const totalGroupWorkoutsThisWeek = groupData?.completions?.length || 0;
   const totalGroupMembers = groupData?.members?.length || 0;
-  // Total possible workouts (each member doing one workout per day)
   const maxPossibleWorkouts = totalGroupMembers * 7;
   
   return (
@@ -178,7 +175,6 @@ export const WeekProgressSection = ({
             textColor="text-blue-500"
           />
           
-          {/* Only show individual member progress when on the Team tab */}
           {showTeam && !showPersonal && (
             <div className="mt-8 space-y-4">
               <h3 className="text-lg font-medium">Member Progress</h3>

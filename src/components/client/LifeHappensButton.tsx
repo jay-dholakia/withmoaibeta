@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Umbrella, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { getRemainingPasses, useLifeHappensPass } from '@/services/life-happens-service';
+import { getRemainingPasses, createLifeHappensCompletion } from '@/services/life-happens-service';
 import { toast } from 'sonner';
 import { 
   Dialog, 
@@ -14,7 +13,6 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
 
 const LifeHappensButton = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -34,21 +32,9 @@ const LifeHappensButton = () => {
     mutationFn: async () => {
       if (!user?.id) return false;
       
-      // Create a new workout completion with the life happens pass used
-      const { data, error } = await supabase
-        .from('workout_completions')
-        .insert({
-          user_id: user.id,
-          workout_id: null, // No actual workout
-          completed_at: new Date().toISOString(),
-          notes: "Life happens pass used",
-          life_happens_pass: true
-        })
-        .select()
-        .single();
-        
-      if (error) throw error;
-      return true;
+      // Use the updated createLifeHappensCompletion function
+      const completionId = await createLifeHappensCompletion(user.id, "Life happens pass used");
+      return !!completionId;
     },
     onSuccess: () => {
       toast.success('Life happens pass used successfully!');

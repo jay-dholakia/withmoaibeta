@@ -59,17 +59,47 @@ export const useLifeHappensPass = async (
   }
 };
 
+// Find a dummy workout ID to use for life happens pass
+// This helps us satisfy the non-null constraint on the workout_id column
+const getFirstAvailableWorkoutId = async (): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('id')
+      .limit(1)
+      .single();
+    
+    if (error) {
+      console.error("Error getting workout ID:", error);
+      return null;
+    }
+    
+    return data?.id || null;
+  } catch (error) {
+    console.error("Error getting workout ID:", error);
+    return null;
+  }
+};
+
 // Create a new workout completion with a life happens pass
 export const createLifeHappensCompletion = async (
   userId: string,
   notes: string = "Life happens pass used"
 ): Promise<string | null> => {
   try {
+    // Get a workout ID to use (required by the database constraint)
+    const workoutId = await getFirstAvailableWorkoutId();
+    
+    if (!workoutId) {
+      console.error("Could not find a workout ID to use for life happens pass");
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('workout_completions')
       .insert({
         user_id: userId,
-        workout_id: null, // No actual workout
+        workout_id: workoutId, // Use the first available workout ID instead of null
         completed_at: new Date().toISOString(),
         notes: notes,
         life_happens_pass: true

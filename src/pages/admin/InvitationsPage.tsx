@@ -48,13 +48,24 @@ const InvitationsPage: React.FC = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
+      
+      const debugEmail = "jdholakia12@gmail.com";
+      const debugInvitation = data?.find(inv => inv.email === debugEmail);
+      if (debugInvitation) {
+        console.log(`Debug - Found invitation for ${debugEmail}:`, debugInvitation);
+        console.log(`Debug - Invitation accepted: ${debugInvitation.accepted}`);
+        console.log(`Debug - Invitation accepted_at: ${debugInvitation.accepted_at}`);
+        console.log(`Debug - Is accepted value a boolean?`, typeof debugInvitation.accepted === 'boolean');
+      } else {
+        console.log(`Debug - Invitation for ${debugEmail} not found in results`);
+      }
+      
       return data as Invitation[];
     },
     enabled: currentUserType === 'admin',
     refetchInterval: 10000
   });
   
-  // Set up realtime subscription for invitation updates
   useEffect(() => {
     if (currentUserType !== 'admin') return;
     
@@ -71,10 +82,8 @@ const InvitationsPage: React.FC = () => {
         },
         (payload) => {
           console.log('Realtime invitation update:', payload);
-          // Invalidate the invitations query to refresh the data
           queryClient.invalidateQueries({ queryKey: ['invitations'] });
           
-          // If this is an invitation being accepted, show a toast notification
           if (payload.eventType === 'UPDATE' && 
               payload.new.accepted === true && 
               payload.old.accepted === false) {
@@ -140,7 +149,6 @@ const InvitationsPage: React.FC = () => {
             throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
           }
           
-          // Check if the email was actually sent
           const responseData = edgeFunctionResponse.data;
           if (responseData && responseData.emailSent === false) {
             console.warn("Email was not sent due to service error:", responseData.emailError);
@@ -319,11 +327,11 @@ const InvitationsPage: React.FC = () => {
   };
 
   const pendingInvitations = invitations?.filter(inv => 
-    !inv.accepted && new Date(inv.expires_at) > new Date()
+    inv.accepted === false && new Date(inv.expires_at) > new Date()
   ) || [];
   
   const expiredInvitations = invitations?.filter(inv => 
-    !inv.accepted && new Date(inv.expires_at) <= new Date()
+    inv.accepted === false && new Date(inv.expires_at) <= new Date()
   ) || [];
   
   const acceptedInvitations = invitations?.filter(inv => 

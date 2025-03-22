@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Pencil, Save, Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,6 @@ const NotesPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   
-  // Fetch notes from Supabase
   useEffect(() => {
     if (!user) return;
     
@@ -37,7 +35,6 @@ const NotesPage = () => {
           
         if (error) throw error;
         
-        // Transform data to include editing state
         const notesWithEditState = data.map(note => ({
           ...note,
           editing: false
@@ -78,7 +75,6 @@ const NotesPage = () => {
       
       if (error) throw error;
       
-      // Add the new note to the state with editing false
       setNotes([
         {
           ...data,
@@ -178,7 +174,7 @@ const NotesPage = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Add a Journal Entry</CardTitle>
+          <CardTitle>Add Journal Entry</CardTitle>
           <CardDescription>
             Keep track of your fitness journey, goals, achievements, or log your food
           </CardDescription>

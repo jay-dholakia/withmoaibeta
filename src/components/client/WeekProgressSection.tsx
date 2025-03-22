@@ -6,6 +6,7 @@ import { fetchClientWorkoutHistory } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
 import { WeekProgressBar } from './WeekProgressBar';
 import { Loader2, Users, User } from 'lucide-react';
+import MoaiMemberItem from './MoaiMemberItem';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -72,8 +73,45 @@ export const WeekProgressSection = ({
       const { data: userEmails } = await supabase
         .rpc('get_users_email', { user_ids: memberIds });
         
+      // Get profile data for each member
+      const { data: profiles } = await supabase
+        .from('client_profiles')
+        .select('id, first_name, last_name, avatar_url')
+        .in('id', memberIds);
+      
+      // Create a map of profiles for easier access
+      const profileMap = {};
+      if (profiles) {
+        profiles.forEach(profile => {
+          profileMap[profile.id] = profile;
+        });
+      }
+      
+      // Create a map of member workout completions
+      const memberWorkoutsMap = {};
+      if (completions) {
+        completions.forEach(completion => {
+          if (!memberWorkoutsMap[completion.user_id]) {
+            memberWorkoutsMap[completion.user_id] = [];
+          }
+          memberWorkoutsMap[completion.user_id].push(new Date(completion.completed_at));
+        });
+      }
+      
+      // Prepare the member data with their emails and workout completions
+      const memberData = memberIds.map(memberId => {
+        const email = userEmails?.find(u => u.id === memberId)?.email || 'Unknown';
+        return {
+          userId: memberId,
+          email,
+          isCurrentUser: memberId === user.id,
+          profileData: profileMap[memberId] || null,
+          completedWorkouts: memberWorkoutsMap[memberId] || []
+        };
+      });
+      
       return { 
-        members: memberIds,
+        members: memberData,
         groupName: groupInfo?.name || "My Moai",
         completions: completions || [],
         userEmails: userEmails || []
@@ -152,6 +190,29 @@ export const WeekProgressSection = ({
             color="bg-blue-500"
             textColor="text-blue-500"
           />
+          
+          {/* Individual member progress cards */}
+          {showTeam && !showPersonal && (
+            <div className="mt-8 space-y-4">
+              <h3 className="text-lg font-medium">Member Progress</h3>
+              <div className="grid grid-cols-1 gap-4">
+                {groupData.members.map(member => (
+                  <div key={member.userId} className="space-y-2">
+                    <MoaiMemberItem 
+                      member={member} 
+                      onClick={() => {}} // No action needed here
+                    />
+                    <WeekProgressBar 
+                      completedDates={member.completedWorkouts}
+                      label={member.isCurrentUser ? "Your Workouts" : `${member.profileData?.first_name || member.email.split('@')[0]}'s Workouts`}
+                      color={member.isCurrentUser ? "bg-client" : "bg-blue-500"}
+                      textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

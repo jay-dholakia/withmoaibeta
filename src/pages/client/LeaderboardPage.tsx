@@ -29,11 +29,6 @@ const LeaderboardPage = () => {
           <WeekProgressSection showTeam={false} showPersonal={true} />
         </TabsContent>
       </Tabs>
-      
-      {/* Additional leaderboard content would go here */}
-      <div className="bg-white rounded-xl p-6 shadow-sm text-center">
-        <p className="text-muted-foreground">Detailed leaderboard data coming soon</p>
-      </div>
     </div>
   );
 };

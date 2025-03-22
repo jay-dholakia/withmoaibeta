@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
@@ -27,6 +26,11 @@ interface CustomExerciseItem {
   notes?: string;
 }
 
+const isCardioExercise = (exerciseName: string): boolean => {
+  const name = exerciseName.toLowerCase();
+  return name.includes('run') || name.includes('walk');
+};
+
 const CreateCustomWorkout = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
@@ -36,16 +40,27 @@ const CreateCustomWorkout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddExercise = (exercise: Exercise) => {
-    setExercises(prev => [
-      ...prev,
-      {
-        id: Math.random().toString(),
-        exercise,
-        sets: 3,
-        reps: '10',
-        rest: 60
-      }
-    ]);
+    if (isCardioExercise(exercise.name)) {
+      setExercises(prev => [
+        ...prev,
+        {
+          id: Math.random().toString(),
+          exercise,
+          rest: 60
+        }
+      ]);
+    } else {
+      setExercises(prev => [
+        ...prev,
+        {
+          id: Math.random().toString(),
+          exercise,
+          sets: 3,
+          reps: '10',
+          rest: 60
+        }
+      ]);
+    }
   };
 
   const handleAddCustomExercise = () => {
@@ -84,7 +99,6 @@ const CreateCustomWorkout = () => {
       return;
     }
 
-    // Validate custom exercise names
     for (const exercise of exercises) {
       if (!exercise.exercise && !exercise.customName) {
         toast.error('Please provide a name for each custom exercise');
@@ -95,21 +109,25 @@ const CreateCustomWorkout = () => {
     try {
       setIsSubmitting(true);
       
-      // Create the custom workout
       const workout = await createCustomWorkout({
         title,
         description: description || undefined,
         duration_minutes: duration
       });
       
-      // Create all the exercises
       const exercisePromises = exercises.map((ex, index) => {
+        const isCardio = ex.exercise 
+          ? isCardioExercise(ex.exercise.name) 
+          : ex.customName 
+            ? isCardioExercise(ex.customName) 
+            : false;
+        
         const params: CreateCustomWorkoutExerciseParams = {
           workout_id: workout.id,
           exercise_id: ex.exercise?.id,
           custom_exercise_name: ex.customName || null,
-          sets: ex.sets || null,
-          reps: ex.reps || null,
+          sets: isCardio ? null : ex.sets || null,
+          reps: isCardio ? null : ex.reps || null,
           rest_seconds: ex.rest || null,
           notes: ex.notes || null,
           order_index: index
@@ -216,89 +234,120 @@ const CreateCustomWorkout = () => {
           )}
           
           <div className="space-y-4">
-            {exercises.map((exercise, index) => (
-              <Card key={exercise.id} className="p-4">
-                <div className="flex flex-col space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      {exercise.exercise ? (
-                        <h3 className="font-medium">{exercise.exercise.name}</h3>
-                      ) : (
-                        <div className="space-y-1">
-                          <Label htmlFor={`custom-${index}`}>Exercise Name *</Label>
-                          <Input 
-                            id={`custom-${index}`}
-                            value={exercise.customName || ''} 
-                            onChange={(e) => updateExercise(index, { customName: e.target.value })}
-                            placeholder="Custom exercise name" 
-                            required={!exercise.exercise}
-                          />
-                        </div>
+            {exercises.map((exercise, index) => {
+              const exerciseName = exercise.exercise?.name || exercise.customName || '';
+              const isCardio = isCardioExercise(exerciseName);
+              
+              return (
+                <Card key={exercise.id} className="p-4">
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        {exercise.exercise ? (
+                          <h3 className="font-medium">{exercise.exercise.name}</h3>
+                        ) : (
+                          <div className="space-y-1">
+                            <Label htmlFor={`custom-${index}`}>Exercise Name *</Label>
+                            <Input 
+                              id={`custom-${index}`}
+                              value={exercise.customName || ''} 
+                              onChange={(e) => {
+                                const newName = e.target.value;
+                                const updates: Partial<CustomExerciseItem> = { 
+                                  customName: newName
+                                };
+                                
+                                const wasCardio = exercise.customName ? isCardioExercise(exercise.customName) : false;
+                                const isNowCardio = isCardioExercise(newName);
+                                
+                                if (wasCardio !== isNowCardio) {
+                                  if (isNowCardio) {
+                                    updates.sets = undefined;
+                                    updates.reps = undefined;
+                                  } else {
+                                    updates.sets = 3;
+                                    updates.reps = '10';
+                                  }
+                                }
+                                
+                                updateExercise(index, updates);
+                              }}
+                              placeholder="Custom exercise name" 
+                              required={!exercise.exercise}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleRemoveExercise(index)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                      {!isCardio && (
+                        <>
+                          <div className="space-y-1">
+                            <Label htmlFor={`sets-${index}`}>Sets</Label>
+                            <Input 
+                              id={`sets-${index}`}
+                              type="number" 
+                              min="1"
+                              value={exercise.sets || ''} 
+                              onChange={(e) => updateExercise(index, { 
+                                sets: e.target.value ? parseInt(e.target.value) : undefined 
+                              })}
+                              placeholder="3" 
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label htmlFor={`reps-${index}`}>Reps</Label>
+                            <Input 
+                              id={`reps-${index}`}
+                              value={exercise.reps || ''} 
+                              onChange={(e) => updateExercise(index, { reps: e.target.value })}
+                              placeholder="10" 
+                            />
+                          </div>
+                        </>
                       )}
-                    </div>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleRemoveExercise(index)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <Label htmlFor={`sets-${index}`}>Sets</Label>
-                      <Input 
-                        id={`sets-${index}`}
-                        type="number" 
-                        min="1"
-                        value={exercise.sets || ''} 
-                        onChange={(e) => updateExercise(index, { 
-                          sets: e.target.value ? parseInt(e.target.value) : undefined 
-                        })}
-                        placeholder="3" 
-                      />
+                      
+                      <div className={`space-y-1 ${isCardio ? 'col-span-3' : ''}`}>
+                        <Label htmlFor={`rest-${index}`}>Rest (seconds)</Label>
+                        <Input 
+                          id={`rest-${index}`}
+                          type="number" 
+                          min="0"
+                          value={exercise.rest || ''} 
+                          onChange={(e) => updateExercise(index, { 
+                            rest: e.target.value ? parseInt(e.target.value) : undefined 
+                          })}
+                          placeholder="60" 
+                        />
+                      </div>
                     </div>
                     
                     <div className="space-y-1">
-                      <Label htmlFor={`reps-${index}`}>Reps</Label>
-                      <Input 
-                        id={`reps-${index}`}
-                        value={exercise.reps || ''} 
-                        onChange={(e) => updateExercise(index, { reps: e.target.value })}
-                        placeholder="10" 
-                      />
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <Label htmlFor={`rest-${index}`}>Rest (seconds)</Label>
-                      <Input 
-                        id={`rest-${index}`}
-                        type="number" 
-                        min="0"
-                        value={exercise.rest || ''} 
-                        onChange={(e) => updateExercise(index, { 
-                          rest: e.target.value ? parseInt(e.target.value) : undefined 
-                        })}
-                        placeholder="60" 
+                      <Label htmlFor={`notes-${index}`}>Notes</Label>
+                      <Textarea 
+                        id={`notes-${index}`}
+                        value={exercise.notes || ''} 
+                        onChange={(e) => updateExercise(index, { notes: e.target.value })}
+                        placeholder={isCardio 
+                          ? "Enter distance, duration, or other details..." 
+                          : "Any specific instructions or notes..."} 
+                        rows={2}
                       />
                     </div>
                   </div>
-                  
-                  <div className="space-y-1">
-                    <Label htmlFor={`notes-${index}`}>Notes</Label>
-                    <Textarea 
-                      id={`notes-${index}`}
-                      value={exercise.notes || ''} 
-                      onChange={(e) => updateExercise(index, { notes: e.target.value })}
-                      placeholder="Any specific instructions or notes..." 
-                      rows={2}
-                    />
-                  </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         </div>
         

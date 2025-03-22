@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +27,11 @@ import {
   deleteWorkoutExercise 
 } from '@/services/workout-service';
 import { toast } from 'sonner';
+
+const isCardioExercise = (exerciseName: string): boolean => {
+  const name = exerciseName.toLowerCase();
+  return name.includes('run') || name.includes('walk');
+};
 
 const formSchema = z.object({
   title: z.string().min(2, 'Workout title must be at least 2 characters'),
@@ -133,7 +137,6 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     const removed = newExercises.splice(index, 1)[0];
     
     if (removed.id in exerciseData) {
-      // If this is an existing exercise and we're in edit mode, track it for deletion
       if (mode === 'edit' && exerciseData[removed.id]?.id) {
         setRemovedExerciseIds(prev => [...prev, exerciseData[removed.id].id!]);
       }
@@ -157,7 +160,6 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     });
     
     setSavedExercisesCount(prev => {
-      // Only increment if this is a new exercise save
       if (!exerciseData[exercise.id]) {
         return prev + 1;
       }
@@ -183,7 +185,6 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       setIsSavingWorkout(true);
       
       if (!workoutId) {
-        // Create new workout
         const workoutData = {
           week_id: weekId,
           day_of_week: dayNumber || 0,
@@ -201,11 +202,13 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
             return null;
           }
           
+          const isCardio = isCardioExercise(exercise.name);
+          
           return createWorkoutExercise({
             workout_id: newWorkout.id,
             exercise_id: exercise.id,
-            sets: exerciseFormData.sets,
-            reps: exerciseFormData.reps,
+            sets: isCardio ? null : exerciseFormData.sets,
+            reps: isCardio ? null : exerciseFormData.reps,
             rest_seconds: exerciseFormData.rest_seconds || null,
             notes: exerciseFormData.notes || null,
             order_index: index
@@ -215,18 +218,15 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
         toast.success('Workout saved successfully');
         onSave(newWorkout.id);
       } else {
-        // Update existing workout
         await updateWorkout(workoutId, {
           title: values.title,
           description: values.description || null
         });
         
-        // Delete removed exercises
         for (const exerciseId of removedExerciseIds) {
           await deleteWorkoutExercise(exerciseId);
         }
         
-        // Update or create exercises
         await Promise.all(exercises.map((exercise, index) => {
           const exerciseFormData = exerciseData[exercise.id];
           
@@ -235,22 +235,22 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
             return null;
           }
           
+          const isCardio = isCardioExercise(exercise.name);
+          
           if (exerciseFormData.id) {
-            // Update existing exercise
             return updateWorkoutExercise(exerciseFormData.id, {
-              sets: exerciseFormData.sets,
-              reps: exerciseFormData.reps,
+              sets: isCardio ? null : exerciseFormData.sets,
+              reps: isCardio ? null : exerciseFormData.reps,
               rest_seconds: exerciseFormData.rest_seconds || null,
               notes: exerciseFormData.notes || null,
               order_index: index
             });
           } else {
-            // Create new exercise
             return createWorkoutExercise({
               workout_id: workoutId,
               exercise_id: exercise.id,
-              sets: exerciseFormData.sets,
-              reps: exerciseFormData.reps,
+              sets: isCardio ? null : exerciseFormData.sets,
+              reps: isCardio ? null : exerciseFormData.reps,
               rest_seconds: exerciseFormData.rest_seconds || null,
               notes: exerciseFormData.notes || null,
               order_index: index

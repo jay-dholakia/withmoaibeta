@@ -31,10 +31,18 @@ export const WeekProgressBar = ({
   // Create array of days for the current week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   
-  // Calculate percentage complete
+  // Calculate percentage complete - including both completed workouts and life happens passes
   const completedDaysThisWeek = count !== undefined 
     ? count 
     : completedDates.filter(date => {
+        const now = new Date();
+        const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+        weekStart.setHours(0, 0, 0, 0);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 7);
+        
+        return date >= weekStart && date < weekEnd;
+      }).length + lifeHappensDates.filter(date => {
         const now = new Date();
         const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
         weekStart.setHours(0, 0, 0, 0);
@@ -70,7 +78,7 @@ export const WeekProgressBar = ({
               <div key={index} className="flex flex-col items-center">
                 <div 
                   className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                    isCompleted || isLifeHappens ? 'bg-green-100' : 'bg-slate-100'
+                    isCompleted ? 'bg-green-100' : isLifeHappens ? 'bg-blue-100' : 'bg-slate-100'
                   }`}
                 >
                   {isLifeHappens ? (

@@ -81,15 +81,15 @@ const ProfileEditor = () => {
 
   // Handle updates to profile data
   const handleUpdateProfile = (data: Partial<ClientProfile>) => {
-    // Update local state
+    // Update local state only, don't update in database yet
     setProfileData(prev => {
       const merged = { ...prev, ...data };
       console.log('Updated profile data:', merged);
       return merged;
     });
     
-    // Update in database
-    updateProfileMutation.mutate(data);
+    // Only update in database when user completes all steps
+    // The actual update will be done in handleComplete
   };
 
   // Handle completion of the profile editing

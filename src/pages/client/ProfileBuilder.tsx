@@ -142,15 +142,14 @@ const ProfileBuilder = () => {
 
   // Handle updates to profile data
   const handleUpdateProfile = (data: Partial<ClientProfile>) => {
-    // Update local state first
+    // Update local state only
     setProfileData(prev => {
       const merged = { ...prev, ...data };
       console.log('Updated profile data:', merged);
       return merged;
     });
     
-    // Then update in database
-    updateProfileMutation.mutate(data);
+    // Don't update in database yet - we'll do that only when completing
   };
 
   // Handle completion of the profile setup

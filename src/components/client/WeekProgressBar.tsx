@@ -2,10 +2,11 @@
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
-import { Star } from 'lucide-react';
+import { Star, Umbrella } from 'lucide-react';
 
 interface WeekProgressBarProps {
   completedDates: Date[];
+  lifeHappensDates?: Date[]; // Add this optional prop for life happens dates
   label: string;
   count?: number;
   total?: number;
@@ -16,6 +17,7 @@ interface WeekProgressBarProps {
 
 export const WeekProgressBar = ({ 
   completedDates, 
+  lifeHappensDates = [], // Default to empty array
   label, 
   count, 
   total = 7, 
@@ -62,17 +64,20 @@ export const WeekProgressBar = ({
         <div className="flex justify-between">
           {weekDays.map((day, index) => {
             const isCompleted = completedDates.some(date => isSameDay(day, date));
+            const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
             
             return (
               <div key={index} className="flex flex-col items-center">
                 <div 
                   className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                    isCompleted ? 'bg-green-100' : 'bg-slate-100'
+                    isCompleted || isLifeHappens ? 'bg-green-100' : 'bg-slate-100'
                   }`}
                 >
-                  {isCompleted && (
+                  {isLifeHappens ? (
+                    <Umbrella className="h-4 w-4 text-blue-500" />
+                  ) : isCompleted ? (
                     <Star className="h-4 w-4 text-green-500 fill-green-500" />
-                  )}
+                  ) : null}
                 </div>
                 <div className="text-xs text-center text-slate-500 mt-1">
                   {format(day, 'E')[0]}

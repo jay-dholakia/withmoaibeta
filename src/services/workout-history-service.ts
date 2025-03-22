@@ -7,7 +7,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
     // First, get the basic completion data
     const { data: completions, error: completionsError } = await supabase
       .from('workout_completions')
-      .select('id, completed_at, notes, rating, user_id, workout_id')
+      .select('id, completed_at, notes, rating, user_id, workout_id, life_happens_pass')
       .eq('user_id', clientId)
       .order('completed_at', { ascending: false });
     

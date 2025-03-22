@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -111,13 +112,28 @@ export const WeekProgressSection = ({
   const clientCompletedDates = React.useMemo(() => {
     if (!clientWorkouts) return [];
     return clientWorkouts
-      .filter(workout => workout.completed_at)
+      .filter(workout => workout.completed_at && !workout.life_happens_pass)
+      .map(workout => new Date(workout.completed_at));
+  }, [clientWorkouts]);
+  
+  const clientLifeHappensDates = React.useMemo(() => {
+    if (!clientWorkouts) return [];
+    return clientWorkouts
+      .filter(workout => workout.completed_at && workout.life_happens_pass)
       .map(workout => new Date(workout.completed_at));
   }, [clientWorkouts]);
   
   const groupCompletedDates = React.useMemo(() => {
     if (!groupData?.completions) return [];
     return groupData.completions
+      .filter(workout => !workout.life_happens_pass)
+      .map(workout => new Date(workout.completed_at));
+  }, [groupData?.completions]);
+  
+  const groupLifeHappensDates = React.useMemo(() => {
+    if (!groupData?.completions) return [];
+    return groupData.completions
+      .filter(workout => workout.life_happens_pass)
       .map(workout => new Date(workout.completed_at));
   }, [groupData?.completions]);
   
@@ -150,6 +166,7 @@ export const WeekProgressSection = ({
           
           <WeekProgressBar 
             completedDates={clientCompletedDates}
+            lifeHappensDates={clientLifeHappensDates}
             label="Your Workouts" 
             color="bg-client"
             textColor="text-client"
@@ -169,6 +186,7 @@ export const WeekProgressSection = ({
           
           <WeekProgressBar 
             completedDates={groupCompletedDates}
+            lifeHappensDates={groupLifeHappensDates}
             label={`${groupData.groupName} Progress`}
             count={totalGroupWorkoutsThisWeek}
             total={maxPossibleWorkouts > 0 ? maxPossibleWorkouts : 1}
@@ -188,7 +206,8 @@ export const WeekProgressSection = ({
                       onClick={() => {}} // No action needed here
                     />
                     <WeekProgressBar 
-                      completedDates={member.completedWorkouts}
+                      completedDates={member.completedWorkouts.filter(date => !member.lifeHappensWorkouts || !member.lifeHappensWorkouts.some(lh => isSameDay(lh, date)))}
+                      lifeHappensDates={member.lifeHappensWorkouts || []}
                       label={member.isCurrentUser ? "Your Workouts" : `${member.profileData?.first_name || (member.email ? member.email.split('@')[0] : 'Unknown')}`}
                       color={member.isCurrentUser ? "bg-client" : "bg-blue-500"}
                       textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}

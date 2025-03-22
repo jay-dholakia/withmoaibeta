@@ -178,14 +178,14 @@ const NotesPage = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Add New Note</CardTitle>
+          <CardTitle>Add a Journal Entry</CardTitle>
           <CardDescription>
-            Keep track of your fitness journey, goals, and achievements
+            Keep track of your fitness journey, goals, achievements, or log your food
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Textarea
-            placeholder="Write your note here..."
+            placeholder="Write your journal entry here..."
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
             className="min-h-[100px]"
@@ -194,13 +194,13 @@ const NotesPage = () => {
         <CardFooter className="flex justify-end">
           <Button onClick={addNewNote} className="flex items-center">
             <Plus className="mr-2 h-4 w-4" />
-            Add Note
+            Add Entry
           </Button>
         </CardFooter>
       </Card>
       
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Your Notes</h2>
+        <h2 className="text-xl font-semibold">Your Journal</h2>
         
         {isLoading ? (
           <div className="flex justify-center p-12">
@@ -208,7 +208,7 @@ const NotesPage = () => {
           </div>
         ) : notes.length === 0 ? (
           <Card className="p-6 text-center text-muted-foreground">
-            No notes yet. Add your first note above!
+            No entries yet. Add your first journal entry above!
           </Card>
         ) : (
           <ScrollArea className="h-[400px] rounded-md border">

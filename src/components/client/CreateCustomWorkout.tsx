@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
@@ -46,7 +47,6 @@ const CreateCustomWorkout = () => {
         {
           id: Math.random().toString(),
           exercise,
-          rest: 60
         }
       ]);
     } else {
@@ -94,18 +94,6 @@ const CreateCustomWorkout = () => {
       return;
     }
 
-    if (exercises.length === 0) {
-      toast.error('Please add at least one exercise');
-      return;
-    }
-
-    for (const exercise of exercises) {
-      if (!exercise.exercise && !exercise.customName) {
-        toast.error('Please provide a name for each custom exercise');
-        return;
-      }
-    }
-
     try {
       setIsSubmitting(true);
       
@@ -115,28 +103,31 @@ const CreateCustomWorkout = () => {
         duration_minutes: duration
       });
       
-      const exercisePromises = exercises.map((ex, index) => {
-        const isCardio = ex.exercise 
-          ? isCardioExercise(ex.exercise.name) 
-          : ex.customName 
-            ? isCardioExercise(ex.customName) 
-            : false;
+      // Only save exercises if there are any
+      if (exercises.length > 0) {
+        const exercisePromises = exercises.map((ex, index) => {
+          const isCardio = ex.exercise 
+            ? isCardioExercise(ex.exercise.name) 
+            : ex.customName 
+              ? isCardioExercise(ex.customName) 
+              : false;
+          
+          const params: CreateCustomWorkoutExerciseParams = {
+            workout_id: workout.id,
+            exercise_id: ex.exercise?.id,
+            custom_exercise_name: ex.customName || null,
+            sets: isCardio ? null : ex.sets || null,
+            reps: isCardio ? null : ex.reps || null,
+            rest_seconds: isCardio ? null : ex.rest || null,
+            notes: ex.notes || null,
+            order_index: index
+          };
+          
+          return createCustomWorkoutExercise(params);
+        });
         
-        const params: CreateCustomWorkoutExerciseParams = {
-          workout_id: workout.id,
-          exercise_id: ex.exercise?.id,
-          custom_exercise_name: ex.customName || null,
-          sets: isCardio ? null : ex.sets || null,
-          reps: isCardio ? null : ex.reps || null,
-          rest_seconds: ex.rest || null,
-          notes: ex.notes || null,
-          order_index: index
-        };
-        
-        return createCustomWorkoutExercise(params);
-      });
-      
-      await Promise.all(exercisePromises);
+        await Promise.all(exercisePromises);
+      }
       
       toast.success('Custom workout created successfully!');
       navigate('/client-dashboard/workouts');
@@ -183,7 +174,7 @@ const CreateCustomWorkout = () => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="duration">Duration (minutes)</Label>
+            <Label htmlFor="duration">Duration (minutes) *</Label>
             <Input 
               id="duration" 
               type="number" 
@@ -191,12 +182,13 @@ const CreateCustomWorkout = () => {
               value={duration || ''} 
               onChange={(e) => setDuration(e.target.value ? parseInt(e.target.value) : undefined)} 
               placeholder="60"
+              required
             />
           </div>
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">Description (Optional)</Label>
           <Textarea 
             id="description" 
             value={description} 
@@ -210,7 +202,7 @@ const CreateCustomWorkout = () => {
         
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Exercises</h2>
+            <h2 className="text-xl font-semibold">Exercises (Optional)</h2>
             <div className="flex space-x-2">
               <Button 
                 type="button" 
@@ -229,7 +221,7 @@ const CreateCustomWorkout = () => {
           
           {exercises.length === 0 && (
             <div className="text-center py-6 text-muted-foreground">
-              <p>No exercises added yet. Use the buttons above to add exercises.</p>
+              <p>No exercises added yet. You can create a workout without exercises, or use the buttons above to add them.</p>
             </div>
           )}
           
@@ -264,9 +256,11 @@ const CreateCustomWorkout = () => {
                                   if (isNowCardio) {
                                     updates.sets = undefined;
                                     updates.reps = undefined;
+                                    updates.rest = undefined;
                                   } else {
                                     updates.sets = 3;
                                     updates.reps = '10';
+                                    updates.rest = 60;
                                   }
                                 }
                                 
@@ -314,22 +308,28 @@ const CreateCustomWorkout = () => {
                               placeholder="10" 
                             />
                           </div>
+                          
+                          <div className="space-y-1">
+                            <Label htmlFor={`rest-${index}`}>Rest (seconds)</Label>
+                            <Input 
+                              id={`rest-${index}`}
+                              type="number" 
+                              min="0"
+                              value={exercise.rest || ''} 
+                              onChange={(e) => updateExercise(index, { 
+                                rest: e.target.value ? parseInt(e.target.value) : undefined 
+                              })}
+                              placeholder="60" 
+                            />
+                          </div>
                         </>
                       )}
                       
-                      <div className={`space-y-1 ${isCardio ? 'col-span-3' : ''}`}>
-                        <Label htmlFor={`rest-${index}`}>Rest (seconds)</Label>
-                        <Input 
-                          id={`rest-${index}`}
-                          type="number" 
-                          min="0"
-                          value={exercise.rest || ''} 
-                          onChange={(e) => updateExercise(index, { 
-                            rest: e.target.value ? parseInt(e.target.value) : undefined 
-                          })}
-                          placeholder="60" 
-                        />
-                      </div>
+                      {isCardio && (
+                        <div className="col-span-3">
+                          <p className="text-sm text-muted-foreground">No sets, reps or rest needed for cardio exercises.</p>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="space-y-1">

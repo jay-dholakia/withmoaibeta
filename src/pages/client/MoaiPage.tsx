@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Users, UserRound, AlertTriangle, Search, RefreshCw } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
-import { toast } from 'sonner';
 import { fetchUserGroups, diagnoseGroupAccess, verifyUserGroupMembership, ensureUserHasGroup } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,7 +53,7 @@ const MoaiPage = () => {
     gcTime: 10000, // Short cache time
   });
   
-  // Enhanced diagnostics on mount
+  // Enhanced diagnostics on mount - with toast notifications disabled
   useEffect(() => {
     if (user?.id) {
       verifyUserExistsInAuth(user.id);
@@ -64,15 +62,14 @@ const MoaiPage = () => {
           console.log('Group access diagnosis result:', result);
           setDiagnosticDetails(result);
           
+          // Only show error toast, not success toast
           if (!result.success) {
-            toast.error('Diagnostic check failed. Check console for details.');
-          } else if (!result.hasGroupMemberships) {
-            console.warn('Diagnostic confirms user has no group memberships');
+            // toast.error('Diagnostic check failed. Check console for details.');
           }
           
           // If we found new group memberships that weren't showing before, refresh the groups
           if (result.hasGroupMemberships && (!userGroups || userGroups.length === 0)) {
-            toast.success('Group memberships detected, refreshing...');
+            // toast.success('Group memberships detected, refreshing...');
             refetch();
           }
         });
@@ -116,12 +113,12 @@ const MoaiPage = () => {
   
   const fixGroupAssignment = async () => {
     if (!user?.id) {
-      toast.error('No user ID available');
+      // toast.error('No user ID available');
       return;
     }
     
     setIsFixingGroup(true);
-    toast.info('Attempting to fix group assignment...');
+    // toast.info('Attempting to fix group assignment...');
     
     try {
       // First, check available groups
@@ -132,7 +129,7 @@ const MoaiPage = () => {
         
       if (groupsError) {
         console.error('Error checking available groups:', groupsError);
-        toast.error('Failed to check available groups');
+        // toast.error('Failed to check available groups');
         return;
       }
       
@@ -143,14 +140,14 @@ const MoaiPage = () => {
       console.log('Group assignment fix result:', result);
       
       if (result.success) {
-        toast.success('Successfully fixed group assignment!');
+        // toast.success('Successfully fixed group assignment!');
         // Refresh the data
         refetch();
         // Re-run diagnostics
         const diagResult = await diagnoseGroupAccess(user.id);
         setDiagnosticDetails(diagResult);
       } else {
-        toast.error(`Failed to fix group assignment: ${result.message}`);
+        // toast.error(`Failed to fix group assignment: ${result.message}`);
         // Fixed: Safely access details property only if it exists
         if ('details' in result && result.details) {
           console.error('Fix error details:', result.details);
@@ -158,7 +155,7 @@ const MoaiPage = () => {
       }
     } catch (err) {
       console.error('Error fixing group assignment:', err);
-      toast.error('Unexpected error fixing group assignment');
+      // toast.error('Unexpected error fixing group assignment');
     } finally {
       setIsFixingGroup(false);
     }
@@ -166,16 +163,16 @@ const MoaiPage = () => {
   
   const runDiagnostics = async () => {
     if (!user?.id) {
-      toast.error('No user ID available');
+      // toast.error('No user ID available');
       return;
     }
     
-    toast.info('Running group access diagnostics...');
+    // toast.info('Running group access diagnostics...');
     try {
       // Verify user exists first
       const userExists = await verifyUserExistsInAuth(user.id);
       if (!userExists) {
-        toast.error('User profile not found in database!');
+        // toast.error('User profile not found in database!');
       }
       
       // Check for direct group membership using raw query
@@ -186,13 +183,13 @@ const MoaiPage = () => {
         
       if (membershipError) {
         console.error('Error checking memberships:', membershipError);
-        toast.error('Error checking group memberships');
+        // toast.error('Error checking group memberships');
       } else {
         console.log('Direct membership check:', membershipData);
         if (membershipData.length === 0) {
-          toast.warning('No direct group memberships found');
+          // toast.warning('No direct group memberships found');
         } else {
-          toast.success(`Found ${membershipData.length} group memberships`);
+          // toast.success(`Found ${membershipData.length} group memberships`);
         }
       }
       
@@ -203,13 +200,13 @@ const MoaiPage = () => {
         
       if (groupsError) {
         console.error('Error checking available groups:', groupsError);
-        toast.error('Failed to check available groups');
+        // toast.error('Failed to check available groups');
       } else {
         console.log('Available groups:', availableGroups);
         if (availableGroups.length === 0) {
-          toast.warning('No groups exist in the system yet');
+          // toast.warning('No groups exist in the system yet');
         } else {
-          toast.info(`There are ${availableGroups.length} groups in the system`);
+          // toast.info(`There are ${availableGroups.length} groups in the system`);
         }
       }
       
@@ -220,19 +217,19 @@ const MoaiPage = () => {
       
       if (result.success) {
         if (result.hasGroupMemberships) {
-          toast.success(`Found ${result.groupMembershipsCount} group membership(s)`);
+          // toast.success(`Found ${result.groupMembershipsCount} group membership(s)`);
         } else {
-          toast.warning('Diagnostic complete. No group memberships found.');
+          // toast.warning('Diagnostic complete. No group memberships found.');
         }
       } else {
-        toast.error(`Diagnostic failed: ${result.message}`);
+        // toast.error(`Diagnostic failed: ${result.message}`);
       }
       
       // Force a fresh reload of groups data
       refetch();
     } catch (err) {
       console.error('Error running diagnostics:', err);
-      toast.error('Diagnostic failed with an error');
+      // toast.error('Diagnostic failed with an error');
     }
   };
   

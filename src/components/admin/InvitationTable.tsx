@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -89,7 +90,7 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
               <TableCell>{formatDate(invitation.created_at)}</TableCell>
               <TableCell>
                 {type === 'accepted' 
-                  ? formatDate(invitation.accepted_at || invitation.created_at)
+                  ? formatDate(invitation.created_at) // Use created_at instead of accepted_at
                   : formatDate(invitation.expires_at)
                 }
               </TableCell>

@@ -153,6 +153,7 @@ export const WeekProgressSection = ({
             label="Your Workouts" 
             color="bg-client"
             textColor="text-client"
+            showDayCircles={true}
           />
         </>
       )}
@@ -173,6 +174,7 @@ export const WeekProgressSection = ({
             total={maxPossibleWorkouts > 0 ? maxPossibleWorkouts : 1}
             color="bg-blue-500"
             textColor="text-blue-500"
+            showDayCircles={false}
           />
           
           {showTeam && !showPersonal && (
@@ -190,6 +192,7 @@ export const WeekProgressSection = ({
                       label={member.isCurrentUser ? "Your Workouts" : `${member.profileData?.first_name || (member.email ? member.email.split('@')[0] : 'Unknown')}`}
                       color={member.isCurrentUser ? "bg-client" : "bg-blue-500"}
                       textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}
+                      showDayCircles={true}
                     />
                   </div>
                 ))}

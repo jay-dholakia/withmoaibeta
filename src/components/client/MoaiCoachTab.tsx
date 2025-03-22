@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 interface CoachInfo {
   id: string;
@@ -26,9 +26,11 @@ interface MoaiCoachTabProps {
 
 const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
   // Fetch the coach information for this group
-  const { data: coachInfo, isLoading } = useQuery({
+  const { data: coachInfo, isLoading, error } = useQuery({
     queryKey: ['moai-coach', groupId],
     queryFn: async () => {
+      console.log('Fetching coach for group:', groupId);
+      
       // First, get the coach ID for this group
       const { data: coaches, error: coachError } = await supabase
         .from('group_coaches')
@@ -36,11 +38,18 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
         .eq('group_id', groupId)
         .limit(1);
       
-      if (coachError || !coaches || coaches.length === 0) {
-        throw new Error('Coach not found');
+      if (coachError) {
+        console.error('Error fetching group coach:', coachError);
+        throw coachError;
+      }
+      
+      if (!coaches || coaches.length === 0) {
+        console.log('No coach found for group:', groupId);
+        return null;
       }
       
       const coachId = coaches[0].coach_id;
+      console.log('Found coach ID:', coachId);
       
       // Then get the coach profile information
       const { data: profile, error: profileError } = await supabase
@@ -51,6 +60,23 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
       
       if (profileError) {
         console.error('Error fetching coach profile:', profileError);
+        
+        // Check if the error is "No rows found" - this happens when coach exists in group_coaches but has no profile
+        if (profileError.code === 'PGRST116') {
+          // If we have a coach ID but no profile, return a minimal profile
+          return {
+            id: coachId,
+            profile: {
+              bio: null,
+              avatar_url: null,
+              favorite_movements: null
+            },
+            user: {
+              email: `coach_${coachId.substring(0, 8)}`
+            }
+          } as CoachInfo;
+        }
+        
         throw profileError;
       }
       
@@ -66,7 +92,8 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
         }
       } as CoachInfo;
     },
-    retry: 1,
+    retry: 2,
+    staleTime: 300000, // 5 minutes
   });
   
   if (isLoading) {
@@ -77,11 +104,26 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
     );
   }
   
-  if (!coachInfo || !coachInfo.profile) {
+  if (error) {
+    console.error('Error in coach tab:', error);
+    return (
+      <Card className="mt-4">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center flex-col text-center gap-2 py-8">
+            <AlertTriangle className="h-10 w-10 text-amber-500" />
+            <p className="text-muted-foreground">There was an error loading coach information.</p>
+            <p className="text-xs text-muted-foreground">{error instanceof Error ? error.message : 'Unknown error'}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (!coachInfo) {
     return (
       <Card className="mt-4">
         <CardContent className="pt-6 text-center">
-          <p className="text-muted-foreground">No coach information available.</p>
+          <p className="text-muted-foreground py-8">No coach has been assigned to this group yet.</p>
         </CardContent>
       </Card>
     );
@@ -97,7 +139,7 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
       <CardContent className="space-y-6">
         <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
           <Avatar className="h-24 w-24">
-            <AvatarImage src={profile.avatar_url || ''} alt="Coach" />
+            <AvatarImage src={profile?.avatar_url || ''} alt="Coach" />
             <AvatarFallback className="bg-client text-white text-xl">
               {coachInfo.user.email.substring(0, 2).toUpperCase()}
             </AvatarFallback>
@@ -109,7 +151,7 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
               <p className="text-muted-foreground text-sm">Certified Fitness Coach</p>
             </div>
             
-            {profile.bio && (
+            {profile?.bio && (
               <div>
                 <p>{profile.bio}</p>
               </div>
@@ -119,7 +161,7 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
         
         <Separator />
         
-        {profile.favorite_movements && profile.favorite_movements.length > 0 && (
+        {profile?.favorite_movements && profile.favorite_movements.length > 0 && (
           <div>
             <h4 className="font-medium mb-2">Favorite Ways to Move</h4>
             <div className="flex flex-wrap gap-2">

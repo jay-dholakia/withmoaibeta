@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WeekProgressBar } from './WeekProgressBar';
 import { Loader2, Users, User } from 'lucide-react';
 import MoaiMemberItem from './MoaiMemberItem';
+import { isSameDay } from 'date-fns'; // Add missing import
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -59,7 +60,7 @@ export const WeekProgressSection = ({
       
       const { data: completions } = await supabase
         .from('workout_completions')
-        .select('completed_at, user_id')
+        .select('completed_at, user_id, life_happens_pass') // Add life_happens_pass to the selection
         .in('user_id', memberIds)
         .not('completed_at', 'is', null);
 
@@ -79,12 +80,26 @@ export const WeekProgressSection = ({
       }
       
       const memberWorkoutsMap = {};
+      const memberLifeHappensMap = {}; // Create a separate map for life happens dates
+      
       if (completions) {
         completions.forEach(completion => {
           if (!memberWorkoutsMap[completion.user_id]) {
             memberWorkoutsMap[completion.user_id] = [];
           }
-          memberWorkoutsMap[completion.user_id].push(new Date(completion.completed_at));
+          
+          if (!memberLifeHappensMap[completion.user_id]) {
+            memberLifeHappensMap[completion.user_id] = [];
+          }
+          
+          const completionDate = new Date(completion.completed_at);
+          
+          // Separate workouts into regular completions and life happens passes
+          if (completion.life_happens_pass) {
+            memberLifeHappensMap[completion.user_id].push(completionDate);
+          } else {
+            memberWorkoutsMap[completion.user_id].push(completionDate);
+          }
         });
       }
       
@@ -95,7 +110,8 @@ export const WeekProgressSection = ({
           email,
           isCurrentUser: memberId === user.id,
           profileData: profileMap[memberId] || null,
-          completedWorkouts: memberWorkoutsMap[memberId] || []
+          completedWorkouts: memberWorkoutsMap[memberId] || [],
+          lifeHappensWorkouts: memberLifeHappensMap[memberId] || []
         };
       });
       
@@ -123,17 +139,18 @@ export const WeekProgressSection = ({
       .map(workout => new Date(workout.completed_at));
   }, [clientWorkouts]);
   
+  // Filter group completions based on life_happens_pass
   const groupCompletedDates = React.useMemo(() => {
     if (!groupData?.completions) return [];
     return groupData.completions
-      .filter(workout => !workout.life_happens_pass)
+      .filter(workout => workout.completed_at && !workout.life_happens_pass)
       .map(workout => new Date(workout.completed_at));
   }, [groupData?.completions]);
   
   const groupLifeHappensDates = React.useMemo(() => {
     if (!groupData?.completions) return [];
     return groupData.completions
-      .filter(workout => workout.life_happens_pass)
+      .filter(workout => workout.completed_at && workout.life_happens_pass)
       .map(workout => new Date(workout.completed_at));
   }, [groupData?.completions]);
   
@@ -206,8 +223,8 @@ export const WeekProgressSection = ({
                       onClick={() => {}} // No action needed here
                     />
                     <WeekProgressBar 
-                      completedDates={member.completedWorkouts.filter(date => !member.lifeHappensWorkouts || !member.lifeHappensWorkouts.some(lh => isSameDay(lh, date)))}
-                      lifeHappensDates={member.lifeHappensWorkouts || []}
+                      completedDates={member.completedWorkouts}
+                      lifeHappensDates={member.lifeHappensWorkouts}
                       label={member.isCurrentUser ? "Your Workouts" : `${member.profileData?.first_name || (member.email ? member.email.split('@')[0] : 'Unknown')}`}
                       color={member.isCurrentUser ? "bg-client" : "bg-blue-500"}
                       textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}

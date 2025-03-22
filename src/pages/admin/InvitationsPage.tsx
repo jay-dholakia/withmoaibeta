@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -51,7 +50,8 @@ const InvitationsPage: React.FC = () => {
       if (error) throw error;
       return data as Invitation[];
     },
-    enabled: currentUserType === 'admin'
+    enabled: currentUserType === 'admin',
+    refetchInterval: 10000
   });
   
   // Set up realtime subscription for invitation updates
@@ -219,6 +219,8 @@ const InvitationsPage: React.FC = () => {
             token: newToken,
             expires_at: newExpiresAt.toISOString(),
             created_at: new Date().toISOString(),
+            accepted: false,
+            accepted_at: null
           })
           .eq('id', invitation.id)
           .select()
@@ -286,7 +288,6 @@ const InvitationsPage: React.FC = () => {
       setInviteLink(data.inviteLink);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       
-      // Show a single, clear message based on whether the email was sent successfully
       if (data.emailSent) {
         toast.success(`Invitation resent to ${invitation.email} successfully!`);
       } else {
@@ -325,7 +326,9 @@ const InvitationsPage: React.FC = () => {
     !inv.accepted && new Date(inv.expires_at) <= new Date()
   ) || [];
   
-  const acceptedInvitations = invitations?.filter(inv => inv.accepted) || [];
+  const acceptedInvitations = invitations?.filter(inv => 
+    inv.accepted === true
+  ) || [];
 
   if (currentUserType !== 'admin') {
     return null;

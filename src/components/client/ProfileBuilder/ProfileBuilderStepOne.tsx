@@ -46,10 +46,14 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   );
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '');
   const [uploading, setUploading] = useState(false);
-  const [firstNameFocused, setFirstNameFocused] = useState(!!firstName);
-  const [lastNameFocused, setLastNameFocused] = useState(!!lastName);
-  const [cityFocused, setCityFocused] = useState(!!city);
-  const [stateFocused, setStateFocused] = useState(!!state);
+  
+  // State for tracking focus of each field
+  const [focusStates, setFocusStates] = useState({
+    firstName: !!firstName,
+    lastName: !!lastName,
+    city: !!city,
+    state: !!state
+  });
 
   // Parse existing height on component mount
   React.useEffect(() => {
@@ -114,6 +118,16 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     onNext();
   };
 
+  // Helper function to handle input focus
+  const handleFocus = (field: keyof typeof focusStates) => {
+    setFocusStates(prev => ({ ...prev, [field]: true }));
+  };
+
+  // Helper function to handle input blur
+  const handleBlur = (field: keyof typeof focusStates, value: string) => {
+    setFocusStates(prev => ({ ...prev, [field]: value.length > 0 }));
+  };
+
   const isFormValid = firstName && lastName && city && state && birthdayDate && feet && inches && weight;
 
   return (
@@ -164,14 +178,13 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
           <Input 
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            onFocus={() => setFirstNameFocused(true)}
-            onBlur={() => setFirstNameFocused(firstName.length > 0)}
-            placeholder="First Name"
-            className="h-12 pl-3 pt-6"
+            onFocus={() => handleFocus('firstName')}
+            onBlur={() => handleBlur('firstName', firstName)}
+            className={`h-14 ${focusStates.firstName ? 'pt-7 pb-2' : 'py-4'}`}
           />
           <span 
-            className={`absolute left-3 transition-all duration-200 pointer-events-none ${
-              firstNameFocused 
+            className={`absolute left-3 pointer-events-none transition-all duration-200 ${
+              focusStates.firstName 
                 ? 'top-2 text-xs text-muted-foreground' 
                 : 'top-1/2 -translate-y-1/2 text-muted-foreground'
             }`}
@@ -184,14 +197,13 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
           <Input 
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            onFocus={() => setLastNameFocused(true)}
-            onBlur={() => setLastNameFocused(lastName.length > 0)}
-            placeholder="Last Name"
-            className="h-12 pl-3 pt-6"
+            onFocus={() => handleFocus('lastName')}
+            onBlur={() => handleBlur('lastName', lastName)}
+            className={`h-14 ${focusStates.lastName ? 'pt-7 pb-2' : 'py-4'}`}
           />
           <span 
-            className={`absolute left-3 transition-all duration-200 pointer-events-none ${
-              lastNameFocused 
+            className={`absolute left-3 pointer-events-none transition-all duration-200 ${
+              focusStates.lastName 
                 ? 'top-2 text-xs text-muted-foreground' 
                 : 'top-1/2 -translate-y-1/2 text-muted-foreground'
             }`}
@@ -206,14 +218,13 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
           <Input 
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            onFocus={() => setCityFocused(true)}
-            onBlur={() => setCityFocused(city.length > 0)}
-            placeholder="City"
-            className="h-12 pl-3 pt-6"
+            onFocus={() => handleFocus('city')}
+            onBlur={() => handleBlur('city', city)}
+            className={`h-14 ${focusStates.city ? 'pt-7 pb-2' : 'py-4'}`}
           />
           <span 
-            className={`absolute left-3 transition-all duration-200 pointer-events-none ${
-              cityFocused 
+            className={`absolute left-3 pointer-events-none transition-all duration-200 ${
+              focusStates.city 
                 ? 'top-2 text-xs text-muted-foreground' 
                 : 'top-1/2 -translate-y-1/2 text-muted-foreground'
             }`}
@@ -226,14 +237,13 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
           <Input 
             value={state}
             onChange={(e) => setState(e.target.value)}
-            onFocus={() => setStateFocused(true)}
-            onBlur={() => setStateFocused(state.length > 0)}
-            placeholder="State"
-            className="h-12 pl-3 pt-6"
+            onFocus={() => handleFocus('state')}
+            onBlur={() => handleBlur('state', state)}
+            className={`h-14 ${focusStates.state ? 'pt-7 pb-2' : 'py-4'}`}
           />
           <span 
-            className={`absolute left-3 transition-all duration-200 pointer-events-none ${
-              stateFocused 
+            className={`absolute left-3 pointer-events-none transition-all duration-200 ${
+              focusStates.state 
                 ? 'top-2 text-xs text-muted-foreground' 
                 : 'top-1/2 -translate-y-1/2 text-muted-foreground'
             }`}
@@ -250,7 +260,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
             <Button
               variant={"outline"}
               className={cn(
-                "w-full justify-start text-left font-normal",
+                "w-full justify-start text-left font-normal h-14",
                 !birthdayDate && "text-muted-foreground"
               )}
             >
@@ -279,29 +289,31 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
         <div className="text-sm text-muted-foreground mb-1">Height</div>
         <div className="grid grid-cols-2 gap-4">
           <div className="flex items-center">
-            <Input 
-              type="number" 
-              placeholder="Feet"
-              value={feet}
-              onChange={e => setFeet(e.target.value)}
-              min="1"
-              max="8"
-              className="text-center"
-            />
-            <span className="ml-2 text-sm">ft</span>
+            <div className="relative flex-1">
+              <Input 
+                type="number" 
+                value={feet}
+                onChange={e => setFeet(e.target.value)}
+                min="1"
+                max="8"
+                className="h-14 pr-8 text-right"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">ft</span>
+            </div>
           </div>
           
           <div className="flex items-center">
-            <Input 
-              type="number" 
-              placeholder="Inches"
-              value={inches}
-              onChange={e => setInches(e.target.value)}
-              min="0"
-              max="11"
-              className="text-center"
-            />
-            <span className="ml-2 text-sm">in</span>
+            <div className="relative flex-1">
+              <Input 
+                type="number" 
+                value={inches}
+                onChange={e => setInches(e.target.value)}
+                min="0"
+                max="11"
+                className="h-14 pr-8 text-right"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">in</span>
+            </div>
           </div>
         </div>
       </div>
@@ -314,13 +326,13 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
             placeholder="Weight"
             value={weight}
             onChange={e => setWeight(e.target.value)}
-            className="flex-1"
+            className="flex-1 h-14"
           />
           <Select 
             value={weightUnit} 
             onValueChange={(value: 'lbs' | 'kg') => setWeightUnit(value)}
           >
-            <SelectTrigger className="w-24">
+            <SelectTrigger className="w-24 h-14">
               <SelectValue placeholder="Unit" />
             </SelectTrigger>
             <SelectContent>

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Pencil, Save, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Pencil, Save, Plus, Trash2, Loader2, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,6 +8,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 interface Note {
   id: string;
@@ -14,12 +19,14 @@ interface Note {
   created_at: string;
   updated_at?: string;
   editing: boolean;
+  entry_date?: string; // Optional field for entry date
 }
 
 const NotesPage = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [entryDate, setEntryDate] = useState<Date>(new Date()); // Default to today
   const { user } = useAuth();
   
   useEffect(() => {
@@ -68,7 +75,8 @@ const NotesPage = () => {
         .from('client_notes')
         .insert({
           user_id: user.id,
-          content: newNote
+          content: newNote,
+          entry_date: entryDate.toISOString() // Store the selected date
         })
         .select()
         .single();
@@ -179,7 +187,32 @@ const NotesPage = () => {
             Keep track of your fitness journey, goals, achievements, or log your food
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="flex items-center">
+            <span className="mr-2 text-sm text-muted-foreground">Entry date:</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-[200px] justify-start text-left font-normal",
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(entryDate, "PPP")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={entryDate}
+                  onSelect={(date) => date && setEntryDate(date)}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
           <Textarea
             placeholder="Write your journal entry here..."
             value={newNote}
@@ -214,7 +247,9 @@ const NotesPage = () => {
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-sm text-muted-foreground">
-                        {formatDate(note.created_at)}
+                        {note.entry_date 
+                          ? format(new Date(note.entry_date), "PPP") 
+                          : formatDate(note.created_at)}
                       </CardTitle>
                       <div className="flex space-x-1">
                         {note.editing ? (

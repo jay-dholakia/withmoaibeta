@@ -9,12 +9,14 @@ interface ProfileBuilderLayoutProps {
   children: ReactNode;
   step: number;
   totalSteps: number;
+  title?: string; // Make title optional
 }
 
 export const ProfileBuilderLayout: React.FC<ProfileBuilderLayoutProps> = ({
   children,
   step,
-  totalSteps
+  totalSteps,
+  title = "Build Your Profile" // Default title
 }) => {
   return (
     <div className="min-h-screen w-full flex flex-col bg-gradient-to-b from-background to-background/80">
@@ -50,6 +52,7 @@ export const ProfileBuilderLayout: React.FC<ProfileBuilderLayoutProps> = ({
               transition={{ duration: 0.3 }}
               className="bg-card border rounded-xl shadow-sm p-8"
             >
+              {title && <h1 className="text-2xl font-bold text-client mb-6 text-center">{title}</h1>}
               {children}
             </motion.div>
           </div>

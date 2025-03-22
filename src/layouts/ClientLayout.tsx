@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Dumbbell, Users, LayoutDashboard, Settings, LogOut, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
-import { toast } from 'sonner';
+import { Toaster } from 'sonner';
 import { Logo } from '@/components/Logo';
 
 interface ClientLayoutProps {
@@ -32,6 +32,8 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
+      <Toaster position="top-center" richColors />
+      
       <header className="bg-white shadow-sm border-b border-gray-200 py-4">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center">
@@ -113,4 +115,3 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
     </div>
   );
 };
-

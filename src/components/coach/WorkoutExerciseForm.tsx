@@ -62,24 +62,31 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   
   type FormValues = z.infer<typeof formSchema>;
   
+  // Set up the default values based on exercise type
+  const getDefaultValues = () => {
+    if (isCardio) {
+      return {
+        rest_seconds: existingData?.rest_seconds || 60,
+        notes: existingData?.notes || ''
+      };
+    } else {
+      return {
+        sets: existingData?.sets || 3,
+        reps: existingData?.reps || '10',
+        rest_seconds: existingData?.rest_seconds || 60,
+        notes: existingData?.notes || ''
+      };
+    }
+  };
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      sets: existingData?.sets || 3,
-      reps: existingData?.reps || '10',
-      rest_seconds: existingData?.rest_seconds || 60,
-      notes: existingData?.notes || ''
-    }
+    defaultValues: getDefaultValues()
   });
 
   // Update form when exercise changes
   useEffect(() => {
-    form.reset({
-      sets: isCardio ? undefined : (existingData?.sets || 3),
-      reps: isCardio ? undefined : (existingData?.reps || '10'),
-      rest_seconds: existingData?.rest_seconds || 60,
-      notes: existingData?.notes || ''
-    });
+    form.reset(getDefaultValues());
   }, [exercise, existingData, form, isCardio]);
 
   const handleSubmit = (values: FormValues) => {

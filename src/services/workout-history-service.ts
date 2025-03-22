@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutBasic, WorkoutHistoryItem } from "@/types/workout";
 
@@ -120,7 +119,6 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
   }
 };
 
-// Add the missing fetchAssignedWorkouts function
 export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHistoryItem[]> => {
   try {
     // First, get all workout completions for this user where completed_at is null (i.e., not yet completed)

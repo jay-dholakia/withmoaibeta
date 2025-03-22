@@ -1,12 +1,12 @@
 
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
+import { format, startOfWeek, addDays, isSameDay, isThisWeek } from 'date-fns';
 import { Star, Umbrella } from 'lucide-react';
 
 interface WeekProgressBarProps {
   completedDates: Date[];
-  lifeHappensDates?: Date[]; // Add this optional prop for life happens dates
+  lifeHappensDates?: Date[]; // Optional prop for life happens dates
   label: string;
   count?: number;
   total?: number;
@@ -34,23 +34,8 @@ export const WeekProgressBar = ({
   // Calculate percentage complete - including both completed workouts and life happens passes
   const completedDaysThisWeek = count !== undefined 
     ? count 
-    : completedDates.filter(date => {
-        const now = new Date();
-        const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-        weekStart.setHours(0, 0, 0, 0);
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 7);
-        
-        return date >= weekStart && date < weekEnd;
-      }).length + lifeHappensDates.filter(date => {
-        const now = new Date();
-        const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-        weekStart.setHours(0, 0, 0, 0);
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 7);
-        
-        return date >= weekStart && date < weekEnd;
-      }).length;
+    : completedDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length + 
+      lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
   
   const percentComplete = (completedDaysThisWeek / total) * 100;
 
@@ -66,7 +51,13 @@ export const WeekProgressBar = ({
         <span className={`text-lg font-bold ${textColor}`}>{Math.round(percentComplete)}%</span>
       </div>
 
-      <Progress value={percentComplete} className="h-3 mb-4" />
+      <Progress 
+        value={percentComplete} 
+        className="h-3 mb-4" 
+        style={{ 
+          backgroundColor: "rgb(241 245 249)",
+        }}
+      />
       
       {showDayCircles && (
         <div className="flex justify-between">

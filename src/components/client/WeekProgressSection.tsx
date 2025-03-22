@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WeekProgressBar } from './WeekProgressBar';
 import { Loader2, Users, User } from 'lucide-react';
 import MoaiMemberItem from './MoaiMemberItem';
-import { isSameDay } from 'date-fns';
+import { isThisWeek } from 'date-fns';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -125,6 +125,7 @@ export const WeekProgressSection = ({
   
   const clientCompletedDates = React.useMemo(() => {
     if (!clientWorkouts) return [];
+    
     return clientWorkouts
       .filter(workout => workout.completed_at && !workout.life_happens_pass)
       .map(workout => new Date(workout.completed_at));
@@ -132,6 +133,7 @@ export const WeekProgressSection = ({
   
   const clientLifeHappensDates = React.useMemo(() => {
     if (!clientWorkouts) return [];
+    
     return clientWorkouts
       .filter(workout => workout.completed_at && workout.life_happens_pass)
       .map(workout => new Date(workout.completed_at));
@@ -151,6 +153,14 @@ export const WeekProgressSection = ({
       .map(workout => new Date(workout.completed_at));
   }, [groupData?.completions]);
   
+  React.useEffect(() => {
+    if (clientWorkouts && clientWorkouts.length > 0) {
+      console.log("Client Workouts:", clientWorkouts);
+      console.log("Client Completed Dates:", clientCompletedDates);
+      console.log("Client Life Happens Dates:", clientLifeHappensDates);
+    }
+  }, [clientWorkouts, clientCompletedDates, clientLifeHappensDates]);
+  
   if ((showPersonal && isLoadingClientWorkouts) || (showTeam && isLoadingGroupData)) {
     return (
       <div className="flex justify-center py-6">
@@ -158,6 +168,10 @@ export const WeekProgressSection = ({
       </div>
     );
   }
+  
+  const thisWeekWorkouts = clientCompletedDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
+  const thisWeekLifeHappens = clientLifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
+  const totalThisWeek = thisWeekWorkouts + thisWeekLifeHappens;
   
   const totalGroupWorkoutsThisWeek = groupData?.completions?.length || 0;
   const totalGroupMembers = groupData?.members?.length || 0;

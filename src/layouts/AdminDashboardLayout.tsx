@@ -37,6 +37,7 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
       name: 'Dashboard',
       path: '/admin-dashboard',
       icon: <BarChart className="w-5 h-5" />,
+      exact: true
     },
     {
       name: 'Invitations',
@@ -65,6 +66,14 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
     navigate('/');
   };
 
+  // Helper function to check if a navigation item is active
+  const isNavItemActive = (item: typeof navItems[0]) => {
+    if (item.exact) {
+      return location.pathname === item.path;
+    }
+    return location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+  };
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
@@ -79,7 +88,7 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
               key={item.path}
               to={item.path}
               className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors
-                ${location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
+                ${isNavItemActive(item)
                   ? 'bg-admin/10 text-admin' 
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
@@ -118,7 +127,10 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
             
             {navItems.map((item) => (
               <DropdownMenuItem key={item.path} asChild>
-                <Link to={item.path} className="flex items-center">
+                <Link 
+                  to={item.path} 
+                  className={`flex items-center w-full ${isNavItemActive(item) ? 'text-admin font-medium' : ''}`}
+                >
                   {item.icon}
                   <span className="ml-2">{item.name}</span>
                 </Link>

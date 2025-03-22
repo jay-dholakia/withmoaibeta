@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchClientWorkoutHistory } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
 import { WeekProgressBar } from './WeekProgressBar';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const WeekProgressSection = () => {
@@ -22,10 +22,10 @@ export const WeekProgressSection = () => {
   });
   
   // Get client's group members
-  const { data: groupMembers, isLoading: isLoadingGroupMembers } = useQuery({
-    queryKey: ['client-group-members', user?.id],
+  const { data: groupData, isLoading: isLoadingGroupData } = useQuery({
+    queryKey: ['client-group-data', user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) return { members: [], groupName: "" };
       
       // First get the groups the client belongs to
       const { data: memberGroups } = await supabase
@@ -33,18 +33,24 @@ export const WeekProgressSection = () => {
         .select('group_id')
         .eq('user_id', user.id);
         
-      if (!memberGroups || memberGroups.length === 0) return [];
+      if (!memberGroups || memberGroups.length === 0) return { members: [], groupName: "" };
       
-      // Get the first group's members
+      // Get the first group's info
       const groupId = memberGroups[0].group_id;
       
+      const { data: groupInfo } = await supabase
+        .from('groups')
+        .select('name')
+        .eq('id', groupId)
+        .single();
+
+      // Get all members in the group
       const { data: members } = await supabase
         .from('group_members')
         .select('user_id')
-        .eq('group_id', groupId)
-        .neq('user_id', user.id); // Exclude the current user
+        .eq('group_id', groupId);
         
-      if (!members || members.length === 0) return [];
+      if (!members || members.length === 0) return { members: [], groupName: groupInfo?.name || "My Moai" };
       
       // Get workout completions for all group members
       const memberIds = members.map(m => m.user_id);
@@ -54,8 +60,17 @@ export const WeekProgressSection = () => {
         .select('completed_at, user_id')
         .in('user_id', memberIds)
         .not('completed_at', 'is', null);
+
+      // Get email addresses for members
+      const { data: userEmails } = await supabase
+        .rpc('get_users_email', { user_ids: memberIds });
         
-      return completions || [];
+      return { 
+        members: memberIds,
+        groupName: groupInfo?.name || "My Moai",
+        completions: completions || [],
+        userEmails: userEmails || []
+      };
     },
     enabled: !!user?.id,
   });
@@ -70,13 +85,12 @@ export const WeekProgressSection = () => {
   
   // Extract dates for group members' completed workouts
   const groupCompletedDates = React.useMemo(() => {
-    if (!groupMembers) return [];
-    return groupMembers
-      .filter(workout => workout.completed_at)
+    if (!groupData?.completions) return [];
+    return groupData.completions
       .map(workout => new Date(workout.completed_at));
-  }, [groupMembers]);
+  }, [groupData?.completions]);
   
-  if (isLoadingClientWorkouts || isLoadingGroupMembers) {
+  if (isLoadingClientWorkouts || isLoadingGroupData) {
     return (
       <div className="flex justify-center py-6">
         <Loader2 className="h-6 w-6 animate-spin text-client" />
@@ -84,24 +98,36 @@ export const WeekProgressSection = () => {
     );
   }
   
+  // Count workouts by group
+  const totalGroupWorkoutsThisWeek = groupData?.completions?.length || 0;
+  const totalGroupMembers = groupData?.members?.length || 0;
+  // Max possible workouts (each member doing one workout per day)
+  const maxPossibleWorkouts = totalGroupMembers * 7;
+  
   return (
-    <Card className="mb-6">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Weekly Progress</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <WeekProgressBar 
-          completedDates={clientCompletedDates}
-          label="Your Workouts" 
-          color="bg-client"
-        />
-        
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+        <Users className="h-5 w-5 text-client" />
+        Weekly Progress
+      </h2>
+      
+      <WeekProgressBar 
+        completedDates={clientCompletedDates}
+        label="Your Workouts" 
+        color="bg-client"
+        textColor="text-client"
+      />
+      
+      {groupData?.members?.length > 0 && (
         <WeekProgressBar 
           completedDates={groupCompletedDates}
-          label="Your Moai's Workouts" 
+          label={`${groupData.groupName} Progress`}
+          count={totalGroupWorkoutsThisWeek}
+          total={maxPossibleWorkouts > 0 ? maxPossibleWorkouts : 1}
           color="bg-blue-500"
+          textColor="text-blue-500"
         />
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 };

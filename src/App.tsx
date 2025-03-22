@@ -5,27 +5,21 @@ import { ClientLayout } from './layouts/ClientLayout';
 import { CoachLayout } from './layouts/CoachLayout';
 import { NotFound } from './components/NotFound';
 import ClientDashboard from './pages/client/ClientDashboard';
-import WorkoutsList from './components/client/WorkoutsList';
-import CustomWorkoutDetail from './components/client/CustomWorkoutDetail';
-import CustomWorkoutActiveView from './components/client/CustomWorkoutActiveView';
-import CreateCustomWorkout from './components/client/CreateCustomWorkout';
-import ActiveWorkout from './components/client/ActiveWorkout';
-import WorkoutComplete from './components/client/WorkoutComplete';
+import CoachDashboard from './pages/coach/CoachDashboard';
+import ClientsPage from './pages/coach/ClientsPage';
+import LeaderboardPage from './pages/coach/LeaderboardPage';
 
 function App() {
   return (
     <Routes>
-      {/* Redirect root to client dashboard */}
-      <Route path="/" element={<WorkoutsList />} />
-      
-      {/* Client Dashboard Routes */}
-      <Route path="/client-dashboard" element={<ClientLayout><ClientDashboard /></ClientLayout>} />
+      {/* Client Routes */}
+      <Route path="/" element={<ClientLayout><ClientDashboard /></ClientLayout>} />
+      <Route path="/client-dashboard/*" element={<ClientLayout><ClientDashboard /></ClientLayout>} />
       
       {/* Coach Dashboard Routes */}
-      <Route path="/coach-dashboard/*" element={<CoachLayout><Routes>
-        <Route index element={<div>Coach Dashboard</div>} />
-        <Route path="*" element={<NotFound />} />
-      </Routes></CoachLayout>} />
+      <Route path="/coach-dashboard" element={<CoachLayout><CoachDashboard /></CoachLayout>} />
+      <Route path="/coach-dashboard/clients" element={<CoachLayout><ClientsPage /></CoachLayout>} />
+      <Route path="/coach-dashboard/leaderboards" element={<CoachLayout><LeaderboardPage /></CoachLayout>} />
       
       {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />

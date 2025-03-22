@@ -250,6 +250,7 @@ export type Database = {
       invitations: {
         Row: {
           accepted: boolean | null
+          accepted_at: string | null
           created_at: string
           email: string
           expires_at: string
@@ -260,6 +261,7 @@ export type Database = {
         }
         Insert: {
           accepted?: boolean | null
+          accepted_at?: string | null
           created_at?: string
           email: string
           expires_at: string
@@ -270,6 +272,7 @@ export type Database = {
         }
         Update: {
           accepted?: boolean | null
+          accepted_at?: string | null
           created_at?: string
           email?: string
           expires_at?: string

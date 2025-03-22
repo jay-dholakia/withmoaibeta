@@ -16,8 +16,7 @@ export interface Invitation {
   accepted: boolean;
   token: string;
   expires_at: string;
-  // If we need accepted_at in the future, we should add it to the database schema first
-  // accepted_at?: string;
+  accepted_at: string | null;
 }
 
 interface InvitationTableProps {
@@ -90,7 +89,7 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
               <TableCell>{formatDate(invitation.created_at)}</TableCell>
               <TableCell>
                 {type === 'accepted' 
-                  ? formatDate(invitation.created_at) // Use created_at instead of accepted_at
+                  ? formatDate(invitation.accepted_at || invitation.created_at)
                   : formatDate(invitation.expires_at)
                 }
               </TableCell>

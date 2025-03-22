@@ -54,7 +54,6 @@ const InvitationsPage: React.FC = () => {
       if (debugInvitation) {
         console.log(`Debug - Found invitation for ${debugEmail}:`, debugInvitation);
         console.log(`Debug - Invitation accepted: ${debugInvitation.accepted}`);
-        console.log(`Debug - Invitation accepted_at: ${debugInvitation.accepted_at}`);
         console.log(`Debug - Is accepted value a boolean?`, typeof debugInvitation.accepted === 'boolean');
       } else {
         console.log(`Debug - Invitation for ${debugEmail} not found in results`);

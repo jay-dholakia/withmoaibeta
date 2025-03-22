@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -16,7 +15,8 @@ export interface Invitation {
   accepted: boolean;
   token: string;
   expires_at: string;
-  accepted_at?: string;
+  // If we need accepted_at in the future, we should add it to the database schema first
+  // accepted_at?: string;
 }
 
 interface InvitationTableProps {

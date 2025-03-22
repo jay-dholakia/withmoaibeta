@@ -12,6 +12,9 @@ export const getLifeHappensPassesUsed = async (userId: string): Promise<number> 
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
   
   try {
+    console.log("Checking life happens passes for user:", userId);
+    console.log("Date range:", startOfMonth.toISOString(), "to", endOfMonth.toISOString());
+    
     const { data, error } = await supabase
       .from('workout_completions')
       .select('id')
@@ -20,8 +23,12 @@ export const getLifeHappensPassesUsed = async (userId: string): Promise<number> 
       .gte('completed_at', startOfMonth.toISOString())
       .lte('completed_at', endOfMonth.toISOString());
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error checking life happens passes:", error);
+      throw error;
+    }
     
+    console.log("Life happens passes used this month:", data?.length || 0);
     return data?.length || 0;
   } catch (error) {
     console.error("Error checking life happens passes:", error);
@@ -35,7 +42,7 @@ export const getRemainingPasses = async (userId: string): Promise<number> => {
   return Math.max(0, MAX_MONTHLY_PASSES - usedPasses);
 };
 
-// Find a dummy workout ID to use for life happens pass
+// Find a workout ID to use for life happens pass
 // This helps us satisfy the non-null constraint on the workout_id column
 const getFirstAvailableWorkoutId = async (): Promise<string | null> => {
   try {
@@ -50,8 +57,24 @@ const getFirstAvailableWorkoutId = async (): Promise<string | null> => {
     }
     
     if (!data || data.length === 0) {
-      console.error("No workouts found in the database");
-      return null;
+      // If no workouts exist, create a dummy workout
+      const { data: newWorkout, error: createError } = await supabase
+        .from('workouts')
+        .insert({
+          title: "Life Happens Placeholder",
+          description: "Auto-generated workout for life happens passes",
+          day_of_week: 1,
+          week_id: '00000000-0000-0000-0000-000000000000' // This might fail if there's a foreign key constraint
+        })
+        .select('id')
+        .single();
+      
+      if (createError) {
+        console.error("Error creating placeholder workout:", createError);
+        return null;
+      }
+      
+      return newWorkout?.id || null;
     }
     
     return data[0]?.id || null;
@@ -82,15 +105,20 @@ export const createLifeHappensCompletion = async (
     const now = new Date().toISOString();
     console.log("Timestamp for completion:", now);
     
+    // Ensure all required fields are provided and explicitly set life_happens_pass to true
+    const insertData = {
+      user_id: userId,
+      workout_id: workoutId,
+      completed_at: now,
+      notes: notes,
+      life_happens_pass: true
+    };
+    
+    console.log("Inserting workout completion data:", insertData);
+    
     const { data, error } = await supabase
       .from('workout_completions')
-      .insert({
-        user_id: userId,
-        workout_id: workoutId,
-        completed_at: now,
-        notes: notes,
-        life_happens_pass: true
-      })
+      .insert(insertData)
       .select('id')
       .single();
     

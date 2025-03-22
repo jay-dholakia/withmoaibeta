@@ -20,18 +20,24 @@ const LifeHappensButton = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  const { data: remainingPasses } = useQuery({
+  const { data: remainingPasses, isLoading: isLoadingPasses } = useQuery({
     queryKey: ['life-happens-passes', user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
-      return await getRemainingPasses(user.id);
+      console.log("Fetching remaining passes for user:", user.id);
+      const passes = await getRemainingPasses(user.id);
+      console.log("Remaining passes:", passes);
+      return passes;
     },
     enabled: !!user?.id,
   });
 
   const lifeHappensMutation = useMutation({
     mutationFn: async () => {
-      if (!user?.id) return false;
+      if (!user?.id) {
+        console.error("No user ID available");
+        return false;
+      }
       
       console.log("Starting life happens mutation for user:", user.id);
       
@@ -42,9 +48,14 @@ const LifeHappensButton = () => {
     },
     onSuccess: () => {
       toast.success('Life happens pass used successfully!');
+      
+      // Invalidate all related queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['life-happens-passes'] });
       queryClient.invalidateQueries({ queryKey: ['workouts'] });
+      queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
       queryClient.invalidateQueries({ queryKey: ['workout-history'] });
+      queryClient.invalidateQueries({ queryKey: ['client-group-data'] });
+      
       setDialogOpen(false);
     },
     onError: (error) => {

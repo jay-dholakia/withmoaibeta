@@ -2,9 +2,32 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ClientProfile } from '@/services/client-service';
-import { Plus, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { 
+  Activity, 
+  User2, 
+  UserRound, 
+  Bike, 
+  Dumbbell, 
+  Yoga, 
+  Music, 
+  Mountain, 
+  Basketball, 
+  Football, 
+  Tennis as TennisIcon, 
+  Waves, 
+  Snowflake, 
+  Ski, 
+  Hammer, 
+  Workflow,
+  LifeBuoy,
+  PenTool,
+  Sailboat,
+  Surfboard,
+  Golf as GolfIcon,
+  Boxing,
+  Ship,
+  Map
+} from 'lucide-react';
 
 interface ProfileBuilderStepThreeProps {
   profile: Partial<ClientProfile>;
@@ -13,12 +36,10 @@ interface ProfileBuilderStepThreeProps {
   onBack: () => void;
 }
 
-const suggestedMovements = [
-  'Running', 'Swimming', 'Cycling', 'Yoga', 'Pilates', 
-  'Weight Training', 'HIIT', 'Boxing', 'Dancing', 'Hiking',
-  'Basketball', 'Soccer', 'Tennis', 'CrossFit', 'Climbing',
-  'Martial Arts', 'Rowing', 'Spinning', 'Bodyweight Training'
-];
+interface MovementOption {
+  label: string;
+  icon: React.ReactNode;
+}
 
 export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = ({
   profile,
@@ -27,22 +48,39 @@ export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = (
   onBack
 }) => {
   const [movements, setMovements] = useState<string[]>(profile.favorite_movements || []);
-  const [newMovement, setNewMovement] = useState('');
 
-  const addMovement = (movement: string) => {
-    const trimmed = movement.trim();
-    if (trimmed && !movements.includes(trimmed)) {
-      setMovements([...movements, trimmed]);
-      setNewMovement('');
-    }
-  };
+  const movementOptions: MovementOption[] = [
+    { label: 'Walking', icon: <UserRound className="h-5 w-5" /> },
+    { label: 'Running', icon: <User2 className="h-5 w-5" /> },
+    { label: 'Swimming', icon: <LifeBuoy className="h-5 w-5" /> },
+    { label: 'Cycling', icon: <Bike className="h-5 w-5" /> },
+    { label: 'Weight Training', icon: <Dumbbell className="h-5 w-5" /> },
+    { label: 'Yoga', icon: <Yoga className="h-5 w-5" /> },
+    { label: 'Dance', icon: <Music className="h-5 w-5" /> },
+    { label: 'Hiking', icon: <Mountain className="h-5 w-5" /> },
+    { label: 'Basketball', icon: <Basketball className="h-5 w-5" /> },
+    { label: 'Soccer', icon: <Football className="h-5 w-5" /> },
+    { label: 'Tennis', icon: <TennisIcon className="h-5 w-5" /> },
+    { label: 'Volleyball', icon: <Activity className="h-5 w-5" /> },
+    { label: 'Pilates', icon: <Activity className="h-5 w-5" /> },
+    { label: 'CrossFit', icon: <Workflow className="h-5 w-5" /> },
+    { label: 'Martial Arts', icon: <Activity className="h-5 w-5" /> },
+    { label: 'Rock Climbing', icon: <Mountain className="h-5 w-5" /> },
+    { label: 'Skating', icon: <PenTool className="h-5 w-5" /> },
+    { label: 'Skiing', icon: <Ski className="h-5 w-5" /> },
+    { label: 'Snowboarding', icon: <Snowflake className="h-5 w-5" /> },
+    { label: 'Rowing', icon: <Ship className="h-5 w-5" /> },
+    { label: 'Surfing', icon: <Surfboard className="h-5 w-5" /> },
+    { label: 'Golf', icon: <GolfIcon className="h-5 w-5" /> },
+    { label: 'Boxing', icon: <Boxing className="h-5 w-5" /> },
+    { label: 'Paddleboarding', icon: <Sailboat className="h-5 w-5" /> },
+    { label: 'Trail Running', icon: <Map className="h-5 w-5" /> },
+  ];
 
-  const removeMovement = (movement: string) => {
-    setMovements(movements.filter(m => m !== movement));
-  };
-
-  const handleAddSuggested = (movement: string) => {
-    if (!movements.includes(movement)) {
+  const toggleMovement = (movement: string) => {
+    if (movements.includes(movement)) {
+      setMovements(movements.filter(m => m !== movement));
+    } else {
       setMovements([...movements, movement]);
     }
   };
@@ -55,82 +93,33 @@ export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = (
     onComplete();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addMovement(newMovement);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-client mb-2">How Do You Like to Move?</h1>
-        <p className="text-muted-foreground">Tell us your favorite ways to move and be active</p>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Activity className="h-6 w-6 text-client" />
+          <h1 className="text-2xl font-bold text-client">Favorite Ways to Move</h1>
+        </div>
+        <p className="text-muted-foreground">Select your favorite ways to move and be active</p>
       </div>
       
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Input
-              value={newMovement}
-              onChange={(e) => setNewMovement(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Enter an activity (e.g. Running)"
-              className="flex-1"
-            />
-            <Button
-              type="button"
-              onClick={() => addMovement(newMovement)}
-              disabled={!newMovement.trim()}
-              size="icon"
-              className="bg-client hover:bg-client/90"
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+          {movementOptions.map((option) => (
+            <div
+              key={option.label}
+              onClick={() => toggleMovement(option.label)}
+              className={`
+                flex items-center gap-2 px-3 py-2 rounded-full border cursor-pointer transition-all
+                ${movements.includes(option.label) 
+                  ? 'bg-client/10 border-client text-client font-medium' 
+                  : 'bg-background border-input hover:bg-muted/50'}
+              `}
             >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="flex flex-wrap gap-2">
-            {movements.map(movement => (
-              <Badge
-                key={movement}
-                variant="secondary"
-                className="group flex items-center gap-1 px-3 py-1.5"
-              >
-                {movement}
-                <button 
-                  onClick={() => removeMovement(movement)}
-                  className="ml-1 rounded-full hover:bg-muted p-0.5"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-            {movements.length === 0 && (
-              <div className="text-sm text-muted-foreground italic">
-                No activities added yet
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium">Suggested Activities</h3>
-          <div className="flex flex-wrap gap-2">
-            {suggestedMovements
-              .filter(m => !movements.includes(m))
-              .slice(0, 12)
-              .map(movement => (
-                <Badge
-                  key={movement}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-muted"
-                  onClick={() => handleAddSuggested(movement)}
-                >
-                  {movement}
-                </Badge>
-              ))}
-          </div>
+              {option.icon}
+              <span className="text-sm whitespace-nowrap truncate">{option.label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -144,6 +133,7 @@ export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = (
         <Button 
           onClick={handleComplete} 
           className="bg-client hover:bg-client/90"
+          disabled={movements.length === 0}
         >
           Complete Profile
         </Button>

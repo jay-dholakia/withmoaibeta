@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 
 interface Client {
   id: string;
@@ -18,6 +19,8 @@ interface Client {
 }
 
 const fetchClients = async (): Promise<Client[]> => {
+  console.log('Fetching clients for admin panel');
+  
   // Fetch client profiles
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
@@ -30,8 +33,11 @@ const fetchClients = async (): Promise<Client[]> => {
     .order('created_at', { ascending: false });
 
   if (profilesError) {
+    console.error('Error fetching profiles:', profilesError);
     throw profilesError;
   }
+
+  console.log('Fetched profiles:', profiles);
 
   // Get all group memberships
   const { data: groupMembers, error: groupMembersError } = await supabase
@@ -39,14 +45,15 @@ const fetchClients = async (): Promise<Client[]> => {
     .select('user_id, group_id');
 
   if (groupMembersError) {
+    console.error('Error fetching group members:', groupMembersError);
     throw groupMembersError;
   }
 
   // Create a map of user_id to group_id
-  const userGroupMap = groupMembers.reduce((map, item) => {
+  const userGroupMap = groupMembers?.reduce((map, item) => {
     map[item.user_id] = item.group_id;
     return map;
-  }, {} as Record<string, string>);
+  }, {} as Record<string, string>) || {};
 
   // Get all group names
   const { data: groups, error: groupsError } = await supabase
@@ -54,31 +61,45 @@ const fetchClients = async (): Promise<Client[]> => {
     .select('id, name');
 
   if (groupsError) {
+    console.error('Error fetching groups:', groupsError);
     throw groupsError;
   }
 
   // Create a map of group_id to group_name
-  const groupNameMap = groups.reduce((map, group) => {
+  const groupNameMap = groups?.reduce((map, group) => {
     map[group.id] = group.name;
     return map;
-  }, {} as Record<string, string>);
+  }, {} as Record<string, string>) || {};
 
-  // Fetch user emails from auth.users
-  const clientsData: Client[] = [];
-  
-  for (const profile of profiles) {
-    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
-    
-    if (!userError && userData?.user) {
-      clientsData.push({
-        id: profile.id,
-        email: userData.user.email || 'Unknown email',
-        created_at: profile.created_at,
-        group_name: userGroupMap[profile.id] ? groupNameMap[userGroupMap[profile.id]] || null : null
-      });
-    }
+  // Get emails for all client users
+  const { data: emailsData, error: emailsError } = await supabase.rpc('get_users_email', {
+    user_ids: profiles?.map(p => p.id) || []
+  });
+
+  if (emailsError) {
+    console.error('Error fetching user emails:', emailsError);
+    throw emailsError;
   }
 
+  console.log('Fetched emails:', emailsData);
+
+  // Create map of user_id to email
+  const emailMap = emailsData?.reduce((map, item) => {
+    map[item.id] = item.email;
+    return map;
+  }, {} as Record<string, string>) || {};
+
+  // Compile the client data
+  const clientsData: Client[] = profiles?.map(profile => {
+    return {
+      id: profile.id,
+      email: emailMap[profile.id] || 'Unknown email',
+      created_at: profile.created_at,
+      group_name: userGroupMap[profile.id] ? groupNameMap[userGroupMap[profile.id]] || null : null
+    };
+  }) || [];
+
+  console.log('Final client data:', clientsData);
   return clientsData;
 };
 
@@ -94,7 +115,7 @@ const ClientsPage: React.FC = () => {
   }, [userType, navigate]);
 
   const { data: clients, isLoading, error, refetch } = useQuery({
-    queryKey: ['clients'],
+    queryKey: ['admin-clients'],
     queryFn: fetchClients,
   });
 
@@ -138,7 +159,10 @@ const ClientsPage: React.FC = () => {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center py-8">
-                    Loading clients...
+                    <div className="flex justify-center items-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mr-2" />
+                      Loading clients...
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : clients && clients.length > 0 ? (

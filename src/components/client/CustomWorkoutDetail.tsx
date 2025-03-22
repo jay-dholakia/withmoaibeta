@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import {
-  fetchCustomWorkouts,
+  fetchCustomWorkout,
   fetchCustomWorkoutExercises,
   deleteCustomWorkout,
   CustomWorkout,
@@ -41,16 +41,8 @@ const CustomWorkoutDetail = () => {
         setIsLoading(true);
         
         // Fetch workout details
-        const workouts = await fetchCustomWorkouts();
-        const currentWorkout = workouts.find(w => w.id === workoutId);
-        
-        if (!currentWorkout) {
-          toast.error('Workout not found');
-          navigate('/client-dashboard/workouts');
-          return;
-        }
-        
-        setWorkout(currentWorkout);
+        const workoutData = await fetchCustomWorkout(workoutId);
+        setWorkout(workoutData);
         
         // Fetch workout exercises
         const exercisesData = await fetchCustomWorkoutExercises(workoutId);

@@ -23,27 +23,26 @@ const isCardioExercise = (exerciseName: string): boolean => {
   return name.includes('run') || name.includes('walk');
 };
 
-// Dynamic schema based on exercise type
-const createFormSchema = (exercise: Exercise) => {
-  const isCardio = isCardioExercise(exercise.name);
-  
-  if (isCardio) {
-    return z.object({
-      notes: z.string().optional()
-    });
-  } else {
-    return z.object({
-      sets: z.coerce.number().min(1, 'At least 1 set is required'),
-      reps: z.string().min(1, 'Reps information is required'),
-      rest_seconds: z.coerce.number().optional(),
-      notes: z.string().optional()
-    });
-  }
-};
+// Define separate schemas for different exercise types
+const cardioFormSchema = z.object({
+  notes: z.string().optional()
+});
+
+const strengthFormSchema = z.object({
+  sets: z.coerce.number().min(1, 'At least 1 set is required'),
+  reps: z.string().min(1, 'Reps information is required'),
+  rest_seconds: z.coerce.number().optional(),
+  notes: z.string().optional()
+});
+
+// Type for cardio exercises
+type CardioFormValues = z.infer<typeof cardioFormSchema>;
+// Type for strength exercises
+type StrengthFormValues = z.infer<typeof strengthFormSchema>;
 
 interface WorkoutExerciseFormProps {
   exercise: Exercise;
-  onSubmit: (values: any) => void;
+  onSubmit: (values: CardioFormValues | StrengthFormValues) => void;
   onCancel: () => void;
   isSubmitting: boolean;
   existingData?: Partial<WorkoutExercise>;
@@ -57,37 +56,138 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   existingData
 }) => {
   const isCardio = isCardioExercise(exercise.name);
-  const formSchema = createFormSchema(exercise);
   
-  type FormValues = z.infer<typeof formSchema>;
-  
-  // Set up the default values based on exercise type
-  const getDefaultValues = (): FormValues => {
-    if (isCardio) {
-      return {
-        notes: existingData?.notes || ''
-      };
-    } else {
-      return {
-        sets: existingData?.sets || 3,
-        reps: existingData?.reps || '10',
-        rest_seconds: existingData?.rest_seconds || 60,
-        notes: existingData?.notes || ''
-      };
+  // Conditionally use the appropriate form based on exercise type
+  if (isCardio) {
+    return (
+      <CardioExerciseForm
+        exercise={exercise}
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+        isSubmitting={isSubmitting}
+        existingData={existingData}
+      />
+    );
+  } else {
+    return (
+      <StrengthExerciseForm
+        exercise={exercise}
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+        isSubmitting={isSubmitting}
+        existingData={existingData}
+      />
+    );
+  }
+};
+
+// Component for cardio exercises (run/walk)
+const CardioExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
+  exercise,
+  onSubmit,
+  onCancel,
+  isSubmitting,
+  existingData
+}) => {
+  const form = useForm<CardioFormValues>({
+    resolver: zodResolver(cardioFormSchema),
+    defaultValues: {
+      notes: existingData?.notes || ''
     }
-  };
-  
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: getDefaultValues()
   });
 
-  // Update form when exercise changes
   useEffect(() => {
-    form.reset(getDefaultValues());
-  }, [exercise, existingData, form, isCardio]);
+    form.reset({
+      notes: existingData?.notes || ''
+    });
+  }, [exercise, existingData, form]);
 
-  const handleSubmit = (values: FormValues) => {
+  const handleSubmit = (values: CardioFormValues) => {
+    onSubmit(values);
+  };
+
+  return (
+    <div className="border rounded-lg p-4 mb-4 bg-muted/20">
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h4 className="font-medium">{exercise.name}</h4>
+          <p className="text-sm text-muted-foreground">{exercise.category}</p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onCancel}
+          className="h-8 w-8 p-0"
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Remove</span>
+        </Button>
+      </div>
+
+      <Form {...form}>
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notes</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    {...field} 
+                    value={field.value || ''} 
+                    placeholder="Enter distance, duration, or other details..."
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="flex justify-end">
+            <Button 
+              type="button" 
+              disabled={isSubmitting}
+              onClick={form.handleSubmit(handleSubmit)}
+            >
+              {isSubmitting ? 'Saving...' : 'Save Exercise'}
+            </Button>
+          </div>
+        </div>
+      </Form>
+    </div>
+  );
+};
+
+// Component for strength exercises
+const StrengthExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
+  exercise,
+  onSubmit,
+  onCancel,
+  isSubmitting,
+  existingData
+}) => {
+  const form = useForm<StrengthFormValues>({
+    resolver: zodResolver(strengthFormSchema),
+    defaultValues: {
+      sets: existingData?.sets || 3,
+      reps: existingData?.reps || '10',
+      rest_seconds: existingData?.rest_seconds || 60,
+      notes: existingData?.notes || ''
+    }
+  });
+
+  useEffect(() => {
+    form.reset({
+      sets: existingData?.sets || 3,
+      reps: existingData?.reps || '10',
+      rest_seconds: existingData?.rest_seconds || 60,
+      notes: existingData?.notes || ''
+    });
+  }, [exercise, existingData, form]);
+
+  const handleSubmit = (values: StrengthFormValues) => {
     onSubmit(values);
   };
 
@@ -113,57 +213,53 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       <Form {...form}>
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
-            {!isCardio && (
-              <>
-                <FormField
-                  control={form.control}
-                  name="sets"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sets</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} min={1} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="sets"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sets</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} min={1} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="reps"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reps</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., 10 or 8-12" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="reps"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Reps</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="e.g., 10 or 8-12" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="rest_seconds"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Rest (seconds)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          {...field} 
-                          value={field.value || ''} 
-                          min={0} 
-                          step={15}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            )}
+            <FormField
+              control={form.control}
+              name="rest_seconds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Rest (seconds)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      {...field} 
+                      value={field.value || ''} 
+                      min={0} 
+                      step={15}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <FormField
@@ -176,9 +272,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
                   <Textarea 
                     {...field} 
                     value={field.value || ''} 
-                    placeholder={isCardio 
-                      ? "Enter distance, duration, or other details..."
-                      : "Optional instructions or notes about this exercise"}
+                    placeholder="Optional instructions or notes about this exercise"
                   />
                 </FormControl>
                 <FormMessage />

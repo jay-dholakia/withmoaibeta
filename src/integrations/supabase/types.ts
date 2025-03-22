@@ -9,6 +9,90 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      client_custom_workout_exercises: {
+        Row: {
+          created_at: string
+          custom_exercise_name: string | null
+          exercise_id: string | null
+          id: string
+          notes: string | null
+          order_index: number
+          reps: string | null
+          rest_seconds: number | null
+          sets: number | null
+          workout_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_exercise_name?: string | null
+          exercise_id?: string | null
+          id?: string
+          notes?: string | null
+          order_index: number
+          reps?: string | null
+          rest_seconds?: number | null
+          sets?: number | null
+          workout_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_exercise_name?: string | null
+          exercise_id?: string | null
+          id?: string
+          notes?: string | null
+          order_index?: number
+          reps?: string | null
+          rest_seconds?: number | null
+          sets?: number | null
+          workout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_custom_workout_exercises_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_custom_workout_exercises_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "client_custom_workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_custom_workouts: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       client_notes: {
         Row: {
           content: string

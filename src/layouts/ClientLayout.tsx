@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
 import { Toaster } from 'sonner';
 import { Logo } from '@/components/Logo';
+import { toast } from '@/components/ui/use-toast';
 
 interface ClientLayoutProps {
   children: React.ReactNode;

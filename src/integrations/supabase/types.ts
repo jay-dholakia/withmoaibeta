@@ -475,6 +475,7 @@ export type Database = {
         Row: {
           completed_at: string
           id: string
+          life_happens_pass: boolean | null
           notes: string | null
           rating: number | null
           user_id: string
@@ -483,6 +484,7 @@ export type Database = {
         Insert: {
           completed_at?: string
           id?: string
+          life_happens_pass?: boolean | null
           notes?: string | null
           rating?: number | null
           user_id: string
@@ -491,6 +493,7 @@ export type Database = {
         Update: {
           completed_at?: string
           id?: string
+          life_happens_pass?: boolean | null
           notes?: string | null
           rating?: number | null
           user_id?: string

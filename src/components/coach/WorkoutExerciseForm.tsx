@@ -29,7 +29,6 @@ const createFormSchema = (exercise: Exercise) => {
   
   if (isCardio) {
     return z.object({
-      rest_seconds: z.coerce.number().optional(),
       notes: z.string().optional()
     });
   } else {
@@ -63,10 +62,9 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   type FormValues = z.infer<typeof formSchema>;
   
   // Set up the default values based on exercise type
-  const getDefaultValues = () => {
+  const getDefaultValues = (): FormValues => {
     if (isCardio) {
       return {
-        rest_seconds: existingData?.rest_seconds || 60,
         notes: existingData?.notes || ''
       };
     } else {
@@ -144,28 +142,28 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="rest_seconds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rest (seconds)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          {...field} 
+                          value={field.value || ''} 
+                          min={0} 
+                          step={15}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </>
             )}
-
-            <FormField
-              control={form.control}
-              name="rest_seconds"
-              render={({ field }) => (
-                <FormItem className={isCardio ? "col-span-3" : ""}>
-                  <FormLabel>Rest (seconds)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      {...field} 
-                      value={field.value || ''} 
-                      min={0} 
-                      step={15}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </div>
 
           <FormField

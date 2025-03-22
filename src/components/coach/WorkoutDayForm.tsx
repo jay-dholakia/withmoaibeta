@@ -209,7 +209,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
             exercise_id: exercise.id,
             sets: isCardio ? null : exerciseFormData.sets,
             reps: isCardio ? null : exerciseFormData.reps,
-            rest_seconds: exerciseFormData.rest_seconds || null,
+            rest_seconds: isCardio ? null : (exerciseFormData.rest_seconds || null),
             notes: exerciseFormData.notes || null,
             order_index: index
           });
@@ -241,7 +241,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
             return updateWorkoutExercise(exerciseFormData.id, {
               sets: isCardio ? null : exerciseFormData.sets,
               reps: isCardio ? null : exerciseFormData.reps,
-              rest_seconds: exerciseFormData.rest_seconds || null,
+              rest_seconds: isCardio ? null : (exerciseFormData.rest_seconds || null),
               notes: exerciseFormData.notes || null,
               order_index: index
             });
@@ -251,7 +251,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
               exercise_id: exercise.id,
               sets: isCardio ? null : exerciseFormData.sets,
               reps: isCardio ? null : exerciseFormData.reps,
-              rest_seconds: exerciseFormData.rest_seconds || null,
+              rest_seconds: isCardio ? null : (exerciseFormData.rest_seconds || null),
               notes: exerciseFormData.notes || null,
               order_index: index
             });

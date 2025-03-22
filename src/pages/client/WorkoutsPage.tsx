@@ -6,6 +6,7 @@ import ActiveWorkout from '@/components/client/ActiveWorkout';
 import WorkoutComplete from '@/components/client/WorkoutComplete';
 import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
 import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
+import CustomWorkoutActiveView from '@/components/client/CustomWorkoutActiveView';
 
 const WorkoutsPage = () => {
   console.log("WorkoutsPage component rendering");
@@ -16,6 +17,7 @@ const WorkoutsPage = () => {
       <Route path="complete/:workoutCompletionId" element={<WorkoutComplete />} />
       <Route path="create" element={<CreateCustomWorkout />} />
       <Route path="custom/:workoutId" element={<CustomWorkoutDetail />} />
+      <Route path="custom/:workoutId/active" element={<CustomWorkoutActiveView />} />
       <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
     </Routes>
   );

@@ -94,6 +94,11 @@ const CreateCustomWorkout = () => {
       return;
     }
 
+    if (!duration) {
+      toast.error('Please enter a workout duration');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       

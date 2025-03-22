@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -9,6 +8,9 @@ import { DAYS_OF_WEEK } from '@/types/workout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import CustomWorkoutsList from './CustomWorkoutsList';
+import { useQuery } from '@tanstack/react-query';
+import { Plus, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const WorkoutsList = () => {
   const { user } = useAuth();
@@ -110,6 +112,97 @@ const WorkoutsList = () => {
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+const CustomWorkoutsSection = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const { data: customWorkouts, isLoading } = useQuery({
+    queryKey: ['client-custom-workouts', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('client_custom_workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id
+  });
+  
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold">My Custom Workouts</h2>
+        <Button onClick={() => navigate('/client-dashboard/workouts/create')} variant="outline">
+          <Plus className="h-4 w-4 mr-2" />
+          Create New
+        </Button>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : customWorkouts && customWorkouts.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {customWorkouts.map((workout) => (
+            <Card key={workout.id} className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">{workout.title}</CardTitle>
+                {workout.duration_minutes && (
+                  <CardDescription>{workout.duration_minutes} min</CardDescription>
+                )}
+              </CardHeader>
+              
+              {workout.description && (
+                <CardContent className="pb-0">
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {workout.description}
+                  </p>
+                </CardContent>
+              )}
+              
+              <CardFooter className="flex gap-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate(`/client-dashboard/workouts/custom/${workout.id}`)}
+                >
+                  View Details
+                </Button>
+                <Button 
+                  size="sm"
+                  className="bg-client hover:bg-client/90"
+                  onClick={() => navigate(`/client-dashboard/workouts/custom/${workout.id}/active`)}
+                >
+                  Start Workout
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle>No Custom Workouts</CardTitle>
+            <CardDescription>Create your first custom workout</CardDescription>
+          </CardHeader>
+          <CardFooter className="flex justify-center pb-6">
+            <Button onClick={() => navigate('/client-dashboard/workouts/create')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Custom Workout
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+    </section>
   );
 };
 

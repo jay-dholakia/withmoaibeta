@@ -5,10 +5,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchClientWorkoutHistory } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
 import { WeekProgressBar } from './WeekProgressBar';
-import { Loader2, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Users, User } from 'lucide-react';
 
-export const WeekProgressSection = () => {
+interface WeekProgressSectionProps {
+  showTeam?: boolean;
+  showPersonal?: boolean;
+}
+
+export const WeekProgressSection = ({ 
+  showTeam = true, 
+  showPersonal = true 
+}: WeekProgressSectionProps) => {
   const { user } = useAuth();
   
   // Fetch client's workout completions
@@ -18,7 +25,7 @@ export const WeekProgressSection = () => {
       if (!user?.id) return [];
       return fetchClientWorkoutHistory(user.id);
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && showPersonal,
   });
   
   // Get client's group members
@@ -72,7 +79,7 @@ export const WeekProgressSection = () => {
         userEmails: userEmails || []
       };
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && showTeam,
   });
   
   // Extract dates of completed workouts
@@ -90,7 +97,7 @@ export const WeekProgressSection = () => {
       .map(workout => new Date(workout.completed_at));
   }, [groupData?.completions]);
   
-  if (isLoadingClientWorkouts || isLoadingGroupData) {
+  if ((showPersonal && isLoadingClientWorkouts) || (showTeam && isLoadingGroupData)) {
     return (
       <div className="flex justify-center py-6">
         <Loader2 className="h-6 w-6 animate-spin text-client" />
@@ -106,27 +113,46 @@ export const WeekProgressSection = () => {
   
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-        <Users className="h-5 w-5 text-client" />
-        Weekly Progress
-      </h2>
+      {!showTeam && !showPersonal && (
+        <div className="text-center text-muted-foreground py-8">
+          No progress data to display
+        </div>
+      )}
       
-      <WeekProgressBar 
-        completedDates={clientCompletedDates}
-        label="Your Workouts" 
-        color="bg-client"
-        textColor="text-client"
-      />
+      {showPersonal && (
+        <>
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <User className="h-5 w-5 text-client" />
+            Your Progress
+          </h2>
+          
+          <WeekProgressBar 
+            completedDates={clientCompletedDates}
+            label="Your Workouts" 
+            color="bg-client"
+            textColor="text-client"
+          />
+        </>
+      )}
       
-      {groupData?.members?.length > 0 && (
-        <WeekProgressBar 
-          completedDates={groupCompletedDates}
-          label={`${groupData.groupName} Progress`}
-          count={totalGroupWorkoutsThisWeek}
-          total={maxPossibleWorkouts > 0 ? maxPossibleWorkouts : 1}
-          color="bg-blue-500"
-          textColor="text-blue-500"
-        />
+      {showTeam && groupData?.members?.length > 0 && (
+        <>
+          {showPersonal && (
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 mt-6">
+              <Users className="h-5 w-5 text-client" />
+              Team Progress
+            </h2>
+          )}
+          
+          <WeekProgressBar 
+            completedDates={groupCompletedDates}
+            label={`${groupData.groupName} Progress`}
+            count={totalGroupWorkoutsThisWeek}
+            total={maxPossibleWorkouts > 0 ? maxPossibleWorkouts : 1}
+            color="bg-blue-500"
+            textColor="text-blue-500"
+          />
+        </>
       )}
     </div>
   );

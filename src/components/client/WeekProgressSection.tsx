@@ -204,7 +204,7 @@ export const WeekProgressSection = ({
                     />
                     <WeekProgressBar 
                       completedDates={member.completedWorkouts}
-                      label={member.isCurrentUser ? "Your Workouts" : `${member.profileData?.first_name || member.email.split('@')[0]}'s Workouts`}
+                      label={member.isCurrentUser ? "Your Workouts" : `${member.profileData?.first_name || member.email.split('@')[0]}`}
                       color={member.isCurrentUser ? "bg-client" : "bg-blue-500"}
                       textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}
                     />

@@ -58,12 +58,12 @@ export const WeekProgressBar = ({
           return (
             <div key={index} className="flex flex-col items-center">
               <div 
-                className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${
                   isCompleted ? 'bg-green-100' : 'bg-slate-100'
                 }`}
               >
                 {isCompleted && (
-                  <Star className="h-5 w-5 text-green-500 fill-green-500" />
+                  <Star className="h-4 w-4 text-green-500 fill-green-500" />
                 )}
               </div>
               <div className="text-xs text-center text-slate-500 mt-1">

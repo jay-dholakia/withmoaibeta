@@ -1,13 +1,23 @@
 
 import React, { useState } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { Image, Loader2, Upload, User } from 'lucide-react';
+import { Image, Loader2, Upload, User, CalendarIcon } from 'lucide-react';
 import { ClientProfile, uploadClientAvatar } from '@/services/client-service';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface ProfileBuilderStepOneProps {
   profile: Partial<ClientProfile>;
@@ -25,11 +35,32 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   const [lastName, setLastName] = useState(profile.last_name || '');
   const [city, setCity] = useState(profile.city || '');
   const [state, setState] = useState(profile.state || '');
-  const [birthday, setBirthday] = useState(profile.birthday ? new Date(profile.birthday).toISOString().split('T')[0] : '');
-  const [height, setHeight] = useState(profile.height || '');
-  const [weight, setWeight] = useState(profile.weight || '');
+  const [birthdayDate, setBirthdayDate] = useState<Date | undefined>(
+    profile.birthday ? new Date(profile.birthday) : undefined
+  );
+  const [feet, setFeet] = useState('');
+  const [inches, setInches] = useState('');
+  const [weight, setWeight] = useState(profile.weight?.replace(/[^0-9.]/g, '') || '');
+  const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>(
+    profile.weight?.toLowerCase().includes('kg') ? 'kg' : 'lbs'
+  );
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '');
   const [uploading, setUploading] = useState(false);
+  const [firstNameFocused, setFirstNameFocused] = useState(!!firstName);
+  const [lastNameFocused, setLastNameFocused] = useState(!!lastName);
+  const [cityFocused, setCityFocused] = useState(!!city);
+  const [stateFocused, setStateFocused] = useState(!!state);
+
+  // Parse existing height on component mount
+  React.useEffect(() => {
+    if (profile.height) {
+      const heightMatch = profile.height.match(/(\d+)'(\d+)"/);
+      if (heightMatch) {
+        setFeet(heightMatch[1]);
+        setInches(heightMatch[2]);
+      }
+    }
+  }, [profile.height]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
@@ -66,20 +97,24 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   };
 
   const handleNext = () => {
+    // Format height and weight with units
+    const formattedHeight = feet && inches ? `${feet}'${inches}"` : '';
+    const formattedWeight = weight ? `${weight} ${weightUnit}` : '';
+
     // Save current data
     onUpdate({
       first_name: firstName,
       last_name: lastName,
       city,
       state,
-      birthday: birthday ? new Date(birthday).toISOString() : null,
-      height,
-      weight
+      birthday: birthdayDate ? birthdayDate.toISOString() : null,
+      height: formattedHeight,
+      weight: formattedWeight
     });
     onNext();
   };
 
-  const isFormValid = firstName && lastName && city && state && birthday && height && weight;
+  const isFormValid = firstName && lastName && city && state && birthdayDate && feet && inches && weight;
 
   return (
     <div className="space-y-6">
@@ -125,78 +160,174 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="firstName">First Name</Label>
+        <div className="relative">
           <Input 
-            id="firstName" 
-            value={firstName} 
-            onChange={(e) => setFirstName(e.target.value)} 
-            placeholder="Your first name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            onFocus={() => setFirstNameFocused(true)}
+            onBlur={() => setFirstNameFocused(firstName.length > 0)}
+            placeholder="First Name"
+            className="h-12 pl-3 pt-6"
           />
+          <span 
+            className={`absolute left-3 transition-all duration-200 pointer-events-none ${
+              firstNameFocused 
+                ? 'top-2 text-xs text-muted-foreground' 
+                : 'top-1/2 -translate-y-1/2 text-muted-foreground'
+            }`}
+          >
+            First Name
+          </span>
         </div>
         
-        <div className="space-y-2">
-          <Label htmlFor="lastName">Last Name</Label>
+        <div className="relative">
           <Input 
-            id="lastName" 
-            value={lastName} 
-            onChange={(e) => setLastName(e.target.value)} 
-            placeholder="Your last name"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            onFocus={() => setLastNameFocused(true)}
+            onBlur={() => setLastNameFocused(lastName.length > 0)}
+            placeholder="Last Name"
+            className="h-12 pl-3 pt-6"
           />
+          <span 
+            className={`absolute left-3 transition-all duration-200 pointer-events-none ${
+              lastNameFocused 
+                ? 'top-2 text-xs text-muted-foreground' 
+                : 'top-1/2 -translate-y-1/2 text-muted-foreground'
+            }`}
+          >
+            Last Name
+          </span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="city">City</Label>
+        <div className="relative">
           <Input 
-            id="city" 
-            value={city} 
-            onChange={(e) => setCity(e.target.value)} 
-            placeholder="Your city"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            onFocus={() => setCityFocused(true)}
+            onBlur={() => setCityFocused(city.length > 0)}
+            placeholder="City"
+            className="h-12 pl-3 pt-6"
           />
+          <span 
+            className={`absolute left-3 transition-all duration-200 pointer-events-none ${
+              cityFocused 
+                ? 'top-2 text-xs text-muted-foreground' 
+                : 'top-1/2 -translate-y-1/2 text-muted-foreground'
+            }`}
+          >
+            City
+          </span>
         </div>
         
-        <div className="space-y-2">
-          <Label htmlFor="state">State</Label>
+        <div className="relative">
           <Input 
-            id="state" 
-            value={state} 
-            onChange={(e) => setState(e.target.value)} 
-            placeholder="Your state"
+            value={state}
+            onChange={(e) => setState(e.target.value)}
+            onFocus={() => setStateFocused(true)}
+            onBlur={() => setStateFocused(state.length > 0)}
+            placeholder="State"
+            className="h-12 pl-3 pt-6"
           />
+          <span 
+            className={`absolute left-3 transition-all duration-200 pointer-events-none ${
+              stateFocused 
+                ? 'top-2 text-xs text-muted-foreground' 
+                : 'top-1/2 -translate-y-1/2 text-muted-foreground'
+            }`}
+          >
+            State
+          </span>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="birthday">Birthday</Label>
-        <Input 
-          id="birthday" 
-          type="date" 
-          value={birthday} 
-          onChange={(e) => setBirthday(e.target.value)} 
-        />
+        <div className="text-sm text-muted-foreground mb-1">Birthday</div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !birthdayDate && "text-muted-foreground"
+              )}
+            >
+              {birthdayDate ? (
+                format(birthdayDate, "MMMM d, yyyy")
+              ) : (
+                <span>Select your birthday</span>
+              )}
+              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={birthdayDate}
+              onSelect={setBirthdayDate}
+              disabled={(date) => date > new Date()}
+              initialFocus
+              className="p-3 pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="height">Height</Label>
-          <Input 
-            id="height" 
-            value={height} 
-            onChange={(e) => setHeight(e.target.value)} 
-            placeholder="e.g. 5'10&quot;"
-          />
+      <div>
+        <div className="text-sm text-muted-foreground mb-1">Height</div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center">
+            <Input 
+              type="number" 
+              placeholder="Feet"
+              value={feet}
+              onChange={e => setFeet(e.target.value)}
+              min="1"
+              max="8"
+              className="text-center"
+            />
+            <span className="ml-2 text-sm">ft</span>
+          </div>
+          
+          <div className="flex items-center">
+            <Input 
+              type="number" 
+              placeholder="Inches"
+              value={inches}
+              onChange={e => setInches(e.target.value)}
+              min="0"
+              max="11"
+              className="text-center"
+            />
+            <span className="ml-2 text-sm">in</span>
+          </div>
         </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="weight">Weight</Label>
+      </div>
+
+      <div>
+        <div className="text-sm text-muted-foreground mb-1">Weight</div>
+        <div className="flex gap-2">
           <Input 
-            id="weight" 
-            value={weight} 
-            onChange={(e) => setWeight(e.target.value)} 
-            placeholder="e.g. 170 lbs"
+            type="number" 
+            placeholder="Weight"
+            value={weight}
+            onChange={e => setWeight(e.target.value)}
+            className="flex-1"
           />
+          <Select 
+            value={weightUnit} 
+            onValueChange={(value: 'lbs' | 'kg') => setWeightUnit(value)}
+          >
+            <SelectTrigger className="w-24">
+              <SelectValue placeholder="Unit" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="lbs">lbs</SelectItem>
+              <SelectItem value="kg">kg</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

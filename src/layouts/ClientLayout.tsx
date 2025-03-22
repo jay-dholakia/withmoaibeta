@@ -93,7 +93,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   className={`flex flex-col items-center py-3 ${isActive('/notes') ? 'text-client' : 'text-gray-500'}`}
                 >
                   <FileText className="h-5 w-5" />
-                  <span className="text-xs mt-1">Notes</span>
+                  <span className="text-xs mt-1">Journal</span>
                 </Link>
               </li>
               
@@ -113,3 +113,4 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
     </div>
   );
 };
+

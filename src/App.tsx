@@ -2,27 +2,30 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ClientLayout } from './layouts/ClientLayout';
+import { CoachLayout } from './layouts/CoachLayout';
+import { NotFound } from './components/NotFound';
+import ClientDashboard from './pages/client/ClientDashboard';
+import WorkoutsList from './components/client/WorkoutsList';
 import CustomWorkoutDetail from './components/client/CustomWorkoutDetail';
 import CustomWorkoutActiveView from './components/client/CustomWorkoutActiveView';
-import WorkoutsList from './components/client/WorkoutsList';
+import CreateCustomWorkout from './components/client/CreateCustomWorkout';
 import ActiveWorkout from './components/client/ActiveWorkout';
 import WorkoutComplete from './components/client/WorkoutComplete';
-import CreateCustomWorkout from './components/client/CreateCustomWorkout';
-import { NotFound } from './components/NotFound';
 
 function App() {
   return (
     <Routes>
+      {/* Redirect root to client dashboard */}
       <Route path="/" element={<WorkoutsList />} />
       
       {/* Client Dashboard Routes */}
-      <Route path="/client-dashboard" element={<ClientLayout><WorkoutsList /></ClientLayout>} />
-      <Route path="/client-dashboard/workouts" element={<ClientLayout><WorkoutsList /></ClientLayout>} />
-      <Route path="/client-dashboard/workouts/custom/create" element={<ClientLayout><CreateCustomWorkout /></ClientLayout>} />
-      <Route path="/client-dashboard/workouts/custom/:workoutId" element={<ClientLayout><CustomWorkoutDetail /></ClientLayout>} />
-      <Route path="/client-dashboard/workouts/custom/:workoutId/active" element={<ClientLayout><CustomWorkoutActiveView /></ClientLayout>} />
-      <Route path="/client-dashboard/workouts/active/:workoutCompletionId" element={<ClientLayout><ActiveWorkout /></ClientLayout>} />
-      <Route path="/client-dashboard/workouts/complete/:workoutCompletionId" element={<ClientLayout><WorkoutComplete /></ClientLayout>} />
+      <Route path="/client-dashboard" element={<ClientLayout><ClientDashboard /></ClientLayout>} />
+      
+      {/* Coach Dashboard Routes */}
+      <Route path="/coach-dashboard/*" element={<CoachLayout><Routes>
+        <Route index element={<div>Coach Dashboard</div>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes></CoachLayout>} />
       
       {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />

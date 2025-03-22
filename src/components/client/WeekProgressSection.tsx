@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +18,6 @@ export const WeekProgressSection = ({
 }: WeekProgressSectionProps) => {
   const { user } = useAuth();
   
-  // Fetch client's workout completions
   const { data: clientWorkouts, isLoading: isLoadingClientWorkouts } = useQuery({
     queryKey: ['client-workouts', user?.id],
     queryFn: async () => {
@@ -29,13 +27,11 @@ export const WeekProgressSection = ({
     enabled: !!user?.id && showPersonal,
   });
   
-  // Get client's group members
   const { data: groupData, isLoading: isLoadingGroupData } = useQuery({
     queryKey: ['client-group-data', user?.id],
     queryFn: async () => {
       if (!user?.id) return { members: [], groupName: "" };
       
-      // First get the groups the client belongs to
       const { data: memberGroups } = await supabase
         .from('group_members')
         .select('group_id')
@@ -43,7 +39,6 @@ export const WeekProgressSection = ({
         
       if (!memberGroups || memberGroups.length === 0) return { members: [], groupName: "" };
       
-      // Get the first group's info
       const groupId = memberGroups[0].group_id;
       
       const { data: groupInfo } = await supabase
@@ -52,7 +47,6 @@ export const WeekProgressSection = ({
         .eq('id', groupId)
         .single();
 
-      // Get all members in the group
       const { data: members } = await supabase
         .from('group_members')
         .select('user_id')
@@ -60,7 +54,6 @@ export const WeekProgressSection = ({
         
       if (!members || members.length === 0) return { members: [], groupName: groupInfo?.name || "My Moai" };
       
-      // Get workout completions for all group members
       const memberIds = members.map(m => m.user_id);
       
       const { data: completions } = await supabase
@@ -69,17 +62,14 @@ export const WeekProgressSection = ({
         .in('user_id', memberIds)
         .not('completed_at', 'is', null);
 
-      // Get email addresses for members
       const { data: userEmails } = await supabase
         .rpc('get_users_email', { user_ids: memberIds });
         
-      // Get profile data for each member
       const { data: profiles } = await supabase
         .from('client_profiles')
         .select('id, first_name, last_name, avatar_url')
         .in('id', memberIds);
       
-      // Create a map of profiles for easier access
       const profileMap = {};
       if (profiles) {
         profiles.forEach(profile => {
@@ -87,7 +77,6 @@ export const WeekProgressSection = ({
         });
       }
       
-      // Create a map of member workout completions
       const memberWorkoutsMap = {};
       if (completions) {
         completions.forEach(completion => {
@@ -98,9 +87,8 @@ export const WeekProgressSection = ({
         });
       }
       
-      // Prepare the member data with their emails and workout completions
       const memberData = memberIds.map(memberId => {
-        const email = userEmails?.find(u => u.id === memberId)?.email || 'Unknown';
+        const email = userEmails?.find(u => u.id === memberId)?.email || '';
         return {
           userId: memberId,
           email,
@@ -120,7 +108,6 @@ export const WeekProgressSection = ({
     enabled: !!user?.id && showTeam,
   });
   
-  // Extract dates of completed workouts
   const clientCompletedDates = React.useMemo(() => {
     if (!clientWorkouts) return [];
     return clientWorkouts
@@ -128,7 +115,6 @@ export const WeekProgressSection = ({
       .map(workout => new Date(workout.completed_at));
   }, [clientWorkouts]);
   
-  // Extract dates for group members' completed workouts
   const groupCompletedDates = React.useMemo(() => {
     if (!groupData?.completions) return [];
     return groupData.completions
@@ -143,10 +129,8 @@ export const WeekProgressSection = ({
     );
   }
   
-  // Count workouts by group
   const totalGroupWorkoutsThisWeek = groupData?.completions?.length || 0;
   const totalGroupMembers = groupData?.members?.length || 0;
-  // Max possible workouts (each member doing one workout per day)
   const maxPossibleWorkouts = totalGroupMembers * 7;
   
   return (
@@ -191,7 +175,6 @@ export const WeekProgressSection = ({
             textColor="text-blue-500"
           />
           
-          {/* Individual member progress cards */}
           {showTeam && !showPersonal && (
             <div className="mt-8 space-y-4">
               <h3 className="text-lg font-medium">Member Progress</h3>
@@ -204,7 +187,7 @@ export const WeekProgressSection = ({
                     />
                     <WeekProgressBar 
                       completedDates={member.completedWorkouts}
-                      label={member.isCurrentUser ? "Your Workouts" : `${member.profileData?.first_name || member.email.split('@')[0]}`}
+                      label={member.isCurrentUser ? "Your Workouts" : `${member.profileData?.first_name || (member.email ? member.email.split('@')[0] : 'Unknown')}`}
                       color={member.isCurrentUser ? "bg-client" : "bg-blue-500"}
                       textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}
                     />

@@ -7,6 +7,7 @@ import WorkoutComplete from '@/components/client/WorkoutComplete';
 import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
 import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import PassCounter from '@/components/client/PassCounter';
+import LifeHappensButton from '@/components/client/LifeHappensButton';
 
 const WorkoutsPage = () => {
   console.log("WorkoutsPage component rendering");
@@ -24,6 +25,12 @@ const WorkoutsPage = () => {
         <Route path="custom/:workoutId" element={<CustomWorkoutDetail />} />
         <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
+      
+      {window.location.pathname === "/client-dashboard/workouts" && (
+        <div className="px-4 sm:px-6">
+          <LifeHappensButton />
+        </div>
+      )}
     </>
   );
 };

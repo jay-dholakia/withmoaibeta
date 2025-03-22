@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ClientLayout } from './layouts/ClientLayout';
 import { CoachLayout } from './layouts/CoachLayout';
 import { NotFound } from './components/NotFound';

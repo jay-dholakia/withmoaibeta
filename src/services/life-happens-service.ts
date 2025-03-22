@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 
 // Maximum number of life happens passes per month
 export const MAX_MONTHLY_PASSES = 2;
@@ -55,5 +56,32 @@ export const useLifeHappensPass = async (
   } catch (error) {
     console.error("Error using life happens pass:", error);
     return false;
+  }
+};
+
+// Create a new workout completion with a life happens pass
+export const createLifeHappensCompletion = async (
+  userId: string,
+  notes: string = "Life happens pass used"
+): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_completions')
+      .insert({
+        user_id: userId,
+        workout_id: null, // No actual workout
+        completed_at: new Date().toISOString(),
+        notes: notes,
+        life_happens_pass: true
+      })
+      .select('id')
+      .single();
+    
+    if (error) throw error;
+    
+    return data.id;
+  } catch (error) {
+    console.error("Error creating life happens completion:", error);
+    return null;
   }
 };

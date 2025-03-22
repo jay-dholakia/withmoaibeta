@@ -1,16 +1,25 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Umbrella } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { Umbrella, Loader2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { getRemainingPasses } from '@/services/life-happens-service';
+import { getRemainingPasses, useLifeHappensPass } from '@/services/life-happens-service';
 import { toast } from 'sonner';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 
 const LifeHappensButton = () => {
-  const navigate = useNavigate();
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
   const { data: remainingPasses } = useQuery({
     queryKey: ['life-happens-passes', user?.id],
@@ -21,36 +30,123 @@ const LifeHappensButton = () => {
     enabled: !!user?.id,
   });
 
+  const lifeHappensMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) return false;
+      
+      // Create a new workout completion with the life happens pass used
+      const { data, error } = await supabase
+        .from('workout_completions')
+        .insert({
+          user_id: user.id,
+          workout_id: null, // No actual workout
+          completed_at: new Date().toISOString(),
+          notes: "Life happens pass used",
+          life_happens_pass: true
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return true;
+    },
+    onSuccess: () => {
+      toast.success('Life happens pass used successfully!');
+      queryClient.invalidateQueries({ queryKey: ['life-happens-passes'] });
+      queryClient.invalidateQueries({ queryKey: ['workouts'] });
+      setDialogOpen(false);
+    },
+    onError: (error) => {
+      console.error('Error using life happens pass:', error);
+      toast.error('Failed to use life happens pass');
+      setDialogOpen(false);
+    },
+  });
+
   const handleLifeHappensClick = () => {
     if (!remainingPasses || remainingPasses <= 0) {
       toast.error("You don't have any Life Happens passes remaining this month");
       return;
     }
     
-    // Navigate to a new page where the user can select which workout to use the pass for
-    navigate('/client-dashboard/workouts/create');
-    toast.info("Create a workout to use with your Life Happens pass");
+    // Open the confirmation dialog
+    setDialogOpen(true);
+  };
+
+  const handleConfirmUsePass = () => {
+    lifeHappensMutation.mutate();
   };
 
   return (
-    <div className="mt-8 border-t pt-6">
-      <Button 
-        variant="outline" 
-        className="w-full flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-        onClick={handleLifeHappensClick}
-      >
-        <Umbrella className="h-4 w-4" />
-        Use Life Happens Pass
-        {typeof remainingPasses === 'number' && (
-          <span className="text-xs bg-blue-100 px-2 py-0.5 rounded-full">
-            {remainingPasses} remaining
-          </span>
-        )}
-      </Button>
-      <p className="text-xs text-center mt-2 text-muted-foreground">
-        Sometimes life gets in the way. Use a pass to get credit for a missed workout.
-      </p>
-    </div>
+    <>
+      <div className="mt-8 border-t pt-6">
+        <Button 
+          variant="outline" 
+          className="w-full flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+          onClick={handleLifeHappensClick}
+        >
+          <Umbrella className="h-4 w-4" />
+          Use Life Happens Pass
+          {typeof remainingPasses === 'number' && (
+            <span className="text-xs bg-blue-100 px-2 py-0.5 rounded-full">
+              {remainingPasses} remaining
+            </span>
+          )}
+        </Button>
+        <p className="text-xs text-center mt-2 text-muted-foreground">
+          Sometimes life gets in the way. Use a pass to get credit for a missed workout.
+        </p>
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Umbrella className="h-5 w-5 text-blue-600" />
+              Use Life Happens Pass
+            </DialogTitle>
+            <DialogDescription>
+              This will mark a workout as complete without actually doing one.
+              You have {remainingPasses} pass{remainingPasses !== 1 ? 'es' : ''} remaining this month.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Life happens, and sometimes we miss workouts. 
+              Using a Life Happens pass will count towards your workout streak and completion goals.
+            </p>
+          </div>
+          
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setDialogOpen(false)}
+              className="sm:w-auto w-full"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleConfirmUsePass}
+              disabled={lifeHappensMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700 text-white sm:w-auto w-full"
+            >
+              {lifeHappensMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Umbrella className="mr-2 h-4 w-4" />
+                  Use Pass Now
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

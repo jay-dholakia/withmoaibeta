@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { GroupData } from '@/types/group';
 import { startOfWeek, startOfMonth } from 'date-fns';
@@ -169,20 +168,19 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile>
     throw error;
   }
 
-  // Casting with proper field handling
   return {
-    id: data.id,
-    first_name: data.first_name || null,
-    last_name: data.last_name || null,
-    city: data.city || null,
-    state: data.state || null,
-    birthday: data.birthday || null,
-    height: data.height || null,
-    weight: data.weight || null,
-    fitness_goals: data.fitness_goals || [],
-    favorite_movements: data.favorite_movements || [],
-    avatar_url: data.avatar_url || null,
-    profile_completed: data.profile_completed || false
+    id: data?.id,
+    first_name: data?.first_name ?? null,
+    last_name: data?.last_name ?? null,
+    city: data?.city ?? null,
+    state: data?.state ?? null,
+    birthday: data?.birthday ?? null,
+    height: data?.height ?? null,
+    weight: data?.weight ?? null,
+    fitness_goals: Array.isArray(data?.fitness_goals) ? data.fitness_goals : [],
+    favorite_movements: Array.isArray(data?.favorite_movements) ? data.favorite_movements : [],
+    avatar_url: data?.avatar_url ?? null,
+    profile_completed: Boolean(data?.profile_completed)
   };
 };
 
@@ -200,18 +198,18 @@ export const updateClientProfile = async (userId: string, profile: Partial<Clien
   }
 
   return {
-    id: data.id,
-    first_name: data.first_name || null,
-    last_name: data.last_name || null,
-    city: data.city || null,
-    state: data.state || null,
-    birthday: data.birthday || null,
-    height: data.height || null,
-    weight: data.weight || null,
-    fitness_goals: data.fitness_goals || [],
-    favorite_movements: data.favorite_movements || [],
-    avatar_url: data.avatar_url || null,
-    profile_completed: data.profile_completed || false
+    id: data?.id,
+    first_name: data?.first_name ?? null,
+    last_name: data?.last_name ?? null,
+    city: data?.city ?? null,
+    state: data?.state ?? null,
+    birthday: data?.birthday ?? null,
+    height: data?.height ?? null,
+    weight: data?.weight ?? null,
+    fitness_goals: Array.isArray(data?.fitness_goals) ? data.fitness_goals : [],
+    favorite_movements: Array.isArray(data?.favorite_movements) ? data.favorite_movements : [],
+    avatar_url: data?.avatar_url ?? null,
+    profile_completed: Boolean(data?.profile_completed)
   };
 };
 
@@ -251,14 +249,14 @@ export const fetchCoachProfile = async (userId: string): Promise<CoachProfile> =
   }
 
   return {
-    id: data.id,
-    first_name: data.first_name || null,
-    last_name: data.last_name || null,
-    bio: data.bio || null,
-    specialty: data.specialty || null,
-    certifications: data.certifications || [],
-    favorite_movements: data.favorite_movements || [],
-    avatar_url: data.avatar_url || null
+    id: data?.id,
+    first_name: data?.first_name ?? null,
+    last_name: data?.last_name ?? null,
+    bio: data?.bio ?? null,
+    specialty: data?.specialty ?? null,
+    certifications: Array.isArray(data?.certifications) ? data.certifications : [],
+    favorite_movements: Array.isArray(data?.favorite_movements) ? data.favorite_movements : [],
+    avatar_url: data?.avatar_url ?? null
   };
 };
 
@@ -276,14 +274,14 @@ export const updateCoachProfile = async (userId: string, profile: Partial<CoachP
   }
 
   return {
-    id: data.id,
-    first_name: data.first_name || null,
-    last_name: data.last_name || null,
-    bio: data.bio || null,
-    specialty: data.specialty || null,
-    certifications: data.certifications || [],
-    favorite_movements: data.favorite_movements || [],
-    avatar_url: data.avatar_url || null
+    id: data?.id,
+    first_name: data?.first_name ?? null,
+    last_name: data?.last_name ?? null,
+    bio: data?.bio ?? null,
+    specialty: data?.specialty ?? null,
+    certifications: Array.isArray(data?.certifications) ? data.certifications : [],
+    favorite_movements: Array.isArray(data?.favorite_movements) ? data.favorite_movements : [],
+    avatar_url: data?.avatar_url ?? null
   };
 };
 
@@ -387,17 +385,17 @@ export const fetchAllClientProfiles = async (): Promise<ClientProfile[]> => {
   }
 
   return (data || []).map(profile => ({
-    id: profile.id,
-    first_name: profile.first_name || null,
-    last_name: profile.last_name || null,
-    city: profile.city || null,
-    state: profile.state || null,
-    birthday: profile.birthday || null,
-    height: profile.height || null,
-    weight: profile.weight || null,
-    fitness_goals: profile.fitness_goals || [],
-    favorite_movements: profile.favorite_movements || [],
-    avatar_url: profile.avatar_url || null,
-    profile_completed: profile.profile_completed || false
+    id: profile?.id,
+    first_name: profile?.first_name ?? null,
+    last_name: profile?.last_name ?? null,
+    city: profile?.city ?? null,
+    state: profile?.state ?? null,
+    birthday: profile?.birthday ?? null,
+    height: profile?.height ?? null,
+    weight: profile?.weight ?? null,
+    fitness_goals: Array.isArray(profile?.fitness_goals) ? profile.fitness_goals : [],
+    favorite_movements: Array.isArray(profile?.favorite_movements) ? profile.favorite_movements : [],
+    avatar_url: profile?.avatar_url ?? null,
+    profile_completed: Boolean(profile?.profile_completed)
   }));
 };

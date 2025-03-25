@@ -1,5 +1,5 @@
 
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
@@ -22,9 +22,11 @@ const NotFound = () => {
         <p className="text-gray-500 mb-6">
           The page you're looking for <code className="bg-gray-100 px-2 py-1 rounded font-mono text-sm">{location.pathname}</code> doesn't exist or has been moved.
         </p>
-        <Button className="flex items-center gap-2" onClick={() => window.location.href = "/"}>
-          <Home className="h-4 w-4" />
-          Return to Home
+        <Button className="flex items-center gap-2" asChild>
+          <Link to="/">
+            <Home className="h-4 w-4" />
+            Return to Home
+          </Link>
         </Button>
       </div>
     </div>

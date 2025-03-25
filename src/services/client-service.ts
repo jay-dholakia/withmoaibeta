@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { GroupData } from '@/types/group';
 import { startOfWeek, startOfMonth } from 'date-fns';
@@ -15,6 +16,43 @@ export interface TeamStreakEntry {
   monthly_perfect_weeks: number;
   all_time_perfect_weeks: number;
 }
+
+export interface ClientProfile {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  city?: string;
+  state?: string;
+  birthday?: string;
+  height?: string;
+  weight?: string;
+  fitness_goals?: string[];
+  favorite_movements?: string[];
+  avatar_url?: string;
+  profile_completed?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const fetchClientProfile = async (userId: string): Promise<ClientProfile | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('client_profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching client profile:', error);
+      return null;
+    }
+    
+    return data as ClientProfile;
+  } catch (error) {
+    console.error('Error in fetchClientProfile:', error);
+    return null;
+  }
+};
 
 export const fetchAllGroups = async (): Promise<GroupData[]> => {
   try {

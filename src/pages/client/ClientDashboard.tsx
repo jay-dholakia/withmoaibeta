@@ -7,12 +7,9 @@ import MoaiPage from './MoaiPage';
 import LeaderboardPage from './LeaderboardPage';
 import SettingsPage from './SettingsPage';
 import NotesPage from './NotesPage';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const ClientDashboard = () => {
-  const isMobile = useIsMobile();
-  console.log("ClientDashboard component rendering, isMobile:", isMobile);
-  
+  console.log("ClientDashboard component rendering");
   return (
     <ClientLayout>
       <Routes>

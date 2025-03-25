@@ -2,7 +2,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { getRemainingPasses, MAX_MONTHLY_PASSES } from '@/services/life-happens-service';
+import { getRemainingPasses } from '@/services/life-happens-service';
 import { Umbrella } from 'lucide-react';
 
 const PassCounter = () => {
@@ -24,9 +24,6 @@ const PassCounter = () => {
   return (
     <div className="flex items-center gap-1 text-sm font-medium">
       <Umbrella className="h-4 w-4 text-blue-600" />
-      <span>
-        <span className="text-blue-600">{remainingPasses}</span>/{MAX_MONTHLY_PASSES} passes
-      </span>
     </div>
   );
 };

@@ -168,7 +168,7 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile>
     throw error;
   }
 
-  return {
+  const profile: ClientProfile = {
     id: data?.id,
     first_name: data?.first_name ?? null,
     last_name: data?.last_name ?? null,
@@ -182,6 +182,8 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile>
     avatar_url: data?.avatar_url ?? null,
     profile_completed: Boolean(data?.profile_completed)
   };
+
+  return profile;
 };
 
 export const updateClientProfile = async (userId: string, profile: Partial<ClientProfile>): Promise<ClientProfile> => {
@@ -197,7 +199,7 @@ export const updateClientProfile = async (userId: string, profile: Partial<Clien
     throw error;
   }
 
-  return {
+  const updatedProfile: ClientProfile = {
     id: data?.id,
     first_name: data?.first_name ?? null,
     last_name: data?.last_name ?? null,
@@ -211,6 +213,8 @@ export const updateClientProfile = async (userId: string, profile: Partial<Clien
     avatar_url: data?.avatar_url ?? null,
     profile_completed: Boolean(data?.profile_completed)
   };
+
+  return updatedProfile;
 };
 
 export const uploadClientAvatar = async (userId: string, file: File): Promise<string> => {
@@ -248,7 +252,7 @@ export const fetchCoachProfile = async (userId: string): Promise<CoachProfile> =
     throw error;
   }
 
-  return {
+  const profile: CoachProfile = {
     id: data?.id,
     first_name: data?.first_name ?? null,
     last_name: data?.last_name ?? null,
@@ -258,6 +262,8 @@ export const fetchCoachProfile = async (userId: string): Promise<CoachProfile> =
     favorite_movements: Array.isArray(data?.favorite_movements) ? data.favorite_movements : [],
     avatar_url: data?.avatar_url ?? null
   };
+
+  return profile;
 };
 
 export const updateCoachProfile = async (userId: string, profile: Partial<CoachProfile>): Promise<CoachProfile> => {
@@ -273,7 +279,7 @@ export const updateCoachProfile = async (userId: string, profile: Partial<CoachP
     throw error;
   }
 
-  return {
+  const updatedProfile: CoachProfile = {
     id: data?.id,
     first_name: data?.first_name ?? null,
     last_name: data?.last_name ?? null,
@@ -283,29 +289,8 @@ export const updateCoachProfile = async (userId: string, profile: Partial<CoachP
     favorite_movements: Array.isArray(data?.favorite_movements) ? data.favorite_movements : [],
     avatar_url: data?.avatar_url ?? null
   };
-};
 
-export const uploadCoachAvatar = async (userId: string, file: File): Promise<string> => {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${userId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-  const filePath = `avatars/${fileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('profiles')
-    .upload(filePath, file);
-
-  if (uploadError) {
-    console.error('Error uploading avatar:', uploadError);
-    throw uploadError;
-  }
-
-  const { data } = supabase.storage
-    .from('profiles')
-    .getPublicUrl(filePath);
-
-  await updateCoachProfile(userId, { avatar_url: data.publicUrl });
-
-  return data.publicUrl;
+  return updatedProfile;
 };
 
 export const trackWorkoutSet = async (
@@ -399,3 +384,4 @@ export const fetchAllClientProfiles = async (): Promise<ClientProfile[]> => {
     profile_completed: Boolean(profile?.profile_completed)
   }));
 };
+

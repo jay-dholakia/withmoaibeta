@@ -1,13 +1,13 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Dumbbell, Users, LayoutDashboard, Settings, LogOut, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
 import { Toaster } from 'sonner';
 import { Logo } from '@/components/Logo';
 import { toast } from '@/components/ui/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -16,6 +16,7 @@ interface ClientLayoutProps {
 export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   const { signOut } = useAuth();
   const location = useLocation();
+  const isMobile = useIsMobile();
   
   const handleSignOut = async () => {
     try {
@@ -30,6 +31,8 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   const isActive = (path: string) => {
     return location.pathname.includes(path);
   };
+
+  console.log("Current path:", location.pathname, "isMobile:", isMobile);
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">

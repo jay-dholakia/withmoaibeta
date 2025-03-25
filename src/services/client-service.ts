@@ -2,6 +2,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { GroupData } from '@/types/group';
 import { startOfWeek, startOfMonth } from 'date-fns';
 
+export { GroupData } from '@/types/group';
+
 export interface ClientData {
   id: string;
   email: string;
@@ -384,4 +386,3 @@ export const fetchAllClientProfiles = async (): Promise<ClientProfile[]> => {
     profile_completed: Boolean(profile?.profile_completed)
   }));
 };
-

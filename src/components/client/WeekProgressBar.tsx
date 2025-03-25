@@ -13,6 +13,7 @@ interface WeekProgressBarProps {
   color?: string;
   textColor?: string;
   showDayCircles?: boolean;
+  showProgressBar?: boolean; // New prop to control progress bar visibility
 }
 
 export const WeekProgressBar = ({ 
@@ -23,7 +24,8 @@ export const WeekProgressBar = ({
   total = 7, 
   color = 'bg-client', 
   textColor = 'text-client',
-  showDayCircles = false
+  showDayCircles = false,
+  showProgressBar = false // Default to not showing the progress bar
 }: WeekProgressBarProps) => {
   // Get start of current week (Sunday)
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
@@ -62,16 +64,20 @@ export const WeekProgressBar = ({
             {totalCompletedCount} of {total} workouts completed
           </p>
         </div>
-        <span className={`text-lg font-bold ${textColor}`}>{Math.round(percentComplete)}%</span>
+        {showProgressBar && (
+          <span className={`text-lg font-bold ${textColor}`}>{Math.round(percentComplete)}%</span>
+        )}
       </div>
 
-      <Progress 
-        value={percentComplete} 
-        className="h-3 mb-4" 
-        style={{ 
-          backgroundColor: "rgb(241 245 249)",
-        }}
-      />
+      {showProgressBar && (
+        <Progress 
+          value={percentComplete} 
+          className="h-3 mb-4" 
+          style={{ 
+            backgroundColor: "rgb(241 245 249)",
+          }}
+        />
+      )}
       
       {showDayCircles && (
         <div className="flex justify-between">

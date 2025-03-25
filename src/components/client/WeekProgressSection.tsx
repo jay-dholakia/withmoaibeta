@@ -199,6 +199,7 @@ export const WeekProgressSection = ({
             color="bg-client"
             textColor="text-client"
             showDayCircles={true}
+            showProgressBar={false}
           />
         </>
       )}
@@ -221,6 +222,7 @@ export const WeekProgressSection = ({
             color="bg-blue-500"
             textColor="text-blue-500"
             showDayCircles={false}
+            showProgressBar={false}
           />
           
           {showTeam && !showPersonal && (
@@ -240,6 +242,7 @@ export const WeekProgressSection = ({
                       color={member.isCurrentUser ? "bg-client" : "bg-blue-500"}
                       textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}
                       showDayCircles={true}
+                      showProgressBar={false}
                     />
                   </div>
                 ))}

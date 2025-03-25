@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Umbrella, Loader2 } from 'lucide-react';
@@ -41,7 +40,6 @@ const LifeHappensButton = () => {
       
       console.log("Starting life happens mutation for user:", user.id);
       
-      // Use the createLifeHappensCompletion function
       const completionId = await createLifeHappensCompletion(user.id, "Life happens pass used");
       console.log("Completion ID from mutation:", completionId);
       return !!completionId;
@@ -49,7 +47,6 @@ const LifeHappensButton = () => {
     onSuccess: () => {
       toast.success('Life happens pass used successfully!');
       
-      // Invalidate all related queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['life-happens-passes'] });
       queryClient.invalidateQueries({ queryKey: ['workouts'] });
       queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
@@ -71,7 +68,6 @@ const LifeHappensButton = () => {
       return;
     }
     
-    // Open the confirmation dialog
     setDialogOpen(true);
   };
 
@@ -97,7 +93,7 @@ const LifeHappensButton = () => {
           )}
         </Button>
         <p className="text-xs text-center mt-2 text-muted-foreground">
-          Sometimes life gets in the way. Use a pass to get credit for a missed workout.
+          Sometimes life gets in the way. Use a pass to get credit for a workout.
         </p>
       </div>
 

@@ -36,6 +36,7 @@ export interface CoachProfile {
   bio: string | null;
   specialty: string | null;
   certifications: string[];
+  favorite_movements: string[];
   avatar_url: string | null;
 }
 
@@ -167,7 +168,20 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile>
     throw error;
   }
 
-  return data as ClientProfile;
+  return {
+    id: data.id,
+    first_name: data.first_name || null,
+    last_name: data.last_name || null,
+    city: data.city || null,
+    state: data.state || null,
+    birthday: data.birthday || null,
+    height: data.height || null,
+    weight: data.weight || null,
+    fitness_goals: data.fitness_goals || [],
+    favorite_movements: data.favorite_movements || [],
+    avatar_url: data.avatar_url || null,
+    profile_completed: data.profile_completed || false
+  } as ClientProfile;
 };
 
 export const updateClientProfile = async (userId: string, profile: Partial<ClientProfile>): Promise<ClientProfile> => {
@@ -183,7 +197,20 @@ export const updateClientProfile = async (userId: string, profile: Partial<Clien
     throw error;
   }
 
-  return data as ClientProfile;
+  return {
+    id: data.id,
+    first_name: data.first_name || null,
+    last_name: data.last_name || null,
+    city: data.city || null,
+    state: data.state || null,
+    birthday: data.birthday || null,
+    height: data.height || null,
+    weight: data.weight || null,
+    fitness_goals: data.fitness_goals || [],
+    favorite_movements: data.favorite_movements || [],
+    avatar_url: data.avatar_url || null,
+    profile_completed: data.profile_completed || false
+  } as ClientProfile;
 };
 
 export const uploadClientAvatar = async (userId: string, file: File): Promise<string> => {
@@ -221,7 +248,16 @@ export const fetchCoachProfile = async (userId: string): Promise<CoachProfile> =
     throw error;
   }
 
-  return data as CoachProfile;
+  return {
+    id: data.id,
+    first_name: data.first_name || null,
+    last_name: data.last_name || null,
+    bio: data.bio || null,
+    specialty: data.specialty || null,
+    certifications: data.certifications || [],
+    favorite_movements: data.favorite_movements || [],
+    avatar_url: data.avatar_url || null
+  } as CoachProfile;
 };
 
 export const updateCoachProfile = async (userId: string, profile: Partial<CoachProfile>): Promise<CoachProfile> => {
@@ -237,7 +273,16 @@ export const updateCoachProfile = async (userId: string, profile: Partial<CoachP
     throw error;
   }
 
-  return data as CoachProfile;
+  return {
+    id: data.id,
+    first_name: data.first_name || null,
+    last_name: data.last_name || null,
+    bio: data.bio || null,
+    specialty: data.specialty || null,
+    certifications: data.certifications || [],
+    favorite_movements: data.favorite_movements || [],
+    avatar_url: data.avatar_url || null
+  } as CoachProfile;
 };
 
 export const uploadCoachAvatar = async (userId: string, file: File): Promise<string> => {
@@ -263,7 +308,11 @@ export const uploadCoachAvatar = async (userId: string, file: File): Promise<str
   return data.publicUrl;
 };
 
-export const trackWorkoutSet = async (workoutCompletionId: string, exerciseId: string, setData: any) => {
+export const trackWorkoutSet = async (
+  workoutCompletionId: string, 
+  exerciseId: string, 
+  setData: any
+) => {
   const { data, error } = await supabase
     .from('workout_set_completions')
     .insert({
@@ -335,5 +384,18 @@ export const fetchAllClientProfiles = async (): Promise<ClientProfile[]> => {
     throw error;
   }
 
-  return data as ClientProfile[];
+  return (data || []).map(profile => ({
+    id: profile.id,
+    first_name: profile.first_name || null,
+    last_name: profile.last_name || null,
+    city: profile.city || null,
+    state: profile.state || null,
+    birthday: profile.birthday || null,
+    height: profile.height || null,
+    weight: profile.weight || null,
+    fitness_goals: profile.fitness_goals || [],
+    favorite_movements: profile.favorite_movements || [],
+    avatar_url: profile.avatar_url || null,
+    profile_completed: profile.profile_completed || false
+  })) as ClientProfile[];
 };

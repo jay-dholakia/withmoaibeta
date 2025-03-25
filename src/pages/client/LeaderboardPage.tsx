@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,7 +5,7 @@ import { Users, User, Trophy } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchTeamStreaks } from '@/services/client-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Fire } from 'lucide-react';
+import { Loader2, Flame } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const LeaderboardPage = () => {
@@ -15,7 +14,6 @@ const LeaderboardPage = () => {
     queryFn: fetchTeamStreaks,
   });
 
-  // Find the team with the highest current streak
   const topTeam = React.useMemo(() => {
     if (!teamStreaks || teamStreaks.length === 0) return null;
     return [...teamStreaks].sort((a, b) => b.current_streak - a.current_streak)[0];
@@ -70,7 +68,7 @@ const LeaderboardPage = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1">
-                          <Fire className="h-5 w-5 text-red-500" />
+                          <Flame className="h-5 w-5 text-red-500" />
                           <span className="text-2xl font-bold">{topTeam.current_streak}</span>
                         </div>
                         <span className="text-sm text-muted-foreground">week streak</span>
@@ -104,7 +102,7 @@ const LeaderboardPage = () => {
                             <div className="flex items-center gap-2">
                               {team.current_streak > 0 ? (
                                 <Badge className="flex items-center gap-1">
-                                  <Fire className={`h-3.5 w-3.5 ${
+                                  <Flame className={`h-3.5 w-3.5 ${
                                     team.current_streak >= 3 
                                     ? 'text-red-500' 
                                     : team.current_streak >= 2 

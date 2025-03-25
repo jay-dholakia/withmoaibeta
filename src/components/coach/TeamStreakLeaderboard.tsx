@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { TeamStreakEntry, fetchTeamStreaks } from '@/services/client-service';
-import { Loader2, Trophy, Fire, Calendar, CalendarDays } from 'lucide-react';
+import { Loader2, Trophy, Calendar, CalendarDays, Flame } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +26,6 @@ const TeamStreakLeaderboard: React.FC = () => {
     }
   };
 
-  // Sort teams by the selected timeframe
   const sortedTeams = React.useMemo(() => {
     if (!teamsData) return [];
     
@@ -40,14 +38,13 @@ const TeamStreakLeaderboard: React.FC = () => {
     });
   }, [teamsData, timeframe]);
 
-  // Prepare chart data
   const chartData = React.useMemo(() => {
     if (!sortedTeams) return [];
     
     return sortedTeams.map(team => ({
       name: team.group_name,
       value: timeframe === 'month' ? team.monthly_perfect_weeks : team.all_time_perfect_weeks,
-      fill: team.current_streak > 0 ? '#22c55e' : '#d1d5db', // Green for active streak, gray for broken
+      fill: team.current_streak > 0 ? '#22c55e' : '#d1d5db',
     }));
   }, [sortedTeams, timeframe]);
 
@@ -131,7 +128,7 @@ const TeamStreakLeaderboard: React.FC = () => {
                       <div className="flex items-center justify-center gap-1">
                         {team.current_streak > 0 ? (
                           <>
-                            <Fire className={`h-4 w-4 ${
+                            <Flame className={`h-4 w-4 ${
                               team.current_streak >= 3 
                               ? 'text-red-500' 
                               : team.current_streak >= 2 

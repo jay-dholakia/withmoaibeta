@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { WorkoutProgram } from '@/types/workout';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Calendar, Users, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getWorkoutProgramAssignmentCount } from '@/services/workout-service';
 
 interface WorkoutProgramListProps {
   programs: WorkoutProgram[];
@@ -17,6 +18,23 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
   onDeleteProgram 
 }) => {
   const navigate = useNavigate();
+  const [assignmentCounts, setAssignmentCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const fetchAssignmentCounts = async () => {
+      const counts: Record<string, number> = {};
+      
+      for (const program of programs) {
+        counts[program.id] = await getWorkoutProgramAssignmentCount(program.id);
+      }
+      
+      setAssignmentCounts(counts);
+    };
+
+    if (programs.length > 0) {
+      fetchAssignmentCounts();
+    }
+  }, [programs]);
 
   if (isLoading) {
     return (
@@ -41,7 +59,7 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
         <h3 className="font-medium text-lg mb-2">No workout programs yet</h3>
         <p className="text-muted-foreground mb-6">Create your first workout program to get started</p>
         <Button 
-          onClick={() => navigate('/coach-dashboard/workouts/new')}
+          onClick={() => navigate('/coach-dashboard/workouts/create')}
           className="gap-2"
         >
           <PlusCircle className="h-4 w-4" />
@@ -63,6 +81,10 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
             <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               {program.weeks} {program.weeks === 1 ? 'week' : 'weeks'}
+            </span>
+            <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              {assignmentCounts[program.id] || 0} {assignmentCounts[program.id] === 1 ? 'client' : 'clients'} assigned
             </span>
             <span className="bg-muted px-2 py-1 rounded-full text-xs">
               Created: {new Date(program.created_at).toLocaleDateString()}

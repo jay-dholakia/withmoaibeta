@@ -601,3 +601,25 @@ export const addWorkoutToWeek = async (standaloneWorkoutId: string, weekId: stri
   
   return newWorkout;
 };
+
+/**
+ * Fetches the count of clients assigned to a workout program
+ */
+export const getWorkoutProgramAssignmentCount = async (programId: string): Promise<number> => {
+  try {
+    const { data, error } = await supabase
+      .from('program_assignments')
+      .select('id', { count: 'exact' })
+      .eq('program_id', programId);
+
+    if (error) {
+      console.error('Error fetching program assignment count:', error);
+      return 0;
+    }
+
+    return data?.length || 0;
+  } catch (error) {
+    console.error('Error in getWorkoutProgramAssignmentCount:', error);
+    return 0;
+  }
+};

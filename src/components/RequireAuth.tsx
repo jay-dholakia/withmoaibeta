@@ -9,7 +9,7 @@ interface RequireAuthProps {
 }
 
 const RequireAuth: React.FC<RequireAuthProps> = ({ children, userType }) => {
-  const { user, loading } = useAuth();
+  const { user, userType: currentUserType, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -28,7 +28,7 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ children, userType }) => {
   }
 
   // Check if user has the required type
-  if (user.user_type !== userType) {
+  if (currentUserType !== userType) {
     // Redirect to the appropriate dashboard based on actual user type
     const dashboardRoutes = {
       admin: '/admin-dashboard',
@@ -37,8 +37,8 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ children, userType }) => {
     };
 
     // Only redirect if the user has a valid type with a dashboard
-    if (user.user_type && dashboardRoutes[user.user_type as keyof typeof dashboardRoutes]) {
-      return <Navigate to={dashboardRoutes[user.user_type as keyof typeof dashboardRoutes]} replace />;
+    if (currentUserType && dashboardRoutes[currentUserType]) {
+      return <Navigate to={dashboardRoutes[currentUserType]} replace />;
     }
 
     // If user has an invalid type, redirect to home

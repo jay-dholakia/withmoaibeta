@@ -97,6 +97,9 @@ function App() {
               </RequireAuth>
             } />
             
+            {/* Add redirect for /admin */}
+            <Route path="/admin" element={<Navigate to="/admin-login" replace />} />
+            
             {/* Coach routes */}
             <Route path="/coach-dashboard" element={
               <RequireAuth userType="coach">
@@ -144,8 +147,11 @@ function App() {
               </RequireAuth>
             } />
             
+            {/* Add redirect for /coach */}
+            <Route path="/coach" element={<Navigate to="/coach-login" replace />} />
+            
             {/* Client routes */}
-            <Route path="/client-dashboard" element={
+            <Route path="/client-dashboard/*" element={
               <RequireAuth userType="client">
                 <ClientDashboard />
               </RequireAuth>
@@ -155,36 +161,9 @@ function App() {
                 <ProfileBuilder />
               </RequireAuth>
             } />
-            <Route path="/client-dashboard/workouts" element={
-              <RequireAuth userType="client">
-                <ClientWorkoutsPage />
-              </RequireAuth>
-            } />
-            <Route path="/client-dashboard/moai" element={
-              <RequireAuth userType="client">
-                <ClientMoaiPage />
-              </RequireAuth>
-            } />
-            <Route path="/client-dashboard/leaderboard" element={
-              <RequireAuth userType="client">
-                <ClientLeaderboardPage />
-              </RequireAuth>
-            } />
-            <Route path="/client-dashboard/notes" element={
-              <RequireAuth userType="client">
-                <ClientNotesPage />
-              </RequireAuth>
-            } />
-            <Route path="/client-dashboard/profile" element={
-              <RequireAuth userType="client">
-                <ProfileEditor />
-              </RequireAuth>
-            } />
-            <Route path="/client-dashboard/settings" element={
-              <RequireAuth userType="client">
-                <ClientSettingsPage />
-              </RequireAuth>
-            } />
+            
+            {/* Add redirect for /client */}
+            <Route path="/client" element={<Navigate to="/client-login" replace />} />
             
             {/* Redirects */}
             <Route path="/login" element={<Navigate to="/client-login" />} />

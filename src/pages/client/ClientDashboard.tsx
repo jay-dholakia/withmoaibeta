@@ -9,7 +9,8 @@ import SettingsPage from './SettingsPage';
 import NotesPage from './NotesPage';
 
 const ClientDashboard = () => {
-  console.log("ClientDashboard component rendering");
+  console.log("ClientDashboard component rendering with path:", window.location.pathname);
+  
   return (
     <ClientLayout>
       <Routes>
@@ -19,6 +20,7 @@ const ClientDashboard = () => {
         <Route path="leaderboard" element={<LeaderboardPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="notes" element={<NotesPage />} />
+        <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
     </ClientLayout>
   );

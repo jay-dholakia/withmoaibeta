@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -10,7 +11,8 @@ import {
   Clock, 
   Users,
   Edit,
-  Trash2
+  Trash2,
+  LayoutTemplate
 } from 'lucide-react';
 import { 
   Dialog,
@@ -45,11 +47,20 @@ import {
   createWorkout,
   deleteWorkout,
   deleteWorkoutWeek,
-  deleteWorkoutProgram
+  deleteWorkoutProgram,
+  fetchStandaloneWorkouts,
+  addWorkoutToWeek
 } from '@/services/workout-service';
-import { WorkoutProgram, WorkoutWeek, Workout, DAYS_OF_WEEK } from '@/types/workout';
+import { WorkoutProgram, WorkoutWeek, Workout, DAYS_OF_WEEK, StandaloneWorkout } from '@/types/workout';
 import { toast } from 'sonner';
 import { ScrollArea as NewScrollArea } from '@/components/ui/scroll-area';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const WorkoutProgramDetailPage = () => {
   const { programId } = useParams<{ programId: string }>();
@@ -74,6 +85,13 @@ const WorkoutProgramDetailPage = () => {
   const [deleteWeekId, setDeleteWeekId] = useState<string | null>(null);
   const [isConfirmDeleteProgram, setIsConfirmDeleteProgram] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // For template workouts
+  const [standaloneWorkouts, setStandaloneWorkouts] = useState<StandaloneWorkout[]>([]);
+  const [isAddingTemplate, setIsAddingTemplate] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [isAddingTemplateToWeek, setIsAddingTemplateToWeek] = useState<string | null>(null);
   
   useEffect(() => {
     if (!programId) return;
@@ -118,6 +136,21 @@ const WorkoutProgramDetailPage = () => {
       loadWorkouts();
     }
   }, [selectedWeek]);
+  
+  useEffect(() => {
+    if (user?.id) {
+      const loadTemplates = async () => {
+        try {
+          const templates = await fetchStandaloneWorkouts(user.id);
+          setStandaloneWorkouts(templates);
+        } catch (error) {
+          console.error('Error loading workout templates:', error);
+        }
+      };
+      
+      loadTemplates();
+    }
+  }, [user]);
   
   const handleCreateWeek = async (values: { title: string; description?: string }) => {
     if (!programId || !user) return;
@@ -252,6 +285,35 @@ const WorkoutProgramDetailPage = () => {
     }
   };
   
+  const handleAddTemplateToWeek = async () => {
+    if (!isAddingTemplateToWeek || !selectedTemplate || selectedDay === null) {
+      toast.error('Please select a template and day');
+      return;
+    }
+    
+    try {
+      setIsAddingTemplate(true);
+      
+      await addWorkoutToWeek(selectedTemplate, isAddingTemplateToWeek, selectedDay);
+      
+      // Refresh workouts if this is the currently selected week
+      if (isAddingTemplateToWeek === selectedWeek) {
+        const updatedWorkouts = await fetchWorkouts(selectedWeek);
+        setWorkouts(updatedWorkouts);
+      }
+      
+      toast.success('Template workout added successfully');
+      setIsAddingTemplateToWeek(null);
+      setSelectedTemplate(null);
+      setSelectedDay(null);
+    } catch (error) {
+      console.error('Error adding template workout:', error);
+      toast.error('Failed to add template workout');
+    } finally {
+      setIsAddingTemplate(false);
+    }
+  };
+  
   if (isLoading) {
     return (
       <CoachLayout>
@@ -306,6 +368,14 @@ const WorkoutProgramDetailPage = () => {
               )}
             </div>
             <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/coach-dashboard/workout-templates')}
+                className="gap-2"
+              >
+                <LayoutTemplate className="h-4 w-4" />
+                Manage Templates
+              </Button>
               <Button 
                 variant="outline" 
                 onClick={() => navigate(`/coach-dashboard/workouts/${programId}/assign`)}
@@ -425,7 +495,88 @@ const WorkoutProgramDetailPage = () => {
                         </div>
                       </div>
                       
-                      <div className="flex justify-end mb-4">
+                      <div className="flex justify-end mb-4 gap-2">
+                        <Dialog 
+                          open={isAddingTemplateToWeek === week.id} 
+                          onOpenChange={(open) => {
+                            if (open) {
+                              setIsAddingTemplateToWeek(week.id);
+                            } else {
+                              setIsAddingTemplateToWeek(null);
+                              setSelectedTemplate(null);
+                              setSelectedDay(null);
+                            }
+                          }}
+                        >
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="gap-2"
+                              disabled={standaloneWorkouts.length === 0}
+                            >
+                              <LayoutTemplate className="h-4 w-4" />
+                              Add from Templates
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Add Template Workout</DialogTitle>
+                              <DialogDescription>
+                                Select a workout template to add to this week
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="space-y-2">
+                                <h4 className="font-medium">Template Workout</h4>
+                                <Select 
+                                  value={selectedTemplate || ''} 
+                                  onValueChange={setSelectedTemplate}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a template" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {standaloneWorkouts.map(template => (
+                                      <SelectItem key={template.id} value={template.id}>
+                                        {template.title}
+                                        {template.category ? ` (${template.category})` : ''}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <h4 className="font-medium">Day of Week</h4>
+                                <Select 
+                                  value={selectedDay !== null ? selectedDay.toString() : ''} 
+                                  onValueChange={(value) => setSelectedDay(parseInt(value))}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select day of week" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {DAYS_OF_WEEK.map((day, index) => (
+                                      <SelectItem key={index} value={index.toString()}>
+                                        {day}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button 
+                                onClick={handleAddTemplateToWeek}
+                                disabled={!selectedTemplate || selectedDay === null || isAddingTemplate}
+                              >
+                                {isAddingTemplate ? 'Adding...' : 'Add Template Workout'}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      
                         <Dialog 
                           open={isNewWorkoutDialogOpen && selectedWeek === week.id} 
                           onOpenChange={(open) => setIsNewWorkoutDialogOpen(open)}
@@ -437,7 +588,7 @@ const WorkoutProgramDetailPage = () => {
                               className="gap-2"
                             >
                               <Plus className="h-4 w-4" />
-                              Add Workout
+                              Add Custom Workout
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-4xl">

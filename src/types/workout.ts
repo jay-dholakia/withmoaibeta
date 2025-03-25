@@ -1,3 +1,4 @@
+
 export interface Exercise {
   id: string;
   name: string;
@@ -38,6 +39,17 @@ export interface Workout {
   title: string;
   description: string | null;
   created_at: string;
+  workout_exercises?: WorkoutExercise[];
+}
+
+export interface StandaloneWorkout {
+  id: string;
+  title: string;
+  description: string | null;
+  coach_id: string;
+  created_at: string;
+  updated_at?: string;
+  category?: string;
   workout_exercises?: WorkoutExercise[];
 }
 

@@ -5,7 +5,8 @@ import {
   WorkoutWeek, 
   Workout, 
   WorkoutExercise,
-  ProgramAssignment
+  ProgramAssignment,
+  StandaloneWorkout
 } from "@/types/workout";
 
 // Exercise related functions
@@ -412,3 +413,190 @@ export const fetchAllClients = async (): Promise<{ id: string; email: string }[]
     throw error;
   }
 };
+
+// Standalone Workout related functions
+export const createStandaloneWorkout = async (workout: Omit<StandaloneWorkout, 'id' | 'created_at'>): Promise<StandaloneWorkout> => {
+  const { data, error } = await supabase
+    .from('standalone_workouts')
+    .insert(workout)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating standalone workout:', error);
+    throw error;
+  }
+
+  return data as StandaloneWorkout;
+};
+
+export const updateStandaloneWorkout = async (
+  workoutId: string, 
+  updates: Partial<Omit<StandaloneWorkout, 'id' | 'created_at' | 'coach_id'>>
+): Promise<StandaloneWorkout> => {
+  const { data, error } = await supabase
+    .from('standalone_workouts')
+    .update(updates)
+    .eq('id', workoutId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(`Error updating standalone workout ${workoutId}:`, error);
+    throw error;
+  }
+
+  return data as StandaloneWorkout;
+};
+
+export const fetchStandaloneWorkouts = async (coachId: string): Promise<StandaloneWorkout[]> => {
+  const { data, error } = await supabase
+    .from('standalone_workouts')
+    .select('*')
+    .eq('coach_id', coachId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(`Error fetching standalone workouts for coach ${coachId}:`, error);
+    throw error;
+  }
+
+  return data as StandaloneWorkout[];
+};
+
+export const fetchStandaloneWorkout = async (workoutId: string): Promise<StandaloneWorkout> => {
+  const { data, error } = await supabase
+    .from('standalone_workouts')
+    .select('*')
+    .eq('id', workoutId)
+    .single();
+
+  if (error) {
+    console.error(`Error fetching standalone workout ${workoutId}:`, error);
+    throw error;
+  }
+
+  return data as StandaloneWorkout;
+};
+
+export const deleteStandaloneWorkout = async (workoutId: string): Promise<void> => {
+  // First, delete all workout exercises for this workout
+  const { error: exercisesError } = await supabase
+    .from('standalone_workout_exercises')
+    .delete()
+    .eq('workout_id', workoutId);
+
+  if (exercisesError) {
+    console.error(`Error deleting exercises for standalone workout ${workoutId}:`, exercisesError);
+    throw exercisesError;
+  }
+  
+  // Then delete the workout itself
+  const { error } = await supabase
+    .from('standalone_workouts')
+    .delete()
+    .eq('id', workoutId);
+
+  if (error) {
+    console.error(`Error deleting standalone workout ${workoutId}:`, error);
+    throw error;
+  }
+};
+
+export const createStandaloneWorkoutExercise = async (
+  workoutExercise: Omit<WorkoutExercise, 'id' | 'created_at' | 'workout_id'> & { workout_id: string }
+): Promise<WorkoutExercise> => {
+  const { data, error } = await supabase
+    .from('standalone_workout_exercises')
+    .insert(workoutExercise)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating standalone workout exercise:', error);
+    throw error;
+  }
+
+  return data as WorkoutExercise;
+};
+
+export const fetchStandaloneWorkoutExercises = async (workoutId: string): Promise<WorkoutExercise[]> => {
+  const { data, error } = await supabase
+    .from('standalone_workout_exercises')
+    .select(`
+      *,
+      exercise:exercise_id (*)
+    `)
+    .eq('workout_id', workoutId)
+    .order('order_index');
+
+  if (error) {
+    console.error(`Error fetching exercises for standalone workout ${workoutId}:`, error);
+    throw error;
+  }
+
+  return data as WorkoutExercise[];
+};
+
+export const updateStandaloneWorkoutExercise = async (
+  exerciseId: string, 
+  updates: Partial<Omit<WorkoutExercise, 'id' | 'created_at' | 'workout_id' | 'exercise_id'>>
+): Promise<WorkoutExercise> => {
+  const { data, error } = await supabase
+    .from('standalone_workout_exercises')
+    .update(updates)
+    .eq('id', exerciseId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(`Error updating standalone workout exercise ${exerciseId}:`, error);
+    throw error;
+  }
+
+  return data as WorkoutExercise;
+};
+
+export const deleteStandaloneWorkoutExercise = async (exerciseId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('standalone_workout_exercises')
+    .delete()
+    .eq('id', exerciseId);
+
+  if (error) {
+    console.error(`Error deleting standalone workout exercise ${exerciseId}:`, error);
+    throw error;
+  }
+};
+
+export const addWorkoutToWeek = async (standaloneWorkoutId: string, weekId: string, dayOfWeek: number): Promise<Workout> => {
+  // First fetch the standalone workout
+  const standaloneWorkout = await fetchStandaloneWorkout(standaloneWorkoutId);
+  
+  // Create a new workout in the target week
+  const newWorkout = await createWorkout({
+    week_id: weekId,
+    day_of_week: dayOfWeek,
+    title: standaloneWorkout.title,
+    description: standaloneWorkout.description
+  });
+  
+  // Fetch the exercises from the standalone workout
+  const exercises = await fetchStandaloneWorkoutExercises(standaloneWorkoutId);
+  
+  // Add each exercise to the new workout
+  for (const exercise of exercises) {
+    await createWorkoutExercise({
+      workout_id: newWorkout.id,
+      exercise_id: exercise.exercise_id,
+      sets: exercise.sets,
+      reps: exercise.reps,
+      rest_seconds: exercise.rest_seconds,
+      notes: exercise.notes,
+      order_index: exercise.order_index
+    });
+  }
+  
+  return newWorkout;
+};
+

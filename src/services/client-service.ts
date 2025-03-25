@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { GroupData } from '@/types/group';
 import { startOfWeek, startOfMonth } from 'date-fns';
@@ -168,6 +169,7 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile>
     throw error;
   }
 
+  // Casting with proper field handling
   return {
     id: data.id,
     first_name: data.first_name || null,
@@ -181,7 +183,7 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile>
     favorite_movements: data.favorite_movements || [],
     avatar_url: data.avatar_url || null,
     profile_completed: data.profile_completed || false
-  } as ClientProfile;
+  };
 };
 
 export const updateClientProfile = async (userId: string, profile: Partial<ClientProfile>): Promise<ClientProfile> => {
@@ -210,7 +212,7 @@ export const updateClientProfile = async (userId: string, profile: Partial<Clien
     favorite_movements: data.favorite_movements || [],
     avatar_url: data.avatar_url || null,
     profile_completed: data.profile_completed || false
-  } as ClientProfile;
+  };
 };
 
 export const uploadClientAvatar = async (userId: string, file: File): Promise<string> => {
@@ -257,7 +259,7 @@ export const fetchCoachProfile = async (userId: string): Promise<CoachProfile> =
     certifications: data.certifications || [],
     favorite_movements: data.favorite_movements || [],
     avatar_url: data.avatar_url || null
-  } as CoachProfile;
+  };
 };
 
 export const updateCoachProfile = async (userId: string, profile: Partial<CoachProfile>): Promise<CoachProfile> => {
@@ -282,7 +284,7 @@ export const updateCoachProfile = async (userId: string, profile: Partial<CoachP
     certifications: data.certifications || [],
     favorite_movements: data.favorite_movements || [],
     avatar_url: data.avatar_url || null
-  } as CoachProfile;
+  };
 };
 
 export const uploadCoachAvatar = async (userId: string, file: File): Promise<string> => {
@@ -397,5 +399,5 @@ export const fetchAllClientProfiles = async (): Promise<ClientProfile[]> => {
     favorite_movements: profile.favorite_movements || [],
     avatar_url: profile.avatar_url || null,
     profile_completed: profile.profile_completed || false
-  })) as ClientProfile[];
+  }));
 };

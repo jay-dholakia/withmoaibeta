@@ -89,7 +89,7 @@ const LifeHappensButton = () => {
           onClick={handleLifeHappensClick}
         >
           <Umbrella className="h-4 w-4" />
-          Use Life Happens Pass
+          Use Life Happens
           {typeof remainingPasses === 'number' && (
             <span className="text-xs bg-blue-100 px-2 py-0.5 rounded-full">
               {remainingPasses} remaining
@@ -106,7 +106,7 @@ const LifeHappensButton = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Umbrella className="h-5 w-5 text-blue-600" />
-              Use Life Happens Pass
+              Use Life Happens
             </DialogTitle>
             <DialogDescription>
               This will mark a workout as complete without actually doing one.
@@ -142,7 +142,7 @@ const LifeHappensButton = () => {
               ) : (
                 <>
                   <Umbrella className="mr-2 h-4 w-4" />
-                  Use Pass Now
+                  Use Now
                 </>
               )}
             </Button>

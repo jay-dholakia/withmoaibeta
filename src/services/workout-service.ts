@@ -415,7 +415,9 @@ export const fetchAllClients = async (): Promise<{ id: string; email: string }[]
 };
 
 // Standalone Workout related functions
-export const createStandaloneWorkout = async (workout: Omit<StandaloneWorkout, 'id' | 'created_at'>): Promise<StandaloneWorkout> => {
+export const createStandaloneWorkout = async (
+  workout: Omit<StandaloneWorkout, 'id' | 'created_at' | 'updated_at'>
+): Promise<StandaloneWorkout> => {
   const { data, error } = await supabase
     .from('standalone_workouts')
     .insert(workout)
@@ -504,7 +506,7 @@ export const deleteStandaloneWorkout = async (workoutId: string): Promise<void> 
 };
 
 export const createStandaloneWorkoutExercise = async (
-  workoutExercise: Omit<WorkoutExercise, 'id' | 'created_at' | 'workout_id'> & { workout_id: string }
+  workoutExercise: Omit<WorkoutExercise, 'id' | 'created_at'>
 ): Promise<WorkoutExercise> => {
   const { data, error } = await supabase
     .from('standalone_workout_exercises')
@@ -599,4 +601,3 @@ export const addWorkoutToWeek = async (standaloneWorkoutId: string, weekId: stri
   
   return newWorkout;
 };
-

@@ -471,6 +471,87 @@ export type Database = {
           },
         ]
       }
+      standalone_workout_exercises: {
+        Row: {
+          created_at: string
+          exercise_id: string
+          id: string
+          notes: string | null
+          order_index: number
+          reps: string | null
+          rest_seconds: number | null
+          sets: number | null
+          workout_id: string
+        }
+        Insert: {
+          created_at?: string
+          exercise_id: string
+          id?: string
+          notes?: string | null
+          order_index: number
+          reps?: string | null
+          rest_seconds?: number | null
+          sets?: number | null
+          workout_id: string
+        }
+        Update: {
+          created_at?: string
+          exercise_id?: string
+          id?: string
+          notes?: string | null
+          order_index?: number
+          reps?: string | null
+          rest_seconds?: number | null
+          sets?: number | null
+          workout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standalone_workout_exercises_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standalone_workout_exercises_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      standalone_workouts: {
+        Row: {
+          category: string | null
+          coach_id: string
+          created_at: string
+          description: string | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          coach_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          coach_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       workout_completions: {
         Row: {
           completed_at: string

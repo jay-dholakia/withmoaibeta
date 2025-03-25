@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutProgramList } from '@/components/coach/WorkoutProgramList';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, LayoutTemplate } from 'lucide-react';
 import { fetchWorkoutPrograms, deleteWorkoutProgram } from '@/services/workout-service';
 import { WorkoutProgram } from '@/types/workout';
 import { toast } from 'sonner';
@@ -74,10 +73,20 @@ const WorkoutProgramsPage = () => {
       <div className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Workout Programs</h1>
-          <Button onClick={() => navigate('/coach-dashboard/workouts/new')} className="gap-2">
-            <PlusCircle className="h-4 w-4" />
-            Create Program
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/coach-dashboard/workout-templates')}
+              className="gap-2"
+            >
+              <LayoutTemplate className="h-4 w-4" />
+              Manage Templates
+            </Button>
+            <Button onClick={() => navigate('/coach-dashboard/workouts/create')} className="gap-2">
+              <PlusCircle className="h-4 w-4" />
+              Create Program
+            </Button>
+          </div>
         </div>
 
         <WorkoutProgramList 
@@ -86,7 +95,6 @@ const WorkoutProgramsPage = () => {
           onDeleteProgram={setDeleteProgramId} 
         />
 
-        {/* Delete program confirmation */}
         <AlertDialog 
           open={deleteProgramId !== null}
           onOpenChange={(open) => !open && setDeleteProgramId(null)}

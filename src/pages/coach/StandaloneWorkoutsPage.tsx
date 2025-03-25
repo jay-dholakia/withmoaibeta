@@ -248,13 +248,15 @@ const StandaloneWorkoutsPage = () => {
                       {workout.description}
                     </p>
                   )}
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => setIsEditingId(workout.id)}
-                  >
-                    View & Edit Template
-                  </Button>
+                  <div className="flex justify-end">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setIsEditingId(workout.id)}
+                    >
+                      View & Edit
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}

@@ -2,7 +2,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, RequireAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from './components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
 
@@ -46,6 +46,7 @@ import ProfileEditor from './pages/client/ProfileEditor';
 import ClientSettingsPage from './pages/client/SettingsPage';
 
 import './App.css';
+import RequireAuth from './components/RequireAuth';
 
 const queryClient = new QueryClient();
 

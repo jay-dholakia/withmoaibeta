@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Umbrella, Loader2 } from 'lucide-react';
@@ -86,7 +85,7 @@ const LifeHappensButton = () => {
           onClick={handleLifeHappensClick}
         >
           <Umbrella className="h-4 w-4" />
-          Use Life Happens
+          Use Life Happens {remainingPasses !== undefined && `(${remainingPasses} remaining)`}
         </Button>
         <p className="text-xs text-center mt-2 text-muted-foreground">
           Sometimes life gets in the way. Use a pass to get credit for a workout.

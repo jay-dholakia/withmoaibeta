@@ -8,6 +8,7 @@ import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
 import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import PassCounter from '@/components/client/PassCounter';
 import LifeHappensButton from '@/components/client/LifeHappensButton';
+import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 
 const WorkoutsPage = () => {
   console.log("WorkoutsPage component rendering");
@@ -23,6 +24,7 @@ const WorkoutsPage = () => {
         <Route path="complete/:workoutCompletionId" element={<WorkoutComplete />} />
         <Route path="create" element={<CreateCustomWorkout />} />
         <Route path="custom/:workoutId" element={<CustomWorkoutDetail />} />
+        <Route path="one-off" element={<EnterOneOffWorkout />} />
         <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
       

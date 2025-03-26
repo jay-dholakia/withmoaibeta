@@ -43,3 +43,43 @@ export const createMultipleStandaloneWorkoutExercises = async (exercises: Array<
 
   return data as WorkoutExercise[];
 };
+
+/**
+ * Creates a one-off workout completion
+ */
+export const createOneOffWorkoutCompletion = async (params: {
+  title: string;
+  description?: string;
+  notes?: string;
+  rating?: number;
+}) => {
+  try {
+    const { data: user } = await supabase.auth.getUser();
+    
+    if (!user.user) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Create the workout completion
+    const { data, error } = await supabase
+      .from('workout_completions')
+      .insert({
+        user_id: user.user.id,
+        workout_id: null, // No associated workout
+        notes: params.notes || null,
+        rating: params.rating || null,
+        one_off_title: params.title,
+        one_off_description: params.description
+      })
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error creating one-off workout completion:', error);
+    throw error;
+  }
+};
+

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -8,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import CustomWorkoutsList from './CustomWorkoutsList';
-import { Loader2, Filter, ChevronDown, ChevronUp, Play } from 'lucide-react';
+import { Loader2, Filter, ChevronDown, ChevronUp, Play, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchCurrentProgram } from '@/services/program-service';
@@ -156,16 +155,25 @@ const WorkoutsList = () => {
         
         <TabsContent value="assigned" className="pt-3">
           <div className="space-y-4">
-            {currentProgram && currentProgram.program && (
-              <div className="text-center space-y-1">
-                <h2 className="text-xl font-bold">{currentProgram.program.title}</h2>
-                {currentProgram.program.description && (
-                  <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
-                    {currentProgram.program.description}
-                  </p>
-                )}
-              </div>
-            )}
+            <div className="flex justify-between items-center">
+              {currentProgram && currentProgram.program && (
+                <div className="text-center space-y-1 flex-1">
+                  <h2 className="text-xl font-bold">{currentProgram.program.title}</h2>
+                  {currentProgram.program.description && (
+                    <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
+                      {currentProgram.program.description}
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              <Button asChild variant="outline" size="sm" className="shrink-0">
+                <Link to="/client-dashboard/workouts/one-off">
+                  <PlusCircle className="h-4 w-4 mr-1.5" />
+                  Enter Custom Workout
+                </Link>
+              </Button>
+            </div>
             
             {availableWeeks.length > 0 && (
               <div className="flex justify-center mb-2">

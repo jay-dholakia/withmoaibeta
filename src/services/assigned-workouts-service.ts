@@ -14,11 +14,13 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     
     console.log(`Fetching assigned workouts for user: ${userId}`);
     
-    // Use RPC function to get program assignments to prevent RLS recursion issues
-    const { data: programAssignments, error: programError } = await supabase.rpc(
-      'get_user_program_assignments',
-      { user_id_param: userId }
-    );
+    // Instead of using RPC, we'll query the program_assignments table directly
+    // The RLS policies have been fixed to prevent infinite recursion
+    const { data: programAssignments, error: programError } = await supabase
+      .from('program_assignments')
+      .select('id, program_id, start_date, end_date, user_id, assigned_by, created_at')
+      .eq('user_id', userId)
+      .order('start_date', { ascending: false });
     
     if (programError) {
       console.error("Error fetching program assignments:", programError);

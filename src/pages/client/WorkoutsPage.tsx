@@ -10,7 +10,9 @@ import PassCounter from '@/components/client/PassCounter';
 import LifeHappensButton from '@/components/client/LifeHappensButton';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Armchair } from 'lucide-react';
+import { createOneOffWorkoutCompletion } from '@/services/workout-history-service';
+import { toast } from 'sonner';
 
 const WorkoutsPage = () => {
   console.log("WorkoutsPage component rendering");
@@ -38,6 +40,26 @@ const WorkoutsPage = () => {
                 <PlusCircle className="h-4 w-4" />
                 Enter Custom Workout
               </Link>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full mb-4 flex items-center justify-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
+              onClick={() => {
+                // Call the service function to log a rest day
+                createOneOffWorkoutCompletion({
+                  title: "Rest Day",
+                  description: "Taking a scheduled rest day",
+                }).then(() => {
+                  toast.success("Rest day logged successfully!");
+                }).catch((error) => {
+                  console.error("Error logging rest day:", error);
+                  toast.error("Failed to log rest day");
+                });
+              }}
+            >
+              <Armchair className="h-4 w-4" />
+              Log Rest Day
             </Button>
           </div>
           <LifeHappensButton />

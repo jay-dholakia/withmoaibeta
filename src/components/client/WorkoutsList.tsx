@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -83,7 +82,6 @@ const WorkoutsList = () => {
             console.log(`Debug - Workout Week:`, workout.workout.week);
             
             const weekNumber = workout.workout.week.week_number || 0;
-            // Use "Week {number}" as the title if it's not present in the data
             const weekTitle = `Week ${weekNumber}`;
             const programId = workout.workout.week.program?.id || '';
             
@@ -254,24 +252,6 @@ const WorkoutsList = () => {
                               <h4 className="text-xs font-medium">Description</h4>
                               <p className="text-xs text-muted-foreground">
                                 {workout.workout.description}
-                              </p>
-                            </div>
-                          )}
-                          
-                          {workout.workout?.week && (
-                            <div className="mb-2">
-                              <h4 className="text-xs font-medium">Week</h4>
-                              <p className="text-xs text-muted-foreground">
-                                {`Week ${workout.workout.week.week_number}`}
-                              </p>
-                            </div>
-                          )}
-                          
-                          {workout.workout?.week?.program && (
-                            <div className="mb-2">
-                              <h4 className="text-xs font-medium">Program</h4>
-                              <p className="text-xs text-muted-foreground">
-                                {workout.workout.week.program.title}
                               </p>
                             </div>
                           )}

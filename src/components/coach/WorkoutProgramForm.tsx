@@ -10,7 +10,8 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage
+  FormMessage,
+  FormDescription
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
+import { WorkoutProgram } from '@/types/workout';
 
 const formSchema = z.object({
   title: z.string().min(3, 'Program title must be at least 3 characters'),
@@ -33,15 +35,24 @@ type FormValues = z.infer<typeof formSchema>;
 interface WorkoutProgramFormProps {
   onSubmit: (values: FormValues) => void;
   isSubmitting: boolean;
+  initialData?: Partial<WorkoutProgram>;
+  mode?: 'create' | 'edit';
+  onCancel?: () => void;
 }
 
-export const WorkoutProgramForm: React.FC<WorkoutProgramFormProps> = ({ onSubmit, isSubmitting }) => {
+export const WorkoutProgramForm: React.FC<WorkoutProgramFormProps> = ({ 
+  onSubmit, 
+  isSubmitting,
+  initialData,
+  mode = 'create',
+  onCancel
+}) => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: '',
-      description: '',
-      weeks: 4
+      title: initialData?.title || '',
+      description: initialData?.description || '',
+      weeks: initialData?.weeks || 4
     }
   });
 
@@ -86,10 +97,17 @@ export const WorkoutProgramForm: React.FC<WorkoutProgramFormProps> = ({ onSubmit
           render={({ field }) => (
             <FormItem>
               <FormLabel>Number of Weeks</FormLabel>
+              {mode === 'edit' && (
+                <FormDescription>
+                  Note: Changing the number of weeks won't delete existing content,
+                  but may require adjustment of your program structure.
+                </FormDescription>
+              )}
               <FormControl>
                 <Select
                   value={field.value.toString()}
                   onValueChange={(value) => field.onChange(parseInt(value))}
+                  disabled={mode === 'edit'} // Disable changing weeks in edit mode
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select the program duration" />
@@ -112,9 +130,18 @@ export const WorkoutProgramForm: React.FC<WorkoutProgramFormProps> = ({ onSubmit
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Creating...' : 'Create Program'}
-        </Button>
+        <div className="flex justify-end gap-2">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting 
+              ? (mode === 'create' ? 'Creating...' : 'Saving...') 
+              : (mode === 'create' ? 'Create Program' : 'Save Changes')}
+          </Button>
+        </div>
       </form>
     </Form>
   );

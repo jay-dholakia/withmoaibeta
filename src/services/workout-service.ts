@@ -623,3 +623,29 @@ export const getWorkoutProgramAssignmentCount = async (programId: string): Promi
     return 0;
   }
 };
+
+export const updateWorkoutProgram = async (programId: string, data: { 
+  title: string; 
+  description: string | null;
+  weeks: number;
+}): Promise<WorkoutProgram> => {
+  try {
+    const { data: program, error } = await supabase
+      .from('workout_programs')
+      .update({
+        title: data.title,
+        description: data.description,
+        weeks: data.weeks,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', programId)
+      .select('*')
+      .single();
+    
+    if (error) throw error;
+    return program;
+  } catch (error) {
+    console.error('Error updating workout program:', error);
+    throw error;
+  }
+};

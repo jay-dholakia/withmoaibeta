@@ -37,6 +37,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutWeekForm } from '@/components/coach/WorkoutWeekForm';
 import { WorkoutDayForm } from '@/components/coach/WorkoutDayForm';
+import { WorkoutProgramForm } from '@/components/coach/WorkoutProgramForm';
 import { 
   fetchWorkoutProgram, 
   fetchWorkoutWeeks,
@@ -48,7 +49,8 @@ import {
   deleteWorkoutWeek,
   deleteWorkoutProgram,
   fetchStandaloneWorkouts,
-  addWorkoutToWeek
+  addWorkoutToWeek,
+  updateWorkoutProgram
 } from '@/services/workout-service';
 import { WorkoutProgram, WorkoutWeek, Workout, DAYS_OF_WEEK, StandaloneWorkout } from '@/types/workout';
 import { toast } from 'sonner';
@@ -85,7 +87,9 @@ const WorkoutProgramDetailPage = () => {
   const [isConfirmDeleteProgram, setIsConfirmDeleteProgram] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
-  // For template workouts
+  const [isEditingProgram, setIsEditingProgram] = useState(false);
+  const [isSubmittingProgram, setIsSubmittingProgram] = useState(false);
+  
   const [standaloneWorkouts, setStandaloneWorkouts] = useState<StandaloneWorkout[]>([]);
   const [isAddingTemplate, setIsAddingTemplate] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -295,7 +299,6 @@ const WorkoutProgramDetailPage = () => {
       
       await addWorkoutToWeek(selectedTemplate, isAddingTemplateToWeek, selectedDay);
       
-      // Refresh workouts if this is the currently selected week
       if (isAddingTemplateToWeek === selectedWeek) {
         const updatedWorkouts = await fetchWorkouts(selectedWeek);
         setWorkouts(updatedWorkouts);
@@ -310,6 +313,30 @@ const WorkoutProgramDetailPage = () => {
       toast.error('Failed to add template workout');
     } finally {
       setIsAddingTemplate(false);
+    }
+  };
+  
+  const handleUpdateProgram = async (values: { title: string; description?: string; weeks: number }) => {
+    if (!programId || !program) return;
+    
+    try {
+      setIsSubmittingProgram(true);
+      
+      const updatedProgram = await updateWorkoutProgram(programId, {
+        title: values.title,
+        description: values.description || null,
+        weeks: values.weeks
+      });
+      
+      setProgram(updatedProgram);
+      setIsEditingProgram(false);
+      
+      toast.success('Program updated successfully');
+    } catch (error) {
+      console.error('Error updating program:', error);
+      toast.error('Failed to update program');
+    } finally {
+      setIsSubmittingProgram(false);
     }
   };
   
@@ -367,6 +394,14 @@ const WorkoutProgramDetailPage = () => {
               )}
             </div>
             <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsEditingProgram(true)}
+                className="gap-2"
+              >
+                <Edit className="h-4 w-4" />
+                Edit Program
+              </Button>
               <Button 
                 variant="outline" 
                 onClick={() => navigate('/coach-dashboard/workout-templates')}
@@ -736,6 +771,27 @@ const WorkoutProgramDetailPage = () => {
             </DialogContent>
           </Dialog>
         )}
+
+        <Dialog 
+          open={isEditingProgram} 
+          onOpenChange={setIsEditingProgram}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Program</DialogTitle>
+              <DialogDescription>
+                Update the program details. Note that changing the number of weeks is disabled to preserve program integrity.
+              </DialogDescription>
+            </DialogHeader>
+            <WorkoutProgramForm
+              onSubmit={handleUpdateProgram}
+              isSubmitting={isSubmittingProgram}
+              initialData={program}
+              mode="edit"
+              onCancel={() => setIsEditingProgram(false)}
+            />
+          </DialogContent>
+        </Dialog>
 
         <AlertDialog 
           open={deleteWorkoutId !== null}

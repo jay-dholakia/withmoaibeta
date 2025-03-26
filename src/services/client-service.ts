@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./client-workout-history-service";
@@ -462,7 +461,6 @@ export const completeWorkout = async (
       .from('workout_completions')
       .update({
         completed_at: new Date().toISOString(),
-        status: 'completed',
         rating: rating,
         notes: notes
       })

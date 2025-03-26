@@ -12,6 +12,7 @@ import { Loader2, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { fetchCurrentProgram } from '@/services/program-service';
 
 const WorkoutsList = () => {
   const { user } = useAuth();
@@ -20,9 +21,10 @@ const WorkoutsList = () => {
   const [error, setError] = useState<string | null>(null);
   const [weekFilter, setWeekFilter] = useState<string>("all");
   const [availableWeeks, setAvailableWeeks] = useState<{number: number, programTitle: string}[]>([]);
+  const [currentProgram, setCurrentProgram] = useState<any | null>(null);
 
   useEffect(() => {
-    const loadWorkouts = async () => {
+    const loadWorkoutsAndProgram = async () => {
       if (!user || !user.id) {
         console.error("Cannot load workouts: User or user ID is missing", user);
         setError('User not authenticated properly. Please try logging in again.');
@@ -35,8 +37,16 @@ const WorkoutsList = () => {
         setIsLoading(true);
         setError(null);
         
-        const assignedWorkouts = await fetchAssignedWorkouts(user.id);
+        // Load current program in parallel with assigned workouts
+        const programPromise = fetchCurrentProgram(user.id);
+        const workoutsPromise = fetchAssignedWorkouts(user.id);
+        
+        const [program, assignedWorkouts] = await Promise.all([programPromise, workoutsPromise]);
+        
+        console.log("Current program loaded:", program);
         console.log("Assigned workouts loaded:", assignedWorkouts.length);
+        
+        setCurrentProgram(program);
         setWorkouts(assignedWorkouts);
         
         // Extract unique weeks for filtering
@@ -74,7 +84,7 @@ const WorkoutsList = () => {
       }
     };
 
-    loadWorkouts();
+    loadWorkoutsAndProgram();
   }, [user]);
 
   const filteredWorkouts = React.useMemo(() => {
@@ -121,8 +131,19 @@ const WorkoutsList = () => {
         
         <TabsContent value="assigned" className="pt-4">
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Your Assigned Workouts</h2>
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                {currentProgram && currentProgram.program ? (
+                  <>
+                    <h2 className="text-xl font-semibold">{currentProgram.program.title}</h2>
+                    {currentProgram.program.description && (
+                      <p className="text-sm text-muted-foreground">{currentProgram.program.description}</p>
+                    )}
+                  </>
+                ) : (
+                  <h2 className="text-xl font-semibold">Your Assigned Workouts</h2>
+                )}
+              </div>
               
               {availableWeeks.length > 0 && (
                 <div className="flex items-center gap-2">

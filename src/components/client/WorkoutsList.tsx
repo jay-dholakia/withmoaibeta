@@ -116,17 +116,20 @@ const WorkoutsList = () => {
     }
     
     const [weekNumberStr, programId] = weekFilter.split('-');
+    const weekNumber = parseInt(weekNumberStr);
     
-    console.log(`Debug - Filtering workouts by Week ${weekNumberStr}`);
+    console.log(`Debug - Filtering workouts by Week ${weekNumber}`);
     
     return workouts.filter(workout => {
-      const weekMatches = workout.workout?.week && 
-                        workout.workout.week.week_number === parseInt(weekNumberStr);
-      const programMatches = workout.workout?.week?.program?.id === programId || 
-                            programId === "any";
+      // Check if workout has week data and if week number matches
+      const weekMatches = workout.workout?.week?.week_number === weekNumber;
       
-      console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout?.week?.week_number}, Program: ${workout.workout?.week?.program?.title}, Matches: ${weekMatches && programMatches}`);
+      // Check if program matches
+      const programMatches = workout.workout?.week?.program?.id === programId;
       
+      console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout?.week?.week_number}, Program: ${workout.workout?.week?.program?.id}, Matches: ${weekMatches && programMatches}`);
+      
+      // Only return workouts that match both the week number and program ID
       return weekMatches && programMatches;
     });
   }, [workouts, weekFilter]);

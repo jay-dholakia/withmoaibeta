@@ -92,7 +92,7 @@ export const WeekProgressBar = ({
       )}
       
       {showDayCircles && (
-        <div className={`flex ${isMobile ? 'flex-wrap justify-center gap-3 mt-6' : 'justify-between px-2 mt-4'}`}>
+        <div className="flex justify-between px-2 mt-4">
           {weekDays.map((day, index) => {
             const isCompleted = completedDates.some(date => isSameDay(day, date));
             const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
@@ -100,17 +100,17 @@ export const WeekProgressBar = ({
             return (
               <div key={index} className="flex flex-col items-center">
                 <div 
-                  className={`flex items-center justify-center ${isMobile ? 'w-12 h-12' : 'w-10 h-10'} rounded-full ${
+                  className={`flex items-center justify-center w-8 h-8 rounded-full ${
                     isCompleted ? 'bg-green-100' : isLifeHappens ? 'bg-blue-100' : 'bg-slate-100'
                   }`}
                 >
                   {isLifeHappens ? (
-                    <Umbrella className={`${isMobile ? 'h-6 w-6' : 'h-5 w-5'} text-blue-500`} />
+                    <Umbrella className="h-4 w-4 text-blue-500" />
                   ) : isCompleted ? (
-                    <Star className={`${isMobile ? 'h-6 w-6' : 'h-5 w-5'} text-green-500 fill-green-500`} />
+                    <Star className="h-4 w-4 text-green-500 fill-green-500" />
                   ) : null}
                 </div>
-                <div className="text-xs text-center text-slate-500 mt-2">
+                <div className="text-xs text-center text-slate-500 mt-1">
                   {format(day, 'E')[0]}
                 </div>
               </div>

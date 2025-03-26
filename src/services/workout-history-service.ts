@@ -1,3 +1,4 @@
+
 import { fetchClientWorkoutHistory } from './client-workout-history-service';
 import { fetchAssignedWorkouts } from './assigned-workouts-service';
 import { supabase } from "@/integrations/supabase/client";
@@ -146,5 +147,118 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
   } catch (error) {
     console.error('Error getting weekly assigned workouts count:', error);
     return 0;
+  }
+};
+
+/**
+ * Gets the total number of workouts assigned to a user for a specific week
+ */
+export const getAssignedWorkoutsCountForWeek = async (userId: string, weekNumber: number): Promise<number> => {
+  try {
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+    
+    console.log(`Fetching workout count for user ${userId} in week ${weekNumber}`);
+    
+    // Fetch all assigned workouts
+    const assignedWorkouts = await fetchAssignedWorkouts(userId);
+    
+    console.log(`Found ${assignedWorkouts.length} total assigned workouts`);
+    
+    // Filter workouts that belong to the specified week
+    const weekWorkouts = assignedWorkouts.filter(workout => {
+      // Check if the workout has a week and program
+      if (workout.workout?.week?.week_number) {
+        const matches = workout.workout.week.week_number === weekNumber;
+        console.log(`Workout ${workout.workout.title}: week ${workout.workout.week.week_number}, matches week ${weekNumber}: ${matches}`);
+        return matches;
+      }
+      console.log(`Workout ${workout.workout?.title || 'Unknown'}: No week number found`);
+      return false;
+    });
+    
+    console.log(`Found ${weekWorkouts.length} workouts for week ${weekNumber}`);
+    
+    return weekWorkouts.length || 0;
+  } catch (error) {
+    console.error(`Error getting assigned workouts count for week ${weekNumber}:`, error);
+    return 0;
+  }
+};
+
+/**
+ * Gets user ID by email
+ */
+export const getUserIdByEmail = async (email: string): Promise<string | null> => {
+  try {
+    // Since we can't directly query auth.users with the client, we can:
+    // 1. Use profiles table which should have 1-to-1 mapping with users
+    // 2. Query for users that have the given email, if we have permission
+    
+    const { data: userData, error } = await supabase.rpc(
+      'get_users_email',
+      { user_ids: [] } // Empty array to check if we get any results at all
+    );
+    
+    if (error) {
+      console.error('Error checking user email lookup access:', error);
+      // Fall back to manual client-side filtering of all users, which we might have access to
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id');
+        
+      if (!profiles || profiles.length === 0) {
+        console.error('No profiles found, cannot look up user');
+        return null;
+      }
+      
+      // We have profiles, so try using the RPC function with all IDs
+      const profileIds = profiles.map(profile => profile.id);
+      const { data: users, error: rpcError } = await supabase.rpc(
+        'get_users_email',
+        { user_ids: profileIds }
+      );
+      
+      if (rpcError) {
+        console.error('Error using get_users_email with all profiles:', rpcError);
+        return null;
+      }
+      
+      if (!users || users.length === 0) {
+        console.error('No users found in the response');
+        return null;
+      }
+      
+      const user = users.find(u => u.email === email);
+      return user ? user.id : null;
+    }
+    
+    // If we reach here, we have permission to call get_users_email
+    // So we can try to query all users
+    const { data: allProfiles } = await supabase
+      .from('profiles')
+      .select('id');
+      
+    if (!allProfiles || allProfiles.length === 0) {
+      console.error('No profiles found to look up user');
+      return null;
+    }
+    
+    const { data: allUsers, error: allUsersError } = await supabase.rpc(
+      'get_users_email',
+      { user_ids: allProfiles.map(p => p.id) }
+    );
+    
+    if (allUsersError) {
+      console.error('Error looking up all users:', allUsersError);
+      return null;
+    }
+    
+    const user = allUsers.find(u => u.email === email);
+    return user ? user.id : null;
+  } catch (error) {
+    console.error('Error in getUserIdByEmail:', error);
+    return null;
   }
 };

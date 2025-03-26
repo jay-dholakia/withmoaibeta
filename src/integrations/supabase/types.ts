@@ -554,7 +554,7 @@ export type Database = {
       }
       workout_completions: {
         Row: {
-          completed_at: string
+          completed_at: string | null
           id: string
           life_happens_pass: boolean | null
           notes: string | null
@@ -563,7 +563,7 @@ export type Database = {
           workout_id: string
         }
         Insert: {
-          completed_at?: string
+          completed_at?: string | null
           id?: string
           life_happens_pass?: boolean | null
           notes?: string | null
@@ -572,7 +572,7 @@ export type Database = {
           workout_id: string
         }
         Update: {
-          completed_at?: string
+          completed_at?: string | null
           id?: string
           life_happens_pass?: boolean | null
           notes?: string | null

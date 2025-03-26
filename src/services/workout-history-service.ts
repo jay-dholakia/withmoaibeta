@@ -180,33 +180,42 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
           .single();
         
         if (program) {
-          // Create a placeholder workout completion entry
-          const { data: newCompletion } = await supabase
-            .from('workout_completions')
-            .insert({
-              workout_id: assignment.program_id, // Using program_id as a placeholder
-              user_id: userId,
-              completed_at: null,
-              notes: `Program: ${program.title}`
-            })
-            .select('id')
-            .single();
-          
-          if (newCompletion) {
-            result.push({
-              id: newCompletion.id,
-              workout_id: assignment.program_id,
-              user_id: userId,
-              completed_at: null,
-              workout: {
-                id: assignment.program_id,
-                title: `Program: ${program.title}`,
-                description: "No workouts have been created for this program yet.",
-                day_of_week: 0,
-                week_id: "",
-                week: null
-              }
-            });
+          try {
+            // Create a placeholder workout completion entry
+            const { data: newCompletion, error: completionError } = await supabase
+              .from('workout_completions')
+              .insert({
+                workout_id: assignment.program_id, // Using program_id as a placeholder
+                user_id: userId,
+                completed_at: null, // Now this works because the column allows NULL
+                notes: `Program: ${program.title}`
+              })
+              .select('id')
+              .single();
+            
+            if (completionError) {
+              console.error(`Error creating workout completion for program ${assignment.program_id}:`, completionError);
+              continue;
+            }
+            
+            if (newCompletion) {
+              result.push({
+                id: newCompletion.id,
+                workout_id: assignment.program_id,
+                user_id: userId,
+                completed_at: null,
+                workout: {
+                  id: assignment.program_id,
+                  title: `Program: ${program.title}`,
+                  description: "No workouts have been created for this program yet.",
+                  day_of_week: 0,
+                  week_id: "",
+                  week: null
+                }
+              });
+            }
+          } catch (e) {
+            console.error(`Error processing program ${assignment.program_id}:`, e);
           }
         }
       }

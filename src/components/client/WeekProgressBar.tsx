@@ -2,7 +2,7 @@
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { format, startOfWeek, addDays, isSameDay, isThisWeek } from 'date-fns';
-import { Star, Umbrella } from 'lucide-react';
+import { Star, Umbrella, AlertCircle } from 'lucide-react';
 
 interface WeekProgressBarProps {
   completedDates: Date[];
@@ -54,22 +54,31 @@ export const WeekProgressBar = ({
   
   console.log("Total completed count:", totalCompletedCount);
   console.log("Percent complete:", percentComplete);
+  
+  const hasAssignedWorkouts = total > 0;
 
   return (
     <div className="space-y-2 mb-8 bg-white rounded-xl p-5 shadow-sm">
       <div className="flex justify-between items-center mb-2">
         <div>
           <h3 className="text-base font-semibold">{label}</h3>
-          <p className="text-sm text-slate-500">
-            {totalCompletedCount} of {total} workouts completed
-          </p>
+          {hasAssignedWorkouts ? (
+            <p className="text-sm text-slate-500">
+              {totalCompletedCount} of {total} {total === 1 ? 'workout' : 'workouts'} completed
+            </p>
+          ) : (
+            <p className="text-sm text-amber-500 flex items-center gap-1">
+              <AlertCircle className="h-3.5 w-3.5" />
+              <span>No assigned workouts this week</span>
+            </p>
+          )}
         </div>
-        {showProgressBar && (
+        {showProgressBar && hasAssignedWorkouts && (
           <span className={`text-lg font-bold ${textColor}`}>{Math.round(percentComplete)}%</span>
         )}
       </div>
 
-      {showProgressBar && (
+      {showProgressBar && hasAssignedWorkouts && (
         <Progress 
           value={percentComplete} 
           className="h-3 mb-4" 

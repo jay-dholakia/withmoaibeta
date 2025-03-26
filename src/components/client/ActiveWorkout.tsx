@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -74,7 +75,7 @@ const ActiveWorkout = () => {
       
       console.log("Tracking set:", {
         workoutCompletionId,
-        exerciseId,
+        exerciseId,  // This is actually workout_exercise_id
         setNumber,
         weight: weight ? parseFloat(weight) : null,
         reps: reps ? parseInt(reps, 10) : null
@@ -83,7 +84,7 @@ const ActiveWorkout = () => {
       try {
         return await trackWorkoutSet(
           workoutCompletionId,
-          exerciseId,
+          exerciseId,  // Passing workout_exercise_id to the function
           setNumber,
           weight ? parseFloat(weight) : null,
           reps ? parseInt(reps, 10) : null
@@ -163,14 +164,14 @@ const ActiveWorkout = () => {
       try {
         const set = exerciseStates[exerciseId].sets[setIndex];
         console.log("Attempting to track set completion:", {
-          exerciseId,
+          exerciseId,  // This is actually workout_exercise_id
           setNumber: set.setNumber,
           weight: set.weight,
           reps: set.reps
         });
         
         await trackSetMutation.mutateAsync({
-          exerciseId,
+          exerciseId,  // Make sure we're passing workout_exercise_id
           setNumber: set.setNumber,
           weight: set.weight,
           reps: set.reps,

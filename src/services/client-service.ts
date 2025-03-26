@@ -41,7 +41,7 @@ export const trackWorkoutSet = async (
       .from('workout_set_completions')
       .select('*')
       .eq('workout_completion_id', workoutCompletionId)
-      .eq('workout_exercise_id', exerciseId)
+      .eq('workout_exercise_id', exerciseId)  // Make sure we're using workout_exercise_id here
       .eq('set_number', setNumber)
       .maybeSingle();
     
@@ -87,7 +87,7 @@ export const trackWorkoutSet = async (
         .from('workout_set_completions')
         .insert({
           workout_completion_id: workoutCompletionId,
-          workout_exercise_id: exerciseId, // Changed from exercise_id to workout_exercise_id
+          workout_exercise_id: exerciseId, // Using workout_exercise_id consistently
           set_number: setNumber,
           weight: weight,
           reps_completed: reps,

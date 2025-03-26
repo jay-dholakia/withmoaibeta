@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ProgramAssignment } from "@/types/workout";
+import { ProgramAssignment, WorkoutProgram } from "@/types/workout";
 
 /**
  * Fetches a workout program by ID.
@@ -47,10 +47,26 @@ export const fetchAllWorkoutPrograms = async (): Promise<any[]> => {
 };
 
 /**
- * Fetches all workout programs.
+ * Fetches all workout programs for a coach.
  */
-export const fetchWorkoutPrograms = async (): Promise<any[]> => {
-  return fetchAllWorkoutPrograms();
+export const fetchWorkoutPrograms = async (coachId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_programs')
+      .select('*')
+      .eq('coach_id', coachId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching coach workout programs:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching coach workout programs:", error);
+    return [];
+  }
 };
 
 /**
@@ -600,13 +616,14 @@ export const fetchExercisesByCategory = async (): Promise<Record<string, any[]>>
 };
 
 /**
- * Fetches standalone workouts
+ * Fetches standalone workouts for a coach
  */
-export const fetchStandaloneWorkouts = async (): Promise<any[]> => {
+export const fetchStandaloneWorkouts = async (coachId: string): Promise<any[]> => {
   try {
     const { data, error } = await supabase
       .from('standalone_workouts')
       .select('*')
+      .eq('coach_id', coachId)
       .order('created_at', { ascending: false });
     
     if (error) {

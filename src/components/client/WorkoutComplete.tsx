@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -18,7 +17,6 @@ const WorkoutComplete = () => {
   const [notes, setNotes] = useState('');
   const [rating, setRating] = useState<number | null>(null);
   
-  // Fetch workout data
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['complete-workout', workoutCompletionId],
     queryFn: async () => {
@@ -44,7 +42,6 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Fetch personal records that might have been set during this workout
   const { data: personalRecords, isLoading: isLoadingPRs } = useQuery({
     queryKey: ['personal-records', user?.id, workoutCompletionId],
     queryFn: async () => {
@@ -63,7 +60,6 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Complete workout mutation
   const completeMutation = useMutation({
     mutationFn: async () => {
       if (!workoutCompletionId) return null;
@@ -86,7 +82,6 @@ const WorkoutComplete = () => {
   const handleShareWorkout = () => {
     let shareText = `I just finished my workout: ${workoutData?.workout?.title || 'Workout'}! 💪\n\n`;
     
-    // Add PRs if there are any
     if (personalRecords && personalRecords.length > 0) {
       shareText += "🏆 New personal records:\n";
       personalRecords.forEach((pr: any) => {
@@ -96,7 +91,6 @@ const WorkoutComplete = () => {
     
     shareText += "\n#FitnessJourney #PersonalBest";
     
-    // Copy to clipboard
     navigator.clipboard.writeText(shareText)
       .then(() => {
         toast.success('Copied to clipboard! Ready to share.');
@@ -174,8 +168,8 @@ const WorkoutComplete = () => {
 
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-medium mb-2">Rate your workout</h3>
-          <div className="flex gap-2">
+          <h3 className="text-sm font-medium mb-2 text-center">Rate your workout</h3>
+          <div className="flex justify-center gap-2">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}

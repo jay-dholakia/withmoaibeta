@@ -42,7 +42,7 @@ const LifeHappensPass: React.FC<LifeHappensPassProps> = ({ onUsePass, isLoading 
       <CardContent>
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Sometimes life gets in the way of workouts. Use a "Life Happens" pass to still get credit for this workout.
+            When workouts get in the way of life, use a pass to get credit for a workout.
           </p>
           
           <Button

@@ -129,7 +129,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     
     console.log(`Fetching assigned workouts for user: ${userId}`);
     
-    // Try using the standard query approach
+    // Get all program assignments for this user with detailed logging
     const { data: programAssignments, error: programError } = await supabase
       .from('program_assignments')
       .select('id, program_id, start_date, end_date')
@@ -143,44 +143,15 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     // Log the raw results to help debug
     console.log(`Raw program assignments query result:`, programAssignments);
     
-    // Now let's try with a raw SQL query for comparison
-    const { data: sqlProgramAssignments, error: sqlError } = await supabase
-      .rpc('get_program_assignments_for_user', { user_id_param: userId });
-    
-    if (sqlError) {
-      console.error("Error executing raw SQL for program assignments:", sqlError);
-    } else {
-      console.log("Raw SQL program assignments query result:", sqlProgramAssignments);
-    }
-    
-    // Use direct query if available, otherwise fall back to empty array
-    const effectiveProgramAssignments = sqlProgramAssignments?.length > 0 
-      ? sqlProgramAssignments 
-      : (programAssignments || []);
-    
-    if (!effectiveProgramAssignments || effectiveProgramAssignments.length === 0) {
+    if (!programAssignments || programAssignments.length === 0) {
       console.log(`No program assignments found for user ${userId}`);
-      
-      // As a last resort, let's check if there are workouts directly assigned
-      // without program assignments
-      const { data: directWorkouts, error: directWorkoutsError } = await supabase
-        .from('workouts')
-        .select('id, title, description, day_of_week, week_id')
-        .limit(5);  // Just get a few to see if there are any
-        
-      if (directWorkoutsError) {
-        console.error("Error checking for direct workouts:", directWorkoutsError);
-      } else {
-        console.log(`Direct workouts check (first 5 available): Found ${directWorkouts?.length || 0} workouts`);
-      }
-      
       return [];
     }
     
-    console.log(`Found ${effectiveProgramAssignments.length} program assignments`);
+    console.log(`Found ${programAssignments.length} program assignments`);
     
     // Get all program IDs
-    const programIds = effectiveProgramAssignments.map(pa => pa.program_id);
+    const programIds = programAssignments.map(pa => pa.program_id);
     console.log(`Program IDs:`, programIds);
     
     // Get all weeks associated with these programs

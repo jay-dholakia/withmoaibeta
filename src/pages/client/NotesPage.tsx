@@ -179,8 +179,8 @@ const NotesPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Add Journal Entry</CardTitle>
           <CardDescription>
@@ -228,7 +228,7 @@ const NotesPage = () => {
         </CardFooter>
       </Card>
       
-      <div className="space-y-4">
+      <div className="space-y-4 w-full">
         <h2 className="text-xl font-semibold">Your Journal</h2>
         
         {isLoading ? (
@@ -236,14 +236,14 @@ const NotesPage = () => {
             <Loader2 className="h-8 w-8 animate-spin text-client" />
           </div>
         ) : notes.length === 0 ? (
-          <Card className="p-6 text-center text-muted-foreground">
+          <Card className="p-6 text-center text-muted-foreground w-full">
             No entries yet. Add your first journal entry above!
           </Card>
         ) : (
-          <ScrollArea className="h-[400px] rounded-md border">
+          <ScrollArea className="h-[400px] rounded-md border w-full">
             <div className="p-4 space-y-4">
               {notes.map((note) => (
-                <Card key={note.id} className="group">
+                <Card key={note.id} className="group w-full">
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-sm text-muted-foreground">

@@ -129,7 +129,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     
     console.log(`Fetching assigned workouts for user: ${userId}`);
     
-    // Get all program assignments for this user with detailed logging
+    // Get all program assignments for this user
     const { data: programAssignments, error: programError } = await supabase
       .from('program_assignments')
       .select('id, program_id, start_date, end_date')
@@ -140,7 +140,6 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
       throw programError;
     }
     
-    // Log the raw results to help debug
     console.log(`Raw program assignments query result:`, programAssignments);
     
     if (!programAssignments || programAssignments.length === 0) {
@@ -151,7 +150,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     console.log(`Found ${programAssignments.length} program assignments`);
     
     // Get all program IDs
-    const programIds = programAssignments.map(pa => pa.program_id);
+    const programIds = [...new Set(programAssignments.map(pa => pa.program_id))];
     console.log(`Program IDs:`, programIds);
     
     // Get all weeks associated with these programs
@@ -168,7 +167,52 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     
     if (!weeks || weeks.length === 0) {
       console.log("No workout weeks found for the assigned programs");
-      return [];
+      
+      // Create a simplified result for programs that don't have weeks yet
+      const result: WorkoutHistoryItem[] = [];
+      
+      for (const assignment of programAssignments) {
+        // Get the program details
+        const { data: program } = await supabase
+          .from('workout_programs')
+          .select('title')
+          .eq('id', assignment.program_id)
+          .single();
+        
+        if (program) {
+          // Create a placeholder workout completion entry
+          const { data: newCompletion } = await supabase
+            .from('workout_completions')
+            .insert({
+              workout_id: assignment.program_id, // Using program_id as a placeholder
+              user_id: userId,
+              completed_at: null,
+              notes: `Program: ${program.title}`
+            })
+            .select('id')
+            .single();
+          
+          if (newCompletion) {
+            result.push({
+              id: newCompletion.id,
+              workout_id: assignment.program_id,
+              user_id: userId,
+              completed_at: null,
+              workout: {
+                id: assignment.program_id,
+                title: `Program: ${program.title}`,
+                description: "No workouts have been created for this program yet.",
+                day_of_week: 0,
+                week_id: "",
+                week: null
+              }
+            });
+          }
+        }
+      }
+      
+      console.log(`Returning ${result.length} placeholder workouts`);
+      return result;
     }
     
     console.log(`Found ${weeks.length} workout weeks across all assigned programs`);

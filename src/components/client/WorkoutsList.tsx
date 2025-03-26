@@ -5,7 +5,6 @@ import { WorkoutHistoryItem } from '@/types/workout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
-import { DAYS_OF_WEEK } from '@/types/workout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import CustomWorkoutsList from './CustomWorkoutsList';
@@ -95,11 +94,6 @@ const WorkoutsList = () => {
                       <CardTitle>
                         {workout.workout?.title || 'Untitled Workout'}
                       </CardTitle>
-                      {workout.workout?.day_of_week !== undefined && (
-                        <div className="text-sm text-muted-foreground">
-                          {DAYS_OF_WEEK[workout.workout.day_of_week]}
-                        </div>
-                      )}
                     </CardHeader>
                     <CardContent>
                       {workout.workout?.description && (

@@ -67,9 +67,7 @@ export const createOneOffWorkoutCompletion = async (params: {
         user_id: user.user.id,
         workout_id: null, // No associated workout
         notes: params.notes || null,
-        rating: params.rating || null,
-        one_off_title: params.title,
-        one_off_description: params.description
+        rating: params.rating || null
       })
       .select()
       .single();
@@ -83,3 +81,34 @@ export const createOneOffWorkoutCompletion = async (params: {
   }
 };
 
+/**
+ * Log a rest day
+ */
+export const logRestDay = async (notes?: string) => {
+  try {
+    const { data: user } = await supabase.auth.getUser();
+    
+    if (!user.user) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Create the workout completion with rest_day flag
+    const { data, error } = await supabase
+      .from('workout_completions')
+      .insert({
+        user_id: user.user.id,
+        workout_id: null, // No associated workout
+        notes: notes || "Taking a scheduled rest day",
+        rest_day: true
+      })
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error logging rest day:', error);
+    throw error;
+  }
+};

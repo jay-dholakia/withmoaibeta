@@ -559,6 +559,7 @@ export type Database = {
           life_happens_pass: boolean | null
           notes: string | null
           rating: number | null
+          rest_day: boolean | null
           user_id: string
           workout_id: string
         }
@@ -568,6 +569,7 @@ export type Database = {
           life_happens_pass?: boolean | null
           notes?: string | null
           rating?: number | null
+          rest_day?: boolean | null
           user_id: string
           workout_id: string
         }
@@ -577,6 +579,7 @@ export type Database = {
           life_happens_pass?: boolean | null
           notes?: string | null
           rating?: number | null
+          rest_day?: boolean | null
           user_id?: string
           workout_id?: string
         }

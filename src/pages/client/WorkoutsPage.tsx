@@ -11,7 +11,7 @@ import LifeHappensButton from '@/components/client/LifeHappensButton';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Armchair } from 'lucide-react';
-import { createOneOffWorkoutCompletion } from '@/services/workout-history-service';
+import { logRestDay } from '@/services/workout-history-service';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -28,10 +28,7 @@ const WorkoutsPage = () => {
   
   const handleLogRestDay = () => {
     // Call the service function to log a rest day
-    createOneOffWorkoutCompletion({
-      title: "Rest Day",
-      description: "Taking a scheduled rest day",
-    }).then(() => {
+    logRestDay().then(() => {
       toast.success("Rest day logged successfully!");
       setShowRestDayDialog(false);
     }).catch((error) => {

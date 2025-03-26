@@ -1,7 +1,79 @@
 import { supabase } from "@/integrations/supabase/client";
-import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
-import { fetchClientWorkoutHistory } from "./workout-history-service";
-import { fetchCoachGroups } from "./coach-group-service";
+
+/**
+ * Tracks a workout set completion
+ * @param workoutCompletionId The ID of the workout completion
+ * @param exerciseId The ID of the workout exercise
+ * @param setNumber The set number
+ * @param weight The weight used (optional)
+ * @param reps The number of reps completed (optional)
+ */
+export const trackWorkoutSet = async (
+  workoutCompletionId: string,
+  exerciseId: string,
+  setNumber: number,
+  weight: number | null,
+  reps: number | null
+): Promise<any> => {
+  try {
+    // First check if a set completion record already exists
+    const { data: existingSet, error: queryError } = await supabase
+      .from('workout_set_completions')
+      .select('*')
+      .eq('workout_completion_id', workoutCompletionId)
+      .eq('workout_exercise_id', exerciseId)
+      .eq('set_number', setNumber)
+      .maybeSingle();
+    
+    if (queryError) {
+      console.error('Error checking for existing set completion:', queryError);
+      throw queryError;
+    }
+    
+    if (existingSet) {
+      // Update existing record
+      const { data, error } = await supabase
+        .from('workout_set_completions')
+        .update({
+          weight: weight,
+          reps_completed: reps,
+          completed: true
+        })
+        .eq('id', existingSet.id)
+        .select();
+      
+      if (error) {
+        console.error('Error updating set completion:', error);
+        throw error;
+      }
+      
+      return data;
+    } else {
+      // Create new record
+      const { data, error } = await supabase
+        .from('workout_set_completions')
+        .insert({
+          workout_completion_id: workoutCompletionId,
+          workout_exercise_id: exerciseId,
+          set_number: setNumber,
+          weight: weight,
+          reps_completed: reps,
+          completed: true
+        })
+        .select();
+      
+      if (error) {
+        console.error('Error creating set completion:', error);
+        throw error;
+      }
+      
+      return data;
+    }
+  } catch (error) {
+    console.error('Error tracking workout set:', error);
+    throw error;
+  }
+};
 
 // Re-export the functions from other services so existing imports still work
 export { fetchClientPrograms, fetchCurrentProgram, fetchClientWorkoutHistory, fetchCoachGroups };
@@ -339,37 +411,6 @@ export const startWorkout = async (userId: string, workoutId: string): Promise<s
     return data.id;
   } catch (error) {
     console.error("Error starting workout:", error);
-    throw error;
-  }
-};
-
-export const trackWorkoutSet = async (
-  workoutCompletionId: string,
-  exerciseId: string,
-  userId: string,
-  setNumber: number,
-  weight: number | null,
-  reps: number | null
-): Promise<any> => {
-  try {
-    const { data, error } = await supabase
-      .from('workout_set_completions')
-      .upsert({
-        workout_completion_id: workoutCompletionId,
-        workout_exercise_id: exerciseId,
-        user_id: userId,
-        set_number: setNumber,
-        weight: weight,
-        reps_completed: reps,
-        completed: true
-      })
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("Error tracking workout set:", error);
     throw error;
   }
 };

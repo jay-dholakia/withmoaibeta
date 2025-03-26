@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,7 +30,6 @@ const ActiveWorkout = () => {
     };
   }>({});
 
-  // Fetch workout data
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['active-workout', workoutCompletionId],
     queryFn: async () => {
@@ -57,7 +55,6 @@ const ActiveWorkout = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Track set completion
   const trackSetMutation = useMutation({
     mutationFn: async ({
       exerciseId,
@@ -70,11 +67,10 @@ const ActiveWorkout = () => {
       weight: string;
       reps: string;
     }) => {
-      if (!workoutCompletionId || !user?.id) return null;
+      if (!workoutCompletionId) return null;
       return trackWorkoutSet(
         workoutCompletionId,
         exerciseId,
-        user.id,
         setNumber,
         weight ? parseFloat(weight) : null,
         reps ? parseInt(reps, 10) : null
@@ -89,20 +85,16 @@ const ActiveWorkout = () => {
     },
   });
 
-  // Initialize exercise states
   useEffect(() => {
     if (workoutData?.workout?.workout_exercises) {
       const initialState: any = {};
       
-      // Check if workout_exercises is an array before using forEach
       const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
         ? workoutData.workout.workout_exercises 
         : [];
       
       workoutExercises.forEach((exercise: any) => {
-        // Create array for sets
         const sets = Array.from({ length: exercise.sets }, (_, i) => {
-          // Check if we have existing data for this set
           const existingSet = workoutData.workout_set_completions?.find(
             (set: any) => set.workout_exercise_id === exercise.id && set.set_number === i + 1
           );
@@ -138,7 +130,6 @@ const ActiveWorkout = () => {
   };
 
   const handleSetCompletion = async (exerciseId: string, setIndex: number, completed: boolean) => {
-    // Update local state
     setExerciseStates((prev) => ({
       ...prev,
       [exerciseId]: {
@@ -149,7 +140,6 @@ const ActiveWorkout = () => {
       },
     }));
 
-    // Only track if marking as completed
     if (completed) {
       const set = exerciseStates[exerciseId].sets[setIndex];
       await trackSetMutation.mutateAsync({
@@ -174,12 +164,10 @@ const ActiveWorkout = () => {
   const isWorkoutComplete = () => {
     if (!workoutData?.workout?.workout_exercises || !exerciseStates) return false;
     
-    // Check if workout_exercises is an array before using every
     const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
       ? workoutData.workout.workout_exercises 
       : [];
     
-    // Check if all sets of all exercises are completed
     return workoutExercises.every((exercise: any) => {
       const exerciseState = exerciseStates[exercise.id];
       if (!exerciseState) return false;
@@ -215,7 +203,6 @@ const ActiveWorkout = () => {
     );
   }
 
-  // Check if workout_exercises is an array before using map
   const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
     ? workoutData.workout.workout_exercises 
     : [];

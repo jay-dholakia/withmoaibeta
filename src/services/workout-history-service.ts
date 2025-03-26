@@ -1,4 +1,3 @@
-
 import { fetchClientWorkoutHistory } from './client-workout-history-service';
 import { fetchAssignedWorkouts } from './assigned-workouts-service';
 import { supabase } from "@/integrations/supabase/client";
@@ -97,7 +96,7 @@ export const logRestDay = async (notes?: string) => {
       .from('workout_completions')
       .insert({
         user_id: user.user.id,
-        workout_id: null, // No associated workout
+        workout_id: null, // Now this can be null since we modified the table
         notes: notes || "Taking a scheduled rest day",
         rest_day: true
       })

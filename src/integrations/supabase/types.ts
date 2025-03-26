@@ -561,7 +561,7 @@ export type Database = {
           rating: number | null
           rest_day: boolean | null
           user_id: string
-          workout_id: string
+          workout_id: string | null
         }
         Insert: {
           completed_at?: string | null
@@ -571,7 +571,7 @@ export type Database = {
           rating?: number | null
           rest_day?: boolean | null
           user_id: string
-          workout_id: string
+          workout_id?: string | null
         }
         Update: {
           completed_at?: string | null
@@ -581,7 +581,7 @@ export type Database = {
           rating?: number | null
           rest_day?: boolean | null
           user_id?: string
-          workout_id?: string
+          workout_id?: string | null
         }
         Relationships: [
           {

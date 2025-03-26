@@ -123,16 +123,20 @@ const WorkoutsList = () => {
     }
     
     const [weekNumberStr, programId] = weekFilter.split('-');
+    const weekNumber = parseInt(weekNumberStr, 10);
     
     console.log(`Debug - Filtering workouts by Week ${weekNumberStr}`);
     
     return workouts.filter(workout => {
-      const weekMatches = workout.workout?.week && 
-                        workout.workout.week.week_number === parseInt(weekNumberStr);
-      const programMatches = workout.workout?.week?.program?.id === programId || 
+      if (!workout.workout || !workout.workout.week) {
+        return false;
+      }
+      
+      const weekMatches = workout.workout.week.week_number === weekNumber;
+      const programMatches = workout.workout.week.program?.id === programId || 
                             programId === "any";
       
-      console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout?.week?.week_number}, Program: ${workout.workout?.week?.program?.title}, Matches: ${weekMatches && programMatches}`);
+      console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout.week.week_number}, Program: ${workout.workout.week.program?.title}, Matches: ${weekMatches && programMatches}`);
       
       return weekMatches && programMatches;
     });

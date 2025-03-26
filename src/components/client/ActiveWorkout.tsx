@@ -67,21 +67,39 @@ const ActiveWorkout = () => {
       weight: string;
       reps: string;
     }) => {
-      if (!workoutCompletionId) return null;
-      return trackWorkoutSet(
+      if (!workoutCompletionId) {
+        toast.error("Missing workout completion ID");
+        return null;
+      }
+      
+      console.log("Tracking set:", {
         workoutCompletionId,
         exerciseId,
         setNumber,
-        weight ? parseFloat(weight) : null,
-        reps ? parseInt(reps, 10) : null
-      );
+        weight: weight ? parseFloat(weight) : null,
+        reps: reps ? parseInt(reps, 10) : null
+      });
+      
+      try {
+        return await trackWorkoutSet(
+          workoutCompletionId,
+          exerciseId,
+          setNumber,
+          weight ? parseFloat(weight) : null,
+          reps ? parseInt(reps, 10) : null
+        );
+      } catch (error) {
+        console.error("Error in trackSetMutation:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Successfully tracked set:", data);
       queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
     },
     onError: (error) => {
       console.error('Error tracking set:', error);
-      toast.error('Failed to save set');
+      toast.error('Failed to save set. Please try again.');
     },
   });
 
@@ -141,13 +159,24 @@ const ActiveWorkout = () => {
     }));
 
     if (completed) {
-      const set = exerciseStates[exerciseId].sets[setIndex];
-      await trackSetMutation.mutateAsync({
-        exerciseId,
-        setNumber: set.setNumber,
-        weight: set.weight,
-        reps: set.reps,
-      });
+      try {
+        const set = exerciseStates[exerciseId].sets[setIndex];
+        console.log("Attempting to track set completion:", {
+          exerciseId,
+          setNumber: set.setNumber,
+          weight: set.weight,
+          reps: set.reps
+        });
+        
+        await trackSetMutation.mutateAsync({
+          exerciseId,
+          setNumber: set.setNumber,
+          weight: set.weight,
+          reps: set.reps,
+        });
+      } catch (error) {
+        console.error("Error in handleSetCompletion:", error);
+      }
     }
   };
 

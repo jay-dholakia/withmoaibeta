@@ -34,6 +34,8 @@ export const trackWorkoutSet = async (
       throw queryError;
     }
     
+    console.log('Existing set check result:', existingSet);
+    
     if (existingSet) {
       // Update existing record
       const { data, error } = await supabase
@@ -51,9 +53,19 @@ export const trackWorkoutSet = async (
         throw error;
       }
       
+      console.log('Updated set completion:', data);
       return data;
     } else {
       // Create new record
+      console.log('Creating new set completion with data:', {
+        workout_completion_id: workoutCompletionId,
+        workout_exercise_id: exerciseId,
+        set_number: setNumber,
+        weight: weight,
+        reps_completed: reps,
+        completed: true
+      });
+      
       const { data, error } = await supabase
         .from('workout_set_completions')
         .insert({
@@ -71,6 +83,7 @@ export const trackWorkoutSet = async (
         throw error;
       }
       
+      console.log('Created new set completion:', data);
       return data;
     }
   } catch (error) {

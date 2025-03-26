@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutBasic, WorkoutHistoryItem } from "@/types/workout";
 
@@ -123,12 +124,11 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
   try {
     console.log(`Fetching assigned workouts for user: ${userId}`);
     
-    // First, get the active program assignments for this user
+    // Get all program assignments for this user, without filtering by end date
     const { data: programAssignments, error: programError } = await supabase
       .from('program_assignments')
       .select('id, program_id, start_date, end_date')
-      .eq('user_id', userId)
-      .or(`end_date.gt.${new Date().toISOString()}, end_date.is.null`);
+      .eq('user_id', userId);
     
     if (programError) {
       console.error("Error fetching program assignments:", programError);
@@ -136,11 +136,11 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     }
     
     if (!programAssignments || programAssignments.length === 0) {
-      console.log("No active program assignments found for user");
+      console.log("No program assignments found for user");
       return [];
     }
     
-    console.log(`Found ${programAssignments.length} active program assignments`);
+    console.log(`Found ${programAssignments.length} program assignments`);
     
     // Get all program IDs
     const programIds = programAssignments.map(pa => pa.program_id);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Pencil, Save, Plus, Trash2, Loader2, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -179,7 +178,7 @@ const NotesPage = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Add Journal Entry</CardTitle>
@@ -240,7 +239,7 @@ const NotesPage = () => {
             No entries yet. Add your first journal entry above!
           </Card>
         ) : (
-          <ScrollArea className="h-[400px] rounded-md border w-full">
+          <ScrollArea className="h-[450px] rounded-md border w-full">
             <div className="p-4 space-y-4">
               {notes.map((note) => (
                 <Card key={note.id} className="group w-full">

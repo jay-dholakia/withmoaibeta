@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutBasic, WorkoutHistoryItem } from "@/types/workout";
 
@@ -129,21 +128,120 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     
     console.log(`Fetching assigned workouts for user: ${userId}`);
     
-    // DEBUG: Get ALL program assignments to see what's in the table
-    const { data: programAssignments, error: programError } = await supabase
+    // Approach 1: Use direct database access with multiple query methods
+    console.log("Approach 1: Using standard Supabase query");
+    const { data: programAssignments1, error: programError1 } = await supabase
       .from('program_assignments')
-      .select('id, program_id, user_id, start_date, end_date');
+      .select('*');
     
-    if (programError) {
-      console.error("Error fetching program assignments:", programError);
-      throw programError;
+    console.log(`All program assignments (approach 1):`, programAssignments1);
+    
+    // Approach 2: Use RPC call if available
+    console.log("Approach 2: Using direct SQL query via RPC");
+    const { data: directSqlResult, error: directSqlError } = await supabase.rpc(
+      'get_all_program_assignments'
+    );
+    
+    if (directSqlError) {
+      console.log("RPC error (expected if function doesn't exist):", directSqlError);
+    } else {
+      console.log("Direct SQL result:", directSqlResult);
     }
     
-    // Log the raw results to help debug
-    console.log(`All program assignments in the table:`, programAssignments);
+    // Approach 3: Fall back to looking for workouts directly
+    console.log("Approach 3: Looking for workouts directly linked to this user");
+    const { data: directWorkouts, error: directWorkoutsError } = await supabase
+      .from('workout_completions')
+      .select('id, workout_id, user_id, completed_at')
+      .eq('user_id', userId)
+      .is('completed_at', null);
     
-    // Now get just this user's assignments
-    const userAssignments = programAssignments.filter(pa => pa.user_id === userId);
+    if (directWorkoutsError) {
+      console.error("Error fetching direct workouts:", directWorkoutsError);
+    } else {
+      console.log("Direct workouts linked to user:", directWorkouts);
+    }
+    
+    // Check if we have any program assignments from approach 1
+    if (!programAssignments1 || programAssignments1.length === 0) {
+      console.log("No program assignments found in the table at all");
+      
+      // If we have direct workouts, we can still return those
+      if (directWorkouts && directWorkouts.length > 0) {
+        console.log(`Found ${directWorkouts.length} direct workouts to display`);
+        
+        // Process direct workouts similar to the existing code
+        const result: WorkoutHistoryItem[] = [];
+        
+        for (const completion of directWorkouts) {
+          // Get workout details
+          const { data: workoutData, error: workoutError } = await supabase
+            .from('workouts')
+            .select('*')
+            .eq('id', completion.workout_id)
+            .single();
+          
+          if (workoutError) {
+            console.error(`Error fetching workout ${completion.workout_id}:`, workoutError);
+            continue;
+          }
+          
+          if (workoutData) {
+            // Get week info
+            const { data: weekData, error: weekError } = await supabase
+              .from('workout_weeks')
+              .select('*')
+              .eq('id', workoutData.week_id)
+              .single();
+            
+            if (weekError) {
+              console.error(`Error fetching week for workout ${completion.workout_id}:`, weekError);
+            }
+            
+            let programData = null;
+            if (weekData) {
+              // Get program info
+              const { data: program, error: programError } = await supabase
+                .from('workout_programs')
+                .select('*')
+                .eq('id', weekData.program_id)
+                .single();
+              
+              if (programError) {
+                console.error(`Error fetching program for week ${weekData.id}:`, programError);
+              } else {
+                programData = program;
+              }
+            }
+            
+            result.push({
+              id: completion.id,
+              workout_id: completion.workout_id,
+              user_id: userId,
+              completed_at: null,
+              workout: {
+                ...workoutData,
+                week: weekData ? {
+                  week_number: weekData.week_number,
+                  program: programData ? {
+                    title: programData.title
+                  } : null
+                } : null
+              }
+            });
+          }
+        }
+        
+        console.log(`Returning ${result.length} direct workouts`);
+        return result;
+      }
+      
+      console.log("No workouts found to display");
+      return [];
+    }
+    
+    // If we get here, process program assignments as before
+    const userAssignments = programAssignments1.filter(pa => pa.user_id === userId);
     console.log(`After filtering, assignments for user ${userId}:`, userAssignments);
     
     if (!userAssignments || userAssignments.length === 0) {

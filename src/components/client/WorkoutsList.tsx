@@ -43,7 +43,16 @@ const WorkoutsList = () => {
         
         const [program, assignedWorkouts] = await Promise.all([programPromise, workoutsPromise]);
         
-        console.log("Current program loaded:", program);
+        // More detailed logging for program data
+        console.log("Current user email:", user.email);
+        console.log("Program data received:", program);
+        if (program && program.program) {
+          console.log("Program title:", program.program.title);
+          console.log("Program description:", program.program.description || "No description");
+        } else {
+          console.log("No program assigned to this user or program data is incomplete");
+        }
+        
         console.log("Assigned workouts loaded:", assignedWorkouts.length);
         
         setCurrentProgram(program);

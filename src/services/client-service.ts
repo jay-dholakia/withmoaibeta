@@ -1,4 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
+import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
+import { fetchClientWorkoutHistory } from "./client-workout-history-service";
+import { fetchCoachGroups } from "./coach-group-service";
 
 /**
  * Tracks a workout set completion

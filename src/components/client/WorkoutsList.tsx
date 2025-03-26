@@ -53,7 +53,18 @@ const WorkoutsList = () => {
           }
         });
         
-        setAvailableWeeks(Array.from(weeks.values()));
+        const extractedWeeks = Array.from(weeks.values());
+        setAvailableWeeks(extractedWeeks);
+        
+        // Set default filter to the current week if available
+        if (extractedWeeks.length > 0) {
+          // Sort weeks by number (ascending)
+          const sortedWeeks = [...extractedWeeks].sort((a, b) => a.number - b.number);
+          
+          // Find current week or closest week to current
+          const currentWeekValue = `${sortedWeeks[0].number}-${sortedWeeks[0].programTitle}`;
+          setWeekFilter(currentWeekValue);
+        }
       } catch (error) {
         console.error('Error loading workouts:', error);
         setError('Failed to load your assigned workouts');

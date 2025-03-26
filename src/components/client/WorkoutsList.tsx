@@ -209,30 +209,27 @@ const WorkoutsList = () => {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredWorkouts.map((workout) => (
                   <Card key={workout.id} className="overflow-hidden">
-                    <CardHeader className="px-4 py-3">
-                      <CardTitle className="text-lg">
-                        {workout.workout?.title || 'Untitled Workout'}
-                      </CardTitle>
-                    </CardHeader>
-                    
                     <Collapsible
                       open={expandedWorkouts[workout.id] || false}
                       onOpenChange={() => toggleWorkoutDetails(workout.id)}
                     >
+                      <CardHeader className="px-4 py-3 flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg">
+                          {workout.workout?.title || 'Untitled Workout'}
+                        </CardTitle>
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 ml-2">
+                            {expandedWorkouts[workout.id] ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                            <span className="sr-only">Toggle details</span>
+                          </Button>
+                        </CollapsibleTrigger>
+                      </CardHeader>
+                      
                       <CardContent className="p-0">
-                        <div className="flex justify-end px-4 -mt-1 mb-0">
-                          <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                              {expandedWorkouts[workout.id] ? (
-                                <ChevronUp className="h-4 w-4" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4" />
-                              )}
-                              <span className="sr-only">Toggle details</span>
-                            </Button>
-                          </CollapsibleTrigger>
-                        </div>
-                        
                         <CollapsibleContent className="px-4 pb-2 pt-0 space-y-2">
                           {workout.workout?.description && (
                             <div className="mb-2">

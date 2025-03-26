@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutBasic, WorkoutHistoryItem } from "@/types/workout";
 
@@ -136,7 +135,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     }
     
     if (!programAssignments || programAssignments.length === 0) {
-      console.log("No program assignments found for user");
+      console.log(`No program assignments found for user ${userId}`);
       return [];
     }
     

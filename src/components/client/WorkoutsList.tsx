@@ -101,9 +101,10 @@ const WorkoutsList = () => {
             // Debug logging for each workout
             console.log(`Debug - Workout Week:`, workout.workout.week);
             
-            // Get the week number and title
+            // Get the week number and title from the workout
             const weekNumber = workout.workout.week.week_number || 0;
-            const weekTitle = workout.workout.week.title || `Week ${weekNumber}`;
+            // Since week doesn't have title in the type, we'll create one
+            const weekTitle = `Week ${weekNumber}`;
             const programId = workout.workout.week.program?.id || '';
             
             const key = `${weekNumber}-${programId}`;
@@ -265,7 +266,7 @@ const WorkoutsList = () => {
                         {workout.workout?.week && (
                           <div className="text-sm">
                             <span className="font-medium">Week:</span>{' '}
-                            {workout.workout.week.title || `Week ${workout.workout.week.week_number}`}
+                            {`Week ${workout.workout.week.week_number}`}
                           </div>
                         )}
                         {workout.workout?.week?.program && (

@@ -19,7 +19,7 @@ const WorkoutsList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [weekFilter, setWeekFilter] = useState<string>("all");
-  const [availableWeeks, setAvailableWeeks] = useState<{number: number, title: string, programId: string}[]>([]);
+  const [availableWeeks, setAvailableWeeks] = useState<{number: number, programTitle: string, programId: string}[]>([]);
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
 
   useEffect(() => {
@@ -59,26 +59,25 @@ const WorkoutsList = () => {
         setWorkouts(assignedWorkouts);
         
         // Extract unique weeks for filtering
-        const weeksMap = new Map<string, {number: number, title: string, programId: string}>();
+        const weeksMap = new Map<string, {number: number, programTitle: string, programId: string}>();
         
         // Debug logging for workouts
         console.log("Debug - All workouts:", assignedWorkouts);
         
         assignedWorkouts.forEach(workout => {
-          if (workout.workout?.week) {
+          if (workout.workout?.week?.program) {
             // Debug logging for each workout
             console.log(`Debug - Workout Week:`, workout.workout.week);
             
-            // Get the week number and title
-            const weekNumber = workout.workout.week.week_number || 0;
-            const weekTitle = workout.workout.week.title || `Week ${weekNumber}`;
-            const programId = workout.workout.week.program?.id || '';
+            // Get the program title and id from the workout data
+            const programTitle = workout.workout.week.program.title || 'Unknown Program';
+            const programId = workout.workout.week.program.id || '';
             
-            const key = `${weekNumber}-${programId}`;
+            const key = `${workout.workout.week.week_number}-${programTitle}`;
             if (!weeksMap.has(key)) {
               weeksMap.set(key, {
-                number: weekNumber,
-                title: weekTitle,
+                number: workout.workout.week.week_number,
+                programTitle: programTitle,
                 programId: programId
               });
             }
@@ -95,7 +94,7 @@ const WorkoutsList = () => {
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a.number - b.number);
           
           // Find current week or closest week to current
-          const currentWeekValue = `${sortedWeeks[0].number}-${sortedWeeks[0].programId}`;
+          const currentWeekValue = `${sortedWeeks[0].number}-${sortedWeeks[0].programTitle}`;
           setWeekFilter(currentWeekValue);
         }
       } catch (error) {
@@ -115,15 +114,17 @@ const WorkoutsList = () => {
       return workouts;
     }
     
-    const [weekNumberStr, programId] = weekFilter.split('-');
+    const [weekNumberStr, ...programTitleParts] = weekFilter.split('-');
+    // Re-join the program title parts in case the title itself contains hyphens
+    const programTitle = programTitleParts.join('-').trim();
     
-    console.log(`Debug - Filtering workouts by Week ${weekNumberStr}`);
+    console.log(`Debug - Filtering workouts by Week ${weekNumberStr} and Program "${programTitle}"`);
     
     return workouts.filter(workout => {
       const weekMatches = workout.workout?.week && 
                         workout.workout.week.week_number === parseInt(weekNumberStr);
-      const programMatches = workout.workout?.week?.program?.id === programId || 
-                            programId === "any";
+      const programMatches = workout.workout?.week?.program?.title === programTitle || 
+                            programTitle === "any";
       
       console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout?.week?.week_number}, Program: ${workout.workout?.week?.program?.title}, Matches: ${weekMatches && programMatches}`);
       
@@ -160,46 +161,48 @@ const WorkoutsList = () => {
         </TabsList>
         
         <TabsContent value="assigned" className="pt-4">
-          <div className="space-y-6">
-            {currentProgram && currentProgram.program && (
-              <div className="text-center space-y-2">
-                <h2 className="text-2xl font-bold">{currentProgram.program.title}</h2>
-                {currentProgram.program.description && (
-                  <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-                    {currentProgram.program.description}
-                  </p>
+          <div className="space-y-4">
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                {currentProgram && currentProgram.program ? (
+                  <>
+                    <h2 className="text-xl font-semibold">{currentProgram.program.title}</h2>
+                    {currentProgram.program.description && (
+                      <p className="text-sm text-muted-foreground">{currentProgram.program.description}</p>
+                    )}
+                  </>
+                ) : (
+                  <h2 className="text-xl font-semibold">Your Assigned Workouts</h2>
                 )}
               </div>
-            )}
-            
-            {availableWeeks.length > 0 && (
-              <div className="flex justify-center">
-                <Select
-                  value={weekFilter}
-                  onValueChange={setWeekFilter}
-                >
-                  <SelectTrigger className="w-[220px]">
-                    <div className="flex items-center gap-2">
-                      <Filter className="h-4 w-4" />
-                      <SelectValue placeholder="Filter by week" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Weeks</SelectItem>
-                    {availableWeeks
-                      .sort((a, b) => a.number - b.number)
-                      .map((week) => (
+              
+              {availableWeeks.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={weekFilter}
+                    onValueChange={setWeekFilter}
+                  >
+                    <SelectTrigger className="w-[220px]">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-4 w-4" />
+                        <SelectValue placeholder="Filter by week" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Weeks</SelectItem>
+                      {availableWeeks.map((week) => (
                         <SelectItem 
-                          key={`${week.number}-${week.programId}`} 
-                          value={`${week.number}-${week.programId}`}
+                          key={`${week.number}-${week.programTitle}`} 
+                          value={`${week.number}-${week.programTitle}`}
                         >
-                          {week.title}
+                          Week {week.number} - {week.programTitle}
                         </SelectItem>
                       ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
             
             {filteredWorkouts.length === 0 ? (
               <Card>
@@ -230,7 +233,7 @@ const WorkoutsList = () => {
                         {workout.workout?.week && (
                           <div className="text-sm">
                             <span className="font-medium">Week:</span>{' '}
-                            {workout.workout.week.title || `Week ${workout.workout.week.week_number}`}
+                            {workout.workout.week.week_number}
                           </div>
                         )}
                         {workout.workout?.week?.program && (

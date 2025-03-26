@@ -18,6 +18,12 @@ import {
   DropdownMenuContent, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const WorkoutsList = () => {
   const { user } = useAuth();
@@ -244,7 +250,7 @@ const WorkoutsList = () => {
                         
                         <CollapsibleContent className="space-y-2">
                           {workout.workout?.description && (
-                            <div>
+                            <div className="mb-4">
                               <h4 className="text-sm font-medium">Description</h4>
                               <p className="text-sm text-muted-foreground">
                                 {workout.workout.description}
@@ -253,7 +259,7 @@ const WorkoutsList = () => {
                           )}
                           
                           {workout.workout?.week && (
-                            <div>
+                            <div className="mb-4">
                               <h4 className="text-sm font-medium">Week</h4>
                               <p className="text-sm text-muted-foreground">
                                 {`Week ${workout.workout.week.week_number}`}
@@ -262,11 +268,47 @@ const WorkoutsList = () => {
                           )}
                           
                           {workout.workout?.week?.program && (
-                            <div>
+                            <div className="mb-4">
                               <h4 className="text-sm font-medium">Program</h4>
                               <p className="text-sm text-muted-foreground">
                                 {workout.workout.week.program.title}
                               </p>
+                            </div>
+                          )}
+                          
+                          {workout.workout?.workout_exercises && workout.workout.workout_exercises.length > 0 && (
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">Exercises</h4>
+                              <Accordion type="single" collapsible className="w-full">
+                                {workout.workout.workout_exercises.map((exercise, index) => (
+                                  <AccordionItem key={exercise.id} value={exercise.id}>
+                                    <AccordionTrigger className="py-2 text-sm">
+                                      {exercise.exercise?.name || 'Unknown Exercise'}
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      <div className="space-y-2 py-1">
+                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                          <span>Sets: {exercise.sets}</span>
+                                          <span>Reps: {exercise.reps}</span>
+                                          {exercise.rest_seconds && (
+                                            <span>Rest: {exercise.rest_seconds}s</span>
+                                          )}
+                                        </div>
+                                        {exercise.notes && (
+                                          <div className="text-xs bg-muted p-2 rounded-md">
+                                            <span className="font-medium">Notes:</span> {exercise.notes}
+                                          </div>
+                                        )}
+                                        {exercise.exercise?.description && (
+                                          <div className="text-xs bg-muted p-2 rounded-md">
+                                            <span className="font-medium">Description:</span> {exercise.exercise.description}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                ))}
+                              </Accordion>
                             </div>
                           )}
                         </CollapsibleContent>

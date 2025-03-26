@@ -1,4 +1,3 @@
-
 export interface Exercise {
   id: string;
   name: string;
@@ -67,6 +66,7 @@ export interface WorkoutBasic {
       title: string;
     }
   } | null;
+  workout_exercises?: WorkoutExercise[];
 }
 
 export interface WorkoutExercise {

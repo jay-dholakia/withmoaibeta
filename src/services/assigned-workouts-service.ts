@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistoryItem } from "@/types/workout";
 
@@ -197,6 +198,30 @@ const processWorkoutsForAssignment = async (
     });
   }
   
+  // Fetch workout exercises for all workouts
+  const workoutIds = workouts.map(w => w.id);
+  const { data: workoutExercises, error: exercisesError } = await supabase
+    .from('workout_exercises')
+    .select('*, exercise:exercises(*)')
+    .in('workout_id', workoutIds)
+    .order('order_index', { ascending: true });
+  
+  if (exercisesError) {
+    console.error("Error fetching workout exercises:", exercisesError);
+    throw exercisesError;
+  }
+  
+  // Group exercises by workout ID
+  const exercisesByWorkout = new Map();
+  if (workoutExercises) {
+    workoutExercises.forEach(exercise => {
+      if (!exercisesByWorkout.has(exercise.workout_id)) {
+        exercisesByWorkout.set(exercise.workout_id, []);
+      }
+      exercisesByWorkout.get(exercise.workout_id).push(exercise);
+    });
+  }
+  
   // Check which workouts are already completed or in progress
   const { data: completions, error: completionsError } = await supabase
     .from('workout_completions')
@@ -249,7 +274,8 @@ const processWorkoutsForAssignment = async (
               id: program.id,
               title: program.title
             } : null
-          }
+          },
+          workout_exercises: exercisesByWorkout.get(workout.id) || []
         }
       });
     }
@@ -295,7 +321,8 @@ const processWorkoutsForAssignment = async (
               id: program.id,
               title: program.title
             } : null
-          }
+          },
+          workout_exercises: exercisesByWorkout.get(workout.id) || []
         }
       });
     }

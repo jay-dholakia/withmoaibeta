@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
@@ -122,11 +121,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     return <ForgotPasswordForm onBack={() => setForgotPassword(false)} variant={variant} />;
   }
 
-  // Helper function to focus the input when its container is clicked
-  const handleContainerClick = (inputId: string) => {
-    document.getElementById(inputId)?.focus();
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -144,10 +138,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       )}
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div 
-          className="space-y-2 relative"
-          onClick={() => handleContainerClick('email')}
-        >
+        <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium">
             Email
           </Label>
@@ -156,7 +147,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={`${styles.inputFocusRing} bg-background/50 transition-all duration-200 cursor-text`}
+            className={`${styles.inputFocusRing} bg-background/50 transition-all duration-200`}
             placeholder="Enter your email"
             required
             disabled={isDisabled}
@@ -170,26 +161,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             </Label>
             <button 
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setForgotPassword(true);
-              }}
+              onClick={() => setForgotPassword(true)}
               className={`text-sm ${styles.textColor} hover:underline`}
               disabled={isDisabled}
             >
               Forgot password?
             </button>
           </div>
-          <div 
-            className="relative" 
-            onClick={() => handleContainerClick('password')}
-          >
+          <div className="relative">
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={`${styles.inputFocusRing} bg-background/50 transition-all duration-200 cursor-text`}
+              className={`${styles.inputFocusRing} bg-background/50 transition-all duration-200`}
               placeholder="Enter your password"
               required
               disabled={isDisabled}

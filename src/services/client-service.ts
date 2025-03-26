@@ -456,6 +456,8 @@ export const completeWorkout = async (
   notes: string
 ): Promise<any> => {
   try {
+    console.log(`Completing workout ${workoutCompletionId} with rating: ${rating}, notes: ${notes}`);
+    
     const { data, error } = await supabase
       .from('workout_completions')
       .update({
@@ -465,10 +467,14 @@ export const completeWorkout = async (
         notes: notes
       })
       .eq('id', workoutCompletionId)
-      .select()
-      .single();
+      .select();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error completing workout:", error);
+      throw error;
+    }
+    
+    console.log("Workout completed successfully:", data);
     return data;
   } catch (error) {
     console.error("Error completing workout:", error);

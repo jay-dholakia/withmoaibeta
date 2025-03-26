@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -63,6 +64,7 @@ const WorkoutComplete = () => {
   const completeMutation = useMutation({
     mutationFn: async () => {
       if (!workoutCompletionId) return null;
+      console.log("Attempting to complete workout with ID:", workoutCompletionId);
       return completeWorkout(
         workoutCompletionId,
         rating,

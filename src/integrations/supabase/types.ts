@@ -678,6 +678,7 @@ export type Database = {
           id: string
           reps_completed: number | null
           set_number: number
+          user_id: string | null
           weight: number | null
           workout_completion_id: string
           workout_exercise_id: string
@@ -688,6 +689,7 @@ export type Database = {
           id?: string
           reps_completed?: number | null
           set_number: number
+          user_id?: string | null
           weight?: number | null
           workout_completion_id: string
           workout_exercise_id: string
@@ -698,6 +700,7 @@ export type Database = {
           id?: string
           reps_completed?: number | null
           set_number?: number
+          user_id?: string | null
           weight?: number | null
           workout_completion_id?: string
           workout_exercise_id?: string

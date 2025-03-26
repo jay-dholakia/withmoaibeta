@@ -64,11 +64,43 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
   try {
     // Fetch basic program data
     console.log("Fetching program details for ID:", programId);
+    
+    // Check if we can directly access the program (test for RLS issues)
+    const { data: accessTest, error: accessError } = await supabase
+      .from('workout_programs')
+      .select('id, title')
+      .eq('id', programId);
+    
+    if (accessError) {
+      console.error('Access error checking program - RLS issue detected:', accessError);
+      return null;
+    }
+    
+    if (!accessTest || accessTest.length === 0) {
+      console.error('No program access via RLS policies for ID:', programId);
+      
+      // Try using program_assignments as a bridge
+      const { data: checkAssignment } = await supabase
+        .from('program_assignments')
+        .select('program_id')
+        .eq('program_id', programId)
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
+        .maybeSingle();
+      
+      if (checkAssignment) {
+        console.log('Program assignment exists but direct program access failed - RLS policy issue');
+      } else {
+        console.log('No program assignment found - no RLS access expected');
+      }
+      
+      return null;
+    }
+    
     const { data: programData, error: programError } = await supabase
       .from('workout_programs')
       .select('*')
       .eq('id', programId)
-      .maybeSingle(); // Changed from .single() to .maybeSingle() to handle no rows returned
+      .maybeSingle();
     
     if (programError) {
       console.error('Error fetching program details:', programError);
@@ -141,15 +173,23 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
  */
 const fetchUserProgramAssignments = async (userId: string): Promise<ProgramAssignment[] | null> => {
   try {
+    console.log("Raw program assignments query result:");
     const { data, error } = await supabase
       .from('program_assignments')
-      .select('*')
+      .select('id, program_id, start_date, end_date')
       .eq('user_id', userId)
       .order('start_date', { ascending: false });
     
     if (error) {
       console.error('Error fetching program assignments:', error);
       return null;
+    }
+    
+    console.log(data);
+    console.log(`Found ${data?.length || 0} program assignments`);
+    
+    if (data && data.length > 0) {
+      console.log("Program IDs:", data.map(d => d.program_id));
     }
     
     return data;

@@ -30,7 +30,10 @@ import {
 
 interface ClientInfo {
   id: string;
-  displayName: string;
+  email: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 const ProgramAssignmentPage = () => {
@@ -40,7 +43,7 @@ const ProgramAssignmentPage = () => {
   
   const [program, setProgram] = useState<WorkoutProgram | null>(null);
   const [assignments, setAssignments] = useState<ProgramAssignment[]>([]);
-  const [clientsMap, setClientsMap] = useState<Record<string, string>>({});
+  const [clientsMap, setClientsMap] = useState<Record<string, ClientInfo>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = useState<string | null>(null);
@@ -60,12 +63,18 @@ const ProgramAssignmentPage = () => {
         const assignmentsData = await fetchAssignedUsers(programId);
         setAssignments(assignmentsData);
         
-        // Fetch all clients to build a map of id -> displayName
+        // Fetch all clients to build a map of id -> clientInfo
         const clientsData = await fetchAllClients();
         const clientsMapData = clientsData.reduce((acc, client) => {
-          acc[client.id] = client.email; // 'email' is actually displayName after our update
+          acc[client.id] = {
+            id: client.id,
+            email: client.email,
+            firstName: client.first_name,
+            lastName: client.last_name,
+            displayName: getClientDisplayName(client)
+          };
           return acc;
-        }, {} as Record<string, string>);
+        }, {} as Record<string, ClientInfo>);
         
         setClientsMap(clientsMapData);
         console.log('Client display names map:', clientsMapData);
@@ -80,6 +89,19 @@ const ProgramAssignmentPage = () => {
     
     loadProgramAndAssignments();
   }, [programId]);
+  
+  // Helper function to format client display name from their info
+  const getClientDisplayName = (client: any): string => {
+    if (client.first_name && client.last_name) {
+      return `${client.first_name} ${client.last_name}`;
+    } else if (client.first_name) {
+      return client.first_name;
+    } else if (client.email) {
+      return client.email;
+    } else {
+      return `Client ${client.id.slice(0, 6)}...`;
+    }
+  };
   
   const handleAssign = async (userId: string, startDate: Date) => {
     if (!programId || !user) {
@@ -135,8 +157,12 @@ const ProgramAssignmentPage = () => {
   };
   
   // Helper to get client display name from ID
-  const getClientDisplayName = (userId: string): string => {
-    return clientsMap[userId] || `Client ${userId.slice(0, 6)}...`;
+  const getClientInfo = (userId: string): ClientInfo => {
+    return clientsMap[userId] || { 
+      id: userId, 
+      email: `Client ${userId.slice(0, 6)}...`,
+      displayName: `Client ${userId.slice(0, 6)}...`
+    };
   };
   
   if (isLoading) {
@@ -219,55 +245,58 @@ const ProgramAssignmentPage = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {assignments.map(assignment => (
-                    <div 
-                      key={assignment.id} 
-                      className="p-3 border rounded-md"
-                    >
-                      <div className="flex justify-between">
-                        <div>
-                          <div className="font-medium">{getClientDisplayName(assignment.user_id)}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {new Date(assignment.start_date).toLocaleDateString()} to {assignment.end_date ? new Date(assignment.end_date).toLocaleDateString() : 'Ongoing'}
+                  {assignments.map(assignment => {
+                    const clientInfo = getClientInfo(assignment.user_id);
+                    return (
+                      <div 
+                        key={assignment.id} 
+                        className="p-3 border rounded-md"
+                      >
+                        <div className="flex justify-between">
+                          <div>
+                            <div className="font-medium">{clientInfo.displayName}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {new Date(assignment.start_date).toLocaleDateString()} to {assignment.end_date ? new Date(assignment.end_date).toLocaleDateString() : 'Ongoing'}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm text-muted-foreground">
-                            Assigned on {new Date(assignment.created_at).toLocaleDateString()}
-                          </div>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remove Program Assignment</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to remove this program assignment from {getClientDisplayName(assignment.user_id)}? 
-                                  This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => handleDeleteAssignment(assignment.id)}
-                                  className="bg-destructive hover:bg-destructive/90"
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm text-muted-foreground">
+                              Assigned on {new Date(assignment.created_at).toLocaleDateString()}
+                            </div>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="text-destructive hover:bg-destructive/10"
                                 >
-                                  Remove Assignment
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remove Program Assignment</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to remove this program assignment from {clientInfo.displayName}? 
+                                    This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeleteAssignment(assignment.id)}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                  >
+                                    Remove Assignment
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

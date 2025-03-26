@@ -49,12 +49,19 @@ interface ProgramAssignmentFormProps {
   isSubmitting: boolean;
 }
 
+interface ClientInfo {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+}
+
 export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   programId,
   onAssign,
   isSubmitting
 }) => {
-  const [clients, setClients] = useState<{ id: string; email: string }[]>([]);
+  const [clients, setClients] = useState<ClientInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   
@@ -91,6 +98,17 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
       });
     } catch (error) {
       console.error('Error assigning program:', error);
+    }
+  };
+
+  // Helper function to format client display name
+  const getClientDisplayName = (client: ClientInfo): string => {
+    if (client.first_name && client.last_name) {
+      return `${client.first_name} ${client.last_name}`;
+    } else if (client.first_name) {
+      return client.first_name;
+    } else {
+      return client.email;
     }
   };
 
@@ -133,7 +151,7 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
                 <SelectContent>
                   {clients.map(client => (
                     <SelectItem key={client.id} value={client.id}>
-                      {client.email}
+                      {getClientDisplayName(client)}
                     </SelectItem>
                   ))}
                 </SelectContent>

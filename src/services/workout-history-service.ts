@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutBasic, WorkoutHistoryItem } from "@/types/workout";
 
@@ -129,22 +128,108 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     
     console.log(`Fetching assigned workouts for user: ${userId}`);
     
-    // Get all program assignments for this user with detailed logging
+    // Debugging: Output the exact query we're trying to run
+    const queryText = `SELECT * FROM program_assignments WHERE user_id = '${userId}'`;
+    console.log(`Query we're trying to run: ${queryText}`);
+    
+    // Try different query approach with explicit casting to UUID
     const { data: programAssignments, error: programError } = await supabase
       .from('program_assignments')
       .select('id, program_id, start_date, end_date')
       .eq('user_id', userId);
+    
+    // Also try with explicit UUID conversion
+    const { data: programAssignmentsWithCast, error: programErrorWithCast } = await supabase
+      .from('program_assignments')
+      .select('id, program_id, start_date, end_date')
+      .filter('user_id', 'eq', userId);
     
     if (programError) {
       console.error("Error fetching program assignments:", programError);
       throw programError;
     }
     
-    // Log the raw results to help debug
+    // Log the raw results for debugging
     console.log(`Raw program assignments query result:`, programAssignments);
+    console.log(`Raw program assignments with cast result:`, programAssignmentsWithCast);
+    
+    // Check if we have any results directly from the database using a raw query
+    const { data: rawQueryResult, error: rawQueryError } = await supabase.rpc(
+      'get_raw_program_assignments',
+      { user_id_param: userId }
+    );
+    
+    if (rawQueryError) {
+      console.error("Error with raw query:", rawQueryError);
+    } else {
+      console.log("Raw SQL query result:", rawQueryResult);
+    }
     
     if (!programAssignments || programAssignments.length === 0) {
       console.log(`No program assignments found for user ${userId}`);
+      
+      // Since we're not finding assignments, let's check if there are any workouts assigned directly
+      const { data: directWorkouts, error: directWorkoutsError } = await supabase
+        .from('workout_completions')
+        .select('id, workout_id, completed_at')
+        .eq('user_id', userId)
+        .is('completed_at', null);
+      
+      if (directWorkoutsError) {
+        console.error("Error checking direct workouts:", directWorkoutsError);
+      } else if (directWorkouts && directWorkouts.length > 0) {
+        console.log(`Found ${directWorkouts.length} directly assigned workouts`);
+        
+        // Process these directly assigned workouts
+        const workoutIds = directWorkouts.map(wc => wc.workout_id);
+        
+        const { data: workouts, error: workoutsError } = await supabase
+          .from('workouts')
+          .select(`
+            id, title, description, day_of_week, week_id,
+            workout_weeks:week_id (
+              week_number, 
+              workout_programs:program_id (
+                title
+              )
+            )
+          `)
+          .in('id', workoutIds);
+        
+        if (workoutsError) {
+          console.error("Error fetching workout details:", workoutsError);
+        } else if (workouts && workouts.length > 0) {
+          console.log(`Retrieved ${workouts.length} workout details`);
+          
+          // Map the workouts to the expected format
+          return directWorkouts.map(completion => {
+            const workoutDetails = workouts.find(w => w.id === completion.workout_id);
+            
+            if (!workoutDetails) return null;
+            
+            return {
+              id: completion.id,
+              workout_id: completion.workout_id,
+              user_id: userId,
+              completed_at: completion.completed_at,
+              workout: {
+                id: workoutDetails.id,
+                title: workoutDetails.title,
+                description: workoutDetails.description,
+                day_of_week: workoutDetails.day_of_week,
+                week_id: workoutDetails.week_id,
+                week: workoutDetails.workout_weeks ? {
+                  week_number: workoutDetails.workout_weeks.week_number,
+                  program: workoutDetails.workout_weeks.workout_programs ? {
+                    title: workoutDetails.workout_weeks.workout_programs.title
+                  } : null
+                } : null
+              }
+            };
+          }).filter(Boolean) as WorkoutHistoryItem[];
+        }
+      }
+      
       return [];
     }
     

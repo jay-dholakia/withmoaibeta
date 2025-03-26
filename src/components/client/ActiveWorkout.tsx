@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -237,7 +238,7 @@ const ActiveWorkout = () => {
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <div className="flex items-center gap-4">
         <Button 
           variant="ghost" 
@@ -335,20 +336,22 @@ const ActiveWorkout = () => {
         ))}
       </div>
       
-      <div className="sticky bottom-16 bg-gray-50 pt-4 pb-2">
-        <Button
-          onClick={finishWorkout}
-          disabled={!isWorkoutComplete()}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-6"
-        >
-          <CheckCircle2 className="mr-2 h-5 w-5" />
-          Complete Workout
-        </Button>
-        {!isWorkoutComplete() && (
-          <p className="text-xs text-center mt-2 text-muted-foreground">
-            Complete all sets to finish the workout
-          </p>
-        )}
+      <div className="fixed bottom-16 left-0 right-0 z-10 bg-white shadow-lg px-4 pt-4 pb-2">
+        <div className="container mx-auto max-w-md">
+          <Button
+            onClick={finishWorkout}
+            disabled={!isWorkoutComplete()}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-6"
+          >
+            <CheckCircle2 className="mr-2 h-5 w-5" />
+            Complete Workout
+          </Button>
+          {!isWorkoutComplete() && (
+            <p className="text-xs text-center mt-2 text-muted-foreground">
+              Complete all sets to finish the workout
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistoryItem } from "@/types/workout";
 
@@ -188,6 +187,8 @@ const processWorkoutsForAssignment = async (
     throw programsError;
   }
   
+  console.log("Debug - Fetched programs for workouts:", programs);
+  
   // Create a map of programs for quick lookup
   const programMap = new Map();
   if (programs) {
@@ -233,7 +234,7 @@ const processWorkoutsForAssignment = async (
     if (inProgressWorkouts.has(workout.id)) {
       const completionId = inProgressWorkouts.get(workout.id);
       const weekInfo = weekMap.get(workout.week_id);
-      const programInfo = weekInfo ? programMap.get(weekInfo.program_id) : null;
+      const program = weekInfo ? programMap.get(weekInfo.program_id) : null;
       
       result.push({
         id: completionId,
@@ -244,8 +245,9 @@ const processWorkoutsForAssignment = async (
           ...workout,
           week: {
             week_number: weekInfo?.week_number,
-            program: programInfo ? {
-              title: programInfo.title
+            program: program ? {
+              title: program.title,
+              id: program.id
             } : null
           }
         }
@@ -278,7 +280,7 @@ const processWorkoutsForAssignment = async (
     
     if (newCompletion) {
       const weekInfo = weekMap.get(workout.week_id);
-      const programInfo = weekInfo ? programMap.get(weekInfo.program_id) : null;
+      const program = weekInfo ? programMap.get(weekInfo.program_id) : null;
       
       result.push({
         id: newCompletion.id,
@@ -289,8 +291,9 @@ const processWorkoutsForAssignment = async (
           ...workout,
           week: {
             week_number: weekInfo?.week_number,
-            program: programInfo ? {
-              title: programInfo.title
+            program: program ? {
+              title: program.title,
+              id: program.id
             } : null
           }
         }

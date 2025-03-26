@@ -64,6 +64,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
         // Get program info
         const programIds = [...new Set(weeks.map(w => w.program_id))];
         
+        // Ensure we select the title field from programs
         const { data: programs, error: programsError } = await supabase
           .from('workout_programs')
           .select('id, title')
@@ -72,6 +73,8 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
         if (programsError) {
           console.error("Error fetching programs:", programsError);
         }
+        
+        console.log("Debug - Fetched programs for history:", programs);
         
         // Create a map of programs for quick lookup
         const programMap = new Map();
@@ -92,6 +95,8 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
             });
           });
         }
+        
+        console.log("Debug - Week map with program data:", Array.from(weekMap.entries()));
         
         // Add week data to each workout in workoutMap
         workoutMap.forEach((workout, workoutId) => {

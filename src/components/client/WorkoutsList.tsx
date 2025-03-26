@@ -11,7 +11,6 @@ import CustomWorkoutsList from './CustomWorkoutsList';
 import { Loader2, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { fetchCurrentProgram } from '@/services/program-service';
 
 const WorkoutsList = () => {
@@ -60,19 +59,30 @@ const WorkoutsList = () => {
         
         // Extract unique weeks for filtering
         const weeks = new Map<string, {number: number, programTitle: string}>();
+        
+        // Debug logging for workouts
+        console.log("Debug - All workouts:", assignedWorkouts);
+        
         assignedWorkouts.forEach(workout => {
           if (workout.workout?.week) {
-            const key = `${workout.workout.week.week_number}-${workout.workout.week.program?.title || 'Unknown'}`;
+            // Debug logging for each workout
+            console.log(`Debug - Workout Week:`, workout.workout.week);
+            
+            // Get the program title from the workout data
+            const programTitle = workout.workout.week.program?.title || 'Unknown Program';
+            
+            const key = `${workout.workout.week.week_number}-${programTitle}`;
             if (!weeks.has(key)) {
               weeks.set(key, {
                 number: workout.workout.week.week_number,
-                programTitle: workout.workout.week.program?.title || 'Unknown Program'
+                programTitle: programTitle
               });
             }
           }
         });
         
         const extractedWeeks = Array.from(weeks.values());
+        console.log("Debug - Extracted weeks:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
         // Set default filter to the current week if available
@@ -101,12 +111,21 @@ const WorkoutsList = () => {
       return workouts;
     }
     
-    const [weekNumber, programTitle] = weekFilter.split('-');
+    const [weekNumber, ...programTitleParts] = weekFilter.split('-');
+    // Re-join the program title parts in case the title itself contains hyphens
+    const programTitle = programTitleParts.join('-').trim();
+    
+    console.log(`Debug - Filtering workouts by Week ${weekNumber} and Program "${programTitle}"`);
+    
     return workouts.filter(workout => {
-      return workout.workout?.week && 
-             workout.workout.week.week_number === parseInt(weekNumber) && 
-             (programTitle === "any" || 
-              workout.workout.week.program?.title === programTitle);
+      const weekMatches = workout.workout?.week && 
+                         workout.workout.week.week_number === parseInt(weekNumber);
+      const programMatches = workout.workout?.week?.program?.title === programTitle || 
+                            programTitle === "any";
+      
+      console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout?.week?.week_number}, Program: ${workout.workout?.week?.program?.title}, Matches: ${weekMatches && programMatches}`);
+      
+      return weekMatches && programMatches;
     });
   }, [workouts, weekFilter]);
 

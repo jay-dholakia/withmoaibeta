@@ -37,47 +37,47 @@ const CustomWorkoutsList = () => {
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Your Custom Workouts</h2>
-        <Button asChild>
+        <h2 className="text-lg font-semibold">Your Custom Workouts</h2>
+        <Button asChild size="sm" className="h-8">
           <Link to="/client-dashboard/workouts/create">
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
             Create Workout
           </Link>
         </Button>
       </div>
 
       {isLoading ? (
-        <div className="py-12 flex justify-center">
+        <div className="py-8 flex justify-center">
           <p className="text-muted-foreground">Loading custom workouts...</p>
         </div>
       ) : customWorkouts.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="py-8 text-center">
-            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-              <Dumbbell className="h-6 w-6 text-muted-foreground" />
+          <CardContent className="py-6 text-center">
+            <div className="mx-auto w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
+              <Dumbbell className="h-5 w-5 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium mb-2">No custom workouts yet</h3>
-            <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+            <h3 className="text-base font-medium mb-1.5">No custom workouts yet</h3>
+            <p className="text-xs text-muted-foreground mb-3 max-w-md mx-auto">
               Create your own workouts to track exercises not included in your assigned programs.
             </p>
-            <Button asChild>
+            <Button asChild size="sm">
               <Link to="/client-dashboard/workouts/create">
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
                 Create Your First Workout
               </Link>
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {customWorkouts.map((workout) => (
             <Card key={workout.id}>
-              <CardHeader className="pb-3">
-                <CardTitle>{workout.title}</CardTitle>
+              <CardHeader className="px-4 py-3 pb-2">
+                <CardTitle className="text-lg">{workout.title}</CardTitle>
                 {workout.duration_minutes && (
-                  <CardDescription>
+                  <CardDescription className="text-xs">
                     Duration: {workout.duration_minutes} minutes
                   </CardDescription>
                 )}
@@ -87,10 +87,10 @@ const CustomWorkoutsList = () => {
                 open={expandedWorkouts[workout.id] || false}
                 onOpenChange={() => toggleWorkoutDetails(workout.id)}
               >
-                <CardContent className="pb-0">
-                  <div className="flex justify-end mb-2">
+                <CardContent className="pb-0 px-4 pt-0">
+                  <div className="flex justify-end -mt-1 mb-0">
                     <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
                         {expandedWorkouts[workout.id] ? (
                           <ChevronUp className="h-4 w-4" />
                         ) : (
@@ -101,21 +101,21 @@ const CustomWorkoutsList = () => {
                     </CollapsibleTrigger>
                   </div>
                   
-                  <CollapsibleContent className="space-y-2">
+                  <CollapsibleContent className="space-y-2 pb-2">
                     {workout.description && (
                       <div>
-                        <h4 className="text-sm font-medium">Description</h4>
-                        <p className="text-sm text-muted-foreground">{workout.description}</p>
+                        <h4 className="text-xs font-medium">Description</h4>
+                        <p className="text-xs text-muted-foreground">{workout.description}</p>
                       </div>
                     )}
                   </CollapsibleContent>
                 </CardContent>
               </Collapsible>
               
-              <CardFooter className="pt-4">
-                <Button variant="outline" className="w-full" asChild>
+              <CardFooter className="p-3">
+                <Button variant="outline" size="sm" className="w-full h-9 py-1" asChild>
                   <Link to={`/client-dashboard/workouts/custom/${workout.id}`}>
-                    <Eye className="h-4 w-4 mr-2" />
+                    <Eye className="h-4 w-4 mr-1.5" />
                     View Details
                   </Link>
                 </Button>

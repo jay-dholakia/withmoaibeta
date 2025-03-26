@@ -129,7 +129,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     
     console.log(`Fetching assigned workouts for user: ${userId}`);
     
-    // Get all program assignments for this user, without filtering by end date
+    // Get all program assignments for this user with detailed logging
     const { data: programAssignments, error: programError } = await supabase
       .from('program_assignments')
       .select('id, program_id, start_date, end_date')
@@ -140,6 +140,9 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
       throw programError;
     }
     
+    // Log the raw results to help debug
+    console.log(`Raw program assignments query result:`, programAssignments);
+    
     if (!programAssignments || programAssignments.length === 0) {
       console.log(`No program assignments found for user ${userId}`);
       return [];
@@ -149,6 +152,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     
     // Get all program IDs
     const programIds = programAssignments.map(pa => pa.program_id);
+    console.log(`Program IDs:`, programIds);
     
     // Get all weeks associated with these programs
     const { data: weeks, error: weeksError } = await supabase

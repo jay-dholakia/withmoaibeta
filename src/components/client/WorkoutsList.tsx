@@ -9,21 +9,31 @@ import { DAYS_OF_WEEK } from '@/types/workout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import CustomWorkoutsList from './CustomWorkoutsList';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const WorkoutsList = () => {
   const { user } = useAuth();
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadWorkouts = async () => {
       if (!user) return;
       
       try {
+        console.log("Loading assigned workouts for user:", user.id);
+        setIsLoading(true);
+        setError(null);
+        
         const assignedWorkouts = await fetchAssignedWorkouts(user.id);
+        console.log("Assigned workouts loaded:", assignedWorkouts.length);
         setWorkouts(assignedWorkouts);
       } catch (error) {
         console.error('Error loading workouts:', error);
+        setError('Failed to load your assigned workouts');
+        toast.error('There was a problem loading your workouts');
       } finally {
         setIsLoading(false);
       }
@@ -33,7 +43,23 @@ const WorkoutsList = () => {
   }, [user]);
 
   if (isLoading) {
-    return <div className="py-10 text-center">Loading workouts...</div>;
+    return (
+      <div className="py-10 text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-client" />
+        <p>Loading your workouts...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-10 text-center">
+        <p className="text-red-500 mb-4">{error}</p>
+        <Button onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
+      </div>
+    );
   }
 
   return (

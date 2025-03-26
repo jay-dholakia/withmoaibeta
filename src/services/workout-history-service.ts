@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutBasic, WorkoutHistoryItem } from "@/types/workout";
 
@@ -121,6 +122,8 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
 
 export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHistoryItem[]> => {
   try {
+    console.log(`Fetching assigned workouts for user: ${userId}`);
+    
     // First, get all workout completions for this user where completed_at is null (i.e., not yet completed)
     const { data: assignedWorkouts, error: assignedError } = await supabase
       .from('workout_completions')
@@ -133,12 +136,15 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
       throw assignedError;
     }
     
+    console.log(`Found ${assignedWorkouts?.length || 0} assigned workouts`);
+    
     if (!assignedWorkouts || assignedWorkouts.length === 0) {
       return [];
     }
     
     // Get the list of workout IDs
     const workoutIds = [...new Set(assignedWorkouts.map(w => w.workout_id))];
+    console.log(`Workout IDs to fetch: ${workoutIds.join(', ')}`);
     
     // Fetch the workout details
     const { data: workouts, error: workoutsError } = await supabase
@@ -150,6 +156,8 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
       console.error("Error fetching workouts:", workoutsError);
       throw workoutsError;
     }
+    
+    console.log(`Found ${workouts?.length || 0} workouts details`);
     
     // Create a map of workout objects with week property initialized to null
     const workoutMap: Map<string, WorkoutBasic> = new Map();
@@ -168,6 +176,8 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
       const weekIds = [...new Set(workouts.filter(w => w.week_id).map(w => w.week_id))];
       
       if (weekIds.length > 0) {
+        console.log(`Week IDs to fetch: ${weekIds.join(', ')}`);
+        
         const { data: weeks, error: weeksError } = await supabase
           .from('workout_weeks')
           .select('id, week_number, program_id')
@@ -176,10 +186,14 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
         if (weeksError) {
           console.error("Error fetching workout weeks:", weeksError);
         } else if (weeks && weeks.length > 0) {
+          console.log(`Found ${weeks.length} workout weeks`);
+          
           // Get program info
           const programIds = [...new Set(weeks.filter(w => w.program_id).map(w => w.program_id))];
           
           if (programIds.length > 0) {
+            console.log(`Program IDs to fetch: ${programIds.join(', ')}`);
+            
             const { data: programs, error: programsError } = await supabase
               .from('workout_programs')
               .select('id, title')
@@ -187,6 +201,8 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
             
             if (programsError) {
               console.error("Error fetching programs:", programsError);
+            } else {
+              console.log(`Found ${programs?.length || 0} workout programs`);
             }
             
             // Create a map of programs for quick lookup
@@ -230,7 +246,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     }
     
     // Combine the data
-    return assignedWorkouts.map(assignment => {
+    const result = assignedWorkouts.map(assignment => {
       const workoutDetails = workoutMap.get(assignment.workout_id) || null;
       return {
         ...assignment,
@@ -238,6 +254,9 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
         completed_at: null // These are incomplete workouts
       };
     });
+    
+    console.log(`Returning ${result.length} workouts to display`);
+    return result;
   } catch (error) {
     console.error("Error in fetchAssignedWorkouts:", error);
     return [];

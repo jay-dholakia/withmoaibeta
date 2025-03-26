@@ -28,6 +28,7 @@ export interface WorkoutWeek {
   created_at: string;
   program?: {
     title: string;
+    id: string;
   } | null;
   workouts?: Workout[];
 }
@@ -62,6 +63,7 @@ export interface WorkoutBasic {
   week?: {
     week_number: number;
     program?: {
+      id: string;
       title: string;
     }
   } | null;

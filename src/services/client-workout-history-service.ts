@@ -66,7 +66,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           const programIds = [...new Set(weeks.map(w => w.program_id).filter(Boolean))];
           
           if (programIds.length > 0) {
-            // Ensure we select the title field from programs
+            // Ensure we select the title and id fields from programs
             const { data: programs, error: programsError } = await supabase
               .from('workout_programs')
               .select('id, title')

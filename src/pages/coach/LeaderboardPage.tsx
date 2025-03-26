@@ -6,6 +6,7 @@ import { CoachLayout } from '@/layouts/CoachLayout';
 import { Loader2, Trophy } from 'lucide-react';
 import { fetchAllGroups } from '@/services/client-service';
 import GroupLeaderboard from '@/components/coach/GroupLeaderboard';
+import { toast } from 'sonner'; // Use sonner directly
 
 const LeaderboardPage = () => {
   const { user } = useAuth();

@@ -49,7 +49,7 @@ export const WeekProgressBar = ({
   console.log("Completed days this week:", completedDaysThisWeek);
   console.log("Life happens days this week:", lifeHappensDaysThisWeek);
   
-  const totalCompletedCount = completedDaysThisWeek + lifeHappensDaysThisWeek;
+  const totalCompletedCount = count !== undefined ? count : completedDaysThisWeek + lifeHappensDaysThisWeek;
   const percentComplete = (totalCompletedCount / total) * 100;
   
   console.log("Total completed count:", totalCompletedCount);

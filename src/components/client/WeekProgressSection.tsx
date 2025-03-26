@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchClientWorkoutHistory } from '@/services/workout-history-service';
+import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
 import { WeekProgressBar } from './WeekProgressBar';
 import { Loader2, Users, User } from 'lucide-react';
@@ -24,6 +25,15 @@ export const WeekProgressSection = ({
     queryFn: async () => {
       if (!user?.id) return [];
       return fetchClientWorkoutHistory(user.id);
+    },
+    enabled: !!user?.id && showPersonal,
+  });
+  
+  const { data: assignedWorkoutsCount, isLoading: isLoadingAssignedCount } = useQuery({
+    queryKey: ['assigned-workouts-count', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return 0;
+      return getWeeklyAssignedWorkoutsCount(user.id);
     },
     enabled: !!user?.id && showPersonal,
   });
@@ -161,7 +171,7 @@ export const WeekProgressSection = ({
     }
   }, [clientWorkouts, clientCompletedDates, clientLifeHappensDates]);
   
-  if ((showPersonal && isLoadingClientWorkouts) || (showTeam && isLoadingGroupData)) {
+  if ((showPersonal && (isLoadingClientWorkouts || isLoadingAssignedCount)) || (showTeam && isLoadingGroupData)) {
     return (
       <div className="flex justify-center py-6">
         <Loader2 className="h-6 w-6 animate-spin text-client" />
@@ -172,6 +182,8 @@ export const WeekProgressSection = ({
   const thisWeekWorkouts = clientCompletedDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
   const thisWeekLifeHappens = clientLifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
   const totalThisWeek = thisWeekWorkouts + thisWeekLifeHappens;
+  
+  const totalWeeklyWorkouts = assignedWorkoutsCount || 7; // Default to 7 if no assigned workouts
   
   const totalGroupWorkoutsThisWeek = groupData?.completions?.length || 0;
   const totalGroupMembers = groupData?.members?.length || 0;
@@ -196,10 +208,12 @@ export const WeekProgressSection = ({
             completedDates={clientCompletedDates}
             lifeHappensDates={clientLifeHappensDates}
             label="Your Workouts" 
+            count={thisWeekWorkouts + thisWeekLifeHappens}
+            total={totalWeeklyWorkouts}
             color="bg-client"
             textColor="text-client"
             showDayCircles={true}
-            showProgressBar={false}
+            showProgressBar={true}
           />
         </>
       )}

@@ -2,6 +2,7 @@ import { fetchClientWorkoutHistory } from './client-workout-history-service';
 import { fetchAssignedWorkouts } from './assigned-workouts-service';
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutExercise } from "@/types/workout";
+import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 
 // Re-export workout history related functions
 export {
@@ -109,5 +110,41 @@ export const logRestDay = async (notes?: string) => {
   } catch (error) {
     console.error('Error logging rest day:', error);
     throw error;
+  }
+};
+
+/**
+ * Gets the total number of workouts assigned to a user in the current week
+ */
+export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<number> => {
+  try {
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Get the start and end of the current week
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 0 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
+    
+    // Fetch all assigned workouts
+    const assignedWorkouts = await fetchAssignedWorkouts(userId);
+    
+    // Get workouts for this week based on day_of_week
+    const currentWeekNumber = Math.ceil((now.getDate() - weekStart.getDate() + 1) / 7);
+    
+    // Filter workouts that belong to the current week
+    const currentWeekWorkouts = assignedWorkouts.filter(workout => {
+      // Check if the workout has a week and program
+      if (workout.workout?.week?.week_number) {
+        return workout.workout.week.week_number === currentWeekNumber;
+      }
+      return false;
+    });
+    
+    return currentWeekWorkouts.length || 0;
+  } catch (error) {
+    console.error('Error getting weekly assigned workouts count:', error);
+    return 0;
   }
 };

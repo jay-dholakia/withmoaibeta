@@ -4,17 +4,29 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, CalendarRange, Users } from 'lucide-react';
+import { ChevronLeft, CalendarRange, Users, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProgramAssignmentForm } from '@/components/coach/ProgramAssignmentForm';
 import { 
   fetchWorkoutProgram, 
   fetchAssignedUsers,
   assignProgramToUser,
-  fetchAllClients
+  fetchAllClients,
+  deleteProgramAssignment
 } from '@/services/workout-service';
 import { WorkoutProgram, ProgramAssignment } from '@/types/workout';
 import { toast } from 'sonner';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog';
 
 interface ClientInfo {
   id: string;
@@ -31,6 +43,7 @@ const ProgramAssignmentPage = () => {
   const [clientsMap, setClientsMap] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<string | null>(null);
   
   useEffect(() => {
     if (!programId) return;
@@ -100,6 +113,24 @@ const ProgramAssignmentPage = () => {
       toast.error('Failed to assign program');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+  
+  const handleDeleteAssignment = async (assignmentId: string) => {
+    try {
+      const success = await deleteProgramAssignment(assignmentId);
+      
+      if (success) {
+        setAssignments(prev => prev.filter(assignment => assignment.id !== assignmentId));
+        toast.success('Assignment removed successfully');
+      } else {
+        toast.error('Failed to remove assignment');
+      }
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      toast.error('Failed to remove assignment');
+    } finally {
+      setAssignmentToDelete(null);
     }
   };
   
@@ -200,8 +231,39 @@ const ProgramAssignmentPage = () => {
                             {new Date(assignment.start_date).toLocaleDateString()} to {assignment.end_date ? new Date(assignment.end_date).toLocaleDateString() : 'Ongoing'}
                           </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          Assigned on {new Date(assignment.created_at).toLocaleDateString()}
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm text-muted-foreground">
+                            Assigned on {new Date(assignment.created_at).toLocaleDateString()}
+                          </div>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove Program Assignment</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to remove this program assignment from {getClientDisplayName(assignment.user_id)}? 
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleDeleteAssignment(assignment.id)}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  Remove Assignment
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     </div>

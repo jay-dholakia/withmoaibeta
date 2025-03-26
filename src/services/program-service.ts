@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ProgramAssignment, WorkoutExercise, WorkoutProgram, WorkoutWeek } from "@/types/workout";
 
@@ -219,5 +218,64 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
   } catch (err) {
     console.error("Error in fetchCurrentProgram:", err);
     return null;
+  }
+};
+
+/**
+ * Deletes a program assignment and updates the client's current program if needed
+ */
+export const deleteProgramAssignment = async (assignmentId: string): Promise<boolean> => {
+  try {
+    // First, get the assignment details to check if we need to update the client's program
+    const { data: assignment, error: fetchError } = await supabase
+      .from('program_assignments')
+      .select('*')
+      .eq('id', assignmentId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching assignment details:', fetchError);
+      throw fetchError;
+    }
+    
+    // Delete the assignment
+    const { error: deleteError } = await supabase
+      .from('program_assignments')
+      .delete()
+      .eq('id', assignmentId);
+    
+    if (deleteError) {
+      console.error('Error deleting program assignment:', deleteError);
+      throw deleteError;
+    }
+    
+    // Check if this is the client's current active program and remove it if so
+    if (assignment) {
+      const { data: clientInfo, error: clientInfoError } = await supabase
+        .from('client_workout_info')
+        .select('current_program_id')
+        .eq('user_id', assignment.user_id)
+        .single();
+      
+      if (!clientInfoError && clientInfo && clientInfo.current_program_id === assignment.program_id) {
+        // This was the client's current program, so we need to update
+        console.log('Removing current program reference for client:', assignment.user_id);
+        try {
+          // Use the RPC function to update the client's program
+          await supabase.rpc('update_client_program', {
+            user_id_param: assignment.user_id,
+            program_id_param: null
+          });
+        } catch (rpcError) {
+          console.error('Error updating client program reference:', rpcError);
+          // This is not critical enough to fail the whole operation
+        }
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to delete program assignment:', error);
+    return false;
   }
 };

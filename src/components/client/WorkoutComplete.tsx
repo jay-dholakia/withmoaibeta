@@ -5,13 +5,11 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { completeWorkout, fetchPersonalRecords } from '@/services/client-service';
-import { useLifeHappensPass } from '@/services/life-happens-service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, CheckCircle2, Award, Share2, ArrowLeft, Star, Umbrella } from 'lucide-react';
+import { Loader2, CheckCircle2, Award, Share2, ArrowLeft, Star } from 'lucide-react';
 import { toast } from 'sonner';
-import LifeHappensPass from './LifeHappensPass';
 
 const WorkoutComplete = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -82,33 +80,6 @@ const WorkoutComplete = () => {
     onError: (error) => {
       console.error('Error completing workout:', error);
       toast.error('Failed to complete workout');
-    },
-  });
-
-  // Add life happens pass mutation
-  const lifeHappensMutation = useMutation({
-    mutationFn: async () => {
-      if (!workoutCompletionId) return false;
-      
-      const { data, error } = await supabase
-        .from('workout_completions')
-        .update({
-          completed_at: new Date().toISOString(),
-          notes: notes || "Life happens pass used for this workout",
-          life_happens_pass: true
-        })
-        .eq('id', workoutCompletionId);
-        
-      if (error) throw error;
-      return true;
-    },
-    onSuccess: () => {
-      toast.success('Life happens pass used successfully!');
-      navigate('/client-dashboard/workouts');
-    },
-    onError: (error) => {
-      console.error('Error using life happens pass:', error);
-      toast.error('Failed to use life happens pass');
     },
   });
 
@@ -201,12 +172,6 @@ const WorkoutComplete = () => {
         </Card>
       )}
 
-      {/* Add Life Happens Pass option */}
-      <LifeHappensPass 
-        onUsePass={() => lifeHappensMutation.mutate()}
-        isLoading={lifeHappensMutation.isPending}
-      />
-
       <div className="space-y-4">
         <div>
           <h3 className="text-sm font-medium mb-2">Rate your workout</h3>
@@ -242,7 +207,7 @@ const WorkoutComplete = () => {
       <div className="flex flex-col gap-3 pt-4">
         <Button
           onClick={() => completeMutation.mutate()}
-          disabled={completeMutation.isPending || lifeHappensMutation.isPending}
+          disabled={completeMutation.isPending}
           className="bg-client hover:bg-client/90"
         >
           {completeMutation.isPending ? (
@@ -259,7 +224,6 @@ const WorkoutComplete = () => {
         <Button
           variant="outline"
           onClick={handleShareWorkout}
-          disabled={lifeHappensMutation.isPending}
         >
           <Share2 className="mr-2 h-4 w-4" /> Share Results
         </Button>

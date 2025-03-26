@@ -119,17 +119,41 @@ export const assignProgramToUser = async (assignmentData: any): Promise<any> => 
  */
 export const fetchAllClients = async (): Promise<any[]> => {
   try {
-    const { data, error } = await supabase
+    // First get all profiles with user_type = 'client'
+    const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('*')
       .eq('user_type', 'client');
     
-    if (error) {
-      console.error('Error fetching all clients:', error);
+    if (profilesError) {
+      console.error('Error fetching client profiles:', profilesError);
       return [];
     }
     
-    return data || [];
+    // Then for each profile, fetch the client_profile data to get first_name and last_name
+    const clientsWithDetails = await Promise.all(
+      (profiles || []).map(async (profile) => {
+        const { data: clientProfile, error: clientError } = await supabase
+          .from('client_profiles')
+          .select('first_name, last_name')
+          .eq('id', profile.id)
+          .single();
+        
+        if (clientError && clientError.code !== 'PGRST116') { 
+          // PGRST116 means not found, which is ok - some clients might not have profiles yet
+          console.error(`Error fetching client profile for ${profile.id}:`, clientError);
+        }
+        
+        return {
+          ...profile,
+          first_name: clientProfile?.first_name || null,
+          last_name: clientProfile?.last_name || null
+        };
+      })
+    );
+    
+    console.log('Clients with details:', clientsWithDetails);
+    return clientsWithDetails || [];
   } catch (error) {
     console.error("Error fetching all clients:", error);
     return [];

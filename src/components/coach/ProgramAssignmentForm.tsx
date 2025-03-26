@@ -77,7 +77,7 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
       try {
         setIsLoading(true);
         const data = await fetchAllClients();
-        console.log('Fetched clients:', data); // Debug log to see what clients are being fetched
+        console.log('Fetched clients for form:', data); // Debug log to see raw client data
         setClients(data);
         setIsLoading(false);
       } catch (error) {

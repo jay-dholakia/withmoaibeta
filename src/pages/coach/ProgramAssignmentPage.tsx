@@ -34,6 +34,8 @@ interface ClientInfo {
   displayName?: string;
   firstName?: string;
   lastName?: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 const ProgramAssignmentPage = () => {
@@ -65,12 +67,14 @@ const ProgramAssignmentPage = () => {
         
         // Fetch all clients to build a map of id -> clientInfo
         const clientsData = await fetchAllClients();
+        console.log('Fetched clients data:', clientsData); // Debug log to see client data structure
+        
         const clientsMapData = clientsData.reduce((acc, client) => {
           acc[client.id] = {
             id: client.id,
             email: client.email,
-            firstName: client.first_name,
-            lastName: client.last_name,
+            first_name: client.first_name,
+            last_name: client.last_name,
             displayName: getClientDisplayName(client)
           };
           return acc;
@@ -210,7 +214,7 @@ const ProgramAssignmentPage = () => {
           Back to Program
         </Button>
         
-        <h1 className="text-2xl font-bold mb-6">Assign Program: {program.title}</h1>
+        <h1 className="text-2xl font-bold mb-6">Assign Program: {program?.title}</h1>
         
         <div className="grid md:grid-cols-2 gap-8">
           <Card className="h-fit">

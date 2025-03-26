@@ -30,7 +30,7 @@ const WorkoutsList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [weekFilter, setWeekFilter] = useState<string>("all");
-  const [availableWeeks, setAvailableWeeks] = useState<{number: number, title: string, programId: string}[]>([]);
+  const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
 
@@ -75,35 +75,21 @@ const WorkoutsList = () => {
         setCurrentProgram(program);
         setWorkouts(assignedWorkouts);
         
-        const weeksMap = new Map<string, {number: number, title: string, programId: string}>();
+        const weeksSet = new Set<number>();
         
         assignedWorkouts.forEach(workout => {
-          if (workout.workout?.week) {
-            console.log(`Debug - Workout Week:`, workout.workout.week);
-            
-            const weekNumber = workout.workout.week.week_number || 0;
-            const weekTitle = `Week ${weekNumber}`;
-            const programId = workout.workout.week.program?.id || '';
-            
-            const key = `${weekNumber}-${programId}`;
-            if (!weeksMap.has(key)) {
-              weeksMap.set(key, {
-                number: weekNumber,
-                title: weekTitle,
-                programId: programId
-              });
-            }
+          if (workout.workout?.week && workout.workout.week.week_number) {
+            weeksSet.add(workout.workout.week.week_number);
           }
         });
         
-        const extractedWeeks = Array.from(weeksMap.values());
-        console.log("Debug - Extracted weeks:", extractedWeeks);
+        const extractedWeeks = Array.from(weeksSet);
+        console.log("Debug - Extracted week numbers:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
         if (extractedWeeks.length > 0) {
-          const sortedWeeks = [...extractedWeeks].sort((a, b) => a.number - b.number);
-          const currentWeekValue = `${sortedWeeks[0].number}-${sortedWeeks[0].programId}`;
-          setWeekFilter(currentWeekValue);
+          const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
+          setWeekFilter(sortedWeeks[0].toString());
         }
       } catch (error) {
         console.error('Error loading workouts:', error);
@@ -122,10 +108,9 @@ const WorkoutsList = () => {
       return workouts;
     }
     
-    const [weekNumberStr, programId] = weekFilter.split('-');
-    const weekNumber = parseInt(weekNumberStr, 10);
+    const weekNumber = parseInt(weekFilter, 10);
     
-    console.log(`Debug - Filtering workouts by Week ${weekNumberStr}`);
+    console.log(`Debug - Filtering workouts by Week ${weekNumber}`);
     
     return workouts.filter(workout => {
       if (!workout.workout || !workout.workout.week) {
@@ -133,12 +118,10 @@ const WorkoutsList = () => {
       }
       
       const weekMatches = workout.workout.week.week_number === weekNumber;
-      const programMatches = workout.workout.week.program?.id === programId || 
-                            programId === "any";
       
-      console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout.week.week_number}, Program: ${workout.workout.week.program?.title}, Matches: ${weekMatches && programMatches}`);
+      console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout.week.week_number}, Program: ${workout.workout.week.program?.title}, Matches: ${weekMatches}`);
       
-      return weekMatches && programMatches;
+      return weekMatches;
     });
   }, [workouts, weekFilter]);
 
@@ -198,13 +181,13 @@ const WorkoutsList = () => {
                   <SelectContent>
                     <SelectItem value="all">All Weeks</SelectItem>
                     {availableWeeks
-                      .sort((a, b) => a.number - b.number)
-                      .map((week) => (
+                      .sort((a, b) => a - b)
+                      .map((weekNumber) => (
                         <SelectItem 
-                          key={`${week.number}-${week.programId}`} 
-                          value={`${week.number}-${week.programId}`}
+                          key={weekNumber} 
+                          value={weekNumber.toString()}
                         >
-                          {`Week ${week.number}`}
+                          {`Week ${weekNumber}`}
                         </SelectItem>
                       ))}
                   </SelectContent>

@@ -46,6 +46,7 @@ interface WorkoutExerciseFormProps {
   onCancel: () => void;
   isSubmitting: boolean;
   existingData?: Partial<WorkoutExercise>;
+  autoSave?: boolean;
 }
 
 export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
@@ -53,7 +54,8 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   onSubmit,
   onCancel,
   isSubmitting,
-  existingData
+  existingData,
+  autoSave = false
 }) => {
   const isCardio = isCardioExercise(exercise.name);
   
@@ -66,6 +68,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
         onCancel={onCancel}
         isSubmitting={isSubmitting}
         existingData={existingData}
+        autoSave={autoSave}
       />
     );
   } else {
@@ -76,6 +79,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
         onCancel={onCancel}
         isSubmitting={isSubmitting}
         existingData={existingData}
+        autoSave={autoSave}
       />
     );
   }
@@ -87,7 +91,8 @@ const CardioExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   onSubmit,
   onCancel,
   isSubmitting,
-  existingData
+  existingData,
+  autoSave
 }) => {
   const form = useForm<CardioFormValues>({
     resolver: zodResolver(cardioFormSchema),
@@ -101,6 +106,19 @@ const CardioExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       notes: existingData?.notes || ''
     });
   }, [exercise, existingData, form]);
+
+  // Auto-submit when data changes if autoSave is enabled
+  useEffect(() => {
+    if (autoSave && form.formState.isDirty) {
+      const subscription = form.watch(() => {
+        form.handleSubmit((data) => {
+          onSubmit(data);
+        })();
+      });
+      
+      return () => subscription.unsubscribe();
+    }
+  }, [form, onSubmit, autoSave]);
 
   const handleSubmit = (values: CardioFormValues) => {
     onSubmit(values);
@@ -145,15 +163,17 @@ const CardioExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
             )}
           />
 
-          <div className="flex justify-end">
-            <Button 
-              type="button" 
-              disabled={isSubmitting}
-              onClick={form.handleSubmit(handleSubmit)}
-            >
-              {isSubmitting ? 'Saving...' : 'Save Exercise'}
-            </Button>
-          </div>
+          {!autoSave && (
+            <div className="flex justify-end">
+              <Button 
+                type="button" 
+                disabled={isSubmitting}
+                onClick={form.handleSubmit(handleSubmit)}
+              >
+                {isSubmitting ? 'Saving...' : 'Save Exercise'}
+              </Button>
+            </div>
+          )}
         </div>
       </Form>
     </div>
@@ -166,7 +186,8 @@ const StrengthExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   onSubmit,
   onCancel,
   isSubmitting,
-  existingData
+  existingData,
+  autoSave
 }) => {
   const form = useForm<StrengthFormValues>({
     resolver: zodResolver(strengthFormSchema),
@@ -186,6 +207,23 @@ const StrengthExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       notes: existingData?.notes || ''
     });
   }, [exercise, existingData, form]);
+
+  // Auto-submit when data changes if autoSave is enabled
+  useEffect(() => {
+    if (autoSave && form.formState.isDirty) {
+      const subscription = form.watch(() => {
+        const values = form.getValues();
+        // Ensure required fields have values before auto-submitting
+        if (values.sets && values.reps) {
+          form.handleSubmit((data) => {
+            onSubmit(data);
+          })();
+        }
+      });
+      
+      return () => subscription.unsubscribe();
+    }
+  }, [form, onSubmit, autoSave]);
 
   const handleSubmit = (values: StrengthFormValues) => {
     onSubmit(values);
@@ -280,15 +318,17 @@ const StrengthExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
             )}
           />
 
-          <div className="flex justify-end">
-            <Button 
-              type="button" 
-              disabled={isSubmitting}
-              onClick={form.handleSubmit(handleSubmit)}
-            >
-              {isSubmitting ? 'Saving...' : 'Save Exercise'}
-            </Button>
-          </div>
+          {!autoSave && (
+            <div className="flex justify-end">
+              <Button 
+                type="button" 
+                disabled={isSubmitting}
+                onClick={form.handleSubmit(handleSubmit)}
+              >
+                {isSubmitting ? 'Saving...' : 'Save Exercise'}
+              </Button>
+            </div>
+          )}
         </div>
       </Form>
     </div>

@@ -192,13 +192,10 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
  */
 const fetchUserProgramAssignments = async (userId: string): Promise<ProgramAssignment[] | null> => {
   try {
-    // Use a direct SQL statement via RPC to avoid RLS recursion
-    // This is a safer approach than using the problematic table
-    console.log(`Fetching program assignments for user ${userId} via direct query`);
-    
+    console.log("Raw program assignments query result:");
     const { data, error } = await supabase
       .from('program_assignments')
-      .select('*')
+      .select('id, program_id, start_date, end_date, user_id, assigned_by, created_at')
       .eq('user_id', userId)
       .order('start_date', { ascending: false });
     
@@ -207,6 +204,7 @@ const fetchUserProgramAssignments = async (userId: string): Promise<ProgramAssig
       return null;
     }
     
+    console.log(data);
     console.log(`Found ${data?.length || 0} program assignments`);
     
     if (data && data.length > 0) {

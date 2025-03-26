@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistoryItem } from "@/types/workout";
 
@@ -14,7 +13,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     
     console.log(`Fetching assigned workouts for user: ${userId}`);
     
-    // Get all program assignments for this user directly
+    // Get all program assignments for this user
     const { data: programAssignments, error: programError } = await supabase
       .from('program_assignments')
       .select('id, program_id, start_date, end_date')

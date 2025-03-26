@@ -894,6 +894,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_program_assigned_to_user: {
+        Args: {
+          program_id_param: string
+          user_id_param: string
+        }
+        Returns: boolean
+      }
       update_client_program: {
         Args: {
           user_id_param: string

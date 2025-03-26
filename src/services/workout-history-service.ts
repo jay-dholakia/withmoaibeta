@@ -129,11 +129,10 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     
     console.log(`Fetching assigned workouts for user: ${userId}`);
     
-    // Get all program assignments for this user with detailed logging
+    // DEBUG: Get ALL program assignments to see what's in the table
     const { data: programAssignments, error: programError } = await supabase
       .from('program_assignments')
-      .select('id, program_id, start_date, end_date')
-      .eq('user_id', userId);
+      .select('id, program_id, user_id, start_date, end_date');
     
     if (programError) {
       console.error("Error fetching program assignments:", programError);
@@ -141,17 +140,21 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     }
     
     // Log the raw results to help debug
-    console.log(`Raw program assignments query result:`, programAssignments);
+    console.log(`All program assignments in the table:`, programAssignments);
     
-    if (!programAssignments || programAssignments.length === 0) {
-      console.log(`No program assignments found for user ${userId}`);
+    // Now get just this user's assignments
+    const userAssignments = programAssignments.filter(pa => pa.user_id === userId);
+    console.log(`After filtering, assignments for user ${userId}:`, userAssignments);
+    
+    if (!userAssignments || userAssignments.length === 0) {
+      console.log(`No program assignments found for user ${userId} after filtering`);
       return [];
     }
     
-    console.log(`Found ${programAssignments.length} program assignments`);
+    console.log(`Found ${userAssignments.length} program assignments`);
     
     // Get all program IDs
-    const programIds = programAssignments.map(pa => pa.program_id);
+    const programIds = userAssignments.map(pa => pa.program_id);
     console.log(`Program IDs:`, programIds);
     
     // Get all weeks associated with these programs

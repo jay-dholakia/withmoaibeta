@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./client-workout-history-service";
@@ -86,7 +87,7 @@ export const trackWorkoutSet = async (
         .from('workout_set_completions')
         .insert({
           workout_completion_id: workoutCompletionId,
-          workout_exercise_id: exerciseId,
+          workout_exercise_id: exerciseId, // Changed from exercise_id to workout_exercise_id
           set_number: setNumber,
           weight: weight,
           reps_completed: reps,

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./client-workout-history-service";
@@ -20,7 +19,23 @@ export const trackWorkoutSet = async (
   reps: number | null
 ): Promise<any> => {
   try {
-    // First check if a set completion record already exists
+    // First fetch the workout completion to get the user_id
+    const { data: workoutCompletion, error: workoutCompletionError } = await supabase
+      .from('workout_completions')
+      .select('user_id, workout_id')
+      .eq('id', workoutCompletionId)
+      .single();
+    
+    if (workoutCompletionError) {
+      console.error('Error fetching workout completion:', workoutCompletionError);
+      throw workoutCompletionError;
+    }
+    
+    if (!workoutCompletion) {
+      throw new Error(`Workout completion not found: ${workoutCompletionId}`);
+    }
+    
+    // Now check if a set completion record already exists
     const { data: existingSet, error: queryError } = await supabase
       .from('workout_set_completions')
       .select('*')
@@ -63,7 +78,8 @@ export const trackWorkoutSet = async (
         set_number: setNumber,
         weight: weight,
         reps_completed: reps,
-        completed: true
+        completed: true,
+        user_id: workoutCompletion.user_id // Add the user_id from the workout completion
       });
       
       const { data, error } = await supabase
@@ -74,7 +90,8 @@ export const trackWorkoutSet = async (
           set_number: setNumber,
           weight: weight,
           reps_completed: reps,
-          completed: true
+          completed: true,
+          user_id: workoutCompletion.user_id // Add the user_id from the workout completion
         })
         .select();
       

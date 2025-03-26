@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -97,10 +96,11 @@ const ActiveWorkout = () => {
     onSuccess: (data) => {
       console.log("Successfully tracked set:", data);
       queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
+      toast.success('Set saved successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error tracking set:', error);
-      toast.error('Failed to save set. Please try again.');
+      toast.error(`Failed to save set: ${error?.message || 'Unknown error'}`);
     },
   });
 
@@ -238,7 +238,7 @@ const ActiveWorkout = () => {
     : [];
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6 pb-28">
       <div className="flex items-center gap-4">
         <Button 
           variant="ghost" 

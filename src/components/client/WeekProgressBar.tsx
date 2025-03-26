@@ -3,6 +3,7 @@ import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { format, startOfWeek, addDays, isSameDay, isThisWeek } from 'date-fns';
 import { Star, Umbrella, AlertCircle } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface WeekProgressBarProps {
   completedDates: Date[];
@@ -27,6 +28,8 @@ export const WeekProgressBar = ({
   showDayCircles = false,
   showProgressBar = false // Default to not showing the progress bar
 }: WeekProgressBarProps) => {
+  const isMobile = useIsMobile();
+  
   // Get start of current week (Sunday)
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
   
@@ -89,7 +92,7 @@ export const WeekProgressBar = ({
       )}
       
       {showDayCircles && (
-        <div className="flex justify-between px-2 mt-4">
+        <div className={`flex ${isMobile ? 'flex-wrap justify-center gap-3 mt-6' : 'justify-between px-2 mt-4'}`}>
           {weekDays.map((day, index) => {
             const isCompleted = completedDates.some(date => isSameDay(day, date));
             const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
@@ -97,14 +100,14 @@ export const WeekProgressBar = ({
             return (
               <div key={index} className="flex flex-col items-center">
                 <div 
-                  className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                  className={`flex items-center justify-center ${isMobile ? 'w-12 h-12' : 'w-10 h-10'} rounded-full ${
                     isCompleted ? 'bg-green-100' : isLifeHappens ? 'bg-blue-100' : 'bg-slate-100'
                   }`}
                 >
                   {isLifeHappens ? (
-                    <Umbrella className="h-5 w-5 text-blue-500" />
+                    <Umbrella className={`${isMobile ? 'h-6 w-6' : 'h-5 w-5'} text-blue-500`} />
                   ) : isCompleted ? (
-                    <Star className="h-5 w-5 text-green-500 fill-green-500" />
+                    <Star className={`${isMobile ? 'h-6 w-6' : 'h-5 w-5'} text-green-500 fill-green-500`} />
                   ) : null}
                 </div>
                 <div className="text-xs text-center text-slate-500 mt-2">

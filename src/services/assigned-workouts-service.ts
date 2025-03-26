@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistoryItem } from "@/types/workout";
 
@@ -14,13 +13,11 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     
     console.log(`Fetching assigned workouts for user: ${userId}`);
     
-    // Instead of using RPC, we'll query the program_assignments table directly
-    // The RLS policies have been fixed to prevent infinite recursion
+    // Get all program assignments for this user
     const { data: programAssignments, error: programError } = await supabase
       .from('program_assignments')
-      .select('id, program_id, start_date, end_date, user_id, assigned_by, created_at')
-      .eq('user_id', userId)
-      .order('start_date', { ascending: false });
+      .select('id, program_id, start_date, end_date')
+      .eq('user_id', userId);
     
     if (programError) {
       console.error("Error fetching program assignments:", programError);

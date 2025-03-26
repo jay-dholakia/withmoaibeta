@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -8,10 +7,16 @@ import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import CustomWorkoutsList from './CustomWorkoutsList';
-import { Loader2, Filter } from 'lucide-react';
+import { Loader2, Filter, ChevronDown, ChevronUp, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchCurrentProgram } from '@/services/program-service';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 const WorkoutsList = () => {
   const { user } = useAuth();
@@ -21,6 +26,14 @@ const WorkoutsList = () => {
   const [weekFilter, setWeekFilter] = useState<string>("all");
   const [availableWeeks, setAvailableWeeks] = useState<{number: number, title: string, programId: string}[]>([]);
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
+  const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
+
+  const toggleWorkoutDetails = (workoutId: string) => {
+    setExpandedWorkouts(prev => ({
+      ...prev,
+      [workoutId]: !prev[workoutId]
+    }));
+  };
 
   useEffect(() => {
     const loadWorkoutsAndProgram = async () => {
@@ -36,13 +49,11 @@ const WorkoutsList = () => {
         setIsLoading(true);
         setError(null);
         
-        // Load current program in parallel with assigned workouts
         const programPromise = fetchCurrentProgram(user.id);
         const workoutsPromise = fetchAssignedWorkouts(user.id);
         
         const [program, assignedWorkouts] = await Promise.all([programPromise, workoutsPromise]);
         
-        // More detailed logging for program data
         console.log("Current user email:", user.email);
         console.log("Program data received:", program);
         if (program && program.program) {
@@ -58,18 +69,12 @@ const WorkoutsList = () => {
         setCurrentProgram(program);
         setWorkouts(assignedWorkouts);
         
-        // Extract unique weeks for filtering
         const weeksMap = new Map<string, {number: number, title: string, programId: string}>();
-        
-        // Debug logging for workouts
-        console.log("Debug - All workouts:", assignedWorkouts);
         
         assignedWorkouts.forEach(workout => {
           if (workout.workout?.week) {
-            // Debug logging for each workout
             console.log(`Debug - Workout Week:`, workout.workout.week);
             
-            // Get the week number and title
             const weekNumber = workout.workout.week.week_number || 0;
             const weekTitle = workout.workout.week.title || `Week ${weekNumber}`;
             const programId = workout.workout.week.program?.id || '';
@@ -89,12 +94,8 @@ const WorkoutsList = () => {
         console.log("Debug - Extracted weeks:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
-        // Set default filter to the current week if available
         if (extractedWeeks.length > 0) {
-          // Sort weeks by number (ascending)
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a.number - b.number);
-          
-          // Find current week or closest week to current
           const currentWeekValue = `${sortedWeeks[0].number}-${sortedWeeks[0].programId}`;
           setWeekFilter(currentWeekValue);
         }
@@ -214,36 +215,66 @@ const WorkoutsList = () => {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredWorkouts.map((workout) => (
-                  <Card key={workout.id}>
+                  <Card key={workout.id} className="overflow-hidden">
                     <CardHeader>
                       <CardTitle>
                         {workout.workout?.title || 'Untitled Workout'}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      {workout.workout?.description && (
-                        <p className="text-muted-foreground">
-                          {workout.workout.description}
-                        </p>
-                      )}
-                      <div className="mt-2">
-                        {workout.workout?.week && (
-                          <div className="text-sm">
-                            <span className="font-medium">Week:</span>{' '}
-                            {workout.workout.week.title || `Week ${workout.workout.week.week_number}`}
-                          </div>
-                        )}
-                        {workout.workout?.week?.program && (
-                          <div className="text-sm">
-                            <span className="font-medium">Program:</span>{' '}
-                            {workout.workout.week.program.title}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                    <CardFooter>
+                    
+                    <Collapsible
+                      open={expandedWorkouts[workout.id] || false}
+                      onOpenChange={() => toggleWorkoutDetails(workout.id)}
+                    >
+                      <CardContent className="pb-0">
+                        <div className="flex justify-end mb-2">
+                          <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              {expandedWorkouts[workout.id] ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                              <span className="sr-only">Toggle details</span>
+                            </Button>
+                          </CollapsibleTrigger>
+                        </div>
+                        
+                        <CollapsibleContent className="space-y-2">
+                          {workout.workout?.description && (
+                            <div>
+                              <h4 className="text-sm font-medium">Description</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {workout.workout.description}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {workout.workout?.week && (
+                            <div>
+                              <h4 className="text-sm font-medium">Week</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {workout.workout.week.title || `Week ${workout.workout.week.week_number}`}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {workout.workout?.week?.program && (
+                            <div>
+                              <h4 className="text-sm font-medium">Program</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {workout.workout.week.program.title}
+                              </p>
+                            </div>
+                          )}
+                        </CollapsibleContent>
+                      </CardContent>
+                    </Collapsible>
+                    
+                    <CardFooter className="pt-4">
                       <Button asChild className="w-full">
                         <Link to={`/client-dashboard/workouts/active/${workout.id}`}>
+                          <Play className="h-4 w-4 mr-2" />
                           Start Workout
                         </Link>
                       </Button>

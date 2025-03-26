@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -107,8 +106,8 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           exercises.forEach(item => {
             exerciseFormData[item.exercise_id] = {
               id: item.id,
-              sets: item.sets,
-              reps: item.reps,
+              sets: item.sets || 1,
+              reps: item.reps || '',
               rest_seconds: item.rest_seconds || undefined,
               notes: item.notes || undefined,
               orderIndex: item.order_index
@@ -132,7 +131,6 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     const exerciseWithTempId = {...exercise, tempId: Date.now().toString()};
     setExercises(prev => [...prev, exerciseWithTempId]);
     
-    // Auto-populate default values for the exercise based on type
     const isCardio = isCardioExercise(exercise.name);
     if (!isCardio) {
       setExerciseData(prev => ({
@@ -150,7 +148,7 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
         ...prev,
         [exercise.id]: {
           sets: 1,
-          reps: '',
+          reps: '1',
           notes: '',
           orderIndex: exercises.length
         }
@@ -166,14 +164,13 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     
     setExercises(prev => [...prev, ...newExercises]);
     
-    // Auto-populate default values for all new exercises
     const updatedExerciseData = {...exerciseData};
     newExercises.forEach((exercise, index) => {
       const isCardio = isCardioExercise(exercise.name);
       updatedExerciseData[exercise.id] = isCardio 
         ? {
             sets: 1,
-            reps: '',
+            reps: '1',
             notes: '',
             orderIndex: exercises.length + index
           }
@@ -207,7 +204,6 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   };
 
   const handleRemoveAllExercises = () => {
-    // Store IDs of existing exercises to be removed
     if (mode === 'edit') {
       const idsToRemove = exercises
         .filter(ex => ex.id in exerciseData && exerciseData[ex.id]?.id)
@@ -250,12 +246,11 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
         
         const newWorkout = await createWorkout(workoutData);
         
-        // Prepare all exercises for batch create
         const exercisesToCreate = exercises.map((exercise, index) => {
           const exerciseFormData = exerciseData[exercise.id] || {
             sets: isCardioExercise(exercise.name) ? 1 : 3,
-            reps: isCardioExercise(exercise.name) ? '' : '10',
-            rest_seconds: isCardioExercise(exercise.name) ? undefined : 60
+            reps: isCardioExercise(exercise.name) ? '1' : '10',
+            rest_seconds: isCardioExercise(exercise.name) ? 0 : 60
           };
           
           const isCardio = isCardioExercise(exercise.name);
@@ -263,15 +258,14 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           return {
             workout_id: newWorkout.id,
             exercise_id: exercise.id,
-            sets: isCardio ? null : exerciseFormData.sets,
-            reps: isCardio ? null : exerciseFormData.reps || '10',
-            rest_seconds: isCardio ? null : (exerciseFormData.rest_seconds || 60),
+            sets: exerciseFormData.sets || 1,
+            reps: exerciseFormData.reps || (isCardio ? '1' : '10'),
+            rest_seconds: exerciseFormData.rest_seconds || 0,
             notes: exerciseFormData.notes || null,
             order_index: index
           };
         });
         
-        // Create all exercises in one batch operation
         await createMultipleWorkoutExercises(exercisesToCreate);
         
         toast.success('Workout saved successfully');
@@ -282,20 +276,18 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           description: values.description || null
         });
         
-        // Delete removed exercises
         for (const exerciseId of removedExerciseIds) {
           await deleteWorkoutExercise(exerciseId);
         }
         
-        // Separate existing and new exercises
         const exercisesToUpdate: any[] = [];
         const exercisesToCreate: any[] = [];
         
         exercises.forEach((exercise, index) => {
           const exerciseFormData = exerciseData[exercise.id] || {
             sets: isCardioExercise(exercise.name) ? 1 : 3,
-            reps: isCardioExercise(exercise.name) ? '' : '10',
-            rest_seconds: isCardioExercise(exercise.name) ? undefined : 60
+            reps: isCardioExercise(exercise.name) ? '1' : '10',
+            rest_seconds: isCardioExercise(exercise.name) ? 0 : 60
           };
           
           const isCardio = isCardioExercise(exercise.name);
@@ -304,9 +296,9 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
             exercisesToUpdate.push({
               id: exerciseFormData.id,
               data: {
-                sets: isCardio ? null : exerciseFormData.sets,
-                reps: isCardio ? null : exerciseFormData.reps || '10',
-                rest_seconds: isCardio ? null : (exerciseFormData.rest_seconds || 60),
+                sets: exerciseFormData.sets || 1,
+                reps: exerciseFormData.reps || (isCardio ? '1' : '10'),
+                rest_seconds: exerciseFormData.rest_seconds || 0,
                 notes: exerciseFormData.notes || null,
                 order_index: index
               }
@@ -315,21 +307,19 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
             exercisesToCreate.push({
               workout_id: workoutId,
               exercise_id: exercise.id,
-              sets: isCardio ? null : exerciseFormData.sets,
-              reps: isCardio ? null : exerciseFormData.reps || '10',
-              rest_seconds: isCardio ? null : (exerciseFormData.rest_seconds || 60),
+              sets: exerciseFormData.sets || 1,
+              reps: exerciseFormData.reps || (isCardio ? '1' : '10'),
+              rest_seconds: exerciseFormData.rest_seconds || 0,
               notes: exerciseFormData.notes || null,
               order_index: index
             });
           }
         });
         
-        // Update existing exercises
         for (const item of exercisesToUpdate) {
           await updateWorkoutExercise(item.id, item.data);
         }
         
-        // Create new exercises in batch if any
         if (exercisesToCreate.length > 0) {
           await createMultipleWorkoutExercises(exercisesToCreate);
         }

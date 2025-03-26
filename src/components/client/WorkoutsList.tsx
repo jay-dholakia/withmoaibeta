@@ -12,6 +12,7 @@ import { Loader2, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchCurrentProgram } from '@/services/program-service';
+import { supabase } from '@/integrations/supabase/client';
 
 const WorkoutsList = () => {
   const { user } = useAuth();
@@ -58,7 +59,38 @@ const WorkoutsList = () => {
         setCurrentProgram(program);
         setWorkouts(assignedWorkouts);
         
-        // Extract unique weeks for filtering
+        // Fetch all weeks directly from the workout_weeks table to ensure we have complete data
+        if (program && program.program) {
+          const { data: weeksData, error: weeksError } = await supabase
+            .from('workout_weeks')
+            .select('id, week_number, title, program_id')
+            .eq('program_id', program.program.id)
+            .order('week_number', { ascending: true });
+            
+          if (weeksError) {
+            console.error('Error fetching weeks from database:', weeksError);
+            // We'll still try to use the weeks from the workouts as fallback
+          } else if (weeksData && weeksData.length > 0) {
+            console.log("Weeks fetched directly from database:", weeksData.length);
+            // Map the weeks data to our expected format
+            const mappedWeeks = weeksData.map(week => ({
+              number: week.week_number,
+              title: week.title || `Week ${week.week_number}`,
+              programId: week.program_id
+            }));
+            setAvailableWeeks(mappedWeeks);
+            
+            // Set default filter to the first week
+            if (mappedWeeks.length > 0) {
+              setWeekFilter(`${mappedWeeks[0].number}-${mappedWeeks[0].programId}`);
+            }
+            
+            // Skip the extraction from workouts since we have the data directly
+            return;
+          }
+        }
+        
+        // Fallback: Extract unique weeks from workouts as before
         const weeksMap = new Map<string, {number: number, title: string, programId: string}>();
         
         // Debug logging for workouts
@@ -86,7 +118,7 @@ const WorkoutsList = () => {
         });
         
         const extractedWeeks = Array.from(weeksMap.values());
-        console.log("Debug - Extracted weeks:", extractedWeeks);
+        console.log("Debug - Extracted weeks from workouts:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
         // Set default filter to the current week if available

@@ -89,6 +89,25 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
       
       if (checkAssignment) {
         console.log('Program assignment exists but direct program access failed - RLS policy issue');
+        
+        // Log additional RLS debugging info
+        console.log('Assignment details:', checkAssignment);
+        console.log('Current user ID:', (await supabase.auth.getUser()).data.user?.id);
+        
+        // Try again with a more specific query to test policies
+        const { data: specificQuery, error: specificError } = await supabase.rpc(
+          'is_program_assigned_to_user',
+          { 
+            program_id_param: programId,
+            user_id_param: (await supabase.auth.getUser()).data.user?.id 
+          }
+        );
+        
+        if (specificError) {
+          console.error('RPC check error:', specificError);
+        } else {
+          console.log('Program is assigned to user:', specificQuery);
+        }
       } else {
         console.log('No program assignment found - no RLS access expected');
       }
@@ -176,7 +195,7 @@ const fetchUserProgramAssignments = async (userId: string): Promise<ProgramAssig
     console.log("Raw program assignments query result:");
     const { data, error } = await supabase
       .from('program_assignments')
-      .select('id, program_id, start_date, end_date')
+      .select('id, program_id, start_date, end_date, user_id, assigned_by, created_at')
       .eq('user_id', userId)
       .order('start_date', { ascending: false });
     

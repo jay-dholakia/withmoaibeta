@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistoryItem } from "@/types/workout";
 
@@ -246,8 +247,8 @@ const processWorkoutsForAssignment = async (
           week: {
             week_number: weekInfo?.week_number,
             program: program ? {
-              title: program.title,
-              id: program.id
+              id: program.id,
+              title: program.title
             } : null
           }
         }
@@ -292,8 +293,8 @@ const processWorkoutsForAssignment = async (
           week: {
             week_number: weekInfo?.week_number,
             program: program ? {
-              title: program.title,
-              id: program.id
+              id: program.id,
+              title: program.title
             } : null
           }
         }

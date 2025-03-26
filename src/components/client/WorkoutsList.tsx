@@ -19,7 +19,7 @@ const WorkoutsList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [weekFilter, setWeekFilter] = useState<string>("all");
-  const [availableWeeks, setAvailableWeeks] = useState<{number: number, programTitle: string}[]>([]);
+  const [availableWeeks, setAvailableWeeks] = useState<{number: number, programTitle: string, programId: string}[]>([]);
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
 
   useEffect(() => {
@@ -58,30 +58,32 @@ const WorkoutsList = () => {
         setWorkouts(assignedWorkouts);
         
         // Extract unique weeks for filtering
-        const weeks = new Map<string, {number: number, programTitle: string}>();
+        const weeksMap = new Map<string, {number: number, programTitle: string, programId: string}>();
         
         // Debug logging for workouts
         console.log("Debug - All workouts:", assignedWorkouts);
         
         assignedWorkouts.forEach(workout => {
-          if (workout.workout?.week) {
+          if (workout.workout?.week?.program) {
             // Debug logging for each workout
             console.log(`Debug - Workout Week:`, workout.workout.week);
             
-            // Get the program title from the workout data
-            const programTitle = workout.workout.week.program?.title || 'Unknown Program';
+            // Get the program title and id from the workout data
+            const programTitle = workout.workout.week.program.title || 'Unknown Program';
+            const programId = workout.workout.week.program.id || '';
             
             const key = `${workout.workout.week.week_number}-${programTitle}`;
-            if (!weeks.has(key)) {
-              weeks.set(key, {
+            if (!weeksMap.has(key)) {
+              weeksMap.set(key, {
                 number: workout.workout.week.week_number,
-                programTitle: programTitle
+                programTitle: programTitle,
+                programId: programId
               });
             }
           }
         });
         
-        const extractedWeeks = Array.from(weeks.values());
+        const extractedWeeks = Array.from(weeksMap.values());
         console.log("Debug - Extracted weeks:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
@@ -111,15 +113,15 @@ const WorkoutsList = () => {
       return workouts;
     }
     
-    const [weekNumber, ...programTitleParts] = weekFilter.split('-');
+    const [weekNumberStr, ...programTitleParts] = weekFilter.split('-');
     // Re-join the program title parts in case the title itself contains hyphens
     const programTitle = programTitleParts.join('-').trim();
     
-    console.log(`Debug - Filtering workouts by Week ${weekNumber} and Program "${programTitle}"`);
+    console.log(`Debug - Filtering workouts by Week ${weekNumberStr} and Program "${programTitle}"`);
     
     return workouts.filter(workout => {
       const weekMatches = workout.workout?.week && 
-                         workout.workout.week.week_number === parseInt(weekNumber);
+                        workout.workout.week.week_number === parseInt(weekNumberStr);
       const programMatches = workout.workout?.week?.program?.title === programTitle || 
                             programTitle === "any";
       
@@ -179,7 +181,7 @@ const WorkoutsList = () => {
                     value={weekFilter}
                     onValueChange={setWeekFilter}
                   >
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-[220px]">
                       <div className="flex items-center gap-2">
                         <Filter className="h-4 w-4" />
                         <SelectValue placeholder="Filter by week" />

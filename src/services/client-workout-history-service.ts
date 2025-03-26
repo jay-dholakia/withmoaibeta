@@ -51,66 +51,75 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
     
     // Fetch the week data for the workouts
     if (workouts && workouts.length > 0) {
-      const weekIds = [...new Set(workouts.map(w => w.week_id))];
+      const weekIds = [...new Set(workouts.map(w => w.week_id).filter(Boolean))];
       
-      const { data: weeks, error: weeksError } = await supabase
-        .from('workout_weeks')
-        .select('id, week_number, program_id')
-        .in('id', weekIds);
-      
-      if (weeksError) {
-        console.error("Error fetching workout weeks:", weeksError);
-      } else if (weeks && weeks.length > 0) {
-        // Get program info
-        const programIds = [...new Set(weeks.map(w => w.program_id))];
+      if (weekIds.length > 0) {
+        const { data: weeks, error: weeksError } = await supabase
+          .from('workout_weeks')
+          .select('id, week_number, program_id')
+          .in('id', weekIds);
         
-        // Ensure we select the title field from programs
-        const { data: programs, error: programsError } = await supabase
-          .from('workout_programs')
-          .select('id, title')
-          .in('id', programIds);
-        
-        if (programsError) {
-          console.error("Error fetching programs:", programsError);
-        }
-        
-        console.log("Debug - Fetched programs for history:", programs);
-        
-        // Create a map of programs for quick lookup
-        const programMap = new Map();
-        if (programs) {
-          programs.forEach(program => {
-            programMap.set(program.id, program);
-          });
-        }
-        
-        // Create a map of weeks with program data
-        const weekMap = new Map();
-        if (weeks) {
-          weeks.forEach(week => {
-            const program = programMap.get(week.program_id);
-            weekMap.set(week.id, {
-              ...week,
-              program: program || null
-            });
-          });
-        }
-        
-        console.log("Debug - Week map with program data:", Array.from(weekMap.entries()));
-        
-        // Add week data to each workout in workoutMap
-        workoutMap.forEach((workout, workoutId) => {
-          const weekData = weekMap.get(workout.week_id);
-          if (weekData) {
-            workoutMap.set(workoutId, {
-              ...workout,
-              week: {
-                week_number: weekData.week_number,
-                program: weekData.program
+        if (weeksError) {
+          console.error("Error fetching workout weeks:", weeksError);
+        } else if (weeks && weeks.length > 0) {
+          // Get program info
+          const programIds = [...new Set(weeks.map(w => w.program_id).filter(Boolean))];
+          
+          if (programIds.length > 0) {
+            // Ensure we select the title field from programs
+            const { data: programs, error: programsError } = await supabase
+              .from('workout_programs')
+              .select('id, title')
+              .in('id', programIds);
+            
+            if (programsError) {
+              console.error("Error fetching programs:", programsError);
+            } else {
+              console.log("Debug - Fetched programs for history:", programs);
+              
+              // Create a map of programs for quick lookup
+              const programMap = new Map();
+              if (programs) {
+                programs.forEach(program => {
+                  programMap.set(program.id, program);
+                });
               }
-            });
+              
+              // Create a map of weeks with program data
+              const weekMap = new Map();
+              if (weeks) {
+                weeks.forEach(week => {
+                  const program = programMap.get(week.program_id);
+                  weekMap.set(week.id, {
+                    ...week,
+                    program: program || null
+                  });
+                });
+              }
+              
+              console.log("Debug - Week map with program data:", Array.from(weekMap.entries()));
+              
+              // Add week data to each workout in workoutMap
+              workoutMap.forEach((workout, workoutId) => {
+                if (workout.week_id) {
+                  const weekData = weekMap.get(workout.week_id);
+                  if (weekData) {
+                    workoutMap.set(workoutId, {
+                      ...workout,
+                      week: {
+                        week_number: weekData.week_number,
+                        program: weekData.program ? {
+                          id: weekData.program.id,
+                          title: weekData.program.title
+                        } : null
+                      }
+                    });
+                  }
+                }
+              });
+            }
           }
-        });
+        }
       }
     }
     

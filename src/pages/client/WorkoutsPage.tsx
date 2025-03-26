@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
 import ActiveWorkout from '@/components/client/ActiveWorkout';
 import WorkoutComplete from '@/components/client/WorkoutComplete';
@@ -9,6 +9,8 @@ import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import PassCounter from '@/components/client/PassCounter';
 import LifeHappensButton from '@/components/client/LifeHappensButton';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
 
 const WorkoutsPage = () => {
   console.log("WorkoutsPage component rendering");
@@ -30,6 +32,12 @@ const WorkoutsPage = () => {
       
       {window.location.pathname === "/client-dashboard/workouts" && (
         <div className="px-4 sm:px-6">
+          <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2">
+            <Link to="/client-dashboard/workouts/one-off">
+              <PlusCircle className="h-4 w-4" />
+              Enter Custom Workout
+            </Link>
+          </Button>
           <LifeHappensButton />
         </div>
       )}

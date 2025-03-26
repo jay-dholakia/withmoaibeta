@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ProgramAssignment, WorkoutExercise, WorkoutProgram, WorkoutWeek } from "@/types/workout";
 
@@ -66,10 +67,15 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
       .from('workout_programs')
       .select('*')
       .eq('id', programId)
-      .single();
+      .maybeSingle(); // Changed from .single() to .maybeSingle() to handle no rows returned
     
-    if (programError || !programData) {
+    if (programError) {
       console.error('Error fetching program details:', programError);
+      return null;
+    }
+    
+    if (!programData) {
+      console.error('No program found with ID:', programId);
       return null;
     }
     
@@ -231,7 +237,7 @@ export const deleteProgramAssignment = async (assignmentId: string): Promise<boo
       .from('program_assignments')
       .select('*')
       .eq('id', assignmentId)
-      .single();
+      .maybeSingle(); // Changed from .single() to .maybeSingle()
     
     if (fetchError) {
       console.error('Error fetching assignment details:', fetchError);
@@ -255,7 +261,7 @@ export const deleteProgramAssignment = async (assignmentId: string): Promise<boo
         .from('client_workout_info')
         .select('current_program_id')
         .eq('user_id', assignment.user_id)
-        .single();
+        .maybeSingle(); // Changed from .single() to .maybeSingle()
       
       if (!clientInfoError && clientInfo && clientInfo.current_program_id === assignment.program_id) {
         // This was the client's current program, so we need to update

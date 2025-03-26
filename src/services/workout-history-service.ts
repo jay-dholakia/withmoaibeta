@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutBasic, WorkoutHistoryItem } from "@/types/workout";
 
@@ -129,8 +128,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
       .from('program_assignments')
       .select('id, program_id, start_date, end_date')
       .eq('user_id', userId)
-      .is('end_date', null)
-      .or(`end_date.gt.${new Date().toISOString()}`);
+      .or(`end_date.gt.${new Date().toISOString()}, end_date.is.null`);
     
     if (programError) {
       console.error("Error fetching program assignments:", programError);

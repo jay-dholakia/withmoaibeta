@@ -94,19 +94,18 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
         console.log('Assignment details:', checkAssignment);
         console.log('Current user ID:', (await supabase.auth.getUser()).data.user?.id);
         
-        // Try again with a more specific query to test policies
-        const { data: specificQuery, error: specificError } = await supabase.rpc(
-          'is_program_assigned_to_user',
-          { 
-            program_id_param: programId,
-            user_id_param: (await supabase.auth.getUser()).data.user?.id 
-          }
-        );
+        // Use a direct query instead of RPC to check program assignment
+        const { data: isProgramAssigned, error: queryError } = await supabase
+          .from('program_assignments')
+          .select('id')
+          .eq('program_id', programId)
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
+          .maybeSingle();
         
-        if (specificError) {
-          console.error('RPC check error:', specificError);
+        if (queryError) {
+          console.error('Assignment check error:', queryError);
         } else {
-          console.log('Program is assigned to user:', specificQuery);
+          console.log('Program is assigned to user:', !!isProgramAssigned);
         }
       } else {
         console.log('No program assignment found - no RLS access expected');

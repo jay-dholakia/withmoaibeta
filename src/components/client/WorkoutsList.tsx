@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -246,18 +247,22 @@ const WorkoutsList = () => {
                               <Accordion type="single" collapsible className="w-full">
                                 {workout.workout.workout_exercises.map((exercise, index) => (
                                   <AccordionItem key={exercise.id} value={exercise.id} className="border-b-0 py-0">
-                                    <AccordionTrigger className="py-1 text-xs">
-                                      {exercise.exercise?.name || 'Unknown Exercise'}
-                                    </AccordionTrigger>
+                                    <div className="flex flex-col">
+                                      <AccordionTrigger className="py-1 text-xs">
+                                        {exercise.exercise?.name || 'Unknown Exercise'}
+                                      </AccordionTrigger>
+                                      
+                                      <div className="flex flex-wrap gap-2 px-1 py-1 text-xs text-muted-foreground">
+                                        <span className="bg-muted px-2 py-0.5 rounded-md">Sets: {exercise.sets}</span>
+                                        <span className="bg-muted px-2 py-0.5 rounded-md">Reps: {exercise.reps}</span>
+                                        {exercise.rest_seconds && (
+                                          <span className="bg-muted px-2 py-0.5 rounded-md">Rest: {exercise.rest_seconds}s</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    
                                     <AccordionContent className="pb-1">
                                       <div className="space-y-1 text-xs">
-                                        <div className="flex justify-between text-xs text-muted-foreground">
-                                          <span>Sets: {exercise.sets}</span>
-                                          <span>Reps: {exercise.reps}</span>
-                                          {exercise.rest_seconds && (
-                                            <span>Rest: {exercise.rest_seconds}s</span>
-                                          )}
-                                        </div>
                                         {exercise.notes && (
                                           <div className="text-xs bg-muted p-1.5 rounded-md">
                                             <span className="font-medium">Notes:</span> {exercise.notes}

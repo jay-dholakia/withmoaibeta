@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutBasic, WorkoutHistoryItem } from "@/types/workout";
 
@@ -121,6 +122,11 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
 
 export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHistoryItem[]> => {
   try {
+    if (!userId) {
+      console.error("Cannot fetch assigned workouts: userId is null or undefined");
+      return [];
+    }
+    
     console.log(`Fetching assigned workouts for user: ${userId}`);
     
     // Get all program assignments for this user, without filtering by end date

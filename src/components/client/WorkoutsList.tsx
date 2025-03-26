@@ -20,7 +20,12 @@ const WorkoutsList = () => {
 
   useEffect(() => {
     const loadWorkouts = async () => {
-      if (!user) return;
+      if (!user || !user.id) {
+        console.error("Cannot load workouts: User or user ID is missing", user);
+        setError('User not authenticated properly. Please try logging in again.');
+        setIsLoading(false);
+        return;
+      }
       
       try {
         console.log("Loading assigned workouts for user:", user.id);

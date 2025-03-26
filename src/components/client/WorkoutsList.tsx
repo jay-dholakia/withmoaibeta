@@ -252,7 +252,7 @@ const WorkoutsList = () => {
                                         {exercise.exercise?.name || 'Unknown Exercise'}
                                       </AccordionTrigger>
                                       
-                                      <div className="flex flex-wrap gap-2 px-1 py-1 text-xs text-muted-foreground">
+                                      <div className="flex flex-wrap gap-2 px-1 py-1 text-xs">
                                         <span className="bg-muted px-2 py-0.5 rounded-md">Sets: {exercise.sets}</span>
                                         <span className="bg-muted px-2 py-0.5 rounded-md">Reps: {exercise.reps}</span>
                                         {exercise.rest_seconds && (

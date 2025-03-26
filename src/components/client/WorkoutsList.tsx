@@ -48,6 +48,7 @@ const WorkoutsList = () => {
         if (program && program.program) {
           console.log("Program title:", program.program.title);
           console.log("Program description:", program.program.description || "No description");
+          console.log("Program weeks data:", program.program.weekData);
         } else {
           console.log("No program assigned to this user or program data is incomplete");
         }

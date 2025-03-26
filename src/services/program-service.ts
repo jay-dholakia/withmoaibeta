@@ -63,6 +63,7 @@ const isActiveAssignment = (assignment: ProgramAssignment): boolean => {
 const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgram | null> => {
   try {
     // Fetch basic program data
+    console.log("Fetching program details for ID:", programId);
     const { data: programData, error: programError } = await supabase
       .from('workout_programs')
       .select('*')
@@ -78,6 +79,8 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
       console.error('No program found with ID:', programId);
       return null;
     }
+
+    console.log("Successfully fetched program data:", programData.title);
     
     // Fetch program weeks
     const { data: weeksData, error: weeksError } = await supabase
@@ -90,6 +93,8 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
       console.error('Error fetching program weeks:', weeksError);
       return null;
     }
+
+    console.log(`Fetched ${weeksData?.length || 0} weeks for program ${programData.title}`);
     
     // For each week, fetch the workouts with exercises
     const weeksWithWorkouts = [];
@@ -111,6 +116,8 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
         console.error(`Error fetching workouts for week ${week.week_number}:`, workoutsError);
         continue;
       }
+
+      console.log(`Week ${week.week_number}: fetched ${workoutsData?.length || 0} workouts`);
       
       weeksWithWorkouts.push({
         ...week,

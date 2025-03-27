@@ -8,7 +8,7 @@ import { PersonalRecordsTable, PersonalRecord } from '@/components/client/Person
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, User, Loader2, Trophy } from 'lucide-react';
 import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
-import { supabase } from '@/integrations/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();

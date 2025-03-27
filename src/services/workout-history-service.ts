@@ -1,5 +1,6 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { WorkoutBasic, WorkoutHistoryItem, WorkoutExercise, Exercise } from "@/types/workout";
+import { WorkoutBasic, WorkoutHistoryItem, WorkoutExercise } from "@/types/workout";
 
 /**
  * Fetches assigned workouts for the current user, including both completed and pending workouts

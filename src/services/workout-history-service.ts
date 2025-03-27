@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { WorkoutBasic, WorkoutHistoryItem, WorkoutExercise } from "@/types/workout";
+import { WorkoutBasic, WorkoutHistoryItem, WorkoutExercise, Exercise } from "@/types/workout";
 
 /**
  * Fetches assigned workouts for the current user, including both completed and pending workouts
@@ -392,16 +392,19 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
  */
 export const getUserIdByEmail = async (email: string): Promise<string | null> => {
   try {
-    // Get the user ID from the email
-    const { data: userData, error: userError } = await supabase
-      .rpc('get_user_id_by_email', { email_param: email });
+    // Query the database directly since we don't have an RPC function
+    const { data, error } = await supabase
+      .from('auth_users')
+      .select('id')
+      .eq('email', email)
+      .single();
     
-    if (userError) {
-      console.error("Error fetching user ID by email:", userError);
+    if (error) {
+      console.error("Error fetching user ID by email:", error);
       return null;
     }
     
-    return userData || null;
+    return data?.id || null;
   } catch (error) {
     console.error("Error in getUserIdByEmail:", error);
     return null;

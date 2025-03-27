@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,7 +31,9 @@ const LeaderboardPage = () => {
       console.log('[Debug] Fetching assigned workout count for user:', user.id);
       const count = await getWeeklyAssignedWorkoutsCount(user.id);
       console.log('[Debug] Assigned workouts count returned:', count);
-      return count > 0 ? count : 7; // Fallback to 7 if no assigned workouts
+      
+      // Return the actual count, don't fallback to 7
+      return count;
     },
     enabled: !!user?.id,
   });
@@ -74,6 +75,16 @@ const LeaderboardPage = () => {
     },
     enabled: !!user?.id,
   });
+
+  // Determine the total weekly target
+  const totalWeeklyTarget = React.useMemo(() => {
+    // If we have assigned workouts, use that count
+    if (typeof assignedCount === 'number' && assignedCount > 0) {
+      return assignedCount;
+    }
+    // Otherwise use standard weekly target of 7 workouts
+    return 7;
+  }, [assignedCount]);
   
   return (
     <Container>
@@ -103,12 +114,18 @@ const LeaderboardPage = () => {
               </div>
             ) : (
               <>
-                {!isLoadingAssigned && typeof assignedCount === 'number' && (
+                {!isLoadingAssigned && (
                   <div className="mb-4 bg-muted p-3 rounded-md text-sm flex items-start gap-2">
                     <Info className="h-4 w-4 mt-0.5 shrink-0" />
                     <div>
-                      <p>You have {assignedCount > 0 ? assignedCount : 'no'} workouts assigned this week.</p>
-                      {assignedCount === 0 && <p className="text-xs text-muted-foreground mt-1">Using default goal of 7 workouts per week.</p>}
+                      {typeof assignedCount === 'number' && assignedCount > 0 ? (
+                        <p>You have {assignedCount} workouts assigned this week.</p>
+                      ) : (
+                        <>
+                          <p>No assigned workouts found for this week.</p>
+                          <p className="text-xs text-muted-foreground mt-1">Using default goal of 7 workouts per week.</p>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

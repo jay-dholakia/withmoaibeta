@@ -182,7 +182,7 @@ export const WeekProgressSection = ({
   const thisWeekLifeHappens = clientLifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
   const totalThisWeek = thisWeekWorkouts + thisWeekLifeHappens;
   
-  const totalWeeklyWorkouts = assignedWorkoutsCount || 7; // Fallback to 7 if no assigned workouts
+  const totalWeeklyWorkouts = (assignedWorkoutsCount && assignedWorkoutsCount > 0) ? assignedWorkoutsCount : 7;
   
   const totalGroupWorkoutsThisWeek = groupData?.completions?.length || 0;
   const totalGroupMembers = groupData?.members?.length || 0;

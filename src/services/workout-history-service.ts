@@ -119,7 +119,8 @@ export const logRestDay = async (notes?: string) => {
 export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<number> => {
   try {
     if (!userId) {
-      throw new Error('User not authenticated');
+      console.error('User not authenticated');
+      return 0;
     }
     
     // Get the start and end of the current week
@@ -133,9 +134,30 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     const assignedWorkouts = await fetchAssignedWorkouts(userId);
     console.log(`[Debug] Total assigned workouts fetched: ${assignedWorkouts.length}`);
     
+    if (assignedWorkouts.length === 0) {
+      console.log(`[Debug] No assigned workouts found for user ${userId}`);
+      return 0;
+    }
+    
     // Get workouts for this week based on day_of_week
-    const currentWeekNumber = Math.ceil((now.getDate() - weekStart.getDate() + 1) / 7);
-    console.log(`[Debug] Current week number calculation: ${currentWeekNumber}`);
+    // Calculate the current week number relative to program start date
+    const { data: programAssignments } = await supabase
+      .from('program_assignments')
+      .select('id, program_id, start_date')
+      .eq('user_id', userId)
+      .order('start_date', { ascending: false })
+      .limit(1);
+    
+    let currentWeekNumber = 1;
+    
+    if (programAssignments && programAssignments.length > 0) {
+      const startDate = new Date(programAssignments[0].start_date);
+      const daysDiff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      currentWeekNumber = Math.floor(daysDiff / 7) + 1;
+      console.log(`[Debug] Program started on ${format(startDate, 'yyyy-MM-dd')}, current week is ${currentWeekNumber}`);
+    } else {
+      console.log(`[Debug] No program assignments found, defaulting to week 1`);
+    }
     
     // Filter workouts that belong to the current week
     const currentWeekWorkouts = assignedWorkouts.filter(workout => {
@@ -150,8 +172,9 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     });
     
     console.log(`[Debug] Found ${currentWeekWorkouts.length} workouts for week ${currentWeekNumber}`);
+    
     if (currentWeekWorkouts.length === 0) {
-      console.log(`[Debug] No workouts found for current week. Checking raw assigned workouts data:`);
+      console.log(`[Debug] No workouts found for current week ${currentWeekNumber}. Detailed assigned workouts:`);
       assignedWorkouts.forEach((workout, index) => {
         console.log(`[Debug] Workout ${index + 1}:`, {
           id: workout.id,
@@ -163,7 +186,7 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
       });
     }
     
-    return currentWeekWorkouts.length || 0;
+    return currentWeekWorkouts.length;
   } catch (error) {
     console.error('Error getting weekly assigned workouts count:', error);
     return 0;

@@ -132,12 +132,12 @@ export interface ClientProfile {
 
 // Coach Profile Types - Updated to match the actual database schema
 export interface CoachProfile {
-  id?: string;
+  id: string;
   bio: string | null;
   avatar_url: string | null;
   favorite_movements: string[] | null;
-  created_at?: string;
-  updated_at?: string;
+  first_name: string | null;
+  last_name: string | null;
 }
 
 // Client Data Types for Coach Views

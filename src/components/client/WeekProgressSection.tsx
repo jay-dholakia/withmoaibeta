@@ -1,12 +1,13 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
 import { WeekProgressBar } from './WeekProgressBar';
-import { Loader2, Users, User } from 'lucide-react';
-import MoaiMemberItem from './MoaiMemberItem';
+import { Loader2, Users, User, Calendar } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { isThisWeek, getWeek, startOfWeek } from 'date-fns';
 
 interface WeekProgressSectionProps {
@@ -215,10 +216,8 @@ export const WeekProgressSection = ({
   const thisWeekLifeHappens = clientLifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   const totalThisWeek = thisWeekWorkouts + thisWeekLifeHappens;
   
-  // Debug the assigned workouts count
   console.log('[Debug] assignedWorkoutsCount in WeekProgressSection:', assignedWorkoutsCount);
   
-  // Fix: Use assignedWorkoutsCount correctly and only fall back to 7 if it's not a positive number
   const totalWeeklyWorkouts = assignedWorkoutsCount > 0 ? assignedWorkoutsCount : 7;
   
   const totalGroupWorkoutsThisWeek = groupData?.completions?.length || 0;
@@ -279,25 +278,51 @@ export const WeekProgressSection = ({
           
           {showTeam && !showPersonal && (
             <div className="mt-8 space-y-4">
-              <h3 className="text-lg font-medium text-center">Member Progress</h3>
+              <h3 className="text-lg font-medium text-center mb-2">Member Progress</h3>
               <div className="grid grid-cols-1 gap-4">
                 {groupData.members.map(member => (
-                  <div key={member.userId} className="space-y-2">
-                    <MoaiMemberItem 
-                      member={member} 
-                      onClick={() => {}} // No action needed here
-                    />
-                    <WeekProgressBar 
-                      completedDates={member.completedWorkouts}
-                      lifeHappensDates={member.lifeHappensWorkouts}
-                      label={member.isCurrentUser ? "Your Workouts" : `${member.profileData?.first_name || (member.email ? member.email.split('@')[0] : 'Unknown')}`}
-                      color={member.isCurrentUser ? "bg-client" : "bg-blue-500"}
-                      textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}
-                      showDayCircles={true}
-                      showProgressBar={false}
-                      weekNumber={programWeekData?.weekNumber}
-                    />
-                  </div>
+                  <Card key={member.userId} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col space-y-3">
+                        <div className="flex items-center space-x-3">
+                          <Avatar>
+                            <AvatarImage src={member.profileData?.avatar_url || ''} alt={member.profileData?.first_name || 'Member'} />
+                            <AvatarFallback className="bg-client/80 text-white">
+                              {member.profileData?.first_name ? member.profileData.first_name.charAt(0) : ''}
+                              {member.profileData?.last_name ? member.profileData.last_name.charAt(0) : ''}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="flex items-center">
+                              <span className="font-medium">
+                                {member.profileData?.first_name 
+                                  ? `${member.profileData.first_name} ${member.profileData.last_name || ''}` 
+                                  : member.email.split('@')[0]}
+                              </span>
+                              {member.isCurrentUser && (
+                                <Badge variant="outline" className="ml-2 text-xs">You</Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <WeekProgressBar 
+                          completedDates={member.completedWorkouts}
+                          lifeHappensDates={member.lifeHappensWorkouts}
+                          label=""
+                          count={(member.completedWorkouts.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length) + 
+                                 (member.lifeHappensWorkouts.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length)}
+                          total={7}
+                          color={member.isCurrentUser ? "bg-client" : "bg-blue-500"}
+                          textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}
+                          showDayCircles={true}
+                          showProgressBar={false}
+                          weekNumber={programWeekData?.weekNumber}
+                          compact={true}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             </div>

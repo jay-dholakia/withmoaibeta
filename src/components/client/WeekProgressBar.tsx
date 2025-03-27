@@ -16,6 +16,7 @@ interface WeekProgressBarProps {
   showDayCircles?: boolean;
   showProgressBar?: boolean; // New prop to control progress bar visibility
   weekNumber?: number; // Optional week number to display
+  compact?: boolean; // New prop for compact display in member cards
 }
 
 export const WeekProgressBar = ({ 
@@ -28,7 +29,8 @@ export const WeekProgressBar = ({
   textColor = 'text-client',
   showDayCircles = false,
   showProgressBar = false, // Default to not showing the progress bar
-  weekNumber
+  weekNumber,
+  compact = false
 }: WeekProgressBarProps) => {
   const isMobile = useIsMobile();
   
@@ -37,10 +39,6 @@ export const WeekProgressBar = ({
   
   // Create array of days for the current week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  
-  // Convert dates to ISO strings for logging and debugging
-  console.log("Completed dates:", completedDates.map(d => d.toISOString()));
-  console.log("Life happens dates:", lifeHappensDates.map(d => d.toISOString()));
   
   // Calculate percentage complete - including both completed workouts and life happens passes
   const completedDaysThisWeek = count !== undefined 
@@ -51,16 +49,54 @@ export const WeekProgressBar = ({
     isThisWeek(date, { weekStartsOn: 1 })
   ).length;
   
-  console.log("Completed days this week:", completedDaysThisWeek);
-  console.log("Life happens days this week:", lifeHappensDaysThisWeek);
-  
   const totalCompletedCount = count !== undefined ? count : completedDaysThisWeek + lifeHappensDaysThisWeek;
   const percentComplete = (totalCompletedCount / total) * 100;
   
-  console.log("Total completed count:", totalCompletedCount);
-  console.log("Percent complete:", percentComplete);
-  
   const hasAssignedWorkouts = total > 0;
+
+  // If compact mode is enabled, render a simplified version
+  if (compact) {
+    return (
+      <div className="w-full">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-sm text-slate-500">
+            {totalCompletedCount} of {total} completed
+          </span>
+          {weekNumber !== undefined && (
+            <span className="inline-flex items-center bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">
+              <Calendar className="h-3 w-3 mr-1" />
+              Week {weekNumber}
+            </span>
+          )}
+        </div>
+        
+        <div className="flex justify-between space-x-1">
+          {weekDays.map((day, index) => {
+            const isCompleted = completedDates.some(date => isSameDay(day, date));
+            const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
+            
+            return (
+              <div key={index} className="flex-1">
+                <div 
+                  className={`h-7 rounded-md flex items-center justify-center ${
+                    isCompleted ? 'bg-green-100' : isLifeHappens ? 'bg-blue-100' : 'bg-slate-100'
+                  }`}
+                >
+                  {isLifeHappens ? (
+                    <Umbrella className="h-3 w-3 text-blue-500" />
+                  ) : isCompleted ? (
+                    <Star className="h-3 w-3 text-green-500 fill-green-500" />
+                  ) : (
+                    <span className="text-xs text-slate-400">{format(day, 'E')[0]}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2 mb-8 bg-white rounded-xl p-5 shadow-sm text-center">

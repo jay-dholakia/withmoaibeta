@@ -687,7 +687,11 @@ export type Database = {
         Row: {
           completed: boolean
           created_at: string
+          distance: string | null
+          duration: string | null
           id: string
+          location: string | null
+          notes: string | null
           reps_completed: number | null
           set_number: number
           user_id: string | null
@@ -698,7 +702,11 @@ export type Database = {
         Insert: {
           completed?: boolean
           created_at?: string
+          distance?: string | null
+          duration?: string | null
           id?: string
+          location?: string | null
+          notes?: string | null
           reps_completed?: number | null
           set_number: number
           user_id?: string | null
@@ -709,7 +717,11 @@ export type Database = {
         Update: {
           completed?: boolean
           created_at?: string
+          distance?: string | null
+          duration?: string | null
           id?: string
+          location?: string | null
+          notes?: string | null
           reps_completed?: number | null
           set_number?: number
           user_id?: string | null

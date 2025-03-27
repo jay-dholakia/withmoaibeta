@@ -11,13 +11,21 @@ import { fetchCoachGroups } from "./coach-group-service";
  * @param setNumber The set number
  * @param weight The weight used (optional)
  * @param reps The number of reps completed (optional)
+ * @param notes Additional notes (optional)
+ * @param distance Distance for cardio exercises (optional)
+ * @param duration Duration for cardio/flexibility exercises (optional)
+ * @param location Location for cardio exercises (optional)
  */
 export const trackWorkoutSet = async (
   workoutCompletionId: string,
   exerciseId: string,
   setNumber: number,
   weight: number | null,
-  reps: number | null
+  reps: number | null,
+  notes: string | null = null,
+  distance: string | null = null,
+  duration: string | null = null,
+  location: string | null = null
 ): Promise<any> => {
   try {
     // First fetch the workout completion to get the user_id
@@ -59,7 +67,11 @@ export const trackWorkoutSet = async (
         .update({
           weight: weight,
           reps_completed: reps,
-          completed: true
+          completed: true,
+          notes: notes,
+          distance: distance,
+          duration: duration,
+          location: location
         })
         .eq('id', existingSet.id)
         .select();
@@ -80,7 +92,11 @@ export const trackWorkoutSet = async (
         weight: weight,
         reps_completed: reps,
         completed: true,
-        user_id: workoutCompletion.user_id // Add the user_id from the workout completion
+        user_id: workoutCompletion.user_id,
+        notes: notes,
+        distance: distance,
+        duration: duration,
+        location: location
       });
       
       const { data, error } = await supabase
@@ -92,7 +108,11 @@ export const trackWorkoutSet = async (
           weight: weight,
           reps_completed: reps,
           completed: true,
-          user_id: workoutCompletion.user_id // Add the user_id from the workout completion
+          user_id: workoutCompletion.user_id,
+          notes: notes,
+          distance: distance,
+          duration: duration,
+          location: location
         })
         .select();
       

@@ -91,11 +91,19 @@ const ActiveWorkout = () => {
       setNumber,
       weight,
       reps,
+      notes,
+      distance,
+      duration,
+      location
     }: {
       exerciseId: string;
       setNumber: number;
-      weight: string;
-      reps: string;
+      weight: string | null;
+      reps: string | null;
+      notes?: string | null;
+      distance?: string | null;
+      duration?: string | null;
+      location?: string | null;
     }) => {
       if (!workoutCompletionId) {
         toast.error("Missing workout completion ID");
@@ -107,7 +115,11 @@ const ActiveWorkout = () => {
         exerciseId,  // This is actually workout_exercise_id
         setNumber,
         weight: weight ? parseFloat(weight) : null,
-        reps: reps ? parseInt(reps, 10) : null
+        reps: reps ? parseInt(reps, 10) : null,
+        notes,
+        distance,
+        duration,
+        location
       });
       
       try {
@@ -116,7 +128,11 @@ const ActiveWorkout = () => {
           exerciseId,  // Passing workout_exercise_id to the function
           setNumber,
           weight ? parseFloat(weight) : null,
-          reps ? parseInt(reps, 10) : null
+          reps ? parseInt(reps, 10) : null,
+          notes || null,
+          distance || null,
+          duration || null,
+          location || null
         );
       } catch (error) {
         console.error("Error in trackSetMutation:", error);
@@ -158,14 +174,16 @@ const ActiveWorkout = () => {
       // Handle cardio exercises
       if (pendingCardio.length > 0) {
         const cardioPromises = pendingCardio.map(item => {
-          const notes = `Distance: ${item.distance}, Duration: ${item.duration}, Location: ${item.location}`;
           return trackWorkoutSet(
             workoutCompletionId!,
             item.exerciseId,
             1, // Just use set 1 for cardio
             null, // No weight for cardio
             null, // No reps for cardio
-            notes // Store as notes
+            null, // No general notes
+            item.distance, // Store distance in its own column
+            item.duration, // Store duration in its own column
+            item.location  // Store location in its own column
           );
         });
         promises.push(...cardioPromises);
@@ -174,14 +192,16 @@ const ActiveWorkout = () => {
       // Handle flexibility exercises
       if (pendingFlexibility.length > 0) {
         const flexibilityPromises = pendingFlexibility.map(item => {
-          const notes = `Duration: ${item.duration}`;
           return trackWorkoutSet(
             workoutCompletionId!,
             item.exerciseId,
             1, // Just use set 1 for flexibility
             null, // No weight for flexibility
             null, // No reps for flexibility
-            notes // Store as notes
+            null, // No general notes
+            null, // No distance
+            item.duration, // Store duration in its own column
+            null  // No location
           );
         });
         promises.push(...flexibilityPromises);
@@ -239,19 +259,13 @@ const ActiveWorkout = () => {
             (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
           );
           
-          const notesStr = existingSet?.notes || '';
-          const distance = notesStr.match(/Distance: ([^,]+)/)?.[1] || '';
-          const duration = notesStr.match(/Duration: ([^,]+)/)?.[1] || '';
-          const location = notesStr.includes('Location: indoor') ? 'indoor' : 
-                          notesStr.includes('Location: outdoor') ? 'outdoor' : '';
-          
           initialState[exercise.id] = {
             expanded: true,
             sets: [], // Empty sets for cardio
             cardioData: {
-              distance,
-              duration,
-              location,
+              distance: existingSet?.distance || '',
+              duration: existingSet?.duration || '',
+              location: existingSet?.location || '',
               completed: !!existingSet?.completed
             }
           };
@@ -261,14 +275,11 @@ const ActiveWorkout = () => {
             (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
           );
           
-          const notesStr = existingSet?.notes || '';
-          const duration = notesStr.match(/Duration: ([^,]+)/)?.[1] || '';
-          
           initialState[exercise.id] = {
             expanded: true,
             sets: [], // Empty sets for flexibility
             flexibilityData: {
-              duration,
+              duration: existingSet?.duration || '',
               completed: !!existingSet?.completed
             }
           };
@@ -460,13 +471,13 @@ const ActiveWorkout = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{workoutData.workout.title}</h1>
+          <h1 className="text-2xl font-bold">{workoutData?.workout.title}</h1>
           <p className="text-muted-foreground">Track your progress</p>
         </div>
       </div>
 
       <div className="space-y-4">
-        {workoutExercises.map((exercise: any) => {
+        {workoutData?.workout?.workout_exercises?.map((exercise: any) => {
           const exerciseType = exercise.exercise?.exercise_type || 'strength';
           
           return (

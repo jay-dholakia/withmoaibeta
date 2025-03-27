@@ -457,7 +457,6 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
 export const getUserIdByEmail = async (email: string): Promise<string | null> => {
   try {
     // Use the profiles table or another accessible table to get user ID
-    const { data, error } = await supabase
       .from('profiles')
       .select('id')
       .eq('email', email)

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -8,8 +7,9 @@ import { completeWorkout, fetchPersonalRecords } from '@/services/client-service
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, CheckCircle2, Award, Share2, ArrowLeft, Star } from 'lucide-react';
+import { Loader2, CheckCircle2, Award, Share2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 const WorkoutComplete = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -110,6 +110,14 @@ const WorkoutComplete = () => {
     );
   }
 
+  const feelingOptions = [
+    { value: 1, emoji: "😫", label: "Exhausted" },
+    { value: 2, emoji: "😓", label: "Tired" },
+    { value: 3, emoji: "😌", label: "Chill" },
+    { value: 4, emoji: "😊", label: "Energized" },
+    { value: 5, emoji: "⚡", label: "Fully Charged" }
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -170,20 +178,23 @@ const WorkoutComplete = () => {
 
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-medium mb-2 text-center">Rate your workout</h3>
+          <h3 className="text-sm font-medium mb-2 text-center">How do you feel after this workout?</h3>
           <div className="flex justify-center gap-2">
-            {[1, 2, 3, 4, 5].map((star) => (
+            {feelingOptions.map((option) => (
               <button
-                key={star}
+                key={option.value}
                 type="button"
-                onClick={() => setRating(star)}
-                className={`rounded-full p-1 transition-colors ${
-                  rating && star <= rating
-                    ? 'text-yellow-500'
-                    : 'text-gray-300 hover:text-gray-400'
-                }`}
+                onClick={() => setRating(option.value)}
+                className={cn(
+                  "flex flex-col items-center rounded-lg p-2 transition-colors border-2",
+                  rating === option.value 
+                    ? "border-primary bg-primary/10" 
+                    : "border-transparent hover:bg-gray-100"
+                )}
+                title={option.label}
               >
-                <Star className="h-8 w-8 fill-current" />
+                <span className="text-2xl mb-1">{option.emoji}</span>
+                <span className="text-xs">{option.label}</span>
               </button>
             ))}
           </div>

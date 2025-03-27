@@ -92,7 +92,7 @@ export const WeekProgressBar = ({
       )}
       
       {showDayCircles && (
-        <div className="flex justify-center space-x-3 mt-4">
+        <div className="flex justify-center space-x-1.5 mt-4">
           {weekDays.map((day, index) => {
             const isCompleted = completedDates.some(date => isSameDay(day, date));
             const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));

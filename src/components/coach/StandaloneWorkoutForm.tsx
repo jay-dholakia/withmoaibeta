@@ -59,8 +59,8 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
     defaultValues: {
       title: initialData?.title || '',
       description: initialData?.description || '',
-      exercises: initialData?.exercises?.length ? 
-        initialData.exercises.map(e => ({
+      exercises: initialData?.workout_exercises?.length ? 
+        initialData.workout_exercises.map(e => ({
           exercise_id: e.exercise_id,
           sets: e.sets,
           reps: e.reps,

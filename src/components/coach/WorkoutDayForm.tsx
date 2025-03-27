@@ -50,9 +50,12 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface WorkoutDayFormProps {
   weekId: string;
+  workoutId?: string;
+  onSave: (workoutId: string) => Promise<void>;
+  mode?: 'create' | 'edit';
 }
 
-const WorkoutDayForm = ({ weekId }: WorkoutDayFormProps) => {
+const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutDayFormProps) => {
   const navigate = useNavigate();
   const { toast: uiToast } = useToast();
   const [exercisesList, setExercisesList] = useState<Exercise[]>([]);
@@ -159,7 +162,8 @@ const WorkoutDayForm = ({ weekId }: WorkoutDayFormProps) => {
         title: 'Success',
         description: 'Workout created successfully!',
       });
-      navigate(`/coach-dashboard/programs/${programId}`);
+      
+      await onSave(workoutId);
     } catch (error) {
       console.error("Error creating workout:", error);
       setSubmitting(false);

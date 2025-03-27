@@ -55,10 +55,9 @@ export const PersonalRecordsTable = ({ records, isLoading }: PersonalRecordsTabl
           <Table className="w-full">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40%]">Exercise</TableHead>
+                <TableHead className="w-[50%]">Exercise</TableHead>
                 <TableHead className="text-right w-[20%]">Weight</TableHead>
-                <TableHead className="text-right w-[15%]">Reps</TableHead>
-                <TableHead className="text-right w-[25%]">Date</TableHead>
+                <TableHead className="text-right w-[30%]">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -66,7 +65,6 @@ export const PersonalRecordsTable = ({ records, isLoading }: PersonalRecordsTabl
                 <TableRow key={record.id}>
                   <TableCell className="font-medium">{record.exercise_name}</TableCell>
                   <TableCell className="text-right">{record.weight} lbs</TableCell>
-                  <TableCell className="text-right">{record.reps}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     {format(new Date(record.achieved_at), 'MMM d, yyyy')}
                   </TableCell>

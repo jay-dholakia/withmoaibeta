@@ -133,10 +133,11 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
           category: ex.exercise.category,
           created_at: '' // Add missing property with empty string to satisfy type
         } : undefined,
-        workout: undefined // Add missing property with undefined to satisfy type
+        // Remove the recursive reference to workout to break the circular dependency
+        workout: undefined
       }));
       
-      // Ensure that workout_exercises have all the required properties
+      // Create the workout object without recursive references
       const adaptedWorkout: WorkoutBasic = {
         id: workout.id,
         title: workout.title,
@@ -153,6 +154,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
         workout_exercises: adaptedExercises
       };
       
+      // Create the WorkoutHistoryItem without circular references
       const workoutHistoryItem: WorkoutHistoryItem = {
         id: completion ? completion.id : workout.id,
         workout_id: workout.id,
@@ -346,7 +348,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
       }
       
       if (workouts) {
-        // Create workout objects
+        // Create workout objects without recursive references
         workouts.forEach(workout => {
           workoutMap.set(workout.id, {
             id: workout.id,
@@ -360,13 +362,15 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
                 id: workout.week.program.id,
                 title: workout.week.program.title
               } : undefined
-            } : null
+            } : null,
+            // Explicitly set workout_exercises to undefined to prevent circular references
+            workout_exercises: undefined
           });
         });
       }
     }
     
-    // Combine the data
+    // Combine the data without creating circular references
     return completions.map(completion => {
       const workoutDetails = completion.workout_id ? workoutMap.get(completion.workout_id) : null;
       
@@ -379,7 +383,9 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           description: undefined,
           day_of_week: new Date(completion.completed_at).getDay(),
           week_id: '',
-          week: null
+          week: null,
+          // Explicitly set workout_exercises to undefined
+          workout_exercises: undefined
         };
         
         return {

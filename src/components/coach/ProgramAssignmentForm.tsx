@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -69,7 +68,6 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   
-  // Initialize form with the next Monday as the default start date
   const defaultStartDate = nextMonday(new Date());
   
   const form = useForm<FormValues>({
@@ -77,7 +75,7 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
     defaultValues: {
       startDate: defaultStartDate,
     },
-    mode: 'onChange' // Add this to validate on change
+    mode: 'onChange'
   });
 
   useEffect(() => {
@@ -101,7 +99,8 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   const onSubmit = async (values: FormValues) => {
     console.log('Form values on submit:', values);
     try {
-      await onAssign(values.userId, values.startDate);
+      const startDate = new Date(values.startDate);
+      await onAssign(values.userId, startDate);
       form.reset({
         startDate: nextMonday(new Date()),
       });
@@ -110,12 +109,10 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
     }
   };
 
-  // Custom function to disable non-Monday dates
   const disableNonMondays = (date: Date) => {
-    return getDay(date) !== 1; // 1 is Monday in date-fns
+    return getDay(date) !== 1;
   };
 
-  // Helper function to format client display name
   const getClientDisplayName = (client: ClientInfo): string => {
     if (client.first_name && client.last_name) {
       return `${client.first_name} ${client.last_name}`;
@@ -126,7 +123,6 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
     }
   };
 
-  // For debugging form state
   useEffect(() => {
     const subscription = form.watch((value) => {
       console.log('Form values changed:', value);
@@ -175,7 +171,7 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
               <Select 
                 onValueChange={field.onChange} 
                 defaultValue={field.value}
-                value={field.value} // Added to ensure the value is controlled
+                value={field.value}
               >
                 <FormControl>
                   <SelectTrigger>

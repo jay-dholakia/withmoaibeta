@@ -312,15 +312,18 @@ const WorkoutProgramDetailPage = () => {
   };
   
   const handleAddTemplateToWeek = async () => {
-    if (!isAddingTemplateToWeek || !selectedTemplate || selectedDay === null) {
-      toast.error('Please select a template and day');
+    if (!isAddingTemplateToWeek || !selectedTemplate) {
+      toast.error('Please select a template');
       return;
     }
     
     try {
       setIsAddingTemplate(true);
       
-      await addWorkoutToWeek(selectedTemplate, isAddingTemplateToWeek, selectedDay);
+      // Default to day 0 (Sunday) if no day is selected
+      const dayToUse = 0;
+      
+      await addWorkoutToWeek(selectedTemplate, isAddingTemplateToWeek, dayToUse);
       
       if (isAddingTemplateToWeek === selectedWeek) {
         const updatedWorkouts = await fetchWorkouts(selectedWeek);
@@ -605,30 +608,11 @@ const WorkoutProgramDetailPage = () => {
                                   </SelectContent>
                                 </Select>
                               </div>
-                              
-                              <div className="space-y-2">
-                                <h4 className="font-medium">Day of Week</h4>
-                                <Select 
-                                  value={selectedDay !== null ? selectedDay.toString() : ''} 
-                                  onValueChange={(value) => setSelectedDay(parseInt(value))}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select day of week" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {DAYS_OF_WEEK.map((day, index) => (
-                                      <SelectItem key={index} value={index.toString()}>
-                                        {day}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
                             </div>
                             <DialogFooter>
                               <Button 
                                 onClick={handleAddTemplateToWeek}
-                                disabled={!selectedTemplate || selectedDay === null || isAddingTemplate}
+                                disabled={!selectedTemplate || isAddingTemplate}
                               >
                                 {isAddingTemplate ? 'Adding...' : 'Add Template Workout'}
                               </Button>

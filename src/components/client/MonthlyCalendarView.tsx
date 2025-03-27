@@ -86,16 +86,16 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
     .map(workout => new Date(workout.completed_at));
 
   // Custom day content renderer
-  const renderDayContent = (props: { date: Date; disabled?: boolean }) => {
-    if (!props.date) return null;
+  const renderDayContent = (day: Date) => {
+    if (!day) return null;
 
-    const isCompleted = completedWorkouts.some(date => isSameDay(date, props.date));
-    const isLifeHappens = lifeHappensWorkouts.some(date => isSameDay(date, props.date));
-    const isRestDay = restDays.some(date => isSameDay(date, props.date));
+    const isCompleted = completedWorkouts.some(date => isSameDay(date, day));
+    const isLifeHappens = lifeHappensWorkouts.some(date => isSameDay(date, day));
+    const isRestDay = restDays.some(date => isSameDay(date, day));
 
     return (
       <div className="relative w-full h-full flex items-center justify-center">
-        <div className="text-sm">{props.date.getDate()}</div>
+        <div className="text-sm">{day.getDate()}</div>
         {isCompleted && (
           <Star className="absolute top-0 right-0 h-3 w-3 text-green-500 fill-green-500" />
         )}

@@ -25,8 +25,8 @@ import { Loader2 } from 'lucide-react';
 import { WORKOUT_TYPES, WorkoutType } from '@/types/workout';
 
 interface StandaloneWorkoutFormProps {
-  onSubmit: (data: any) => void;
-  isSubmitting: boolean;
+  coachId: string;
+  workoutId?: string;
   initialData?: {
     id?: string;
     title?: string;
@@ -34,6 +34,9 @@ interface StandaloneWorkoutFormProps {
     category?: string;
     workout_type?: WorkoutType;
   };
+  onSave: (data?: any) => void;
+  isSubmitting?: boolean;
+  mode?: 'create' | 'edit';
   onCancel?: () => void;
 }
 
@@ -45,11 +48,16 @@ const formSchema = z.object({
 });
 
 const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
-  onSubmit,
-  isSubmitting,
+  coachId,
+  workoutId,
   initialData,
+  onSave,
+  isSubmitting = false,
+  mode = 'create',
   onCancel
 }) => {
+  const [submitting, setSubmitting] = useState(isSubmitting);
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -66,7 +74,7 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
       id: initialData?.id
     };
     
-    onSubmit(formData);
+    onSave(formData);
   };
 
   const categories = [
@@ -180,8 +188,8 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
               Cancel
             </Button>
           )}
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button type="submit" disabled={submitting}>
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {initialData?.id ? 'Update Workout' : 'Create Workout'}
           </Button>
         </div>

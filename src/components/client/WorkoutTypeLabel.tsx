@@ -5,8 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Heart, 
   Dumbbell, 
-  Running, 
-  Stretch 
+  Timer, 
+  Activity 
 } from 'lucide-react';
 
 interface WorkoutTypeLabelProps {
@@ -27,13 +27,13 @@ const WorkoutTypeLabel = ({
     switch (workoutType) {
       case 'cardio':
         return {
-          icon: <Running size={size === 'sm' ? 14 : size === 'md' ? 16 : 18} />,
+          icon: <Activity size={size === 'sm' ? 14 : size === 'md' ? 16 : 18} />,
           label: 'Cardio',
           color: 'bg-red-100 text-red-800 hover:bg-red-100'
         };
       case 'mobility':
         return {
-          icon: <Stretch size={size === 'sm' ? 14 : size === 'md' ? 16 : 18} />,
+          icon: <Timer size={size === 'sm' ? 14 : size === 'md' ? 16 : 18} />,
           label: 'Mobility',
           color: 'bg-blue-100 text-blue-800 hover:bg-blue-100'
         };

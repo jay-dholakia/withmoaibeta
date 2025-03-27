@@ -457,7 +457,7 @@ export const addWorkoutToWeek = async (workoutId: string, weekId: string, dayOfW
       day_of_week: dayOfWeek,
       title: standaloneWorkout.title,
       description: standaloneWorkout.description,
-      workout_type: standaloneWorkout.workout_type || 'strength' // Include workout_type when adding to week
+      workout_type: standaloneWorkout.workout_type || 'strength' // Default to 'strength' if not present
     };
     
     const { data: newWorkout, error: createError } = await supabase

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -160,7 +161,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="sm:max-w-md md:max-w-2xl">
+      <DialogContent className="sm:max-w-md md:max-w-2xl lg:max-w-3xl w-[90vw]">
         <DialogHeader>
           <DialogTitle>Add Exercise</DialogTitle>
           <div className="flex items-center mt-4 space-x-2">
@@ -183,9 +184,9 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           </div>
         </DialogHeader>
         
-        <div className="mt-4">
+        <div className="mt-4 w-full">
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-            <TabsList className="mb-4 flex overflow-auto">
+            <TabsList className="mb-4 flex overflow-auto w-full">
               {Object.keys(filteredExercises).map((category) => (
                 <TabsTrigger key={category} value={category} className="whitespace-nowrap">
                   {category}
@@ -194,13 +195,13 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
             </TabsList>
             
             {Object.entries(filteredExercises).map(([category, exercises]) => (
-              <TabsContent key={category} value={category}>
-                <ScrollArea className="h-[300px] pr-4">
-                  <div className="space-y-1">
+              <TabsContent key={category} value={category} className="w-full">
+                <ScrollArea className="h-[300px] pr-4 w-full">
+                  <div className="space-y-1 w-full">
                     {exercises.map((exercise) => (
                       <div 
                         key={exercise.id}
-                        className={`flex items-center p-2 rounded-md cursor-pointer hover:bg-muted transition-colors ${
+                        className={`flex items-center p-2 rounded-md cursor-pointer hover:bg-muted transition-colors w-full ${
                           isExerciseSelected(exercise) || isExerciseAdded(exercise) ? 'bg-muted' : ''
                         }`}
                         onClick={() => handleExerciseSelection(exercise)}
@@ -214,15 +215,15 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                         ) : (
                           <Plus className="h-4 w-4 mr-2 flex-shrink-0" />
                         )}
-                        <div className="flex-1">
-                          <p className="font-medium">{exercise.name}</p>
-                          <p className="text-sm text-muted-foreground">{exercise.category}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{exercise.name}</p>
+                          <p className="text-sm text-muted-foreground truncate">{exercise.category}</p>
                         </div>
                         {isExerciseAdded(exercise) && !multiSelectMode ? (
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="h-8 p-0 text-green-600" 
+                            className="h-8 p-0 px-2 text-green-600 shrink-0" 
                             onClick={(e) => {
                               e.stopPropagation();
                               handleSingleSelect(exercise);
@@ -235,7 +236,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                           <Button 
                             variant="ghost"
                             size="sm"
-                            className="h-8 p-0 opacity-0 hover:opacity-100"
+                            className="h-8 p-0 px-2 opacity-0 hover:opacity-100 shrink-0"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleSingleSelect(exercise);
@@ -245,7 +246,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                           </Button>
                         ) : null}
                         {isExerciseSelected(exercise) && multiSelectMode && (
-                          <Check className="h-4 w-4 text-primary ml-2" />
+                          <Check className="h-4 w-4 text-primary ml-2 shrink-0" />
                         )}
                       </div>
                     ))}

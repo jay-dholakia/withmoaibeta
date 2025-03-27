@@ -98,6 +98,18 @@ const WorkoutProgramDetailPage = () => {
   
   const [workoutCounts, setWorkoutCounts] = useState<Record<string, number>>({});
   
+  const updateWorkoutCount = async (weekId: string) => {
+    try {
+      const workouts = await fetchWorkouts(weekId);
+      setWorkoutCounts(prev => ({
+        ...prev,
+        [weekId]: workouts.length
+      }));
+    } catch (error) {
+      console.error('Error updating workout count:', error);
+    }
+  };
+
   useEffect(() => {
     if (!programId) return;
     

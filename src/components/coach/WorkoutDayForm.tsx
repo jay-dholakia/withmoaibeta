@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -16,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { fetchExercises } from '@/services/exercise-service';
 import { Exercise } from '@/types/workout';
 import { createMultipleWorkoutExercises } from '@/services/workout-history-service';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   title: z.string().min(2, {
@@ -50,9 +52,9 @@ interface WorkoutDayFormProps {
   weekId: string;
 }
 
-const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({ weekId }) => {
+const WorkoutDayForm = ({ weekId }: WorkoutDayFormProps) => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const [exercisesList, setExercisesList] = useState<Exercise[]>([]);
   const [isSubmitting, setSubmitting] = useState(false);
   const { programId } = useParams<{ programId: string }>();
@@ -64,7 +66,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({ weekId }) => {
         setExercisesList(exercises);
       } catch (error) {
         console.error('Error loading exercises:', error);
-        toast({
+        uiToast({
           variant: 'destructive',
           title: 'Error',
           description: 'Failed to load exercises. Please try again.',
@@ -73,7 +75,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({ weekId }) => {
     };
 
     loadExercises();
-  }, [toast]);
+  }, [uiToast]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -94,13 +96,20 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({ weekId }) => {
     setSubmitting(true);
     
     try {
+      // Convert day of week from string to number
+      const dayOfWeekNumber = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(values.day_of_week);
+      
+      if (dayOfWeekNumber === -1) {
+        throw new Error("Invalid day of week");
+      }
+      
       // 1. Create the workout
       const { data: workout, error: workoutError } = await supabase
         .from('workouts')
         .insert({
           title: values.title,
           description: values.description,
-          day_of_week: values.day_of_week,
+          day_of_week: dayOfWeekNumber,
           week_id: weekId,
         })
         .select()
@@ -109,7 +118,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({ weekId }) => {
       if (workoutError) {
         console.error("Error creating workout:", workoutError);
         setSubmitting(false);
-        toast({
+        uiToast({
           variant: 'destructive',
           title: 'Error',
           description: 'Failed to create workout. Please try again.',
@@ -121,7 +130,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({ weekId }) => {
 
       // 2. Create the exercises
       const createExercises = async (workoutId: string) => {
-        const exercisesData = exercises.map((exercise, index) => ({
+        const exercisesData = values.exercises.map((exercise, index) => ({
           exercise_id: exercise.exercise_id,
           sets: parseInt(exercise.sets.toString(), 10),
           reps: exercise.reps.toString(),
@@ -146,7 +155,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({ weekId }) => {
         throw new Error("Failed to create exercises");
       }
 
-      toast({
+      uiToast({
         title: 'Success',
         description: 'Workout created successfully!',
       });

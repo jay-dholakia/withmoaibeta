@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -97,7 +98,7 @@ const StandaloneWorkoutForm = () => {
       }
 
       const createExercises = async (workoutId: string) => {
-        const exercisesData = exercises.map((exercise, index) => ({
+        const exercisesData = data.exercises.map((exercise, index) => ({
           exercise_id: exercise.exercise_id,
           sets: parseInt(exercise.sets.toString(), 10),
           reps: exercise.reps.toString(),

@@ -115,6 +115,27 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     const result = programWorkouts.map(workout => {
       const completion = completionsMap.get(workout.id);
       
+      // Adapt exercise objects to match WorkoutExercise type
+      const adaptedExercises: WorkoutExercise[] = workout.workout_exercises.map(ex => ({
+        id: ex.id,
+        workout_id: ex.workout_id,
+        exercise_id: ex.exercise_id,
+        sets: ex.sets,
+        reps: ex.reps,
+        rest_seconds: ex.rest_seconds,
+        notes: ex.notes,
+        order_index: ex.order_index,
+        created_at: ex.created_at,
+        exercise: ex.exercise ? {
+          id: ex.exercise.id,
+          name: ex.exercise.name,
+          description: ex.exercise.description,
+          category: ex.exercise.category,
+          created_at: '' // Add missing property with empty string to satisfy type
+        } : undefined,
+        workout: undefined // Add missing property with undefined to satisfy type
+      }));
+      
       // Ensure that workout_exercises have all the required properties
       const adaptedWorkout: WorkoutBasic = {
         id: workout.id,
@@ -124,20 +145,27 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
         week_id: workout.week_id,
         week: workout.week ? {
           week_number: workout.week.week_number,
-          program_id: workout.week.program_id
+          program: workout.week.program_id ? {
+            id: workout.week.program_id,
+            title: 'Program' // Default value since we don't have this in the query
+          } : undefined
         } : null,
-        workout_exercises: workout.workout_exercises
+        workout_exercises: adaptedExercises
       };
       
-      return {
+      const workoutHistoryItem: WorkoutHistoryItem = {
         id: completion ? completion.id : workout.id,
         workout_id: workout.id,
         completed_at: completion ? completion.completed_at : null,
         notes: completion ? completion.notes : null,
         rating: completion ? completion.rating : null,
         user_id: userId,
-        workout: adaptedWorkout
+        workout: adaptedWorkout,
+        life_happens_pass: false,
+        rest_day: false
       };
+      
+      return workoutHistoryItem;
     });
     
     return result;
@@ -203,27 +231,57 @@ export const createOneOffWorkoutCompletion = async (
     
     const userId = authData.user.id;
     
-    // Insert a custom workout completion
-    const { data, error } = await supabase
+    // First check if custom_title column exists
+    const { error: columnCheckError } = await supabase
       .from('workout_completions')
-      .insert({
-        user_id: userId,
-        workout_id: null, // No associated program workout
-        notes: workoutData.notes || null,
-        rating: workoutData.rating || null,
-        completed_at: new Date().toISOString(),
-        custom_title: workoutData.title,
-        custom_description: workoutData.description || null
-      })
-      .select()
-      .single();
+      .select('custom_title')
+      .limit(1);
     
-    if (error) {
-      console.error("Error creating one-off workout:", error);
-      return { success: false, error: error.message };
+    if (columnCheckError && columnCheckError.message.includes("column 'custom_title' does not exist")) {
+      console.log("custom_title column does not exist, using basic completion");
+      
+      // Insert a basic workout completion
+      const { data, error } = await supabase
+        .from('workout_completions')
+        .insert({
+          user_id: userId,
+          workout_id: null,
+          notes: workoutData.notes ? `${workoutData.title}: ${workoutData.notes}` : workoutData.title,
+          rating: workoutData.rating || null,
+          completed_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("Error creating one-off workout:", error);
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true, id: data.id };
+    } else {
+      // Insert a custom workout completion with title and description
+      const { data, error } = await supabase
+        .from('workout_completions')
+        .insert({
+          user_id: userId,
+          workout_id: null,
+          notes: workoutData.notes || null,
+          rating: workoutData.rating || null,
+          completed_at: new Date().toISOString(),
+          custom_title: workoutData.title,
+          custom_description: workoutData.description || null
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("Error creating one-off workout:", error);
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true, id: data.id };
     }
-    
-    return { success: true, id: data.id };
   } catch (error) {
     console.error("Error in createOneOffWorkoutCompletion:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -239,7 +297,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
     // First, get the basic completion data
     const { data: completions, error: completionsError } = await supabase
       .from('workout_completions')
-      .select('id, completed_at, notes, rating, user_id, workout_id, life_happens_pass, rest_day, custom_title, custom_description')
+      .select('id, completed_at, notes, rating, user_id, workout_id, life_happens_pass, rest_day')
       .eq('user_id', clientId)
       .order('completed_at', { ascending: false });
     
@@ -274,7 +332,6 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           week_id,
           week:week_id (
             week_number,
-            program_id,
             program:program_id (
               id,
               title
@@ -302,7 +359,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
               program: workout.week.program ? {
                 id: workout.week.program.id,
                 title: workout.week.program.title
-              } : null
+              } : undefined
             } : null
           });
         });
@@ -314,11 +371,12 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
       const workoutDetails = completion.workout_id ? workoutMap.get(completion.workout_id) : null;
       
       // For custom workouts (one-off workouts or rest days)
-      if (!workoutDetails && (completion.custom_title || completion.rest_day)) {
+      if (!workoutDetails) {
+        // Create a basic default workout object
         const customWorkout: WorkoutBasic = {
           id: 'custom-' + completion.id,
-          title: completion.custom_title || (completion.rest_day ? 'Rest Day' : 'Custom Workout'),
-          description: completion.custom_description,
+          title: completion.notes || (completion.rest_day ? 'Rest Day' : 'Custom Workout'),
+          description: undefined,
           day_of_week: new Date(completion.completed_at).getDay(),
           week_id: '',
           week: null
@@ -332,7 +390,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
       
       return {
         ...completion,
-        workout: workoutDetails || null
+        workout: workoutDetails
       };
     });
   } catch (error) {
@@ -392,9 +450,9 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
  */
 export const getUserIdByEmail = async (email: string): Promise<string | null> => {
   try {
-    // Query the database directly since we don't have an RPC function
+    // Use the profiles table or another accessible table to get user ID
     const { data, error } = await supabase
-      .from('auth_users')
+      .from('profiles')
       .select('id')
       .eq('email', email)
       .single();

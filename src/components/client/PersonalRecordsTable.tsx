@@ -10,6 +10,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export interface PersonalRecord {
   id: string;
@@ -43,36 +44,38 @@ export const PersonalRecordsTable = ({ records, isLoading }: PersonalRecordsTabl
   }
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm mb-8 overflow-hidden">
+    <div className="bg-white rounded-xl p-4 shadow-sm mb-8">
       <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
         <Trophy className="h-5 w-5 text-amber-500" />
         Personal Records
       </h3>
       
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Exercise</TableHead>
-              <TableHead className="text-right">Weight</TableHead>
-              <TableHead className="text-right">Reps</TableHead>
-              <TableHead className="text-right">Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {records.map((record) => (
-              <TableRow key={record.id}>
-                <TableCell className="font-medium">{record.exercise_name}</TableCell>
-                <TableCell className="text-right">{record.weight} lbs</TableCell>
-                <TableCell className="text-right">{record.reps}</TableCell>
-                <TableCell className="text-right">
-                  {format(new Date(record.achieved_at), 'MMM d, yyyy')}
-                </TableCell>
+      <ScrollArea className="max-h-[320px]">
+        <div className="w-full">
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40%]">Exercise</TableHead>
+                <TableHead className="text-right w-[20%]">Weight</TableHead>
+                <TableHead className="text-right w-[15%]">Reps</TableHead>
+                <TableHead className="text-right w-[25%]">Date</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {records.map((record) => (
+                <TableRow key={record.id}>
+                  <TableCell className="font-medium">{record.exercise_name}</TableCell>
+                  <TableCell className="text-right">{record.weight} lbs</TableCell>
+                  <TableCell className="text-right">{record.reps}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
+                    {format(new Date(record.achieved_at), 'MMM d, yyyy')}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </ScrollArea>
     </div>
   );
 };

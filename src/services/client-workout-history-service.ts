@@ -49,7 +49,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           workoutMap.set(workout.id, {
             ...workout,
             week: null,
-            // Important: Set workout_exercises to undefined to break circular references
+            // Break circular reference - this is critical
             workout_exercises: undefined
           });
         });
@@ -143,7 +143,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           day_of_week: new Date(completion.completed_at).getDay(),
           week_id: '',
           week: null,
-          // Important: Set workout_exercises to undefined
+          // Break circular reference - this is critical
           workout_exercises: undefined
         };
         

@@ -133,7 +133,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
           category: ex.exercise.category,
           created_at: '' // Add missing property with empty string to satisfy type
         } : undefined,
-        // Critically important: Set workout to undefined to break circular reference
+        // Critical fix: explicitly set the workout property to undefined
         workout: undefined
       }));
       
@@ -363,7 +363,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
                 title: workout.week.program.title
               } : undefined
             } : null,
-            // Key fix: Explicitly set workout_exercises to undefined to prevent circular references
+            // Critical fix: This breaks the circular reference
             workout_exercises: undefined
           });
         });
@@ -384,7 +384,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           day_of_week: new Date(completion.completed_at).getDay(),
           week_id: '',
           week: null,
-          // Key fix: Explicitly set workout_exercises to undefined
+          // Critical fix: Explicitly set this to break circular references
           workout_exercises: undefined
         };
         

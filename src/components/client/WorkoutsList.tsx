@@ -19,7 +19,11 @@ import {
 } from "@/components/ui/accordion";
 import { cn } from '@/lib/utils';
 
-const WorkoutsList = () => {
+interface WorkoutsListProps {
+  showCompleted?: boolean;
+}
+
+const WorkoutsList: React.FC<WorkoutsListProps> = ({ showCompleted = false }) => {
   const { user } = useAuth();
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -103,12 +107,16 @@ const WorkoutsList = () => {
 
   const filteredWorkouts = React.useMemo(() => {
     if (!weekFilter) {
-      return workouts;
+      const workoutsFiltered = workouts.filter(workout => {
+        const isCompleted = workout.completed_at !== null;
+        return showCompleted ? isCompleted : !isCompleted;
+      });
+      return workoutsFiltered;
     }
     
     const weekNumber = parseInt(weekFilter, 10);
     
-    console.log(`Debug - Filtering workouts by Week ${weekNumber}`);
+    console.log(`Debug - Filtering workouts by Week ${weekNumber} and completed status: ${showCompleted}`);
     
     return workouts.filter(workout => {
       if (!workout.workout || !workout.workout.week) {
@@ -116,12 +124,11 @@ const WorkoutsList = () => {
       }
       
       const weekMatches = workout.workout.week.week_number === weekNumber;
+      const completionMatches = showCompleted ? workout.completed_at !== null : workout.completed_at === null;
       
-      console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout.week.week_number}, Program: ${workout.workout.week.program?.title}, Matches: ${weekMatches}`);
-      
-      return weekMatches;
+      return weekMatches && completionMatches;
     });
-  }, [workouts, weekFilter]);
+  }, [workouts, weekFilter, showCompleted]);
 
   if (isLoading) {
     return (
@@ -191,9 +198,9 @@ const WorkoutsList = () => {
           <Card>
             <CardContent className="pt-4 pb-4 text-center">
               <p className="text-muted-foreground">
-                {weekFilter === "" 
-                  ? "You don't have any assigned workouts yet."
-                  : "No workouts found for the selected filter."}
+                {showCompleted
+                  ? "You don't have any completed workouts yet."
+                  : "You don't have any pending workouts."}
               </p>
             </CardContent>
           </Card>

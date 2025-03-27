@@ -82,9 +82,7 @@ const LeaderboardPage = () => {
   
   return (
     <Container>
-      <div className="max-w-full text-center">
-        <h1 className="text-2xl font-bold mb-6 text-center">Team Progress</h1>
-        
+      <div className="max-w-full">
         <Tabs defaultValue="team" className="mb-6 w-full">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="team" className="flex-1 flex items-center justify-center gap-2">

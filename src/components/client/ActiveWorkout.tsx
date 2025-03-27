@@ -31,6 +31,14 @@ const ActiveWorkout = () => {
     };
   }>({});
 
+  // Track pending sets to save
+  const [pendingSets, setPendingSets] = useState<Array<{
+    exerciseId: string;
+    setNumber: number;
+    weight: string;
+    reps: string;
+  }>>([]);
+
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['active-workout', workoutCompletionId],
     queryFn: async () => {
@@ -97,11 +105,43 @@ const ActiveWorkout = () => {
     onSuccess: (data) => {
       console.log("Successfully tracked set:", data);
       queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
-      toast.success('Set saved successfully');
     },
     onError: (error: any) => {
       console.error('Error tracking set:', error);
       toast.error(`Failed to save set: ${error?.message || 'Unknown error'}`);
+    },
+  });
+
+  // This mutation will save all pending sets at once
+  const saveAllSetsMutation = useMutation({
+    mutationFn: async () => {
+      if (!workoutCompletionId || pendingSets.length === 0) {
+        return null;
+      }
+      
+      const promises = pendingSets.map(set => 
+        trackWorkoutSet(
+          workoutCompletionId!,
+          set.exerciseId,
+          set.setNumber,
+          set.weight ? parseFloat(set.weight) : null,
+          set.reps ? parseInt(set.reps, 10) : null
+        )
+      );
+      
+      return Promise.all(promises);
+    },
+    onSuccess: () => {
+      toast.success('All sets saved successfully');
+      queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
+      // Clear pending sets after successful save
+      setPendingSets([]);
+      // Proceed to complete workout page
+      navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
+    },
+    onError: (error: any) => {
+      console.error('Error saving sets:', error);
+      toast.error(`Failed to save sets: ${error?.message || 'Unknown error'}`);
     },
   });
 
@@ -149,7 +189,7 @@ const ActiveWorkout = () => {
     }));
   };
 
-  const handleSetCompletion = async (exerciseId: string, setIndex: number, completed: boolean) => {
+  const handleSetCompletion = (exerciseId: string, setIndex: number, completed: boolean) => {
     setExerciseStates((prev) => ({
       ...prev,
       [exerciseId]: {
@@ -161,24 +201,22 @@ const ActiveWorkout = () => {
     }));
 
     if (completed) {
-      try {
-        const set = exerciseStates[exerciseId].sets[setIndex];
-        console.log("Attempting to track set completion:", {
-          exerciseId,  // This is actually workout_exercise_id
+      // Add to pending sets instead of immediately saving
+      const set = exerciseStates[exerciseId].sets[setIndex];
+      setPendingSets(prev => [
+        ...prev.filter(s => !(s.exerciseId === exerciseId && s.setNumber === set.setNumber)),
+        {
+          exerciseId,
           setNumber: set.setNumber,
           weight: set.weight,
           reps: set.reps
-        });
-        
-        await trackSetMutation.mutateAsync({
-          exerciseId,  // Make sure we're passing workout_exercise_id
-          setNumber: set.setNumber,
-          weight: set.weight,
-          reps: set.reps,
-        });
-      } catch (error) {
-        console.error("Error in handleSetCompletion:", error);
-      }
+        }
+      ]);
+    } else {
+      // Remove from pending sets if unchecked
+      setPendingSets(prev => 
+        prev.filter(set => !(set.exerciseId === exerciseId && set.setNumber === setIndex + 1))
+      );
     }
   };
 
@@ -207,8 +245,14 @@ const ActiveWorkout = () => {
     });
   };
 
-  const finishWorkout = () => {
-    navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
+  const finishWorkout = async () => {
+    // First save all pending sets
+    try {
+      await saveAllSetsMutation.mutateAsync();
+      // Navigation is now handled in the mutation's onSuccess callback
+    } catch (error) {
+      console.error("Error saving sets:", error);
+    }
   };
 
   if (isLoading) {
@@ -341,15 +385,24 @@ const ActiveWorkout = () => {
         <div className="container mx-auto max-w-md">
           <Button
             onClick={finishWorkout}
-            disabled={!isWorkoutComplete()}
+            disabled={!isWorkoutComplete() || saveAllSetsMutation.isPending}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-6"
           >
-            <CheckCircle2 className="mr-2 h-5 w-5" />
+            {saveAllSetsMutation.isPending ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="mr-2 h-5 w-5" />
+            )}
             Complete Workout
           </Button>
           {!isWorkoutComplete() && (
             <p className="text-xs text-center mt-2 text-muted-foreground">
               Complete all sets to finish the workout
+            </p>
+          )}
+          {pendingSets.length > 0 && (
+            <p className="text-xs text-center mt-2 text-muted-foreground">
+              All sets will be saved when you complete the workout
             </p>
           )}
         </div>

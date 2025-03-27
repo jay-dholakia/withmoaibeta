@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Pencil, Save, Plus, Trash2, Loader2, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -217,7 +216,7 @@ const NotesPage = () => {
             placeholder="Write your journal entry here..."
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
-            className="min-h-[100px]"
+            className="min-h-[200px]"
           />
         </CardContent>
         <CardFooter className="flex justify-end">
@@ -287,7 +286,7 @@ const NotesPage = () => {
                       <Textarea
                         value={note.content}
                         onChange={(e) => updateNoteContent(note.id, e.target.value)}
-                        className="min-h-[100px]"
+                        className="min-h-[150px]"
                       />
                     ) : (
                       <p className="whitespace-pre-wrap">{note.content}</p>

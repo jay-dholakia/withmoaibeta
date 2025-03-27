@@ -27,7 +27,7 @@ const LifeHappensPass: React.FC<LifeHappensPassProps> = ({ onUsePass, isLoading 
   const hasRemaining = (remainingPasses ?? 0) > 0;
   
   return (
-    <Card className={hasRemaining ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"}>
+    <Card className={`w-full ${hasRemaining ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"}`}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center text-lg">
           <Umbrella className={`h-5 w-5 mr-2 ${hasRemaining ? 'text-blue-600' : 'text-gray-400'}`} />

@@ -60,10 +60,10 @@ const LeaderboardPage = () => {
   });
   
   return (
-    <div className="container mx-auto px-1 sm:px-2">
+    <div className="max-w-full">
       <h1 className="text-2xl font-bold mb-6">Team Progress</h1>
       
-      <Tabs defaultValue="team" className="mb-6">
+      <Tabs defaultValue="team" className="mb-6 w-full">
         <TabsList className="w-full mb-4">
           <TabsTrigger value="team" className="flex-1 flex items-center justify-center gap-2">
             <Users className="h-4 w-4" />
@@ -75,11 +75,11 @@ const LeaderboardPage = () => {
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="team">
+        <TabsContent value="team" className="w-full">
           <WeekProgressSection showTeam={true} showPersonal={false} />
         </TabsContent>
         
-        <TabsContent value="personal">
+        <TabsContent value="personal" className="w-full">
           {isLoading ? (
             <div className="flex justify-center py-6">
               <Loader2 className="h-6 w-6 animate-spin text-client" />

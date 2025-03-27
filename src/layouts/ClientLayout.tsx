@@ -50,7 +50,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
         </div>
       </header>
       
-      <main className="flex-grow px-4 py-6 mb-16">
+      <main className="flex-grow px-4 py-6 mb-16 w-full max-w-full">
         <PageTransition>
           {children}
         </PageTransition>

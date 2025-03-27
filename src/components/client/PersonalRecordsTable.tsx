@@ -44,13 +44,13 @@ export const PersonalRecordsTable = ({ records, isLoading }: PersonalRecordsTabl
   }
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm mb-8">
+    <div className="bg-white rounded-xl p-4 shadow-sm mb-8 w-full">
       <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
         <Trophy className="h-5 w-5 text-amber-500" />
         Personal Records
       </h3>
       
-      <ScrollArea className="max-h-[320px]">
+      <ScrollArea className="max-h-[320px] w-full">
         <div className="w-full">
           <Table className="w-full">
             <TableHeader>

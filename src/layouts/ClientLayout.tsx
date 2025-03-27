@@ -36,7 +36,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
       <Toaster position="top-center" richColors />
       
       <header className="bg-white shadow-sm border-b border-gray-200 py-4">
-        <div className="mx-auto px-4 flex justify-between items-center">
+        <div className="px-4 flex justify-between items-center">
           <div className="flex items-center">
             <Logo variant="client" size="md" />
           </div>
@@ -50,16 +50,16 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
         </div>
       </header>
       
-      <main className="flex-grow px-4 py-6 mb-16 w-full max-w-full">
+      <main className="flex-grow px-4 py-6 mb-16 w-full">
         <PageTransition>
           {children}
         </PageTransition>
       </main>
       
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md">
-        <div className="mx-auto">
+        <div>
           <nav className="flex justify-center">
-            <ul className="flex justify-evenly w-full max-w-md mx-auto">
+            <ul className="flex justify-evenly w-full max-w-screen-xl mx-auto">
               <li className="flex-1 flex justify-center">
                 <Link 
                   to="/client-dashboard/leaderboard" 

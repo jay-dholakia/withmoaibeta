@@ -26,7 +26,7 @@ export const ProfileBuilderLayout: React.FC<ProfileBuilderLayoutProps> = ({
       
       <PageTransition>
         <main className="flex-1 flex flex-col items-center justify-center px-4">
-          <div className="w-full max-w-2xl">
+          <div className="w-full">
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2">
                 <h2 className="text-sm font-medium text-muted-foreground">

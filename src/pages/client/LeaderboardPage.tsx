@@ -76,8 +76,8 @@ const LeaderboardPage = () => {
 
   // Determine the weekly target based on assigned workouts, or use default 7 if no assigned workouts
   const totalWeeklyTarget = React.useMemo(() => {
-    // Fix: Use assignedCount directly if it's greater than 0, otherwise use standard 7
-    return (typeof assignedCount === 'number' && assignedCount > 0) ? assignedCount : 7;
+    console.log('[Debug] assignedCount in LeaderboardPage:', assignedCount);
+    return assignedCount > 0 ? assignedCount : 7;
   }, [assignedCount]);
   
   return (
@@ -112,7 +112,7 @@ const LeaderboardPage = () => {
                   <div className="mb-4 bg-muted p-3 rounded-md text-sm flex items-start gap-2 justify-center">
                     <Info className="h-4 w-4 mt-0.5 shrink-0" />
                     <div>
-                      {assignedCount && assignedCount > 0 ? (
+                      {assignedCount > 0 ? (
                         <p>You have {assignedCount} workouts assigned this week.</p>
                       ) : (
                         <>

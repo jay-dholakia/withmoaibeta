@@ -215,10 +215,11 @@ export const WeekProgressSection = ({
   const thisWeekLifeHappens = clientLifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   const totalThisWeek = thisWeekWorkouts + thisWeekLifeHappens;
   
-  // Fix: Use assignedWorkoutsCount directly if it's greater than 0, otherwise fallback to 7
-  const totalWeeklyWorkouts = assignedWorkoutsCount && assignedWorkoutsCount > 0 
-    ? assignedWorkoutsCount 
-    : 7;
+  // Debug the assigned workouts count
+  console.log('[Debug] assignedWorkoutsCount in WeekProgressSection:', assignedWorkoutsCount);
+  
+  // Fix: Use assignedWorkoutsCount correctly and only fall back to 7 if it's not a positive number
+  const totalWeeklyWorkouts = assignedWorkoutsCount > 0 ? assignedWorkoutsCount : 7;
   
   const totalGroupWorkoutsThisWeek = groupData?.completions?.length || 0;
   const totalGroupMembers = groupData?.members?.length || 0;

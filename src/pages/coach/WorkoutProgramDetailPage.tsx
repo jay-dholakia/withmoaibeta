@@ -36,7 +36,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutWeekForm } from '@/components/coach/WorkoutWeekForm';
-import WorkoutDayForm from '@/components/coach/WorkoutDayForm';
+import { WorkoutDayForm } from '@/components/coach/WorkoutDayForm';
 import { WorkoutProgramForm } from '@/components/coach/WorkoutProgramForm';
 import { 
   fetchWorkoutProgram, 

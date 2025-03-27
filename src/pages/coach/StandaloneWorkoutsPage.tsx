@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
-import StandaloneWorkoutForm from '@/components/coach/StandaloneWorkoutForm';
+import { StandaloneWorkoutForm } from '@/components/coach/StandaloneWorkoutForm';
 import { fetchStandaloneWorkouts, deleteStandaloneWorkout } from '@/services/workout-service';
 import { StandaloneWorkout } from '@/types/workout';
 import { toast } from 'sonner';
@@ -138,6 +138,7 @@ const StandaloneWorkoutsPage = () => {
               <ScrollArea className="max-h-[80vh]">
                 {user?.id && (
                   <StandaloneWorkoutForm 
+                    coachId={user.id}
                     onSave={handleSaveWorkout}
                   />
                 )}
@@ -219,7 +220,9 @@ const StandaloneWorkoutsPage = () => {
                           <ScrollArea className="max-h-[80vh]">
                             {user?.id && (
                               <StandaloneWorkoutForm
+                                workoutId={workout.id}
                                 initialData={workout}
+                                coachId={user.id}
                                 onSave={handleSaveWorkout}
                                 mode="edit"
                               />

@@ -2,7 +2,6 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
-import { fetchCurrentProgram } from '@/services/program-service';
 import { supabase } from '@/integrations/supabase/client';
 import { WeekProgressBar } from './WeekProgressBar';
 import { Loader2, Users, User, Calendar } from 'lucide-react';
@@ -23,12 +22,33 @@ export const WeekProgressSection = ({
   const { user } = useAuth();
   
   const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const weekNumber = getWeek(now, { weekStartsOn: 1 });
   
-  const { data: currentProgram, isLoading: isLoadingProgram } = useQuery({
-    queryKey: ['current-program', user?.id],
+  const { data: programWeekData } = useQuery({
+    queryKey: ['program-week', user?.id],
     queryFn: async () => {
-      if (!user?.id) return null;
-      return fetchCurrentProgram(user.id);
+      if (!user?.id) return { weekNumber: 1 };
+      
+      const { data: assignments } = await supabase
+        .from('program_assignments')
+        .select('start_date')
+        .eq('user_id', user.id)
+        .order('start_date', { ascending: false })
+        .limit(1);
+      
+      if (!assignments || assignments.length === 0) {
+        return { weekNumber: 1 };
+      }
+      
+      const startDate = new Date(assignments[0].start_date);
+      const startOfProgramWeek = startOfWeek(startDate, { weekStartsOn: 1 });
+      const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 1 });
+      
+      const diffTime = Math.abs(startOfCurrentWeek.getTime() - startOfProgramWeek.getTime());
+      const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
+      
+      return { weekNumber: diffWeeks + 1 };
     },
     enabled: !!user?.id
   });
@@ -184,7 +204,7 @@ export const WeekProgressSection = ({
     }
   }, [clientWorkouts, clientCompletedDates, clientLifeHappensDates]);
   
-  if ((showPersonal && (isLoadingClientWorkouts || isLoadingAssignedCount || isLoadingProgram)) || (showTeam && isLoadingGroupData)) {
+  if ((showPersonal && (isLoadingClientWorkouts || isLoadingAssignedCount)) || (showTeam && isLoadingGroupData)) {
     return (
       <div className="flex justify-center py-6">
         <Loader2 className="h-6 w-6 animate-spin text-client" />
@@ -199,7 +219,6 @@ export const WeekProgressSection = ({
   console.log('[Debug] assignedWorkoutsCount in WeekProgressSection:', assignedWorkoutsCount);
   
   const totalWeeklyWorkouts = assignedWorkoutsCount > 0 ? assignedWorkoutsCount : 7;
-  const currentWeekNumber = currentProgram?.currentWeek || 1;
   
   const totalGroupWorkoutsThisWeek = groupData?.completions?.length || 0;
   const totalGroupMembers = groupData?.members?.length || 0;
@@ -230,7 +249,7 @@ export const WeekProgressSection = ({
             textColor="text-client"
             showDayCircles={true}
             showProgressBar={true}
-            weekNumber={currentWeekNumber}
+            weekNumber={programWeekData?.weekNumber}
           />
         </>
       )}
@@ -254,7 +273,7 @@ export const WeekProgressSection = ({
             textColor="text-blue-500"
             showDayCircles={false}
             showProgressBar={false}
-            weekNumber={currentWeekNumber}
+            weekNumber={programWeekData?.weekNumber}
           />
           
           {showTeam && !showPersonal && (
@@ -298,7 +317,7 @@ export const WeekProgressSection = ({
                           textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}
                           showDayCircles={true}
                           showProgressBar={false}
-                          weekNumber={currentWeekNumber}
+                          weekNumber={programWeekData?.weekNumber}
                           compact={true}
                         />
                       </div>

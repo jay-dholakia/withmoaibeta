@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Filter, ChevronDown, ChevronUp, Play, CheckCircle } from 'lucide-react';
+import { Loader2, Filter, ChevronDown, ChevronUp, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchCurrentProgram } from '@/services/program-service';
@@ -17,18 +17,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { cn } from '@/lib/utils';
 
-interface WorkoutsListProps {
-  showCompleted?: boolean;
-}
-
-const WorkoutsList: React.FC<WorkoutsListProps> = ({ showCompleted = false }) => {
+const WorkoutsList = () => {
   const { user } = useAuth();
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [weekFilter, setWeekFilter] = useState<string>("");
+  const [weekFilter, setWeekFilter] = useState<string>("all");
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
@@ -86,10 +81,7 @@ const WorkoutsList: React.FC<WorkoutsListProps> = ({ showCompleted = false }) =>
         console.log("Debug - Extracted week numbers:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
-        // Default to the current week if available, otherwise first week
-        if (program && program.currentWeek && extractedWeeks.includes(program.currentWeek)) {
-          setWeekFilter(program.currentWeek.toString());
-        } else if (extractedWeeks.length > 0) {
+        if (extractedWeeks.length > 0) {
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
           setWeekFilter(sortedWeeks[0].toString());
         }
@@ -106,17 +98,13 @@ const WorkoutsList: React.FC<WorkoutsListProps> = ({ showCompleted = false }) =>
   }, [user]);
 
   const filteredWorkouts = React.useMemo(() => {
-    if (!weekFilter) {
-      const workoutsFiltered = workouts.filter(workout => {
-        const isCompleted = workout.completed_at !== null;
-        return showCompleted ? isCompleted : !isCompleted;
-      });
-      return workoutsFiltered;
+    if (weekFilter === "all") {
+      return workouts;
     }
     
     const weekNumber = parseInt(weekFilter, 10);
     
-    console.log(`Debug - Filtering workouts by Week ${weekNumber} and completed status: ${showCompleted}`);
+    console.log(`Debug - Filtering workouts by Week ${weekNumber}`);
     
     return workouts.filter(workout => {
       if (!workout.workout || !workout.workout.week) {
@@ -124,11 +112,12 @@ const WorkoutsList: React.FC<WorkoutsListProps> = ({ showCompleted = false }) =>
       }
       
       const weekMatches = workout.workout.week.week_number === weekNumber;
-      const completionMatches = showCompleted ? workout.completed_at !== null : workout.completed_at === null;
       
-      return weekMatches && completionMatches;
+      console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout.week.week_number}, Program: ${workout.workout.week.program?.title}, Matches: ${weekMatches}`);
+      
+      return weekMatches;
     });
-  }, [workouts, weekFilter, showCompleted]);
+  }, [workouts, weekFilter]);
 
   if (isLoading) {
     return (
@@ -179,6 +168,7 @@ const WorkoutsList: React.FC<WorkoutsListProps> = ({ showCompleted = false }) =>
                 </div>
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All Weeks</SelectItem>
                 {availableWeeks
                   .sort((a, b) => a - b)
                   .map((weekNumber) => (
@@ -198,135 +188,100 @@ const WorkoutsList: React.FC<WorkoutsListProps> = ({ showCompleted = false }) =>
           <Card>
             <CardContent className="pt-4 pb-4 text-center">
               <p className="text-muted-foreground">
-                {showCompleted
-                  ? "You don't have any completed workouts yet."
-                  : "You don't have any pending workouts."}
+                {weekFilter === "all" 
+                  ? "You don't have any assigned workouts yet."
+                  : "No workouts found for the selected filter."}
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredWorkouts.map((workout) => {
-              const isCompleted = workout.completed_at !== null;
-              
-              return (
-                <Card 
-                  key={workout.id} 
-                  className={cn(
-                    "overflow-hidden relative",
-                    isCompleted && "border-green-200"
-                  )}
+            {filteredWorkouts.map((workout) => (
+              <Card key={workout.id} className="overflow-hidden">
+                <Collapsible
+                  open={expandedWorkouts[workout.id] || false}
+                  onOpenChange={() => toggleWorkoutDetails(workout.id)}
                 >
-                  {isCompleted && (
-                    <div className="absolute top-3 right-3 z-10">
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    </div>
-                  )}
-                  
-                  <Collapsible
-                    open={expandedWorkouts[workout.id] || false}
-                    onOpenChange={() => toggleWorkoutDetails(workout.id)}
-                  >
-                    <CardHeader className="px-4 py-3 flex flex-row items-center justify-between">
-                      <CardTitle className="text-lg">
-                        {workout.workout?.title || 'Untitled Workout'}
-                      </CardTitle>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 ml-2">
-                          {expandedWorkouts[workout.id] ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                          <span className="sr-only">Toggle details</span>
-                        </Button>
-                      </CollapsibleTrigger>
-                    </CardHeader>
-                    
-                    <CardContent className="p-0">
-                      <CollapsibleContent className="px-4 pb-2 pt-0 space-y-2">
-                        {workout.workout?.description && (
-                          <div className="mb-2">
-                            <h4 className="text-xs font-medium">Description</h4>
-                            <p className="text-xs text-muted-foreground">
-                              {workout.workout.description}
-                            </p>
-                          </div>
-                        )}
-                        
-                        {workout.workout?.workout_exercises && workout.workout.workout_exercises.length > 0 && (
-                          <div>
-                            <h4 className="text-xs font-medium mb-1">Exercises</h4>
-                            <Accordion type="single" collapsible className="w-full">
-                              {workout.workout.workout_exercises.map((exercise, index) => (
-                                <AccordionItem key={exercise.id} value={exercise.id} className="border-b-0 py-0">
-                                  <div className="flex flex-col">
-                                    <AccordionTrigger className="py-1 text-xs">
-                                      {exercise.exercise?.name || 'Unknown Exercise'}
-                                    </AccordionTrigger>
-                                    
-                                    <div className="flex flex-wrap gap-2 px-1 py-1 text-xs">
-                                      <span className="bg-muted px-2 py-0.5 rounded-md">Sets: {exercise.sets}</span>
-                                      <span className="bg-muted px-2 py-0.5 rounded-md">Reps: {exercise.reps}</span>
-                                      {exercise.rest_seconds && (
-                                        <span className="bg-muted px-2 py-0.5 rounded-md">Rest: {exercise.rest_seconds}s</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  
-                                  <AccordionContent className="pb-1">
-                                    <div className="space-y-1 text-xs">
-                                      {exercise.notes && (
-                                        <div className="text-xs bg-muted p-1.5 rounded-md">
-                                          <span className="font-medium">Notes:</span> {exercise.notes}
-                                        </div>
-                                      )}
-                                      {exercise.exercise?.description && (
-                                        <div className="text-xs bg-muted p-1.5 rounded-md">
-                                          <span className="font-medium">Description:</span> {exercise.exercise.description}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              ))}
-                            </Accordion>
-                          </div>
-                        )}
-                      </CollapsibleContent>
-                    </CardContent>
-                  </Collapsible>
-                  
-                  <CardFooter className="p-3">
-                    <Button 
-                      asChild 
-                      className={cn(
-                        "w-full h-9 py-1", 
-                        isCompleted && "bg-green-600 hover:bg-green-700"
-                      )} 
-                      size="sm"
-                    >
-                      <Link to={isCompleted 
-                        ? `/client-dashboard/workouts/complete/${workout.id}` 
-                        : `/client-dashboard/workouts/active/${workout.id}`
-                      }>
-                        {isCompleted ? (
-                          <>
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            View Results
-                          </>
+                  <CardHeader className="px-4 py-3 flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg">
+                      {workout.workout?.title || 'Untitled Workout'}
+                    </CardTitle>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 ml-2">
+                        {expandedWorkouts[workout.id] ? (
+                          <ChevronUp className="h-4 w-4" />
                         ) : (
-                          <>
-                            <Play className="h-4 w-4 mr-2" />
-                            Start Workout
-                          </>
+                          <ChevronDown className="h-4 w-4" />
                         )}
-                      </Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              );
-            })}
+                        <span className="sr-only">Toggle details</span>
+                      </Button>
+                    </CollapsibleTrigger>
+                  </CardHeader>
+                  
+                  <CardContent className="p-0">
+                    <CollapsibleContent className="px-4 pb-2 pt-0 space-y-2">
+                      {workout.workout?.description && (
+                        <div className="mb-2">
+                          <h4 className="text-xs font-medium">Description</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {workout.workout.description}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {workout.workout?.workout_exercises && workout.workout.workout_exercises.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-medium mb-1">Exercises</h4>
+                          <Accordion type="single" collapsible className="w-full">
+                            {workout.workout.workout_exercises.map((exercise, index) => (
+                              <AccordionItem key={exercise.id} value={exercise.id} className="border-b-0 py-0">
+                                <div className="flex flex-col">
+                                  <AccordionTrigger className="py-1 text-xs">
+                                    {exercise.exercise?.name || 'Unknown Exercise'}
+                                  </AccordionTrigger>
+                                  
+                                  <div className="flex flex-wrap gap-2 px-1 py-1 text-xs">
+                                    <span className="bg-muted px-2 py-0.5 rounded-md">Sets: {exercise.sets}</span>
+                                    <span className="bg-muted px-2 py-0.5 rounded-md">Reps: {exercise.reps}</span>
+                                    {exercise.rest_seconds && (
+                                      <span className="bg-muted px-2 py-0.5 rounded-md">Rest: {exercise.rest_seconds}s</span>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                <AccordionContent className="pb-1">
+                                  <div className="space-y-1 text-xs">
+                                    {exercise.notes && (
+                                      <div className="text-xs bg-muted p-1.5 rounded-md">
+                                        <span className="font-medium">Notes:</span> {exercise.notes}
+                                      </div>
+                                    )}
+                                    {exercise.exercise?.description && (
+                                      <div className="text-xs bg-muted p-1.5 rounded-md">
+                                        <span className="font-medium">Description:</span> {exercise.exercise.description}
+                                      </div>
+                                    )}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                          </Accordion>
+                        </div>
+                      )}
+                    </CollapsibleContent>
+                  </CardContent>
+                </Collapsible>
+                
+                <CardFooter className="p-3">
+                  <Button asChild className="w-full h-9 py-1" size="sm">
+                    <Link to={`/client-dashboard/workouts/active/${workout.id}`}>
+                      <Play className="h-4 w-4 mr-2" />
+                      Start Workout
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
           </div>
         )}
       </div>

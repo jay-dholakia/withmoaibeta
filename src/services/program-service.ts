@@ -26,26 +26,7 @@ export const fetchClientPrograms = async (clientId: string): Promise<any[]> => {
       .order('start_date', { ascending: false });
     
     if (error) throw error;
-    
-    // Add current week calculation to each program assignment
-    const programsWithWeekData = data?.map(assignment => {
-      const startDate = new Date(assignment.start_date);
-      const today = new Date();
-      
-      // Calculate the difference in days
-      const diffTime = Math.abs(today.getTime() - startDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      // Calculate current week (1-indexed)
-      const currentWeek = Math.floor(diffDays / 7) + 1;
-      
-      return {
-        ...assignment,
-        currentWeek
-      };
-    }) || [];
-    
-    return programsWithWeekData;
+    return data || [];
   } catch (error) {
     console.error("Error fetching client programs:", error);
     return [];
@@ -286,14 +267,6 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       return null;
     }
     
-    // Calculate current week for this assignment
-    const startDate = new Date(currentAssignment.start_date);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - startDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    // Calculate week (1-indexed)
-    const currentWeek = Math.floor(diffDays / 7) + 1;
-    
     // Fetch the complete program data
     const programData = await fetchFullProgramDetails(programId);
     
@@ -305,14 +278,12 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     // Construct full program data
     const fullProgramData = {
       ...currentAssignment,
-      currentWeek,
       program: programData
     };
     
     console.log("Successfully built program data:", 
       fullProgramData.program.title, 
-      "with", fullProgramData.program.weekData?.length || 0, "weeks",
-      "current week:", fullProgramData.currentWeek
+      "with", fullProgramData.program.weekData?.length || 0, "weeks"
     );
     
     return fullProgramData;

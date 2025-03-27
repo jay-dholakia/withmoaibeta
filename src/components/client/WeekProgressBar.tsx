@@ -76,9 +76,9 @@ export const WeekProgressBar = ({
             const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
             
             return (
-              <div key={index} className="flex-1 flex flex-col items-center">
+              <div key={index} className="flex-1">
                 <div 
-                  className={`h-7 w-full rounded-md flex items-center justify-center ${
+                  className={`h-7 rounded-md flex items-center justify-center ${
                     isCompleted ? 'bg-green-100' : isLifeHappens ? 'bg-blue-100' : 'bg-slate-100'
                   }`}
                 >
@@ -86,10 +86,9 @@ export const WeekProgressBar = ({
                     <Umbrella className="h-3 w-3 text-blue-500" />
                   ) : isCompleted ? (
                     <Star className="h-3 w-3 text-green-500 fill-green-500" />
-                  ) : null}
-                </div>
-                <div className="text-xs text-slate-500 mt-1">
-                  {format(day, 'E')[0]}
+                  ) : (
+                    <span className="text-xs text-slate-400">{format(day, 'E')[0]}</span>
+                  )}
                 </div>
               </div>
             );
@@ -139,7 +138,7 @@ export const WeekProgressBar = ({
       )}
       
       {showDayCircles && (
-        <div className="flex justify-center space-x-3 mt-4">
+        <div className="flex justify-center space-x-1.5 mt-4">
           {weekDays.map((day, index) => {
             const isCompleted = completedDates.some(date => isSameDay(day, date));
             const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
@@ -147,17 +146,17 @@ export const WeekProgressBar = ({
             return (
               <div key={index} className="flex flex-col items-center">
                 <div 
-                  className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                  className={`flex items-center justify-center w-6 h-6 rounded-full ${
                     isCompleted ? 'bg-green-100' : isLifeHappens ? 'bg-blue-100' : 'bg-slate-100'
                   }`}
                 >
                   {isLifeHappens ? (
-                    <Umbrella className="h-4 w-4 text-blue-500" />
+                    <Umbrella className="h-3 w-3 text-blue-500" />
                   ) : isCompleted ? (
-                    <Star className="h-4 w-4 text-green-500 fill-green-500" />
+                    <Star className="h-3 w-3 text-green-500 fill-green-500" />
                   ) : null}
                 </div>
-                <div className="text-xs text-center text-slate-500 mt-1.5">
+                <div className="text-xs text-center text-slate-500 mt-1">
                   {format(day, 'E')[0]}
                 </div>
               </div>

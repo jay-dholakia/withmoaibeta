@@ -17,7 +17,6 @@ const WorkoutComplete = () => {
   const navigate = useNavigate();
   const [notes, setNotes] = useState('');
   const [rating, setRating] = useState<number | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
   
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['complete-workout', workoutCompletionId],
@@ -39,15 +38,6 @@ const WorkoutComplete = () => {
         .single();
 
       if (error) throw error;
-      
-      if (data && data.completed_at) {
-        setNotes(data.notes || '');
-        setRating(data.rating || null);
-        setIsEditMode(false);
-      } else {
-        setIsEditMode(true);
-      }
-      
       return data;
     },
     enabled: !!workoutCompletionId && !!user?.id,
@@ -128,8 +118,6 @@ const WorkoutComplete = () => {
     { value: 5, emoji: "😤", label: "Fully Charged" }
   ];
 
-  const isViewMode = workoutData?.completed_at && !isEditMode;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -141,12 +129,8 @@ const WorkoutComplete = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">
-            {isViewMode ? 'Workout Results' : 'Workout Complete'}
-          </h1>
-          <p className="text-muted-foreground">
-            {isViewMode ? 'Review your completed workout' : 'Great job!'}
-          </p>
+          <h1 className="text-2xl font-bold">Workout Complete</h1>
+          <p className="text-muted-foreground">Great job!</p>
         </div>
       </div>
 
@@ -159,20 +143,12 @@ const WorkoutComplete = () => {
             {workoutData?.workout?.title || 'Workout'} Completed!
           </h2>
           <p className="text-muted-foreground">
-            {workoutData?.completed_at 
-              ? new Date(workoutData.completed_at).toLocaleDateString(undefined, {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })
-              : new Date().toLocaleDateString(undefined, {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })
-            }
+            {new Date().toLocaleDateString(undefined, {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
           </p>
         </div>
       </div>
@@ -200,95 +176,57 @@ const WorkoutComplete = () => {
         </Card>
       )}
 
-      {!isViewMode ? (
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-sm font-medium mb-2 text-center">How do you feel after this workout?</h3>
-            <div className="flex justify-center gap-2">
-              {feelingOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setRating(option.value)}
-                  className={cn(
-                    "flex flex-col items-center rounded-lg p-2 transition-colors border-2",
-                    rating === option.value 
-                      ? "border-primary bg-primary/10" 
-                      : "border-transparent hover:bg-gray-100"
-                  )}
-                  title={option.label}
-                >
-                  <span className="text-2xl mb-1">{option.emoji}</span>
-                  <span className="text-xs">{option.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-medium mb-2">Add notes</h3>
-            <Textarea
-              placeholder="How did this workout feel? What went well? What was challenging?"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={4}
-            />
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium mb-2 text-center">How do you feel after this workout?</h3>
+          <div className="flex justify-center gap-2">
+            {feelingOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setRating(option.value)}
+                className={cn(
+                  "flex flex-col items-center rounded-lg p-2 transition-colors border-2",
+                  rating === option.value 
+                    ? "border-primary bg-primary/10" 
+                    : "border-transparent hover:bg-gray-100"
+                )}
+                title={option.label}
+              >
+                <span className="text-2xl mb-1">{option.emoji}</span>
+                <span className="text-xs">{option.label}</span>
+              </button>
+            ))}
           </div>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {workoutData.rating && (
-            <div>
-              <h3 className="text-sm font-medium mb-2">How you felt</h3>
-              <div className="flex justify-center">
-                <div className="flex flex-col items-center rounded-lg p-3 bg-muted/50">
-                  <span className="text-3xl mb-1">
-                    {feelingOptions.find(o => o.value === workoutData.rating)?.emoji || ''}
-                  </span>
-                  <span className="font-medium">
-                    {feelingOptions.find(o => o.value === workoutData.rating)?.label || ''}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {workoutData.notes && (
-            <div>
-              <h3 className="text-sm font-medium mb-2">Your notes</h3>
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p>{workoutData.notes}</p>
-              </div>
-            </div>
-          )}
+        <div>
+          <h3 className="text-sm font-medium mb-2">Add notes</h3>
+          <Textarea
+            placeholder="How did this workout feel? What went well? What was challenging?"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={4}
+          />
         </div>
-      )}
+      </div>
 
       <div className="flex flex-col gap-3 pt-4">
-        {!isViewMode ? (
-          <Button
-            onClick={() => completeMutation.mutate()}
-            disabled={completeMutation.isPending}
-            className="bg-client hover:bg-client/90"
-          >
-            {completeMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="mr-2 h-4 w-4" /> Complete Workout
-              </>
-            )}
-          </Button>
-        ) : (
-          <Button
-            variant="outline"
-            onClick={() => navigate('/client-dashboard/workouts')}
-          >
-            Back to Workouts
-          </Button>
-        )}
+        <Button
+          onClick={() => completeMutation.mutate()}
+          disabled={completeMutation.isPending}
+          className="bg-client hover:bg-client/90"
+        >
+          {completeMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Complete Workout
+            </>
+          )}
+        </Button>
         
         <Button
           variant="outline"

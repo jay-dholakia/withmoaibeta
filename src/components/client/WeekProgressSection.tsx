@@ -193,7 +193,7 @@ export const WeekProgressSection = ({
   const maxPossibleWorkouts = totalGroupMembers * 7;
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 text-center">
       {!showTeam && !showPersonal && (
         <div className="text-center text-muted-foreground py-8">
           No progress data to display
@@ -202,7 +202,7 @@ export const WeekProgressSection = ({
       
       {showPersonal && (
         <>
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <h2 className="text-xl font-bold mb-4 flex items-center justify-center gap-2">
             <User className="h-5 w-5 text-client" />
             Your Progress
           </h2>
@@ -224,7 +224,7 @@ export const WeekProgressSection = ({
       {showTeam && groupData?.members?.length > 0 && (
         <>
           {showPersonal && (
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 mt-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center justify-center gap-2 mt-6">
               <Users className="h-5 w-5 text-client" />
               Team Progress
             </h2>
@@ -244,7 +244,7 @@ export const WeekProgressSection = ({
           
           {showTeam && !showPersonal && (
             <div className="mt-8 space-y-4">
-              <h3 className="text-lg font-medium">Member Progress</h3>
+              <h3 className="text-lg font-medium text-center">Member Progress</h3>
               <div className="grid grid-cols-1 gap-4">
                 {groupData.members.map(member => (
                   <div key={member.userId} className="space-y-2">

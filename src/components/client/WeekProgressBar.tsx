@@ -61,30 +61,30 @@ export const WeekProgressBar = ({
   const hasAssignedWorkouts = total > 0;
 
   return (
-    <div className="space-y-2 mb-8 bg-white rounded-xl p-5 shadow-sm">
-      <div className="flex justify-between items-center mb-2">
-        <div>
+    <div className="space-y-2 mb-8 bg-white rounded-xl p-5 shadow-sm text-center">
+      <div className="flex justify-center flex-col items-center mb-2">
+        <div className="text-center">
           <h3 className="text-base font-semibold">{label}</h3>
           {hasAssignedWorkouts ? (
             <p className="text-sm text-slate-500">
               {totalCompletedCount} of {total} {total === 1 ? 'workout' : 'workouts'} completed
             </p>
           ) : (
-            <p className="text-sm text-amber-500 flex items-center gap-1">
+            <p className="text-sm text-amber-500 flex items-center justify-center gap-1">
               <AlertCircle className="h-3.5 w-3.5" />
               <span>No assigned workouts this week</span>
             </p>
           )}
         </div>
         {showProgressBar && hasAssignedWorkouts && (
-          <span className={`text-lg font-bold ${textColor}`}>{Math.round(percentComplete)}%</span>
+          <span className={`text-lg font-bold ${textColor} mt-2`}>{Math.round(percentComplete)}%</span>
         )}
       </div>
 
       {showProgressBar && hasAssignedWorkouts && (
         <Progress 
           value={percentComplete} 
-          className="h-3 mb-4" 
+          className="h-3 mb-4 mx-auto" 
           style={{ 
             backgroundColor: "rgb(241 245 249)",
           }}
@@ -92,7 +92,7 @@ export const WeekProgressBar = ({
       )}
       
       {showDayCircles && (
-        <div className="flex justify-between px-1 sm:px-4 mt-3">
+        <div className="flex justify-center space-x-4 px-1 sm:px-4 mt-3">
           {weekDays.map((day, index) => {
             const isCompleted = completedDates.some(date => isSameDay(day, date));
             const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));

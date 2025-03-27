@@ -83,8 +83,8 @@ const LeaderboardPage = () => {
   
   return (
     <Container>
-      <div className="max-w-full">
-        <h1 className="text-2xl font-bold mb-6">Team Progress</h1>
+      <div className="max-w-full text-center">
+        <h1 className="text-2xl font-bold mb-6 text-center">Team Progress</h1>
         
         <Tabs defaultValue="team" className="mb-6 w-full">
           <TabsList className="w-full mb-4">
@@ -110,7 +110,7 @@ const LeaderboardPage = () => {
             ) : (
               <>
                 {!isLoadingAssigned && (
-                  <div className="mb-4 bg-muted p-3 rounded-md text-sm flex items-start gap-2">
+                  <div className="mb-4 bg-muted p-3 rounded-md text-sm flex items-start gap-2 justify-center">
                     <Info className="h-4 w-4 mt-0.5 shrink-0" />
                     <div>
                       {typeof assignedCount === 'number' && assignedCount > 0 ? (
@@ -125,14 +125,14 @@ const LeaderboardPage = () => {
                   </div>
                 )}
                 
-                <h2 className="text-xl font-bold mb-4 mt-6 flex items-center gap-2">
+                <h2 className="text-xl font-bold mb-4 mt-6 flex items-center justify-center gap-2">
                   <User className="h-5 w-5 text-client" />
                   Monthly Progress
                 </h2>
                 
                 <MonthlyCalendarView workouts={clientWorkouts || []} />
                 
-                <h2 className="text-xl font-bold mb-4 mt-8 flex items-center gap-2">
+                <h2 className="text-xl font-bold mb-4 mt-8 flex items-center justify-center gap-2">
                   <Trophy className="h-5 w-5 text-amber-500" />
                   Personal Records
                 </h2>

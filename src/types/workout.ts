@@ -1,9 +1,11 @@
+
 export interface Exercise {
   id: string;
   name: string;
   category: string;
   description: string | null;
   created_at: string;
+  exercise_type: 'strength' | 'bodyweight' | 'cardio' | 'flexibility';
 }
 
 export interface WorkoutProgram {

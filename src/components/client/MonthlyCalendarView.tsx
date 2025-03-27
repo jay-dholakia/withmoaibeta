@@ -70,7 +70,7 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
   };
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm mb-8 overflow-hidden">
+    <div className="bg-white rounded-xl p-2 shadow-sm mb-8 overflow-hidden">
       <div className="flex justify-between items-center mb-2">
         <Button 
           variant="outline" 
@@ -103,7 +103,7 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
           selected={undefined}
           onSelect={() => {}}
           disabled={{ after: new Date() }}
-          className="pointer-events-auto mx-auto w-full"
+          className="pointer-events-auto mx-auto w-full px-0"
           hideHead={false}
           components={{
             DayContent: renderDayContent

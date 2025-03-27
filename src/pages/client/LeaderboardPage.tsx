@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,8 +32,6 @@ const LeaderboardPage = () => {
       console.log('[Debug] Fetching assigned workout count for user:', user.id);
       const count = await getWeeklyAssignedWorkoutsCount(user.id);
       console.log('[Debug] Assigned workouts count returned:', count);
-      
-      // Return the actual count, don't fallback to 7
       return count;
     },
     enabled: !!user?.id,
@@ -76,14 +75,10 @@ const LeaderboardPage = () => {
     enabled: !!user?.id,
   });
 
-  // Determine the total weekly target
+  // Determine the weekly target based on assigned workouts, or use default 7 if no assigned workouts
   const totalWeeklyTarget = React.useMemo(() => {
-    // If we have assigned workouts, use that count
-    if (typeof assignedCount === 'number' && assignedCount > 0) {
-      return assignedCount;
-    }
-    // Otherwise use standard weekly target of 7 workouts
-    return 7;
+    // If assigned workouts exist, use that count, otherwise use standard 7
+    return (typeof assignedCount === 'number' && assignedCount > 0) ? assignedCount : 7;
   }, [assignedCount]);
   
   return (

@@ -1,3 +1,4 @@
+
 import { fetchClientWorkoutHistory } from './client-workout-history-service';
 import { fetchAssignedWorkouts } from './assigned-workouts-service';
 import { supabase } from "@/integrations/supabase/client";
@@ -152,12 +153,17 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     
     if (programAssignments && programAssignments.length > 0) {
       const startDate = new Date(programAssignments[0].start_date);
+      // Calculate days difference between now and start date
       const daysDiff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      // Calculate week number (1-indexed)
       currentWeekNumber = Math.floor(daysDiff / 7) + 1;
       console.log(`[Debug] Program started on ${format(startDate, 'yyyy-MM-dd')}, current week is ${currentWeekNumber}`);
     } else {
       console.log(`[Debug] No program assignments found, defaulting to week 1`);
     }
+    
+    // For SQL verification, log the current week number we're checking
+    console.log(`[Debug] Looking for workouts with week_number = ${currentWeekNumber}`);
     
     // Filter workouts that belong to the current week
     const currentWeekWorkouts = assignedWorkouts.filter(workout => {
@@ -184,6 +190,21 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
           program: workout.workout?.week?.program?.title || 'No Program'
         });
       });
+      
+      // Direct SQL query for verification
+      const { data: sqlWorkouts, error } = await supabase.rpc(
+        'count_workouts_for_user_and_week',
+        { 
+          user_id_param: userId,
+          week_number_param: currentWeekNumber
+        }
+      );
+      
+      if (error) {
+        console.error('[Debug] SQL verification error:', error);
+      } else {
+        console.log(`[Debug] SQL verification result: ${sqlWorkouts} workouts in week ${currentWeekNumber}`);
+      }
     }
     
     return currentWeekWorkouts.length;

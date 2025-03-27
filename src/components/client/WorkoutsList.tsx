@@ -1,22 +1,16 @@
+
 import React, { useEffect, useState } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
-import CustomWorkoutsList from './CustomWorkoutsList';
 import { Loader2, Filter, ChevronDown, ChevronUp, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchCurrentProgram } from '@/services/program-service';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
 import { 
   Accordion,
   AccordionContent,
@@ -147,163 +141,150 @@ const WorkoutsList = () => {
 
   return (
     <div className="space-y-4">
-      <Tabs defaultValue="assigned" className="w-full">
-        <TabsList className="w-full">
-          <TabsTrigger value="assigned" className="flex-1">Assigned Workouts</TabsTrigger>
-          <TabsTrigger value="custom" className="flex-1">Custom Workouts</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="assigned" className="pt-3">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              {currentProgram && currentProgram.program && (
-                <div className="text-center space-y-1 flex-1">
-                  <h2 className="text-xl font-bold">{currentProgram.program.title}</h2>
-                  {currentProgram.program.description && (
-                    <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
-                      {currentProgram.program.description}
-                    </p>
-                  )}
-                </div>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          {currentProgram && currentProgram.program && (
+            <div className="text-center space-y-1 flex-1">
+              <h2 className="text-xl font-bold">{currentProgram.program.title}</h2>
+              {currentProgram.program.description && (
+                <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
+                  {currentProgram.program.description}
+                </p>
               )}
             </div>
-            
-            {availableWeeks.length > 0 && (
-              <div className="flex justify-center mb-2">
-                <Select
-                  value={weekFilter}
-                  onValueChange={setWeekFilter}
-                >
-                  <SelectTrigger className="w-[200px] h-8 text-sm">
-                    <div className="flex items-center gap-1">
-                      <Filter className="h-3.5 w-3.5" />
-                      <SelectValue placeholder="Filter by week" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Weeks</SelectItem>
-                    {availableWeeks
-                      .sort((a, b) => a - b)
-                      .map((weekNumber) => (
-                        <SelectItem 
-                          key={weekNumber} 
-                          value={weekNumber.toString()}
-                        >
-                          {`Week ${weekNumber}`}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            
-            {filteredWorkouts.length === 0 ? (
-              <Card>
-                <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-muted-foreground">
-                    {weekFilter === "all" 
-                      ? "You don't have any assigned workouts yet."
-                      : "No workouts found for the selected filter."}
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredWorkouts.map((workout) => (
-                  <Card key={workout.id} className="overflow-hidden">
-                    <Collapsible
-                      open={expandedWorkouts[workout.id] || false}
-                      onOpenChange={() => toggleWorkoutDetails(workout.id)}
-                    >
-                      <CardHeader className="px-4 py-3 flex flex-row items-center justify-between">
-                        <CardTitle className="text-lg">
-                          {workout.workout?.title || 'Untitled Workout'}
-                        </CardTitle>
-                        <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 ml-2">
-                            {expandedWorkouts[workout.id] ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4" />
-                            )}
-                            <span className="sr-only">Toggle details</span>
-                          </Button>
-                        </CollapsibleTrigger>
-                      </CardHeader>
-                      
-                      <CardContent className="p-0">
-                        <CollapsibleContent className="px-4 pb-2 pt-0 space-y-2">
-                          {workout.workout?.description && (
-                            <div className="mb-2">
-                              <h4 className="text-xs font-medium">Description</h4>
-                              <p className="text-xs text-muted-foreground">
-                                {workout.workout.description}
-                              </p>
-                            </div>
-                          )}
-                          
-                          {workout.workout?.workout_exercises && workout.workout.workout_exercises.length > 0 && (
-                            <div>
-                              <h4 className="text-xs font-medium mb-1">Exercises</h4>
-                              <Accordion type="single" collapsible className="w-full">
-                                {workout.workout.workout_exercises.map((exercise, index) => (
-                                  <AccordionItem key={exercise.id} value={exercise.id} className="border-b-0 py-0">
-                                    <div className="flex flex-col">
-                                      <AccordionTrigger className="py-1 text-xs">
-                                        {exercise.exercise?.name || 'Unknown Exercise'}
-                                      </AccordionTrigger>
-                                      
-                                      <div className="flex flex-wrap gap-2 px-1 py-1 text-xs">
-                                        <span className="bg-muted px-2 py-0.5 rounded-md">Sets: {exercise.sets}</span>
-                                        <span className="bg-muted px-2 py-0.5 rounded-md">Reps: {exercise.reps}</span>
-                                        {exercise.rest_seconds && (
-                                          <span className="bg-muted px-2 py-0.5 rounded-md">Rest: {exercise.rest_seconds}s</span>
-                                        )}
-                                      </div>
-                                    </div>
-                                    
-                                    <AccordionContent className="pb-1">
-                                      <div className="space-y-1 text-xs">
-                                        {exercise.notes && (
-                                          <div className="text-xs bg-muted p-1.5 rounded-md">
-                                            <span className="font-medium">Notes:</span> {exercise.notes}
-                                          </div>
-                                        )}
-                                        {exercise.exercise?.description && (
-                                          <div className="text-xs bg-muted p-1.5 rounded-md">
-                                            <span className="font-medium">Description:</span> {exercise.exercise.description}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </AccordionContent>
-                                  </AccordionItem>
-                                ))}
-                              </Accordion>
-                            </div>
-                          )}
-                        </CollapsibleContent>
-                      </CardContent>
-                    </Collapsible>
-                    
-                    <CardFooter className="p-3">
-                      <Button asChild className="w-full h-9 py-1" size="sm">
-                        <Link to={`/client-dashboard/workouts/active/${workout.id}`}>
-                          <Play className="h-4 w-4 mr-2" />
-                          Start Workout
-                        </Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        </TabsContent>
+          )}
+        </div>
         
-        <TabsContent value="custom" className="pt-3">
-          <CustomWorkoutsList />
-        </TabsContent>
-      </Tabs>
+        {availableWeeks.length > 0 && (
+          <div className="flex justify-center mb-2">
+            <Select
+              value={weekFilter}
+              onValueChange={setWeekFilter}
+            >
+              <SelectTrigger className="w-[200px] h-8 text-sm">
+                <div className="flex items-center gap-1">
+                  <Filter className="h-3.5 w-3.5" />
+                  <SelectValue placeholder="Filter by week" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Weeks</SelectItem>
+                {availableWeeks
+                  .sort((a, b) => a - b)
+                  .map((weekNumber) => (
+                    <SelectItem 
+                      key={weekNumber} 
+                      value={weekNumber.toString()}
+                    >
+                      {`Week ${weekNumber}`}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        
+        {filteredWorkouts.length === 0 ? (
+          <Card>
+            <CardContent className="pt-4 pb-4 text-center">
+              <p className="text-muted-foreground">
+                {weekFilter === "all" 
+                  ? "You don't have any assigned workouts yet."
+                  : "No workouts found for the selected filter."}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredWorkouts.map((workout) => (
+              <Card key={workout.id} className="overflow-hidden">
+                <Collapsible
+                  open={expandedWorkouts[workout.id] || false}
+                  onOpenChange={() => toggleWorkoutDetails(workout.id)}
+                >
+                  <CardHeader className="px-4 py-3 flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg">
+                      {workout.workout?.title || 'Untitled Workout'}
+                    </CardTitle>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 ml-2">
+                        {expandedWorkouts[workout.id] ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        <span className="sr-only">Toggle details</span>
+                      </Button>
+                    </CollapsibleTrigger>
+                  </CardHeader>
+                  
+                  <CardContent className="p-0">
+                    <CollapsibleContent className="px-4 pb-2 pt-0 space-y-2">
+                      {workout.workout?.description && (
+                        <div className="mb-2">
+                          <h4 className="text-xs font-medium">Description</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {workout.workout.description}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {workout.workout?.workout_exercises && workout.workout.workout_exercises.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-medium mb-1">Exercises</h4>
+                          <Accordion type="single" collapsible className="w-full">
+                            {workout.workout.workout_exercises.map((exercise, index) => (
+                              <AccordionItem key={exercise.id} value={exercise.id} className="border-b-0 py-0">
+                                <div className="flex flex-col">
+                                  <AccordionTrigger className="py-1 text-xs">
+                                    {exercise.exercise?.name || 'Unknown Exercise'}
+                                  </AccordionTrigger>
+                                  
+                                  <div className="flex flex-wrap gap-2 px-1 py-1 text-xs">
+                                    <span className="bg-muted px-2 py-0.5 rounded-md">Sets: {exercise.sets}</span>
+                                    <span className="bg-muted px-2 py-0.5 rounded-md">Reps: {exercise.reps}</span>
+                                    {exercise.rest_seconds && (
+                                      <span className="bg-muted px-2 py-0.5 rounded-md">Rest: {exercise.rest_seconds}s</span>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                <AccordionContent className="pb-1">
+                                  <div className="space-y-1 text-xs">
+                                    {exercise.notes && (
+                                      <div className="text-xs bg-muted p-1.5 rounded-md">
+                                        <span className="font-medium">Notes:</span> {exercise.notes}
+                                      </div>
+                                    )}
+                                    {exercise.exercise?.description && (
+                                      <div className="text-xs bg-muted p-1.5 rounded-md">
+                                        <span className="font-medium">Description:</span> {exercise.exercise.description}
+                                      </div>
+                                    )}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                          </Accordion>
+                        </div>
+                      )}
+                    </CollapsibleContent>
+                  </CardContent>
+                </Collapsible>
+                
+                <CardFooter className="p-3">
+                  <Button asChild className="w-full h-9 py-1" size="sm">
+                    <Link to={`/client-dashboard/workouts/active/${workout.id}`}>
+                      <Play className="h-4 w-4 mr-2" />
+                      Start Workout
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

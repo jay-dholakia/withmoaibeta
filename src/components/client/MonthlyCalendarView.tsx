@@ -109,7 +109,7 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
             DayContent: ({ date, ...props }) => renderDayContent({ date, ...props })
           }}
           showOutsideDays={true}
-          captionLayout="buttons-hidden"
+          captionLayout="buttons" 
         />
       </div>
       

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Routes, Route, Navigate, Link } from 'react-router-dom';
+import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
 import ActiveWorkout from '@/components/client/ActiveWorkout';
 import WorkoutComplete from '@/components/client/WorkoutComplete';
@@ -24,7 +24,15 @@ import {
 
 const WorkoutsPage = () => {
   const [showRestDayDialog, setShowRestDayDialog] = useState(false);
+  const location = useLocation();
   console.log("WorkoutsPage component rendering");
+  
+  // Check if the current route is the main workouts page
+  const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
+  
+  // Check if we're on the active workout or complete workout page
+  const isActiveOrCompleteWorkout = location.pathname.includes('/active/') || 
+                                   location.pathname.includes('/complete/');
   
   const handleLogRestDay = () => {
     // Call the service function to log a rest day
@@ -40,9 +48,11 @@ const WorkoutsPage = () => {
 
   return (
     <>
-      <div className="flex justify-end mb-4">
-        <PassCounter />
-      </div>
+      {!isActiveOrCompleteWorkout && (
+        <div className="flex justify-end mb-4">
+          <PassCounter />
+        </div>
+      )}
       
       <Routes>
         <Route index element={<WorkoutsList />} />
@@ -54,7 +64,7 @@ const WorkoutsPage = () => {
         <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
       
-      {window.location.pathname === "/client-dashboard/workouts" && (
+      {isMainWorkoutsPage && (
         <div>
           <div className="mt-8 border-t pt-6">
             <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">

@@ -823,6 +823,13 @@ export type Database = {
       }
     }
     Functions: {
+      count_workouts_for_user_and_week: {
+        Args: {
+          user_id_param: string
+          week_number_param: number
+        }
+        Returns: number
+      }
       create_and_send_invitation: {
         Args: {
           p_email: string

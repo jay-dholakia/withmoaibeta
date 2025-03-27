@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
+import { addDays } from 'date-fns';
 
 interface ClientInfo {
   id: string;
@@ -117,8 +118,11 @@ const ProgramAssignmentPage = () => {
       setIsSubmitting(true);
       
       // Calculate end date based on program duration
+      // Using Monday as start date, calculate when program ends
+      // Each week is 7 days, starting from Monday (week 1)
       const endDate = new Date(startDate);
       if (program && typeof program.weeks === 'number') {
+        // Add (weeks * 7) days to the start date
         endDate.setDate(endDate.getDate() + (program.weeks * 7));
       }
       
@@ -129,6 +133,14 @@ const ProgramAssignmentPage = () => {
         start_date: startDate.toISOString().split('T')[0],
         end_date: endDate.toISOString().split('T')[0]
       };
+      
+      console.log('Assigning program:', {
+        programId,
+        userId,
+        startDate: startDate.toISOString().split('T')[0], 
+        endDate: endDate.toISOString().split('T')[0],
+        weeks: program?.weeks
+      });
       
       const newAssignment = await assignProgramToUser(assignmentData);
       

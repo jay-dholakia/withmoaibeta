@@ -10,7 +10,8 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage
+  FormMessage,
+  FormDescription
 } from '@/components/ui/form';
 import {
   Select,
@@ -25,12 +26,13 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { CalendarIcon, AlertCircle } from 'lucide-react';
+import { format, getDay, nextMonday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { fetchAllClients } from '@/services/workout-service';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const formSchema = z.object({
   userId: z.string({
@@ -38,6 +40,8 @@ const formSchema = z.object({
   }),
   startDate: z.date({
     required_error: 'Start date is required',
+  }).refine(date => getDay(date) === 1, {
+    message: 'Start date must be a Monday to properly align with week 1',
   }),
 });
 
@@ -65,10 +69,11 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   
+  // Initialize form with the next Monday as the default start date
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      startDate: new Date(),
+      startDate: nextMonday(new Date()),
     }
   });
 
@@ -77,7 +82,7 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
       try {
         setIsLoading(true);
         const data = await fetchAllClients();
-        console.log('Fetched clients for form:', data); // Debug log to see raw client data
+        console.log('Fetched clients for form:', data);
         setClients(data);
         setIsLoading(false);
       } catch (error) {
@@ -94,11 +99,16 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
     try {
       await onAssign(values.userId, values.startDate);
       form.reset({
-        startDate: new Date(),
+        startDate: nextMonday(new Date()),
       });
     } catch (error) {
       console.error('Error assigning program:', error);
     }
+  };
+
+  // Custom function to disable non-Monday dates
+  const disableNonMondays = (date: Date) => {
+    return getDay(date) !== 1; // 1 is Monday in date-fns
   };
 
   // Helper function to format client display name
@@ -136,6 +146,13 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <Alert variant="default" className="bg-muted/50 border-muted-foreground/30 mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            When you assign a program, week 1 will start on the Monday you select. This ensures proper alignment with the workout schedule.
+          </AlertDescription>
+        </Alert>
+        
         <FormField
           control={form.control}
           name="userId"
@@ -166,7 +183,10 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
           name="startDate"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Start Date</FormLabel>
+              <FormLabel>Start Date for Week 1</FormLabel>
+              <FormDescription>
+                Must be a Monday to properly align with program weeks
+              </FormDescription>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -180,7 +200,7 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
                       {field.value ? (
                         format(field.value, "PPP")
                       ) : (
-                        <span>Pick a date</span>
+                        <span>Pick a Monday</span>
                       )}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
@@ -191,7 +211,9 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
-                    disabled={(date) => date < new Date()}
+                    disabled={(date) => 
+                      date < new Date() || disableNonMondays(date)
+                    }
                     initialFocus
                     className="p-3 pointer-events-auto"
                   />

@@ -124,10 +124,10 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
       return 0;
     }
     
-    // Get the start and end of the current week
+    // Get the start and end of the current week (Monday as weekStartsOn: 1)
     const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 0 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
     
     console.log(`[Debug] Checking workouts for week: ${format(weekStart, 'yyyy-MM-dd')} to ${format(weekEnd, 'yyyy-MM-dd')}`);
     
@@ -153,10 +153,15 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     
     if (programAssignments && programAssignments.length > 0) {
       const startDate = new Date(programAssignments[0].start_date);
-      // Calculate days difference between now and start date
-      const daysDiff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      // Calculate week number (1-indexed)
-      currentWeekNumber = Math.floor(daysDiff / 7) + 1;
+      // Calculate days difference between now and start date using Monday as week start
+      const startOfProgramWeek = startOfWeek(startDate, { weekStartsOn: 1 });
+      const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 1 });
+      
+      // Calculate difference in milliseconds, then convert to weeks
+      const diffTime = Math.abs(startOfCurrentWeek.getTime() - startOfProgramWeek.getTime());
+      const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
+      
+      currentWeekNumber = diffWeeks + 1; // 1-indexed week number
       console.log(`[Debug] Program started on ${format(startDate, 'yyyy-MM-dd')}, current week is ${currentWeekNumber}`);
     } else {
       console.log(`[Debug] No program assignments found, defaulting to week 1`);

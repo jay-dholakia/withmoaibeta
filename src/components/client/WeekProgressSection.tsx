@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WeekProgressBar } from './WeekProgressBar';
 import { Loader2, Users, User } from 'lucide-react';
 import MoaiMemberItem from './MoaiMemberItem';
-import { isThisWeek } from 'date-fns';
+import { isThisWeek, getWeek, startOfWeek } from 'date-fns';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -19,6 +18,38 @@ export const WeekProgressSection = ({
   showPersonal = true 
 }: WeekProgressSectionProps) => {
   const { user } = useAuth();
+  
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const weekNumber = getWeek(now, { weekStartsOn: 1 });
+  
+  const { data: programWeekData } = useQuery({
+    queryKey: ['program-week', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return { weekNumber: 1 };
+      
+      const { data: assignments } = await supabase
+        .from('program_assignments')
+        .select('start_date')
+        .eq('user_id', user.id)
+        .order('start_date', { ascending: false })
+        .limit(1);
+      
+      if (!assignments || assignments.length === 0) {
+        return { weekNumber: 1 };
+      }
+      
+      const startDate = new Date(assignments[0].start_date);
+      const startOfProgramWeek = startOfWeek(startDate, { weekStartsOn: 1 });
+      const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 1 });
+      
+      const diffTime = Math.abs(startOfCurrentWeek.getTime() - startOfProgramWeek.getTime());
+      const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
+      
+      return { weekNumber: diffWeeks + 1 };
+    },
+    enabled: !!user?.id
+  });
   
   const { data: clientWorkouts, isLoading: isLoadingClientWorkouts } = useQuery({
     queryKey: ['client-workouts', user?.id],
@@ -179,11 +210,10 @@ export const WeekProgressSection = ({
     );
   }
   
-  const thisWeekWorkouts = clientCompletedDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
-  const thisWeekLifeHappens = clientLifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
+  const thisWeekWorkouts = clientCompletedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
+  const thisWeekLifeHappens = clientLifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   const totalThisWeek = thisWeekWorkouts + thisWeekLifeHappens;
   
-  // Use the assigned workouts count if available, otherwise use default 7
   const totalWeeklyWorkouts = (typeof assignedWorkoutsCount === 'number' && assignedWorkoutsCount > 0) 
     ? assignedWorkoutsCount 
     : 7;
@@ -217,6 +247,7 @@ export const WeekProgressSection = ({
             textColor="text-client"
             showDayCircles={true}
             showProgressBar={true}
+            weekNumber={programWeekData?.weekNumber}
           />
         </>
       )}
@@ -240,6 +271,7 @@ export const WeekProgressSection = ({
             textColor="text-blue-500"
             showDayCircles={false}
             showProgressBar={false}
+            weekNumber={programWeekData?.weekNumber}
           />
           
           {showTeam && !showPersonal && (
@@ -260,6 +292,7 @@ export const WeekProgressSection = ({
                       textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}
                       showDayCircles={true}
                       showProgressBar={false}
+                      weekNumber={programWeekData?.weekNumber}
                     />
                   </div>
                 ))}

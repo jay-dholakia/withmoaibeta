@@ -2,7 +2,7 @@
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { format, startOfWeek, addDays, isSameDay, isThisWeek } from 'date-fns';
-import { Star, Umbrella, AlertCircle } from 'lucide-react';
+import { Star, Umbrella, AlertCircle, Calendar } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface WeekProgressBarProps {
@@ -15,6 +15,7 @@ interface WeekProgressBarProps {
   textColor?: string;
   showDayCircles?: boolean;
   showProgressBar?: boolean; // New prop to control progress bar visibility
+  weekNumber?: number; // Optional week number to display
 }
 
 export const WeekProgressBar = ({ 
@@ -26,12 +27,13 @@ export const WeekProgressBar = ({
   color = 'bg-client', 
   textColor = 'text-client',
   showDayCircles = false,
-  showProgressBar = false // Default to not showing the progress bar
+  showProgressBar = false, // Default to not showing the progress bar
+  weekNumber
 }: WeekProgressBarProps) => {
   const isMobile = useIsMobile();
   
-  // Get start of current week (Sunday)
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
+  // Get start of current week (Monday as weekStartsOn: 1)
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   
   // Create array of days for the current week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -43,10 +45,10 @@ export const WeekProgressBar = ({
   // Calculate percentage complete - including both completed workouts and life happens passes
   const completedDaysThisWeek = count !== undefined 
     ? count 
-    : completedDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
+    : completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   
   const lifeHappensDaysThisWeek = lifeHappensDates.filter(date => 
-    isThisWeek(date, { weekStartsOn: 0 })
+    isThisWeek(date, { weekStartsOn: 1 })
   ).length;
   
   console.log("Completed days this week:", completedDaysThisWeek);
@@ -64,7 +66,15 @@ export const WeekProgressBar = ({
     <div className="space-y-2 mb-8 bg-white rounded-xl p-5 shadow-sm text-center">
       <div className="flex justify-center flex-col items-center mb-2">
         <div className="text-center">
-          <h3 className="text-base font-semibold">{label}</h3>
+          <div className="flex items-center justify-center gap-2">
+            <h3 className="text-base font-semibold">{label}</h3>
+            {weekNumber !== undefined && (
+              <span className="inline-flex items-center bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">
+                <Calendar className="h-3 w-3 mr-1" />
+                Week {weekNumber}
+              </span>
+            )}
+          </div>
           {hasAssignedWorkouts ? (
             <p className="text-sm text-slate-500 text-center">
               {totalCompletedCount} of {total} {total === 1 ? 'workout' : 'workouts'} completed

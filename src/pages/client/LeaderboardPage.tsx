@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -61,8 +60,7 @@ const LeaderboardPage = () => {
         console.error('Error fetching personal records:', error);
         throw error;
       }
-
-      // Transform the data to match our PersonalRecord interface
+      
       return (data || []).map(record => ({
         id: record.id,
         exercise_id: record.exercise_id,

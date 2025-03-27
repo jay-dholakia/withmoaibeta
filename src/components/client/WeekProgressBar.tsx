@@ -66,7 +66,7 @@ export const WeekProgressBar = ({
         <div className="text-center">
           <h3 className="text-base font-semibold">{label}</h3>
           {hasAssignedWorkouts ? (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 text-center">
               {totalCompletedCount} of {total} {total === 1 ? 'workout' : 'workouts'} completed
             </p>
           ) : (
@@ -77,7 +77,7 @@ export const WeekProgressBar = ({
           )}
         </div>
         {showProgressBar && hasAssignedWorkouts && (
-          <span className={`text-lg font-bold ${textColor} mt-2`}>{Math.round(percentComplete)}%</span>
+          <span className={`text-lg font-bold ${textColor} mt-2 text-center`}>{Math.round(percentComplete)}%</span>
         )}
       </div>
 
@@ -92,7 +92,7 @@ export const WeekProgressBar = ({
       )}
       
       {showDayCircles && (
-        <div className="flex justify-center space-x-4 px-1 sm:px-4 mt-3">
+        <div className="flex justify-center space-x-3 mt-4">
           {weekDays.map((day, index) => {
             const isCompleted = completedDates.some(date => isSameDay(day, date));
             const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
@@ -100,14 +100,14 @@ export const WeekProgressBar = ({
             return (
               <div key={index} className="flex flex-col items-center">
                 <div 
-                  className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full ${
+                  className={`flex items-center justify-center w-6 h-6 rounded-full ${
                     isCompleted ? 'bg-green-100' : isLifeHappens ? 'bg-blue-100' : 'bg-slate-100'
                   }`}
                 >
                   {isLifeHappens ? (
-                    <Umbrella className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
+                    <Umbrella className="h-3 w-3 text-blue-500" />
                   ) : isCompleted ? (
-                    <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 fill-green-500" />
+                    <Star className="h-3 w-3 text-green-500 fill-green-500" />
                   ) : null}
                 </div>
                 <div className="text-xs text-center text-slate-500 mt-1">

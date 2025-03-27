@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -214,7 +215,8 @@ export const WeekProgressSection = ({
   const thisWeekLifeHappens = clientLifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   const totalThisWeek = thisWeekWorkouts + thisWeekLifeHappens;
   
-  const totalWeeklyWorkouts = (typeof assignedWorkoutsCount === 'number' && assignedWorkoutsCount > 0) 
+  // Fix: Use assignedWorkoutsCount directly if it's greater than 0, otherwise fallback to 7
+  const totalWeeklyWorkouts = assignedWorkoutsCount && assignedWorkoutsCount > 0 
     ? assignedWorkoutsCount 
     : 7;
   

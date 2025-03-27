@@ -106,10 +106,10 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
           className="pointer-events-auto mx-auto w-full px-0"
           hideHead={false}
           components={{
-            DayContent: ({ date, ...props }) => renderDayContent({ date, ...props })
+            DayContent: ({ date, ...props }) => renderDayContent({ date, ...props }),
+            Caption: () => null // This completely hides the built-in caption/navigation
           }}
           showOutsideDays={true}
-          captionLayout="buttons" 
         />
       </div>
       

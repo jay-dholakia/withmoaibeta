@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -456,7 +455,7 @@ const ActiveWorkout = () => {
     );
   }
 
-  const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
+  const workoutExercises = Array.isArray(workoutData.workout?.workout_exercises) 
     ? workoutData.workout.workout_exercises 
     : [];
 
@@ -477,7 +476,7 @@ const ActiveWorkout = () => {
       </div>
 
       <div className="space-y-4">
-        {workoutData?.workout?.workout_exercises?.map((exercise: any) => {
+        {workoutExercises.map((exercise: any) => {
           const exerciseType = exercise.exercise?.exercise_type || 'strength';
           
           return (
@@ -540,9 +539,7 @@ const ActiveWorkout = () => {
                       </div>
                     )}
                     
-                    {/* Render different inputs based on exercise type */}
                     {exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
-                      // Standard strength/bodyweight exercise
                       <div className="space-y-4">
                         <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 text-sm font-medium border-b pb-2">
                           <div>Set</div>
@@ -589,7 +586,6 @@ const ActiveWorkout = () => {
                         ))}
                       </div>
                     ) : exerciseType === 'cardio' ? (
-                      // Cardio exercise
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
@@ -648,7 +644,6 @@ const ActiveWorkout = () => {
                         </div>
                       </div>
                     ) : exerciseType === 'flexibility' ? (
-                      // Flexibility exercise
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium mb-1">Duration</label>
@@ -671,7 +666,6 @@ const ActiveWorkout = () => {
                         </div>
                       </div>
                     ) : (
-                      // Fallback for other exercise types
                       <div className="text-center py-4">
                         <p>Please complete this exercise and mark it as done.</p>
                         <div className="flex justify-center mt-4">

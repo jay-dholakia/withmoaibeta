@@ -1,333 +1,167 @@
 
-import { fetchClientWorkoutHistory } from './client-workout-history-service';
-import { fetchAssignedWorkouts } from './assigned-workouts-service';
 import { supabase } from "@/integrations/supabase/client";
-import { WorkoutExercise } from "@/types/workout";
-import { startOfWeek, endOfWeek, isWithinInterval, format } from 'date-fns';
-
-// Re-export workout history related functions
-export {
-  fetchClientWorkoutHistory,
-  fetchAssignedWorkouts
-};
+import { WorkoutBasic, WorkoutHistoryItem } from "@/types/workout";
 
 /**
- * Creates multiple workout exercises in a single batch operation
+ * Fetches assigned workouts for the current user, including both completed and pending workouts
  */
-export const createMultipleWorkoutExercises = async (exercises: Array<Omit<WorkoutExercise, 'id' | 'created_at'>>): Promise<WorkoutExercise[]> => {
-  const { data, error } = await supabase
-    .from('workout_exercises')
-    .insert(exercises)
-    .select();
-
-  if (error) {
-    console.error('Error creating multiple workout exercises:', error);
-    throw error;
-  }
-
-  return data as WorkoutExercise[];
-};
-
-/**
- * Creates multiple standalone workout exercises in a single batch operation
- */
-export const createMultipleStandaloneWorkoutExercises = async (exercises: Array<Omit<WorkoutExercise, 'id' | 'created_at'>>): Promise<WorkoutExercise[]> => {
-  const { data, error } = await supabase
-    .from('standalone_workout_exercises')
-    .insert(exercises)
-    .select();
-
-  if (error) {
-    console.error('Error creating multiple standalone workout exercises:', error);
-    throw error;
-  }
-
-  return data as WorkoutExercise[];
-};
-
-/**
- * Creates a one-off workout completion
- */
-export const createOneOffWorkoutCompletion = async (params: {
-  title: string;
-  description?: string;
-  notes?: string;
-  rating?: number;
-}) => {
+export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHistoryItem[]> => {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    console.log("Fetching assigned workouts for user:", userId);
     
-    if (!user.user) {
-      throw new Error('User not authenticated');
-    }
-    
-    // Create the workout completion
-    const { data, error } = await supabase
-      .from('workout_completions')
-      .insert({
-        user_id: user.user.id,
-        workout_id: null, // No associated workout
-        notes: params.notes || null,
-        rating: params.rating || null
-      })
-      .select()
-      .single();
-      
-    if (error) throw error;
-    
-    return data;
-  } catch (error) {
-    console.error('Error creating one-off workout completion:', error);
-    throw error;
-  }
-};
-
-/**
- * Log a rest day
- */
-export const logRestDay = async (notes?: string) => {
-  try {
-    const { data: user } = await supabase.auth.getUser();
-    
-    if (!user.user) {
-      throw new Error('User not authenticated');
-    }
-    
-    // Create the workout completion with rest_day flag
-    const { data, error } = await supabase
-      .from('workout_completions')
-      .insert({
-        user_id: user.user.id,
-        workout_id: null, // Now this can be null since we modified the table
-        notes: notes || "Taking a scheduled rest day",
-        rest_day: true
-      })
-      .select()
-      .single();
-      
-    if (error) throw error;
-    
-    return data;
-  } catch (error) {
-    console.error('Error logging rest day:', error);
-    throw error;
-  }
-};
-
-/**
- * Gets the total number of workouts assigned to a user in the current week
- */
-export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<number> => {
-  try {
-    if (!userId) {
-      console.error('User not authenticated');
-      return 0;
-    }
-    
-    // Get the start and end of the current week (Monday as weekStartsOn: 1)
-    const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-    
-    console.log(`[Debug] Checking workouts for week: ${format(weekStart, 'yyyy-MM-dd')} to ${format(weekEnd, 'yyyy-MM-dd')}`);
-    
-    // Fetch all assigned workouts
-    const assignedWorkouts = await fetchAssignedWorkouts(userId);
-    console.log(`[Debug] Total assigned workouts fetched: ${assignedWorkouts.length}`);
-    
-    if (assignedWorkouts.length === 0) {
-      console.log(`[Debug] No assigned workouts found for user ${userId}`);
-      return 0;
-    }
-    
-    // Get workouts for this week based on day_of_week
-    // Calculate the current week number relative to program start date
-    const { data: programAssignments } = await supabase
+    // Get all workouts from the user's current program assignment
+    const { data: programAssignments, error: programError } = await supabase
       .from('program_assignments')
-      .select('id, program_id, start_date')
+      .select(`
+        program_id,
+        workout_programs:program_id (
+          id,
+          title,
+          description,
+          weeks
+        )
+      `)
       .eq('user_id', userId)
       .order('start_date', { ascending: false })
       .limit(1);
-    
-    let currentWeekNumber = 1;
-    
-    if (programAssignments && programAssignments.length > 0) {
-      const startDate = new Date(programAssignments[0].start_date);
-      // Calculate days difference between now and start date using Monday as week start
-      const startOfProgramWeek = startOfWeek(startDate, { weekStartsOn: 1 });
-      const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 1 });
       
-      // Calculate difference in milliseconds, then convert to weeks
-      const diffTime = Math.abs(startOfCurrentWeek.getTime() - startOfProgramWeek.getTime());
-      const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
-      
-      currentWeekNumber = diffWeeks + 1; // 1-indexed week number
-      console.log(`[Debug] Program started on ${format(startDate, 'yyyy-MM-dd')}, current week is ${currentWeekNumber}`);
-    } else {
-      console.log(`[Debug] No program assignments found, defaulting to week 1`);
+    if (programError) {
+      console.error("Error fetching program assignments:", programError);
+      return [];
     }
     
-    // For SQL verification, log the current week number we're checking
-    console.log(`[Debug] Looking for workouts with week_number = ${currentWeekNumber}`);
+    if (!programAssignments || programAssignments.length === 0) {
+      console.log("No program assignments found for user");
+      return [];
+    }
     
-    // Filter workouts that belong to the current week
-    const currentWeekWorkouts = assignedWorkouts.filter(workout => {
-      // Check if the workout has a week and program
-      if (workout.workout?.week?.week_number) {
-        const matches = workout.workout.week.week_number === currentWeekNumber;
-        console.log(`[Debug] Workout ${workout.id} (${workout.workout.title || 'Untitled'}): Week ${workout.workout.week.week_number}, Matches current week ${currentWeekNumber}: ${matches}`);
-        return matches;
-      }
-      console.log(`[Debug] Workout ${workout.id}: Missing week or week number`);
-      return false;
+    const currentProgramId = programAssignments[0].program_id;
+    console.log("Current program ID:", currentProgramId);
+    
+    // Fetch all workouts in the program
+    const { data: programWorkouts, error: workoutsError } = await supabase
+      .from('workouts')
+      .select(`
+        id,
+        title,
+        description,
+        day_of_week,
+        week_id,
+        week:week_id (
+          week_number,
+          program_id
+        ),
+        workout_exercises (
+          id,
+          sets,
+          reps,
+          rest_seconds,
+          notes,
+          order_index,
+          exercise:exercise_id (
+            id,
+            name,
+            description,
+            category
+          )
+        )
+      `)
+      .eq('week.program_id', currentProgramId)
+      .order('day_of_week', { ascending: true });
+    
+    if (workoutsError) {
+      console.error("Error fetching program workouts:", workoutsError);
+      return [];
+    }
+    
+    if (!programWorkouts || programWorkouts.length === 0) {
+      console.log("No workouts found in program");
+      return [];
+    }
+    
+    console.log(`Found ${programWorkouts.length} workouts in program`);
+    
+    // Create a map of workouts for quick lookup
+    const workoutMap = new Map();
+    programWorkouts.forEach(workout => {
+      workoutMap.set(workout.id, workout);
     });
     
-    console.log(`[Debug] Found ${currentWeekWorkouts.length} workouts for week ${currentWeekNumber}`);
+    // Get all workout completions for this user
+    const { data: completions, error: completionsError } = await supabase
+      .from('workout_completions')
+      .select('id, workout_id, completed_at, notes, rating')
+      .eq('user_id', userId)
+      .is('life_happens_pass', false)
+      .is('rest_day', false);
     
-    if (currentWeekWorkouts.length === 0) {
-      console.log(`[Debug] No workouts found for current week ${currentWeekNumber}. Detailed assigned workouts:`);
-      assignedWorkouts.forEach((workout, index) => {
-        console.log(`[Debug] Workout ${index + 1}:`, {
-          id: workout.id,
-          title: workout.workout?.title || 'Untitled',
-          weekNumber: workout.workout?.week?.week_number,
-          dayOfWeek: workout.workout?.day_of_week,
-          program: workout.workout?.week?.program?.title || 'No Program'
-        });
+    if (completionsError) {
+      console.error("Error fetching workout completions:", completionsError);
+      // Continue with empty completions
+    }
+    
+    // Create a map of completions by workout_id
+    const completionsMap = new Map();
+    if (completions) {
+      completions.forEach(completion => {
+        completionsMap.set(completion.workout_id, completion);
       });
-      
-      // Direct SQL query for verification
-      const { data: sqlWorkouts, error } = await supabase.rpc(
-        'count_workouts_for_user_and_week',
-        { 
-          user_id_param: userId,
-          week_number_param: currentWeekNumber
-        }
-      );
-      
-      if (error) {
-        console.error('[Debug] SQL verification error:', error);
-      } else {
-        console.log(`[Debug] SQL verification result: ${sqlWorkouts} workouts in week ${currentWeekNumber}`);
-      }
     }
     
-    return currentWeekWorkouts.length;
-  } catch (error) {
-    console.error('Error getting weekly assigned workouts count:', error);
-    return 0;
-  }
-};
-
-/**
- * Gets the total number of workouts assigned to a user for a specific week
- */
-export const getAssignedWorkoutsCountForWeek = async (userId: string, weekNumber: number): Promise<number> => {
-  try {
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
-    
-    console.log(`Fetching workout count for user ${userId} in week ${weekNumber}`);
-    
-    // Fetch all assigned workouts
-    const assignedWorkouts = await fetchAssignedWorkouts(userId);
-    
-    console.log(`Found ${assignedWorkouts.length} total assigned workouts`);
-    
-    // Filter workouts that belong to the specified week
-    const weekWorkouts = assignedWorkouts.filter(workout => {
-      // Check if the workout has a week and program
-      if (workout.workout?.week?.week_number) {
-        const matches = workout.workout.week.week_number === weekNumber;
-        console.log(`Workout ${workout.workout.title}: week ${workout.workout.week.week_number}, matches week ${weekNumber}: ${matches}`);
-        return matches;
-      }
-      console.log(`Workout ${workout.workout?.title || 'Unknown'}: No week number found`);
-      return false;
+    // Combine workouts with completion status
+    const result: WorkoutHistoryItem[] = programWorkouts.map(workout => {
+      const completion = completionsMap.get(workout.id);
+      
+      return {
+        id: completion ? completion.id : workout.id,
+        workout_id: workout.id,
+        completed_at: completion ? completion.completed_at : null,
+        notes: completion ? completion.notes : null,
+        rating: completion ? completion.rating : null,
+        user_id: userId,
+        workout: workout
+      };
     });
     
-    console.log(`Found ${weekWorkouts.length} workouts for week ${weekNumber}`);
-    
-    return weekWorkouts.length || 0;
+    return result;
   } catch (error) {
-    console.error(`Error getting assigned workouts count for week ${weekNumber}:`, error);
-    return 0;
+    console.error("Error in fetchAssignedWorkouts:", error);
+    return [];
   }
 };
 
 /**
- * Gets user ID by email
+ * Logs a rest day for the current user
  */
-export const getUserIdByEmail = async (email: string): Promise<string | null> => {
+export const logRestDay = async (): Promise<boolean> => {
   try {
-    // Since we can't directly query auth.users with the client, we can:
-    // 1. Use profiles table which should have 1-to-1 mapping with users
-    // 2. Query for users that have the given email, if we have permission
+    // Get the current user ID
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData || !authData.user) {
+      console.error("Cannot log rest day: Not authenticated");
+      return false;
+    }
     
-    const { data: userData, error } = await supabase.rpc(
-      'get_users_email',
-      { user_ids: [] } // Empty array to check if we get any results at all
-    );
+    const userId = authData.user.id;
+    
+    // Insert a workout completion with rest_day=true
+    const { data, error } = await supabase
+      .from('workout_completions')
+      .insert({
+        user_id: userId,
+        workout_id: null,
+        rest_day: true,
+        completed_at: new Date().toISOString()
+      });
     
     if (error) {
-      console.error('Error checking user email lookup access:', error);
-      // Fall back to manual client-side filtering of all users, which we might have access to
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id');
-        
-      if (!profiles || profiles.length === 0) {
-        console.error('No profiles found, cannot look up user');
-        return null;
-      }
-      
-      // We have profiles, so try using the RPC function with all IDs
-      const profileIds = profiles.map(profile => profile.id);
-      const { data: users, error: rpcError } = await supabase.rpc(
-        'get_users_email',
-        { user_ids: profileIds }
-      );
-      
-      if (rpcError) {
-        console.error('Error using get_users_email with all profiles:', rpcError);
-        return null;
-      }
-      
-      if (!users || users.length === 0) {
-        console.error('No users found in the response');
-        return null;
-      }
-      
-      const user = users.find(u => u.email === email);
-      return user ? user.id : null;
+      console.error("Error logging rest day:", error);
+      return false;
     }
     
-    // If we reach here, we have permission to call get_users_email
-    // So we can try to query all users
-    const { data: allProfiles } = await supabase
-      .from('profiles')
-      .select('id');
-      
-    if (!allProfiles || allProfiles.length === 0) {
-      console.error('No profiles found to look up user');
-      return null;
-    }
-    
-    const { data: allUsers, error: allUsersError } = await supabase.rpc(
-      'get_users_email',
-      { user_ids: allProfiles.map(p => p.id) }
-    );
-    
-    if (allUsersError) {
-      console.error('Error looking up all users:', allUsersError);
-      return null;
-    }
-    
-    const user = allUsers.find(u => u.email === email);
-    return user ? user.id : null;
+    return true;
   } catch (error) {
-    console.error('Error in getUserIdByEmail:', error);
-    return null;
+    console.error("Error in logRestDay:", error);
+    return false;
   }
 };

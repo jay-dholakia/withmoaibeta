@@ -291,6 +291,7 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     const today = new Date();
     const diffTime = Math.abs(today.getTime() - startDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // Calculate week (1-indexed)
     const currentWeek = Math.floor(diffDays / 7) + 1;
     
     // Fetch the complete program data

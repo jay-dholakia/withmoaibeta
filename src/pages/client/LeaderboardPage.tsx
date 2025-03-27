@@ -47,8 +47,6 @@ const LeaderboardPage = () => {
             </div>
           ) : (
             <>
-              <WeekProgressSection showTeam={false} showPersonal={true} />
-              
               <h2 className="text-xl font-bold mb-4 mt-6 flex items-center gap-2">
                 <User className="h-5 w-5 text-client" />
                 Monthly Progress

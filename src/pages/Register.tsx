@@ -54,7 +54,7 @@ const RegisterPage = () => {
     if (user && type) {
       console.log('User authenticated, redirecting to dashboard for type:', type);
       if (type === 'client') {
-        navigate('/client-dashboard');
+        navigate('/client-profile-builder');
       } else if (type === 'coach') {
         navigate('/coach-dashboard');
       } else if (type === 'admin') {

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -64,6 +63,11 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/admin-setup" element={<AdminSetup />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/client-profile-builder" element={
+              <RequireAuth userType="client">
+                <ProfileBuilder />
+              </RequireAuth>
+            } />
             
             {/* Admin routes */}
             <Route path="/admin-dashboard" element={
@@ -154,11 +158,6 @@ function App() {
             <Route path="/client-dashboard/*" element={
               <RequireAuth userType="client">
                 <ClientDashboard />
-              </RequireAuth>
-            } />
-            <Route path="/client-dashboard/profile-builder" element={
-              <RequireAuth userType="client">
-                <ProfileBuilder />
               </RequireAuth>
             } />
             

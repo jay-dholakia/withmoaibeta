@@ -50,7 +50,7 @@ export const ProfileBuilderLayout: React.FC<ProfileBuilderLayoutProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-card border rounded-xl shadow-sm p-8"
+              className="bg-card border rounded-xl shadow-sm p-4"
             >
               {title && <h1 className="text-2xl font-bold text-client mb-6 text-center">{title}</h1>}
               {children}

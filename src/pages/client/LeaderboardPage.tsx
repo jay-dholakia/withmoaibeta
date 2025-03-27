@@ -6,9 +6,10 @@ import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import { PersonalRecordsTable, PersonalRecord } from '@/components/client/PersonalRecordsTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, User, Loader2, Trophy } from 'lucide-react';
+import { Users, User, Loader2, Trophy, Info } from 'lucide-react';
 import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
+import { Container } from '@/components/ui/container';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
@@ -24,12 +25,13 @@ const LeaderboardPage = () => {
   });
   
   // Query for assigned workouts count
-  const { data: assignedCount } = useQuery({
+  const { data: assignedCount, isLoading: isLoadingAssigned } = useQuery({
     queryKey: ['assigned-workouts-count', user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
+      console.log('[Debug] Fetching assigned workout count for user:', user.id);
       const count = await getWeeklyAssignedWorkoutsCount(user.id);
-      console.log('Assigned workouts count:', count);
+      console.log('[Debug] Assigned workouts count returned:', count);
       return count > 0 ? count : 7; // Fallback to 7 if no assigned workouts
     },
     enabled: !!user?.id,
@@ -74,53 +76,65 @@ const LeaderboardPage = () => {
   });
   
   return (
-    <div className="max-w-full">
-      <h1 className="text-2xl font-bold mb-6">Team Progress</h1>
-      
-      <Tabs defaultValue="team" className="mb-6 w-full">
-        <TabsList className="w-full mb-4">
-          <TabsTrigger value="team" className="flex-1 flex items-center justify-center gap-2">
-            <Users className="h-4 w-4" />
-            <span>Team</span>
-          </TabsTrigger>
-          <TabsTrigger value="personal" className="flex-1 flex items-center justify-center gap-2">
-            <User className="h-4 w-4" />
-            <span>Personal</span>
-          </TabsTrigger>
-        </TabsList>
+    <Container>
+      <div className="max-w-full">
+        <h1 className="text-2xl font-bold mb-6">Team Progress</h1>
         
-        <TabsContent value="team" className="w-full">
-          <WeekProgressSection showTeam={true} showPersonal={false} />
-        </TabsContent>
-        
-        <TabsContent value="personal" className="w-full">
-          {isLoading ? (
-            <div className="flex justify-center py-6">
-              <Loader2 className="h-6 w-6 animate-spin text-client" />
-            </div>
-          ) : (
-            <>
-              <h2 className="text-xl font-bold mb-4 mt-6 flex items-center gap-2">
-                <User className="h-5 w-5 text-client" />
-                Monthly Progress
-              </h2>
-              
-              <MonthlyCalendarView workouts={clientWorkouts || []} />
-              
-              <h2 className="text-xl font-bold mb-4 mt-8 flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-amber-500" />
-                Personal Records
-              </h2>
-              
-              <PersonalRecordsTable 
-                records={personalRecords || []} 
-                isLoading={isLoadingPRs} 
-              />
-            </>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+        <Tabs defaultValue="team" className="mb-6 w-full">
+          <TabsList className="w-full mb-4">
+            <TabsTrigger value="team" className="flex-1 flex items-center justify-center gap-2">
+              <Users className="h-4 w-4" />
+              <span>Team</span>
+            </TabsTrigger>
+            <TabsTrigger value="personal" className="flex-1 flex items-center justify-center gap-2">
+              <User className="h-4 w-4" />
+              <span>Personal</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="team" className="w-full">
+            <WeekProgressSection showTeam={true} showPersonal={false} />
+          </TabsContent>
+          
+          <TabsContent value="personal" className="w-full">
+            {isLoading ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-client" />
+              </div>
+            ) : (
+              <>
+                {!isLoadingAssigned && typeof assignedCount === 'number' && (
+                  <div className="mb-4 bg-muted p-3 rounded-md text-sm flex items-start gap-2">
+                    <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <p>You have {assignedCount > 0 ? assignedCount : 'no'} workouts assigned this week.</p>
+                      {assignedCount === 0 && <p className="text-xs text-muted-foreground mt-1">Using default goal of 7 workouts per week.</p>}
+                    </div>
+                  </div>
+                )}
+                
+                <h2 className="text-xl font-bold mb-4 mt-6 flex items-center gap-2">
+                  <User className="h-5 w-5 text-client" />
+                  Monthly Progress
+                </h2>
+                
+                <MonthlyCalendarView workouts={clientWorkouts || []} />
+                
+                <h2 className="text-xl font-bold mb-4 mt-8 flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-amber-500" />
+                  Personal Records
+                </h2>
+                
+                <PersonalRecordsTable 
+                  records={personalRecords || []} 
+                  isLoading={isLoadingPRs} 
+                />
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </Container>
   );
 };
 

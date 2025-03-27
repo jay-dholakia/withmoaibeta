@@ -1,9 +1,8 @@
-
 import { fetchClientWorkoutHistory } from './client-workout-history-service';
 import { fetchAssignedWorkouts } from './assigned-workouts-service';
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutExercise } from "@/types/workout";
-import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { startOfWeek, endOfWeek, isWithinInterval, format } from 'date-fns';
 
 // Re-export workout history related functions
 export {
@@ -128,23 +127,42 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     const weekStart = startOfWeek(now, { weekStartsOn: 0 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
     
+    console.log(`[Debug] Checking workouts for week: ${format(weekStart, 'yyyy-MM-dd')} to ${format(weekEnd, 'yyyy-MM-dd')}`);
+    
     // Fetch all assigned workouts
     const assignedWorkouts = await fetchAssignedWorkouts(userId);
+    console.log(`[Debug] Total assigned workouts fetched: ${assignedWorkouts.length}`);
     
     // Get workouts for this week based on day_of_week
     const currentWeekNumber = Math.ceil((now.getDate() - weekStart.getDate() + 1) / 7);
+    console.log(`[Debug] Current week number calculation: ${currentWeekNumber}`);
     
     // Filter workouts that belong to the current week
     const currentWeekWorkouts = assignedWorkouts.filter(workout => {
       // Check if the workout has a week and program
       if (workout.workout?.week?.week_number) {
-        console.log(`Workout ${workout.workout.title} - Week ${workout.workout.week.week_number} vs Current ${currentWeekNumber}`);
-        return workout.workout.week.week_number === currentWeekNumber;
+        const matches = workout.workout.week.week_number === currentWeekNumber;
+        console.log(`[Debug] Workout ${workout.id} (${workout.workout.title || 'Untitled'}): Week ${workout.workout.week.week_number}, Matches current week ${currentWeekNumber}: ${matches}`);
+        return matches;
       }
+      console.log(`[Debug] Workout ${workout.id}: Missing week or week number`);
       return false;
     });
     
-    console.log(`Found ${currentWeekWorkouts.length} workouts for week ${currentWeekNumber}`);
+    console.log(`[Debug] Found ${currentWeekWorkouts.length} workouts for week ${currentWeekNumber}`);
+    if (currentWeekWorkouts.length === 0) {
+      console.log(`[Debug] No workouts found for current week. Checking raw assigned workouts data:`);
+      assignedWorkouts.forEach((workout, index) => {
+        console.log(`[Debug] Workout ${index + 1}:`, {
+          id: workout.id,
+          title: workout.workout?.title || 'Untitled',
+          weekNumber: workout.workout?.week?.week_number,
+          dayOfWeek: workout.workout?.day_of_week,
+          program: workout.workout?.week?.program?.title || 'No Program'
+        });
+      });
+    }
+    
     return currentWeekWorkouts.length || 0;
   } catch (error) {
     console.error('Error getting weekly assigned workouts count:', error);

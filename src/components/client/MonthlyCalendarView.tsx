@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { 
@@ -13,7 +13,11 @@ import {
   format, 
   addMonths, 
   subMonths, 
-  isSameDay 
+  isSameDay,
+  startOfMonth,
+  endOfMonth,
+  max,
+  min
 } from 'date-fns';
 import { WorkoutHistoryItem } from '@/types/workout';
 
@@ -22,7 +26,43 @@ interface MonthlyCalendarViewProps {
 }
 
 export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  // Find the most relevant month to display initially based on workout history
+  const findRelevantMonth = (): Date => {
+    if (!workouts || workouts.length === 0) {
+      return new Date(); // Default to current month if no workouts
+    }
+
+    // Get all workout dates with completed_at
+    const workoutDates = workouts
+      .filter(workout => workout.completed_at)
+      .map(workout => new Date(workout.completed_at));
+
+    if (workoutDates.length === 0) {
+      return new Date(); // Default to current month if no completed workouts
+    }
+
+    // Get the most recent workout date within the last 3 months, or the most recent overall
+    const today = new Date();
+    const threeMonthsAgo = startOfMonth(subMonths(today, 3));
+    
+    // Find recent workouts within the last 3 months
+    const recentWorkouts = workoutDates.filter(date => date >= threeMonthsAgo);
+    
+    if (recentWorkouts.length > 0) {
+      // Use the most recent workout date
+      return max(recentWorkouts);
+    } else {
+      // If no recent workouts, use the most recent workout date overall
+      return max(workoutDates);
+    }
+  };
+
+  const [currentMonth, setCurrentMonth] = useState<Date>(findRelevantMonth());
+
+  // Update current month whenever workouts change
+  useEffect(() => {
+    setCurrentMonth(findRelevantMonth());
+  }, [workouts]);
 
   const goToPreviousMonth = () => {
     setCurrentMonth(prevMonth => subMonths(prevMonth, 1));

@@ -7,12 +7,13 @@ import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import { PersonalRecordsTable, PersonalRecord } from '@/components/client/PersonalRecordsTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, User, Loader2, Trophy } from 'lucide-react';
-import { fetchClientWorkoutHistory } from '@/services/workout-history-service';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
+import { supabase } from '@/integrations/supabase';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
   
+  // Query for client workouts
   const { data: clientWorkouts, isLoading } = useQuery({
     queryKey: ['client-workouts', user?.id],
     queryFn: async () => {
@@ -21,7 +22,20 @@ const LeaderboardPage = () => {
     },
     enabled: !!user?.id,
   });
+  
+  // Query for assigned workouts count
+  const { data: assignedCount } = useQuery({
+    queryKey: ['assigned-workouts-count', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return 0;
+      const count = await getWeeklyAssignedWorkoutsCount(user.id);
+      console.log('Assigned workouts count:', count);
+      return count > 0 ? count : 7; // Fallback to 7 if no assigned workouts
+    },
+    enabled: !!user?.id,
+  });
 
+  // Query for personal records
   const { data: personalRecords, isLoading: isLoadingPRs } = useQuery({
     queryKey: ['personal-records', user?.id],
     queryFn: async (): Promise<PersonalRecord[]> => {

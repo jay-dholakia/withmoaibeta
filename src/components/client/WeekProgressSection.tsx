@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,7 +32,9 @@ export const WeekProgressSection = ({
     queryKey: ['assigned-workouts-count', user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
-      return getWeeklyAssignedWorkoutsCount(user.id);
+      const count = await getWeeklyAssignedWorkoutsCount(user.id);
+      console.log('Assigned workouts count:', count);
+      return count;
     },
     enabled: !!user?.id && showPersonal,
   });
@@ -135,7 +136,6 @@ export const WeekProgressSection = ({
   
   const clientCompletedDates = React.useMemo(() => {
     if (!clientWorkouts) return [];
-    
     return clientWorkouts
       .filter(workout => workout.completed_at && !workout.life_happens_pass)
       .map(workout => new Date(workout.completed_at));
@@ -143,7 +143,6 @@ export const WeekProgressSection = ({
   
   const clientLifeHappensDates = React.useMemo(() => {
     if (!clientWorkouts) return [];
-    
     return clientWorkouts
       .filter(workout => workout.completed_at && workout.life_happens_pass)
       .map(workout => new Date(workout.completed_at));
@@ -183,7 +182,7 @@ export const WeekProgressSection = ({
   const thisWeekLifeHappens = clientLifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
   const totalThisWeek = thisWeekWorkouts + thisWeekLifeHappens;
   
-  const totalWeeklyWorkouts = assignedWorkoutsCount || 7; // Default to 7 if no assigned workouts
+  const totalWeeklyWorkouts = assignedWorkoutsCount || 7; // Fallback to 7 if no assigned workouts
   
   const totalGroupWorkoutsThisWeek = groupData?.completions?.length || 0;
   const totalGroupMembers = groupData?.members?.length || 0;

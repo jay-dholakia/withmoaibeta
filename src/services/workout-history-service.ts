@@ -138,11 +138,13 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     const currentWeekWorkouts = assignedWorkouts.filter(workout => {
       // Check if the workout has a week and program
       if (workout.workout?.week?.week_number) {
+        console.log(`Workout ${workout.workout.title} - Week ${workout.workout.week.week_number} vs Current ${currentWeekNumber}`);
         return workout.workout.week.week_number === currentWeekNumber;
       }
       return false;
     });
     
+    console.log(`Found ${currentWeekWorkouts.length} workouts for week ${currentWeekNumber}`);
     return currentWeekWorkouts.length || 0;
   } catch (error) {
     console.error('Error getting weekly assigned workouts count:', error);

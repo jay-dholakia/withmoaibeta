@@ -70,11 +70,14 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   const { user } = useAuth();
   
   // Initialize form with the next Monday as the default start date
+  const defaultStartDate = nextMonday(new Date());
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      startDate: nextMonday(new Date()),
-    }
+      startDate: defaultStartDate,
+    },
+    mode: 'onChange' // Add this to validate on change
   });
 
   useEffect(() => {
@@ -96,6 +99,7 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   }, []);
 
   const onSubmit = async (values: FormValues) => {
+    console.log('Form values on submit:', values);
     try {
       await onAssign(values.userId, values.startDate);
       form.reset({
@@ -121,6 +125,15 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
       return client.email;
     }
   };
+
+  // For debugging form state
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      console.log('Form values changed:', value);
+      console.log('Form errors:', form.formState.errors);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, form.watch]);
 
   if (isLoading) {
     return (
@@ -159,7 +172,11 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Client</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+                value={field.value} // Added to ensure the value is controlled
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a client" />
@@ -210,7 +227,12 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
                   <Calendar
                     mode="single"
                     selected={field.value}
-                    onSelect={field.onChange}
+                    onSelect={(date) => {
+                      if (date) {
+                        field.onChange(date);
+                        console.log('Date selected:', date);
+                      }
+                    }}
                     disabled={(date) => 
                       date < new Date() || disableNonMondays(date)
                     }
@@ -224,7 +246,7 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
           {isSubmitting ? 'Assigning...' : 'Assign Program'}
         </Button>
       </form>

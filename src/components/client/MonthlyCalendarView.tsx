@@ -70,7 +70,7 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
   };
 
   return (
-    <div className="bg-white rounded-xl p-2 shadow-sm mb-8 overflow-hidden w-full">
+    <div className="bg-white rounded-xl p-2 shadow-sm mb-8 overflow-hidden max-w-full">
       <div className="flex justify-between items-center mb-2">
         <Button 
           variant="outline" 
@@ -95,7 +95,7 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
         </Button>
       </div>
       
-      <div className="mt-2 max-w-full">
+      <div className="w-full flex justify-center">
         <Calendar 
           mode="single"
           month={currentMonth}
@@ -103,7 +103,7 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
           selected={undefined}
           onSelect={() => {}}
           disabled={{ after: new Date() }}
-          className="pointer-events-auto mx-auto w-full px-0"
+          className="pointer-events-auto w-full px-0 scale-[0.97] transform-origin-top"
           hideHead={false}
           components={{
             DayContent: ({ date, ...props }) => renderDayContent({ date, ...props }),
@@ -113,7 +113,7 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
         />
       </div>
       
-      <div className="flex justify-center space-x-4 mt-2 pt-2 border-t border-gray-100">
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2 pt-2 border-t border-gray-100">
         <div className="flex items-center space-x-1">
           <Star className="h-4 w-4 text-green-500 fill-green-500" />
           <span className="text-xs text-gray-600">Workout</span>

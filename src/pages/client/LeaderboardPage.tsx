@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -81,8 +80,8 @@ const LeaderboardPage = () => {
   }, [assignedCount]);
   
   return (
-    <Container>
-      <div className="max-w-full">
+    <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">
+      <div className="w-full">
         <Tabs defaultValue="team" className="mb-6 w-full">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="team" className="flex-1 flex items-center justify-center gap-2">
@@ -99,7 +98,7 @@ const LeaderboardPage = () => {
             <WeekProgressSection showTeam={true} showPersonal={false} />
           </TabsContent>
           
-          <TabsContent value="personal" className="w-full">
+          <TabsContent value="personal" className="w-full px-2">
             {isLoading ? (
               <div className="flex justify-center py-6">
                 <Loader2 className="h-6 w-6 animate-spin text-client" />

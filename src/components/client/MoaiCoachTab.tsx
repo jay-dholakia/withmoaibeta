@@ -14,8 +14,8 @@ interface CoachInfo {
     bio: string | null;
     avatar_url: string | null;
     favorite_movements: string[] | null;
-    first_name?: string | null;
-    last_name?: string | null;
+    first_name: string | null;
+    last_name: string | null;
   };
   user: {
     email: string;
@@ -58,7 +58,7 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
         .from('coach_profiles')
         .select('bio, avatar_url, favorite_movements, first_name, last_name')
         .eq('id', coachId)
-        .single();
+        .maybeSingle();
       
       if (profileError) {
         console.error('Error fetching coach profile:', profileError);

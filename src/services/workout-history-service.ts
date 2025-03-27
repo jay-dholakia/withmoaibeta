@@ -111,11 +111,11 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
       });
     }
     
-    // Combine workouts with completion status
+    // Combine workouts with completion status - breaking any circular references
     const result = programWorkouts.map(workout => {
       const completion = completionsMap.get(workout.id);
       
-      // Adapt exercise objects to match WorkoutExercise type
+      // Adapt exercise objects to match WorkoutExercise type - without circular refs
       const adaptedExercises: WorkoutExercise[] = workout.workout_exercises.map(ex => ({
         id: ex.id,
         workout_id: ex.workout_id,
@@ -133,7 +133,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
           category: ex.exercise.category,
           created_at: '' // Add missing property with empty string to satisfy type
         } : undefined,
-        // Remove the recursive reference to workout to break the circular dependency
+        // Critically important: Set workout to undefined to break circular reference
         workout: undefined
       }));
       
@@ -363,7 +363,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
                 title: workout.week.program.title
               } : undefined
             } : null,
-            // Explicitly set workout_exercises to undefined to prevent circular references
+            // Key fix: Explicitly set workout_exercises to undefined to prevent circular references
             workout_exercises: undefined
           });
         });
@@ -384,7 +384,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           day_of_week: new Date(completion.completed_at).getDay(),
           week_id: '',
           week: null,
-          // Explicitly set workout_exercises to undefined
+          // Key fix: Explicitly set workout_exercises to undefined
           workout_exercises: undefined
         };
         

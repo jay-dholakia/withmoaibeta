@@ -43,13 +43,13 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
         throw workoutsError;
       }
       
-      // Create workout objects with week property initialized to null
+      // Create workout objects without circular references
       if (workouts) {
         workouts.forEach(workout => {
           workoutMap.set(workout.id, {
             ...workout,
             week: null,
-            // Explicitly set workout_exercises to undefined to prevent circular references
+            // Important: Set workout_exercises to undefined to break circular references
             workout_exercises: undefined
           });
         });
@@ -130,7 +130,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
       }
     }
     
-    // Combine the data
+    // Combine the data without creating circular references
     return completions.map(completion => {
       const workoutDetails = completion.workout_id ? workoutMap.get(completion.workout_id) : null;
       
@@ -143,6 +143,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           day_of_week: new Date(completion.completed_at).getDay(),
           week_id: '',
           week: null,
+          // Important: Set workout_exercises to undefined
           workout_exercises: undefined
         };
         

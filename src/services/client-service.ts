@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./client-workout-history-service";
@@ -334,7 +335,9 @@ export const fetchCoachProfile = async (coachId: string): Promise<CoachProfile |
           id: coachId,
           bio: null,
           avatar_url: null,
-          favorite_movements: []
+          favorite_movements: [],
+          first_name: null,
+          last_name: null
         };
       }
       throw error;

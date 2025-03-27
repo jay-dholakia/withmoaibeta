@@ -96,6 +96,8 @@ const WorkoutProgramDetailPage = () => {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [isAddingTemplateToWeek, setIsAddingTemplateToWeek] = useState<string | null>(null);
   
+  const [workoutCounts, setWorkoutCounts] = useState<Record<string, number>>({});
+  
   useEffect(() => {
     if (!programId) return;
     
@@ -108,6 +110,13 @@ const WorkoutProgramDetailPage = () => {
         
         const weeksData = await fetchWorkoutWeeks(programId);
         setWeeks(weeksData);
+        
+        const counts: Record<string, number> = {};
+        for (const week of weeksData) {
+          const workouts = await fetchWorkouts(week.id);
+          counts[week.id] = workouts.length;
+        }
+        setWorkoutCounts(counts);
         
         if (weeksData.length > 0) {
           setSelectedWeek(weeksData[0].id);
@@ -211,10 +220,11 @@ const WorkoutProgramDetailPage = () => {
     }
   };
   
-  const handleSaveWorkout = (workoutId: string) => {
+  const handleSaveWorkout = async (workoutId: string) => {
     if (selectedWeek) {
       fetchWorkouts(selectedWeek).then(workouts => {
         setWorkouts(workouts);
+        updateWorkoutCount(selectedWeek);
       });
       
       setOpenDialogId(null);
@@ -233,6 +243,7 @@ const WorkoutProgramDetailPage = () => {
       if (selectedWeek) {
         const updatedWorkouts = await fetchWorkouts(selectedWeek);
         setWorkouts(updatedWorkouts);
+        updateWorkoutCount(selectedWeek);
       }
       
       toast.success('Workout deleted successfully');
@@ -303,6 +314,8 @@ const WorkoutProgramDetailPage = () => {
         const updatedWorkouts = await fetchWorkouts(selectedWeek);
         setWorkouts(updatedWorkouts);
       }
+      
+      updateWorkoutCount(isAddingTemplateToWeek);
       
       toast.success('Template workout added successfully');
       setIsAddingTemplateToWeek(null);
@@ -492,7 +505,7 @@ const WorkoutProgramDetailPage = () => {
                 <TabsList className="grid grid-cols-4 lg:grid-cols-7 mb-6">
                   {weeks.map((week) => (
                     <TabsTrigger key={week.id} value={week.id}>
-                      Week {week.week_number}
+                      Week {week.week_number} ({workoutCounts[week.id] || 0})
                     </TabsTrigger>
                   ))}
                 </TabsList>

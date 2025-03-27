@@ -63,25 +63,20 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
       if (profileError) {
         console.error('Error fetching coach profile:', profileError);
         
-        // Check if the error is "No rows found" - this happens when coach exists in group_coaches but has no profile
-        if (profileError.code === 'PGRST116') {
-          // If we have a coach ID but no profile, return a minimal profile
-          return {
-            id: coachId,
-            profile: {
-              bio: null,
-              avatar_url: null,
-              favorite_movements: null,
-              first_name: null,
-              last_name: null
-            },
-            user: {
-              email: `coach_${coachId.substring(0, 8)}`
-            }
-          } as CoachInfo;
-        }
-        
-        throw profileError;
+        // If there's an error, provide a minimal profile
+        return {
+          id: coachId,
+          profile: {
+            bio: null,
+            avatar_url: null,
+            favorite_movements: null,
+            first_name: null,
+            last_name: null
+          },
+          user: {
+            email: `coach_${coachId.substring(0, 8)}`
+          }
+        } as CoachInfo;
       }
       
       // For privacy reasons, we don't fetch actual emails

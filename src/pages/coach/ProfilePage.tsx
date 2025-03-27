@@ -49,6 +49,8 @@ const MOVEMENT_OPTIONS = [
 ];
 
 interface ProfileFormValues {
+  first_name: string;
+  last_name: string;
   bio: string;
   favorite_movements: string[];
 }
@@ -63,6 +65,8 @@ const ProfilePage = () => {
   
   const form = useForm<ProfileFormValues>({
     defaultValues: {
+      first_name: '',
+      last_name: '',
       bio: '',
       favorite_movements: []
     }
@@ -78,6 +82,8 @@ const ProfilePage = () => {
         
         if (profileData) {
           form.reset({
+            first_name: profileData.first_name || '',
+            last_name: profileData.last_name || '',
             bio: profileData.bio || '',
             favorite_movements: profileData.favorite_movements || []
           });
@@ -126,6 +132,8 @@ const ProfilePage = () => {
     try {
       setSaving(true);
       const updatedProfile = await updateCoachProfile(user.id, {
+        first_name: values.first_name,
+        last_name: values.last_name,
         bio: values.bio,
         favorite_movements: values.favorite_movements
       });
@@ -153,6 +161,9 @@ const ProfilePage = () => {
 
   // Get the first name and last initial for the avatar fallback
   const getInitials = () => {
+    if (profile?.first_name) {
+      return `${profile.first_name.charAt(0)}${profile.last_name ? profile.last_name.charAt(0) : ''}`;
+    }
     if (!user?.email) return 'C';
     const name = user.email.split('@')[0];
     return name.charAt(0).toUpperCase();
@@ -220,12 +231,43 @@ const ProfilePage = () => {
           {/* Profile Info Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Coach Bio</CardTitle>
+              <CardTitle>Coach Profile</CardTitle>
               <CardDescription>Tell your clients about yourself and your coaching philosophy</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  {/* Name Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="first_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter your first name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="last_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter your last name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
                   <FormField
                     control={form.control}
                     name="bio"

@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
-import StandaloneWorkoutForm from '@/components/coach/StandaloneWorkoutForm';
+import { StandaloneWorkoutForm } from '@/components/coach/StandaloneWorkoutForm';
 import { fetchStandaloneWorkouts, deleteStandaloneWorkout } from '@/services/workout-service';
 import { StandaloneWorkout } from '@/types/workout';
 import { toast } from 'sonner';

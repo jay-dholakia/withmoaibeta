@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,6 +44,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
         const data = await fetchExercisesByCategory();
         setExercisesByCategory(data);
         
+        // Set default tab to first category
         if (Object.keys(data).length > 0) {
           setSelectedTab(Object.keys(data)[0]);
         }

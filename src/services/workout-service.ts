@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { ProgramAssignment, WorkoutProgram, WorkoutType } from "@/types/workout";
+import { ProgramAssignment, WorkoutProgram } from "@/types/workout";
 
 /**
  * Fetches a workout program by ID.
@@ -456,8 +456,7 @@ export const addWorkoutToWeek = async (workoutId: string, weekId: string, dayOfW
       week_id: weekId,
       day_of_week: dayOfWeek,
       title: standaloneWorkout.title,
-      description: standaloneWorkout.description,
-      workout_type: (standaloneWorkout as any).workout_type || 'strength' // Default to 'strength' if not present
+      description: standaloneWorkout.description
     };
     
     const { data: newWorkout, error: createError } = await supabase

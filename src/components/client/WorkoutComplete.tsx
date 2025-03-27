@@ -115,7 +115,7 @@ const WorkoutComplete = () => {
     { value: 2, emoji: "😓", label: "Tired" },
     { value: 3, emoji: "😌", label: "Chill" },
     { value: 4, emoji: "😊", label: "Energized" },
-    { value: 5, emoji: "⚡", label: "Fully Charged" }
+    { value: 5, emoji: "😤", label: "Fully Charged" }
   ];
 
   return (

@@ -264,7 +264,7 @@ export const WeekProgressSection = ({
           <WeekProgressBar 
             completedDates={groupCompletedDates}
             lifeHappensDates={groupLifeHappensDates}
-            label={`${groupData.groupName} Progress`}
+            label={`${groupData.groupName}`}
             count={totalGroupWorkoutsThisWeek}
             total={maxPossibleWorkouts > 0 ? maxPossibleWorkouts : 1}
             color="bg-blue-500"

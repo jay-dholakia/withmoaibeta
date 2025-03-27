@@ -14,6 +14,8 @@ interface CoachInfo {
     bio: string | null;
     avatar_url: string | null;
     favorite_movements: string[] | null;
+    first_name?: string | null;
+    last_name?: string | null;
   };
   user: {
     email: string;
@@ -54,7 +56,7 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
       // Then get the coach profile information
       const { data: profile, error: profileError } = await supabase
         .from('coach_profiles')
-        .select('bio, avatar_url, favorite_movements')
+        .select('bio, avatar_url, favorite_movements, first_name, last_name')
         .eq('id', coachId)
         .single();
       
@@ -69,7 +71,9 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
             profile: {
               bio: null,
               avatar_url: null,
-              favorite_movements: null
+              favorite_movements: null,
+              first_name: null,
+              last_name: null
             },
             user: {
               email: `coach_${coachId.substring(0, 8)}`
@@ -131,6 +135,15 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
   
   const { profile } = coachInfo;
   
+  // Generate coach name based on available profile information
+  const coachName = () => {
+    if (profile?.first_name || profile?.last_name) {
+      return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+    }
+    // Fallback to the user email-based name if no profile name exists
+    return `Coach ${coachInfo.user.email.split('@')[0].replace('coach_', '')}`;
+  };
+  
   return (
     <Card className="mt-4">
       <CardHeader className="pb-3">
@@ -141,13 +154,13 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
           <Avatar className="h-24 w-24">
             <AvatarImage src={profile?.avatar_url || ''} alt="Coach" />
             <AvatarFallback className="bg-client text-white text-xl">
-              {coachInfo.user.email.substring(0, 2).toUpperCase()}
+              {coachName().substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           
           <div className="space-y-3 flex-1 text-center sm:text-left">
             <div>
-              <h3 className="font-semibold text-lg">Coach {coachInfo.user.email.split('@')[0].replace('coach_', '')}</h3>
+              <h3 className="font-semibold text-lg">{coachName()}</h3>
               <p className="text-muted-foreground text-sm">Certified Fitness Coach</p>
             </div>
             

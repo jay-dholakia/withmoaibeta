@@ -23,7 +23,7 @@ const WorkoutsList = () => {
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [weekFilter, setWeekFilter] = useState<string>("all");
+  const [weekFilter, setWeekFilter] = useState<string>("");
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
@@ -98,7 +98,7 @@ const WorkoutsList = () => {
   }, [user]);
 
   const filteredWorkouts = React.useMemo(() => {
-    if (weekFilter === "all") {
+    if (!weekFilter) {
       return workouts;
     }
     
@@ -168,7 +168,6 @@ const WorkoutsList = () => {
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Weeks</SelectItem>
                 {availableWeeks
                   .sort((a, b) => a - b)
                   .map((weekNumber) => (
@@ -188,9 +187,7 @@ const WorkoutsList = () => {
           <Card>
             <CardContent className="pt-4 pb-4 text-center">
               <p className="text-muted-foreground">
-                {weekFilter === "all" 
-                  ? "You don't have any assigned workouts yet."
-                  : "No workouts found for the selected filter."}
+                No workouts found for the selected filter.
               </p>
             </CardContent>
           </Card>

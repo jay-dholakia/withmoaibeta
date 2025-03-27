@@ -26,9 +26,9 @@ import { Loader2 } from 'lucide-react';
 
 interface WorkoutDayFormProps {
   weekId: string;
-  weekNumber: number;
-  onSubmit: (data: any) => void;
-  isSubmitting: boolean;
+  weekNumber?: number;
+  onSubmit?: (data: any) => void;
+  isSubmitting?: boolean;
   initialData?: {
     id?: string;
     title?: string;
@@ -36,6 +36,9 @@ interface WorkoutDayFormProps {
     day_of_week?: number;
     workout_type?: WorkoutType;
   };
+  workoutId?: string;
+  onSave?: (workoutId: string) => Promise<void> | void;
+  mode?: 'create' | 'edit';
   onCancel?: () => void;
 }
 
@@ -50,8 +53,11 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   weekId,
   weekNumber,
   onSubmit,
-  isSubmitting,
+  isSubmitting = false,
   initialData,
+  workoutId,
+  onSave,
+  mode,
   onCancel
 }) => {
   const form = useForm({
@@ -68,10 +74,14 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     const formData = {
       ...values,
       week_id: weekId,
-      id: initialData?.id
+      id: initialData?.id || workoutId
     };
     
-    onSubmit(formData);
+    if (onSubmit) {
+      onSubmit(formData);
+    } else if (onSave && (initialData?.id || workoutId)) {
+      onSave(initialData?.id || workoutId);
+    }
   };
 
   return (
@@ -175,7 +185,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           )}
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {initialData?.id ? 'Update Workout' : 'Create Workout'}
+            {initialData?.id || workoutId ? 'Update Workout' : 'Create Workout'}
           </Button>
         </div>
       </form>

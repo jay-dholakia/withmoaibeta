@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,8 +13,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fetchExercisesByCategory } from '@/services/workout-service';
 import { Exercise } from '@/types/workout';
-import { Search, Plus, Check } from 'lucide-react';
+import { Search, Plus, Check, PlusCircle } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 
 interface ExerciseSelectorProps {
   onSelectExercise: (exercise: Exercise) => void;
@@ -35,6 +35,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   const [selectedTab, setSelectedTab] = useState('');
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
+  const [addedExercises, setAddedExercises] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const loadExercises = async () => {
@@ -57,9 +58,25 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
     loadExercises();
   }, []);
 
+  useEffect(() => {
+    if (!open) {
+      setAddedExercises({});
+    }
+  }, [open]);
+
   const handleSingleSelect = (exercise: Exercise) => {
-    onSelectExercise(exercise);
-    setOpen(false);
+    if (!multiSelectMode) {
+      onSelectExercise(exercise);
+      
+      setAddedExercises(prev => ({
+        ...prev,
+        [exercise.id]: true
+      }));
+      
+      toast.success(`Added: ${exercise.name}`);
+    } else {
+      handleExerciseSelection(exercise);
+    }
   };
 
   const handleExerciseSelection = (exercise: Exercise) => {
@@ -100,6 +117,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
     setSearchTerm('');
     setSelectedExercises([]);
     setMultiSelectMode(false);
+    setAddedExercises({});
   };
 
   const filteredExercises = searchTerm.trim() 
@@ -119,6 +137,10 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
 
   const isExerciseSelected = (exercise: Exercise) => {
     return selectedExercises.some(e => e.id === exercise.id);
+  };
+
+  const isExerciseAdded = (exercise: Exercise) => {
+    return addedExercises[exercise.id] === true;
   };
 
   if (loading) {
@@ -178,7 +200,9 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                     {exercises.map((exercise) => (
                       <div 
                         key={exercise.id}
-                        className={`flex items-center p-2 rounded-md cursor-pointer hover:bg-muted transition-colors ${isExerciseSelected(exercise) ? 'bg-muted' : ''}`}
+                        className={`flex items-center p-2 rounded-md cursor-pointer hover:bg-muted transition-colors ${
+                          isExerciseSelected(exercise) || isExerciseAdded(exercise) ? 'bg-muted' : ''
+                        }`}
                         onClick={() => handleExerciseSelection(exercise)}
                       >
                         {multiSelectMode ? (
@@ -194,8 +218,34 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                           <p className="font-medium">{exercise.name}</p>
                           <p className="text-sm text-muted-foreground">{exercise.category}</p>
                         </div>
-                        {isExerciseSelected(exercise) && !multiSelectMode && (
-                          <Check className="h-4 w-4 text-primary" />
+                        {isExerciseAdded(exercise) && !multiSelectMode ? (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 p-0 text-green-600" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSingleSelect(exercise);
+                            }}
+                          >
+                            <PlusCircle className="h-4 w-4 mr-1" />
+                            <span className="text-xs">Add Again</span>
+                          </Button>
+                        ) : !multiSelectMode ? (
+                          <Button 
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 p-0 opacity-0 hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSingleSelect(exercise);
+                            }}
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                        {isExerciseSelected(exercise) && multiSelectMode && (
+                          <Check className="h-4 w-4 text-primary ml-2" />
                         )}
                       </div>
                     ))}
@@ -206,24 +256,37 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           </Tabs>
         </div>
         
-        {multiSelectMode && (
-          <div className="flex justify-between items-center mt-4">
-            <p className="text-sm text-muted-foreground">
-              {selectedExercises.length} exercise{selectedExercises.length !== 1 ? 's' : ''} selected
-            </p>
-            <div className="flex space-x-2">
+        <div className="flex justify-between items-center mt-4">
+          {multiSelectMode ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                {selectedExercises.length} exercise{selectedExercises.length !== 1 ? 's' : ''} selected
+              </p>
+              <div className="flex space-x-2">
+                <DialogClose asChild>
+                  <Button variant="outline" onClick={handleClose}>Cancel</Button>
+                </DialogClose>
+                <Button 
+                  onClick={handleAddSelected}
+                  disabled={selectedExercises.length === 0}
+                >
+                  Add Selected
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Click an exercise to add it to your workout.
+                <br />
+                You can add the same exercise multiple times.
+              </p>
               <DialogClose asChild>
-                <Button variant="outline" onClick={handleClose}>Cancel</Button>
+                <Button onClick={handleClose}>Done</Button>
               </DialogClose>
-              <Button 
-                onClick={handleAddSelected}
-                disabled={selectedExercises.length === 0}
-              >
-                Add Selected
-              </Button>
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

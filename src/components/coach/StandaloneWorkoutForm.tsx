@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchExercises } from '@/services/exercise-service';
 import { createStandaloneWorkout } from '@/services/workout-service';
 import { createMultipleStandaloneWorkoutExercises } from '@/services/workout-history-service';
-import { Exercise } from '@/types/workout';
+import { Exercise, StandaloneWorkout } from '@/types/workout';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -25,7 +25,21 @@ interface ExerciseFormValues {
   notes?: string;
 }
 
-const StandaloneWorkoutForm = () => {
+interface StandaloneWorkoutFormProps {
+  coachId?: string;
+  workoutId?: string;
+  initialData?: StandaloneWorkout;
+  onSave?: () => void;
+  mode?: 'create' | 'edit';
+}
+
+const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({ 
+  coachId, 
+  workoutId, 
+  initialData, 
+  onSave, 
+  mode = 'create' 
+}) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [exercisesList, setExercisesList] = useState<Exercise[]>([]);
@@ -43,9 +57,17 @@ const StandaloneWorkoutForm = () => {
     exercises: ExerciseFormValues[];
   }>({
     defaultValues: {
-      title: '',
-      description: '',
-      exercises: [{ exercise_id: '', sets: 3, reps: '10' }],
+      title: initialData?.title || '',
+      description: initialData?.description || '',
+      exercises: initialData?.exercises?.length ? 
+        initialData.exercises.map(e => ({
+          exercise_id: e.exercise_id,
+          sets: e.sets,
+          reps: e.reps,
+          rest_seconds: e.rest_seconds,
+          notes: e.notes
+        })) : 
+        [{ exercise_id: '', sets: 3, reps: '10' }],
     },
   });
 
@@ -69,7 +91,9 @@ const StandaloneWorkoutForm = () => {
   }, []);
 
   const onSubmit = async (data: { title: string; description: string; exercises: ExerciseFormValues[] }) => {
-    if (!user?.id) {
+    const effectiveCoachId = coachId || user?.id;
+    
+    if (!effectiveCoachId) {
       toast.error('User ID not found. Please log in again.');
       return;
     }
@@ -82,7 +106,7 @@ const StandaloneWorkoutForm = () => {
       const workoutResult = await createStandaloneWorkout({
         title: data.title,
         description: data.description,
-        coach_id: user.id,
+        coach_id: effectiveCoachId,
       });
 
       if (!workoutResult.success) {
@@ -126,7 +150,12 @@ const StandaloneWorkoutForm = () => {
       }
 
       toast.success('Workout created successfully!');
-      navigate('/coach-dashboard/workouts/standalone');
+      
+      if (onSave) {
+        onSave();
+      } else {
+        navigate('/coach-dashboard/workouts/standalone');
+      }
     } catch (error) {
       console.error("Error submitting workout:", error);
       
@@ -184,6 +213,7 @@ const StandaloneWorkoutForm = () => {
                         <Label htmlFor={`exercises[${index}].exercise_id`}>Exercise</Label>
                         <Select
                           onValueChange={(value) => setValue(`exercises.${index}.exercise_id`, value)}
+                          defaultValue={item.exercise_id}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select an exercise" />

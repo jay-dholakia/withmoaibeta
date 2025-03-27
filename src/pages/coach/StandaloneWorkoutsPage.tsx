@@ -138,7 +138,6 @@ const StandaloneWorkoutsPage = () => {
               <ScrollArea className="max-h-[80vh]">
                 {user?.id && (
                   <StandaloneWorkoutForm 
-                    coachId={user.id}
                     onSave={handleSaveWorkout}
                   />
                 )}
@@ -220,9 +219,7 @@ const StandaloneWorkoutsPage = () => {
                           <ScrollArea className="max-h-[80vh]">
                             {user?.id && (
                               <StandaloneWorkoutForm
-                                workoutId={workout.id}
                                 initialData={workout}
-                                coachId={user.id}
                                 onSave={handleSaveWorkout}
                                 mode="edit"
                               />

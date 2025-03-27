@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ClientProfile, fetchClientProfile, updateClientProfile } from '@/services/client-service';
+import { ClientProfile, fetchClientProfile, updateClientProfile, createClientProfile } from '@/services/client-service';
 import { ProfileBuilderLayout } from '@/components/client/ProfileBuilder/ProfileBuilderLayout';
 import { ProfileBuilderStepOne } from '@/components/client/ProfileBuilder/ProfileBuilderStepOne';
 import { ProfileBuilderStepTwo } from '@/components/client/ProfileBuilder/ProfileBuilderStepTwo';
@@ -23,6 +23,24 @@ const ProfileBuilder = () => {
   const [attemptedFetch, setAttemptedFetch] = useState(false);
 
   console.log('ProfileBuilder: Rendering with user ID:', user?.id);
+
+  // Ensure profile exists
+  const createProfileMutation = useMutation({
+    mutationFn: (userId: string) => {
+      console.log('Ensuring profile exists for user:', userId);
+      return createClientProfile(userId);
+    },
+    onSuccess: (data) => {
+      console.log('Profile created or confirmed:', data);
+      if (data) {
+        setProfileData(prevData => ({ ...prevData, ...data }));
+      }
+    },
+    onError: (error) => {
+      console.error('Error creating profile:', error);
+      toast.error('Error creating profile');
+    }
+  });
 
   // Fetch client profile with error handling
   const { data: profile, isLoading, error, refetch } = useQuery({
@@ -86,46 +104,13 @@ const ProfileBuilder = () => {
     }
   }, [profile, navigate]);
 
-  // Handle error cases by retrying or using fallback profile
+  // Handle error cases by retrying or ensuring profile exists
   useEffect(() => {
-    if (error && attemptedFetch) {
-      console.log('Error detected, using fallback profile');
-      
-      // Create a fallback empty profile
-      if (!profileData || Object.keys(profileData).length === 0) {
-        setProfileData({
-          id: user?.id,
-          first_name: null,
-          last_name: null,
-          city: null,
-          state: null,
-          fitness_goals: [],
-          favorite_movements: [],
-          profile_completed: false
-        });
-      }
-      
-      // Try to refetch after a delay
-      const timer = setTimeout(() => {
-        if (user?.id) {
-          console.log('Retrying profile fetch...');
-          refetch();
-        }
-      }, 2000);
-      
-      return () => clearTimeout(timer);
+    if (error && attemptedFetch && user?.id) {
+      console.log('Error detected, ensuring profile exists');
+      createProfileMutation.mutate(user.id);
     }
-  }, [error, attemptedFetch, profileData, user?.id, refetch]);
-
-  // Debug log for profile status
-  useEffect(() => {
-    if (!isLoading) {
-      console.log('Profile builder loaded with profile:', profile);
-      if (!profile) {
-        console.log('No profile found, creating empty profile');
-      }
-    }
-  }, [isLoading, profile]);
+  }, [error, attemptedFetch, user?.id, createProfileMutation]);
 
   // Handle navigation between steps
   const handleNext = () => {
@@ -148,8 +133,6 @@ const ProfileBuilder = () => {
       console.log('Updated profile data:', merged);
       return merged;
     });
-    
-    // Don't update in database yet - we'll do that only when completing
   };
 
   // Handle completion of the profile setup

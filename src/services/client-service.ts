@@ -206,7 +206,17 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile 
       .eq('id', userId)
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching client profile:", error);
+      
+      // If the error is that no profile exists, create one
+      if (error.code === 'PGRST116') {
+        console.log("No profile found, attempting to create one");
+        return await createClientProfile(userId);
+      }
+      
+      return null;
+    }
     return data as ClientProfile;
   } catch (error) {
     console.error("Error fetching client profile:", error);
@@ -214,8 +224,61 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile 
   }
 };
 
+// New function to create a client profile
+export const createClientProfile = async (userId: string): Promise<ClientProfile | null> => {
+  try {
+    console.log(`Creating new client profile for user: ${userId}`);
+    
+    // Create a minimal profile with just the ID
+    const { data, error } = await supabase
+      .from('client_profiles')
+      .insert({
+        id: userId,
+        fitness_goals: [],
+        favorite_movements: [],
+        profile_completed: false
+      })
+      .select();
+    
+    if (error) {
+      console.error("Error creating client profile:", error);
+      return null;
+    }
+    
+    console.log("Created profile:", data[0]);
+    return data[0] as ClientProfile;
+  } catch (error) {
+    console.error("Error creating client profile:", error);
+    return null;
+  }
+};
+
 export const updateClientProfile = async (userId: string, profileData: Partial<ClientProfile>): Promise<ClientProfile> => {
   try {
+    // First check if profile exists
+    const existingProfile = await fetchClientProfile(userId);
+    
+    if (!existingProfile) {
+      console.log("Profile doesn't exist, creating it first");
+      // Create profile with the update data
+      const initialData = {
+        id: userId,
+        ...profileData,
+        fitness_goals: profileData.fitness_goals || [],
+        favorite_movements: profileData.favorite_movements || []
+      };
+      
+      const { data, error } = await supabase
+        .from('client_profiles')
+        .insert(initialData)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as ClientProfile;
+    }
+    
+    // Otherwise update the existing profile
     const { data, error } = await supabase
       .from('client_profiles')
       .update(profileData)

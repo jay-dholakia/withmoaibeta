@@ -103,6 +103,7 @@ export interface WorkoutHistoryItem {
   workout_id: string;
   workout?: WorkoutBasic | null;
   life_happens_pass?: boolean;
+  rest_day?: boolean;
 }
 
 export const DAYS_OF_WEEK = [

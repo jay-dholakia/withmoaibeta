@@ -1,10 +1,25 @@
 
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
+import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, User } from 'lucide-react';
+import { Users, User, Loader2 } from 'lucide-react';
+import { fetchClientWorkoutHistory } from '@/services/workout-history-service';
 
 const LeaderboardPage = () => {
+  const { user } = useAuth();
+  
+  const { data: clientWorkouts, isLoading } = useQuery({
+    queryKey: ['client-workouts', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return fetchClientWorkoutHistory(user.id);
+    },
+    enabled: !!user?.id,
+  });
+  
   return (
     <div className="container max-w-4xl mx-auto px-4">
       <h1 className="text-2xl font-bold mb-6">Team Progress</h1>
@@ -26,7 +41,22 @@ const LeaderboardPage = () => {
         </TabsContent>
         
         <TabsContent value="personal">
-          <WeekProgressSection showTeam={false} showPersonal={true} />
+          {isLoading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-6 w-6 animate-spin text-client" />
+            </div>
+          ) : (
+            <>
+              <WeekProgressSection showTeam={false} showPersonal={true} />
+              
+              <h2 className="text-xl font-bold mb-4 mt-6 flex items-center gap-2">
+                <User className="h-5 w-5 text-client" />
+                Monthly Progress
+              </h2>
+              
+              <MonthlyCalendarView workouts={clientWorkouts || []} />
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>

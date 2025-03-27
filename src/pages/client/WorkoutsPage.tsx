@@ -55,7 +55,7 @@ const WorkoutsPage = () => {
       </Routes>
       
       {window.location.pathname === "/client-dashboard/workouts" && (
-        <div className="px-4 sm:px-6">
+        <div>
           <div className="mt-8 border-t pt-6">
             <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
               <Link to="/client-dashboard/workouts/one-off">

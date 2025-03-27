@@ -20,12 +20,12 @@ export const ProfileBuilderLayout: React.FC<ProfileBuilderLayoutProps> = ({
 }) => {
   return (
     <div className="min-h-screen w-full flex flex-col bg-gradient-to-b from-background to-background/80">
-      <header className="w-full py-6 px-6 flex justify-center z-10">
+      <header className="w-full py-6 px-4 flex justify-center z-10">
         <Logo variant="client" size="md" />
       </header>
       
       <PageTransition>
-        <main className="flex-1 flex flex-col items-center justify-center p-6">
+        <main className="flex-1 flex flex-col items-center justify-center px-4">
           <div className="w-full max-w-2xl">
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2">

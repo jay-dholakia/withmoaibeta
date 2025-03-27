@@ -774,6 +774,7 @@ export type Database = {
           id: string
           title: string
           week_id: string
+          workout_type: Database["public"]["Enums"]["workout_type"] | null
         }
         Insert: {
           created_at?: string
@@ -782,6 +783,7 @@ export type Database = {
           id?: string
           title: string
           week_id: string
+          workout_type?: Database["public"]["Enums"]["workout_type"] | null
         }
         Update: {
           created_at?: string
@@ -790,6 +792,7 @@ export type Database = {
           id?: string
           title?: string
           week_id?: string
+          workout_type?: Database["public"]["Enums"]["workout_type"] | null
         }
         Relationships: [
           {
@@ -929,7 +932,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      workout_type: "cardio" | "strength" | "mobility" | "flexibility"
     }
     CompositeTypes: {
       [_ in never]: never

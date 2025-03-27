@@ -17,6 +17,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import WorkoutTypeLabel from './WorkoutTypeLabel';
 
 const WorkoutsList = () => {
   const { user } = useAuth();
@@ -200,9 +201,16 @@ const WorkoutsList = () => {
                   onOpenChange={() => toggleWorkoutDetails(workout.id)}
                 >
                   <CardHeader className="px-4 py-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg">
-                      {workout.workout?.title || 'Untitled Workout'}
-                    </CardTitle>
+                    <div>
+                      <CardTitle className="text-lg">
+                        {workout.workout?.title || 'Untitled Workout'}
+                      </CardTitle>
+                      {workout.workout?.workout_type && (
+                        <div className="mt-1">
+                          <WorkoutTypeLabel workoutType={workout.workout.workout_type} size="sm" />
+                        </div>
+                      )}
+                    </div>
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-7 w-7 p-0 ml-2">
                         {expandedWorkouts[workout.id] ? (

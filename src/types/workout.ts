@@ -1,3 +1,4 @@
+
 export interface Exercise {
   id: string;
   name: string;
@@ -40,6 +41,7 @@ export interface Workout {
   description: string | null;
   created_at: string;
   workout_exercises?: WorkoutExercise[];
+  workout_type?: WorkoutType;
 }
 
 export interface StandaloneWorkout {
@@ -51,6 +53,7 @@ export interface StandaloneWorkout {
   updated_at?: string;
   category?: string;
   workout_exercises?: WorkoutExercise[];
+  workout_type?: WorkoutType;
 }
 
 export interface WorkoutBasic {
@@ -67,6 +70,7 @@ export interface WorkoutBasic {
     }
   } | null;
   workout_exercises?: WorkoutExercise[];
+  workout_type?: WorkoutType;
 }
 
 export interface WorkoutExercise {
@@ -105,6 +109,10 @@ export interface WorkoutHistoryItem {
   life_happens_pass?: boolean;
   rest_day?: boolean;
 }
+
+export type WorkoutType = 'cardio' | 'strength' | 'mobility' | 'flexibility';
+
+export const WORKOUT_TYPES: WorkoutType[] = ['cardio', 'strength', 'mobility', 'flexibility'];
 
 export const DAYS_OF_WEEK = [
   'Sunday',

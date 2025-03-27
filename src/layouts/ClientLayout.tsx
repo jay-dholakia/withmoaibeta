@@ -37,17 +37,19 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
       <Toaster position="top-center" richColors />
       
       <header className="bg-white shadow-sm border-b border-gray-200 py-4">
-        <Container className="flex justify-between items-center">
-          <div className="flex items-center">
-            <Logo variant="client" size="md" />
+        <Container>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <Logo variant="client" size="md" />
+            </div>
+            <button 
+              onClick={handleSignOut}
+              className="flex items-center text-gray-500 hover:text-gray-700"
+            >
+              <LogOut className="h-4 w-4 mr-1" />
+              <span className="text-sm">Sign Out</span>
+            </button>
           </div>
-          <button 
-            onClick={handleSignOut}
-            className="flex items-center text-gray-500 hover:text-gray-700"
-          >
-            <LogOut className="h-4 w-4 mr-1" />
-            <span className="text-sm">Sign Out</span>
-          </button>
         </Container>
       </header>
       

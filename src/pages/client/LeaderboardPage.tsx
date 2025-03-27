@@ -21,7 +21,7 @@ const LeaderboardPage = () => {
   });
   
   return (
-    <div className="container max-w-4xl mx-auto px-4">
+    <div className="container mx-auto px-1 sm:px-2">
       <h1 className="text-2xl font-bold mb-6">Team Progress</h1>
       
       <Tabs defaultValue="team" className="mb-6">

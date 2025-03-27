@@ -70,7 +70,7 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
   };
 
   return (
-    <div className="bg-white rounded-xl p-2 shadow-sm mb-8 overflow-hidden">
+    <div className="bg-white rounded-xl p-2 shadow-sm mb-8 overflow-hidden w-full">
       <div className="flex justify-between items-center mb-2">
         <Button 
           variant="outline" 

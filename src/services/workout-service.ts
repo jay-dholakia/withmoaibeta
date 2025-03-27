@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ProgramAssignment, WorkoutProgram } from "@/types/workout";
 
@@ -488,9 +487,9 @@ export const addWorkoutToWeek = async (workoutId: string, weekId: string, dayOfW
       const exerciseData = exercises.map(ex => ({
         workout_id: newWorkout.id,
         exercise_id: ex.exercise_id,
-        sets: ex.sets,
-        reps: ex.reps,
-        rest_seconds: ex.rest_seconds,
+        sets: ex.sets || 1, // Default to 1 if null
+        reps: ex.reps || '10', // Default to '10' if null
+        rest_seconds: ex.rest_seconds || 60, // Default to 60 seconds if null
         notes: ex.notes,
         order_index: ex.order_index
       }));

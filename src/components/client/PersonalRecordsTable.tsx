@@ -55,17 +55,17 @@ export const PersonalRecordsTable = ({ records, isLoading }: PersonalRecordsTabl
           <Table className="w-full">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[55%] px-2 py-3">Exercise</TableHead>
-                <TableHead className="text-right w-[20%] px-2 py-3">Weight</TableHead>
-                <TableHead className="text-right w-[25%] px-2 py-3">Date</TableHead>
+                <TableHead className="w-[55%] px-2 py-3 text-center">Exercise</TableHead>
+                <TableHead className="w-[20%] px-2 py-3 text-center">Weight</TableHead>
+                <TableHead className="w-[25%] px-2 py-3 text-center">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {records.map((record) => (
                 <TableRow key={record.id}>
-                  <TableCell className="font-medium px-2 py-2">{record.exercise_name}</TableCell>
-                  <TableCell className="text-right px-2 py-2">{record.weight} lbs</TableCell>
-                  <TableCell className="text-right px-2 py-2 break-words">
+                  <TableCell className="font-medium px-2 py-2 text-center">{record.exercise_name}</TableCell>
+                  <TableCell className="px-2 py-2 text-center">{record.weight} lbs</TableCell>
+                  <TableCell className="px-2 py-2 break-words text-center">
                     {format(new Date(record.achieved_at), 'MMM d, yyyy')}
                   </TableCell>
                 </TableRow>

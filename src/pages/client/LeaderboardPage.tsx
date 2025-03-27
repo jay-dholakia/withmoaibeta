@@ -1,38 +1,18 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import { PersonalRecordsTable, PersonalRecord } from '@/components/client/PersonalRecordsTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, User, Loader2, Trophy, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, User, Loader2, Trophy, Info } from 'lucide-react';
 import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
 import { Container } from '@/components/ui/container';
-import { startOfWeek, endOfWeek, addWeeks, subWeeks, format } from 'date-fns';
-import { Button } from '@/components/ui/button';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
-  const [selectedWeek, setSelectedWeek] = useState(new Date());
-  
-  // Function to navigate to previous week
-  const goToPreviousWeek = () => {
-    setSelectedWeek(prevWeek => subWeeks(prevWeek, 1));
-  };
-
-  // Function to navigate to next week
-  const goToNextWeek = () => {
-    // Don't allow navigating to future weeks beyond current week
-    if (startOfWeek(addWeeks(selectedWeek, 1)) <= startOfWeek(new Date())) {
-      setSelectedWeek(prevWeek => addWeeks(prevWeek, 1));
-    }
-  };
-  
-  // Calculate start and end of selected week
-  const weekStart = startOfWeek(selectedWeek, { weekStartsOn: 0 });
-  const weekEnd = endOfWeek(selectedWeek, { weekStartsOn: 0 });
   
   // Query for client workouts
   const { data: clientWorkouts, isLoading } = useQuery({
@@ -101,10 +81,6 @@ const LeaderboardPage = () => {
     return (typeof assignedCount === 'number' && assignedCount > 0) ? assignedCount : 7;
   }, [assignedCount]);
   
-  // Get the current date for comparison
-  const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
-  const isCurrentWeek = weekStart.getTime() === currentWeekStart.getTime();
-
   return (
     <Container>
       <div className="max-w-full">
@@ -123,11 +99,7 @@ const LeaderboardPage = () => {
           </TabsList>
           
           <TabsContent value="team" className="w-full">
-            <WeekProgressSection 
-              showTeam={true} 
-              showPersonal={false} 
-              selectedDate={selectedWeek}
-            />
+            <WeekProgressSection showTeam={true} showPersonal={false} />
           </TabsContent>
           
           <TabsContent value="personal" className="w-full">
@@ -137,34 +109,6 @@ const LeaderboardPage = () => {
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-4">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={goToPreviousWeek}
-                    className="flex items-center gap-1"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    <span>Previous</span>
-                  </Button>
-                  
-                  <div className="text-sm font-medium">
-                    {format(weekStart, 'MM/dd')} - {format(weekEnd, 'MM/dd')}
-                    {isCurrentWeek && <span className="ml-2 text-client">(Current)</span>}
-                  </div>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={goToNextWeek}
-                    disabled={startOfWeek(addWeeks(selectedWeek, 1)) > startOfWeek(new Date())}
-                    className="flex items-center gap-1"
-                  >
-                    <span>Next</span>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-                
                 {!isLoadingAssigned && (
                   <div className="mb-4 bg-muted p-3 rounded-md text-sm flex items-start gap-2">
                     <Info className="h-4 w-4 mt-0.5 shrink-0" />
@@ -180,12 +124,6 @@ const LeaderboardPage = () => {
                     </div>
                   </div>
                 )}
-                
-                <WeekProgressSection 
-                  showTeam={false} 
-                  showPersonal={true} 
-                  selectedDate={selectedWeek}
-                />
                 
                 <h2 className="text-xl font-bold mb-4 mt-6 flex items-center gap-2">
                   <User className="h-5 w-5 text-client" />

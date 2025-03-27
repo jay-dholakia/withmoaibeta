@@ -295,8 +295,8 @@ const ActiveWorkout = () => {
                   <div className="space-y-4">
                     <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 text-sm font-medium border-b pb-2">
                       <div>Set</div>
-                      <div>Weight</div>
                       <div>Reps</div>
+                      <div>Weight</div>
                       <div>Done</div>
                     </div>
                     
@@ -308,16 +308,16 @@ const ActiveWorkout = () => {
                         <div className="font-medium">{set.setNumber}</div>
                         <Input
                           type="number"
-                          placeholder="lbs"
-                          value={set.weight}
-                          onChange={(e) => handleSetChange(exercise.id, setIdx, 'weight', e.target.value)}
+                          placeholder="count"
+                          value={set.reps}
+                          onChange={(e) => handleSetChange(exercise.id, setIdx, 'reps', e.target.value)}
                           className="h-9"
                         />
                         <Input
                           type="number"
-                          placeholder="count"
-                          value={set.reps}
-                          onChange={(e) => handleSetChange(exercise.id, setIdx, 'reps', e.target.value)}
+                          placeholder="lbs"
+                          value={set.weight}
+                          onChange={(e) => handleSetChange(exercise.id, setIdx, 'weight', e.target.value)}
                           className="h-9"
                         />
                         <Checkbox

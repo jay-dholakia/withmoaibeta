@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,7 +30,6 @@ const ActiveWorkout = () => {
     };
   }>({});
 
-  // Track pending sets to save
   const [pendingSets, setPendingSets] = useState<Array<{
     exerciseId: string;
     setNumber: number;
@@ -112,7 +110,6 @@ const ActiveWorkout = () => {
     },
   });
 
-  // This mutation will save all pending sets at once
   const saveAllSetsMutation = useMutation({
     mutationFn: async () => {
       if (!workoutCompletionId || pendingSets.length === 0) {
@@ -134,9 +131,7 @@ const ActiveWorkout = () => {
     onSuccess: () => {
       toast.success('All sets saved successfully');
       queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
-      // Clear pending sets after successful save
       setPendingSets([]);
-      // Proceed to complete workout page
       navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
     },
     onError: (error: any) => {
@@ -201,7 +196,6 @@ const ActiveWorkout = () => {
     }));
 
     if (completed) {
-      // Add to pending sets instead of immediately saving
       const set = exerciseStates[exerciseId].sets[setIndex];
       setPendingSets(prev => [
         ...prev.filter(s => !(s.exerciseId === exerciseId && s.setNumber === set.setNumber)),
@@ -213,7 +207,6 @@ const ActiveWorkout = () => {
         }
       ]);
     } else {
-      // Remove from pending sets if unchecked
       setPendingSets(prev => 
         prev.filter(set => !(set.exerciseId === exerciseId && set.setNumber === setIndex + 1))
       );
@@ -231,25 +224,12 @@ const ActiveWorkout = () => {
   };
 
   const isWorkoutComplete = () => {
-    if (!workoutData?.workout?.workout_exercises || !exerciseStates) return false;
-    
-    const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
-      ? workoutData.workout.workout_exercises 
-      : [];
-    
-    return workoutExercises.every((exercise: any) => {
-      const exerciseState = exerciseStates[exercise.id];
-      if (!exerciseState) return false;
-      
-      return exerciseState.sets.every((set) => set.completed);
-    });
+    return true;
   };
 
   const finishWorkout = async () => {
-    // First save all pending sets
     try {
       await saveAllSetsMutation.mutateAsync();
-      // Navigation is now handled in the mutation's onSuccess callback
     } catch (error) {
       console.error("Error saving sets:", error);
     }
@@ -385,7 +365,7 @@ const ActiveWorkout = () => {
         <div className="container mx-auto max-w-md">
           <Button
             onClick={finishWorkout}
-            disabled={!isWorkoutComplete() || saveAllSetsMutation.isPending}
+            disabled={saveAllSetsMutation.isPending}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-6"
           >
             {saveAllSetsMutation.isPending ? (
@@ -395,11 +375,6 @@ const ActiveWorkout = () => {
             )}
             Complete Workout
           </Button>
-          {!isWorkoutComplete() && (
-            <p className="text-xs text-center mt-2 text-muted-foreground">
-              Complete all sets to finish the workout
-            </p>
-          )}
           {pendingSets.length > 0 && (
             <p className="text-xs text-center mt-2 text-muted-foreground">
               All sets will be saved when you complete the workout

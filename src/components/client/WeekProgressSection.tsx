@@ -7,16 +7,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { WeekProgressBar } from './WeekProgressBar';
 import { Loader2, Users, User } from 'lucide-react';
 import MoaiMemberItem from './MoaiMemberItem';
-import { isThisWeek } from 'date-fns';
+import { isThisWeek, isSameWeek, startOfWeek } from 'date-fns';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
   showPersonal?: boolean;
+  selectedDate?: Date; // Add selectedDate prop
 }
 
 export const WeekProgressSection = ({ 
   showTeam = true, 
-  showPersonal = true 
+  showPersonal = true,
+  selectedDate = new Date() // Default to current date
 }: WeekProgressSectionProps) => {
   const { user } = useAuth();
   
@@ -163,13 +165,17 @@ export const WeekProgressSection = ({
       .map(workout => new Date(workout.completed_at));
   }, [groupData?.completions]);
   
+  // Get the start of the selected week for consistent date comparisons
+  const selectedWeekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
+  
   React.useEffect(() => {
     if (clientWorkouts && clientWorkouts.length > 0) {
       console.log("Client Workouts:", clientWorkouts);
       console.log("Client Completed Dates:", clientCompletedDates);
       console.log("Client Life Happens Dates:", clientLifeHappensDates);
+      console.log("Selected week start:", selectedWeekStart);
     }
-  }, [clientWorkouts, clientCompletedDates, clientLifeHappensDates]);
+  }, [clientWorkouts, clientCompletedDates, clientLifeHappensDates, selectedWeekStart]);
   
   if ((showPersonal && (isLoadingClientWorkouts || isLoadingAssignedCount)) || (showTeam && isLoadingGroupData)) {
     return (
@@ -179,16 +185,29 @@ export const WeekProgressSection = ({
     );
   }
   
-  const thisWeekWorkouts = clientCompletedDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
-  const thisWeekLifeHappens = clientLifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
-  const totalThisWeek = thisWeekWorkouts + thisWeekLifeHappens;
+  // Filter workouts for the selected week
+  const selectedWeekWorkouts = clientCompletedDates.filter(date => 
+    isSameWeek(date, selectedWeekStart, { weekStartsOn: 0 })
+  ).length;
+  
+  const selectedWeekLifeHappens = clientLifeHappensDates.filter(date => 
+    isSameWeek(date, selectedWeekStart, { weekStartsOn: 0 })
+  ).length;
+  
+  const totalSelectedWeek = selectedWeekWorkouts + selectedWeekLifeHappens;
   
   // Use the assigned workouts count if available, otherwise use default 7
   const totalWeeklyWorkouts = (typeof assignedWorkoutsCount === 'number' && assignedWorkoutsCount > 0) 
     ? assignedWorkoutsCount 
     : 7;
   
-  const totalGroupWorkoutsThisWeek = groupData?.completions?.length || 0;
+  // Filter group completions for the selected week
+  const groupWorkoutsSelectedWeek = groupData?.completions
+    ? groupData.completions.filter(completion => 
+        isSameWeek(new Date(completion.completed_at), selectedWeekStart, { weekStartsOn: 0 })
+      ).length
+    : 0;
+  
   const totalGroupMembers = groupData?.members?.length || 0;
   const maxPossibleWorkouts = totalGroupMembers * 7;
   
@@ -211,12 +230,13 @@ export const WeekProgressSection = ({
             completedDates={clientCompletedDates}
             lifeHappensDates={clientLifeHappensDates}
             label="Your Workouts" 
-            count={thisWeekWorkouts + thisWeekLifeHappens}
+            count={totalSelectedWeek}
             total={totalWeeklyWorkouts}
             color="bg-client"
             textColor="text-client"
             showDayCircles={true}
             showProgressBar={true}
+            selectedDate={selectedDate}
           />
         </>
       )}
@@ -234,12 +254,13 @@ export const WeekProgressSection = ({
             completedDates={groupCompletedDates}
             lifeHappensDates={groupLifeHappensDates}
             label={`${groupData.groupName} Progress`}
-            count={totalGroupWorkoutsThisWeek}
+            count={groupWorkoutsSelectedWeek}
             total={maxPossibleWorkouts > 0 ? maxPossibleWorkouts : 1}
             color="bg-blue-500"
             textColor="text-blue-500"
             showDayCircles={false}
             showProgressBar={false}
+            selectedDate={selectedDate}
           />
           
           {showTeam && !showPersonal && (
@@ -260,6 +281,7 @@ export const WeekProgressSection = ({
                       textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}
                       showDayCircles={true}
                       showProgressBar={false}
+                      selectedDate={selectedDate}
                     />
                   </div>
                 ))}

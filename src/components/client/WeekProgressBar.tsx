@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
-import { format, startOfWeek, addDays, isSameDay, isThisWeek } from 'date-fns';
+import { format, startOfWeek, addDays, isSameDay, isThisWeek, isSameWeek } from 'date-fns';
 import { Star, Umbrella, AlertCircle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -14,7 +14,8 @@ interface WeekProgressBarProps {
   color?: string;
   textColor?: string;
   showDayCircles?: boolean;
-  showProgressBar?: boolean; // New prop to control progress bar visibility
+  showProgressBar?: boolean; // Prop to control progress bar visibility
+  selectedDate?: Date; // New prop for selected date
 }
 
 export const WeekProgressBar = ({ 
@@ -26,28 +27,41 @@ export const WeekProgressBar = ({
   color = 'bg-client', 
   textColor = 'text-client',
   showDayCircles = false,
-  showProgressBar = false // Default to not showing the progress bar
+  showProgressBar = false, // Default to not showing the progress bar
+  selectedDate = new Date() // Default to current date
 }: WeekProgressBarProps) => {
   const isMobile = useIsMobile();
   
-  // Get start of current week (Sunday)
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
+  // Get start of the selected week (Sunday)
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
   
-  // Create array of days for the current week
+  // Create array of days for the selected week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   
   // Convert dates to ISO strings for logging and debugging
+  console.log("Selected date:", selectedDate.toISOString());
+  console.log("Week start:", weekStart.toISOString());
   console.log("Completed dates:", completedDates.map(d => d.toISOString()));
   console.log("Life happens dates:", lifeHappensDates.map(d => d.toISOString()));
+  
+  // Check if the selected week is the current week
+  const isSelectedWeekCurrentWeek = isThisWeek(weekStart, { weekStartsOn: 0 });
+  
+  // Filter completed dates for the selected week
+  const completedDatesThisWeek = completedDates.filter(date => 
+    isSameWeek(date, weekStart, { weekStartsOn: 0 })
+  );
+  
+  const lifeHappensDatesThisWeek = lifeHappensDates.filter(date => 
+    isSameWeek(date, weekStart, { weekStartsOn: 0 })
+  );
   
   // Calculate percentage complete - including both completed workouts and life happens passes
   const completedDaysThisWeek = count !== undefined 
     ? count 
-    : completedDates.filter(date => isThisWeek(date, { weekStartsOn: 0 })).length;
+    : completedDatesThisWeek.length;
   
-  const lifeHappensDaysThisWeek = lifeHappensDates.filter(date => 
-    isThisWeek(date, { weekStartsOn: 0 })
-  ).length;
+  const lifeHappensDaysThisWeek = lifeHappensDatesThisWeek.length;
   
   console.log("Completed days this week:", completedDaysThisWeek);
   console.log("Life happens days this week:", lifeHappensDaysThisWeek);
@@ -68,6 +82,11 @@ export const WeekProgressBar = ({
           {hasAssignedWorkouts ? (
             <p className="text-sm text-slate-500">
               {totalCompletedCount} of {total} {total === 1 ? 'workout' : 'workouts'} completed
+              {!isSelectedWeekCurrentWeek && (
+                <span className="ml-1">
+                  ({format(weekStart, 'MM/dd')} - {format(addDays(weekStart, 6), 'MM/dd')})
+                </span>
+              )}
             </p>
           ) : (
             <p className="text-sm text-amber-500 flex items-center gap-1">
@@ -111,7 +130,7 @@ export const WeekProgressBar = ({
                   ) : null}
                 </div>
                 <div className="text-xs text-center text-slate-500 mt-1">
-                  {format(day, 'E')[0]}
+                  {format(day, 'MM/dd')}
                 </div>
               </div>
             );

@@ -45,32 +45,33 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
     .filter(workout => workout.completed_at && workout.rest_day)
     .map(workout => new Date(workout.completed_at));
 
-  // Custom calendar day renderer
-  const renderDay = (day: Date | undefined) => {
-    if (!day) return null;
+  // Custom day content renderer
+  const renderDayContent = (props: { date: Date; disabled?: boolean }) => {
+    if (!props.date) return null;
 
-    const isCompleted = completedWorkouts.some(date => isSameDay(date, day));
-    const isLifeHappens = lifeHappensWorkouts.some(date => isSameDay(date, day));
-    const isRestDay = restDays.some(date => isSameDay(date, day));
+    const isCompleted = completedWorkouts.some(date => isSameDay(date, props.date));
+    const isLifeHappens = lifeHappensWorkouts.some(date => isSameDay(date, props.date));
+    const isRestDay = restDays.some(date => isSameDay(date, props.date));
 
     return (
       <div className="relative w-full h-full flex items-center justify-center">
+        <div className="text-sm">{props.date.getDate()}</div>
         {isCompleted && (
-          <Star className="absolute h-4 w-4 text-green-500 fill-green-500" />
+          <Star className="absolute top-0 right-0 h-3 w-3 text-green-500 fill-green-500" />
         )}
         {isLifeHappens && (
-          <Umbrella className="absolute h-4 w-4 text-blue-500" />
+          <Umbrella className="absolute bottom-0 left-0 h-3 w-3 text-blue-500" />
         )}
         {isRestDay && (
-          <Armchair className="absolute h-4 w-4 text-amber-500" />
+          <Armchair className="absolute bottom-0 right-0 h-3 w-3 text-amber-500" />
         )}
       </div>
     );
   };
 
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm mb-8">
-      <div className="flex justify-between items-center mb-4">
+    <div className="bg-white rounded-xl p-4 shadow-sm mb-8 overflow-hidden">
+      <div className="flex justify-between items-center mb-2">
         <Button 
           variant="outline" 
           onClick={goToPreviousMonth}
@@ -94,7 +95,7 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
         </Button>
       </div>
       
-      <div className="mt-2">
+      <div className="mt-2 max-w-full">
         <Calendar 
           mode="single"
           month={currentMonth}
@@ -102,32 +103,28 @@ export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
           selected={undefined}
           onSelect={() => {}}
           disabled={{ after: new Date() }}
-          className="pointer-events-auto"
+          className="pointer-events-auto mx-auto w-full"
+          hideHead={false}
           components={{
-            DayContent: ({ day }) => renderDay(day),
+            DayContent: renderDayContent
           }}
+          showOutsideDays={true}
         />
       </div>
       
-      <div className="flex justify-center space-x-6 mt-4 pt-4 border-t border-gray-100">
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 flex items-center justify-center">
-            <Star className="h-4 w-4 text-green-500 fill-green-500" />
-          </div>
+      <div className="flex justify-center space-x-4 mt-2 pt-2 border-t border-gray-100">
+        <div className="flex items-center space-x-1">
+          <Star className="h-4 w-4 text-green-500 fill-green-500" />
           <span className="text-xs text-gray-600">Workout</span>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 flex items-center justify-center">
-            <Umbrella className="h-4 w-4 text-blue-500" />
-          </div>
+        <div className="flex items-center space-x-1">
+          <Umbrella className="h-4 w-4 text-blue-500" />
           <span className="text-xs text-gray-600">Life Happens</span>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 flex items-center justify-center">
-            <Armchair className="h-4 w-4 text-amber-500" />
-          </div>
+        <div className="flex items-center space-x-1">
+          <Armchair className="h-4 w-4 text-amber-500" />
           <span className="text-xs text-gray-600">Rest Day</span>
         </div>
       </div>

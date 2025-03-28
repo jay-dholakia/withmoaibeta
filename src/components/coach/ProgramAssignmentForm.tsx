@@ -29,16 +29,27 @@ import {
 import { 
   CalendarIcon, 
   AlertCircle, 
-  Users 
+  Users,
+  Trash2 
 } from 'lucide-react';
 import { format, getDay, nextMonday } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { fetchAllClients, fetchAssignedUsers } from '@/services/workout-service';
+import { fetchAllClients, fetchAssignedUsers, deleteProgramAssignment } from '@/services/workout-service';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const formSchema = z.object({
   userId: z.string({
@@ -61,7 +72,7 @@ interface ProgramAssignmentFormProps {
 
 interface ClientInfo {
   id: string;
-  email: string;
+  email?: string;
   first_name?: string;
   last_name?: string;
   user_type?: string;
@@ -82,6 +93,9 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   const [clients, setClients] = useState<ClientInfo[]>([]);
   const [assignedClients, setAssignedClients] = useState<AssignedClient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<AssignedClient | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { user } = useAuth();
   
   const defaultStartDate = nextMonday(new Date());
@@ -94,6 +108,16 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
     mode: 'onChange'
   });
 
+  const loadAssignments = async () => {
+    try {
+      const assignments = await fetchAssignedUsers(programId);
+      setAssignedClients(assignments);
+      console.log('Current program assignments:', assignments);
+    } catch (err) {
+      console.error('Error loading program assignments:', err);
+    }
+  };
+
   useEffect(() => {
     const loadClients = async () => {
       try {
@@ -105,7 +129,9 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
           ? clientsData.map(client => ({
               id: client.id || '',
               email: client.email || 'N/A',
-              user_type: client.user_type || undefined
+              user_type: client.user_type || undefined,
+              first_name: client.first_name,
+              last_name: client.last_name
             }))
           : [];
           
@@ -113,13 +139,7 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
         setClients(typedClients);
         
         // Load assigned clients for this program
-        try {
-          const assignments = await fetchAssignedUsers(programId);
-          setAssignedClients(assignments);
-          console.log('Current program assignments:', assignments);
-        } catch (err) {
-          console.error('Error loading program assignments:', err);
-        }
+        await loadAssignments();
         
         setIsLoading(false);
       } catch (error) {
@@ -142,11 +162,35 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
       });
       
       // Refresh assigned clients after assignment
-      const assignments = await fetchAssignedUsers(programId);
-      setAssignedClients(assignments);
+      await loadAssignments();
     } catch (error) {
       console.error('Error assigning program:', error);
     }
+  };
+
+  const handleDeleteAssignment = async () => {
+    if (!clientToDelete) return;
+    
+    try {
+      setIsDeleting(true);
+      await deleteProgramAssignment(clientToDelete.id);
+      toast.success('Program assignment removed successfully');
+      setDeleteDialogOpen(false);
+      
+      // Refresh the list of assigned clients
+      await loadAssignments();
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      toast.error('Failed to remove program assignment');
+    } finally {
+      setIsDeleting(false);
+      setClientToDelete(null);
+    }
+  };
+
+  const openDeleteDialog = (client: AssignedClient) => {
+    setClientToDelete(client);
+    setDeleteDialogOpen(true);
   };
 
   const disableNonMondays = (date: Date) => {
@@ -154,12 +198,12 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   };
 
   const getClientDisplayName = (client: ClientInfo): string => {
-    if (client.first_name && client.last_name) {
+    if (client?.first_name && client?.last_name) {
       return `${client.first_name} ${client.last_name}`;
-    } else if (client.first_name) {
+    } else if (client?.first_name) {
       return client.first_name;
     } else {
-      return client.email;
+      return client?.email || 'Unknown Client';
     }
   };
   
@@ -325,7 +369,16 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
                         Start date: {format(new Date(assignment.start_date), "PPP")}
                       </p>
                     </div>
-                    <Badge variant="outline">Assigned</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">Assigned</Badge>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => openDeleteDialog(assignment)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </li>
                 );
               })}
@@ -333,6 +386,27 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Program Assignment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the client's access to this program. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAssignment}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Removing...' : 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

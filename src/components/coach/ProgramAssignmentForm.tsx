@@ -86,7 +86,8 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
         setIsLoading(true);
         const clientsData = await fetchAllClients();
         
-        // Safely cast the result to ClientInfo[] type
+        // Transform the data to ensure it matches the ClientInfo interface
+        // This handles the case where clientsData might not have email, first_name, or last_name properties
         const typedClients: ClientInfo[] = Array.isArray(clientsData) 
           ? clientsData.map(client => ({
               id: client.id,

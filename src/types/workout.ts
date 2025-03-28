@@ -4,7 +4,7 @@ export interface Exercise {
   category: string;
   description: string | null;
   created_at: string;
-  exercise_type: string; // Changed from enum to string
+  exercise_type: string; 
 }
 
 export interface WorkoutProgram {
@@ -41,7 +41,7 @@ export interface Workout {
   description: string | null;
   created_at: string;
   workout_exercises?: WorkoutExercise[];
-  workout_type?: string; // Changed to allow any string
+  workout_type: string; // Changed from optional to required
 }
 
 export interface StandaloneWorkout {
@@ -53,7 +53,7 @@ export interface StandaloneWorkout {
   updated_at?: string;
   category?: string;
   workout_exercises?: WorkoutExercise[];
-  workout_type?: string; // Changed to allow any string
+  workout_type: string; // Changed from optional to required
 }
 
 export interface WorkoutBasic {
@@ -70,7 +70,7 @@ export interface WorkoutBasic {
     }
   } | null;
   workout_exercises?: WorkoutExercise[];
-  workout_type?: string; // Changed to allow any string
+  workout_type: string; // Changed from optional to required
 }
 
 export interface WorkoutExercise {
@@ -86,8 +86,8 @@ export interface WorkoutExercise {
   // Optional joined data
   exercise?: Exercise;
   workout?: Workout;
-  title?: string; // Add this to support the title property
-  workout_type?: string; // Add this to support the workout_type property
+  title?: string; 
+  workout_type?: string; 
 }
 
 export interface ProgramAssignment {

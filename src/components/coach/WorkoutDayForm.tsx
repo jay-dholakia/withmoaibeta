@@ -103,7 +103,11 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       const loadWorkoutDetails = async () => {
         try {
           const workout = await fetchWorkout(workoutId);
-          setWorkoutDetails(workout);
+          setWorkoutDetails({
+            title: workout.title,
+            description: workout.description,
+            workout_type: workout.workout_type || 'strength'
+          });
           
           const exercises = await fetchWorkoutExercises(workoutId);
           setExistingExercises(exercises);

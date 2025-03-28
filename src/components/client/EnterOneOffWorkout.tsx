@@ -26,7 +26,7 @@ const EnterOneOffWorkout = () => {
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [rating, setRating] = useState<number | undefined>(undefined);
-  const [workoutType, setWorkoutType] = useState<WorkoutType>('one_off');
+  const [workoutType, setWorkoutType] = useState<WorkoutType>('one_off'); // Default to one_off
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,7 +45,7 @@ const EnterOneOffWorkout = () => {
         description: description.trim() || undefined,
         notes: notes.trim() || undefined,
         rating,
-        workout_type: workoutType
+        workout_type: workoutType // This is now always defined
       });
       
       toast.success('Workout logged successfully!');

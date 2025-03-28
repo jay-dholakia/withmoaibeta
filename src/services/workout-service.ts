@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Exercise, Workout } from "@/types/workout";
 
@@ -6,7 +7,7 @@ export const createWorkout = async (data: {
   day_of_week: number;
   title: string;
   description: string | null;
-  workout_type?: string;
+  workout_type: string; // Changed from optional to required
 }) => {
   const { data: workout, error } = await supabase
     .from('workouts')
@@ -15,7 +16,7 @@ export const createWorkout = async (data: {
       day_of_week: data.day_of_week,
       title: data.title,
       description: data.description,
-      workout_type: data.workout_type || 'strength'
+      workout_type: data.workout_type
     } as any) // Use type assertion to avoid TS error
     .select('*')
     .single();
@@ -369,7 +370,7 @@ export const createStandaloneWorkout = async (data: {
   description: string | null;
   coach_id: string;
   category?: string;
-  workout_type?: string;
+  workout_type: string; // Changed from optional to required
 }) => {
   const { data: workout, error } = await supabase
     .from('standalone_workouts')
@@ -626,7 +627,7 @@ export const addWorkoutToWeek = async (weekId: string, data: {
   title: string;
   description?: string | null;
   day_of_week: number;
-  workout_type?: string;
+  workout_type: string; // Changed from optional to required
 }) => {
   const { data: workout, error } = await supabase
     .from('workouts')
@@ -635,7 +636,7 @@ export const addWorkoutToWeek = async (weekId: string, data: {
       title: data.title,
       description: data.description || null,
       day_of_week: data.day_of_week,
-      workout_type: data.workout_type || 'strength'
+      workout_type: data.workout_type
     } as any) // Use type assertion to avoid TS error
     .select('*')
     .single();

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { 
@@ -33,7 +34,7 @@ export const ExerciseSelector = ({
   const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, Exercise[]>>({});
   const [filteredExercisesByCategory, setFilteredExercisesByCategory] = useState<Record<string, Exercise[]>>({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,11 +51,8 @@ export const ExerciseSelector = ({
         setExercisesByCategory(data);
         setFilteredExercisesByCategory(data);
         
-        // Set default category to the first available one or 'all'
-        const categories = Object.keys(data);
-        if (categories.length > 0) {
-          setSelectedCategory(categories[0]);
-        }
+        // Set default category to 'All' to show all exercises initially
+        setSelectedCategory('All');
       } catch (error) {
         console.error("Error loading exercises:", error);
       } finally {
@@ -75,7 +73,16 @@ export const ExerciseSelector = ({
     
     const filtered: Record<string, Exercise[]> = {};
     
+    // Always include the "All" category with filtered results
+    filtered['All'] = exercisesByCategory['All']?.filter(exercise => 
+      exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      exercise.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
+    
+    // Filter other categories
     Object.entries(exercisesByCategory).forEach(([category, exercises]) => {
+      if (category === 'All') return; // Skip All category as we already processed it
+      
       const filteredExercises = exercises.filter(exercise => 
         exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         exercise.description?.toLowerCase().includes(searchTerm.toLowerCase())

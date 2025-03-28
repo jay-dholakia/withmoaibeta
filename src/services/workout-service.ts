@@ -539,8 +539,13 @@ export const fetchExercisesByCategory = async () => {
     throw error;
   }
 
+  // Create a map of categories to exercise arrays
   const exercisesByCategory: Record<string, Exercise[]> = {};
   
+  // Add an "All" category to show all exercises
+  exercisesByCategory['All'] = exercises as Exercise[];
+  
+  // Group exercises by their category
   exercises.forEach(exercise => {
     if (!exercisesByCategory[exercise.category]) {
       exercisesByCategory[exercise.category] = [];

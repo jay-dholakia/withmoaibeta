@@ -13,15 +13,17 @@ const ClientDashboard = () => {
   
   return (
     <ClientLayout>
-      <Routes>
-        <Route index element={<Navigate to="workouts" replace />} />
-        <Route path="workouts/*" element={<WorkoutsPage />} />
-        <Route path="moai" element={<MoaiPage />} />
-        <Route path="leaderboard" element={<LeaderboardPage />} />
-        <Route path="settings" element={<SettingsPage />} />
-        <Route path="notes" element={<NotesPage />} />
-        <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
-      </Routes>
+      <div className="w-full px-4">
+        <Routes>
+          <Route index element={<Navigate to="workouts" replace />} />
+          <Route path="workouts/*" element={<WorkoutsPage />} />
+          <Route path="moai" element={<MoaiPage />} />
+          <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="notes" element={<NotesPage />} />
+          <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
+        </Routes>
+      </div>
     </ClientLayout>
   );
 };

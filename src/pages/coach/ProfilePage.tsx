@@ -181,12 +181,12 @@ const ProfilePage = () => {
 
   return (
     <CoachLayout>
-      <div className="container mx-auto max-w-4xl py-6">
+      <div className="w-full px-4 py-6">
         <h1 className="text-3xl font-bold mb-6">Coach Profile</h1>
         
-        <div className="grid gap-6">
+        <div className="grid gap-6 w-full">
           {/* Profile Photo Card */}
-          <Card>
+          <Card className="w-full">
             <CardHeader>
               <CardTitle>Profile Photo</CardTitle>
               <CardDescription>Upload a profile photo that your clients will see</CardDescription>
@@ -229,7 +229,7 @@ const ProfilePage = () => {
           </Card>
           
           {/* Profile Info Card */}
-          <Card>
+          <Card className="w-full">
             <CardHeader>
               <CardTitle>Coach Profile</CardTitle>
               <CardDescription>Tell your clients about yourself and your coaching philosophy</CardDescription>

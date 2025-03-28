@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -113,7 +112,7 @@ const StandaloneWorkoutsPage = () => {
   
   return (
     <CoachLayout>
-      <div className="container mx-auto px-4 py-6">
+      <div className="w-full px-4">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold">Workout Templates</h1>
@@ -160,9 +159,9 @@ const StandaloneWorkoutsPage = () => {
         </div>
         
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
             {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="animate-pulse">
+              <Card key={i} className="animate-pulse w-full">
                 <CardHeader className="pb-2">
                   <div className="h-6 bg-muted rounded w-3/4 mb-2"></div>
                   <div className="h-4 bg-muted rounded w-1/2"></div>
@@ -175,7 +174,7 @@ const StandaloneWorkoutsPage = () => {
             ))}
           </div>
         ) : sortedWorkouts.length === 0 ? (
-          <div className="text-center py-12 border rounded-lg bg-muted/10">
+          <div className="text-center py-12 border rounded-lg bg-muted/10 w-full">
             <h3 className="font-medium text-lg mb-2">No workout templates yet</h3>
             <p className="text-muted-foreground mb-6">
               Create your first workout template to get started
@@ -189,9 +188,9 @@ const StandaloneWorkoutsPage = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
             {sortedWorkouts.map((workout) => (
-              <Card key={workout.id}>
+              <Card key={workout.id} className="w-full">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <div>

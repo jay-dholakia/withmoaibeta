@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -70,7 +71,7 @@ const WorkoutProgramsPage = () => {
 
   return (
     <CoachLayout>
-      <div className="container mx-auto px-4 py-6">
+      <div className="w-full px-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Workout Programs</h1>
           <div className="flex gap-2">

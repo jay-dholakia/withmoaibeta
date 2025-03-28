@@ -62,7 +62,7 @@ const ClientLogin = () => {
           title="Redirecting..."
           subtitle="Please wait while we take you to your dashboard"
         >
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-8 w-full">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-client"></div>
           </div>
         </AuthLayout>
@@ -77,7 +77,9 @@ const ClientLogin = () => {
         title="Client Portal"
         subtitle="Sign in or sign up to access your personal dashboard"
       >
-        <LoginForm variant="client" />
+        <div className="w-full max-w-md">
+          <LoginForm variant="client" />
+        </div>
       </AuthLayout>
     </PageTransition>
   );

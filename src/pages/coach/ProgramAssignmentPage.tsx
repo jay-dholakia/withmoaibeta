@@ -219,7 +219,7 @@ const ProgramAssignmentPage = () => {
   
   return (
     <CoachLayout>
-      <div className="container mx-auto px-4 py-6">
+      <div className="w-full px-4">
         <Button 
           variant="outline" 
           size="sm" 
@@ -232,8 +232,8 @@ const ProgramAssignmentPage = () => {
         
         <h1 className="text-2xl font-bold mb-6">Assign Program: {program?.title}</h1>
         
-        <div className="grid md:grid-cols-2 gap-8">
-          <Card className="h-fit">
+        <div className="grid md:grid-cols-2 gap-8 w-full">
+          <Card className="h-fit w-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
@@ -249,7 +249,7 @@ const ProgramAssignmentPage = () => {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="w-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CalendarRange className="h-5 w-5" />

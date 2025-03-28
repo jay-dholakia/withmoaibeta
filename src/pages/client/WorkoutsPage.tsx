@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -46,7 +47,7 @@ const WorkoutsPage = () => {
   };
 
   return (
-    <>
+    <div className="w-full">
       {!isActiveOrCompleteWorkout && (
         <div className="flex justify-end mb-4">
           <PassCounter />
@@ -130,7 +131,7 @@ const WorkoutsPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 

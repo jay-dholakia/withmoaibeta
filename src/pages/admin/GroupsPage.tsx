@@ -79,20 +79,22 @@ const GroupsPage: React.FC = () => {
 
   return (
     <AdminDashboardLayout title="Groups Management">
-      <Tabs defaultValue="list" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="list">All Groups</TabsTrigger>
-          <TabsTrigger value="create">Create Group</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="list">
-          <GroupList />
-        </TabsContent>
-        
-        <TabsContent value="create">
-          <GroupForm />
-        </TabsContent>
-      </Tabs>
+      <div className="w-full">
+        <Tabs defaultValue="list" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="list">All Groups</TabsTrigger>
+            <TabsTrigger value="create">Create Group</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="list">
+            <GroupList />
+          </TabsContent>
+          
+          <TabsContent value="create">
+            <GroupForm />
+          </TabsContent>
+        </Tabs>
+      </div>
     </AdminDashboardLayout>
   );
 };

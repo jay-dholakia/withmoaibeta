@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -129,22 +128,19 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
         setIsLoading(true);
         const clientsData = await fetchAllClients();
         
-        // Safely transform the data, handling the case where properties might be missing
         const typedClients: ClientInfo[] = Array.isArray(clientsData) 
           ? clientsData.map(client => ({
               id: client.id,
               user_type: client.user_type,
-              // Safely set optional properties that might not exist in the API response
-              email: 'email' in client ? client.email : 'N/A',
-              first_name: 'first_name' in client ? client.first_name : undefined,
-              last_name: 'last_name' in client ? client.last_name : undefined
+              email: typeof client.email === 'string' ? client.email : 'N/A',
+              first_name: typeof client.first_name === 'string' ? client.first_name : undefined,
+              last_name: typeof client.last_name === 'string' ? client.last_name : undefined
             }))
           : [];
           
         console.log('Fetched clients for form:', typedClients);
         setClients(typedClients);
         
-        // Load assigned clients for this program
         await loadAssignments();
         
         setIsLoading(false);
@@ -167,7 +163,6 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
         startDate: nextMonday(new Date()),
       });
       
-      // Refresh assigned clients after assignment
       await loadAssignments();
     } catch (error) {
       console.error('Error assigning program:', error);
@@ -183,7 +178,6 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
       toast.success('Program assignment removed successfully');
       setDeleteDialogOpen(false);
       
-      // Refresh the list of assigned clients
       await loadAssignments();
     } catch (error) {
       console.error('Error deleting assignment:', error);
@@ -204,18 +198,15 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   };
 
   const getClientDisplayName = (client: ClientInfo): string => {
-    // Safely handle potentially undefined properties
     if (client.first_name && client.last_name) {
       return `${client.first_name} ${client.last_name}`;
     } else if (client.first_name) {
       return client.first_name;
     } else {
-      // Fall back to a default if no name or email is available
       return client.email || `Client ${client.id.substring(0, 8)}`;
     }
   };
   
-  // Filter out clients that are already assigned to this program
   const availableClients = clients.filter(client => 
     !assignedClients.some(assigned => assigned.user_id === client.id && assigned.program_id === programId)
   );

@@ -404,7 +404,7 @@ export const fetchStandaloneWorkouts = async (coachId: string) => {
 export const fetchStandaloneWorkout = async (workoutId: string) => {
   const { data: workout, error } = await supabase
     .from('standalone_workouts')
-    .select('*')
+    .select('*, workout_exercises:standalone_workout_exercises(*, exercise:exercise_id(*))')
     .eq('id', workoutId)
     .single();
 
@@ -452,7 +452,7 @@ export const deleteStandaloneWorkout = async (workoutId: string) => {
 export const createStandaloneWorkoutExercise = async (data: {
   workout_id: string;
   exercise_id: string;
-  sets: number | null;
+  sets: number;
   reps: string;
   rest_seconds: number | null;
   notes: string | null;
@@ -491,7 +491,7 @@ export const fetchStandaloneWorkoutExercises = async (workoutId: string) => {
 };
 
 export const updateStandaloneWorkoutExercise = async (exerciseId: string, data: {
-  sets?: number | null;
+  sets?: number;
   reps?: string;
   rest_seconds?: number | null;
   notes?: string | null;

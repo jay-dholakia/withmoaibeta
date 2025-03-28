@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,12 +22,14 @@ interface ExerciseSelectorProps {
   onSelectExercise: (exercise: Exercise) => void;
   onSelectMultipleExercises?: (exercises: Exercise[]) => void;
   buttonText?: string;
+  onClose?: () => void;
 }
 
 export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   onSelectExercise,
   onSelectMultipleExercises,
-  buttonText = "Add Exercise"
+  buttonText = "Add Exercise",
+  onClose
 }) => {
   const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, Exercise[]>>({});
   const [loading, setLoading] = useState(true);
@@ -61,8 +64,9 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   useEffect(() => {
     if (!open) {
       setAddedExercises({});
+      if (onClose) onClose();
     }
-  }, [open]);
+  }, [open, onClose]);
 
   const handleSingleSelect = (exercise: Exercise) => {
     if (!multiSelectMode) {
@@ -102,6 +106,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
       setSelectedExercises([]);
       setMultiSelectMode(false);
       setOpen(false);
+      if (onClose) onClose();
     }
   };
 
@@ -118,6 +123,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
     setSelectedExercises([]);
     setMultiSelectMode(false);
     setAddedExercises({});
+    if (onClose) onClose();
   };
 
   const filteredExercises = searchTerm.trim() 

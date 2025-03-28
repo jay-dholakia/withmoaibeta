@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Dumbell, Running, Waves, ActivitySquare, ChevronDown, Trash2, Plus, Check } from 'lucide-react';
+import { Dumbbell, ActivitySquare, ChevronDown, Trash2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -25,33 +25,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from '@/components/ui/command';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
 import { Exercise, WorkoutExercise } from '@/types/workout';
-import { createStandaloneWorkout, updateStandaloneWorkout, getStandaloneWorkout } from '@/services/workout-service';
-import { fetchExercises } from '@/services/exercise-service';
+import { 
+  createStandaloneWorkout, 
+  updateStandaloneWorkout, 
+  fetchStandaloneWorkout,
+  fetchExercises
+} from '@/services/workout-service';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Define workout type options
 const WORKOUT_TYPES = [
-  { value: 'strength', label: 'Strength', icon: <Dumbell className="h-4 w-4 mr-2" /> },
-  { value: 'cardio', label: 'Cardio', icon: <Running className="h-4 w-4 mr-2" /> },
-  { value: 'mobility', label: 'Mobility', icon: <Waves className="h-4 w-4 mr-2" /> },
+  { value: 'strength', label: 'Strength', icon: <Dumbbell className="h-4 w-4 mr-2" /> },
+  { value: 'cardio', label: 'Cardio', icon: <ActivitySquare className="h-4 w-4 mr-2" /> },
+  { value: 'mobility', label: 'Mobility', icon: <ActivitySquare className="h-4 w-4 mr-2" /> },
   { value: 'flexibility', label: 'Flexibility', icon: <ActivitySquare className="h-4 w-4 mr-2" /> },
 ];
 
@@ -106,7 +98,7 @@ const StandaloneWorkoutForm = () => {
     const loadWorkout = async () => {
       if (id) {
         try {
-          const workout = await getStandaloneWorkout(id);
+          const workout = await fetchStandaloneWorkout(id);
           
           // Populate form
           form.reset({
@@ -209,9 +201,34 @@ const StandaloneWorkoutForm = () => {
           title: values.title,
           description: values.description,
           category: values.category,
-          workout_type: values.workout_type,
-          workout_exercises: formattedExercises
+          workout_type: values.workout_type
         });
+        
+        // Handle exercises separately
+        for (const exercise of formattedExercises) {
+          if (exercise.id) {
+            // Update existing exercise
+            await updateStandaloneWorkoutExercise(exercise.id, {
+              sets: exercise.sets,
+              reps: exercise.reps,
+              rest_seconds: exercise.rest_seconds,
+              notes: exercise.notes,
+              order_index: exercise.order_index
+            });
+          } else {
+            // Create new exercise
+            await createStandaloneWorkoutExercise({
+              workout_id: id,
+              exercise_id: exercise.exercise_id,
+              sets: exercise.sets || 0,
+              reps: exercise.reps,
+              rest_seconds: exercise.rest_seconds,
+              notes: exercise.notes,
+              order_index: exercise.order_index
+            });
+          }
+        }
+        
         toast.success("Workout updated successfully");
       } else {
         // Create new workout
@@ -220,14 +237,27 @@ const StandaloneWorkoutForm = () => {
           return;
         }
         
-        await createStandaloneWorkout({
+        const newWorkout = await createStandaloneWorkout({
           title: values.title,
           description: values.description,
           category: values.category,
           workout_type: values.workout_type,
-          coach_id: user.id,
-          workout_exercises: formattedExercises
+          coach_id: user.id
         });
+        
+        // Add exercises to the new workout
+        for (const exercise of formattedExercises) {
+          await createStandaloneWorkoutExercise({
+            workout_id: newWorkout.id,
+            exercise_id: exercise.exercise_id,
+            sets: exercise.sets || 0,
+            reps: exercise.reps,
+            rest_seconds: exercise.rest_seconds,
+            notes: exercise.notes,
+            order_index: exercise.order_index
+          });
+        }
+        
         toast.success("Workout created successfully");
       }
       
@@ -457,10 +487,9 @@ const StandaloneWorkoutForm = () => {
       </Form>
       
       <ExerciseSelector
-        isOpen={isSelectorOpen}
+        onSelectExercise={handleExerciseAdd}
         onClose={() => setIsSelectorOpen(false)}
-        exercises={exercises}
-        onExerciseSelect={handleExerciseAdd}
+        buttonText="Add Exercise"
       />
     </div>
   );

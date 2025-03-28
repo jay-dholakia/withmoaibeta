@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
@@ -32,7 +31,7 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
-  // Create a unique ID for the aria-describedby attribute if none is provided
+  // Create a unique ID for the aria-describedby attribute
   const [descriptionId] = React.useState(() => `dialog-description-${Math.random().toString(36).substr(2, 9)}`);
   
   // Check if a Description component is present among the children
@@ -42,14 +41,13 @@ const DialogContent = React.forwardRef<
       child.type === DialogPrimitive.Description
   );
   
-  // Only apply aria-describedby if we have a description or need to create a hidden one
-  // Handle the case where aria-describedby might be undefined
-  const describedBy = props["aria-describedby"] || (hasExplicitDescription ? undefined : descriptionId);
-  
-  // Create a new props object without aria-describedby if it would be undefined
+  // Create a new props object with or without aria-describedby
   const contentProps = { ...props };
-  if (describedBy) {
-    contentProps["aria-describedby"] = describedBy;
+  if (hasExplicitDescription || contentProps["aria-describedby"]) {
+    // Keep existing aria-describedby if it exists or if there's a Description component
+  } else {
+    // Set our generated ID only when neither exists
+    contentProps["aria-describedby"] = descriptionId;
   }
   
   return (
@@ -65,7 +63,7 @@ const DialogContent = React.forwardRef<
       >
         {children}
         {/* Add a hidden description for screen readers if no explicit description is found */}
-        {!hasExplicitDescription && describedBy === descriptionId && (
+        {!hasExplicitDescription && !props["aria-describedby"] && (
           <span id={descriptionId} className="sr-only">
             Dialog content
           </span>

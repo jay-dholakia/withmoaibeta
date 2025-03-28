@@ -38,7 +38,7 @@ const Index = () => {
           </motion.div>
         </header>
         
-        <main className="flex-1 container px-6 max-w-screen-lg mx-auto">
+        <main className="flex-1 px-4 max-w-screen-lg mx-auto w-full">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -55,9 +55,9 @@ const Index = () => {
             variants={container}
             initial="hidden"
             animate="show"
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
           >
-            <motion.div variants={item}>
+            <motion.div variants={item} className="w-full">
               <PortalCard
                 title="Admin Portal"
                 description="Access administrative tools and manage system-wide settings and users."
@@ -67,7 +67,7 @@ const Index = () => {
               />
             </motion.div>
             
-            <motion.div variants={item}>
+            <motion.div variants={item} className="w-full">
               <PortalCard
                 title="Coach Portal"
                 description="Manage your clients, schedule sessions, and access coaching resources."
@@ -77,7 +77,7 @@ const Index = () => {
               />
             </motion.div>
             
-            <motion.div variants={item}>
+            <motion.div variants={item} className="w-full">
               <PortalCard
                 title="Client Portal"
                 description="View your schedule, access resources, and manage your account settings."

@@ -9,8 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from 'sonner';
-import ExerciseSelector from './ExerciseSelector';
-import WorkoutExerciseForm from './WorkoutExerciseForm';
+import { ExerciseSelector } from './ExerciseSelector';
+import { WorkoutExerciseForm } from './WorkoutExerciseForm';
 import { 
   createStandaloneWorkout, 
   updateStandaloneWorkout,

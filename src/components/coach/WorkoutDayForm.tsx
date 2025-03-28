@@ -9,8 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { DAYS_OF_WEEK } from "@/types/workout";
-import ExerciseSelector from './ExerciseSelector';
-import WorkoutExerciseForm from './WorkoutExerciseForm';
+import { ExerciseSelector } from './ExerciseSelector';
+import { WorkoutExerciseForm } from './WorkoutExerciseForm';
 import { 
   fetchWorkout, 
   updateWorkout, 

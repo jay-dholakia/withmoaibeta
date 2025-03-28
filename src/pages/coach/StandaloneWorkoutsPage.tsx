@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -61,7 +62,7 @@ const StandaloneWorkoutsPage = () => {
     loadWorkouts();
   }, [user]);
   
-  const handleSaveWorkout = () => {
+  const handleSaveWorkout = (workoutId: string) => {
     if (!user?.id) return;
     
     fetchStandaloneWorkouts(user.id)
@@ -96,6 +97,11 @@ const StandaloneWorkoutsPage = () => {
       setIsDeleting(false);
       setDeleteWorkoutId(null);
     }
+  };
+  
+  const handleCancelWorkout = () => {
+    setIsCreating(false);
+    setIsEditingId(null);
   };
   
   const filteredWorkouts = searchTerm 
@@ -135,7 +141,10 @@ const StandaloneWorkoutsPage = () => {
                 </DialogDescription>
               </DialogHeader>
               <ScrollArea className="max-h-[80vh]">
-                <StandaloneWorkoutForm />
+                <StandaloneWorkoutForm 
+                  onSave={handleSaveWorkout} 
+                  onCancel={handleCancelWorkout}
+                />
               </ScrollArea>
             </DialogContent>
           </Dialog>
@@ -212,7 +221,12 @@ const StandaloneWorkoutsPage = () => {
                             <DialogTitle>Edit Workout Template</DialogTitle>
                           </DialogHeader>
                           <ScrollArea className="max-h-[80vh]">
-                            <StandaloneWorkoutForm />
+                            <StandaloneWorkoutForm 
+                              workoutId={workout.id}
+                              mode="edit"
+                              onSave={handleSaveWorkout}
+                              onCancel={handleCancelWorkout}
+                            />
                           </ScrollArea>
                         </DialogContent>
                       </Dialog>

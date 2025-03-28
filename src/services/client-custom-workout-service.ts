@@ -31,6 +31,17 @@ export interface CustomWorkoutExercise {
   };
 }
 
+export interface CreateCustomWorkoutExerciseParams {
+  workout_id: string;
+  exercise_id?: string | null;
+  custom_exercise_name?: string | null;
+  sets?: number | null;
+  reps?: string | null;
+  rest_seconds?: number | null;
+  notes?: string | null;
+  order_index: number;
+}
+
 export const fetchCustomWorkouts = async (): Promise<CustomWorkout[]> => {
   const { data: user } = await supabase.auth.getUser();
   if (!user.user) throw new Error("Not authenticated");
@@ -132,35 +143,25 @@ export const fetchCustomWorkoutExercises = async (workoutId: string): Promise<Cu
   return data as CustomWorkoutExercise[];
 };
 
-export const addCustomWorkoutExercise = async (
-  workoutId: string,
-  data: {
-    exercise_id?: string | null;
-    custom_exercise_name?: string | null;
-    sets?: number | null;
-    reps?: string | null;
-    rest_seconds?: number | null;
-    notes?: string | null;
-  }
-): Promise<CustomWorkoutExercise> => {
+export const createCustomWorkoutExercise = async (params: CreateCustomWorkoutExerciseParams): Promise<CustomWorkoutExercise> => {
   // Get the current count of exercises to set the order_index
   const { data: existingExercises } = await supabase
     .from('client_custom_workout_exercises')
     .select('id')
-    .eq('workout_id', workoutId);
+    .eq('workout_id', params.workout_id);
 
-  const orderIndex = existingExercises?.length || 0;
+  const orderIndex = params.order_index !== undefined ? params.order_index : (existingExercises?.length || 0);
 
   const { data: exercise, error } = await supabase
     .from('client_custom_workout_exercises')
     .insert({
-      workout_id: workoutId,
-      exercise_id: data.exercise_id || null,
-      custom_exercise_name: data.custom_exercise_name || null,
-      sets: data.sets || null,
-      reps: data.reps || null,
-      rest_seconds: data.rest_seconds || null,
-      notes: data.notes || null,
+      workout_id: params.workout_id,
+      exercise_id: params.exercise_id || null,
+      custom_exercise_name: params.custom_exercise_name || null,
+      sets: params.sets || null,
+      reps: params.reps || null,
+      rest_seconds: params.rest_seconds || null,
+      notes: params.notes || null,
       order_index: orderIndex
     })
     .select('*')

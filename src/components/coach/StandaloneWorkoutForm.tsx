@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -42,7 +41,6 @@ import {
 } from '@/services/workout-service';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Define workout type options
 const WORKOUT_TYPES = [
   { value: 'strength', label: 'Strength', icon: <Dumbbell className="h-4 w-4 mr-2" /> },
   { value: 'cardio', label: 'Cardio', icon: <ActivitySquare className="h-4 w-4 mr-2" /> },
@@ -50,7 +48,6 @@ const WORKOUT_TYPES = [
   { value: 'flexibility', label: 'Flexibility', icon: <ActivitySquare className="h-4 w-4 mr-2" /> },
 ];
 
-// Form validation schema
 const formSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
@@ -70,18 +67,16 @@ const StandaloneWorkoutForm = () => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(id ? true : false);
 
-  // Initialize form
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
       description: '',
       category: '',
-      workout_type: 'strength', // Default to strength
+      workout_type: 'strength',
     },
   });
 
-  // Load exercises
   useEffect(() => {
     const loadExercises = async () => {
       try {
@@ -96,14 +91,12 @@ const StandaloneWorkoutForm = () => {
     loadExercises();
   }, []);
 
-  // Load workout data if editing
   useEffect(() => {
     const loadWorkout = async () => {
       if (id) {
         try {
           const workout = await fetchStandaloneWorkout(id);
           
-          // Populate form
           form.reset({
             title: workout.title,
             description: workout.description || "",
@@ -111,7 +104,6 @@ const StandaloneWorkoutForm = () => {
             workout_type: workout.workout_type || "strength",
           });
           
-          // Load workout exercises
           if (workout.workout_exercises) {
             setWorkoutExercises(workout.workout_exercises.map(exercise => ({
               ...exercise,
@@ -137,7 +129,7 @@ const StandaloneWorkoutForm = () => {
     setWorkoutExercises(prev => [
       ...prev,
       {
-        id: `temp-${Date.now()}`, // Temporary ID until saved
+        id: `temp-${Date.now()}`,
         workout_id: id || "",
         exercise_id: exercise.id,
         sets: 3,
@@ -170,12 +162,186 @@ const StandaloneWorkoutForm = () => {
       const [movedItem] = newExercises.splice(sourceIndex, 1);
       newExercises.splice(targetIndex, 0, movedItem);
       
-      // Update order_index values
       return newExercises.map((ex, index) => ({
         ...ex,
         order_index: index
       }));
     });
+  };
+
+  const renderExerciseForm = (exercise: WorkoutExercise, index: number) => {
+    const isCardio = exercise.exercise?.exercise_type === 'cardio';
+    
+    let distance = '';
+    let duration = '';
+    let location = '';
+    let notes = exercise.notes || '';
+    
+    if (isCardio && notes) {
+      const distanceMatch = notes.match(/Distance: ([0-9]+(\.[0-9]+)?)\s*miles/i);
+      if (distanceMatch) {
+        distance = distanceMatch[1];
+        notes = notes.replace(/Distance: [^,]+, ?/g, '');
+      }
+      
+      const durationMatch = notes.match(/Duration: (([0-9]{1,2}:)?[0-5][0-9]:[0-5][0-9])/i);
+      if (durationMatch) {
+        duration = durationMatch[1];
+        notes = notes.replace(/Duration: [^,]+, ?/g, '');
+      }
+      
+      if (notes.includes('Location: indoor')) {
+        location = 'indoor';
+        notes = notes.replace(/Location: indoor, ?/g, '');
+      } else if (notes.includes('Location: outdoor')) {
+        location = 'outdoor';
+        notes = notes.replace(/Location: outdoor, ?/g, '');
+      }
+    }
+    
+    return (
+      <Card key={`${exercise.exercise_id}-${index}`}>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-md">
+              {exercise.exercise?.name || "Exercise"}
+            </CardTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-destructive"
+              onClick={() => handleExerciseRemove(index)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0 pb-2">
+          {isCardio ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <FormLabel htmlFor={`distance-${index}`}>Distance (miles)</FormLabel>
+                <Input
+                  id={`distance-${index}`}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={distance}
+                  placeholder="Enter distance in miles"
+                  onChange={(e) => {
+                    let updatedNotes = exercise.notes || '';
+                    if (updatedNotes.includes('Distance:')) {
+                      updatedNotes = updatedNotes.replace(/Distance: [^,]+/, `Distance: ${e.target.value} miles`);
+                    } else {
+                      updatedNotes = `Distance: ${e.target.value} miles${updatedNotes ? ', ' + updatedNotes : ''}`;
+                    }
+                    handleExerciseUpdate(index, 'notes', updatedNotes);
+                  }}
+                />
+              </div>
+              <div>
+                <FormLabel htmlFor={`duration-${index}`}>Duration (HH:MM:SS)</FormLabel>
+                <Input
+                  id={`duration-${index}`}
+                  value={duration}
+                  placeholder="00:30:00"
+                  pattern="^([0-9]{1,2}:)?[0-5][0-9]:[0-5][0-9]$"
+                  onChange={(e) => {
+                    let updatedNotes = exercise.notes || '';
+                    if (updatedNotes.includes('Duration:')) {
+                      updatedNotes = updatedNotes.replace(/Duration: [^,]+/, `Duration: ${e.target.value}`);
+                    } else {
+                      updatedNotes = `Duration: ${e.target.value}${updatedNotes ? ', ' + updatedNotes : ''}`;
+                    }
+                    handleExerciseUpdate(index, 'notes', updatedNotes);
+                  }}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Format: HH:MM:SS or MM:SS</p>
+              </div>
+              <div>
+                <FormLabel htmlFor={`location-${index}`}>Location</FormLabel>
+                <Select
+                  value={location}
+                  onValueChange={(value) => {
+                    let updatedNotes = exercise.notes || '';
+                    if (updatedNotes.includes('Location:')) {
+                      updatedNotes = updatedNotes.replace(/Location: (indoor|outdoor)/, `Location: ${value}`);
+                    } else {
+                      updatedNotes = `Location: ${value}${updatedNotes ? ', ' + updatedNotes : ''}`;
+                    }
+                    handleExerciseUpdate(index, 'notes', updatedNotes);
+                  }}
+                >
+                  <SelectTrigger id={`location-${index}`}>
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="indoor">Indoor</SelectItem>
+                    <SelectItem value="outdoor">Outdoor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <FormLabel htmlFor={`sets-${index}`}>Sets</FormLabel>
+                <Input
+                  id={`sets-${index}`}
+                  type="number"
+                  value={exercise.sets}
+                  min={1}
+                  onChange={(e) => handleExerciseUpdate(index, 'sets', parseInt(e.target.value) || 1)}
+                />
+              </div>
+              <div>
+                <FormLabel htmlFor={`reps-${index}`}>Reps/Duration</FormLabel>
+                <Input
+                  id={`reps-${index}`}
+                  value={exercise.reps}
+                  placeholder="e.g., 8-10, 30s"
+                  onChange={(e) => handleExerciseUpdate(index, 'reps', e.target.value)}
+                />
+              </div>
+              <div>
+                <FormLabel htmlFor={`rest-${index}`}>Rest (seconds)</FormLabel>
+                <Input
+                  id={`rest-${index}`}
+                  type="number"
+                  value={exercise.rest_seconds || 0}
+                  min={0}
+                  onChange={(e) => handleExerciseUpdate(index, 'rest_seconds', parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+          )}
+          <div className="mt-3">
+            <FormLabel htmlFor={`notes-${index}`}>Notes (Optional)</FormLabel>
+            <Textarea
+              id={`notes-${index}`}
+              value={isCardio ? notes : (exercise.notes || "")}
+              placeholder="Additional instructions or cues"
+              onChange={(e) => handleExerciseUpdate(index, 'notes', e.target.value)}
+              rows={2}
+            />
+          </div>
+        </CardContent>
+        {index < workoutExercises.length - 1 && (
+          <CardFooter className="flex justify-center pb-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleExerciseReorder(index, index + 1)}
+            >
+              <ChevronDown className="h-4 w-4" />
+              <span className="sr-only">Move down</span>
+            </Button>
+          </CardFooter>
+        )}
+      </Card>
+    );
   };
 
   const onSubmit = async (values: FormValues) => {
@@ -187,7 +353,6 @@ const StandaloneWorkoutForm = () => {
     setLoading(true);
     
     try {
-      // Format workout exercises for submission
       const formattedExercises = workoutExercises.map((ex, index) => ({
         id: ex.id.startsWith('temp-') ? undefined : ex.id,
         exercise_id: ex.exercise_id,
@@ -199,7 +364,6 @@ const StandaloneWorkoutForm = () => {
       }));
       
       if (id) {
-        // Update existing workout
         await updateStandaloneWorkout(id, {
           title: values.title,
           description: values.description,
@@ -207,10 +371,8 @@ const StandaloneWorkoutForm = () => {
           workout_type: values.workout_type
         });
         
-        // Handle exercises separately
         for (const exercise of formattedExercises) {
           if (exercise.id) {
-            // Update existing exercise
             await updateStandaloneWorkoutExercise(exercise.id, {
               sets: exercise.sets,
               reps: exercise.reps,
@@ -219,7 +381,6 @@ const StandaloneWorkoutForm = () => {
               order_index: exercise.order_index
             });
           } else {
-            // Create new exercise
             await createStandaloneWorkoutExercise({
               workout_id: id,
               exercise_id: exercise.exercise_id,
@@ -234,7 +395,6 @@ const StandaloneWorkoutForm = () => {
         
         toast.success("Workout updated successfully");
       } else {
-        // Create new workout
         if (!user) {
           toast.error("You must be logged in to create a workout");
           return;
@@ -248,7 +408,6 @@ const StandaloneWorkoutForm = () => {
           coach_id: user.id
         });
         
-        // Add exercises to the new workout
         for (const exercise of formattedExercises) {
           await createStandaloneWorkoutExercise({
             workout_id: newWorkout.id,
@@ -264,7 +423,6 @@ const StandaloneWorkoutForm = () => {
         toast.success("Workout created successfully");
       }
       
-      // Navigate back to workouts page
       navigate('/coach/standalone-workouts');
     } catch (error) {
       console.error("Error saving workout:", error);
@@ -394,82 +552,7 @@ const StandaloneWorkoutForm = () => {
               </Alert>
             ) : (
               <div className="space-y-4">
-                {workoutExercises.map((exercise, index) => (
-                  <Card key={`${exercise.exercise_id}-${index}`}>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-md">
-                          {exercise.exercise?.name || "Exercise"}
-                        </CardTitle>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-destructive"
-                          onClick={() => handleExerciseRemove(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0 pb-2">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                          <FormLabel htmlFor={`sets-${index}`}>Sets</FormLabel>
-                          <Input
-                            id={`sets-${index}`}
-                            type="number"
-                            value={exercise.sets}
-                            min={1}
-                            onChange={(e) => handleExerciseUpdate(index, 'sets', parseInt(e.target.value) || 1)}
-                          />
-                        </div>
-                        <div>
-                          <FormLabel htmlFor={`reps-${index}`}>Reps/Duration</FormLabel>
-                          <Input
-                            id={`reps-${index}`}
-                            value={exercise.reps}
-                            placeholder="e.g., 8-10, 30s"
-                            onChange={(e) => handleExerciseUpdate(index, 'reps', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <FormLabel htmlFor={`rest-${index}`}>Rest (seconds)</FormLabel>
-                          <Input
-                            id={`rest-${index}`}
-                            type="number"
-                            value={exercise.rest_seconds || 0}
-                            min={0}
-                            onChange={(e) => handleExerciseUpdate(index, 'rest_seconds', parseInt(e.target.value) || 0)}
-                          />
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <FormLabel htmlFor={`notes-${index}`}>Notes (Optional)</FormLabel>
-                        <Textarea
-                          id={`notes-${index}`}
-                          value={exercise.notes || ""}
-                          placeholder="Additional instructions or cues"
-                          onChange={(e) => handleExerciseUpdate(index, 'notes', e.target.value)}
-                          rows={2}
-                        />
-                      </div>
-                    </CardContent>
-                    {index < workoutExercises.length - 1 && (
-                      <CardFooter className="flex justify-center pb-2">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleExerciseReorder(index, index + 1)}
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                          <span className="sr-only">Move down</span>
-                        </Button>
-                      </CardFooter>
-                    )}
-                  </Card>
-                ))}
+                {workoutExercises.map((exercise, index) => renderExerciseForm(exercise, index))}
               </div>
             )}
           </div>

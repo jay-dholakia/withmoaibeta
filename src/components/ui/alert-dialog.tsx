@@ -34,7 +34,7 @@ const AlertDialogContent = React.forwardRef<
   const [descriptionId] = React.useState(() => `alert-dialog-description-${Math.random().toString(36).substr(2, 9)}`);
   
   // Check if a Description component is present among the children
-  const hasExplicitDescription = React.Children.toArray(props.children).some(
+  const hasExplicitDescription = React.Children.toArray(children).some(
     child => 
       React.isValidElement(child) && 
       child.type === AlertDialogPrimitive.Description
@@ -61,7 +61,7 @@ const AlertDialogContent = React.forwardRef<
             Alert dialog content
           </span>
         )}
-        {props.children}
+        {children}
       </AlertDialogPrimitive.Content>
     </AlertDialogPortal>
   );

@@ -423,7 +423,7 @@ const StandaloneWorkoutForm = () => {
         toast.success("Workout created successfully");
       }
       
-      navigate('/coach/standalone-workouts');
+      navigate('/coach-dashboard/workout-templates');
     } catch (error) {
       console.error("Error saving workout:", error);
       toast.error("Failed to save workout");
@@ -440,7 +440,7 @@ const StandaloneWorkoutForm = () => {
     <div className="space-y-6 p-4 max-w-screen-lg mx-auto">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{id ? 'Edit Workout' : 'Create Workout'}</h1>
-        <Button variant="outline" onClick={() => navigate('/coach/standalone-workouts')}>
+        <Button variant="outline" onClick={() => navigate('/coach-dashboard/workout-templates')}>
           Cancel
         </Button>
       </div>
@@ -561,7 +561,7 @@ const StandaloneWorkoutForm = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/coach/standalone-workouts')}
+              onClick={() => navigate('/coach-dashboard/workout-templates')}
             >
               Cancel
             </Button>

@@ -8,7 +8,6 @@ import { PageTransition } from '@/components/PageTransition';
 import { Toaster } from 'sonner';
 import { Logo } from '@/components/Logo';
 import { toast } from '@/components/ui/use-toast';
-import { Container } from '@/components/ui/container';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -37,7 +36,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
       <Toaster position="top-center" richColors />
       
       <header className="bg-white shadow-sm border-b border-gray-200 py-4">
-        <Container>
+        <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <Logo variant="client" size="md" />
@@ -50,19 +49,19 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
               <span className="text-sm">Sign Out</span>
             </button>
           </div>
-        </Container>
+        </div>
       </header>
       
       <main className="flex-grow py-6 mb-16 w-full">
-        <Container>
+        <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
           <PageTransition>
             {children}
           </PageTransition>
-        </Container>
+        </div>
       </main>
       
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md">
-        <Container>
+        <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
           <nav className="flex justify-center">
             <ul className="flex justify-evenly w-full max-w-screen-xl mx-auto">
               <li className="flex-1 flex justify-center">
@@ -116,7 +115,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
               </li>
             </ul>
           </nav>
-        </Container>
+        </div>
       </footer>
     </div>
   );

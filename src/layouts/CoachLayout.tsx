@@ -40,32 +40,34 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
     <PageTransition>
       <div className="min-h-screen bg-background">
         <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-16 items-center justify-between px-4">
-            <Link to="/coach-dashboard" className="font-bold text-xl text-coach hover:opacity-80 transition-opacity">
-              Coach Portal
-            </Link>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground hidden md:inline-block">
-                  {user?.email}
-                </span>
+          <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
+            <div className="flex h-16 items-center justify-between">
+              <Link to="/coach-dashboard" className="font-bold text-xl text-coach hover:opacity-80 transition-opacity">
+                Coach Portal
+              </Link>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground hidden md:inline-block">
+                    {user?.email}
+                  </span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSignOut} 
+                  className="flex items-center gap-1"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline-block">Sign Out</span>
+                </Button>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleSignOut} 
-                className="flex items-center gap-1"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline-block">Sign Out</span>
-              </Button>
             </div>
           </div>
         </header>
         
         <div className="bg-muted/20">
-          <nav className="container mx-auto px-4">
+          <nav className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
             <div className="flex overflow-x-auto py-4 gap-2">
               {navItems.map((item) => (
                 <Link
@@ -87,7 +89,7 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
           </nav>
         </div>
         
-        <main className="container mx-auto px-4 py-6">
+        <main className="w-full max-w-screen-xl mx-auto px-4 md:px-6 py-6">
           {children}
         </main>
       </div>

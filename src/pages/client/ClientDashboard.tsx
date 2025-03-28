@@ -13,7 +13,7 @@ const ClientDashboard = () => {
   
   return (
     <ClientLayout>
-      <div className="w-full px-4">
+      <div className="w-full">
         <Routes>
           <Route index element={<Navigate to="workouts" replace />} />
           <Route path="workouts/*" element={<WorkoutsPage />} />

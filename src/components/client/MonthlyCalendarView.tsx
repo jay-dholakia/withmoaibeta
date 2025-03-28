@@ -31,30 +31,50 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
     });
   };
 
-  const handleDayClick = (day: Date) => {
-    setSelectedDay(day);
-    if (onDaySelect) {
-      // Improved date filtering for workouts
-      const workoutsForDay = workouts.filter(workout => {
-        if (!workout.completed_at) return false;
-        
-        // Convert string dates to Date objects for proper comparison
+  // Function to get workouts for a specific day
+  const getWorkoutsForDay = (day: Date): WorkoutHistoryItem[] => {
+    // Debug the day we're looking for
+    console.log(`Getting workouts for: ${format(day, 'yyyy-MM-dd')}`);
+    
+    if (!workouts || workouts.length === 0) {
+      console.log('No workouts data available');
+      return [];
+    }
+    
+    // Filter workouts for the given day
+    const filteredWorkouts = workouts.filter(workout => {
+      if (!workout.completed_at) {
+        return false;
+      }
+      
+      try {
         const completionDate = new Date(workout.completed_at);
         
-        // Compare just the date portions (ignoring time)
-        return (
+        const match = (
           completionDate.getFullYear() === day.getFullYear() &&
           completionDate.getMonth() === day.getMonth() &&
           completionDate.getDate() === day.getDate()
         );
-      });
-      
-      console.log('Selected day:', format(day, 'MM/dd/yyyy'));
-      console.log('Workouts found for day:', workoutsForDay.length);
-      workoutsForDay.forEach((w, i) => {
-        console.log(`Workout ${i+1}:`, format(new Date(w.completed_at), 'MM/dd/yyyy HH:mm'));
-      });
-      
+        
+        if (match) {
+          console.log(`Found workout: completed at ${workout.completed_at}, type: ${workout.workout?.title || 'rest day/life happens'}`);
+        }
+        
+        return match;
+      } catch (error) {
+        console.error('Date parsing error:', error);
+        return false;
+      }
+    });
+    
+    console.log(`Found ${filteredWorkouts.length} workouts for ${format(day, 'yyyy-MM-dd')}`);
+    return filteredWorkouts;
+  };
+
+  const handleDayClick = (day: Date) => {
+    setSelectedDay(day);
+    if (onDaySelect) {
+      const workoutsForDay = getWorkoutsForDay(day);
       onDaySelect(day, workoutsForDay);
     }
   };
@@ -96,20 +116,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
   };
 
   const getWorkoutTypeForDay = (day: Date): 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off' | undefined => {
-    // Improved date filtering for workouts
-    const workoutsForDay = workouts.filter(workout => {
-      if (!workout.completed_at) return false;
-      
-      // Convert string dates to Date objects for proper comparison
-      const completionDate = new Date(workout.completed_at);
-      
-      // Compare just the date portions (ignoring time)
-      return (
-        completionDate.getFullYear() === day.getFullYear() &&
-        completionDate.getMonth() === day.getMonth() &&
-        completionDate.getDate() === day.getDate()
-      );
-    });
+    const workoutsForDay = getWorkoutsForDay(day);
 
     if (workoutsForDay.length === 0) return undefined;
 

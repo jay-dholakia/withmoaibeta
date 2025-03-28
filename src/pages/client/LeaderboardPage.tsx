@@ -23,7 +23,32 @@ const LeaderboardPage = () => {
     queryKey: ['client-workouts', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      return fetchClientWorkoutHistory(user.id);
+      console.log('Fetching workout history for user:', user.id);
+      const history = await fetchClientWorkoutHistory(user.id);
+      console.log(`Fetched ${history.length} workout history items`);
+      
+      // Check if there are any workout items for the test dates
+      const march26 = new Date(2025, 2, 26);
+      const march27 = new Date(2025, 2, 27);
+      
+      const march26Workouts = history.filter(item => {
+        const date = new Date(item.completed_at);
+        return date.getFullYear() === 2025 && 
+               date.getMonth() === 2 && 
+               date.getDate() === 26;
+      });
+      
+      const march27Workouts = history.filter(item => {
+        const date = new Date(item.completed_at);
+        return date.getFullYear() === 2025 && 
+               date.getMonth() === 2 && 
+               date.getDate() === 27;
+      });
+      
+      console.log(`March 26, 2025 workouts found: ${march26Workouts.length}`);
+      console.log(`March 27, 2025 workouts found: ${march27Workouts.length}`);
+      
+      return history;
     },
     enabled: !!user?.id,
   });
@@ -43,38 +68,35 @@ const LeaderboardPage = () => {
 
   // Handle day selection in the calendar
   const handleDaySelect = (date: Date, workouts: WorkoutHistoryItem[]) => {
-    console.log(`Selected date: ${format(date, 'MM/dd/yyyy')}`);
+    console.log(`Selected date: ${format(date, 'yyyy-MM-dd')}`);
     console.log(`Found ${workouts.length} workouts for this date`);
+    
     workouts.forEach((workout, i) => {
-      console.log(`Workout ${i+1}: completed at ${workout.completed_at}, type: ${workout.workout?.title || 'Unknown'}`);
+      console.log(`Workout ${i+1}: completed at ${workout.completed_at}, type: ${workout.workout?.title || 'Rest day/Life happens'}`);
     });
     
     setSelectedDate(date);
     setSelectedWorkouts(workouts);
   };
 
-  // For debugging - log all available workouts
+  // Initially select March 26, 2025 if workouts are loaded
   useEffect(() => {
     if (clientWorkouts && clientWorkouts.length > 0) {
-      console.log('All available workouts:', clientWorkouts.length);
-      console.log('Sample dates:');
-      clientWorkouts.slice(0, 5).forEach((w, i) => {
-        console.log(`Workout ${i+1}: ${w.completed_at} - ${format(new Date(w.completed_at), 'MM/dd/yyyy')}`);
-      });
-
-      // Check specifically for March 26-27, 2025 workouts
-      const march26Workouts = clientWorkouts.filter(w => {
-        const date = new Date(w.completed_at);
-        return date.getMonth() === 2 && date.getDate() === 26 && date.getFullYear() === 2025;
+      const march26 = new Date(2025, 2, 26); // March 26, 2025
+      
+      // Filter workouts for March 26
+      const march26Workouts = clientWorkouts.filter(item => {
+        const date = new Date(item.completed_at);
+        return date.getFullYear() === 2025 && 
+               date.getMonth() === 2 && 
+               date.getDate() === 26;
       });
       
-      const march27Workouts = clientWorkouts.filter(w => {
-        const date = new Date(w.completed_at);
-        return date.getMonth() === 2 && date.getDate() === 27 && date.getFullYear() === 2025;
-      });
-      
-      console.log(`March 26, 2025 workouts: ${march26Workouts.length}`);
-      console.log(`March 27, 2025 workouts: ${march27Workouts.length}`);
+      if (march26Workouts.length > 0) {
+        console.log(`Auto-selecting March 26, 2025 with ${march26Workouts.length} workouts`);
+        setSelectedDate(march26);
+        setSelectedWorkouts(march26Workouts);
+      }
     }
   }, [clientWorkouts]);
   
@@ -124,6 +146,12 @@ const LeaderboardPage = () => {
                   <User className="h-5 w-5 text-client" />
                   Monthly Progress
                 </h2>
+                
+                {clientWorkouts && (
+                  <div className="mb-2 text-sm text-center text-muted-foreground">
+                    {clientWorkouts.length} total workouts in your history
+                  </div>
+                )}
                 
                 <MonthlyCalendarView 
                   workouts={clientWorkouts || []} 

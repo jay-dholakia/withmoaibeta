@@ -51,7 +51,7 @@ export const PortalCard: React.FC<PortalCardProps> = ({
         y: -5,
         transition: { duration: 0.2 }
       }}
-      className={`glass-card rounded-xl overflow-hidden ${getGradientClasses()} p-4 transition-all duration-300 w-full`}
+      className={`glass-card rounded-xl overflow-hidden ${getGradientClasses()} p-4 px-4 sm:px-6 transition-all duration-300 w-full`}
     >
       <Link to={to} className="block h-full">
         <div className="flex flex-col h-full">

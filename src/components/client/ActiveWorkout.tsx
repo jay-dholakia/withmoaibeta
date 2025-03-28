@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -432,6 +433,18 @@ const ActiveWorkout = () => {
     }
   };
 
+  const formatDurationInput = (value: string): string => {
+    let cleaned = value.replace(/[^\d:]/g, '');
+    
+    const parts = cleaned.split(':');
+    
+    if (parts.length > 3) {
+      cleaned = parts.slice(0, 3).join(':');
+    }
+    
+    return cleaned;
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -543,8 +556,8 @@ const ActiveWorkout = () => {
                       <div className="space-y-4">
                         <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 text-sm font-medium border-b pb-2">
                           <div>Set</div>
-                          <div>Reps</div>
-                          {exerciseType === 'strength' && <div>Weight</div>}
+                          <div className="text-left">Reps</div>
+                          {exerciseType === 'strength' && <div className="text-left">Weight</div>}
                           {exerciseType === 'bodyweight' && <div className="opacity-0">-</div>}
                           <div>Done</div>
                         </div>
@@ -560,7 +573,7 @@ const ActiveWorkout = () => {
                               placeholder="count"
                               value={set.reps}
                               onChange={(e) => handleSetChange(exercise.id, setIdx, 'reps', e.target.value)}
-                              className="h-9"
+                              className="h-9 text-left"
                             />
                             {exerciseType === 'strength' ? (
                               <Input
@@ -568,10 +581,10 @@ const ActiveWorkout = () => {
                                 placeholder="lbs"
                                 value={set.weight}
                                 onChange={(e) => handleSetChange(exercise.id, setIdx, 'weight', e.target.value)}
-                                className="h-9"
+                                className="h-9 text-left"
                               />
                             ) : (
-                              <div className="text-center text-sm text-muted-foreground">
+                              <div className="text-left text-sm text-muted-foreground">
                                 Bodyweight
                               </div>
                             )}
@@ -589,47 +602,49 @@ const ActiveWorkout = () => {
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <label className="block text-sm font-medium mb-1">Distance</label>
+                            <label className="block text-sm font-medium mb-1 text-left">Distance (miles)</label>
                             <Input
-                              placeholder="e.g., 5 km, 3 miles"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0.00"
                               value={exerciseStates[exercise.id]?.cardioData?.distance || ''}
                               onChange={(e) => handleCardioChange(exercise.id, 'distance', e.target.value)}
-                              className="h-9"
+                              className="h-9 text-left"
                             />
+                            <p className="text-xs text-muted-foreground mt-1 text-left">Enter distance in miles</p>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium mb-1">Duration</label>
+                            <label className="block text-sm font-medium mb-1 text-left">Duration (hh:mm:ss)</label>
                             <Input
-                              placeholder="e.g., 30 min, 1 hour"
+                              placeholder="00:00:00"
                               value={exerciseStates[exercise.id]?.cardioData?.duration || ''}
-                              onChange={(e) => handleCardioChange(exercise.id, 'duration', e.target.value)}
-                              className="h-9"
+                              onChange={(e) => handleCardioChange(
+                                exercise.id, 
+                                'duration', 
+                                formatDurationInput(e.target.value)
+                              )}
+                              className="h-9 text-left"
                             />
+                            <p className="text-xs text-muted-foreground mt-1 text-left">Format: hours:minutes:seconds</p>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium mb-1">Location</label>
-                            <div className="flex gap-4 mt-2">
-                              <div className="flex items-center">
-                                <input
-                                  type="radio"
-                                  id={`indoor-${exercise.id}`}
-                                  checked={exerciseStates[exercise.id]?.cardioData?.location === 'indoor'}
-                                  onChange={() => handleCardioChange(exercise.id, 'location', 'indoor')}
-                                  className="mr-2"
-                                />
-                                <label htmlFor={`indoor-${exercise.id}`}>Indoor</label>
-                              </div>
-                              <div className="flex items-center">
-                                <input
-                                  type="radio"
-                                  id={`outdoor-${exercise.id}`}
-                                  checked={exerciseStates[exercise.id]?.cardioData?.location === 'outdoor'}
-                                  onChange={() => handleCardioChange(exercise.id, 'location', 'outdoor')}
-                                  className="mr-2"
-                                />
-                                <label htmlFor={`outdoor-${exercise.id}`}>Outdoor</label>
-                              </div>
-                            </div>
+                            <label className="block text-sm font-medium mb-1 text-left">Location</label>
+                            <ToggleGroup 
+                              type="single" 
+                              className="justify-start"
+                              value={exerciseStates[exercise.id]?.cardioData?.location || ''}
+                              onValueChange={(value) => {
+                                if (value) handleCardioChange(exercise.id, 'location', value);
+                              }}
+                            >
+                              <ToggleGroupItem value="indoor" className="text-sm">
+                                Indoor
+                              </ToggleGroupItem>
+                              <ToggleGroupItem value="outdoor" className="text-sm">
+                                Outdoor
+                              </ToggleGroupItem>
+                            </ToggleGroup>
                           </div>
                         </div>
                         <div className="flex justify-end items-center mt-2">
@@ -646,13 +661,18 @@ const ActiveWorkout = () => {
                     ) : exerciseType === 'flexibility' ? (
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium mb-1">Duration</label>
+                          <label className="block text-sm font-medium mb-1 text-left">Duration</label>
                           <Input
-                            placeholder="e.g., 30 sec, 1 min"
+                            placeholder="e.g., 00:30, 01:00"
                             value={exerciseStates[exercise.id]?.flexibilityData?.duration || ''}
-                            onChange={(e) => handleFlexibilityChange(exercise.id, 'duration', e.target.value)}
-                            className="h-9"
+                            onChange={(e) => handleFlexibilityChange(
+                              exercise.id, 
+                              'duration', 
+                              formatDurationInput(e.target.value)
+                            )}
+                            className="h-9 text-left"
                           />
+                          <p className="text-xs text-muted-foreground mt-1 text-left">Format: minutes:seconds</p>
                         </div>
                         <div className="flex justify-end items-center mt-2">
                           <span className="mr-2 text-sm">Mark as completed:</span>

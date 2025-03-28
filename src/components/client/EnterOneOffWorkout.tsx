@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WORKOUT_TYPES, WorkoutType } from './WorkoutTypeIcon';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 const EnterOneOffWorkout = () => {
   const navigate = useNavigate();
@@ -28,6 +29,10 @@ const EnterOneOffWorkout = () => {
   const [rating, setRating] = useState<number | undefined>(undefined);
   const [workoutType, setWorkoutType] = useState<WorkoutType>('one_off'); // Default to one_off
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [distance, setDistance] = useState('');
+  const [duration, setDuration] = useState('');
+  const [location, setLocation] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,13 +45,21 @@ const EnterOneOffWorkout = () => {
     setIsSubmitting(true);
     
     try {
-      await createOneOffWorkoutCompletion({
+      const workoutData: any = {
         title,
         description: description.trim() || undefined,
         notes: notes.trim() || undefined,
         rating,
-        workout_type: workoutType // This is now always defined
-      });
+        workout_type: workoutType
+      };
+      
+      if (workoutType === 'cardio') {
+        workoutData.distance = distance.trim() || undefined;
+        workoutData.duration = duration.trim() || undefined;
+        workoutData.location = location || undefined;
+      }
+      
+      await createOneOffWorkoutCompletion(workoutData);
       
       toast.success('Workout logged successfully!');
       navigate('/client-dashboard/workouts');
@@ -57,7 +70,19 @@ const EnterOneOffWorkout = () => {
       setIsSubmitting(false);
     }
   };
-  
+
+  const formatDurationInput = (value: string): string => {
+    let cleaned = value.replace(/[^\d:]/g, '');
+    
+    const parts = cleaned.split(':');
+    
+    if (parts.length > 3) {
+      cleaned = parts.slice(0, 3).join(':');
+    }
+    
+    return cleaned;
+  };
+
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-4">
@@ -83,7 +108,7 @@ const EnterOneOffWorkout = () => {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="title" className="text-sm font-medium">
+              <label htmlFor="title" className="text-sm font-medium text-left block">
                 Workout Title <span className="text-red-500">*</span>
               </label>
               <Input
@@ -92,18 +117,19 @@ const EnterOneOffWorkout = () => {
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Morning Run, Gym Session, Home Workout"
                 required
+                className="text-left"
               />
             </div>
             
             <div className="space-y-2">
-              <label htmlFor="workoutType" className="text-sm font-medium">
+              <label htmlFor="workoutType" className="text-sm font-medium text-left block">
                 Workout Type <span className="text-red-500">*</span>
               </label>
               <Select 
                 value={workoutType} 
                 onValueChange={(value) => setWorkoutType(value as WorkoutType)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-left">
                   <SelectValue placeholder="Select workout type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -119,8 +145,64 @@ const EnterOneOffWorkout = () => {
               </Select>
             </div>
             
+            {workoutType === 'cardio' && (
+              <div className="space-y-4 border rounded-md p-3 bg-blue-50/30">
+                <div className="space-y-2">
+                  <label htmlFor="distance" className="text-sm font-medium text-left block">
+                    Distance (miles)
+                  </label>
+                  <Input
+                    id="distance"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={distance}
+                    onChange={(e) => setDistance(e.target.value)}
+                    className="text-left"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1 text-left">Enter distance in miles</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="duration" className="text-sm font-medium text-left block">
+                    Duration (hh:mm:ss)
+                  </label>
+                  <Input
+                    id="duration"
+                    placeholder="00:00:00"
+                    value={duration}
+                    onChange={(e) => setDuration(formatDurationInput(e.target.value))}
+                    className="text-left"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1 text-left">Format: hours:minutes:seconds</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-left block">
+                    Location
+                  </label>
+                  <ToggleGroup 
+                    type="single" 
+                    className="justify-start"
+                    value={location}
+                    onValueChange={(value) => {
+                      if (value) setLocation(value);
+                    }}
+                  >
+                    <ToggleGroupItem value="indoor" className="text-sm">
+                      Indoor
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="outdoor" className="text-sm">
+                      Outdoor
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-2">
-              <label htmlFor="description" className="text-sm font-medium">
+              <label htmlFor="description" className="text-sm font-medium text-left block">
                 Description (Optional)
               </label>
               <Textarea
@@ -129,11 +211,12 @@ const EnterOneOffWorkout = () => {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Brief description of your workout"
                 rows={3}
+                className="text-left"
               />
             </div>
             
             <div className="space-y-2">
-              <label htmlFor="notes" className="text-sm font-medium">
+              <label htmlFor="notes" className="text-sm font-medium text-left block">
                 Notes (Optional)
               </label>
               <Textarea
@@ -142,18 +225,19 @@ const EnterOneOffWorkout = () => {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="How did it go? How did you feel?"
                 rows={4}
+                className="text-left"
               />
             </div>
             
             <div className="space-y-2">
-              <label htmlFor="rating" className="text-sm font-medium">
+              <label htmlFor="rating" className="text-sm font-medium text-left block">
                 Rating (Optional)
               </label>
               <Select 
                 value={rating?.toString()} 
                 onValueChange={(value) => setRating(value ? parseInt(value) : undefined)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-left">
                   <SelectValue placeholder="How would you rate this workout?" />
                 </SelectTrigger>
                 <SelectContent>

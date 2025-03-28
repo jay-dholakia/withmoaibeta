@@ -670,7 +670,7 @@ export const fetchExercisesByCategory = async () => {
 
 export const fetchAllClients = async () => {
   try {
-    // Use a simpler query that avoids the ambiguous column reference
+    // First fetch basic profile information
     const { data: clients, error } = await supabase
       .from('profiles')
       .select('id, user_type')
@@ -686,9 +686,11 @@ export const fetchAllClients = async () => {
       return [];
     }
 
-    // Get emails for the clients using a separate query
+    // Get emails and additional profile data
     if (clients.length > 0) {
       const userIds = clients.map(client => client.id);
+      
+      // Fetch emails
       const { data: userData, error: userError } = await supabase.rpc('get_users_email', {
         user_ids: userIds
       });
@@ -698,17 +700,32 @@ export const fetchAllClients = async () => {
         throw userError;
       }
 
+      // Fetch client profile data (first_name, last_name)
+      const { data: profileData, error: profileError } = await supabase
+        .from('client_profiles')
+        .select('id, first_name, last_name')
+        .in('id', userIds);
+
+      if (profileError) {
+        console.error('Error fetching client profiles:', profileError);
+        throw profileError;
+      }
+
       // Combine the data
-      const clientsWithEmail = clients.map(client => {
+      const clientsWithDetails = clients.map(client => {
         const userInfo = userData?.find(u => u.id === client.id);
+        const profileInfo = profileData?.find(p => p.id === client.id);
+        
         return {
           id: client.id,
           email: userInfo?.email || 'N/A',
-          user_type: client.user_type
+          user_type: client.user_type,
+          first_name: profileInfo?.first_name || null,
+          last_name: profileInfo?.last_name || null
         };
       });
 
-      return clientsWithEmail;
+      return clientsWithDetails;
     }
 
     return clients;

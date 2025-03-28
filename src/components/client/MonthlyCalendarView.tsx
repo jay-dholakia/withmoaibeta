@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -34,10 +34,27 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
   const handleDayClick = (day: Date) => {
     setSelectedDay(day);
     if (onDaySelect) {
+      // Improved date filtering for workouts
       const workoutsForDay = workouts.filter(workout => {
         if (!workout.completed_at) return false;
-        return isSameDay(new Date(workout.completed_at), day);
+        
+        // Convert string dates to Date objects for proper comparison
+        const completionDate = new Date(workout.completed_at);
+        
+        // Compare just the date portions (ignoring time)
+        return (
+          completionDate.getFullYear() === day.getFullYear() &&
+          completionDate.getMonth() === day.getMonth() &&
+          completionDate.getDate() === day.getDate()
+        );
       });
+      
+      console.log('Selected day:', format(day, 'MM/dd/yyyy'));
+      console.log('Workouts found for day:', workoutsForDay.length);
+      workoutsForDay.forEach((w, i) => {
+        console.log(`Workout ${i+1}:`, format(new Date(w.completed_at), 'MM/dd/yyyy HH:mm'));
+      });
+      
       onDaySelect(day, workoutsForDay);
     }
   };
@@ -79,9 +96,19 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
   };
 
   const getWorkoutTypeForDay = (day: Date): 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off' | undefined => {
+    // Improved date filtering for workouts
     const workoutsForDay = workouts.filter(workout => {
       if (!workout.completed_at) return false;
-      return isSameDay(new Date(workout.completed_at), day);
+      
+      // Convert string dates to Date objects for proper comparison
+      const completionDate = new Date(workout.completed_at);
+      
+      // Compare just the date portions (ignoring time)
+      return (
+        completionDate.getFullYear() === day.getFullYear() &&
+        completionDate.getMonth() === day.getMonth() &&
+        completionDate.getDate() === day.getDate()
+      );
     });
 
     if (workoutsForDay.length === 0) return undefined;

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
@@ -11,6 +11,7 @@ import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/ser
 import { supabase } from '@/integrations/supabase/client';
 import { Container } from '@/components/ui/container';
 import { WorkoutHistoryItem } from '@/types/workout';
+import { format } from 'date-fns';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
@@ -42,9 +43,40 @@ const LeaderboardPage = () => {
 
   // Handle day selection in the calendar
   const handleDaySelect = (date: Date, workouts: WorkoutHistoryItem[]) => {
+    console.log(`Selected date: ${format(date, 'MM/dd/yyyy')}`);
+    console.log(`Found ${workouts.length} workouts for this date`);
+    workouts.forEach((workout, i) => {
+      console.log(`Workout ${i+1}: completed at ${workout.completed_at}, type: ${workout.workout?.title || 'Unknown'}`);
+    });
+    
     setSelectedDate(date);
     setSelectedWorkouts(workouts);
   };
+
+  // For debugging - log all available workouts
+  useEffect(() => {
+    if (clientWorkouts && clientWorkouts.length > 0) {
+      console.log('All available workouts:', clientWorkouts.length);
+      console.log('Sample dates:');
+      clientWorkouts.slice(0, 5).forEach((w, i) => {
+        console.log(`Workout ${i+1}: ${w.completed_at} - ${format(new Date(w.completed_at), 'MM/dd/yyyy')}`);
+      });
+
+      // Check specifically for March 26-27, 2025 workouts
+      const march26Workouts = clientWorkouts.filter(w => {
+        const date = new Date(w.completed_at);
+        return date.getMonth() === 2 && date.getDate() === 26 && date.getFullYear() === 2025;
+      });
+      
+      const march27Workouts = clientWorkouts.filter(w => {
+        const date = new Date(w.completed_at);
+        return date.getMonth() === 2 && date.getDate() === 27 && date.getFullYear() === 2025;
+      });
+      
+      console.log(`March 26, 2025 workouts: ${march26Workouts.length}`);
+      console.log(`March 27, 2025 workouts: ${march27Workouts.length}`);
+    }
+  }, [clientWorkouts]);
   
   return (
     <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">

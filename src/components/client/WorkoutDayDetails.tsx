@@ -13,6 +13,10 @@ interface WorkoutDayDetailsProps {
 }
 
 export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, workouts }) => {
+  // Debug output to verify what workouts are being passed
+  console.log(`WorkoutDayDetails - Receiving date: ${format(date, 'MM/dd/yyyy')}`);
+  console.log(`WorkoutDayDetails - Receiving ${workouts.length} workouts`);
+  
   if (!workouts || workouts.length === 0) {
     return (
       <div className="bg-white rounded-xl p-8 shadow-sm mb-8 w-full text-center">

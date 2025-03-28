@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -338,10 +339,14 @@ const WorkoutProgramDetailPage = () => {
       // Default to day 0 (Sunday) if no day is selected
       const dayToUse = selectedDay || 0;
       
+      // Find the selected template to get its title
+      const templateWorkout = standaloneWorkouts.find(workout => workout.id === selectedTemplate);
+      const workoutTitle = templateWorkout ? templateWorkout.title : 'Template Workout';
+      
       await addWorkoutToWeek(isAddingTemplateToWeek, {
-        title: `Template Workout`,
+        title: workoutTitle,
         day_of_week: dayToUse,
-        workout_type: 'strength'
+        workout_type: templateWorkout?.workout_type || 'strength'
       });
       
       if (isAddingTemplateToWeek === selectedWeek) {

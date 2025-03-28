@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -6,7 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose
+  DialogClose,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -175,6 +177,9 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
       <DialogContent className="sm:max-w-md md:max-w-2xl lg:max-w-3xl w-[90vw]">
         <DialogHeader>
           <DialogTitle>Add Exercise</DialogTitle>
+          <DialogDescription className="sr-only">
+            Select exercises to add to your workout
+          </DialogDescription>
           <div className="flex items-center mt-4 space-x-2">
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />

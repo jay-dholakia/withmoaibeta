@@ -142,11 +142,26 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
     const loadWorkoutExercises = async () => {
       if (workoutId) {
         try {
-          const { data } = await fetch(`/api/workout-exercises?workoutId=${workoutId}`).then(res => res.json());
-          setWorkoutExercises(data);
+          console.info('Fetching workout exercises for workout ID:', workoutId);
+          
+          const res = await fetch(`/api/workout-exercises?workoutId=${workoutId}`);
+          
+          if (!res.ok) {
+            throw new Error(`API error: ${res.status}`);
+          }
+          
+          const data = await res.json();
+          console.info('Fetched workout exercises:', data.data || []);
+          
+          if (data && data.data) {
+            setWorkoutExercises(data.data);
+          } else {
+            setWorkoutExercises([]);
+          }
         } catch (error) {
           console.error("Error loading workout exercises:", error);
           toast.error("Failed to load workout exercises");
+          setWorkoutExercises([]);
         }
       }
     };

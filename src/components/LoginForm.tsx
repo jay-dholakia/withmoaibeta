@@ -157,6 +157,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             placeholder="Enter your email"
             required
             disabled={isDisabled}
+            autoComplete="email"
           />
         </div>
         
@@ -176,6 +177,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               placeholder="Enter your password"
               required
               disabled={isDisabled}
+              autoComplete="current-password"
             />
             <button
               type="button"

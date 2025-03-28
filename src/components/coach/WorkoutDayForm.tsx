@@ -38,7 +38,8 @@ import {
   createWorkoutExercise,
   updateWorkoutExercise,
   deleteWorkoutExercise,
-  fetchWorkouts
+  fetchWorkouts,
+  fetchWorkoutExercises
 } from '@/services/workout-service';
 
 const WORKOUT_TYPES = [
@@ -144,17 +145,11 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
         try {
           console.info('Fetching workout exercises for workout ID:', workoutId);
           
-          const res = await fetch(`/api/workout-exercises?workoutId=${workoutId}`);
+          const data = await fetchWorkoutExercises(workoutId);
+          console.info('Fetched workout exercises:', data || []);
           
-          if (!res.ok) {
-            throw new Error(`API error: ${res.status}`);
-          }
-          
-          const data = await res.json();
-          console.info('Fetched workout exercises:', data.data || []);
-          
-          if (data && data.data) {
-            setWorkoutExercises(data.data);
+          if (data) {
+            setWorkoutExercises(data);
           } else {
             setWorkoutExercises([]);
           }

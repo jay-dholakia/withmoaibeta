@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -125,6 +126,7 @@ const WorkoutComplete = () => {
           variant="ghost" 
           size="icon" 
           onClick={() => navigate('/client-dashboard/workouts')}
+          className="border border-gray-200 hover:border-gray-300"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -136,7 +138,7 @@ const WorkoutComplete = () => {
 
       <div className="flex justify-center py-6">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 mb-4">
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 mb-4 border border-green-200">
             <CheckCircle2 className="w-12 h-12 text-green-600" />
           </div>
           <h2 className="text-2xl font-bold mb-2">
@@ -189,7 +191,7 @@ const WorkoutComplete = () => {
                   "flex flex-col items-center rounded-lg p-2 transition-colors border-2",
                   rating === option.value 
                     ? "border-primary bg-primary/10" 
-                    : "border-transparent hover:bg-gray-100"
+                    : "border-gray-200 hover:bg-gray-100"
                 )}
                 title={option.label}
               >
@@ -207,6 +209,7 @@ const WorkoutComplete = () => {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
+            className="border border-gray-200"
           />
         </div>
       </div>
@@ -215,7 +218,7 @@ const WorkoutComplete = () => {
         <Button
           onClick={() => completeMutation.mutate()}
           disabled={completeMutation.isPending}
-          className="bg-client hover:bg-client/90"
+          className="bg-client hover:bg-client/90 border-2 border-client"
         >
           {completeMutation.isPending ? (
             <>
@@ -231,6 +234,7 @@ const WorkoutComplete = () => {
         <Button
           variant="outline"
           onClick={handleShareWorkout}
+          className="border-2 border-gray-200 hover:border-gray-300"
         >
           <Share2 className="mr-2 h-4 w-4" /> Share Results
         </Button>

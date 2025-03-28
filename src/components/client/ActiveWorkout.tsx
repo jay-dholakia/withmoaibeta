@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -479,6 +480,7 @@ const ActiveWorkout = () => {
           variant="ghost" 
           size="icon" 
           onClick={() => navigate('/client-dashboard/workouts')}
+          className="border border-gray-200 hover:border-gray-300"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -493,7 +495,7 @@ const ActiveWorkout = () => {
           const exerciseType = exercise.exercise?.exercise_type || 'strength';
           
           return (
-            <Card key={exercise.id} className="overflow-hidden">
+            <Card key={exercise.id} className="overflow-hidden border-gray-200">
               <CardHeader 
                 className="cursor-pointer bg-client/5" 
                 onClick={() => toggleExerciseExpanded(exercise.id)}
@@ -610,7 +612,7 @@ const ActiveWorkout = () => {
                               placeholder="0.00"
                               value={exerciseStates[exercise.id]?.cardioData?.distance || ''}
                               onChange={(e) => handleCardioChange(exercise.id, 'distance', e.target.value)}
-                              className="h-9 text-left"
+                              className="h-9 text-left border border-gray-200"
                             />
                             <p className="text-xs text-muted-foreground mt-1 text-left">Enter distance in miles</p>
                           </div>
@@ -624,7 +626,7 @@ const ActiveWorkout = () => {
                                 'duration', 
                                 formatDurationInput(e.target.value)
                               )}
-                              className="h-9 text-left"
+                              className="h-9 text-left border border-gray-200"
                             />
                             <p className="text-xs text-muted-foreground mt-1 text-left">Format: hours:minutes:seconds</p>
                           </div>
@@ -638,10 +640,16 @@ const ActiveWorkout = () => {
                                 if (value) handleCardioChange(exercise.id, 'location', value);
                               }}
                             >
-                              <ToggleGroupItem value="indoor" className="text-sm">
+                              <ToggleGroupItem 
+                                value="indoor" 
+                                className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
+                              >
                                 Indoor
                               </ToggleGroupItem>
-                              <ToggleGroupItem value="outdoor" className="text-sm">
+                              <ToggleGroupItem 
+                                value="outdoor" 
+                                className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
+                              >
                                 Outdoor
                               </ToggleGroupItem>
                             </ToggleGroup>
@@ -654,7 +662,7 @@ const ActiveWorkout = () => {
                             onCheckedChange={(checked) => 
                               handleCardioCompletion(exercise.id, checked === true)
                             }
-                            className="h-5 w-5 data-[state=checked]:bg-client data-[state=checked]:border-client"
+                            className="h-5 w-5 data-[state=checked]:bg-client data-[state=checked]:border-client border-2"
                           />
                         </div>
                       </div>
@@ -670,7 +678,7 @@ const ActiveWorkout = () => {
                               'duration', 
                               formatDurationInput(e.target.value)
                             )}
-                            className="h-9 text-left"
+                            className="h-9 text-left border border-gray-200"
                           />
                           <p className="text-xs text-muted-foreground mt-1 text-left">Format: minutes:seconds</p>
                         </div>
@@ -681,7 +689,7 @@ const ActiveWorkout = () => {
                             onCheckedChange={(checked) => 
                               handleFlexibilityCompletion(exercise.id, checked === true)
                             }
-                            className="h-5 w-5 data-[state=checked]:bg-client data-[state=checked]:border-client"
+                            className="h-5 w-5 data-[state=checked]:bg-client data-[state=checked]:border-client border-2"
                           />
                         </div>
                       </div>
@@ -691,7 +699,7 @@ const ActiveWorkout = () => {
                         <div className="flex justify-center mt-4">
                           <Checkbox
                             id={`complete-${exercise.id}`}
-                            className="h-5 w-5 data-[state=checked]:bg-client data-[state=checked]:border-client"
+                            className="h-5 w-5 data-[state=checked]:bg-client data-[state=checked]:border-client border-2"
                           />
                           <label htmlFor={`complete-${exercise.id}`} className="ml-2">
                             Mark as completed
@@ -712,7 +720,7 @@ const ActiveWorkout = () => {
           <Button
             onClick={finishWorkout}
             disabled={saveAllSetsMutation.isPending}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-6"
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-6 border-2 border-green-700"
           >
             {saveAllSetsMutation.isPending ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />

@@ -195,27 +195,31 @@ export const ExerciseSelector = ({
             onValueChange={setSelectedCategory}
             className="flex-1 overflow-hidden flex flex-col"
           >
-            <TabsList className="grid grid-flow-col auto-cols-max overflow-x-auto py-1 px-0 justify-start gap-2 h-auto">
-              {categories.map((category) => (
-                <TabsTrigger
-                  key={category}
-                  value={category}
-                  className="whitespace-nowrap"
-                >
-                  {category}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <div className="border-b mb-4">
+              <ScrollArea className="w-full" orientation="horizontal">
+                <TabsList className="inline-flex h-10 items-center justify-start px-1 mb-0 w-auto overflow-x-auto gap-1">
+                  {categories.map((category) => (
+                    <TabsTrigger
+                      key={category}
+                      value={category}
+                      className="px-3 py-1.5 whitespace-nowrap"
+                    >
+                      {category}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </ScrollArea>
+            </div>
             
             {categories.map((category) => (
               <TabsContent
                 key={category}
                 value={category}
-                className="flex-1 overflow-hidden flex flex-col mt-0 pt-4 px-1"
+                className="flex-1 overflow-hidden mt-0 pt-0"
               >
-                <ScrollArea className="flex-1">
-                  <div className="space-y-1">
-                    {filteredExercisesByCategory[category].map((exercise) => (
+                <ScrollArea className="flex-1 h-[340px]">
+                  <div className="space-y-1 p-1">
+                    {filteredExercisesByCategory[category]?.map((exercise) => (
                       <Button
                         key={exercise.id}
                         variant="ghost"

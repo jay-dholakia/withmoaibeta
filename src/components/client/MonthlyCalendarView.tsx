@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -180,7 +179,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
           className={`h-10 p-1 text-center relative cursor-pointer hover:bg-gray-50 ${
             !isSameMonthDay ? 'text-gray-300' : 
             isSelected ? 'bg-primary/20 text-primary font-bold rounded-md' :
-            isCurrentDay ? 'bg-primary/10 text-primary font-bold rounded-md' : ''
+            isCurrentDay ? 'border-2 border-primary text-primary font-bold rounded-md' : ''
           }`}
         >
           <div className="flex flex-col h-full justify-between">

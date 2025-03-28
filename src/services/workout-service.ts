@@ -670,17 +670,10 @@ export const fetchExercisesByCategory = async () => {
 
 export const fetchAllClients = async () => {
   try {
-    const currentUser = await supabase.auth.getUser();
-    const coachId = currentUser.data.user?.id;
-
-    // Use a more specific query that avoids ambiguity
+    // Use a simpler query that avoids the ambiguous column reference
     const { data: clients, error } = await supabase
       .from('profiles')
-      .select(`
-        id,
-        user_type,
-        email:auth.users!profiles_id_fkey(email)
-      `)
+      .select('id, user_type')
       .eq('user_type', 'client');
 
     if (error) {
@@ -691,6 +684,31 @@ export const fetchAllClients = async () => {
     // If no clients found, return empty array
     if (!clients || clients.length === 0) {
       return [];
+    }
+
+    // Get emails for the clients using a separate query
+    if (clients.length > 0) {
+      const userIds = clients.map(client => client.id);
+      const { data: userData, error: userError } = await supabase.rpc('get_users_email', {
+        user_ids: userIds
+      });
+
+      if (userError) {
+        console.error('Error fetching user emails:', userError);
+        throw userError;
+      }
+
+      // Combine the data
+      const clientsWithEmail = clients.map(client => {
+        const userInfo = userData?.find(u => u.id === client.id);
+        return {
+          id: client.id,
+          email: userInfo?.email || 'N/A',
+          user_type: client.user_type
+        };
+      });
+
+      return clientsWithEmail;
     }
 
     return clients;

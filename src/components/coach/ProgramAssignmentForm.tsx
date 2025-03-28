@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -57,6 +58,7 @@ interface ClientInfo {
   email: string;
   first_name?: string;
   last_name?: string;
+  user_type?: string;
 }
 
 export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
@@ -82,9 +84,21 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
     const loadClients = async () => {
       try {
         setIsLoading(true);
-        const data = await fetchAllClients();
-        console.log('Fetched clients for form:', data);
-        setClients(data);
+        const clientsData = await fetchAllClients();
+        
+        // Safely cast the result to ClientInfo[] type
+        const typedClients: ClientInfo[] = Array.isArray(clientsData) 
+          ? clientsData.map(client => ({
+              id: client.id,
+              email: client.email || 'N/A',
+              first_name: client.first_name,
+              last_name: client.last_name,
+              user_type: client.user_type
+            }))
+          : [];
+          
+        console.log('Fetched clients for form:', typedClients);
+        setClients(typedClients);
         setIsLoading(false);
       } catch (error) {
         console.error('Error loading clients:', error);

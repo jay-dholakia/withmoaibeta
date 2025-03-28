@@ -54,7 +54,8 @@ const ProgramAssignmentPage = () => {
       });
       
       toast.success(`Program assigned successfully`);
-      navigate(`/coach-dashboard/programs/${programId}`);
+      // Fix the redirect URL to use /workouts/ instead of /programs/
+      navigate(`/coach-dashboard/workouts/${programId}`);
     } catch (error) {
       console.error('Error assigning program:', error);
       toast.error('Failed to assign program');
@@ -77,7 +78,7 @@ const ProgramAssignmentPage = () => {
         <p>Program not found</p>
         <Button 
           variant="link" 
-          onClick={() => navigate('/coach-dashboard/programs')}
+          onClick={() => navigate('/coach-dashboard/workouts')}
           className="mt-2"
         >
           Back to Programs
@@ -91,7 +92,7 @@ const ProgramAssignmentPage = () => {
       <Button 
         variant="ghost" 
         className="mb-4" 
-        onClick={() => navigate(`/coach-dashboard/programs/${programId}`)}
+        onClick={() => navigate(`/coach-dashboard/workouts/${programId}`)}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Program

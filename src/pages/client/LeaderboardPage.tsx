@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,7 +87,7 @@ const LeaderboardPage = () => {
   }, [clientWorkouts]);
   
   return (
-    <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">
+    <Container className="px-4 mx-auto w-full max-w-screen-md">
       <div className="w-full">
         <Tabs defaultValue="personal" className="mb-6 w-full">
           <TabsList className="w-full mb-4">
@@ -102,7 +101,7 @@ const LeaderboardPage = () => {
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="personal" className="w-full px-2">
+          <TabsContent value="personal" className="w-full">
             {isLoading ? (
               <div className="flex justify-center py-6">
                 <Loader2 className="h-6 w-6 animate-spin text-client" />

@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { format, startOfWeek, addDays, isSameDay, isThisWeek } from 'date-fns';
 import { Star, Umbrella, AlertCircle, Calendar } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { WorkoutTypeIcon } from './WorkoutTypeIcon';
 
 interface WeekProgressBarProps {
   completedDates: Date[];
@@ -17,6 +18,7 @@ interface WeekProgressBarProps {
   showProgressBar?: boolean; // New prop to control progress bar visibility
   weekNumber?: number; // Optional week number to display
   compact?: boolean; // New prop for compact display in member cards
+  workoutTypes?: Record<string, 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off'>;
 }
 
 export const WeekProgressBar = ({ 
@@ -30,7 +32,8 @@ export const WeekProgressBar = ({
   showDayCircles = false,
   showProgressBar = false, // Default to not showing the progress bar
   weekNumber,
-  compact = false
+  compact = false,
+  workoutTypes = {} // Default to empty object
 }: WeekProgressBarProps) => {
   const isMobile = useIsMobile();
   
@@ -54,6 +57,16 @@ export const WeekProgressBar = ({
   
   const hasAssignedWorkouts = total > 0;
 
+  // Helper function to get the workout type for a date
+  const getWorkoutTypeForDay = (date: Date): 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off' | undefined => {
+    const dateString = format(date, 'yyyy-MM-dd');
+    return workoutTypes[dateString] || (lifeHappensDates.some(d => isSameDay(d, date)) 
+      ? 'rest_day' 
+      : completedDates.some(d => isSameDay(d, date)) 
+        ? 'strength' 
+        : undefined);
+  };
+
   // If compact mode is enabled, render a simplified version
   if (compact) {
     return (
@@ -74,6 +87,7 @@ export const WeekProgressBar = ({
           {weekDays.map((day, index) => {
             const isCompleted = completedDates.some(date => isSameDay(day, date));
             const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
+            const workoutType = getWorkoutTypeForDay(day);
             
             return (
               <div key={index} className="flex flex-col items-center space-y-1">
@@ -84,8 +98,8 @@ export const WeekProgressBar = ({
                 >
                   {isLifeHappens ? (
                     <Umbrella className="h-3 w-3 text-blue-500" />
-                  ) : isCompleted ? (
-                    <Star className="h-3 w-3 text-green-500 fill-green-500" />
+                  ) : isCompleted && workoutType ? (
+                    <WorkoutTypeIcon type={workoutType} />
                   ) : null}
                 </div>
                 <span className="text-xs text-slate-400">{format(day, 'E')[0]}</span>
@@ -141,6 +155,7 @@ export const WeekProgressBar = ({
           {weekDays.map((day, index) => {
             const isCompleted = completedDates.some(date => isSameDay(day, date));
             const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
+            const workoutType = getWorkoutTypeForDay(day);
             
             return (
               <div key={index} className="flex flex-col items-center space-y-1">
@@ -151,8 +166,8 @@ export const WeekProgressBar = ({
                 >
                   {isLifeHappens ? (
                     <Umbrella className="h-3.5 w-3.5 text-blue-500" />
-                  ) : isCompleted ? (
-                    <Star className="h-3.5 w-3.5 text-green-500 fill-green-500" />
+                  ) : isCompleted && workoutType ? (
+                    <WorkoutTypeIcon type={workoutType} />
                   ) : null}
                 </div>
                 <div className="text-xs text-center text-slate-500">

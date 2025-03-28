@@ -8,7 +8,7 @@ import { Loader2, Users, User, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { isThisWeek, getWeek, startOfWeek } from 'date-fns';
+import { isThisWeek, getWeek, startOfWeek, format } from 'date-fns';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -196,6 +196,52 @@ export const WeekProgressSection = ({
       .map(workout => new Date(workout.completed_at));
   }, [groupData?.completions]);
   
+  const workoutTypesMap = React.useMemo(() => {
+    const typesMap: Record<string, 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off'> = {};
+    
+    if (clientWorkouts) {
+      clientWorkouts.forEach(workout => {
+        if (!workout.completed_at) return;
+        
+        const date = new Date(workout.completed_at);
+        const dateKey = format(date, 'yyyy-MM-dd');
+        
+        if (workout.life_happens_pass) {
+          typesMap[dateKey] = 'rest_day';
+          return;
+        }
+        
+        if (workout.rest_day) {
+          typesMap[dateKey] = 'rest_day';
+          return;
+        }
+        
+        if (workout.workout?.workout_exercises && workout.workout.workout_exercises.length > 0) {
+          const firstExercise = workout.workout.workout_exercises[0];
+          if (firstExercise.exercise?.exercise_type) {
+            typesMap[dateKey] = firstExercise.exercise.exercise_type;
+            return;
+          }
+        }
+        
+        const title = workout.workout?.title?.toLowerCase() || '';
+        if (title.includes('strength')) {
+          typesMap[dateKey] = 'strength';
+        } else if (title.includes('cardio') || title.includes('run')) {
+          typesMap[dateKey] = 'cardio';
+        } else if (title.includes('flex') || title.includes('stretch') || title.includes('yoga')) {
+          typesMap[dateKey] = 'flexibility';
+        } else if (title.includes('bodyweight')) {
+          typesMap[dateKey] = 'bodyweight';
+        } else {
+          typesMap[dateKey] = 'custom';
+        }
+      });
+    }
+    
+    return typesMap;
+  }, [clientWorkouts]);
+  
   React.useEffect(() => {
     if (clientWorkouts && clientWorkouts.length > 0) {
       console.log("Client Workouts:", clientWorkouts);
@@ -250,6 +296,7 @@ export const WeekProgressSection = ({
             showDayCircles={true}
             showProgressBar={true}
             weekNumber={programWeekData?.weekNumber}
+            workoutTypes={workoutTypesMap}
           />
         </>
       )}
@@ -274,56 +321,70 @@ export const WeekProgressSection = ({
             showDayCircles={false}
             showProgressBar={false}
             weekNumber={programWeekData?.weekNumber}
+            workoutTypes={workoutTypesMap}
           />
           
           {showTeam && !showPersonal && (
             <div className="mt-8 space-y-4">
               <h3 className="text-lg font-medium text-center mb-2">Member Progress</h3>
               <div className="grid grid-cols-1 gap-4">
-                {groupData.members.map(member => (
-                  <Card key={member.userId} className="overflow-hidden">
-                    <CardContent className="p-4">
-                      <div className="flex flex-col space-y-3">
-                        <div className="flex items-center space-x-3">
-                          <Avatar>
-                            <AvatarImage src={member.profileData?.avatar_url || ''} alt={member.profileData?.first_name || 'Member'} />
-                            <AvatarFallback className="bg-client/80 text-white">
-                              {member.profileData?.first_name ? member.profileData.first_name.charAt(0) : ''}
-                              {member.profileData?.last_name ? member.profileData.last_name.charAt(0) : ''}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="flex items-center">
-                              <span className="font-medium">
-                                {member.profileData?.first_name 
-                                  ? `${member.profileData.first_name} ${member.profileData.last_name || ''}` 
-                                  : member.email.split('@')[0]}
-                              </span>
-                              {member.isCurrentUser && (
-                                <Badge variant="outline" className="ml-2 text-xs">You</Badge>
-                              )}
+                {groupData.members.map(member => {
+                  const memberWorkoutTypes: Record<string, 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off'> = {};
+                  
+                  member.completedWorkouts.forEach(date => {
+                    memberWorkoutTypes[format(date, 'yyyy-MM-dd')] = 'strength';
+                  });
+                  
+                  member.lifeHappensWorkouts.forEach(date => {
+                    memberWorkoutTypes[format(date, 'yyyy-MM-dd')] = 'rest_day';
+                  });
+                  
+                  return (
+                    <Card key={member.userId} className="overflow-hidden">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col space-y-3">
+                          <div className="flex items-center space-x-3">
+                            <Avatar>
+                              <AvatarImage src={member.profileData?.avatar_url || ''} alt={member.profileData?.first_name || 'Member'} />
+                              <AvatarFallback className="bg-client/80 text-white">
+                                {member.profileData?.first_name ? member.profileData.first_name.charAt(0) : ''}
+                                {member.profileData?.last_name ? member.profileData.last_name.charAt(0) : ''}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="flex items-center">
+                                <span className="font-medium">
+                                  {member.profileData?.first_name 
+                                    ? `${member.profileData.first_name} ${member.profileData.last_name || ''}` 
+                                    : member.email.split('@')[0]}
+                                </span>
+                                {member.isCurrentUser && (
+                                  <Badge variant="outline" className="ml-2 text-xs">You</Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
+                          
+                          <WeekProgressBar 
+                            completedDates={member.completedWorkouts}
+                            lifeHappensDates={member.lifeHappensWorkouts}
+                            label=""
+                            count={(member.completedWorkouts.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length) + 
+                                  (member.lifeHappensWorkouts.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length)}
+                            total={7}
+                            color={member.isCurrentUser ? "bg-client" : "bg-blue-500"}
+                            textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}
+                            showDayCircles={true}
+                            showProgressBar={false}
+                            weekNumber={programWeekData?.weekNumber}
+                            compact={true}
+                            workoutTypes={memberWorkoutTypes}
+                          />
                         </div>
-                        
-                        <WeekProgressBar 
-                          completedDates={member.completedWorkouts}
-                          lifeHappensDates={member.lifeHappensWorkouts}
-                          label=""
-                          count={(member.completedWorkouts.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length) + 
-                                 (member.lifeHappensWorkouts.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length)}
-                          total={7}
-                          color={member.isCurrentUser ? "bg-client" : "bg-blue-500"}
-                          textColor={member.isCurrentUser ? "text-client" : "text-blue-500"}
-                          showDayCircles={true}
-                          showProgressBar={false}
-                          weekNumber={programWeekData?.weekNumber}
-                          compact={true}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </div>
           )}

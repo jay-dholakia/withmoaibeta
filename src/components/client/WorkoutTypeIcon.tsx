@@ -1,10 +1,10 @@
 
 import React from 'react';
 
-export type WorkoutType = 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off';
+export type WorkoutType = string;
 
 interface WorkoutTypeIconProps {
-  type: WorkoutType | string;
+  type: WorkoutType;
   className?: string;
 }
 
@@ -38,7 +38,7 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({ type, classNam
 };
 
 // Export the workout types with labels for use in dropdowns
-export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: string}[] = [
+export const WORKOUT_TYPES: {value: string; label: string; icon: string}[] = [
   { value: 'strength', label: 'Strength', icon: '🏋️' },
   { value: 'cardio', label: 'Cardio', icon: '🏃' },
   { value: 'flexibility', label: 'Flexibility', icon: '🧘' },

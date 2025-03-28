@@ -5,7 +5,7 @@ export interface Exercise {
   category: string;
   description: string | null;
   created_at: string;
-  exercise_type: 'strength' | 'bodyweight' | 'cardio' | 'flexibility';
+  exercise_type: string; // Changed from enum to string
 }
 
 export interface WorkoutProgram {

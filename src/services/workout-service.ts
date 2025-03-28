@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Exercise } from "@/types/workout";
 
@@ -11,7 +12,13 @@ export const createWorkout = async (data: {
 }) => {
   const { data: workout, error } = await supabase
     .from('workouts')
-    .insert(data)
+    .insert({
+      week_id: data.week_id,
+      day_of_week: data.day_of_week,
+      title: data.title,
+      description: data.description,
+      workout_type: data.workout_type || 'strength'
+    })
     .select('*')
     .single();
 
@@ -31,7 +38,12 @@ export const updateWorkout = async (id: string, data: {
 }) => {
   const { data: workout, error } = await supabase
     .from('workouts')
-    .update(data)
+    .update({
+      title: data.title,
+      description: data.description,
+      day_of_week: data.day_of_week,
+      workout_type: data.workout_type
+    })
     .eq('id', id)
     .select('*')
     .single();

@@ -1,134 +1,190 @@
 
 import React, { useState } from 'react';
-import { Calendar } from '@/components/ui/calendar';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Star, 
-  Armchair, 
-  Umbrella 
-} from 'lucide-react';
-import { 
-  format, 
-  addMonths, 
-  subMonths, 
-  isSameDay 
-} from 'date-fns';
 import { WorkoutHistoryItem } from '@/types/workout';
+import { WorkoutTypeIcon } from './WorkoutTypeIcon';
 
 interface MonthlyCalendarViewProps {
   workouts: WorkoutHistoryItem[];
 }
 
-export const MonthlyCalendarView = ({ workouts }: MonthlyCalendarViewProps) => {
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workouts }) => {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const goToPreviousMonth = () => {
-    setCurrentMonth(prevMonth => subMonths(prevMonth, 1));
+  const prevMonth = () => {
+    setCurrentMonth(prevDate => {
+      const newDate = new Date(prevDate);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
   };
 
-  const goToNextMonth = () => {
-    setCurrentMonth(prevMonth => addMonths(prevMonth, 1));
+  const nextMonth = () => {
+    setCurrentMonth(nextDate => {
+      const newDate = new Date(nextDate);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate;
+    });
   };
 
-  // Process workouts by date
-  const completedWorkouts = workouts
-    .filter(workout => workout.completed_at && !workout.life_happens_pass && !workout.rest_day)
-    .map(workout => new Date(workout.completed_at));
-  
-  const lifeHappensWorkouts = workouts
-    .filter(workout => workout.completed_at && workout.life_happens_pass)
-    .map(workout => new Date(workout.completed_at));
-  
-  const restDays = workouts
-    .filter(workout => workout.completed_at && workout.rest_day)
-    .map(workout => new Date(workout.completed_at));
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const startWeekday = getDay(monthStart);
 
-  // Custom day content renderer
-  const renderDayContent = (props: { date: Date; disabled?: boolean }) => {
-    if (!props.date) return null;
-
-    const isCompleted = completedWorkouts.some(date => isSameDay(date, props.date));
-    const isLifeHappens = lifeHappensWorkouts.some(date => isSameDay(date, props.date));
-    const isRestDay = restDays.some(date => isSameDay(date, props.date));
-
+  const renderHeader = () => {
+    const dateFormat = "MMMM yyyy";
     return (
-      <div className="relative w-full h-full flex items-center justify-center">
-        <div className="text-sm">{props.date.getDate()}</div>
-        {isCompleted && (
-          <Star className="absolute top-0 right-0 h-3 w-3 text-green-500 fill-green-500" />
-        )}
-        {isLifeHappens && (
-          <Umbrella className="absolute bottom-0 left-0 h-3 w-3 text-blue-500" />
-        )}
-        {isRestDay && (
-          <Armchair className="absolute bottom-0 right-0 h-3 w-3 text-amber-500" />
-        )}
+      <div className="flex items-center justify-between mb-4">
+        <Button variant="outline" size="icon" onClick={prevMonth} className="h-8 w-8">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="text-lg font-semibold">
+          {format(currentMonth, dateFormat)}
+        </div>
+        <Button variant="outline" size="icon" onClick={nextMonth} className="h-8 w-8">
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
     );
   };
 
+  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const renderDays = () => {
+    return (
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {daysOfWeek.map(day => (
+          <div key={day} className="text-center text-xs font-medium py-1">
+            {day}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const getWorkoutTypeForDay = (day: Date): 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off' | undefined => {
+    // Find workouts for this day
+    const workoutsForDay = workouts.filter(workout => {
+      if (!workout.completed_at) return false;
+      return isSameDay(new Date(workout.completed_at), day);
+    });
+
+    if (workoutsForDay.length === 0) return undefined;
+
+    // If it's a rest day, return that type
+    if (workoutsForDay.some(w => w.rest_day)) {
+      return 'rest_day';
+    }
+
+    // If it's a life happens pass, we don't show anything special
+    if (workoutsForDay.every(w => w.life_happens_pass)) {
+      return undefined;
+    }
+
+    // Try to determine workout type from the workout details
+    // This might need adjustments based on your actual data structure
+    for (const workout of workoutsForDay) {
+      if (workout.workout?.workout_exercises?.length > 0) {
+        const firstExercise = workout.workout.workout_exercises[0];
+        if (firstExercise.exercise?.exercise_type) {
+          return firstExercise.exercise.exercise_type;
+        }
+      }
+    }
+
+    // If we couldn't determine the type, use a fallback based on workout properties
+    if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('strength'))) {
+      return 'strength';
+    } else if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('cardio') || 
+                                        w.workout?.title?.toLowerCase().includes('run'))) {
+      return 'cardio';
+    } else if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('flex') || 
+                                        w.workout?.title?.toLowerCase().includes('stretch') || 
+                                        w.workout?.title?.toLowerCase().includes('yoga'))) {
+      return 'flexibility';
+    } else if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('bodyweight'))) {
+      return 'bodyweight';
+    }
+
+    // Default to custom if we can't determine
+    return 'custom';
+  };
+
+  const renderCells = () => {
+    const dateFormat = "d";
+    const rows = [];
+    let days = [];
+    
+    // Add empty cells for the start of the month
+    for (let i = 0; i < startWeekday; i++) {
+      days.push(
+        <div key={`empty-${i}`} className="h-10 p-1 border border-transparent"></div>
+      );
+    }
+    
+    // Add days of the month
+    for (const day of monthDays) {
+      const formattedDate = format(day, dateFormat);
+      const isCurrentDay = isToday(day);
+      const isSameMonthDay = isSameMonth(day, currentMonth);
+      
+      // Check if there's a workout for this day
+      const workoutType = getWorkoutTypeForDay(day);
+      const hasWorkout = !!workoutType;
+      
+      days.push(
+        <div 
+          key={day.toString()} 
+          className={`h-10 p-1 text-center relative ${
+            !isSameMonthDay ? 'text-gray-300' : 
+            isCurrentDay ? 'bg-primary/10 text-primary font-bold rounded-md' : ''
+          }`}
+        >
+          <div className="flex flex-col h-full justify-between">
+            <span className="text-xs">{formattedDate}</span>
+            {hasWorkout && (
+              <div className="flex justify-center">
+                <WorkoutTypeIcon type={workoutType} />
+              </div>
+            )}
+          </div>
+        </div>
+      );
+      
+      if (days.length === 7) {
+        rows.push(
+          <div key={day.toString()} className="grid grid-cols-7 gap-1">
+            {days}
+          </div>
+        );
+        days = [];
+      }
+    }
+    
+    // Add any remaining days
+    if (days.length > 0) {
+      rows.push(
+        <div key="last-row" className="grid grid-cols-7 gap-1">
+          {days}
+          {/* Add empty cells to complete the row */}
+          {Array(7 - days.length).fill(null).map((_, i) => (
+            <div key={`empty-end-${i}`} className="h-10 p-1 border border-transparent"></div>
+          ))}
+        </div>
+      );
+    }
+    
+    return <div className="space-y-1">{rows}</div>;
+  };
+  
   return (
-    <div className="bg-white rounded-xl p-2 shadow-sm mb-8 overflow-hidden max-w-full">
-      <div className="flex justify-between items-center mb-2">
-        <Button 
-          variant="outline" 
-          onClick={goToPreviousMonth}
-          className="h-8 w-8 p-0"
-          aria-label="Previous month"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        
-        <h3 className="text-lg font-semibold">
-          {format(currentMonth, 'MMMM yyyy')}
-        </h3>
-        
-        <Button 
-          variant="outline" 
-          onClick={goToNextMonth}
-          className="h-8 w-8 p-0"
-          aria-label="Next month"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      <div className="w-full flex justify-center">
-        <Calendar 
-          mode="single"
-          month={currentMonth}
-          onMonthChange={setCurrentMonth}
-          selected={undefined}
-          onSelect={() => {}}
-          disabled={{ after: new Date() }}
-          className="pointer-events-auto w-full px-0 scale-[0.97] transform-origin-top"
-          hideHead={false}
-          components={{
-            DayContent: ({ date, ...props }) => renderDayContent({ date, ...props }),
-            Caption: () => null // This completely hides the built-in caption/navigation
-          }}
-          showOutsideDays={true}
-        />
-      </div>
-      
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2 pt-2 border-t border-gray-100">
-        <div className="flex items-center space-x-1">
-          <Star className="h-4 w-4 text-green-500 fill-green-500" />
-          <span className="text-xs text-gray-600">Workout</span>
-        </div>
-        
-        <div className="flex items-center space-x-1">
-          <Umbrella className="h-4 w-4 text-blue-500" />
-          <span className="text-xs text-gray-600">Life Happens</span>
-        </div>
-        
-        <div className="flex items-center space-x-1">
-          <Armchair className="h-4 w-4 text-amber-500" />
-          <span className="text-xs text-gray-600">Rest Day</span>
-        </div>
-      </div>
+    <div className="p-2 bg-white rounded-lg">
+      {renderHeader()}
+      {renderDays()}
+      {renderCells()}
     </div>
   );
 };

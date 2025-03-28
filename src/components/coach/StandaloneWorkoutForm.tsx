@@ -35,7 +35,10 @@ import {
   createStandaloneWorkout, 
   updateStandaloneWorkout, 
   fetchStandaloneWorkout,
-  fetchExercises
+  fetchExercises,
+  createStandaloneWorkoutExercise,
+  updateStandaloneWorkoutExercise,
+  deleteStandaloneWorkoutExercise
 } from '@/services/workout-service';
 import { useAuth } from '@/contexts/AuthContext';
 

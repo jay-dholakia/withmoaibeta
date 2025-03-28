@@ -118,6 +118,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const styles = getVariantStyles();
   const isDisabled = localLoading || isSubmitting || authLoading;
 
+  const togglePasswordVisibility = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent any form submission
+    setShowPassword(!showPassword);
+  };
+
   if (forgotPassword) {
     return <ForgotPasswordForm onBack={() => setForgotPassword(false)} variant={variant} />;
   }
@@ -174,12 +179,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             />
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowPassword(!showPassword);
-              }}
+              onClick={togglePasswordVisibility}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               disabled={isDisabled}
+              tabIndex={-1}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ import {
   moveStandaloneWorkoutExerciseDown
 } from '@/services/workout-service';
 import { useAuth } from '@/contexts/AuthContext';
+import { Exercise } from '@/types/workout';
 
 interface StandaloneWorkoutFormProps {
   workoutId?: string;
@@ -241,6 +243,12 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
     }
   };
   
+  // Dummy handler for the onSelectExercise prop to satisfy TypeScript
+  const handleSelectExercise = (exercise: Exercise) => {
+    console.log("Exercise selected:", exercise);
+    // This won't be used directly as we're using onSelect instead
+  };
+  
   if (isLoading) {
     return <div className="py-6">Loading workout details...</div>;
   }
@@ -336,6 +344,7 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
                   onSelect={handleAddExercise}
                   onCancel={() => setIsAddingExercise(false)}
                   isSubmitting={isSubmitting}
+                  onSelectExercise={handleSelectExercise}
                 />
               </CardContent>
             </Card>

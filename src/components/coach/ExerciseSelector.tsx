@@ -17,12 +17,12 @@ import { fetchExercisesByCategory } from '@/services/workout-service';
 import { Exercise } from '@/types/workout';
 import { Plus } from 'lucide-react';
 
-type ExerciseSelectorProps = {
+export type ExerciseSelectorProps = {
   isOpen?: boolean;
   onClose?: () => void;
   onSelectExercise: (exercise: Exercise) => void;
   buttonText?: string;
-  // Add the onSelect and onCancel props needed by StandaloneWorkoutForm and WorkoutDayForm
+  // Additional props for StandaloneWorkoutForm and WorkoutDayForm
   onSelect?: (exerciseId: string, data: any) => Promise<void>;
   onCancel?: () => void;
   isSubmitting?: boolean;

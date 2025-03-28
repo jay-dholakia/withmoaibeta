@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import {
   moveWorkoutExerciseUp,
   moveWorkoutExerciseDown
 } from '@/services/workout-service';
+import { Exercise } from '@/types/workout';
 
 interface WorkoutDayFormProps {
   weekId: string;
@@ -231,6 +233,12 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     }
   };
   
+  // Dummy handler for the onSelectExercise prop to satisfy TypeScript
+  const handleSelectExercise = (exercise: Exercise) => {
+    console.log("Exercise selected:", exercise);
+    // This won't be used directly as we're using onSelect instead
+  };
+  
   if (isLoading) {
     return <div className="py-6">Loading workout details...</div>;
   }
@@ -334,6 +342,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
                   onSelect={handleAddExercise}
                   onCancel={() => setIsAddingExercise(false)}
                   isSubmitting={isSubmitting}
+                  onSelectExercise={handleSelectExercise}
                 />
               </CardContent>
             </Card>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -39,7 +38,8 @@ import {
   createWorkoutExercise,
   updateWorkoutExercise,
   deleteWorkoutExercise,
-  fetchWorkouts
+  fetchWorkouts,
+  fetchWorkoutExercises
 } from '@/services/workout-service';
 
 const WORKOUT_TYPES = [
@@ -140,8 +140,8 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
     const loadWorkoutExercises = async () => {
       if (workoutId) {
         try {
-          const { data } = await fetch(`/api/workout-exercises?workoutId=${workoutId}`).then(res => res.json());
-          setWorkoutExercises(data);
+          const exercises = await fetchWorkoutExercises(workoutId);
+          setWorkoutExercises(exercises);
         } catch (error) {
           console.error("Error loading workout exercises:", error);
           toast.error("Failed to load workout exercises");

@@ -669,15 +669,35 @@ export const fetchExercisesByCategory = async () => {
 };
 
 export const fetchAllClients = async () => {
-  const { data: clients, error } = await supabase
-    .rpc('get_coach_clients', { coach_id: (await supabase.auth.getUser()).data.user?.id });
+  try {
+    const currentUser = await supabase.auth.getUser();
+    const coachId = currentUser.data.user?.id;
 
-  if (error) {
+    // Use a more specific query that avoids ambiguity
+    const { data: clients, error } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        user_type,
+        email:auth.users!profiles_id_fkey(email)
+      `)
+      .eq('user_type', 'client');
+
+    if (error) {
+      console.error('Error fetching all clients:', error);
+      throw error;
+    }
+
+    // If no clients found, return empty array
+    if (!clients || clients.length === 0) {
+      return [];
+    }
+
+    return clients;
+  } catch (error) {
     console.error('Error fetching all clients:', error);
     throw error;
   }
-
-  return clients || [];
 };
 
 export const fetchAssignedUsers = async (programId: string) => {

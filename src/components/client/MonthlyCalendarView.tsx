@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -7,10 +8,12 @@ import { WorkoutTypeIcon } from './WorkoutTypeIcon';
 
 interface MonthlyCalendarViewProps {
   workouts: WorkoutHistoryItem[];
+  onDaySelect?: (date: Date, workouts: WorkoutHistoryItem[]) => void;
 }
 
-export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workouts }) => {
+export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workouts, onDaySelect }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
 
   const prevMonth = () => {
     setCurrentMonth(prevDate => {
@@ -26,6 +29,17 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
       newDate.setMonth(newDate.getMonth() + 1);
       return newDate;
     });
+  };
+
+  const handleDayClick = (day: Date) => {
+    setSelectedDay(day);
+    if (onDaySelect) {
+      const workoutsForDay = workouts.filter(workout => {
+        if (!workout.completed_at) return false;
+        return isSameDay(new Date(workout.completed_at), day);
+      });
+      onDaySelect(day, workoutsForDay);
+    }
   };
 
   const monthStart = startOfMonth(currentMonth);
@@ -120,6 +134,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
       const formattedDate = format(day, dateFormat);
       const isCurrentDay = isToday(day);
       const isSameMonthDay = isSameMonth(day, currentMonth);
+      const isSelected = selectedDay ? isSameDay(day, selectedDay) : false;
       
       const workoutType = getWorkoutTypeForDay(day);
       const hasWorkout = !!workoutType;
@@ -127,8 +142,10 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
       days.push(
         <div 
           key={day.toString()} 
-          className={`h-10 p-1 text-center relative ${
+          onClick={() => handleDayClick(day)}
+          className={`h-10 p-1 text-center relative cursor-pointer hover:bg-gray-50 ${
             !isSameMonthDay ? 'text-gray-300' : 
+            isSelected ? 'bg-primary/20 text-primary font-bold rounded-md' :
             isCurrentDay ? 'bg-primary/10 text-primary font-bold rounded-md' : ''
           }`}
         >

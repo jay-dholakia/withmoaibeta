@@ -1,17 +1,21 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
-import { PersonalRecordsTable, PersonalRecord } from '@/components/client/PersonalRecordsTable';
+import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, User, Loader2, Trophy, Info } from 'lucide-react';
+import { Users, User, Loader2, Info } from 'lucide-react';
 import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
 import { Container } from '@/components/ui/container';
+import { WorkoutHistoryItem } from '@/types/workout';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedWorkouts, setSelectedWorkouts] = useState<WorkoutHistoryItem[]>([]);
   
   // Query for client workouts
   const { data: clientWorkouts, isLoading } = useQuery({
@@ -36,48 +40,11 @@ const LeaderboardPage = () => {
     enabled: !!user?.id,
   });
 
-  // Query for personal records
-  const { data: personalRecords, isLoading: isLoadingPRs } = useQuery({
-    queryKey: ['personal-records', user?.id],
-    queryFn: async (): Promise<PersonalRecord[]> => {
-      if (!user?.id) return [];
-
-      // Fetch personal records and join with exercises to get names
-      const { data, error } = await supabase
-        .from('personal_records')
-        .select(`
-          id,
-          exercise_id,
-          weight,
-          reps,
-          achieved_at,
-          exercises:exercise_id (name)
-        `)
-        .eq('user_id', user.id)
-        .order('weight', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching personal records:', error);
-        throw error;
-      }
-      
-      return (data || []).map(record => ({
-        id: record.id,
-        exercise_id: record.exercise_id,
-        exercise_name: record.exercises?.name || 'Unknown Exercise',
-        weight: record.weight,
-        reps: record.reps,
-        achieved_at: record.achieved_at
-      }));
-    },
-    enabled: !!user?.id,
-  });
-
-  // Determine the weekly target based on assigned workouts, or use default 7 if no assigned workouts
-  const totalWeeklyTarget = React.useMemo(() => {
-    console.log('[Debug] assignedCount in LeaderboardPage:', assignedCount);
-    return assignedCount > 0 ? assignedCount : 7;
-  }, [assignedCount]);
+  // Handle day selection in the calendar
+  const handleDaySelect = (date: Date, workouts: WorkoutHistoryItem[]) => {
+    setSelectedDate(date);
+    setSelectedWorkouts(workouts);
+  };
   
   return (
     <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">
@@ -126,16 +93,19 @@ const LeaderboardPage = () => {
                   Monthly Progress
                 </h2>
                 
-                <MonthlyCalendarView workouts={clientWorkouts || []} />
+                <MonthlyCalendarView 
+                  workouts={clientWorkouts || []} 
+                  onDaySelect={handleDaySelect}
+                />
                 
                 <h2 className="text-xl font-bold mb-4 mt-8 flex items-center justify-center gap-2">
-                  <Trophy className="h-5 w-5 text-amber-500" />
-                  Personal Records
+                  <User className="h-5 w-5 text-client" />
+                  Workout Details
                 </h2>
                 
-                <PersonalRecordsTable 
-                  records={personalRecords || []} 
-                  isLoading={isLoadingPRs} 
+                <WorkoutDayDetails 
+                  date={selectedDate}
+                  workouts={selectedWorkouts}
                 />
               </>
             )}

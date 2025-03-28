@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -140,7 +141,9 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
     const loadWorkoutExercises = async () => {
       if (workoutId) {
         try {
+          console.log("Fetching workout exercises for workout ID:", workoutId);
           const exercises = await fetchWorkoutExercises(workoutId);
+          console.log("Fetched workout exercises:", exercises);
           setWorkoutExercises(exercises);
         } catch (error) {
           console.error("Error loading workout exercises:", error);

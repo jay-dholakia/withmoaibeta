@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Exercise, Workout } from "@/types/workout";
 
@@ -299,7 +298,7 @@ export const fetchWorkoutExercises = async (workoutId: string) => {
     .order('order_index');
 
   if (error) {
-    console.error('Error fetching workout exercises:', error);
+    console.error("Error fetching workout exercises:", error);
     throw error;
   }
 

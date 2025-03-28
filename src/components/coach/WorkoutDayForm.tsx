@@ -22,6 +22,7 @@ import {
   createWorkout, 
   createWorkoutExercise, 
   fetchWorkoutExercises,
+  fetchWorkout,
   updateWorkout,
   updateWorkoutExercise,
   deleteWorkoutExercise 
@@ -82,6 +83,11 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   const [existingExercises, setExistingExercises] = useState<WorkoutExercise[]>([]);
   const [isLoading, setIsLoading] = useState(!!workoutId);
   const [removedExerciseIds, setRemovedExerciseIds] = useState<string[]>([]);
+  const [workoutDetails, setWorkoutDetails] = useState<{
+    title: string;
+    description: string | null;
+    workout_type: string;
+  } | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -96,19 +102,18 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     if (workoutId) {
       const loadWorkoutDetails = async () => {
         try {
+          const workout = await fetchWorkout(workoutId);
+          setWorkoutDetails(workout);
+          
           const exercises = await fetchWorkoutExercises(workoutId);
           setExistingExercises(exercises);
           
-          if (exercises.length > 0 && mode === 'edit') {
-            const workout = exercises[0];
-            
-            if (workout) {
-              form.reset({
-                title: workout?.title || form.getValues().title,
-                description: workout?.notes || '',
-                workoutType: workout?.workout_type as string || 'strength'
-              });
-            }
+          if (mode === 'edit' && workout) {
+            form.reset({
+              title: workout.title || form.getValues().title,
+              description: workout.description || '',
+              workoutType: workout.workout_type || 'strength'
+            });
           }
           
           const loadedExercises = exercises.map(item => ({

@@ -1,7 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Exercise } from "@/types/workout";
+import { Exercise, Workout } from "@/types/workout";
 
-// Add workout_type to the createWorkout and updateWorkout functions
 export const createWorkout = async (data: {
   week_id: string;
   day_of_week: number;
@@ -234,7 +233,7 @@ export const fetchWorkouts = async (weekId: string) => {
   return workouts;
 };
 
-export const fetchWorkout = async (workoutId: string) => {
+export const fetchWorkout = async (workoutId: string): Promise<Workout> => {
   const { data: workout, error } = await supabase
     .from('workouts')
     .select('*')
@@ -535,7 +534,6 @@ export const fetchExercisesByCategory = async () => {
     throw error;
   }
 
-  // Group exercises by category
   const exercisesByCategory: Record<string, Exercise[]> = {};
   
   exercises.forEach(exercise => {

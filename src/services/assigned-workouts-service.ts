@@ -78,7 +78,7 @@ const fetchWorkoutsFromPrograms = async (
   // Get all workouts in these weeks
   const { data: workouts, error: workoutsError } = await supabase
     .from('workouts')
-    .select('id, title, description, day_of_week, week_id')
+    .select('id, title, description, day_of_week, week_id, workout_type')
     .in('week_id', weekIds);
   
   if (workoutsError) {
@@ -144,7 +144,8 @@ const createPlaceholdersForProgramsWithoutWeeks = async (
               description: "No workouts have been created for this program yet.",
               day_of_week: 0,
               week_id: "",
-              week: null
+              week: null,
+              workout_type: 'strength' // Default workout type for placeholder
             }
           });
         }
@@ -275,7 +276,8 @@ const processWorkoutsForAssignment = async (
               title: program.title
             } : null
           },
-          workout_exercises: exercisesByWorkout.get(workout.id) || []
+          workout_exercises: exercisesByWorkout.get(workout.id) || [],
+          workout_type: workout.workout_type || 'strength' // Ensure workout_type is set
         }
       });
     }
@@ -322,7 +324,8 @@ const processWorkoutsForAssignment = async (
               title: program.title
             } : null
           },
-          workout_exercises: exercisesByWorkout.get(workout.id) || []
+          workout_exercises: exercisesByWorkout.get(workout.id) || [],
+          workout_type: workout.workout_type || 'strength' // Ensure workout_type is set
         }
       });
     }

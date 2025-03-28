@@ -30,6 +30,14 @@ import { createMultipleStandaloneWorkoutExercises } from '@/services/workout-his
 import { toast } from 'sonner';
 import { StandaloneWorkout } from '@/types/workout';
 import { Trash2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { WORKOUT_TYPES, WorkoutType } from '@/components/client/WorkoutTypeIcon';
 
 const isCardioExercise = (exerciseName: string): boolean => {
   const name = exerciseName.toLowerCase();
@@ -39,7 +47,8 @@ const isCardioExercise = (exerciseName: string): boolean => {
 const formSchema = z.object({
   title: z.string().min(2, 'Workout title must be at least 2 characters'),
   description: z.string().optional(),
-  category: z.string().optional()
+  category: z.string().optional(),
+  workoutType: z.string().default('strength')
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -79,7 +88,8 @@ export const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
     defaultValues: {
       title: initialData?.title || 'New Workout',
       description: initialData?.description || '',
-      category: initialData?.category || ''
+      category: initialData?.category || '',
+      workoutType: initialData?.workout_type || 'strength'
     }
   });
 
@@ -104,7 +114,8 @@ export const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
             form.reset({
               title: initialData.title,
               description: initialData.description || '',
-              category: initialData.category || ''
+              category: initialData.category || '',
+              workoutType: initialData.workout_type || 'strength'
             });
           }
           
@@ -259,7 +270,8 @@ export const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
           coach_id: coachId,
           title: values.title,
           description: values.description || null,
-          category: values.category || null
+          category: values.category || null,
+          workout_type: values.workoutType || 'strength'
         };
         
         const newWorkout = await createStandaloneWorkout(workoutData);
@@ -294,7 +306,8 @@ export const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
         await updateStandaloneWorkout(workoutId, {
           title: values.title,
           description: values.description || null,
-          category: values.category || null
+          category: values.category || null,
+          workout_type: values.workoutType || 'strength'
         });
         
         // Delete removed exercises
@@ -433,6 +446,31 @@ export const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="workoutType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Workout Type</FormLabel>
+                    <FormControl>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select workout type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {WORKOUT_TYPES.map((type: WorkoutType) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-base font-medium">Exercises</h3>
@@ -503,3 +541,5 @@ export const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
     </Card>
   );
 };
+
+export default StandaloneWorkoutForm;

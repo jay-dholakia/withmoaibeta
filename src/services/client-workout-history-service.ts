@@ -40,7 +40,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
       // Fetch workout details separately
       const { data: workouts, error: workoutsError } = await supabase
         .from('workouts')
-        .select('id, title, description, day_of_week, week_id')
+        .select('id, title, description, day_of_week, week_id, workout_type')
         .in('id', workoutIds);
       
       if (workoutsError) {
@@ -53,7 +53,8 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
         workouts.forEach(workout => {
           workoutMap.set(workout.id, {
             ...workout,
-            week: null
+            week: null,
+            workout_type: workout.workout_type || 'strength' // Ensure workout_type is set
           });
         });
       }

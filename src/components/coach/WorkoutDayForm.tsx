@@ -9,6 +9,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
+import { DAYS_OF_WEEK } from "@/types/workout";
+import { toast } from "sonner";
+import {
+  fetchWorkout,
+  fetchWorkoutExercises,
+  updateWorkout,
+  createWorkout,
+  createWorkoutExercise,
+  updateWorkoutExercise,
+  deleteWorkoutExercise,
+  moveWorkoutExerciseUp,
+  moveWorkoutExerciseDown
+} from '@/services/workout-service';
 
 interface WorkoutDayFormProps {
   weekId: string;

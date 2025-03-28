@@ -10,6 +10,7 @@ import { Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { DAYS_OF_WEEK } from "@/types/workout";
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
+import { toast } from "sonner";
 import { 
   createStandaloneWorkout, 
   updateStandaloneWorkout,
@@ -101,7 +102,6 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
       let savedWorkoutId = workoutId;
       
       if (isEdit && workoutId) {
-        // Update the existing workout
         await updateStandaloneWorkout(workoutId, {
           title,
           description: description || null,
@@ -109,7 +109,6 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
           workout_type: workoutType
         });
       } else {
-        // Create a new workout
         const workout = await createStandaloneWorkout({
           title,
           description: description || null,

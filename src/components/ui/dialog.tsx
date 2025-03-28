@@ -32,7 +32,7 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
   // Create a unique ID for the aria-describedby attribute
-  const [descriptionId] = React.useState(() => `dialog-description-${Math.random().toString(36).substr(2, 9)}`);
+  const descriptionId = React.useId();
   
   // Check if a Description component is present among the children
   const hasExplicitDescription = React.Children.toArray(children).some(
@@ -43,10 +43,15 @@ const DialogContent = React.forwardRef<
   
   // Create a new props object with or without aria-describedby
   const contentProps = { ...props };
-  if (hasExplicitDescription || contentProps["aria-describedby"]) {
-    // Keep existing aria-describedby if it exists or if there's a Description component
+  
+  // Only set aria-describedby if an explicit Description is present or user provided one
+  if (hasExplicitDescription && !contentProps["aria-describedby"]) {
+    // Let RadixUI handle the connection automatically
+  } else if (contentProps["aria-describedby"]) {
+    // User provided their own aria-describedby, keep it
   } else {
-    // Set our generated ID only when neither exists
+    // No explicit Description and no user-provided aria-describedby,
+    // so we'll add our hidden description with our generated ID
     contentProps["aria-describedby"] = descriptionId;
   }
   

@@ -1,9 +1,10 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Exercise, Workout } from "@/types/workout";
 
 export const createWorkout = async (data: {
   week_id: string;
-  day_of_week?: number; // Make day_of_week optional
+  day_of_week: number;
   title: string;
   description: string | null;
   workout_type: string;
@@ -13,7 +14,7 @@ export const createWorkout = async (data: {
     .from('workouts')
     .insert({
       week_id: data.week_id,
-      day_of_week: data.day_of_week || 0, // Default to 0 if not provided
+      day_of_week: data.day_of_week,
       title: data.title,
       description: data.description,
       workout_type: data.workout_type,
@@ -227,7 +228,7 @@ export const fetchWorkouts = async (weekId: string) => {
     .from('workouts')
     .select('*')
     .eq('week_id', weekId)
-    .order('priority', { ascending: true }); // Changed from day_of_week to priority for ordering
+    .order('day_of_week', { ascending: true });
 
   if (error) {
     console.error('Error fetching workouts:', error);
@@ -298,7 +299,7 @@ export const fetchWorkoutExercises = async (workoutId: string) => {
     .order('order_index');
 
   if (error) {
-    console.error("Error fetching workout exercises:", error);
+    console.error('Error fetching workout exercises:', error);
     throw error;
   }
 
@@ -629,9 +630,8 @@ export const getWorkoutProgramAssignmentCount = async (programId: string) => {
 export const addWorkoutToWeek = async (weekId: string, data: {
   title: string;
   description?: string | null;
-  day_of_week?: number; // Make day_of_week optional
-  workout_type: string;
-  priority?: number;
+  day_of_week: number;
+  workout_type: string; // Changed from optional to required
 }) => {
   const { data: workout, error } = await supabase
     .from('workouts')
@@ -639,9 +639,8 @@ export const addWorkoutToWeek = async (weekId: string, data: {
       week_id: weekId,
       title: data.title,
       description: data.description || null,
-      day_of_week: data.day_of_week || 0, // Default to 0 if not provided
-      workout_type: data.workout_type,
-      priority: data.priority || 0
+      day_of_week: data.day_of_week,
+      workout_type: data.workout_type
     } as any) // Use type assertion to avoid TS error
     .select('*')
     .single();

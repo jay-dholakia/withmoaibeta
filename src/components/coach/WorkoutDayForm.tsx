@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Dumbbell, ActivitySquare, Trash2, Plus } from 'lucide-react';
+import { Dumbbell, ActivitySquare, ChevronDown, Trash2, Plus } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +29,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
-import { Exercise, WorkoutExercise } from '@/types/workout';
+import { Exercise, WorkoutExercise, DAYS_OF_WEEK } from '@/types/workout';
 import { 
   createWorkout, 
   updateWorkout, 
@@ -39,8 +38,7 @@ import {
   createWorkoutExercise,
   updateWorkoutExercise,
   deleteWorkoutExercise,
-  fetchWorkouts,
-  fetchWorkoutExercises
+  fetchWorkouts
 } from '@/services/workout-service';
 
 const WORKOUT_TYPES = [
@@ -53,6 +51,7 @@ const WORKOUT_TYPES = [
 const formSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
+  day_of_week: z.coerce.number().min(0).max(6),
   workout_type: z.string().min(1, { message: "Workout type is required" }),
   priority: z.coerce.number().min(0)
 });
@@ -80,6 +79,7 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
     defaultValues: {
       title: '',
       description: '',
+      day_of_week: 0,
       workout_type: 'strength',
       priority: 0
     },
@@ -121,6 +121,7 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
           form.reset({
             title: workout.title,
             description: workout.description || "",
+            day_of_week: workout.day_of_week,
             workout_type: workout.workout_type,
             priority: workout.priority || 0
           });
@@ -141,10 +142,8 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
     const loadWorkoutExercises = async () => {
       if (workoutId) {
         try {
-          console.log("Fetching workout exercises for workout ID:", workoutId);
-          const exercises = await fetchWorkoutExercises(workoutId);
-          console.log("Fetched workout exercises:", exercises);
-          setWorkoutExercises(exercises);
+          const { data } = await fetch(`/api/workout-exercises?workoutId=${workoutId}`).then(res => res.json());
+          setWorkoutExercises(data);
         } catch (error) {
           console.error("Error loading workout exercises:", error);
           toast.error("Failed to load workout exercises");
@@ -359,6 +358,19 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
             />
           </div>
         </CardContent>
+        {index < workoutExercises.length - 1 && (
+          <CardFooter className="flex justify-center pb-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleExerciseReorder(index, index + 1)}
+            >
+              <ChevronDown className="h-4 w-4" />
+              <span className="sr-only">Move down</span>
+            </Button>
+          </CardFooter>
+        )}
       </Card>
     );
   };
@@ -370,6 +382,7 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
       if (mode === 'create') {
         const newWorkout = await createWorkout({
           week_id: weekId,
+          day_of_week: values.day_of_week,
           title: values.title,
           description: values.description || null,
           workout_type: values.workout_type,
@@ -394,6 +407,7 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
         await updateWorkout(workoutId, {
           title: values.title,
           description: values.description || null,
+          day_of_week: values.day_of_week,
           workout_type: values.workout_type,
           priority: values.priority
         });
@@ -470,37 +484,68 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
             />
           </div>
           
-          <FormField
-            control={form.control}
-            name="priority"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Priority</FormLabel>
-                <Select
-                  onValueChange={(value) => field.onChange(parseInt(value))}
-                  defaultValue={field.value.toString()}
-                  value={field.value.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select priority" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {generatePriorityOptions().map((priority) => (
-                      <SelectItem key={priority} value={priority.toString()}>
-                        {priority === 0 ? "Default" : `Priority ${priority}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Determines the order workouts appear for clients. Lower numbers appear first.
-                </p>
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="day_of_week"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Day of Week</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                    defaultValue={field.value.toString()}
+                    value={field.value.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select day of week" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {DAYS_OF_WEEK.map((day, index) => (
+                        <SelectItem key={index} value={index.toString()}>
+                          {day}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="priority"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Priority</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                    defaultValue={field.value.toString()}
+                    value={field.value.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {generatePriorityOptions().map((priority) => (
+                        <SelectItem key={priority} value={priority.toString()}>
+                          {priority === 0 ? "Default" : `Priority ${priority}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Determines the order workouts appear for clients. Lower numbers appear first.
+                  </p>
+                </FormItem>
+              )}
+            />
+          </div>
           
           <FormField
             control={form.control}

@@ -110,10 +110,11 @@ const WorkoutProgramDetailPage = () => {
     }
   };
 
-  const addWorkout = async (weekId: string) => {
+  const addWorkout = async (weekId: string, dayOfWeek: number) => {
     try {
       const newWorkout = await addWorkoutToWeek(weekId, {
-        title: `Workout ${workoutCounts[weekId] + 1 || 1}`,
+        title: `Day ${dayOfWeek + 1} Workout`,
+        day_of_week: dayOfWeek,
         workout_type: 'strength'
       });
       setWorkouts(prev => [...prev, newWorkout]);
@@ -334,8 +335,12 @@ const WorkoutProgramDetailPage = () => {
     try {
       setIsAddingTemplate(true);
       
+      // Default to day 0 (Sunday) if no day is selected
+      const dayToUse = selectedDay || 0;
+      
       await addWorkoutToWeek(isAddingTemplateToWeek, {
         title: `Template Workout`,
+        day_of_week: dayToUse,
         workout_type: 'strength'
       });
       
@@ -349,6 +354,7 @@ const WorkoutProgramDetailPage = () => {
       toast.success('Template workout added successfully');
       setIsAddingTemplateToWeek(null);
       setSelectedTemplate(null);
+      setSelectedDay(null);
     } catch (error) {
       console.error('Error adding template workout:', error);
       toast.error('Failed to add template workout');
@@ -579,6 +585,7 @@ const WorkoutProgramDetailPage = () => {
                             } else {
                               setIsAddingTemplateToWeek(null);
                               setSelectedTemplate(null);
+                              setSelectedDay(null);
                             }
                           }}
                         >

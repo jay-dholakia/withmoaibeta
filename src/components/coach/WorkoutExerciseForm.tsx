@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -65,66 +66,79 @@ type BodyweightFormValues = z.infer<typeof bodyweightFormSchema>;
 type FlexibilityFormValues = z.infer<typeof flexibilityFormSchema>;
 
 interface WorkoutExerciseFormProps {
-  exercise: Exercise;
+  exercise?: Exercise;
   onSubmit: (values: CardioFormValues | StrengthFormValues | BodyweightFormValues | FlexibilityFormValues) => void;
-  onCancel: () => void;
-  isSubmitting: boolean;
+  onCancel?: () => void;
+  isSubmitting?: boolean;
   existingData?: Partial<WorkoutExercise>;
   autoSave?: boolean;
+  // Add initialData prop to match what's being used in components
+  initialData?: any;
 }
 
 export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   exercise,
   onSubmit,
   onCancel,
-  isSubmitting,
+  isSubmitting = false,
   existingData,
+  initialData, // Accept initialData prop
   autoSave = false
-}) => {
-  const exerciseType = getExerciseType(exercise);
+}: WorkoutExerciseFormProps) => {
+  // Use initialData as a fallback for existingData if provided
+  const effectiveExistingData = existingData || initialData;
+  // If we have initialData but no exercise, try to get it from initialData
+  const effectiveExercise = exercise || (initialData?.exercise ? initialData.exercise : undefined);
+  
+  if (!effectiveExercise) {
+    console.error("WorkoutExerciseForm: No exercise provided");
+    return <div>Error: Missing exercise data</div>;
+  }
+  
+  const exerciseType = getExerciseType(effectiveExercise);
   
   switch (exerciseType) {
     case 'cardio':
       return (
         <CardioExerciseForm
-          exercise={exercise}
+          exercise={effectiveExercise}
           onSubmit={onSubmit}
           onCancel={onCancel}
           isSubmitting={isSubmitting}
-          existingData={existingData}
+          existingData={effectiveExistingData}
           autoSave={autoSave}
         />
       );
     case 'bodyweight':
       return (
         <BodyweightExerciseForm
-          exercise={exercise}
+          exercise={effectiveExercise}
           onSubmit={onSubmit}
           onCancel={onCancel}
           isSubmitting={isSubmitting}
-          existingData={existingData}
+          existingData={effectiveExistingData}
           autoSave={autoSave}
         />
       );
     case 'flexibility':
       return (
         <FlexibilityExerciseForm
-          exercise={exercise}
+          exercise={effectiveExercise}
           onSubmit={onSubmit}
           onCancel={onCancel}
           isSubmitting={isSubmitting}
-          existingData={existingData}
+          existingData={effectiveExistingData}
           autoSave={autoSave}
         />
       );
     default:
       return (
         <StrengthExerciseForm
-          exercise={exercise}
+          exercise={effectiveExercise}
           onSubmit={onSubmit}
           onCancel={onCancel}
           isSubmitting={isSubmitting}
-          existingData={existingData}
+          existingData={effectiveExistingData}
           autoSave={autoSave}
         />
       );

@@ -22,13 +22,20 @@ type ExerciseSelectorProps = {
   onClose?: () => void;
   onSelectExercise: (exercise: Exercise) => void;
   buttonText?: string;
+  // Add the onSelect and onCancel props needed by StandaloneWorkoutForm and WorkoutDayForm
+  onSelect?: (exerciseId: string, data: any) => Promise<void>;
+  onCancel?: () => void;
+  isSubmitting?: boolean;
 };
 
 export const ExerciseSelector = ({ 
   isOpen: propIsOpen, 
   onClose, 
   onSelectExercise, 
-  buttonText = "Add Exercise" 
+  buttonText = "Add Exercise",
+  onSelect,
+  onCancel,
+  isSubmitting
 }: ExerciseSelectorProps) => {
   const [isOpen, setIsOpen] = useState(propIsOpen || false);
   const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, Exercise[]>>({});
@@ -97,12 +104,25 @@ export const ExerciseSelector = ({
   }, [searchTerm, exercisesByCategory]);
 
   const handleSelectExercise = (exercise: Exercise) => {
-    onSelectExercise(exercise);
-    handleClose();
+    if (onSelect) {
+      // If using the onSelect prop (for StandaloneWorkoutForm/WorkoutDayForm)
+      onSelect(exercise.id, {
+        sets: 3,
+        reps: '10',
+        rest_seconds: 60,
+        notes: ''
+      });
+    } else {
+      // Original behavior
+      onSelectExercise(exercise);
+      handleClose();
+    }
   };
 
   const handleClose = () => {
-    if (onClose) {
+    if (onCancel) {
+      onCancel();
+    } else if (onClose) {
       onClose();
     } else {
       setIsOpen(false);

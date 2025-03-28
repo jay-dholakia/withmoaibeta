@@ -1,28 +1,14 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
-import { DAYS_OF_WEEK } from "@/types/workout";
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
-import { 
-  fetchWorkout, 
-  updateWorkout, 
-  createWorkout, 
-  createWorkoutExercise,
-  fetchWorkoutExercises,
-  updateWorkoutExercise,
-  deleteWorkoutExercise,
-  moveWorkoutExerciseUp,
-  moveWorkoutExerciseDown
-} from '@/services/workout-service';
-import { toast } from 'sonner';
 
 interface WorkoutDayFormProps {
   weekId: string;
@@ -92,7 +78,6 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       let savedWorkoutId = workoutId;
       
       if (isEdit && workoutId) {
-        // Update the existing workout
         await updateWorkout(workoutId, {
           title,
           description: description || null,
@@ -100,7 +85,6 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           workout_type: workoutType
         });
       } else {
-        // Create a new workout
         const workout = await createWorkout({
           week_id: weekId,
           title,

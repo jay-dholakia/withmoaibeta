@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
-import { toast } from 'sonner';
+import { DAYS_OF_WEEK } from "@/types/workout";
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
 import { 

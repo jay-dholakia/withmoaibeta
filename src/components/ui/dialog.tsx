@@ -35,12 +35,22 @@ const DialogContent = React.forwardRef<
   // Create a unique ID for the aria-describedby attribute if none is provided
   const [descriptionId] = React.useState(() => `dialog-description-${Math.random().toString(36).substr(2, 9)}`);
   
+  // Check if a Description component is present among the children
+  const hasExplicitDescription = React.Children.toArray(children).some(
+    child => 
+      React.isValidElement(child) && 
+      child.type === DialogPrimitive.Description
+  );
+  
+  // Only apply aria-describedby if we have a description or need to create a hidden one
+  const describedBy = props["aria-describedby"] || (hasExplicitDescription ? undefined : descriptionId);
+  
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
-        aria-describedby={props["aria-describedby"] || descriptionId}
+        aria-describedby={describedBy}
         className={cn(
           "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg md:w-full overflow-y-auto max-h-[85vh]",
           className
@@ -49,11 +59,7 @@ const DialogContent = React.forwardRef<
       >
         {children}
         {/* Add a hidden description for screen readers if no explicit description is found */}
-        {!React.Children.toArray(children).some(
-          child => 
-            React.isValidElement(child) && 
-            child.type === DialogPrimitive.Description
-        ) && (
+        {!hasExplicitDescription && describedBy === descriptionId && (
           <span id={descriptionId} className="sr-only">
             Dialog content
           </span>

@@ -78,8 +78,8 @@ interface ClientBase {
 // Extended interface for clients with additional profile data
 interface ClientInfo extends ClientBase {
   email?: string;
-  first_name?: string;
-  last_name?: string;
+  first_name?: string | null;
+  last_name?: string | null;
 }
 
 interface AssignedClient {
@@ -127,19 +127,8 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
       try {
         setIsLoading(true);
         const clientsData = await fetchAllClients();
-        
-        const typedClients: ClientInfo[] = Array.isArray(clientsData) 
-          ? clientsData.map(client => ({
-              id: client.id,
-              user_type: client.user_type,
-              email: typeof client.email === 'string' ? client.email : 'N/A',
-              first_name: typeof client.first_name === 'string' ? client.first_name : undefined,
-              last_name: typeof client.last_name === 'string' ? client.last_name : undefined
-            }))
-          : [];
-          
-        console.log('Fetched clients for form:', typedClients);
-        setClients(typedClients);
+        setClients(clientsData as ClientInfo[]);
+        console.log('Fetched clients for form:', clientsData);
         
         await loadAssignments();
         

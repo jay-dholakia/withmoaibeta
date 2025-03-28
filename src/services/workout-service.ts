@@ -718,8 +718,8 @@ export const fetchAllClients = async () => {
         
         return {
           id: client.id,
-          email: userInfo?.email || 'N/A',
           user_type: client.user_type,
+          email: userInfo?.email || 'N/A',
           first_name: profileInfo?.first_name || null,
           last_name: profileInfo?.last_name || null
         };

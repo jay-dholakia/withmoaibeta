@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { 
@@ -6,7 +5,8 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle,
-  DialogDescription
+  DialogDescription,
+  DialogTrigger
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -14,19 +14,33 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fetchExercisesByCategory } from '@/services/workout-service';
 import { Exercise } from '@/types/workout';
+import { Plus } from 'lucide-react';
 
 type ExerciseSelectorProps = {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   onSelectExercise: (exercise: Exercise) => void;
+  buttonText?: string;
 };
 
-export const ExerciseSelector = ({ isOpen, onClose, onSelectExercise }: ExerciseSelectorProps) => {
+export const ExerciseSelector = ({ 
+  isOpen: propIsOpen, 
+  onClose, 
+  onSelectExercise, 
+  buttonText = "Add Exercise" 
+}: ExerciseSelectorProps) => {
+  const [isOpen, setIsOpen] = useState(propIsOpen || false);
   const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, Exercise[]>>({});
   const [filteredExercisesByCategory, setFilteredExercisesByCategory] = useState<Record<string, Exercise[]>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (propIsOpen !== undefined) {
+      setIsOpen(propIsOpen);
+    }
+  }, [propIsOpen]);
 
   useEffect(() => {
     const loadExercises = async () => {
@@ -77,13 +91,50 @@ export const ExerciseSelector = ({ isOpen, onClose, onSelectExercise }: Exercise
 
   const handleSelectExercise = (exercise: Exercise) => {
     onSelectExercise(exercise);
-    onClose();
+    handleClose();
+  };
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      setIsOpen(false);
+    }
+  };
+  
+  const handleOpen = () => {
+    setIsOpen(true);
   };
   
   const categories = Object.keys(filteredExercisesByCategory);
   
+  // If we don't have an explicit isOpen prop, render with a trigger button
+  if (propIsOpen === undefined) {
+    return (
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button onClick={handleOpen} variant="outline">
+            <Plus className="h-4 w-4 mr-2" />
+            {buttonText}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Select Exercise</DialogTitle>
+            <DialogDescription>
+              Browse or search for exercises to add to your workout.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {renderDialogContent()}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+  
+  // Otherwise, render just the dialog without a trigger
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Select Exercise</DialogTitle>
@@ -92,6 +143,14 @@ export const ExerciseSelector = ({ isOpen, onClose, onSelectExercise }: Exercise
           </DialogDescription>
         </DialogHeader>
         
+        {renderDialogContent()}
+      </DialogContent>
+    </Dialog>
+  );
+  
+  function renderDialogContent() {
+    return (
+      <>
         <div className="relative mb-4">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -172,7 +231,7 @@ export const ExerciseSelector = ({ isOpen, onClose, onSelectExercise }: Exercise
             ))}
           </Tabs>
         )}
-      </DialogContent>
-    </Dialog>
-  );
+      </>
+    );
+  }
 };

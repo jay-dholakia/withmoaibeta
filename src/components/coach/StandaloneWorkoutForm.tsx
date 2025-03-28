@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -89,7 +88,17 @@ export const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
       const loadWorkoutDetails = async () => {
         try {
           const exercises = await fetchStandaloneWorkoutExercises(workoutId);
-          setExistingExercises(exercises);
+          
+          // Cast exercises to ensure type compatibility
+          const typedExercises = exercises.map(ex => ({
+            ...ex,
+            exercise: ex.exercise ? {
+              ...ex.exercise,
+              exercise_type: ex.exercise.exercise_type as 'strength' | 'bodyweight' | 'cardio' | 'flexibility'
+            } : undefined
+          }));
+          
+          setExistingExercises(typedExercises);
           
           if (exercises.length > 0 && mode === 'edit' && initialData) {
             form.reset({
@@ -99,7 +108,12 @@ export const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
             });
           }
           
-          const loadedExercises = exercises.map(item => item.exercise!);
+          // Map exercises for our state
+          const loadedExercises = exercises.map(item => ({
+            ...item.exercise!,
+            tempId: item.exercise?.id
+          }));
+          
           setExercises(loadedExercises);
           
           const exerciseFormData: Record<string, any> = {};

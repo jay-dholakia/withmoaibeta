@@ -4,7 +4,7 @@ import React from 'react';
 export type WorkoutType = 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off';
 
 interface WorkoutTypeIconProps {
-  type: WorkoutType;
+  type: WorkoutType | string;
   className?: string;
 }
 

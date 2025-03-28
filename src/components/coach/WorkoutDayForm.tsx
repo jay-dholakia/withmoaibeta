@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -101,17 +100,22 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           setExistingExercises(exercises);
           
           if (exercises.length > 0 && mode === 'edit') {
-            const workout = exercises[0]?.workout;
-            if (workout) {
+            const workoutWithData = exercises.find(ex => ex.workout)?.workout;
+            
+            if (workoutWithData) {
               form.reset({
-                title: workout.title,
-                description: workout.description || '',
-                workoutType: (workout.workout_type as WorkoutType) || 'strength'
+                title: workoutWithData.title,
+                description: workoutWithData.description || '',
+                workoutType: (workoutWithData.workout_type as WorkoutType) || 'strength'
               });
             }
           }
           
-          const loadedExercises = exercises.map(item => item.exercise!);
+          const loadedExercises = exercises.map(item => ({
+            ...item.exercise!,
+            tempId: item.exercise?.id
+          }));
+          
           setExercises(loadedExercises);
           
           const exerciseFormData: Record<string, any> = {};

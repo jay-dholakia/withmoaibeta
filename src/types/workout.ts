@@ -1,3 +1,4 @@
+
 export interface Exercise {
   id: string;
   name: string;
@@ -11,7 +12,7 @@ export interface WorkoutProgram {
   id: string;
   title: string;
   description: string | null;
-  weeks: number; // Changed from 'WorkoutWeek[] | number' to just 'number'
+  weeks: number;
   coach_id: string;
   created_at: string;
   updated_at: string;

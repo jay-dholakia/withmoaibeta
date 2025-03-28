@@ -512,3 +512,129 @@ export const deleteStandaloneWorkoutExercise = async (exerciseId: string) => {
     throw error;
   }
 };
+
+export const fetchExercisesByCategory = async () => {
+  const { data: exercises, error } = await supabase
+    .from('exercises')
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching exercises by category:', error);
+    throw error;
+  }
+
+  // Group exercises by category
+  const exercisesByCategory: Record<string, Exercise[]> = {};
+  
+  exercises.forEach(exercise => {
+    if (!exercisesByCategory[exercise.category]) {
+      exercisesByCategory[exercise.category] = [];
+    }
+    exercisesByCategory[exercise.category].push(exercise as Exercise);
+  });
+
+  return exercisesByCategory;
+};
+
+export const fetchAllClients = async () => {
+  const { data: clients, error } = await supabase
+    .rpc('get_coach_clients', { coach_id: (await supabase.auth.getUser()).data.user?.id });
+
+  if (error) {
+    console.error('Error fetching all clients:', error);
+    throw error;
+  }
+
+  return clients || [];
+};
+
+export const fetchAssignedUsers = async (programId: string) => {
+  const { data: assignments, error } = await supabase
+    .from('program_assignments')
+    .select('*')
+    .eq('program_id', programId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching assigned users:', error);
+    throw error;
+  }
+
+  return assignments;
+};
+
+export const assignProgramToUser = async (data: {
+  program_id: string;
+  user_id: string;
+  assigned_by: string;
+  start_date: string;
+  end_date: string | null;
+}) => {
+  const { data: assignment, error } = await supabase
+    .from('program_assignments')
+    .insert(data)
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error assigning program to user:', error);
+    throw error;
+  }
+
+  return assignment;
+};
+
+export const deleteProgramAssignment = async (assignmentId: string) => {
+  const { error } = await supabase
+    .from('program_assignments')
+    .delete()
+    .eq('id', assignmentId);
+
+  if (error) {
+    console.error('Error deleting program assignment:', error);
+    throw error;
+  }
+
+  return true;
+};
+
+export const getWorkoutProgramAssignmentCount = async (programId: string) => {
+  const { count, error } = await supabase
+    .from('program_assignments')
+    .select('*', { count: 'exact', head: true })
+    .eq('program_id', programId);
+
+  if (error) {
+    console.error('Error getting workout program assignment count:', error);
+    throw error;
+  }
+
+  return count || 0;
+};
+
+export const addWorkoutToWeek = async (weekId: string, data: {
+  title: string;
+  description?: string | null;
+  day_of_week: number;
+  workout_type?: string;
+}) => {
+  const { data: workout, error } = await supabase
+    .from('workouts')
+    .insert({
+      week_id: weekId,
+      title: data.title,
+      description: data.description || null,
+      day_of_week: data.day_of_week,
+      workout_type: data.workout_type || 'strength'
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error adding workout to week:', error);
+    throw error;
+  }
+
+  return workout;
+};

@@ -70,13 +70,17 @@ interface ProgramAssignmentFormProps {
   isSubmitting: boolean;
 }
 
-// Explicitly defining the ClientInfo interface with all properties we're using
-interface ClientInfo {
+// Define a base interface matching what the API returns
+interface ClientBase {
   id: string;
-  email: string;
+  user_type: string;
+}
+
+// Extended interface for clients with additional profile data
+interface ClientInfo extends ClientBase {
+  email?: string;
   first_name?: string;
   last_name?: string;
-  user_type?: string;
 }
 
 interface AssignedClient {
@@ -125,14 +129,15 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
         setIsLoading(true);
         const clientsData = await fetchAllClients();
         
-        // Transform the data to ensure all required properties are set with proper types
+        // Safely transform the data, handling the case where properties might be missing
         const typedClients: ClientInfo[] = Array.isArray(clientsData) 
           ? clientsData.map(client => ({
-              id: client.id || '',
-              email: client.email || 'N/A',
+              id: client.id,
               user_type: client.user_type,
-              first_name: client.first_name,
-              last_name: client.last_name
+              // Safely set optional properties that might not exist in the API response
+              email: 'email' in client ? client.email : 'N/A',
+              first_name: 'first_name' in client ? client.first_name : undefined,
+              last_name: 'last_name' in client ? client.last_name : undefined
             }))
           : [];
           
@@ -199,14 +204,14 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   };
 
   const getClientDisplayName = (client: ClientInfo): string => {
-    // Handle the case where first_name and last_name may be undefined
+    // Safely handle potentially undefined properties
     if (client.first_name && client.last_name) {
       return `${client.first_name} ${client.last_name}`;
     } else if (client.first_name) {
       return client.first_name;
     } else {
-      // Fall back to email or 'Unknown Client' if no name is available
-      return client.email || 'Unknown Client';
+      // Fall back to a default if no name or email is available
+      return client.email || `Client ${client.id.substring(0, 8)}`;
     }
   };
   

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -175,6 +174,11 @@ const ActiveWorkout = () => {
       // Handle cardio exercises
       if (pendingCardio.length > 0) {
         const cardioPromises = pendingCardio.map(item => {
+          // Make sure distance is either a valid value or null
+          const distance = item.distance && item.distance.trim() !== '' 
+            ? item.distance
+            : null;
+            
           return trackWorkoutSet(
             workoutCompletionId!,
             item.exerciseId,
@@ -182,9 +186,9 @@ const ActiveWorkout = () => {
             null, // No weight for cardio
             null, // No reps for cardio
             null, // No general notes
-            item.distance, // Store distance in its own column
-            item.duration, // Store duration in its own column
-            item.location  // Store location in its own column
+            distance, // Store distance in its own column
+            item.duration || null, // Store duration in its own column
+            item.location || null  // Store location in its own column
           );
         });
         promises.push(...cardioPromises);
@@ -201,7 +205,7 @@ const ActiveWorkout = () => {
             null, // No reps for flexibility
             null, // No general notes
             null, // No distance
-            item.duration, // Store duration in its own column
+            item.duration || null, // Store duration in its own column
             null  // No location
           );
         });
@@ -372,11 +376,12 @@ const ActiveWorkout = () => {
 
     if (completed) {
       const cardioData = exerciseStates[exerciseId].cardioData!;
+      const distance = cardioData.distance.trim() === '' ? null : cardioData.distance;
       setPendingCardio(prev => [
         ...prev.filter(c => c.exerciseId !== exerciseId),
         {
           exerciseId,
-          distance: cardioData.distance,
+          distance: distance,
           duration: cardioData.duration,
           location: cardioData.location
         }

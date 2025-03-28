@@ -60,6 +60,16 @@ export const trackWorkoutSet = async (
     
     console.log('Existing set check result:', existingSet);
     
+    // Ensure the distance is either a valid number string or null
+    let parsedDistance = null;
+    if (distance !== null && distance !== '' && distance !== undefined) {
+      // Validate that distance is a valid number
+      const distanceNum = parseFloat(distance);
+      if (!isNaN(distanceNum)) {
+        parsedDistance = distance;
+      }
+    }
+    
     if (existingSet) {
       // Update existing record
       const { data, error } = await supabase
@@ -69,7 +79,7 @@ export const trackWorkoutSet = async (
           reps_completed: reps,
           completed: true,
           notes: notes,
-          distance: distance,
+          distance: parsedDistance,
           duration: duration,
           location: location
         })
@@ -94,7 +104,7 @@ export const trackWorkoutSet = async (
         completed: true,
         user_id: workoutCompletion.user_id,
         notes: notes,
-        distance: distance,
+        distance: parsedDistance,
         duration: duration,
         location: location
       });
@@ -110,7 +120,7 @@ export const trackWorkoutSet = async (
           completed: true,
           user_id: workoutCompletion.user_id,
           notes: notes,
-          distance: distance,
+          distance: parsedDistance,
           duration: duration,
           location: location
         })

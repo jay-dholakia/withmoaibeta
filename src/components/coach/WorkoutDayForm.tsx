@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -413,7 +412,6 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
           priority: values.priority
         });
         
-        // Handle the workout exercises (not shown in this example)
         toast.success('Workout updated successfully');
         onSave(workoutId);
       }
@@ -430,7 +428,6 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
   }
 
   const generatePriorityOptions = () => {
-    // For a new workout, we need one more slot than existing workouts
     const count = mode === 'create' ? workoutsInWeek + 1 : workoutsInWeek;
     return Array.from({ length: count }, (_, i) => i);
   };
@@ -612,9 +609,9 @@ const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutD
       </Form>
       
       <ExerciseSelector
-        isOpen={isSelectorOpen}
         onSelectExercise={handleExerciseAdd}
         onClose={() => setIsSelectorOpen(false)}
+        isOpen={isSelectorOpen}
       />
     </div>
   );

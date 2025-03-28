@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,22 +22,30 @@ interface ExerciseSelectorProps {
   onSelectMultipleExercises?: (exercises: Exercise[]) => void;
   buttonText?: string;
   onClose?: () => void;
+  isOpen?: boolean;
 }
 
 export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   onSelectExercise,
   onSelectMultipleExercises,
   buttonText = "Add Exercise",
-  onClose
+  onClose,
+  isOpen
 }) => {
   const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, Exercise[]>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(isOpen || false);
   const [selectedTab, setSelectedTab] = useState('');
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
   const [addedExercises, setAddedExercises] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (isOpen !== undefined) {
+      setOpen(isOpen);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const loadExercises = async () => {
@@ -46,7 +53,6 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
         const data = await fetchExercisesByCategory();
         setExercisesByCategory(data);
         
-        // Set default tab to first category
         if (Object.keys(data).length > 0) {
           setSelectedTab(Object.keys(data)[0]);
         }

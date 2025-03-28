@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
@@ -139,7 +140,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium">
+          <Label htmlFor="email" className="text-sm font-medium text-left block">
             Email
           </Label>
           <Input
@@ -156,17 +157,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         
         <div className="space-y-2">
           <div className="flex justify-between">
-            <Label htmlFor="password" className="text-sm font-medium">
+            <Label htmlFor="password" className="text-sm font-medium text-left block">
               Password
             </Label>
-            <button 
-              type="button"
-              onClick={() => setForgotPassword(true)}
-              className={`text-sm ${styles.textColor} hover:underline`}
-              disabled={isDisabled}
-            >
-              Forgot password?
-            </button>
           </div>
           <div className="relative">
             <Input
@@ -189,6 +182,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               disabled={isDisabled}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          <div className="mt-1">
+            <button 
+              type="button"
+              onClick={() => setForgotPassword(true)}
+              className={`text-sm ${styles.textColor} hover:underline text-left`}
+              disabled={isDisabled}
+            >
+              Forgot password?
             </button>
           </div>
         </div>

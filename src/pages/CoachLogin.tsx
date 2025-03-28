@@ -20,7 +20,7 @@ const CoachLogin = () => {
   return (
     <AuthLayout 
       variant="coach"
-      title="Coach Portal"
+      title="Moai Coach Portal"
       subtitle="Sign in to access your coaching dashboard"
       extraContent={
         <div className="mt-6 bg-coach/5 border border-coach/10 rounded-lg p-4 text-sm">

@@ -70,6 +70,7 @@ interface ProgramAssignmentFormProps {
   isSubmitting: boolean;
 }
 
+// Updated interface to include optional properties we're using
 interface ClientInfo {
   id: string;
   email?: string;
@@ -198,11 +199,13 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   };
 
   const getClientDisplayName = (client: ClientInfo): string => {
+    // Handle the case where first_name and last_name may be undefined
     if (client?.first_name && client?.last_name) {
       return `${client.first_name} ${client.last_name}`;
     } else if (client?.first_name) {
       return client.first_name;
     } else {
+      // Fall back to email or 'Unknown Client' if no name is available
       return client?.email || 'Unknown Client';
     }
   };

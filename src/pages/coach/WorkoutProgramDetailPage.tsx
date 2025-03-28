@@ -336,9 +336,13 @@ const WorkoutProgramDetailPage = () => {
       setIsAddingTemplate(true);
       
       // Default to day 0 (Sunday) if no day is selected
-      const dayToUse = 0;
+      const dayToUse = selectedDay || 0;
       
-      await addWorkoutToWeek(selectedTemplate, isAddingTemplateToWeek, dayToUse);
+      await addWorkoutToWeek(isAddingTemplateToWeek, {
+        title: `Template Workout`,
+        day_of_week: dayToUse,
+        workout_type: 'strength'
+      });
       
       if (isAddingTemplateToWeek === selectedWeek) {
         const updatedWorkouts = await fetchWorkouts(selectedWeek);

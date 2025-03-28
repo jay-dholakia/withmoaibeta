@@ -46,7 +46,7 @@ const isCardioExercise = (exerciseName: string): boolean => {
 const formSchema = z.object({
   title: z.string().min(2, 'Workout title must be at least 2 characters'),
   description: z.string().optional(),
-  workoutType: z.enum(['strength', 'cardio', 'flexibility', 'bodyweight', 'rest_day', 'custom', 'one_off']).default('strength')
+  workoutType: z.string().default('strength')
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -100,14 +100,13 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           setExistingExercises(exercises);
           
           if (exercises.length > 0 && mode === 'edit') {
-            const exerciseWithWorkout = exercises.find(ex => ex.exercise);
-            const workoutData = exercises[0]; // Get data from the first exercise row
+            const workout = exercises[0];
             
-            if (workoutData) {
+            if (workout) {
               form.reset({
-                title: workoutData.workout_id ? workoutData.title : form.getValues().title,
-                description: workoutData.notes || '',
-                workoutType: workoutData.workout_type as string || 'strength'
+                title: workout?.title || form.getValues().title,
+                description: workout?.notes || '',
+                workoutType: workout?.workout_type as string || 'strength'
               });
             }
           }

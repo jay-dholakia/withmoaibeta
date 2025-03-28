@@ -26,13 +26,19 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover';
-import { CalendarIcon, AlertCircle } from 'lucide-react';
+import { 
+  CalendarIcon, 
+  AlertCircle, 
+  Users 
+} from 'lucide-react';
 import { format, getDay, nextMonday } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { fetchAllClients } from '@/services/workout-service';
+import { fetchAllClients, fetchAssignedUsers } from '@/services/workout-service';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const formSchema = z.object({
   userId: z.string({
@@ -61,12 +67,20 @@ interface ClientInfo {
   user_type?: string;
 }
 
+interface AssignedClient {
+  id: string;
+  user_id: string;
+  start_date: string;
+  program_id: string;
+}
+
 export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   programId,
   onAssign,
   isSubmitting
 }) => {
   const [clients, setClients] = useState<ClientInfo[]>([]);
+  const [assignedClients, setAssignedClients] = useState<AssignedClient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   
@@ -87,19 +101,26 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
         const clientsData = await fetchAllClients();
         
         // Transform the data to ensure it matches the ClientInfo interface
-        // This handles the case where clientsData might not have all required properties
         const typedClients: ClientInfo[] = Array.isArray(clientsData) 
           ? clientsData.map(client => ({
               id: client.id || '',
               email: client.email || 'N/A',
-              first_name: client.first_name || undefined,
-              last_name: client.last_name || undefined,
               user_type: client.user_type || undefined
             }))
           : [];
           
         console.log('Fetched clients for form:', typedClients);
         setClients(typedClients);
+        
+        // Load assigned clients for this program
+        try {
+          const assignments = await fetchAssignedUsers(programId);
+          setAssignedClients(assignments);
+          console.log('Current program assignments:', assignments);
+        } catch (err) {
+          console.error('Error loading program assignments:', err);
+        }
+        
         setIsLoading(false);
       } catch (error) {
         console.error('Error loading clients:', error);
@@ -109,7 +130,7 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
     };
 
     loadClients();
-  }, []);
+  }, [programId]);
 
   const onSubmit = async (values: FormValues) => {
     console.log('Form values on submit:', values);
@@ -119,6 +140,10 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
       form.reset({
         startDate: nextMonday(new Date()),
       });
+      
+      // Refresh assigned clients after assignment
+      const assignments = await fetchAssignedUsers(programId);
+      setAssignedClients(assignments);
     } catch (error) {
       console.error('Error assigning program:', error);
     }
@@ -137,6 +162,11 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
       return client.email;
     }
   };
+  
+  // Filter out clients that are already assigned to this program
+  const availableClients = clients.filter(client => 
+    !assignedClients.some(assigned => assigned.user_id === client.id && assigned.program_id === programId)
+  );
 
   useEffect(() => {
     const subscription = form.watch((value) => {
@@ -156,7 +186,7 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
     );
   }
 
-  if (clients.length === 0) {
+  if (availableClients.length === 0 && assignedClients.length === 0) {
     return (
       <div className="text-center py-6 border border-dashed rounded-lg">
         <p className="text-muted-foreground">No clients available to assign</p>
@@ -168,99 +198,141 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Alert variant="default" className="bg-muted/50 border-muted-foreground/30 mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="text-sm">
-            When you assign a program, week 1 will start on the Monday you select. This ensures proper alignment with the workout schedule.
-          </AlertDescription>
-        </Alert>
-        
-        <FormField
-          control={form.control}
-          name="userId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Client</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                defaultValue={field.value}
-                value={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a client" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {clients.map(client => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {getClientDisplayName(client)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="startDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Start Date for Week 1</FormLabel>
-              <FormDescription>
-                Must be a Monday to properly align with program weeks
-              </FormDescription>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
+    <div className="space-y-8">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <Alert variant="default" className="bg-muted/50 border-muted-foreground/30 mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              When you assign a program, week 1 will start on the Monday you select. This ensures proper alignment with the workout schedule.
+            </AlertDescription>
+          </Alert>
+          
+          {availableClients.length > 0 ? (
+            <>
+              <FormField
+                control={form.control}
+                name="userId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Client</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                      value={field.value}
                     >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a Monday</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={(date) => {
-                      if (date) {
-                        field.onChange(date);
-                        console.log('Date selected:', date);
-                      }
-                    }}
-                    disabled={(date) => 
-                      date < new Date() || disableNonMondays(date)
-                    }
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a client" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableClients.map(client => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {getClientDisplayName(client)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
-          {isSubmitting ? 'Assigning...' : 'Assign Program'}
-        </Button>
-      </form>
-    </Form>
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Start Date for Week 1</FormLabel>
+                    <FormDescription>
+                      Must be a Monday to properly align with program weeks
+                    </FormDescription>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a Monday</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={(date) => {
+                            if (date) {
+                              field.onChange(date);
+                              console.log('Date selected:', date);
+                            }
+                          }}
+                          disabled={(date) => 
+                            date < new Date() || disableNonMondays(date)
+                          }
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
+                {isSubmitting ? 'Assigning...' : 'Assign Program'}
+              </Button>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-muted-foreground">All available clients have been assigned to this program</p>
+            </div>
+          )}
+        </form>
+      </Form>
+      
+      {assignedClients.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Clients Assigned to this Program
+            </CardTitle>
+            <CardDescription>
+              {assignedClients.length} client{assignedClients.length !== 1 ? 's' : ''} currently assigned
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {assignedClients.map(assignment => {
+                const client = clients.find(c => c.id === assignment.user_id);
+                return (
+                  <li key={assignment.id} className="flex items-center justify-between p-2 border rounded-md">
+                    <div>
+                      <p className="font-medium">{client ? getClientDisplayName(client) : 'Unknown Client'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Start date: {format(new Date(assignment.start_date), "PPP")}
+                      </p>
+                    </div>
+                    <Badge variant="outline">Assigned</Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };

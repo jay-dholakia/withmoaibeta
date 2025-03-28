@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Trash2 } from 'lucide-react';
+import { ArrowLeft, Clock, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -10,6 +10,8 @@ import {
   fetchCustomWorkouts,
   fetchCustomWorkoutExercises,
   deleteCustomWorkout,
+  moveCustomWorkoutExerciseUp,
+  moveCustomWorkoutExerciseDown,
   CustomWorkout,
   CustomWorkoutExercise
 } from '@/services/client-custom-workout-service';
@@ -32,6 +34,7 @@ const CustomWorkoutDetail = () => {
   const [exercises, setExercises] = useState<CustomWorkoutExercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
 
   useEffect(() => {
     const loadWorkoutDetails = async () => {
@@ -78,6 +81,36 @@ const CustomWorkoutDetail = () => {
       console.error('Error deleting workout:', error);
       toast.error('Failed to delete workout');
       setIsDeleting(false);
+    }
+  };
+
+  const handleMoveExerciseUp = async (exerciseId: string) => {
+    if (!workoutId) return;
+    
+    try {
+      setIsReordering(true);
+      const updatedExercises = await moveCustomWorkoutExerciseUp(exerciseId, workoutId);
+      setExercises(updatedExercises);
+    } catch (error) {
+      console.error('Error moving exercise up:', error);
+      toast.error('Failed to reorder exercise');
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
+  const handleMoveExerciseDown = async (exerciseId: string) => {
+    if (!workoutId) return;
+    
+    try {
+      setIsReordering(true);
+      const updatedExercises = await moveCustomWorkoutExerciseDown(exerciseId, workoutId);
+      setExercises(updatedExercises);
+    } catch (error) {
+      console.error('Error moving exercise down:', error);
+      toast.error('Failed to reorder exercise');
+    } finally {
+      setIsReordering(false);
     }
   };
 
@@ -197,8 +230,32 @@ const CustomWorkoutDetail = () => {
                       )}
                     </div>
                     
-                    <div className="bg-muted h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground font-medium">
-                      {index + 1}
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="p-0 h-8 w-8" 
+                        onClick={() => handleMoveExerciseUp(exercise.id)}
+                        disabled={index === 0 || isReordering}
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                        <span className="sr-only">Move up</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="p-0 h-8 w-8" 
+                        onClick={() => handleMoveExerciseDown(exercise.id)}
+                        disabled={index === exercises.length - 1 || isReordering}
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                        <span className="sr-only">Move down</span>
+                      </Button>
+                      
+                      <div className="bg-muted h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground font-medium">
+                        {index + 1}
+                      </div>
                     </div>
                   </div>
                 </CardContent>

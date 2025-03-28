@@ -327,6 +327,64 @@ export const updateWorkoutExercise = async (exerciseId: string, data: {
   return workoutExercise;
 };
 
+export const moveWorkoutExerciseUp = async (exerciseId: string, workoutId: string) => {
+  // Fetch all exercises to get the current order
+  const exercises = await fetchWorkoutExercises(workoutId);
+  
+  // Find the current exercise
+  const currentExercise = exercises.find(ex => ex.id === exerciseId);
+  if (!currentExercise) {
+    throw new Error('Exercise not found');
+  }
+  
+  // If it's already at the top, do nothing
+  if (currentExercise.order_index === 0) {
+    return exercises;
+  }
+  
+  // Find the exercise above it
+  const previousExercise = exercises.find(ex => ex.order_index === currentExercise.order_index - 1);
+  if (!previousExercise) {
+    throw new Error('Previous exercise not found');
+  }
+  
+  // Swap their order indices
+  await updateWorkoutExercise(currentExercise.id, { order_index: previousExercise.order_index });
+  await updateWorkoutExercise(previousExercise.id, { order_index: currentExercise.order_index });
+  
+  // Return the updated list
+  return await fetchWorkoutExercises(workoutId);
+};
+
+export const moveWorkoutExerciseDown = async (exerciseId: string, workoutId: string) => {
+  // Fetch all exercises to get the current order
+  const exercises = await fetchWorkoutExercises(workoutId);
+  
+  // Find the current exercise
+  const currentExercise = exercises.find(ex => ex.id === exerciseId);
+  if (!currentExercise) {
+    throw new Error('Exercise not found');
+  }
+  
+  // If it's already at the bottom, do nothing
+  if (currentExercise.order_index === exercises.length - 1) {
+    return exercises;
+  }
+  
+  // Find the exercise below it
+  const nextExercise = exercises.find(ex => ex.order_index === currentExercise.order_index + 1);
+  if (!nextExercise) {
+    throw new Error('Next exercise not found');
+  }
+  
+  // Swap their order indices
+  await updateWorkoutExercise(currentExercise.id, { order_index: nextExercise.order_index });
+  await updateWorkoutExercise(nextExercise.id, { order_index: currentExercise.order_index });
+  
+  // Return the updated list
+  return await fetchWorkoutExercises(workoutId);
+};
+
 export const deleteWorkoutExercise = async (exerciseId: string) => {
   const { error } = await supabase
     .from('workout_exercises')
@@ -513,6 +571,64 @@ export const updateStandaloneWorkoutExercise = async (exerciseId: string, data: 
   }
 
   return workoutExercise;
+};
+
+export const moveStandaloneWorkoutExerciseUp = async (exerciseId: string, workoutId: string) => {
+  // Fetch all exercises to get the current order
+  const exercises = await fetchStandaloneWorkoutExercises(workoutId);
+  
+  // Find the current exercise
+  const currentExercise = exercises.find(ex => ex.id === exerciseId);
+  if (!currentExercise) {
+    throw new Error('Exercise not found');
+  }
+  
+  // If it's already at the top, do nothing
+  if (currentExercise.order_index === 0) {
+    return exercises;
+  }
+  
+  // Find the exercise above it
+  const previousExercise = exercises.find(ex => ex.order_index === currentExercise.order_index - 1);
+  if (!previousExercise) {
+    throw new Error('Previous exercise not found');
+  }
+  
+  // Swap their order indices
+  await updateStandaloneWorkoutExercise(currentExercise.id, { order_index: previousExercise.order_index });
+  await updateStandaloneWorkoutExercise(previousExercise.id, { order_index: currentExercise.order_index });
+  
+  // Return the updated list
+  return await fetchStandaloneWorkoutExercises(workoutId);
+};
+
+export const moveStandaloneWorkoutExerciseDown = async (exerciseId: string, workoutId: string) => {
+  // Fetch all exercises to get the current order
+  const exercises = await fetchStandaloneWorkoutExercises(workoutId);
+  
+  // Find the current exercise
+  const currentExercise = exercises.find(ex => ex.id === exerciseId);
+  if (!currentExercise) {
+    throw new Error('Exercise not found');
+  }
+  
+  // If it's already at the bottom, do nothing
+  if (currentExercise.order_index === exercises.length - 1) {
+    return exercises;
+  }
+  
+  // Find the exercise below it
+  const nextExercise = exercises.find(ex => ex.order_index === currentExercise.order_index + 1);
+  if (!nextExercise) {
+    throw new Error('Next exercise not found');
+  }
+  
+  // Swap their order indices
+  await updateStandaloneWorkoutExercise(currentExercise.id, { order_index: nextExercise.order_index });
+  await updateStandaloneWorkoutExercise(nextExercise.id, { order_index: currentExercise.order_index });
+  
+  // Return the updated list
+  return await fetchStandaloneWorkoutExercises(workoutId);
 };
 
 export const deleteStandaloneWorkoutExercise = async (exerciseId: string) => {

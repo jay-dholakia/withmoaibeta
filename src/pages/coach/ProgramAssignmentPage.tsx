@@ -1,155 +1,87 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CoachLayout } from '@/layouts/CoachLayout';
+import { useQuery } from '@tanstack/react-query';
+import { fetchWorkoutProgram } from '@/services/workout-service';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, CalendarRange, Users, Trash2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { ProgramAssignmentForm } from '@/components/coach/ProgramAssignmentForm';
-import { 
-  fetchWorkoutProgram, 
-  fetchAssignedUsers,
-  assignProgramToUser,
-  fetchAllClients,
-  deleteProgramAssignment
-} from '@/services/workout-service';
-import { WorkoutProgram, ProgramAssignment } from '@/types/workout';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { CalendarIcon, ArrowLeft, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
-} from '@/components/ui/alert-dialog';
-
-interface ClientInfo {
-  id: string;
-  email: string;
-  displayName?: string;
-  firstName?: string;
-  lastName?: string;
-  first_name?: string;
-  last_name?: string;
-}
+import { assignProgramToUser } from '@/services/workout-service';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchAllClients } from '@/services/workout-service';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
 
 const ProgramAssignmentPage = () => {
   const { programId } = useParams<{ programId: string }>();
-  const { user } = useAuth();
   const navigate = useNavigate();
-  
-  const [program, setProgram] = useState<WorkoutProgram | null>(null);
-  const [assignments, setAssignments] = useState<ProgramAssignment[]>([]);
-  const [clientsMap, setClientsMap] = useState<Record<string, ClientInfo>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [assignmentToDelete, setAssignmentToDelete] = useState<string | null>(null);
-  
+  const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
+  const [isLoadingClients, setIsLoadingClients] = useState(false);
+
+  const { data: program, isLoading } = useQuery({
+    queryKey: ['program', programId],
+    queryFn: () => fetchWorkoutProgram(programId!),
+    enabled: !!programId,
+  });
+
   useEffect(() => {
-    if (!programId) return;
-    
-    const loadProgramAndAssignments = async () => {
+    const loadClients = async () => {
+      if (!user) return;
+      
+      setIsLoadingClients(true);
       try {
-        setIsLoading(true);
-        
-        // Fetch program details
-        const programData = await fetchWorkoutProgram(programId);
-        setProgram(programData);
-        
-        // Fetch assignments
-        const assignmentsData = await fetchAssignedUsers(programId);
-        setAssignments(assignmentsData);
-        
-        // Fetch all clients to build a map of id -> clientInfo
         const clientsData = await fetchAllClients();
-        console.log('Fetched clients data:', clientsData); // Debug log to see client data structure
-        
-        const clientsMapData = clientsData.reduce((acc, client) => {
-          acc[client.id] = {
-            id: client.id,
-            email: client.email,
-            first_name: client.first_name,
-            last_name: client.last_name,
-            displayName: getClientDisplayName(client)
-          };
-          return acc;
-        }, {} as Record<string, ClientInfo>);
-        
-        setClientsMap(clientsMapData);
-        console.log('Client display names map:', clientsMapData);
-        
-        setIsLoading(false);
+        setClients(clientsData);
       } catch (error) {
-        console.error('Error loading program and assignments:', error);
-        toast.error('Failed to load program details');
-        setIsLoading(false);
+        console.error('Error loading clients:', error);
+        toast.error('Failed to load clients');
+      } finally {
+        setIsLoadingClients(false);
       }
     };
     
-    loadProgramAndAssignments();
-  }, [programId]);
-  
-  // Helper function to format client display name from their info
-  const getClientDisplayName = (client: any): string => {
-    if (client.first_name && client.last_name) {
-      return `${client.first_name} ${client.last_name}`;
-    } else if (client.first_name) {
-      return client.first_name;
-    } else if (client.email) {
-      return client.email;
-    } else {
-      return `Client ${client.id.slice(0, 6)}...`;
-    }
+    loadClients();
+  }, [user]);
+
+  const handleSelectClient = (client: any) => {
+    setSelectedClient(client);
+    setIsClientDropdownOpen(false);
   };
-  
-  const handleAssign = async (userId: string, startDate: Date) => {
-    if (!programId || !user) {
-      toast.error('Missing required data');
+
+  const handleAssignProgram = async () => {
+    if (!programId || !selectedClient || !selectedDate || !user) {
+      toast.error('Please select a client and start date');
       return;
     }
-    
+
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      
-      // Calculate end date based on program duration
-      // Preserve the exact selected date without timezone conversion issues
-      // by using the date parts directly
-      const endDate = new Date(startDate);
-      if (program && typeof program.weeks === 'number') {
-        // Add (weeks * 7) days to the start date
-        endDate.setDate(endDate.getDate() + (program.weeks * 7));
-      }
-      
-      // Format dates in a way that prevents timezone shifts
-      // Use YYYY-MM-DD format to ensure date consistency
-      const formattedStartDate = startDate.toISOString().split('T')[0];
-      const formattedEndDate = endDate.toISOString().split('T')[0];
-      
-      console.log('Assigning program:', {
-        programId,
-        userId,
-        startDate: formattedStartDate,
-        endDate: formattedEndDate,
-        weeks: program?.weeks
+      await assignProgramToUser({
+        program_id: programId,
+        user_id: selectedClient.id,
+        assigned_by: user.id,
+        start_date: format(selectedDate, 'yyyy-MM-dd'),
+        end_date: null
       });
       
-      const assignmentData = {
-        program_id: programId,
-        user_id: userId,
-        assigned_by: user.id,
-        start_date: formattedStartDate,
-        end_date: formattedEndDate
-      };
-      
-      const newAssignment = await assignProgramToUser(assignmentData);
-      
-      setAssignments(prev => [newAssignment, ...prev]);
-      toast.success('Program assigned successfully');
+      toast.success(`Program assigned to ${selectedClient.email}`);
+      navigate(`/coach-dashboard/programs/${programId}`);
     } catch (error) {
       console.error('Error assigning program:', error);
       toast.error('Failed to assign program');
@@ -157,173 +89,130 @@ const ProgramAssignmentPage = () => {
       setIsSubmitting(false);
     }
   };
-  
-  const handleDeleteAssignment = async (assignmentId: string) => {
-    try {
-      const success = await deleteProgramAssignment(assignmentId);
-      
-      if (success) {
-        setAssignments(prev => prev.filter(assignment => assignment.id !== assignmentId));
-        toast.success('Assignment removed successfully');
-      } else {
-        toast.error('Failed to remove assignment');
-      }
-    } catch (error) {
-      console.error('Error deleting assignment:', error);
-      toast.error('Failed to remove assignment');
-    } finally {
-      setAssignmentToDelete(null);
-    }
-  };
-  
-  // Helper to get client display name from ID
-  const getClientInfo = (userId: string): ClientInfo => {
-    return clientsMap[userId] || { 
-      id: userId, 
-      email: `Client ${userId.slice(0, 6)}...`,
-      displayName: `Client ${userId.slice(0, 6)}...`
-    };
-  };
-  
+
   if (isLoading) {
     return (
-      <CoachLayout>
-        <div className="container mx-auto px-4 py-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-10 bg-muted rounded w-1/4"></div>
-            <div className="h-8 bg-muted rounded w-1/2 mt-6"></div>
-            <div className="h-40 bg-muted rounded mt-6"></div>
-          </div>
-        </div>
-      </CoachLayout>
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
-  
+
   if (!program) {
     return (
-      <CoachLayout>
-        <div className="container mx-auto px-4 py-6">
-          <div className="text-center py-10">
-            <h2 className="text-xl font-semibold mb-2">Program Not Found</h2>
-            <p className="text-muted-foreground mb-6">
-              The workout program you're looking for doesn't exist or you don't have permission to view it.
-            </p>
-            <Button onClick={() => navigate('/coach-dashboard/workouts')}>
-              Back to Programs
-            </Button>
-          </div>
-        </div>
-      </CoachLayout>
+      <div className="text-center py-8">
+        <p>Program not found</p>
+        <Button 
+          variant="link" 
+          onClick={() => navigate('/coach-dashboard/programs')}
+          className="mt-2"
+        >
+          Back to Programs
+        </Button>
+      </div>
     );
   }
-  
+
   return (
-    <CoachLayout>
-      <div className="w-full px-4">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="mb-6 gap-1" 
-          onClick={() => navigate(`/coach-dashboard/workouts/${programId}`)}
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to Program
-        </Button>
-        
-        <h1 className="text-2xl font-bold mb-6">Assign Program: {program?.title}</h1>
-        
-        <div className="grid md:grid-cols-2 gap-8 w-full">
-          <Card className="h-fit w-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Assign to Client
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ProgramAssignmentForm
-                programId={programId || ''}
-                onAssign={handleAssign}
-                isSubmitting={isSubmitting}
-              />
-            </CardContent>
-          </Card>
+    <div className="max-w-2xl mx-auto">
+      <Button 
+        variant="ghost" 
+        className="mb-4" 
+        onClick={() => navigate(`/coach-dashboard/programs/${programId}`)}
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Program
+      </Button>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Assign Program</CardTitle>
+          <CardDescription>
+            Assign "{program.title}" to a client
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="client">Select Client</Label>
+            <Popover open={isClientDropdownOpen} onOpenChange={setIsClientDropdownOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={isClientDropdownOpen}
+                  className="w-full justify-between"
+                >
+                  {selectedClient ? selectedClient.email : "Select client..."}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Search clients..." />
+                  <CommandEmpty>No clients found.</CommandEmpty>
+                  <CommandGroup className="max-h-60 overflow-auto">
+                    {clients.map(client => {
+                      const displayName = client.email.split('@')[0];
+                      return (
+                        <CommandItem 
+                          key={client.id}
+                          value={client.id}
+                          onSelect={() => handleSelectClient(client)}
+                        >
+                          {displayName}
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
           
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarRange className="h-5 w-5" />
-                Current Assignments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {assignments.length === 0 ? (
-                <div className="text-center py-6">
-                  <p className="text-muted-foreground">
-                    This program hasn't been assigned to any clients yet
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {assignments.map(assignment => {
-                    const clientInfo = getClientInfo(assignment.user_id);
-                    return (
-                      <div 
-                        key={assignment.id} 
-                        className="p-3 border rounded-md"
-                      >
-                        <div className="flex justify-between">
-                          <div>
-                            <div className="font-medium">{clientInfo.displayName}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {new Date(assignment.start_date).toLocaleDateString()} to {assignment.end_date ? new Date(assignment.end_date).toLocaleDateString() : 'Ongoing'}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm text-muted-foreground">
-                              Assigned on {new Date(assignment.created_at).toLocaleDateString()}
-                            </div>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="text-destructive hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Remove Program Assignment</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to remove this program assignment from {clientInfo.displayName}? 
-                                    This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    onClick={() => handleDeleteAssignment(assignment.id)}
-                                    className="bg-destructive hover:bg-destructive/90"
-                                  >
-                                    Remove Assignment
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </CoachLayout>
+          <div className="space-y-2">
+            <Label htmlFor="date">Start Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="date"
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button 
+            onClick={handleAssignProgram} 
+            disabled={isSubmitting || !selectedClient || !selectedDate}
+            className="w-full"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Assigning...
+              </>
+            ) : (
+              'Assign Program'
+            )}
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 

@@ -100,13 +100,14 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           setExistingExercises(exercises);
           
           if (exercises.length > 0 && mode === 'edit') {
-            const workoutWithData = exercises.find(ex => ex.workout)?.workout;
+            const exerciseWithWorkout = exercises.find(ex => ex.exercise);
+            const workoutData = exercises[0]; // Get data from the first exercise row
             
-            if (workoutWithData) {
+            if (workoutData) {
               form.reset({
-                title: workoutWithData.title,
-                description: workoutWithData.description || '',
-                workoutType: (workoutWithData.workout_type as WorkoutType) || 'strength'
+                title: workoutData.workout_id ? workoutData.title : form.getValues().title,
+                description: workoutData.notes || '',
+                workoutType: workoutData.workout_type as string || 'strength'
               });
             }
           }

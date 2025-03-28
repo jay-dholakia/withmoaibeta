@@ -110,6 +110,21 @@ const WorkoutProgramDetailPage = () => {
     }
   };
 
+  const addWorkout = async (weekId: string, dayOfWeek: number) => {
+    try {
+      const newWorkout = await addWorkoutToWeek(weekId, {
+        title: `Day ${dayOfWeek + 1} Workout`,
+        day_of_week: dayOfWeek,
+        workout_type: 'strength'
+      });
+      setWorkouts(prev => [...prev, newWorkout]);
+      updateWorkoutCount(weekId);
+    } catch (error) {
+      console.error('Error adding workout:', error);
+      toast.error('Failed to add workout');
+    }
+  };
+
   useEffect(() => {
     if (!programId) return;
     

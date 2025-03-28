@@ -197,7 +197,7 @@ export const WeekProgressSection = ({
   }, [groupData?.completions]);
   
   const workoutTypesMap = React.useMemo(() => {
-    const typesMap: Record<string, 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off'> = {};
+    const typesMap: Record<string, string> = {};
     
     if (clientWorkouts) {
       clientWorkouts.forEach(workout => {

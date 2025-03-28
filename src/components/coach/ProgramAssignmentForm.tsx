@@ -70,10 +70,10 @@ interface ProgramAssignmentFormProps {
   isSubmitting: boolean;
 }
 
-// Updated interface to include optional properties we're using
+// Explicitly defining the ClientInfo interface with all properties we're using
 interface ClientInfo {
   id: string;
-  email?: string;
+  email: string;
   first_name?: string;
   last_name?: string;
   user_type?: string;
@@ -125,12 +125,12 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
         setIsLoading(true);
         const clientsData = await fetchAllClients();
         
-        // Transform the data to ensure it matches the ClientInfo interface
+        // Transform the data to ensure all required properties are set with proper types
         const typedClients: ClientInfo[] = Array.isArray(clientsData) 
           ? clientsData.map(client => ({
               id: client.id || '',
               email: client.email || 'N/A',
-              user_type: client.user_type || undefined,
+              user_type: client.user_type,
               first_name: client.first_name,
               last_name: client.last_name
             }))
@@ -200,13 +200,13 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
 
   const getClientDisplayName = (client: ClientInfo): string => {
     // Handle the case where first_name and last_name may be undefined
-    if (client?.first_name && client?.last_name) {
+    if (client.first_name && client.last_name) {
       return `${client.first_name} ${client.last_name}`;
-    } else if (client?.first_name) {
+    } else if (client.first_name) {
       return client.first_name;
     } else {
       // Fall back to email or 'Unknown Client' if no name is available
-      return client?.email || 'Unknown Client';
+      return client.email || 'Unknown Client';
     }
   };
   

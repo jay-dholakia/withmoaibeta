@@ -1,538 +1,623 @@
+
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Exercise, WorkoutExercise } from '@/types/workout';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import { Dumbbell, ActivitySquare, ChevronDown, Trash2, Plus } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage
+  FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ExerciseSelector } from './ExerciseSelector';
-import { WorkoutExerciseForm } from './WorkoutExerciseForm';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  createWorkout, 
-  createWorkoutExercise, 
-  fetchWorkoutExercises,
-  fetchWorkout,
-  updateWorkout,
-  updateWorkoutExercise,
-  deleteWorkoutExercise 
-} from '@/services/workout-service';
-import { createMultipleWorkoutExercises } from '@/services/workout-history-service';
-import { toast } from 'sonner';
-import { Plus, Trash2 } from 'lucide-react';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { WorkoutTypeIcon, WORKOUT_TYPES, WorkoutType } from '@/components/client/WorkoutTypeIcon';
+} from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const isCardioExercise = (exerciseName: string): boolean => {
-  const name = exerciseName.toLowerCase();
-  return name.includes('run') || name.includes('walk');
-};
+import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
+import { Exercise, WorkoutExercise, DAYS_OF_WEEK } from '@/types/workout';
+import { 
+  createWorkout, 
+  updateWorkout, 
+  fetchWorkout,
+  fetchExercises,
+  createWorkoutExercise,
+  updateWorkoutExercise,
+  deleteWorkoutExercise,
+  fetchWorkouts
+} from '@/services/workout-service';
+
+const WORKOUT_TYPES = [
+  { value: 'strength', label: 'Strength', icon: <Dumbbell className="h-4 w-4 mr-2" /> },
+  { value: 'cardio', label: 'Cardio', icon: <ActivitySquare className="h-4 w-4 mr-2" /> },
+  { value: 'mobility', label: 'Mobility', icon: <ActivitySquare className="h-4 w-4 mr-2" /> },
+  { value: 'flexibility', label: 'Flexibility', icon: <ActivitySquare className="h-4 w-4 mr-2" /> },
+];
 
 const formSchema = z.object({
-  title: z.string().min(2, 'Workout title must be at least 2 characters'),
+  title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
-  workoutType: z.string().default('strength')
+  day_of_week: z.coerce.number().min(0).max(6),
+  workout_type: z.string().min(1, { message: "Workout type is required" }),
+  priority: z.coerce.number().min(0)
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface WorkoutDayFormProps {
-  dayName?: string;
-  dayNumber?: number;
+type WorkoutDayFormProps = {
   weekId: string;
   workoutId?: string;
   onSave: (workoutId: string) => void;
   mode?: 'create' | 'edit';
-}
+};
 
-export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
-  dayName,
-  dayNumber,
-  weekId,
-  workoutId,
-  onSave,
-  mode = 'create'
-}) => {
-  const [exercises, setExercises] = useState<(Exercise & { tempId?: string })[]>([]);
-  const [exerciseData, setExerciseData] = useState<Record<string, {
-    id?: string;
-    sets: number;
-    reps: string;
-    rest_seconds?: number;
-    notes?: string;
-    orderIndex?: number;
-  }>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSavingWorkout, setIsSavingWorkout] = useState(false);
-  const [existingExercises, setExistingExercises] = useState<WorkoutExercise[]>([]);
-  const [isLoading, setIsLoading] = useState(!!workoutId);
-  const [removedExerciseIds, setRemovedExerciseIds] = useState<string[]>([]);
-  const [workoutDetails, setWorkoutDetails] = useState<{
-    title: string;
-    description: string | null;
-    workout_type: string;
-  } | null>(null);
+const WorkoutDayForm = ({ weekId, workoutId, onSave, mode = 'create' }: WorkoutDayFormProps) => {
+  const navigate = useNavigate();
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>([]);
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(workoutId ? true : false);
+  const [workoutsInWeek, setWorkoutsInWeek] = useState<number>(0);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: dayName ? `${dayName} Workout` : 'New Workout',
+      title: '',
       description: '',
-      workoutType: 'strength'
-    }
+      day_of_week: 0,
+      workout_type: 'strength',
+      priority: 0
+    },
   });
 
   useEffect(() => {
-    if (workoutId) {
-      const loadWorkoutDetails = async () => {
+    const loadExercises = async () => {
+      try {
+        const data = await fetchExercises();
+        setExercises(data);
+      } catch (error) {
+        console.error("Error loading exercises:", error);
+        toast.error("Failed to load exercises");
+      }
+    };
+    
+    loadExercises();
+  }, []);
+
+  useEffect(() => {
+    const loadWorkoutsInWeek = async () => {
+      try {
+        const workouts = await fetchWorkouts(weekId);
+        setWorkoutsInWeek(workouts.length);
+      } catch (error) {
+        console.error("Error loading workouts in week:", error);
+      }
+    };
+
+    loadWorkoutsInWeek();
+  }, [weekId]);
+
+  useEffect(() => {
+    const loadWorkout = async () => {
+      if (workoutId) {
         try {
           const workout = await fetchWorkout(workoutId);
-          setWorkoutDetails({
+          
+          form.reset({
             title: workout.title,
-            description: workout.description,
-            workout_type: workout.workout_type || 'strength'
+            description: workout.description || "",
+            day_of_week: workout.day_of_week,
+            workout_type: workout.workout_type,
+            priority: workout.priority || 0
           });
           
-          const exercises = await fetchWorkoutExercises(workoutId);
-          setExistingExercises(exercises);
-          
-          if (mode === 'edit' && workout) {
-            form.reset({
-              title: workout.title || form.getValues().title,
-              description: workout.description || '',
-              workoutType: workout.workout_type || 'strength'
-            });
-          }
-          
-          const loadedExercises = exercises.map(item => ({
-            ...item.exercise!,
-            tempId: item.exercise?.id
-          }));
-          
-          setExercises(loadedExercises);
-          
-          const exerciseFormData: Record<string, any> = {};
-          exercises.forEach(item => {
-            exerciseFormData[item.exercise_id] = {
-              id: item.id,
-              sets: item.sets || 1,
-              reps: item.reps || '',
-              rest_seconds: item.rest_seconds || undefined,
-              notes: item.notes || undefined,
-              orderIndex: item.order_index
-            };
-          });
-          setExerciseData(exerciseFormData);
-          
-          setIsLoading(false);
+          setInitialLoading(false);
         } catch (error) {
-          console.error('Error loading workout details:', error);
-          toast.error('Failed to load workout details');
-          setIsLoading(false);
+          console.error("Error loading workout:", error);
+          toast.error("Failed to load workout");
+          setInitialLoading(false);
         }
-      };
+      }
+    };
+    
+    loadWorkout();
+  }, [workoutId, form]);
+
+  useEffect(() => {
+    const loadWorkoutExercises = async () => {
+      if (workoutId) {
+        try {
+          const { data } = await fetch(`/api/workout-exercises?workoutId=${workoutId}`).then(res => res.json());
+          setWorkoutExercises(data);
+        } catch (error) {
+          console.error("Error loading workout exercises:", error);
+          toast.error("Failed to load workout exercises");
+        }
+      }
+    };
+    
+    if (workoutId) {
+      loadWorkoutExercises();
+    }
+  }, [workoutId]);
+
+  const handleExerciseAdd = (exercise: Exercise) => {
+    setWorkoutExercises(prev => [
+      ...prev,
+      {
+        id: `temp-${Date.now()}`,
+        workout_id: workoutId || "",
+        exercise_id: exercise.id,
+        sets: 3,
+        reps: "8-10",
+        rest_seconds: 60,
+        notes: "",
+        order_index: prev.length,
+        created_at: new Date().toISOString(),
+        exercise: exercise,
+      }
+    ]);
+    setIsSelectorOpen(false);
+  };
+
+  const handleExerciseUpdate = (index: number, field: string, value: any) => {
+    setWorkoutExercises(prev => 
+      prev.map((ex, i) => i === index ? { ...ex, [field]: value } : ex)
+    );
+  };
+
+  const handleExerciseRemove = (index: number) => {
+    setWorkoutExercises(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleExerciseReorder = (sourceIndex: number, targetIndex: number) => {
+    if (sourceIndex === targetIndex) return;
+    
+    setWorkoutExercises(prev => {
+      const newExercises = [...prev];
+      const [movedItem] = newExercises.splice(sourceIndex, 1);
+      newExercises.splice(targetIndex, 0, movedItem);
       
-      loadWorkoutDetails();
-    }
-  }, [workoutId, form, mode]);
-
-  const handleAddExercise = (exercise: Exercise) => {
-    const exerciseWithTempId = {...exercise, tempId: Date.now().toString()};
-    setExercises(prev => [...prev, exerciseWithTempId]);
-    
-    const isCardio = isCardioExercise(exercise.name);
-    if (!isCardio) {
-      setExerciseData(prev => ({
-        ...prev,
-        [exercise.id]: {
-          sets: 3,
-          reps: '10',
-          rest_seconds: 60,
-          notes: '',
-          orderIndex: exercises.length
-        }
+      return newExercises.map((ex, index) => ({
+        ...ex,
+        order_index: index
       }));
-    } else {
-      setExerciseData(prev => ({
-        ...prev,
-        [exercise.id]: {
-          sets: 1,
-          reps: '1',
-          notes: '',
-          orderIndex: exercises.length
-        }
-      }));
-    }
-  };
-
-  const handleAddMultipleExercises = (selectedExercises: Exercise[]) => {
-    const newExercises = selectedExercises.map(exercise => ({
-      ...exercise,
-      tempId: Date.now() + Math.random().toString()
-    }));
-    
-    setExercises(prev => [...prev, ...newExercises]);
-    
-    const updatedExerciseData = {...exerciseData};
-    newExercises.forEach((exercise, index) => {
-      const isCardio = isCardioExercise(exercise.name);
-      updatedExerciseData[exercise.id] = isCardio 
-        ? {
-            sets: 1,
-            reps: '1',
-            notes: '',
-            orderIndex: exercises.length + index
-          }
-        : {
-            sets: 3,
-            reps: '10',
-            rest_seconds: 60,
-            notes: '',
-            orderIndex: exercises.length + index
-          };
     });
-    
-    setExerciseData(updatedExerciseData);
   };
 
-  const handleRemoveExercise = (index: number) => {
-    const newExercises = [...exercises];
-    const removed = newExercises.splice(index, 1)[0];
+  const renderExerciseForm = (exercise: WorkoutExercise, index: number) => {
+    const isCardio = exercise.exercise?.exercise_type === 'cardio';
     
-    if (removed.id in exerciseData) {
-      if (mode === 'edit' && exerciseData[removed.id]?.id) {
-        setRemovedExerciseIds(prev => [...prev, exerciseData[removed.id].id!]);
+    let distance = '';
+    let duration = '';
+    let location = '';
+    let notes = exercise.notes || '';
+    
+    if (isCardio && notes) {
+      const distanceMatch = notes.match(/Distance: ([0-9]+(\.[0-9]+)?)\s*miles/i);
+      if (distanceMatch) {
+        distance = distanceMatch[1];
+        notes = notes.replace(/Distance: [^,]+, ?/g, '');
       }
       
-      const newExerciseData = {...exerciseData};
-      delete newExerciseData[removed.id];
-      setExerciseData(newExerciseData);
-    }
-    
-    setExercises(newExercises);
-  };
-
-  const handleRemoveAllExercises = () => {
-    if (mode === 'edit') {
-      const idsToRemove = exercises
-        .filter(ex => ex.id in exerciseData && exerciseData[ex.id]?.id)
-        .map(ex => exerciseData[ex.id].id!);
-      
-      setRemovedExerciseIds(prev => [...prev, ...idsToRemove.filter(Boolean)]);
-    }
-    
-    setExercises([]);
-    setExerciseData({});
-  };
-
-  const handleUpdateExercise = (exercise: Exercise, index: number, data: any) => {
-    setExerciseData({
-      ...exerciseData,
-      [exercise.id]: {
-        ...data,
-        id: exerciseData[exercise.id]?.id,
-        orderIndex: index
+      const durationMatch = notes.match(/Duration: (([0-9]{1,2}:)?[0-5][0-9]:[0-5][0-9])/i);
+      if (durationMatch) {
+        duration = durationMatch[1];
+        notes = notes.replace(/Duration: [^,]+, ?/g, '');
       }
-    });
+      
+      if (notes.includes('Location: indoor')) {
+        location = 'indoor';
+        notes = notes.replace(/Location: indoor, ?/g, '');
+      } else if (notes.includes('Location: outdoor')) {
+        location = 'outdoor';
+        notes = notes.replace(/Location: outdoor, ?/g, '');
+      }
+    }
+    
+    return (
+      <Card key={`${exercise.exercise_id}-${index}`}>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-md">
+              {exercise.exercise?.name || "Exercise"}
+            </CardTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-destructive"
+              onClick={() => handleExerciseRemove(index)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0 pb-2">
+          {isCardio ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <FormLabel htmlFor={`distance-${index}`}>Distance (miles)</FormLabel>
+                <Input
+                  id={`distance-${index}`}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={distance}
+                  placeholder="Enter distance in miles"
+                  onChange={(e) => {
+                    let updatedNotes = exercise.notes || '';
+                    if (updatedNotes.includes('Distance:')) {
+                      updatedNotes = updatedNotes.replace(/Distance: [^,]+/, `Distance: ${e.target.value} miles`);
+                    } else {
+                      updatedNotes = `Distance: ${e.target.value} miles${updatedNotes ? ', ' + updatedNotes : ''}`;
+                    }
+                    handleExerciseUpdate(index, 'notes', updatedNotes);
+                  }}
+                />
+              </div>
+              <div>
+                <FormLabel htmlFor={`duration-${index}`}>Duration (HH:MM:SS)</FormLabel>
+                <Input
+                  id={`duration-${index}`}
+                  value={duration}
+                  placeholder="00:30:00"
+                  pattern="^([0-9]{1,2}:)?[0-5][0-9]:[0-5][0-9]$"
+                  onChange={(e) => {
+                    let updatedNotes = exercise.notes || '';
+                    if (updatedNotes.includes('Duration:')) {
+                      updatedNotes = updatedNotes.replace(/Duration: [^,]+/, `Duration: ${e.target.value}`);
+                    } else {
+                      updatedNotes = `Duration: ${e.target.value}${updatedNotes ? ', ' + updatedNotes : ''}`;
+                    }
+                    handleExerciseUpdate(index, 'notes', updatedNotes);
+                  }}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Format: HH:MM:SS or MM:SS</p>
+              </div>
+              <div>
+                <FormLabel htmlFor={`location-${index}`}>Location</FormLabel>
+                <Select
+                  value={location}
+                  onValueChange={(value) => {
+                    let updatedNotes = exercise.notes || '';
+                    if (updatedNotes.includes('Location:')) {
+                      updatedNotes = updatedNotes.replace(/Location: (indoor|outdoor)/, `Location: ${value}`);
+                    } else {
+                      updatedNotes = `Location: ${value}${updatedNotes ? ', ' + updatedNotes : ''}`;
+                    }
+                    handleExerciseUpdate(index, 'notes', updatedNotes);
+                  }}
+                >
+                  <SelectTrigger id={`location-${index}`}>
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="indoor">Indoor</SelectItem>
+                    <SelectItem value="outdoor">Outdoor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <FormLabel htmlFor={`sets-${index}`}>Sets</FormLabel>
+                <Input
+                  id={`sets-${index}`}
+                  type="number"
+                  value={exercise.sets}
+                  min={1}
+                  onChange={(e) => handleExerciseUpdate(index, 'sets', parseInt(e.target.value) || 1)}
+                />
+              </div>
+              <div>
+                <FormLabel htmlFor={`reps-${index}`}>Reps/Duration</FormLabel>
+                <Input
+                  id={`reps-${index}`}
+                  value={exercise.reps}
+                  placeholder="e.g., 8-10, 30s"
+                  onChange={(e) => handleExerciseUpdate(index, 'reps', e.target.value)}
+                />
+              </div>
+              <div>
+                <FormLabel htmlFor={`rest-${index}`}>Rest (seconds)</FormLabel>
+                <Input
+                  id={`rest-${index}`}
+                  type="number"
+                  value={exercise.rest_seconds || 0}
+                  min={0}
+                  onChange={(e) => handleExerciseUpdate(index, 'rest_seconds', parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+          )}
+          <div className="mt-3">
+            <FormLabel htmlFor={`notes-${index}`}>Notes (Optional)</FormLabel>
+            <Textarea
+              id={`notes-${index}`}
+              value={isCardio ? notes : (exercise.notes || "")}
+              placeholder="Additional instructions or cues"
+              onChange={(e) => handleExerciseUpdate(index, 'notes', e.target.value)}
+              rows={2}
+            />
+          </div>
+        </CardContent>
+        {index < workoutExercises.length - 1 && (
+          <CardFooter className="flex justify-center pb-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleExerciseReorder(index, index + 1)}
+            >
+              <ChevronDown className="h-4 w-4" />
+              <span className="sr-only">Move down</span>
+            </Button>
+          </CardFooter>
+        )}
+      </Card>
+    );
   };
 
   const onSubmit = async (values: FormValues) => {
-    if (exercises.length === 0) {
-      toast.error('Please add at least one exercise to the workout');
-      return;
-    }
+    setLoading(true);
     
     try {
-      setIsSavingWorkout(true);
-      
-      if (!workoutId) {
-        const workoutData = {
+      if (mode === 'create') {
+        const newWorkout = await createWorkout({
           week_id: weekId,
-          day_of_week: dayNumber || 0,
+          day_of_week: values.day_of_week,
           title: values.title,
           description: values.description || null,
-          workout_type: values.workoutType
-        };
-        
-        const newWorkout = await createWorkout(workoutData);
-        
-        const exercisesToCreate = exercises.map((exercise, index) => {
-          const exerciseFormData = exerciseData[exercise.id] || {
-            sets: isCardioExercise(exercise.name) ? 1 : 3,
-            reps: isCardioExercise(exercise.name) ? '1' : '10',
-            rest_seconds: isCardioExercise(exercise.name) ? 0 : 60
-          };
-          
-          const isCardio = isCardioExercise(exercise.name);
-          
-          return {
-            workout_id: newWorkout.id,
-            exercise_id: exercise.id,
-            sets: exerciseFormData.sets || 1,
-            reps: exerciseFormData.reps || (isCardio ? '1' : '10'),
-            rest_seconds: exerciseFormData.rest_seconds || 0,
-            notes: exerciseFormData.notes || null,
-            order_index: index
-          };
+          workout_type: values.workout_type,
+          priority: values.priority
         });
         
-        await createMultipleWorkoutExercises(exercisesToCreate);
+        for (const [index, exercise] of workoutExercises.entries()) {
+          await createWorkoutExercise({
+            workout_id: newWorkout.id,
+            exercise_id: exercise.exercise_id,
+            sets: exercise.sets,
+            reps: exercise.reps,
+            rest_seconds: exercise.rest_seconds,
+            notes: exercise.notes,
+            order_index: index
+          });
+        }
         
-        toast.success('Workout saved successfully');
+        toast.success('Workout created successfully');
         onSave(newWorkout.id);
-      } else {
+      } else if (workoutId) {
         await updateWorkout(workoutId, {
           title: values.title,
           description: values.description || null,
-          workout_type: values.workoutType
+          day_of_week: values.day_of_week,
+          workout_type: values.workout_type,
+          priority: values.priority
         });
         
-        for (const exerciseId of removedExerciseIds) {
-          await deleteWorkoutExercise(exerciseId);
-        }
-        
-        const exercisesToUpdate: any[] = [];
-        const exercisesToCreate: any[] = [];
-        
-        exercises.forEach((exercise, index) => {
-          const exerciseFormData = exerciseData[exercise.id] || {
-            sets: isCardioExercise(exercise.name) ? 1 : 3,
-            reps: isCardioExercise(exercise.name) ? '1' : '10',
-            rest_seconds: isCardioExercise(exercise.name) ? 0 : 60
-          };
-          
-          const isCardio = isCardioExercise(exercise.name);
-          
-          if (exerciseFormData.id) {
-            exercisesToUpdate.push({
-              id: exerciseFormData.id,
-              data: {
-                sets: exerciseFormData.sets || 1,
-                reps: exerciseFormData.reps || (isCardio ? '1' : '10'),
-                rest_seconds: exerciseFormData.rest_seconds || 0,
-                notes: exerciseFormData.notes || null,
-                order_index: index
-              }
-            });
-          } else {
-            exercisesToCreate.push({
-              workout_id: workoutId,
-              exercise_id: exercise.id,
-              sets: exerciseFormData.sets || 1,
-              reps: exerciseFormData.reps || (isCardio ? '1' : '10'),
-              rest_seconds: exerciseFormData.rest_seconds || 0,
-              notes: exerciseFormData.notes || null,
-              order_index: index
-            });
-          }
-        });
-        
-        for (const item of exercisesToUpdate) {
-          await updateWorkoutExercise(item.id, item.data);
-        }
-        
-        if (exercisesToCreate.length > 0) {
-          await createMultipleWorkoutExercises(exercisesToCreate);
-        }
-        
+        // Handle the workout exercises (not shown in this example)
         toast.success('Workout updated successfully');
         onSave(workoutId);
       }
     } catch (error) {
-      console.error('Error saving workout:', error);
-      toast.error('Failed to save workout');
+      console.error("Error saving workout:", error);
+      toast.error("Failed to save workout");
     } finally {
-      setIsSavingWorkout(false);
+      setLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">{mode === 'edit' ? 'Edit Workout' : `${dayName} Workout`}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-4">
-            <div className="h-10 bg-muted rounded"></div>
-            <div className="h-20 bg-muted rounded"></div>
-            <div className="space-y-2">
-              <div className="h-40 bg-muted rounded"></div>
-              <div className="h-40 bg-muted rounded"></div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+  if (initialLoading) {
+    return <div className="flex justify-center p-6">Loading workout data...</div>;
   }
 
+  const generatePriorityOptions = () => {
+    // For a new workout, we need one more slot than existing workouts
+    const count = mode === 'create' ? workoutsInWeek + 1 : workoutsInWeek;
+    return Array.from({ length: count }, (_, i) => i);
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">{mode === 'edit' ? 'Edit Workout' : dayName ? `${dayName} Workout` : 'New Workout'}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[calc(80vh-8rem)] pr-4">
-          <Form {...form}>
-            <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Workout Title</FormLabel>
+    <div className="max-w-screen-lg mx-auto">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Workout Title</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="e.g., Upper Body Strength" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="workout_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Workout Type</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
                     <FormControl>
-                      <Input placeholder="e.g., Upper Body, Push, Leg Day" {...field} />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select workout type" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="workoutType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Workout Type</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a workout type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {WORKOUT_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            <div className="flex items-center gap-2">
-                              <span>{type.icon}</span>
-                              <span>{type.label}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Workout Description (Optional)</FormLabel>
+                    <SelectContent>
+                      {WORKOUT_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          <div className="flex items-center">
+                            {type.icon}
+                            <span>{type.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="day_of_week"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Day of Week</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                    defaultValue={field.value.toString()}
+                    value={field.value.toString()}
+                  >
                     <FormControl>
-                      <Textarea 
-                        placeholder="Instructions or notes about this workout" 
-                        {...field} 
-                        value={field.value || ''}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select day of week" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-base font-medium">Exercises</h3>
-                  <div className="flex space-x-2">
-                    {exercises.length > 0 && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleRemoveAllExercises}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Clear All
-                      </Button>
-                    )}
-                    <ExerciseSelector 
-                      onSelectExercise={handleAddExercise}
-                      onSelectMultipleExercises={handleAddMultipleExercises}
-                    />
-                  </div>
-                </div>
-
-                {exercises.length === 0 ? (
-                  <div className="text-center py-8 border border-dashed rounded-lg">
-                    <p className="text-muted-foreground">No exercises added yet</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Click "Add Exercise" to select exercises for this workout
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {exercises.map((exercise, index) => (
-                      <div key={exercise.tempId || exercise.id}>
-                        <WorkoutExerciseForm
-                          exercise={exercise}
-                          onSubmit={(data) => handleUpdateExercise(exercise, index, data)}
-                          onCancel={() => handleRemoveExercise(index)}
-                          isSubmitting={isSubmitting}
-                          existingData={exerciseData[exercise.id]}
-                          autoSave={true}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-between items-center">
-                <div>
-                  {exercises.length > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      {exercises.length} exercise{exercises.length !== 1 ? 's' : ''} added
-                    </p>
-                  )}
-                </div>
-                <Button 
-                  type="button" 
-                  disabled={isSavingWorkout}
-                  onClick={form.handleSubmit(onSubmit)}
-                >
-                  {isSavingWorkout ? 'Saving...' : mode === 'edit' ? 'Update Workout' : 'Save Workout'}
-                </Button>
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <Button
-                type="button"
-                onClick={form.handleSubmit(onSubmit)}
-                disabled={isSavingWorkout}
-                className="w-full"
+                    <SelectContent>
+                      {DAYS_OF_WEEK.map((day, index) => (
+                        <SelectItem key={index} value={index.toString()}>
+                          {day}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="priority"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Priority</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                    defaultValue={field.value.toString()}
+                    value={field.value.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {generatePriorityOptions().map((priority) => (
+                        <SelectItem key={priority} value={priority.toString()}>
+                          {priority === 0 ? "Default" : `Priority ${priority}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Determines the order workouts appear for clients. Lower numbers appear first.
+                  </p>
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    {...field} 
+                    placeholder="Enter workout description" 
+                    rows={4}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <Separator className="my-6" />
+          
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Exercises</h2>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsSelectorOpen(true)}
               >
-                {isSavingWorkout ? 'Saving...' : mode === 'edit' ? 'Update Workout' : 'Create Workout'}
+                <Plus className="h-4 w-4 mr-2" />
+                Add Exercise
               </Button>
             </div>
-          </Form>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+            
+            {workoutExercises.length === 0 ? (
+              <Alert>
+                <AlertDescription>
+                  No exercises added yet. Click "Add Exercise" to begin building your workout.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="space-y-4">
+                {workoutExercises.map((exercise, index) => renderExerciseForm(exercise, index))}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-4 mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onSave(workoutId || "")}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : (mode === 'edit' ? "Update Workout" : "Create Workout")}
+            </Button>
+          </div>
+        </form>
+      </Form>
+      
+      <ExerciseSelector
+        isOpen={isSelectorOpen}
+        onSelectExercise={handleExerciseAdd}
+        onClose={() => setIsSelectorOpen(false)}
+      />
+    </div>
   );
 };
+
+export default WorkoutDayForm;

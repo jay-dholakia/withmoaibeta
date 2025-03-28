@@ -7,7 +7,8 @@ export const createWorkout = async (data: {
   day_of_week: number;
   title: string;
   description: string | null;
-  workout_type: string; // Changed from optional to required
+  workout_type: string;
+  priority?: number;
 }) => {
   const { data: workout, error } = await supabase
     .from('workouts')
@@ -16,7 +17,8 @@ export const createWorkout = async (data: {
       day_of_week: data.day_of_week,
       title: data.title,
       description: data.description,
-      workout_type: data.workout_type
+      workout_type: data.workout_type,
+      priority: data.priority || 0
     } as any) // Use type assertion to avoid TS error
     .select('*')
     .single();
@@ -34,6 +36,7 @@ export const updateWorkout = async (id: string, data: {
   description?: string | null;
   day_of_week?: number;
   workout_type?: string;
+  priority?: number;
 }) => {
   const { data: workout, error } = await supabase
     .from('workouts')
@@ -41,7 +44,8 @@ export const updateWorkout = async (id: string, data: {
       title: data.title,
       description: data.description,
       day_of_week: data.day_of_week,
-      workout_type: data.workout_type
+      workout_type: data.workout_type,
+      priority: data.priority
     } as any) // Use type assertion to avoid TS error
     .eq('id', id)
     .select('*')

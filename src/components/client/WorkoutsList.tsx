@@ -106,7 +106,7 @@ const WorkoutsList = () => {
     
     console.log(`Debug - Filtering workouts by Week ${weekNumber}`);
     
-    return workouts.filter(workout => {
+    const filtered = workouts.filter(workout => {
       if (!workout.workout || !workout.workout.week) {
         return false;
       }
@@ -116,6 +116,20 @@ const WorkoutsList = () => {
       console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout.week.week_number}, Program: ${workout.workout.week.program?.title}, Matches: ${weekMatches}`);
       
       return weekMatches;
+    });
+    
+    // Sort workouts by priority first, then by day_of_week as a backup
+    return filtered.sort((a, b) => {
+      // First by priority (lower number = higher priority)
+      const priorityA = a.workout?.priority ?? Number.MAX_SAFE_INTEGER;
+      const priorityB = b.workout?.priority ?? Number.MAX_SAFE_INTEGER;
+      
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+      
+      // If priority is the same, sort by day_of_week
+      return (a.workout?.day_of_week ?? 0) - (b.workout?.day_of_week ?? 0);
     });
   }, [workouts, weekFilter]);
 

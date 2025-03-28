@@ -41,7 +41,8 @@ export interface Workout {
   description: string | null;
   created_at: string;
   workout_exercises?: WorkoutExercise[];
-  workout_type: string; // Changed from optional to required
+  workout_type: string;
+  priority: number;
 }
 
 export interface StandaloneWorkout {
@@ -53,7 +54,7 @@ export interface StandaloneWorkout {
   updated_at?: string;
   category?: string;
   workout_exercises?: WorkoutExercise[];
-  workout_type: string; // Changed from optional to required
+  workout_type: string;
 }
 
 export interface WorkoutBasic {
@@ -62,6 +63,7 @@ export interface WorkoutBasic {
   description?: string;
   day_of_week: number;
   week_id: string;
+  priority?: number;
   week?: {
     week_number: number;
     program?: {
@@ -70,7 +72,7 @@ export interface WorkoutBasic {
     }
   } | null;
   workout_exercises?: WorkoutExercise[];
-  workout_type: string; // Changed from optional to required
+  workout_type: string;
 }
 
 export interface WorkoutExercise {

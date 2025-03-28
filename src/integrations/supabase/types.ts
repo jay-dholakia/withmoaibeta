@@ -793,6 +793,7 @@ export type Database = {
           day_of_week: number
           description: string | null
           id: string
+          priority: number | null
           title: string
           week_id: string
           workout_type: Database["public"]["Enums"]["workout_type"] | null
@@ -802,6 +803,7 @@ export type Database = {
           day_of_week: number
           description?: string | null
           id?: string
+          priority?: number | null
           title: string
           week_id: string
           workout_type?: Database["public"]["Enums"]["workout_type"] | null
@@ -811,6 +813,7 @@ export type Database = {
           day_of_week?: number
           description?: string | null
           id?: string
+          priority?: number | null
           title?: string
           week_id?: string
           workout_type?: Database["public"]["Enums"]["workout_type"] | null

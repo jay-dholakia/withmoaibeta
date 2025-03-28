@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -51,7 +50,8 @@ import {
   deleteWorkoutProgram,
   fetchStandaloneWorkouts,
   addWorkoutToWeek,
-  updateWorkoutProgram
+  updateWorkoutProgram,
+  copyTemplateWorkoutToWeek
 } from '@/services/workout-service';
 import { WorkoutProgram, WorkoutWeek, Workout, DAYS_OF_WEEK, StandaloneWorkout } from '@/types/workout';
 import { toast } from 'sonner';
@@ -339,15 +339,8 @@ const WorkoutProgramDetailPage = () => {
       // Default to day 0 (Sunday) if no day is selected
       const dayToUse = selectedDay || 0;
       
-      // Find the selected template to get its title
-      const templateWorkout = standaloneWorkouts.find(workout => workout.id === selectedTemplate);
-      const workoutTitle = templateWorkout ? templateWorkout.title : 'Template Workout';
-      
-      await addWorkoutToWeek(isAddingTemplateToWeek, {
-        title: workoutTitle,
-        day_of_week: dayToUse,
-        workout_type: templateWorkout?.workout_type || 'strength'
-      });
+      // Use the new copyTemplateWorkoutToWeek function to copy all template attributes and exercises
+      await copyTemplateWorkoutToWeek(isAddingTemplateToWeek, selectedTemplate, dayToUse);
       
       if (isAddingTemplateToWeek === selectedWeek) {
         const updatedWorkouts = await fetchWorkouts(selectedWeek);

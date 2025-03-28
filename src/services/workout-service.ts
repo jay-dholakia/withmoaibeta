@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Exercise, Workout } from "@/types/workout";
 
@@ -374,7 +373,7 @@ export const createStandaloneWorkout = async (data: {
   description: string | null;
   coach_id: string;
   category?: string;
-  workout_type: string; // Changed from optional to required
+  workout_type: string;
 }) => {
   const { data: workout, error } = await supabase
     .from('standalone_workouts')
@@ -539,13 +538,10 @@ export const fetchExercisesByCategory = async () => {
     throw error;
   }
 
-  // Create a map of categories to exercise arrays
   const exercisesByCategory: Record<string, Exercise[]> = {};
   
-  // Add an "All" category to show all exercises
   exercisesByCategory['All'] = exercises as Exercise[];
   
-  // Group exercises by their category
   exercises.forEach(exercise => {
     if (!exercisesByCategory[exercise.category]) {
       exercisesByCategory[exercise.category] = [];
@@ -636,7 +632,7 @@ export const addWorkoutToWeek = async (weekId: string, data: {
   title: string;
   description?: string | null;
   day_of_week: number;
-  workout_type: string; // Changed from optional to required
+  workout_type: string;
 }) => {
   const { data: workout, error } = await supabase
     .from('workouts')
@@ -656,4 +652,44 @@ export const addWorkoutToWeek = async (weekId: string, data: {
   }
 
   return workout;
+};
+
+export const copyTemplateWorkoutToWeek = async (
+  weekId: string, 
+  templateId: string, 
+  dayOfWeek: number
+) => {
+  try {
+    const template = await fetchStandaloneWorkout(templateId);
+    
+    if (!template) {
+      throw new Error("Template workout not found");
+    }
+    
+    const newWorkout = await addWorkoutToWeek(weekId, {
+      title: template.title,
+      description: template.description,
+      day_of_week: dayOfWeek,
+      workout_type: template.workout_type || 'strength'
+    });
+    
+    if (template.workout_exercises && template.workout_exercises.length > 0) {
+      for (const exercise of template.workout_exercises) {
+        await createWorkoutExercise({
+          workout_id: newWorkout.id,
+          exercise_id: exercise.exercise_id,
+          sets: exercise.sets || 0,
+          reps: exercise.reps || '',
+          rest_seconds: exercise.rest_seconds,
+          notes: exercise.notes,
+          order_index: exercise.order_index
+        });
+      }
+    }
+    
+    return newWorkout;
+  } catch (error) {
+    console.error("Error copying template workout:", error);
+    throw error;
+  }
 };

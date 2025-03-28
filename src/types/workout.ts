@@ -1,4 +1,3 @@
-
 export interface Exercise {
   id: string;
   name: string;
@@ -42,6 +41,7 @@ export interface Workout {
   description: string | null;
   created_at: string;
   workout_exercises?: WorkoutExercise[];
+  workout_type?: string;
 }
 
 export interface StandaloneWorkout {
@@ -53,6 +53,7 @@ export interface StandaloneWorkout {
   updated_at?: string;
   category?: string;
   workout_exercises?: WorkoutExercise[];
+  workout_type?: string;
 }
 
 export interface WorkoutBasic {
@@ -69,6 +70,7 @@ export interface WorkoutBasic {
     }
   } | null;
   workout_exercises?: WorkoutExercise[];
+  workout_type?: string;
 }
 
 export interface WorkoutExercise {

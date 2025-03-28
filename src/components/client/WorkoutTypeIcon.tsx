@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-type WorkoutType = 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off';
+export type WorkoutType = 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off';
 
 interface WorkoutTypeIconProps {
   type: WorkoutType;
@@ -14,7 +14,7 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({ type, classNam
       case 'strength':
         return '🏋️'; // Weight lifting
       case 'cardio':
-        return '🏃'; // Runner
+        return '🏃'; // Running
       case 'flexibility':
         return '🧘'; // Yoga/Flexibility
       case 'bodyweight':
@@ -36,3 +36,14 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({ type, classNam
     </span>
   );
 };
+
+// Export the workout types with labels for use in dropdowns
+export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: string}[] = [
+  { value: 'strength', label: 'Strength', icon: '🏋️' },
+  { value: 'cardio', label: 'Cardio', icon: '🏃' },
+  { value: 'flexibility', label: 'Flexibility', icon: '🧘' },
+  { value: 'bodyweight', label: 'Bodyweight', icon: '💪' },
+  { value: 'custom', label: 'Custom', icon: '✨' },
+  { value: 'one_off', label: 'One-off', icon: '🎯' },
+  { value: 'rest_day', label: 'Rest Day', icon: '😴' }
+];

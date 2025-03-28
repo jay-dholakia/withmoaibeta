@@ -53,6 +53,7 @@ export const createOneOffWorkoutCompletion = async (params: {
   description?: string;
   notes?: string;
   rating?: number;
+  workout_type?: string;
 }) => {
   try {
     const { data: user } = await supabase.auth.getUser();
@@ -61,12 +62,26 @@ export const createOneOffWorkoutCompletion = async (params: {
       throw new Error('User not authenticated');
     }
     
+    // Create a standalone workout entry with workout type
+    const { data: workoutData, error: workoutError } = await supabase
+      .from('standalone_workouts')
+      .insert({
+        title: params.title,
+        description: params.description || null,
+        coach_id: user.user.id, // Using user_id as coach_id for one-off workouts created by the user
+        workout_type: params.workout_type || 'one_off'
+      })
+      .select()
+      .single();
+      
+    if (workoutError) throw workoutError;
+    
     // Create the workout completion
     const { data, error } = await supabase
       .from('workout_completions')
       .insert({
         user_id: user.user.id,
-        workout_id: null, // No associated workout
+        workout_id: workoutData.id, // Link to the created workout
         notes: params.notes || null,
         rating: params.rating || null
       })

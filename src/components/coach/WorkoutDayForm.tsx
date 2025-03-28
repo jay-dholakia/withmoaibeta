@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,6 +30,14 @@ import {
 import { createMultipleWorkoutExercises } from '@/services/workout-history-service';
 import { toast } from 'sonner';
 import { Plus, Trash2 } from 'lucide-react';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { WorkoutTypeIcon, WORKOUT_TYPES, WorkoutType } from '@/components/client/WorkoutTypeIcon';
 
 const isCardioExercise = (exerciseName: string): boolean => {
   const name = exerciseName.toLowerCase();
@@ -37,7 +46,8 @@ const isCardioExercise = (exerciseName: string): boolean => {
 
 const formSchema = z.object({
   title: z.string().min(2, 'Workout title must be at least 2 characters'),
-  description: z.string().optional()
+  description: z.string().optional(),
+  workoutType: z.enum(['strength', 'cardio', 'flexibility', 'bodyweight', 'rest_day', 'custom', 'one_off']).default('strength')
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -78,7 +88,8 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: dayName ? `${dayName} Workout` : 'New Workout',
-      description: ''
+      description: '',
+      workoutType: 'strength'
     }
   });
 
@@ -94,7 +105,8 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
             if (workout) {
               form.reset({
                 title: workout.title,
-                description: workout.description || ''
+                description: workout.description || '',
+                workoutType: (workout.workout_type as WorkoutType) || 'strength'
               });
             }
           }
@@ -241,7 +253,8 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           week_id: weekId,
           day_of_week: dayNumber || 0,
           title: values.title,
-          description: values.description || null
+          description: values.description || null,
+          workout_type: values.workoutType
         };
         
         const newWorkout = await createWorkout(workoutData);
@@ -273,7 +286,8 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       } else {
         await updateWorkout(workoutId, {
           title: values.title,
-          description: values.description || null
+          description: values.description || null,
+          workout_type: values.workoutType
         });
         
         for (const exerciseId of removedExerciseIds) {
@@ -380,6 +394,38 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
 
               <FormField
                 control={form.control}
+                name="workoutType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Workout Type</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a workout type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {WORKOUT_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            <div className="flex items-center gap-2">
+                              <span>{type.icon}</span>
+                              <span>{type.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
@@ -459,6 +505,17 @@ export const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
                   {isSavingWorkout ? 'Saving...' : mode === 'edit' ? 'Update Workout' : 'Save Workout'}
                 </Button>
               </div>
+            </div>
+
+            <div className="mt-6">
+              <Button
+                type="button"
+                onClick={form.handleSubmit(onSubmit)}
+                disabled={isSavingWorkout}
+                className="w-full"
+              >
+                {isSavingWorkout ? 'Saving...' : mode === 'edit' ? 'Update Workout' : 'Create Workout'}
+              </Button>
             </div>
           </Form>
         </ScrollArea>

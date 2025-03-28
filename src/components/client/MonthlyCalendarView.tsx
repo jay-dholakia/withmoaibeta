@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WorkoutHistoryItem } from '@/types/workout';
-import { WorkoutTypeIcon } from './WorkoutTypeIcon';
+import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
 
 interface MonthlyCalendarViewProps {
   workouts: WorkoutHistoryItem[];
@@ -57,7 +56,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
         );
         
         if (match) {
-          console.log(`Found workout: completed at ${workout.completed_at}, type: ${workout.workout?.title || 'rest day/life happens'}`);
+          console.log(`Found workout: completed at ${workout.completed_at}, type: ${workout.workout?.workout_type || 'unknown'}`);
         }
         
         return match;
@@ -115,28 +114,35 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
     );
   };
 
-  const getWorkoutTypeForDay = (day: Date): 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off' | undefined => {
+  const getWorkoutTypeForDay = (day: Date): WorkoutType | undefined => {
     const workoutsForDay = getWorkoutsForDay(day);
 
     if (workoutsForDay.length === 0) return undefined;
 
+    // If it's a rest day, mark it as such
     if (workoutsForDay.some(w => w.rest_day)) {
       return 'rest_day';
     }
 
-    if (workoutsForDay.every(w => w.life_happens_pass)) {
-      return undefined;
+    // Check if there's explicitly a workout type provided from the database
+    for (const workout of workoutsForDay) {
+      if (workout.workout?.workout_type) {
+        return workout.workout.workout_type as WorkoutType;
+      }
     }
 
+    // Fallbacks for workouts without an explicit type
+    // Check first exercise type if available
     for (const workout of workoutsForDay) {
       if (workout.workout?.workout_exercises?.length > 0) {
         const firstExercise = workout.workout.workout_exercises[0];
         if (firstExercise.exercise?.exercise_type) {
-          return firstExercise.exercise.exercise_type;
+          return firstExercise.exercise.exercise_type as WorkoutType;
         }
       }
     }
 
+    // Last resort: try to infer from title
     if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('strength'))) {
       return 'strength';
     } else if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('cardio') || 
@@ -150,6 +156,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
       return 'bodyweight';
     }
 
+    // Default for any other type of workout
     return 'custom';
   };
 

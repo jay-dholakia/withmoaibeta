@@ -16,6 +16,14 @@ import {
   createCustomWorkoutExercise,
   CreateCustomWorkoutExerciseParams
 } from '@/services/client-custom-workout-service';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { WORKOUT_TYPES, WorkoutType } from './WorkoutTypeIcon';
 
 interface CustomExerciseItem {
   id: string; // Temporary id for UI purposes
@@ -37,6 +45,7 @@ const CreateCustomWorkout = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState<number | undefined>();
+  const [workoutType, setWorkoutType] = useState<WorkoutType>('custom');
   const [exercises, setExercises] = useState<CustomExerciseItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -100,7 +109,8 @@ const CreateCustomWorkout = () => {
       const workout = await createCustomWorkout({
         title,
         description: description || undefined,
-        duration_minutes: duration
+        duration_minutes: duration,
+        workout_type: workoutType
       });
       
       // Only save exercises if there are any
@@ -185,6 +195,28 @@ const CreateCustomWorkout = () => {
               required
             />
           </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="workout-type">Workout Type *</Label>
+          <Select 
+            value={workoutType} 
+            onValueChange={(value) => setWorkoutType(value as WorkoutType)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select workout type" />
+            </SelectTrigger>
+            <SelectContent>
+              {WORKOUT_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  <div className="flex items-center gap-2">
+                    <span>{type.icon}</span>
+                    <span>{type.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
         <div className="space-y-2">

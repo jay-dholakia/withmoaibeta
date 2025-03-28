@@ -8,7 +8,6 @@ import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, User, Loader2, Info } from 'lucide-react';
 import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
-import { supabase } from '@/integrations/supabase/client';
 import { Container } from '@/components/ui/container';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { format } from 'date-fns';
@@ -27,26 +26,14 @@ const LeaderboardPage = () => {
       const history = await fetchClientWorkoutHistory(user.id);
       console.log(`Fetched ${history.length} workout history items`);
       
-      // Check if there are any workout items for the test dates
-      const march26 = new Date(2025, 2, 26);
-      const march27 = new Date(2025, 2, 27);
-      
-      const march26Workouts = history.filter(item => {
-        const date = new Date(item.completed_at);
-        return date.getFullYear() === 2025 && 
-               date.getMonth() === 2 && 
-               date.getDate() === 26;
+      // Log workout types
+      const workoutTypes = history.map(item => {
+        return {
+          date: format(new Date(item.completed_at), 'yyyy-MM-dd'),
+          type: item.workout?.workout_type || 'unknown'
+        };
       });
-      
-      const march27Workouts = history.filter(item => {
-        const date = new Date(item.completed_at);
-        return date.getFullYear() === 2025 && 
-               date.getMonth() === 2 && 
-               date.getDate() === 27;
-      });
-      
-      console.log(`March 26, 2025 workouts found: ${march26Workouts.length}`);
-      console.log(`March 27, 2025 workouts found: ${march27Workouts.length}`);
+      console.log('Workout types in history:', workoutTypes);
       
       return history;
     },
@@ -72,7 +59,7 @@ const LeaderboardPage = () => {
     console.log(`Found ${workouts.length} workouts for this date`);
     
     workouts.forEach((workout, i) => {
-      console.log(`Workout ${i+1}: completed at ${workout.completed_at}, type: ${workout.workout?.title || 'Rest day/Life happens'}`);
+      console.log(`Workout ${i+1}: completed at ${workout.completed_at}, type: ${workout.workout?.workout_type || 'unknown'}`);
     });
     
     setSelectedDate(date);

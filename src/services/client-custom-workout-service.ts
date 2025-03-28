@@ -1,6 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Exercise } from "@/types/workout";
+import { WorkoutType } from "@/components/client/WorkoutTypeIcon";
 
 export interface CustomWorkout {
   id: string;
@@ -8,6 +8,7 @@ export interface CustomWorkout {
   title: string;
   description: string | null;
   duration_minutes: number | null;
+  workout_type: WorkoutType;
   created_at: string;
   updated_at: string;
 }
@@ -30,6 +31,7 @@ export interface CreateCustomWorkoutParams {
   title: string;
   description?: string;
   duration_minutes?: number;
+  workout_type?: WorkoutType;
 }
 
 export interface CreateCustomWorkoutExerciseParams {
@@ -52,6 +54,7 @@ export const createCustomWorkout = async (params: CreateCustomWorkoutParams): Pr
       title: params.title,
       description: params.description || null,
       duration_minutes: params.duration_minutes || null,
+      workout_type: params.workout_type || 'custom',
     })
     .select('*')
     .single();

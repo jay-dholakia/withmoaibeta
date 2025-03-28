@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { WORKOUT_TYPES, WorkoutType } from './WorkoutTypeIcon';
 
 const EnterOneOffWorkout = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const EnterOneOffWorkout = () => {
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [rating, setRating] = useState<number | undefined>(undefined);
+  const [workoutType, setWorkoutType] = useState<WorkoutType>('one_off');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,7 +44,8 @@ const EnterOneOffWorkout = () => {
         title,
         description: description.trim() || undefined,
         notes: notes.trim() || undefined,
-        rating
+        rating,
+        workout_type: workoutType
       });
       
       toast.success('Workout logged successfully!');
@@ -90,6 +93,30 @@ const EnterOneOffWorkout = () => {
                 placeholder="e.g., Morning Run, Gym Session, Home Workout"
                 required
               />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="workoutType" className="text-sm font-medium">
+                Workout Type <span className="text-red-500">*</span>
+              </label>
+              <Select 
+                value={workoutType} 
+                onValueChange={(value) => setWorkoutType(value as WorkoutType)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select workout type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {WORKOUT_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      <div className="flex items-center gap-2">
+                        <span>{type.icon}</span>
+                        <span>{type.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-2">

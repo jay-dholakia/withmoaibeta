@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -182,10 +183,10 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
             isCurrentDay ? 'border-2 border-primary text-primary font-bold rounded-md' : ''
           }`}
         >
-          <div className="flex flex-col h-full justify-between">
-            <span className="text-xs">{formattedDate}</span>
+          <div className="flex flex-col h-full justify-between items-center gap-0.5">
+            <span className="text-xs mb-0">{formattedDate}</span>
             {hasWorkout && (
-              <div className="flex justify-center">
+              <div className="mt-[-2px]">
                 <WorkoutTypeIcon type={workoutType} />
               </div>
             )}

@@ -1,544 +1,468 @@
+
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Exercise, WorkoutExercise } from '@/types/workout';
+import { z } from 'zod';
+import { Dumbell, Running, Waves, ActivitySquare, ChevronDown, Trash2, Plus, Check } from 'lucide-react';
+import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage
+  FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
-import { ExerciseSelector } from './ExerciseSelector';
-import { WorkoutExerciseForm } from './WorkoutExerciseForm';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  createStandaloneWorkout,
-  createStandaloneWorkoutExercise,
-  fetchStandaloneWorkoutExercises,
-  updateStandaloneWorkout,
-  updateStandaloneWorkoutExercise,
-  deleteStandaloneWorkoutExercise
-} from '@/services/workout-service';
-import { createMultipleStandaloneWorkoutExercises } from '@/services/workout-history-service';
-import { toast } from 'sonner';
-import { StandaloneWorkout } from '@/types/workout';
-import { Trash2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { WORKOUT_TYPES, WorkoutType } from '@/components/client/WorkoutTypeIcon';
+} from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const isCardioExercise = (exerciseName: string): boolean => {
-  const name = exerciseName.toLowerCase();
-  return name.includes('run') || name.includes('walk');
-};
+import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
+import { Exercise, WorkoutExercise } from '@/types/workout';
+import { createStandaloneWorkout, updateStandaloneWorkout, getStandaloneWorkout } from '@/services/workout-service';
+import { fetchExercises } from '@/services/exercise-service';
+import { useAuth } from '@/contexts/AuthContext';
 
+// Define workout type options
+const WORKOUT_TYPES = [
+  { value: 'strength', label: 'Strength', icon: <Dumbell className="h-4 w-4 mr-2" /> },
+  { value: 'cardio', label: 'Cardio', icon: <Running className="h-4 w-4 mr-2" /> },
+  { value: 'mobility', label: 'Mobility', icon: <Waves className="h-4 w-4 mr-2" /> },
+  { value: 'flexibility', label: 'Flexibility', icon: <ActivitySquare className="h-4 w-4 mr-2" /> },
+];
+
+// Form validation schema
 const formSchema = z.object({
-  title: z.string().min(2, 'Workout title must be at least 2 characters'),
+  title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
   category: z.string().optional(),
-  workoutType: z.string().default('strength')
+  workout_type: z.string().min(1, { message: "Workout type is required" }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface StandaloneWorkoutFormProps {
-  workoutId?: string;
-  initialData?: StandaloneWorkout;
-  coachId: string;
-  onSave: (workoutId: string) => void;
-  mode?: 'create' | 'edit';
-}
+const StandaloneWorkoutForm = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>([]);
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(id ? true : false);
 
-export const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
-  workoutId,
-  initialData,
-  coachId,
-  onSave,
-  mode = 'create'
-}) => {
-  const [exercises, setExercises] = useState<(Exercise & { tempId?: string })[]>([]);
-  const [exerciseData, setExerciseData] = useState<Record<string, {
-    id?: string;
-    sets: number;
-    reps: string;
-    rest_seconds?: number;
-    notes?: string;
-    orderIndex?: number;
-  }>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSavingWorkout, setIsSavingWorkout] = useState(false);
-  const [existingExercises, setExistingExercises] = useState<WorkoutExercise[]>([]);
-  const [isLoading, setIsLoading] = useState(!!workoutId);
-  const [removedExerciseIds, setRemovedExerciseIds] = useState<string[]>([]);
-
+  // Initialize form
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: initialData?.title || 'New Workout',
-      description: initialData?.description || '',
-      category: initialData?.category || '',
-      workoutType: initialData?.workout_type || 'strength'
-    }
+      title: '',
+      description: '',
+      category: '',
+      workout_type: 'strength', // Default to strength
+    },
   });
 
+  // Load exercises
   useEffect(() => {
-    if (workoutId) {
-      const loadWorkoutDetails = async () => {
+    const loadExercises = async () => {
+      try {
+        const data = await fetchExercises();
+        setExercises(data);
+      } catch (error) {
+        console.error("Error loading exercises:", error);
+        toast.error("Failed to load exercises");
+      }
+    };
+    
+    loadExercises();
+  }, []);
+
+  // Load workout data if editing
+  useEffect(() => {
+    const loadWorkout = async () => {
+      if (id) {
         try {
-          const exercises = await fetchStandaloneWorkoutExercises(workoutId);
+          const workout = await getStandaloneWorkout(id);
           
-          // Cast exercises to ensure type compatibility
-          const typedExercises = exercises.map(ex => ({
-            ...ex,
-            exercise: ex.exercise ? {
-              ...ex.exercise,
-              exercise_type: ex.exercise.exercise_type as 'strength' | 'bodyweight' | 'cardio' | 'flexibility'
-            } : undefined
-          }));
-          
-          setExistingExercises(typedExercises);
-          
-          if (exercises.length > 0 && mode === 'edit' && initialData) {
-            form.reset({
-              title: initialData.title,
-              description: initialData.description || '',
-              category: initialData.category || '',
-              workoutType: initialData.workout_type || 'strength'
-            });
-          }
-          
-          // Map exercises for our state
-          const loadedExercises = exercises.map(item => ({
-            ...item.exercise!,
-            tempId: item.exercise?.id
-          }));
-          
-          setExercises(loadedExercises);
-          
-          const exerciseFormData: Record<string, any> = {};
-          exercises.forEach(item => {
-            exerciseFormData[item.exercise_id] = {
-              id: item.id,
-              sets: item.sets,
-              reps: item.reps,
-              rest_seconds: item.rest_seconds || undefined,
-              notes: item.notes || undefined,
-              orderIndex: item.order_index
-            };
+          // Populate form
+          form.reset({
+            title: workout.title,
+            description: workout.description || "",
+            category: workout.category || "",
+            workout_type: workout.workout_type || "strength",
           });
-          setExerciseData(exerciseFormData);
           
-          setIsLoading(false);
-        } catch (error) {
-          console.error('Error loading workout details:', error);
-          toast.error('Failed to load workout details');
-          setIsLoading(false);
-        }
-      };
-      
-      loadWorkoutDetails();
-    }
-  }, [workoutId, form, mode, initialData]);
-
-  const handleAddExercise = (exercise: Exercise) => {
-    const exerciseWithTempId = {...exercise, tempId: Date.now().toString()};
-    setExercises(prev => [...prev, exerciseWithTempId]);
-    
-    // Auto-populate default values for the exercise based on type
-    const isCardio = isCardioExercise(exercise.name);
-    if (!isCardio) {
-      setExerciseData(prev => ({
-        ...prev,
-        [exercise.id]: {
-          sets: 3,
-          reps: '10',
-          rest_seconds: 60,
-          notes: '',
-          orderIndex: exercises.length
-        }
-      }));
-    } else {
-      setExerciseData(prev => ({
-        ...prev,
-        [exercise.id]: {
-          sets: 1,
-          reps: '',
-          notes: '',
-          orderIndex: exercises.length
-        }
-      }));
-    }
-  };
-
-  const handleAddMultipleExercises = (selectedExercises: Exercise[]) => {
-    const newExercises = selectedExercises.map(exercise => ({
-      ...exercise,
-      tempId: Date.now() + Math.random().toString()
-    }));
-    
-    setExercises(prev => [...prev, ...newExercises]);
-    
-    // Auto-populate default values for all new exercises
-    const updatedExerciseData = {...exerciseData};
-    newExercises.forEach((exercise, index) => {
-      const isCardio = isCardioExercise(exercise.name);
-      updatedExerciseData[exercise.id] = isCardio 
-        ? {
-            sets: 1,
-            reps: '',
-            notes: '',
-            orderIndex: exercises.length + index
+          // Load workout exercises
+          if (workout.workout_exercises) {
+            setWorkoutExercises(workout.workout_exercises.map(exercise => ({
+              ...exercise,
+              reps: exercise.reps || "",
+              sets: exercise.sets || 0,
+              rest_seconds: exercise.rest_seconds || 0,
+            })));
           }
-        : {
-            sets: 3,
-            reps: '10',
-            rest_seconds: 60,
-            notes: '',
-            orderIndex: exercises.length + index
-          };
-    });
-    
-    setExerciseData(updatedExerciseData);
-  };
-
-  const handleRemoveExercise = (index: number) => {
-    const newExercises = [...exercises];
-    const removed = newExercises.splice(index, 1)[0];
-    
-    if (removed.id in exerciseData) {
-      if (mode === 'edit' && exerciseData[removed.id]?.id) {
-        setRemovedExerciseIds(prev => [...prev, exerciseData[removed.id].id!]);
+          
+          setInitialLoading(false);
+        } catch (error) {
+          console.error("Error loading workout:", error);
+          toast.error("Failed to load workout");
+          setInitialLoading(false);
+        }
       }
-      
-      const newExerciseData = {...exerciseData};
-      delete newExerciseData[removed.id];
-      setExerciseData(newExerciseData);
-    }
+    };
     
-    setExercises(newExercises);
-  };
+    loadWorkout();
+  }, [id, form]);
 
-  const handleRemoveAllExercises = () => {
-    // Store IDs of existing exercises to be removed
-    if (mode === 'edit') {
-      const idsToRemove = exercises
-        .filter(ex => ex.id in exerciseData && exerciseData[ex.id]?.id)
-        .map(ex => exerciseData[ex.id].id!)
-        .filter(Boolean);
-      
-      setRemovedExerciseIds(prev => [...prev, ...idsToRemove]);
-    }
-    
-    setExercises([]);
-    setExerciseData({});
-  };
-
-  const handleUpdateExercise = (exercise: Exercise, index: number, data: any) => {
-    setExerciseData({
-      ...exerciseData,
-      [exercise.id]: {
-        ...data,
-        id: exerciseData[exercise.id]?.id,
-        orderIndex: index
+  const handleExerciseAdd = (exercise: Exercise) => {
+    setWorkoutExercises(prev => [
+      ...prev,
+      {
+        id: `temp-${Date.now()}`, // Temporary ID until saved
+        workout_id: id || "",
+        exercise_id: exercise.id,
+        sets: 3,
+        reps: "8-10",
+        rest_seconds: 60,
+        notes: "",
+        order_index: prev.length,
+        created_at: new Date().toISOString(),
+        exercise: exercise,
       }
+    ]);
+    setIsSelectorOpen(false);
+  };
+
+  const handleExerciseUpdate = (index: number, field: string, value: any) => {
+    setWorkoutExercises(prev => 
+      prev.map((ex, i) => i === index ? { ...ex, [field]: value } : ex)
+    );
+  };
+
+  const handleExerciseRemove = (index: number) => {
+    setWorkoutExercises(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleExerciseReorder = (sourceIndex: number, targetIndex: number) => {
+    if (sourceIndex === targetIndex) return;
+    
+    setWorkoutExercises(prev => {
+      const newExercises = [...prev];
+      const [movedItem] = newExercises.splice(sourceIndex, 1);
+      newExercises.splice(targetIndex, 0, movedItem);
+      
+      // Update order_index values
+      return newExercises.map((ex, index) => ({
+        ...ex,
+        order_index: index
+      }));
     });
   };
 
   const onSubmit = async (values: FormValues) => {
-    if (exercises.length === 0) {
-      toast.error('Please add at least one exercise to the workout');
+    if (workoutExercises.length === 0) {
+      toast.error("Please add at least one exercise to the workout");
       return;
     }
     
+    setLoading(true);
+    
     try {
-      setIsSavingWorkout(true);
+      // Format workout exercises for submission
+      const formattedExercises = workoutExercises.map((ex, index) => ({
+        id: ex.id.startsWith('temp-') ? undefined : ex.id,
+        exercise_id: ex.exercise_id,
+        sets: ex.sets,
+        reps: ex.reps || "",
+        rest_seconds: ex.rest_seconds,
+        notes: ex.notes,
+        order_index: index
+      }));
       
-      if (!workoutId) {
-        const workoutData = {
-          coach_id: coachId,
+      if (id) {
+        // Update existing workout
+        await updateStandaloneWorkout(id, {
           title: values.title,
-          description: values.description || null,
-          category: values.category || null,
-          workout_type: values.workoutType || 'strength'
-        };
-        
-        const newWorkout = await createStandaloneWorkout(workoutData);
-        
-        // Prepare all exercises for batch create
-        const exercisesToCreate = exercises.map((exercise, index) => {
-          const exerciseFormData = exerciseData[exercise.id] || {
-            sets: isCardioExercise(exercise.name) ? 1 : 3,
-            reps: isCardioExercise(exercise.name) ? '' : '10',
-            rest_seconds: isCardioExercise(exercise.name) ? undefined : 60
-          };
-          
-          const isCardio = isCardioExercise(exercise.name);
-          
-          return {
-            workout_id: newWorkout.id,
-            exercise_id: exercise.id,
-            sets: isCardio ? null : exerciseFormData.sets,
-            reps: isCardio ? null : exerciseFormData.reps || '10',
-            rest_seconds: isCardio ? null : (exerciseFormData.rest_seconds || 60),
-            notes: exerciseFormData.notes || null,
-            order_index: index
-          };
+          description: values.description,
+          category: values.category,
+          workout_type: values.workout_type,
+          workout_exercises: formattedExercises
         });
-        
-        // Create all exercises in one batch operation
-        await createMultipleStandaloneWorkoutExercises(exercisesToCreate);
-        
-        toast.success('Workout saved successfully');
-        onSave(newWorkout.id);
+        toast.success("Workout updated successfully");
       } else {
-        await updateStandaloneWorkout(workoutId, {
+        // Create new workout
+        if (!user) {
+          toast.error("You must be logged in to create a workout");
+          return;
+        }
+        
+        await createStandaloneWorkout({
           title: values.title,
-          description: values.description || null,
-          category: values.category || null,
-          workout_type: values.workoutType || 'strength'
+          description: values.description,
+          category: values.category,
+          workout_type: values.workout_type,
+          coach_id: user.id,
+          workout_exercises: formattedExercises
         });
-        
-        // Delete removed exercises
-        for (const exerciseId of removedExerciseIds) {
-          await deleteStandaloneWorkoutExercise(exerciseId);
-        }
-        
-        // Separate existing and new exercises
-        const exercisesToUpdate: any[] = [];
-        const exercisesToCreate: any[] = [];
-        
-        exercises.forEach((exercise, index) => {
-          const exerciseFormData = exerciseData[exercise.id] || {
-            sets: isCardioExercise(exercise.name) ? 1 : 3,
-            reps: isCardioExercise(exercise.name) ? '' : '10',
-            rest_seconds: isCardioExercise(exercise.name) ? undefined : 60
-          };
-          
-          const isCardio = isCardioExercise(exercise.name);
-          
-          if (exerciseFormData.id) {
-            exercisesToUpdate.push({
-              id: exerciseFormData.id,
-              data: {
-                sets: isCardio ? null : exerciseFormData.sets,
-                reps: isCardio ? null : exerciseFormData.reps || '10',
-                rest_seconds: isCardio ? null : (exerciseFormData.rest_seconds || 60),
-                notes: exerciseFormData.notes || null,
-                order_index: index
-              }
-            });
-          } else {
-            exercisesToCreate.push({
-              workout_id: workoutId,
-              exercise_id: exercise.id,
-              sets: isCardio ? null : exerciseFormData.sets,
-              reps: isCardio ? null : exerciseFormData.reps || '10',
-              rest_seconds: isCardio ? null : (exerciseFormData.rest_seconds || 60),
-              notes: exerciseFormData.notes || null,
-              order_index: index
-            });
-          }
-        });
-        
-        // Update existing exercises
-        for (const item of exercisesToUpdate) {
-          await updateStandaloneWorkoutExercise(item.id, item.data);
-        }
-        
-        // Create new exercises in batch if any
-        if (exercisesToCreate.length > 0) {
-          await createMultipleStandaloneWorkoutExercises(exercisesToCreate);
-        }
-        
-        toast.success('Workout updated successfully');
-        onSave(workoutId);
+        toast.success("Workout created successfully");
       }
+      
+      // Navigate back to workouts page
+      navigate('/coach/standalone-workouts');
     } catch (error) {
-      console.error('Error saving workout:', error);
-      toast.error('Failed to save workout');
+      console.error("Error saving workout:", error);
+      toast.error("Failed to save workout");
     } finally {
-      setIsSavingWorkout(false);
+      setLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-10 bg-muted rounded"></div>
-            <div className="h-20 bg-muted rounded"></div>
-            <div className="space-y-2">
-              <div className="h-40 bg-muted rounded"></div>
-              <div className="h-40 bg-muted rounded"></div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+  if (initialLoading) {
+    return <div className="flex justify-center p-6">Loading workout data...</div>;
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <ScrollArea className="h-[calc(80vh-8rem)] pr-4">
-          <Form {...form}>
-            <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Workout Title</FormLabel>
+    <div className="space-y-6 p-4 max-w-screen-lg mx-auto">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">{id ? 'Edit Workout' : 'Create Workout'}</h1>
+        <Button variant="outline" onClick={() => navigate('/coach/standalone-workouts')}>
+          Cancel
+        </Button>
+      </div>
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Workout Title</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="e.g., Upper Body Strength" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="workout_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Workout Type</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
                     <FormControl>
-                      <Input placeholder="e.g., Upper Body, Push, Leg Day" {...field} />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select workout type" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Workout Description (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Instructions or notes about this workout" 
-                        {...field} 
-                        value={field.value || ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category (Optional)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="e.g., Strength, Endurance, Flexibility" 
-                        {...field} 
-                        value={field.value || ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="workoutType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Workout Type</FormLabel>
-                    <FormControl>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select workout type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {WORKOUT_TYPES.map((type: WorkoutType) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
+                    <SelectContent>
+                      {WORKOUT_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          <div className="flex items-center">
+                            {type.icon}
+                            <span>{type.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category (Optional)</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="e.g., Beginner, Advanced" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    {...field} 
+                    placeholder="Enter workout description" 
+                    rows={4}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <Separator className="my-6" />
+          
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Exercises</h2>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsSelectorOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Exercise
+              </Button>
+            </div>
+            
+            {workoutExercises.length === 0 ? (
+              <Alert>
+                <AlertDescription>
+                  No exercises added yet. Click "Add Exercise" to begin building your workout.
+                </AlertDescription>
+              </Alert>
+            ) : (
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-base font-medium">Exercises</h3>
-                  <div className="flex space-x-2">
-                    {exercises.length > 0 && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleRemoveAllExercises}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Clear All
-                      </Button>
-                    )}
-                    <ExerciseSelector 
-                      onSelectExercise={handleAddExercise}
-                      onSelectMultipleExercises={handleAddMultipleExercises}
-                    />
-                  </div>
-                </div>
-
-                {exercises.length === 0 ? (
-                  <div className="text-center py-8 border border-dashed rounded-lg">
-                    <p className="text-muted-foreground">No exercises added yet</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Click "Add Exercise" to select exercises for this workout
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {exercises.map((exercise, index) => (
-                      <div key={exercise.tempId || exercise.id}>
-                        <WorkoutExerciseForm
-                          exercise={exercise}
-                          onSubmit={(data) => handleUpdateExercise(exercise, index, data)}
-                          onCancel={() => handleRemoveExercise(index)}
-                          isSubmitting={isSubmitting}
-                          existingData={exerciseData[exercise.id]}
-                          autoSave={true}
+                {workoutExercises.map((exercise, index) => (
+                  <Card key={`${exercise.exercise_id}-${index}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-md">
+                          {exercise.exercise?.name || "Exercise"}
+                        </CardTitle>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive"
+                          onClick={() => handleExerciseRemove(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0 pb-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <FormLabel htmlFor={`sets-${index}`}>Sets</FormLabel>
+                          <Input
+                            id={`sets-${index}`}
+                            type="number"
+                            value={exercise.sets}
+                            min={1}
+                            onChange={(e) => handleExerciseUpdate(index, 'sets', parseInt(e.target.value) || 1)}
+                          />
+                        </div>
+                        <div>
+                          <FormLabel htmlFor={`reps-${index}`}>Reps/Duration</FormLabel>
+                          <Input
+                            id={`reps-${index}`}
+                            value={exercise.reps}
+                            placeholder="e.g., 8-10, 30s"
+                            onChange={(e) => handleExerciseUpdate(index, 'reps', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <FormLabel htmlFor={`rest-${index}`}>Rest (seconds)</FormLabel>
+                          <Input
+                            id={`rest-${index}`}
+                            type="number"
+                            value={exercise.rest_seconds || 0}
+                            min={0}
+                            onChange={(e) => handleExerciseUpdate(index, 'rest_seconds', parseInt(e.target.value) || 0)}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <FormLabel htmlFor={`notes-${index}`}>Notes (Optional)</FormLabel>
+                        <Textarea
+                          id={`notes-${index}`}
+                          value={exercise.notes || ""}
+                          placeholder="Additional instructions or cues"
+                          onChange={(e) => handleExerciseUpdate(index, 'notes', e.target.value)}
+                          rows={2}
                         />
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </CardContent>
+                    {index < workoutExercises.length - 1 && (
+                      <CardFooter className="flex justify-center pb-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleExerciseReorder(index, index + 1)}
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                          <span className="sr-only">Move down</span>
+                        </Button>
+                      </CardFooter>
+                    )}
+                  </Card>
+                ))}
               </div>
-
-              <div className="flex justify-between items-center">
-                <div>
-                  {exercises.length > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      {exercises.length} exercise{exercises.length !== 1 ? 's' : ''} added
-                    </p>
-                  )}
-                </div>
-                <Button 
-                  type="button" 
-                  disabled={isSavingWorkout}
-                  onClick={form.handleSubmit(onSubmit)}
-                >
-                  {isSavingWorkout ? 'Saving...' : mode === 'edit' ? 'Update Workout' : 'Save Workout'}
-                </Button>
-              </div>
-            </div>
-          </Form>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-4 mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/coach/standalone-workouts')}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : (id ? "Update Workout" : "Create Workout")}
+            </Button>
+          </div>
+        </form>
+      </Form>
+      
+      <ExerciseSelector
+        isOpen={isSelectorOpen}
+        onClose={() => setIsSelectorOpen(false)}
+        exercises={exercises}
+        onExerciseSelect={handleExerciseAdd}
+      />
+    </div>
   );
 };
 

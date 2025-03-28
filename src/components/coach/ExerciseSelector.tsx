@@ -195,19 +195,21 @@ export const ExerciseSelector = ({
             onValueChange={setSelectedCategory}
             className="flex-1 overflow-hidden flex flex-col"
           >
-            <div className="border-b mb-4">
-              <ScrollArea className="w-full" orientation="horizontal">
-                <TabsList className="inline-flex h-10 items-center justify-start px-1 mb-0 w-auto overflow-x-auto gap-1">
-                  {categories.map((category) => (
-                    <TabsTrigger
-                      key={category}
-                      value={category}
-                      className="px-3 py-1.5 whitespace-nowrap"
-                    >
-                      {category}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+            <div className="border-b mb-4 overflow-x-auto">
+              <ScrollArea className="w-full">
+                <div className="pb-0.5 pt-0.5">
+                  <TabsList className="inline-flex h-10 items-center justify-start px-1 mb-0 w-auto gap-1">
+                    {categories.map((category) => (
+                      <TabsTrigger
+                        key={category}
+                        value={category}
+                        className="px-3 py-1.5 whitespace-nowrap"
+                      >
+                        {category}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
               </ScrollArea>
             </div>
             

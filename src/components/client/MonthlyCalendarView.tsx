@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -66,7 +65,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
   };
 
   const getWorkoutTypeForDay = (day: Date): 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off' | undefined => {
-    // Find workouts for this day
     const workoutsForDay = workouts.filter(workout => {
       if (!workout.completed_at) return false;
       return isSameDay(new Date(workout.completed_at), day);
@@ -74,18 +72,14 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
 
     if (workoutsForDay.length === 0) return undefined;
 
-    // If it's a rest day, return that type
     if (workoutsForDay.some(w => w.rest_day)) {
       return 'rest_day';
     }
 
-    // If it's a life happens pass, we don't show anything special
     if (workoutsForDay.every(w => w.life_happens_pass)) {
       return undefined;
     }
 
-    // Try to determine workout type from the workout details
-    // This might need adjustments based on your actual data structure
     for (const workout of workoutsForDay) {
       if (workout.workout?.workout_exercises?.length > 0) {
         const firstExercise = workout.workout.workout_exercises[0];
@@ -95,7 +89,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
       }
     }
 
-    // If we couldn't determine the type, use a fallback based on workout properties
     if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('strength'))) {
       return 'strength';
     } else if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('cardio') || 
@@ -109,7 +102,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
       return 'bodyweight';
     }
 
-    // Default to custom if we can't determine
     return 'custom';
   };
 
@@ -118,20 +110,17 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
     const rows = [];
     let days = [];
     
-    // Add empty cells for the start of the month
     for (let i = 0; i < startWeekday; i++) {
       days.push(
         <div key={`empty-${i}`} className="h-10 p-1 border border-transparent"></div>
       );
     }
     
-    // Add days of the month
     for (const day of monthDays) {
       const formattedDate = format(day, dateFormat);
       const isCurrentDay = isToday(day);
       const isSameMonthDay = isSameMonth(day, currentMonth);
       
-      // Check if there's a workout for this day
       const workoutType = getWorkoutTypeForDay(day);
       const hasWorkout = !!workoutType;
       
@@ -164,12 +153,10 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
       }
     }
     
-    // Add any remaining days
     if (days.length > 0) {
       rows.push(
         <div key="last-row" className="grid grid-cols-7 gap-1">
           {days}
-          {/* Add empty cells to complete the row */}
           {Array(7 - days.length).fill(null).map((_, i) => (
             <div key={`empty-end-${i}`} className="h-10 p-1 border border-transparent"></div>
           ))}
@@ -179,12 +166,39 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
     
     return <div className="space-y-1">{rows}</div>;
   };
-  
+
+  const renderLegend = () => {
+    const legendItems = [
+      { type: 'strength', label: 'Strength' },
+      { type: 'cardio', label: 'Cardio' },
+      { type: 'flexibility', label: 'Flexibility' },
+      { type: 'bodyweight', label: 'Bodyweight' },
+      { type: 'rest_day', label: 'Rest Day' },
+      { type: 'custom', label: 'Custom' },
+      { type: 'one_off', label: 'One-off' },
+    ] as const;
+
+    return (
+      <div className="mt-4 pt-3 border-t">
+        <h3 className="text-xs font-medium mb-2 text-center">Workout Types</h3>
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+          {legendItems.map((item) => (
+            <div key={item.type} className="flex items-center gap-1.5">
+              <WorkoutTypeIcon type={item.type} />
+              <span className="text-xs">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="p-2 bg-white rounded-lg">
       {renderHeader()}
       {renderDays()}
       {renderCells()}
+      {renderLegend()}
     </div>
   );
 };

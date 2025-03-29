@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -258,7 +259,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
             <TabsContent value="profile">
               <Card>
                 <CardHeader className="pb-0">
-                  <CardTitle className="text-xl text-center">
+                  <CardTitle className="text-xl font-semibold text-center">
                     {formatDisplayName(memberProfile?.first_name, memberProfile?.last_name)}
                     {selectedMember === user?.id && <Badge className="ml-2">You</Badge>}
                   </CardTitle>
@@ -267,34 +268,35 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                       {memberProfile.city}{memberProfile.city && memberProfile.state ? ', ' : ''}{memberProfile.state}
                     </p>
                   )}
-                  {memberProfile?.event_type && (
-                    <p className="text-sm font-medium text-center mt-3">
-                      Preparing for {memberProfile.event_type}
-                      {memberProfile.event_date && (
-                        <> on {formatEventDate(memberProfile.event_date)}</>
-                      )}
-                    </p>
-                  )}
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
                   {memberProfile ? (
                     <>
-                      <div className="flex flex-col sm:flex-row gap-6 items-center justify-center">
-                        <div className="flex items-center gap-4">
-                          {memberProfile.height && (
-                            <div className="text-center">
-                              <p className="text-sm text-muted-foreground">Height</p>
-                              <p className="font-medium">{memberProfile.height}</p>
-                            </div>
-                          )}
-                          
-                          {memberProfile.weight && (
-                            <div className="text-center">
-                              <p className="text-sm text-muted-foreground">Weight</p>
-                              <p className="font-medium">{memberProfile.weight}</p>
-                            </div>
-                          )}
+                      {memberProfile.event_type && (
+                        <div className="text-center">
+                          <p className="text-sm font-medium">
+                            Preparing for {memberProfile.event_type}
+                            {memberProfile.event_date && (
+                              <> on {formatEventDate(memberProfile.event_date)}</>
+                            )}
+                          </p>
                         </div>
+                      )}
+                    
+                      <div className="flex justify-center gap-6">
+                        {memberProfile.height && (
+                          <div className="text-center">
+                            <p className="text-sm text-muted-foreground">Height</p>
+                            <p className="font-medium">{memberProfile.height}</p>
+                          </div>
+                        )}
+                        
+                        {memberProfile.weight && (
+                          <div className="text-center">
+                            <p className="text-sm text-muted-foreground">Weight</p>
+                            <p className="font-medium">{memberProfile.weight}</p>
+                          </div>
+                        )}
                       </div>
                       
                       <Separator className="my-4" />

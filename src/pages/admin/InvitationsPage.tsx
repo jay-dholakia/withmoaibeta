@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,20 +15,12 @@ import { InvitationForm } from '@/components/admin/InvitationForm';
 import { InvitationLinkDialog } from '@/components/admin/InvitationLinkDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Info } from 'lucide-react';
-
-interface InvitationResponse {
-  success: boolean;
-  emailSent: boolean;
-  invitationId: string;
-  token: string;
-  expiresAt: string;
-  inviteLink: string;
-  emailError?: string;
-  email?: string;
-  emailErrorCode?: string;
-  emailData?: any;
-  message?: string;
-}
+import { 
+  sendInvitation as sendInvitationService,
+  resendInvitation as resendInvitationService,
+  getInvitationsGroupedByStatus,
+  InvitationResponse
+} from '@/utils/invitationService';
 
 const InvitationsPage: React.FC = () => {
   const [inviteLink, setInviteLink] = useState('');
@@ -38,16 +31,19 @@ const InvitationsPage: React.FC = () => {
     timestamp: Date;
   } | null>(null);
   const [resendingInvitations, setResendingInvitations] = useState<Record<string, boolean>>({});
+
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { userType: currentUserType, session } = useAuth();
   
-  React.useEffect(() => {
+  // Redirect non-admin users
+  useEffect(() => {
     if (currentUserType !== 'admin') {
       navigate('/admin');
     }
   }, [currentUserType, navigate]);
 
+  // Fetch invitations
   const { data: invitations, isLoading } = useQuery({
     queryKey: ['invitations'],
     queryFn: async () => {
@@ -58,6 +54,7 @@ const InvitationsPage: React.FC = () => {
       
       if (error) throw error;
       
+      // Debug log for specific email
       const debugEmail = "jdholakia12@gmail.com";
       const debugInvitation = data?.find(inv => inv.email === debugEmail);
       if (debugInvitation) {
@@ -65,16 +62,15 @@ const InvitationsPage: React.FC = () => {
         console.log(`Debug - Invitation accepted: ${debugInvitation.accepted}`);
         console.log(`Debug - Is accepted value a boolean?`, typeof debugInvitation.accepted === 'boolean');
         console.log(`Debug - Invitation accepted_at:`, debugInvitation.accepted_at);
-      } else {
-        console.log(`Debug - Invitation for ${debugEmail} not found in results`);
       }
       
       return data as Invitation[];
     },
     enabled: currentUserType === 'admin',
-    refetchInterval: 10000
+    refetchInterval: 10000 // Refetch every 10 seconds
   });
   
+  // Set up realtime subscription
   useEffect(() => {
     if (currentUserType !== 'admin') return;
     
@@ -108,125 +104,32 @@ const InvitationsPage: React.FC = () => {
     };
   }, [currentUserType, queryClient]);
   
+  // Send invitation mutation
   const sendInvitation = useMutation({
-    mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' | 'admin' }): Promise<InvitationResponse> => {
-      try {
-        const token = crypto.randomUUID();
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
-        
-        const { data, error } = await supabase
-          .from('invitations')
-          .insert({
-            email,
-            user_type: userType,
-            invited_by: session?.user.id,
-            token,
-            expires_at: expiresAt.toISOString(),
-            accepted: false
-          })
-          .select()
-          .single();
-        
-        if (error) {
-          console.error("Error creating invitation:", error);
-          throw error;
-        }
-        
-        const siteUrl = window.location.origin;
-        const inviteLink = `${siteUrl}/register?token=${token}&type=${userType}`;
-        
-        try {
-          console.log("Invoking send-invitation edge function with payload:", { email, userType, siteUrl, invitationId: data.id });
-          
-          const payload = {
-            email,
-            userType,
-            siteUrl,
-            invitationId: data.id
-          };
-          
-          const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
-            body: payload,
-            headers: {
-              Authorization: `Bearer ${session?.access_token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          console.log("Edge function response:", edgeFunctionResponse);
-          
-          if (edgeFunctionResponse.error) {
-            console.error("Edge function error:", edgeFunctionResponse.error);
-            throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
-          }
-          
-          const responseData = edgeFunctionResponse.data as InvitationResponse;
-          
-          setLastEmailStatus({
-            sent: responseData.emailSent,
-            email: email,
-            error: responseData.emailError,
-            timestamp: new Date()
-          });
-          
-          if (responseData && responseData.emailSent === false) {
-            console.warn("Email was not sent due to service error:", responseData.emailError);
-            return {
-              ...responseData,
-              email,
-              invitationId: data.id,
-              token: data.token,
-              expiresAt: data.expires_at,
-              inviteLink,
-            };
-          }
-          
-          return {
-            ...responseData,
-            email,
-            invitationId: data.id,
-            token: data.token,
-            expiresAt: data.expires_at,
-            inviteLink,
-          };
-        } catch (emailError) {
-          console.error("Failed to send email, but invitation created:", emailError);
-          
-          setLastEmailStatus({
-            sent: false,
-            email: email,
-            error: emailError.message,
-            timestamp: new Date()
-          });
-          
-          return {
-            success: true,
-            emailSent: false,
-            invitationId: data.id,
-            token: data.token,
-            expiresAt: data.expires_at,
-            inviteLink,
-            emailError: emailError.message,
-            email
-          };
-        }
-      } catch (error: any) {
-        console.error("Error in sendInvitation:", error);
-        throw error;
+    mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' | 'admin' }) => {
+      if (!session?.access_token) {
+        throw new Error('Authentication required');
       }
+      
+      return sendInvitationService(email, userType, session.access_token);
     },
     onSuccess: (data) => {
       setInviteLink(data.inviteLink);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       
+      setLastEmailStatus({
+        sent: data.emailSent,
+        email: data.inviteLink.split('token=')[1].split('&')[0],
+        error: data.emailError,
+        timestamp: new Date()
+      });
+      
       if (data.emailSent) {
-        toast.success(`Invitation sent to ${data.email || 'user'} successfully!`, {
+        toast.success(`Invitation sent successfully!`, {
           description: "Email delivered via Resend."
         });
-        console.log("Email send result:", data.emailData);
       } else {
-        toast.info(`Invitation created for ${data.email || 'user'}, but email could not be sent: ${data.emailError || 'Unknown error'}. Please share the invitation link manually.`, {
+        toast.info(`Invitation created, but email could not be sent: ${data.emailError || 'Unknown error'}`, {
           duration: 8000
         });
       }
@@ -237,115 +140,28 @@ const InvitationsPage: React.FC = () => {
     }
   });
   
+  // Resend invitation mutation
   const resendInvitation = useMutation({
-    mutationFn: async (invitation: Invitation): Promise<InvitationResponse> => {
-      try {
-        setResendingInvitations(prev => ({ ...prev, [invitation.id]: true }));
-        
-        const newToken = crypto.randomUUID();
-        const newExpiresAt = new Date();
-        newExpiresAt.setDate(newExpiresAt.getDate() + 30);
-        
-        const { data, error } = await supabase
-          .from('invitations')
-          .update({
-            token: newToken,
-            expires_at: newExpiresAt.toISOString(),
-            created_at: new Date().toISOString(),
-            accepted: false,
-            accepted_at: null
-          })
-          .eq('id', invitation.id)
-          .select()
-          .single();
-        
-        if (error) {
-          console.error("Error updating invitation:", error);
-          throw error;
-        }
-        
-        const siteUrl = window.location.origin;
-        const inviteLink = `${siteUrl}/register?token=${newToken}&type=${invitation.user_type}`;
-        
-        try {
-          console.log("Invoking send-invitation edge function for resend with payload:", {
-            email: invitation.email,
-            userType: invitation.user_type,
-            siteUrl,
-            resend: true,
-            invitationId: invitation.id
-          });
-          
-          const payload = {
-            email: invitation.email,
-            userType: invitation.user_type,
-            siteUrl,
-            resend: true,
-            invitationId: invitation.id
-          };
-          
-          const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
-            body: payload,
-            headers: {
-              Authorization: `Bearer ${session?.access_token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          console.log("Edge function response for resend:", edgeFunctionResponse);
-          
-          if (edgeFunctionResponse.error) {
-            console.error("Edge function error for resend:", edgeFunctionResponse.error);
-            throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
-          }
-          
-          const responseData = edgeFunctionResponse.data as InvitationResponse;
-          
-          setLastEmailStatus({
-            sent: responseData.emailSent,
-            email: invitation.email,
-            error: responseData.emailError,
-            timestamp: new Date()
-          });
-          
-          return {
-            ...responseData,
-            email: invitation.email,
-            invitationId: data.id,
-            token: data.token,
-            expiresAt: data.expires_at,
-            inviteLink,
-          };
-        } catch (emailError) {
-          console.error("Failed to send email, but invitation updated:", emailError);
-          
-          setLastEmailStatus({
-            sent: false,
-            email: invitation.email,
-            error: emailError.message,
-            timestamp: new Date()
-          });
-          
-          return {
-            success: true,
-            emailSent: false,
-            invitationId: data.id,
-            token: data.token,
-            expiresAt: data.expires_at,
-            inviteLink,
-            emailError: emailError.message,
-            email: invitation.email
-          };
-        }
-      } catch (error: any) {
-        console.error("Error in resendInvitation:", error);
-        throw error;
+    mutationFn: async (invitation: Invitation) => {
+      if (!session?.access_token) {
+        throw new Error('Authentication required');
       }
+      
+      setResendingInvitations(prev => ({ ...prev, [invitation.id]: true }));
+      
+      return resendInvitationService(invitation, session.access_token);
     },
     onSuccess: (data, invitation) => {
       setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
       setInviteLink(data.inviteLink);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
+      
+      setLastEmailStatus({
+        sent: data.emailSent,
+        email: invitation.email,
+        error: data.emailError,
+        timestamp: new Date()
+      });
       
       if (data.emailSent) {
         toast.success(`Invitation resent to ${invitation.email} successfully!`, {
@@ -379,17 +195,9 @@ const InvitationsPage: React.FC = () => {
     toast.success('Invitation link copied to clipboard');
   };
 
-  const pendingInvitations = invitations?.filter(inv => 
-    inv.accepted === false && new Date(inv.expires_at) > new Date()
-  ) || [];
-  
-  const expiredInvitations = invitations?.filter(inv => 
-    inv.accepted === false && new Date(inv.expires_at) <= new Date()
-  ) || [];
-  
-  const acceptedInvitations = invitations?.filter(inv => 
-    inv.accepted === true
-  ) || [];
+  // Group invitations by status
+  const { pending: pendingInvitations, expired: expiredInvitations, accepted: acceptedInvitations } = 
+    invitations ? getInvitationsGroupedByStatus(invitations) : { pending: [], expired: [], accepted: [] };
 
   if (currentUserType !== 'admin') {
     return null;

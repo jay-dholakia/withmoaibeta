@@ -49,7 +49,6 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
   isResending = {}
 }) => {
   const handleResendClick = (invitation: Invitation) => {
-    // Ensure we're passing the full invitation object
     if (onResendInvite) {
       console.log("Resending invitation:", invitation);
       onResendInvite(invitation);

@@ -1,18 +1,19 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.37.0";
-// Use a newer version of Resend that's compatible with Deno
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
+// Define CORS headers for all responses
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Define the structure of the invitation payload
 interface InvitationPayload {
   email: string;
-  userType: "client" | "coach" | "admin";
-  siteUrl?: string;
+  userType: string;
+  siteUrl: string;
   resend?: boolean;
   invitationId?: string;
 }
@@ -26,18 +27,15 @@ serve(async (req) => {
   try {
     console.log("Send invitation function started");
     
-    // Get environment variables with detailed logging
+    // Get environment variables
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const siteUrl = Deno.env.get("SITE_URL");
     
-    // Enhanced logging for better diagnosis
     console.log("Environment check:", {
       hasSupabaseUrl: !!supabaseUrl,
       hasServiceRoleKey: !!supabaseServiceRoleKey,
       hasResendApiKey: !!resendApiKey,
-      hasSiteUrl: !!siteUrl,
       resendKeyFirstChars: resendApiKey ? `${resendApiKey.substring(0, 5)}...` : 'not set'
     });
     
@@ -56,45 +54,43 @@ serve(async (req) => {
       console.error("Missing Resend API key, unable to send emails");
       return new Response(
         JSON.stringify({ 
-          success: true, // Still returning 200 for frontend
+          success: true,
           emailSent: false, 
-          error: "Email service not configured: Missing Resend API key", 
-          details: "The RESEND_API_KEY environment variable is not set or not accessible by the Edge Function."
+          error: "Email service not configured: Missing Resend API key"
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    // Create a Supabase client with the service role key
+    // Create Supabase client
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
+    // Initialize Resend client
     let resend;
     try {
-      console.log("Initializing Resend client with API key");
-      // Create a new instance of Resend with the API key
+      console.log("Initializing Resend client");
       resend = new Resend(resendApiKey);
       console.log("Resend client initialized successfully");
     } catch (resendError) {
       console.error("Failed to initialize Resend client:", resendError);
       return new Response(
         JSON.stringify({ 
-          success: true, // Still returning 200 for frontend
+          success: true,
           emailSent: false,
-          error: "Email service initialization failed", 
-          details: "Could not initialize the Resend client with the provided API key.",
-          resendError: resendError.message
+          error: "Email service initialization failed"
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check if there's a request body before trying to parse it
-    let reqText;
+    // Parse the request body
+    let payload: InvitationPayload;
     try {
-      reqText = await req.text();
-      console.log("Request body length:", reqText.length);
+      // First get the request body as text to validate it's not empty
+      const requestText = await req.text();
+      console.log("Request body length:", requestText.length);
       
-      if (!reqText || reqText.trim() === '') {
+      if (!requestText || requestText.trim() === '') {
         console.error("Empty request body received");
         return new Response(
           JSON.stringify({ 
@@ -104,21 +100,9 @@ serve(async (req) => {
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-    } catch (textError) {
-      console.error("Failed to read request body as text:", textError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Failed to read request body" 
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Parse the request body
-    let payload: InvitationPayload;
-    try {
-      payload = JSON.parse(reqText);
+      
+      // Then parse it as JSON
+      payload = JSON.parse(requestText);
       console.log("Request payload received:", { 
         email: payload.email, 
         userType: payload.userType,
@@ -128,18 +112,17 @@ serve(async (req) => {
       });
     } catch (jsonError) {
       console.error("Failed to parse request body:", jsonError);
-      console.error("Raw request body:", reqText);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Invalid JSON in request body",
-          details: jsonError.message
+          error: "Invalid JSON in request body" 
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const { email, userType, resend: isResend, invitationId } = payload;
+    // Extract fields from payload
+    const { email, userType, resend: isResend, invitationId, siteUrl } = payload;
 
     if (!email || !userType) {
       console.error("Missing required fields:", { email, userType });
@@ -220,8 +203,7 @@ serve(async (req) => {
       }
     } else {
       console.log("No authorization header provided - bypassing admin check in development");
-      // For development, we'll create a default admin user ID
-      // This is a workaround for the invited_by not-null constraint
+      // For development, create a default admin user ID
       userId = "00000000-0000-0000-0000-000000000000"; // Dummy UUID for development
     }
 
@@ -236,6 +218,7 @@ serve(async (req) => {
       );
     }
 
+    // Handle invitation logic
     let invitation;
     
     if (isResend && invitationId) {
@@ -262,7 +245,7 @@ serve(async (req) => {
       // Update the existing invitation - set a new expiration date and token
       const newToken = crypto.randomUUID();
       const newExpiresAt = new Date();
-      newExpiresAt.setDate(newExpiresAt.getDate() + 7); // 7 days from now
+      newExpiresAt.setDate(newExpiresAt.getDate() + 30); // 30 days from now
       
       const { data: updatedInvitation, error: updateError } = await supabaseClient
         .from("invitations")
@@ -270,6 +253,8 @@ serve(async (req) => {
           token: newToken,
           expires_at: newExpiresAt.toISOString(),
           created_at: new Date().toISOString(), // Update the created_at time as well
+          accepted: false,
+          accepted_at: null
         })
         .eq("id", invitationId)
         .select()
@@ -287,20 +272,16 @@ serve(async (req) => {
       }
       
       invitation = updatedInvitation;
-      console.log("Invitation updated successfully:", { 
-        invitationId: invitation.id, 
-        token: invitation.token,
-        expiresAt: invitation.expires_at
-      });
+      console.log("Invitation updated successfully");
     } else {
       console.log("Creating new invitation for:", { email, userType, createdBy: userId });
 
       // Generate token and expiration date
       const token = crypto.randomUUID();
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days from now
 
-      // Insert the invitation directly instead of using the database function
+      // Insert the invitation
       const { data: newInvitation, error: invitationError } = await supabaseClient
         .from("invitations")
         .insert({
@@ -326,112 +307,47 @@ serve(async (req) => {
       }
       
       invitation = newInvitation;
-      console.log("Invitation created successfully:", { 
-        invitationId: invitation.id, 
-        token: invitation.token,
-        expiresAt: invitation.expires_at
-      });
+      console.log("Invitation created successfully");
     }
 
-    // Determine site URL from environment or payload
-    const effectiveSiteUrl = siteUrl || payload.siteUrl || "";
-    if (!effectiveSiteUrl) {
-      console.warn("No site URL provided for invitation link");
-    }
-    
-    const inviteLink = `${effectiveSiteUrl}/register?token=${invitation.token}&type=${userType}`;
+    // Generate the invitation link
+    const inviteLink = `${siteUrl}/register?token=${invitation.token}&type=${userType}`;
     console.log("Generated invite link:", inviteLink);
 
+    // Send the email with Resend
     try {
       console.log("Preparing to send email to:", email);
       
       // Capitalize the user type for better readability in the email
       const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
       
-      // Additional debugging before sending
-      console.log("Email configuration:", {
-        fromEmail: "jay@withmoai.co",
-        toEmail: email,
+      // Send the email
+      const emailResponse = await resend.emails.send({
+        from: "Moai <jay@withmoai.co>",
+        to: [email],
         subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
-        hasHtmlContent: true
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #333; margin-bottom: 20px;">Moai Invitation</h1>
+            <p>You've been invited to join Moai as a ${userTypeCapitalized}.</p>
+            <p>Click the button below to create your account:</p>
+            <div style="margin: 30px 0;">
+              <a href="${inviteLink}" style="background-color: #0066cc; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Accept Invitation</a>
+            </div>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; font-size: 14px; color: #666;">${inviteLink}</p>
+            <p>This invitation will expire in 30 days.</p>
+            <p>If you did not expect this invitation, you can safely ignore this email.</p>
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #999;">
+              <p>© Moai. All rights reserved.</p>
+            </div>
+          </div>
+        `
       });
       
-      // Attempt to send the email with Resend
-      let emailSendResult = null;
-      let emailError = null;
+      console.log("Email sent successfully:", JSON.stringify(emailResponse));
       
-      try {
-        // Send the email with detailed error and response logging
-        console.log("Calling Resend API to send email...");
-        const response = await resend.emails.send({
-          from: "Moai <jay@withmoai.co>",
-          to: [email],
-          subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h1 style="color: #333; margin-bottom: 20px;">Moai Invitation</h1>
-              <p>You've been invited to join Moai as a ${userTypeCapitalized}.</p>
-              <p>Click the button below to create your account:</p>
-              <div style="margin: 30px 0;">
-                <a href="${inviteLink}" style="background-color: #0066cc; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Accept Invitation</a>
-              </div>
-              <p>Or copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; font-size: 14px; color: #666;">${inviteLink}</p>
-              <p>This invitation will expire in 7 days.</p>
-              <p>If you did not expect this invitation, you can safely ignore this email.</p>
-              <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #999;">
-                <p>© Moai. All rights reserved.</p>
-              </div>
-            </div>
-          `
-        });
-        
-        console.log("Resend API response received:", JSON.stringify(response));
-        
-        if (response.error) {
-          emailError = response.error;
-          console.error("Resend reported an error:", emailError);
-        } else {
-          emailSendResult = response.data;
-          console.log("Email sent successfully via Resend:", JSON.stringify(emailSendResult));
-        }
-      } catch (resendError) {
-        console.error("Exception during resend.emails.send():", resendError);
-        console.error("Error details:", {
-          message: resendError.message,
-          stack: resendError.stack,
-          name: resendError.name,
-          code: resendError.code
-        });
-        emailError = {
-          message: resendError.message || "Unknown error during email sending",
-          code: resendError.code || "UNKNOWN",
-          name: resendError.name || "Error"
-        };
-      }
-      
-      if (emailError) {
-        console.error("Error sending email:", emailError);
-        
-        // Still return success but with emailSent: false
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            emailSent: false,
-            emailError: emailError.message || "Unknown error",
-            emailErrorCode: emailError.code,
-            invitationId: invitation.id,
-            token: invitation.token,
-            expiresAt: invitation.expires_at,
-            inviteLink
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      console.log("Email sent successfully via Resend:", JSON.stringify(emailSendResult));
-      
-      // Return success
+      // Return success with the invitation details
       return new Response(
         JSON.stringify({
           success: true,
@@ -441,26 +357,19 @@ serve(async (req) => {
           token: invitation.token,
           expiresAt: invitation.expires_at,
           inviteLink,
-          emailData: emailSendResult
+          emailData: emailResponse
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } catch (emailSendError) {
       console.error("Exception sending email with Resend:", emailSendError);
-      console.error("Error details:", {
-        message: emailSendError.message,
-        stack: emailSendError.stack,
-        name: emailSendError.name,
-        code: emailSendError.code
-      });
       
-      // Still return a 200 status with info about the invitation, but include error details
+      // Return a 200 status with info about the invitation, but include error details
       return new Response(
         JSON.stringify({ 
           success: true, // We succeeded in creating the invitation
           emailSent: false,
-          emailError: emailSendError.message,
-          emailErrorCode: emailSendError.code,
+          emailError: emailSendError.message || "Unknown email sending error",
           invitationId: invitation.id,
           token: invitation.token,
           expiresAt: invitation.expires_at,
@@ -471,13 +380,10 @@ serve(async (req) => {
     }
   } catch (error) {
     console.error("Error in send-invitation function:", error);
-    console.error("Stack trace:", error.stack);
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message || "An unexpected error occurred",
-        stack: error.stack,
-        name: error.name 
+        error: error.message || "An unexpected error occurred"
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

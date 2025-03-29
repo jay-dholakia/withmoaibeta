@@ -570,35 +570,54 @@ export type Database = {
       workout_completions: {
         Row: {
           completed_at: string | null
+          distance: string | null
+          duration: string | null
           id: string
           life_happens_pass: boolean | null
+          location: string | null
           notes: string | null
           rating: number | null
           rest_day: boolean | null
+          standalone_workout_id: string | null
           user_id: string
           workout_id: string | null
         }
         Insert: {
           completed_at?: string | null
+          distance?: string | null
+          duration?: string | null
           id?: string
           life_happens_pass?: boolean | null
+          location?: string | null
           notes?: string | null
           rating?: number | null
           rest_day?: boolean | null
+          standalone_workout_id?: string | null
           user_id: string
           workout_id?: string | null
         }
         Update: {
           completed_at?: string | null
+          distance?: string | null
+          duration?: string | null
           id?: string
           life_happens_pass?: boolean | null
+          location?: string | null
           notes?: string | null
           rating?: number | null
           rest_day?: boolean | null
+          standalone_workout_id?: string | null
           user_id?: string
           workout_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "workout_completions_standalone_workout_id_fkey"
+            columns: ["standalone_workout_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_workouts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workout_completions_workout_id_fkey"
             columns: ["workout_id"]

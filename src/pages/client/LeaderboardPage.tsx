@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -5,7 +6,7 @@ import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, User, Loader2, Info } from 'lucide-react';
+import { Users, User, Loader2 } from 'lucide-react';
 import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { Container } from '@/components/ui/container';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -40,8 +41,8 @@ const LeaderboardPage = () => {
     enabled: !!user?.id,
   });
   
-  // Query for assigned workouts count
-  const { data: assignedCount, isLoading: isLoadingAssigned } = useQuery({
+  // Query for assigned workouts count - still fetching this for WeekProgressSection
+  const { data: assignedCount } = useQuery({
     queryKey: ['assigned-workouts-count', user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
@@ -154,22 +155,6 @@ const LeaderboardPage = () => {
               </div>
             ) : (
               <>
-                {!isLoadingAssigned && (
-                  <div className="mb-4 bg-muted p-3 rounded-md text-sm flex items-start gap-2 justify-center">
-                    <Info className="h-4 w-4 mt-0.5 shrink-0" />
-                    <div>
-                      {assignedCount > 0 ? (
-                        <p>You have {assignedCount} workouts assigned this week.</p>
-                      ) : (
-                        <>
-                          <p>No assigned workouts found for this week.</p>
-                          <p className="text-xs text-muted-foreground mt-1">Using default goal of 7 workouts per week.</p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
                 <h2 className="text-xl font-bold mb-4 mt-6 flex items-center justify-center gap-2">
                   <User className="h-5 w-5 text-client" />
                   Monthly Progress

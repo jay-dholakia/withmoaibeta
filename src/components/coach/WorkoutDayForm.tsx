@@ -258,7 +258,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     <div className="space-y-6">
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4">
             <div>
               <Label htmlFor="title">Workout Title</Label>
               <Input
@@ -268,25 +268,6 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
                 placeholder="e.g., Lower Body Strength"
                 required
               />
-            </div>
-            
-            <div>
-              <Label htmlFor="day">Day of Week</Label>
-              <Select 
-                value={dayOfWeek.toString()} 
-                onValueChange={(value) => setDayOfWeek(parseInt(value))}
-              >
-                <SelectTrigger id="day">
-                  <SelectValue placeholder="Select day" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DAYS_OF_WEEK.map((day, index) => (
-                    <SelectItem key={index} value={index.toString()}>
-                      {day}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           

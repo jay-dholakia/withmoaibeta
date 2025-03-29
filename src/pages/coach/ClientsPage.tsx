@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Filter, Calendar, Clock, Award, Info } from 'lucide-react';
+import { Loader2, Users, Filter, Calendar, Clock, Award, Info, Send, CheckCircle2 } from 'lucide-react';
 import { 
   Table, 
   TableHeader, 
@@ -19,6 +20,7 @@ import { ClientData } from '@/services/client-service';
 import { fetchCoachClients } from '@/services/coach-service';
 import { fetchCoachGroups } from '@/services/coach-group-service';
 import { ClientDetailView } from '@/components/coach/ClientDetailView';
+import { ClientMessageForm } from '@/components/coach/ClientMessageForm';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { 
@@ -29,6 +31,7 @@ import {
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination';
+import { fetchCoachMessagesForClient } from '@/services/coach-client-message-service';
 
 interface Group {
   id: string;
@@ -42,7 +45,10 @@ const ClientsPage = () => {
   const { user } = useAuth();
   const [selectedGroupId, setSelectedGroupId] = useState<string | 'all'>('all');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedClientEmail, setSelectedClientEmail] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<'details' | 'message'>('details');
+  const [messageStatus, setMessageStatus] = useState<Record<string, boolean>>({});
   const itemsPerPage = 10;
 
   const { data: clients, isLoading: isLoadingClients, error: clientsError } = useQuery({
@@ -79,6 +85,39 @@ const ClientsPage = () => {
     enabled: !!user?.id,
   });
 
+  // Query to check message status for clients in the current page
+  useQuery({
+    queryKey: ['client-message-status', user?.id, filteredClients, currentPage],
+    queryFn: async () => {
+      if (!user?.id || !filteredClients.length) return {};
+      
+      const currentWeekDate = new Date();
+      const day = currentWeekDate.getDay(); // 0 is Sunday
+      const diff = currentWeekDate.getDate() - day;
+      currentWeekDate.setDate(diff); // Set to this week's Sunday
+      
+      const statusObj: Record<string, boolean> = {};
+      
+      // Only check message status for clients on current page
+      for (const client of paginatedClients) {
+        try {
+          const messages = await fetchCoachMessagesForClient(user.id, client.id);
+          const hasMessageThisWeek = messages.some(message => 
+            new Date(message.week_of).toDateString() === currentWeekDate.toDateString()
+          );
+          statusObj[client.id] = hasMessageThisWeek;
+        } catch (error) {
+          console.error(`Error checking message status for client ${client.id}:`, error);
+          statusObj[client.id] = false;
+        }
+      }
+      
+      setMessageStatus(statusObj);
+      return statusObj;
+    },
+    enabled: !!user?.id && !!clients?.length,
+  });
+
   const filteredClients = clients?.filter(client => 
     selectedGroupId === 'all' || client.group_ids.includes(selectedGroupId)
   ) || [];
@@ -89,12 +128,21 @@ const ClientsPage = () => {
     currentPage * itemsPerPage
   );
 
-  const handleViewClient = (clientId: string) => {
+  const handleViewClient = (clientId: string, clientEmail: string) => {
     setSelectedClientId(clientId);
+    setSelectedClientEmail(clientEmail);
+    setActiveTab('details');
+  };
+
+  const handleMessageClient = (clientId: string, clientEmail: string) => {
+    setSelectedClientId(clientId);
+    setSelectedClientEmail(clientEmail);
+    setActiveTab('message');
   };
 
   const handleCloseClientView = () => {
     setSelectedClientId(null);
+    setSelectedClientEmail(null);
   };
 
   const getWorkoutStatusClass = (days: number | null) => {
@@ -204,6 +252,7 @@ const ClientsPage = () => {
                         <TableHead>Last Workout</TableHead>
                         <TableHead>Total Workouts</TableHead>
                         <TableHead>Current Program</TableHead>
+                        <TableHead>Weekly Message</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -224,24 +273,53 @@ const ClientsPage = () => {
                               <span className="text-muted-foreground">No active program</span>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {messageStatus[client.id] ? (
+                              <div className="flex items-center text-green-600">
+                                <CheckCircle2 className="h-4 w-4 mr-1" />
+                                <span className="text-xs">Sent</span>
+                              </div>
+                            ) : (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-amber-500 hover:text-amber-600 -ml-2"
+                                onClick={() => handleMessageClient(client.id, client.email)}
+                              >
+                                <Send className="h-4 w-4 mr-1" /> Write
+                              </Button>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right">
                             <Sheet>
                               <SheetTrigger asChild>
                                 <Button 
                                   variant="outline" 
                                   size="sm"
-                                  onClick={() => handleViewClient(client.id)}
+                                  onClick={() => handleViewClient(client.id, client.email)}
                                 >
                                   <Info className="h-4 w-4 mr-1" /> View Details
                                 </Button>
                               </SheetTrigger>
                               <SheetContent className="sm:max-w-md md:max-w-lg">
                                 {selectedClientId === client.id && (
-                                  <ClientDetailView 
-                                    clientId={client.id} 
-                                    clientEmail={client.email}
-                                    onClose={handleCloseClientView} 
-                                  />
+                                  <>
+                                    {activeTab === 'details' && (
+                                      <ClientDetailView 
+                                        clientId={client.id} 
+                                        clientEmail={client.email}
+                                        onClose={handleCloseClientView} 
+                                      />
+                                    )}
+                                    {activeTab === 'message' && (
+                                      <ClientMessageForm
+                                        coachId={user?.id || ''}
+                                        clientId={client.id}
+                                        clientEmail={client.email}
+                                        onClose={handleCloseClientView}
+                                      />
+                                    )}
+                                  </>
                                 )}
                               </SheetContent>
                             </Sheet>

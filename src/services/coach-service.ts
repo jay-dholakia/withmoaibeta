@@ -73,26 +73,37 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
         return [];
       }
       
-      // Individual workout completion counts per user using Promise.all
-      // Only count actual completed workouts, excluding life happens passes and rest days
+      // Individual workout completion counts per user
+      // Debug each client's workout completions to better understand the data
       const workoutCountPromises = clientIds.map(async (clientId) => {
+        // Get the completed workouts - adding comprehensive debugging
+        console.log(`Fetching completed workouts for client ${clientId}`);
+        
         const { data: completions, error: countError } = await supabase
           .from('workout_completions')
-          .select('id')
-          .eq('user_id', clientId)
-          .is('life_happens_pass', false)
-          .is('rest_day', false)
-          .not('completed_at', 'is', null); // Ensure only completed workouts are counted
+          .select('*')  // Select all to inspect the data
+          .eq('user_id', clientId);
           
         if (countError) {
-          console.error(`Error counting workouts for client ${clientId}:`, countError);
+          console.error(`Error fetching workouts for client ${clientId}:`, countError);
           return { userId: clientId, count: 0 };
         }
         
-        // Count the actual completed workouts
+        // Log ALL workout completions for debugging
+        console.log(`All workout completions for ${clientId}:`, completions);
+        
+        // Filter in JavaScript to make sure we're only counting legitimately completed workouts
+        const actualCompletedWorkouts = completions?.filter(workout => 
+          workout.completed_at !== null &&
+          workout.life_happens_pass !== true &&
+          workout.rest_day !== true
+        ) || [];
+        
+        console.log(`Actual completed workouts for ${clientId}:`, actualCompletedWorkouts.length);
+        
         return { 
           userId: clientId, 
-          count: completions ? completions.length : 0 
+          count: actualCompletedWorkouts.length 
         };
       });
       
@@ -187,7 +198,7 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
           email: emailMap.get(client.id) || 'Unknown',
           user_type: client.user_type,
           last_workout_at: clientWorkoutInfo?.last_workout_at || null,
-          // Use the accurate count from completed workouts
+          // Use the accurate count from actually completed workouts
           total_workouts_completed: workoutCountMap.get(client.id) || 0,
           current_program_id: clientWorkoutInfo?.current_program_id || null,
           current_program_title: program?.title || null,
@@ -204,22 +215,34 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       
       // Fetch individual workout counts for each client
       const workoutCountPromises = clientIds.map(async (clientId) => {
+        // Get the completed workouts - adding comprehensive debugging
+        console.log(`Fetching completed workouts for client ${clientId} (RPC path)`);
+        
         const { data: completions, error: countError } = await supabase
           .from('workout_completions')
-          .select('id')
-          .eq('user_id', clientId)
-          .is('life_happens_pass', false)
-          .is('rest_day', false)
-          .not('completed_at', 'is', null); // Only count actually completed workouts
+          .select('*')  // Select all to inspect the data
+          .eq('user_id', clientId);
           
         if (countError) {
-          console.error(`Error counting workouts for client ${clientId}:`, countError);
+          console.error(`Error fetching workouts for client ${clientId}:`, countError);
           return { userId: clientId, count: 0 };
         }
         
+        // Log ALL workout completions for debugging
+        console.log(`All workout completions for ${clientId}:`, completions);
+        
+        // Filter in JavaScript to make sure we're only counting legitimately completed workouts
+        const actualCompletedWorkouts = completions?.filter(workout => 
+          workout.completed_at !== null &&
+          workout.life_happens_pass !== true &&
+          workout.rest_day !== true
+        ) || [];
+        
+        console.log(`Actual completed workouts for ${clientId}:`, actualCompletedWorkouts.length);
+        
         return { 
           userId: clientId, 
-          count: completions ? completions.length : 0
+          count: actualCompletedWorkouts.length
         };
       });
       

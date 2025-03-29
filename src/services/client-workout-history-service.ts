@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { WorkoutBasic, WorkoutHistoryItem } from "@/types/workout";
+import { WorkoutBasic, WorkoutHistoryItem, WorkoutSetCompletion } from "@/types/workout";
 
 /**
  * Fetches the workout history for a specific client
@@ -133,6 +133,29 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
       }
     }
     
+    // Fetch workout set completions
+    const completionIds = completions.map(completion => completion.id);
+    const { data: setCompletions, error: setCompletionsError } = await supabase
+      .from('workout_set_completions')
+      .select('*')
+      .in('workout_completion_id', completionIds);
+    
+    if (setCompletionsError) {
+      console.error("Error fetching workout set completions:", setCompletionsError);
+    }
+    
+    // Create a map of set completions by workout completion ID
+    const setCompletionsMap: Map<string, WorkoutSetCompletion[]> = new Map();
+    if (setCompletions) {
+      setCompletions.forEach((setCompletion) => {
+        const completionId = setCompletion.workout_completion_id;
+        if (!setCompletionsMap.has(completionId)) {
+          setCompletionsMap.set(completionId, []);
+        }
+        setCompletionsMap.get(completionId)?.push(setCompletion as WorkoutSetCompletion);
+      });
+    }
+    
     // Combine the data - ensure completed_at is a proper date string
     return completions.map(completion => {
       // Ensure completed_at is a valid date string and not null/undefined
@@ -140,12 +163,16 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
         ? new Date(completion.completed_at).toISOString() 
         : new Date().toISOString();
         
+      // Get set completions for this workout completion
+      const workout_set_completions = setCompletionsMap.get(completion.id) || [];
+      
       // If workout_id is null, return completion without workout details
       if (!completion.workout_id) {
         return {
           ...completion,
           completed_at, // Use the validated date
-          workout: null
+          workout: null,
+          workout_set_completions
         };
       }
       
@@ -153,7 +180,8 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
       return {
         ...completion,
         completed_at, // Use the validated date
-        workout: workoutDetails
+        workout: workoutDetails,
+        workout_set_completions
       };
     });
   } catch (error) {

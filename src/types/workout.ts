@@ -1,3 +1,4 @@
+
 export interface Exercise {
   id: string;
   name: string;
@@ -102,6 +103,23 @@ export interface ProgramAssignment {
   created_at: string;
 }
 
+// Add WorkoutSetCompletion interface
+export interface WorkoutSetCompletion {
+  id: string;
+  workout_completion_id: string;
+  workout_exercise_id: string;
+  set_number: number;
+  reps_completed?: number;
+  weight?: number;
+  completed: boolean;
+  duration?: string;
+  distance?: string;
+  location?: string;
+  notes?: string;
+  created_at: string;
+  user_id?: string;
+}
+
 export interface WorkoutHistoryItem {
   id: string;
   completed_at: string;
@@ -112,6 +130,8 @@ export interface WorkoutHistoryItem {
   workout?: WorkoutBasic | null;
   life_happens_pass?: boolean;
   rest_day?: boolean;
+  // Add the workout_set_completions property
+  workout_set_completions?: WorkoutSetCompletion[];
 }
 
 export const DAYS_OF_WEEK = [

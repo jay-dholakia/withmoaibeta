@@ -137,7 +137,10 @@ const EnterOneOffWorkout = () => {
                   {WORKOUT_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       <div className="flex items-center gap-2">
-                        <span>{type.icon}</span>
+                        {typeof type.icon === 'string' ? 
+                          <span>{type.icon}</span> : 
+                          type.icon
+                        }
                         <span>{type.label}</span>
                       </div>
                     </SelectItem>

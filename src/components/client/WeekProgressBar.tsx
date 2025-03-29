@@ -62,7 +62,7 @@ export const WeekProgressBar = ({
     const dateString = format(day, 'yyyy-MM-dd');
     
     if (workoutTypes[dateString]) {
-      return workoutTypes[dateString];
+      return workoutTypes[dateString] as WorkoutType;
     }
     
     if (lifeHappensDates.some(d => isSameDay(d, day))) {
@@ -106,7 +106,7 @@ export const WeekProgressBar = ({
                   }`}
                 >
                   {(isLifeHappens || isCompleted) && workoutType && (
-                    <WorkoutTypeIcon type={workoutType} />
+                    <WorkoutTypeIcon type={workoutType} size={14} />
                   )}
                 </div>
                 <span className="text-xs text-slate-400">{format(day, 'E')[0]}</span>
@@ -171,7 +171,7 @@ export const WeekProgressBar = ({
                   }`}
                 >
                   {(isLifeHappens || isCompleted) && workoutType && (
-                    <WorkoutTypeIcon type={workoutType} />
+                    <WorkoutTypeIcon type={workoutType} size={16} />
                   )}
                 </div>
                 <div className="text-xs text-center text-slate-500">

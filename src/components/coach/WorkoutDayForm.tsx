@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +11,7 @@ import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
 import { DAYS_OF_WEEK } from "@/types/workout";
 import { toast } from "sonner";
+import { WORKOUT_TYPES, WorkoutType } from '@/components/client/WorkoutTypeIcon';
 import {
   fetchWorkout,
   fetchWorkoutExercises,
@@ -43,7 +43,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dayOfWeek, setDayOfWeek] = useState(0);
-  const [workoutType, setWorkoutType] = useState('strength');
+  const [workoutType, setWorkoutType] = useState<WorkoutType>('strength');
   
   const [exercises, setExercises] = useState<any[]>([]);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
@@ -233,10 +233,8 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     }
   };
   
-  // Dummy handler for the onSelectExercise prop to satisfy TypeScript
   const handleSelectExercise = (exercise: Exercise) => {
     console.log("Exercise selected:", exercise);
-    // This won't be used directly as we're using onSelect instead
   };
   
   if (isLoading) {
@@ -294,17 +292,23 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
             <Label htmlFor="type">Workout Type</Label>
             <Select 
               value={workoutType} 
-              onValueChange={setWorkoutType}
+              onValueChange={(value) => setWorkoutType(value as WorkoutType)}
             >
               <SelectTrigger id="type">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="strength">Strength</SelectItem>
-                <SelectItem value="cardio">Cardio</SelectItem>
-                <SelectItem value="hiit">HIIT</SelectItem>
-                <SelectItem value="yoga">Yoga</SelectItem>
-                <SelectItem value="recovery">Recovery</SelectItem>
+                {WORKOUT_TYPES.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    <div className="flex items-center gap-2">
+                      {typeof type.icon === 'string' ? 
+                        <span>{type.icon}</span> : 
+                        type.icon
+                      }
+                      <span>{type.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

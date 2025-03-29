@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +10,7 @@ import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/ser
 import { Container } from '@/components/ui/container';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { format } from 'date-fns';
+import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
@@ -65,6 +65,51 @@ const LeaderboardPage = () => {
     setSelectedDate(date);
     setSelectedWorkouts(workouts);
   };
+
+  // Map workout types to standardized types
+  const getStandardizedWorkoutType = (type: string): WorkoutType => {
+    type = type.toLowerCase();
+    
+    if (type.includes('strength')) return 'strength';
+    if (type.includes('body') || type.includes('weight')) return 'bodyweight';
+    if (type.includes('cardio') || type.includes('run') || type.includes('hiit')) return 'cardio';
+    if (type.includes('flex') || type.includes('yoga') || type.includes('stretch') || type.includes('recovery')) return 'flexibility';
+    if (type.includes('rest')) return 'rest_day';
+    if (type.includes('custom')) return 'custom';
+    if (type.includes('one')) return 'one_off';
+    
+    return 'strength'; // Default fallback
+  };
+
+  // Create a map of dates to workout types
+  const workoutTypesMap = React.useMemo(() => {
+    const typesMap: Record<string, WorkoutType> = {};
+    
+    if (clientWorkouts) {
+      clientWorkouts.forEach(item => {
+        if (!item.completed_at) return;
+        
+        const date = new Date(item.completed_at);
+        const dateKey = format(date, 'yyyy-MM-dd');
+        
+        if (item.life_happens_pass || item.rest_day) {
+          typesMap[dateKey] = 'rest_day';
+          return;
+        }
+        
+        if (item.workout?.workout_type) {
+          typesMap[dateKey] = getStandardizedWorkoutType(item.workout.workout_type);
+          return;
+        }
+        
+        // Fallback to checking workout title
+        const title = item.workout?.title?.toLowerCase() || '';
+        typesMap[dateKey] = getStandardizedWorkoutType(title);
+      });
+    }
+    
+    return typesMap;
+  }, [clientWorkouts]);
 
   // Initially select March 26, 2025 if workouts are loaded
   useEffect(() => {
@@ -139,6 +184,7 @@ const LeaderboardPage = () => {
                 <MonthlyCalendarView 
                   workouts={clientWorkouts || []} 
                   onDaySelect={handleDaySelect}
+                  workoutTypesMap={workoutTypesMap}
                 />
                 
                 <h2 className="text-xl font-bold mb-4 mt-8 flex items-center justify-center gap-2">
@@ -155,7 +201,11 @@ const LeaderboardPage = () => {
           </TabsContent>
           
           <TabsContent value="team" className="w-full">
-            <WeekProgressSection showTeam={true} showPersonal={false} />
+            <WeekProgressSection 
+              showTeam={true} 
+              showPersonal={false}
+              workoutTypesMap={workoutTypesMap}
+            />
           </TabsContent>
         </Tabs>
       </div>

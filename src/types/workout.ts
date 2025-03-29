@@ -123,3 +123,16 @@ export const DAYS_OF_WEEK = [
   'Friday', 
   'Saturday'
 ];
+
+// Standardized workout types
+export const STANDARD_WORKOUT_TYPES = [
+  'strength',
+  'bodyweight',
+  'cardio',
+  'flexibility',
+  'rest_day',
+  'custom',
+  'one_off'
+] as const;
+
+export type StandardWorkoutType = typeof STANDARD_WORKOUT_TYPES[number];

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -275,8 +276,8 @@ const MoaiPage = () => {
     <div className="space-y-6">
       <Card className="bg-client/5">
         <CardHeader className="pb-2">
-          <CardTitle className="text-xl text-center font-semibold text-client">
-            Moai - Pace Setters
+          <CardTitle className="text-2xl text-center font-semibold text-client">
+            🏃‍♀️ Pace Setters 🏃‍♂️
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground pt-0">

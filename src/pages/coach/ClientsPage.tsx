@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -15,8 +16,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { ClientData } from '@/services/client-service';
-import { fetchCoachClients } from '@/services/coach-service';
+import { ClientData, fetchCoachClients } from '@/services/coach-service';
 import { fetchCoachGroups } from '@/services/coach-group-service';
 import { ClientDetailView } from '@/components/coach/ClientDetailView';
 import ClientMessageForm from '@/components/coach/ClientMessageForm';

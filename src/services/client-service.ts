@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./client-workout-history-service";
-import { fetchCoachGroups } from "./coach-group-service";
+// Remove the duplicate import of fetchCoachGroups - we'll use the coach-service export instead
+// import { fetchCoachGroups } from "./coach-group-service";
 
 /**
  * Tracks a workout set completion
@@ -140,7 +141,7 @@ export const trackWorkoutSet = async (
 };
 
 // Re-export the functions from other services so existing imports still work
-export { fetchClientPrograms, fetchCurrentProgram, fetchClientWorkoutHistory, fetchCoachGroups };
+export { fetchClientPrograms, fetchCurrentProgram, fetchClientWorkoutHistory };
 
 // Client Profile Types
 export interface ClientProfile {
@@ -170,18 +171,9 @@ export interface CoachProfile {
   last_name: string | null;
 }
 
-// Client Data Types for Coach Views
-export interface ClientData {
-  id: string;
-  email: string;
-  user_type: string;
-  last_workout_at: string | null;
-  total_workouts_completed: number;
-  current_program_id: string | null;
-  current_program_title: string | null;
-  days_since_last_workout: number | null;
-  group_ids: string[];
-}
+// Client Data Types for Coach Views - use interface from coach service
+// Don't re-define ClientData since it's imported and re-exported in coach-service.ts
+// Instead, import it from there when needed
 
 // Group Types
 export interface GroupData {
@@ -448,10 +440,23 @@ export const uploadCoachAvatar = async (coachId: string, file: File): Promise<st
   }
 };
 
-// Coach Client Functions
-export { fetchCoachClients } from './coach-clients-service';
-export type { ClientData } from './coach-clients-service';
-export { fetchCoachGroups } from './coach-group-service'; 
+// Coach Client Functions - use imports from coach-service.ts
+// Import and re-export coach-service functions and types
+import {
+  fetchCoachClients,
+  syncCoachEmailWithGroups,
+  ClientData
+} from './coach-service';
+
+export {
+  fetchCoachClients,
+  syncCoachEmailWithGroups,
+  ClientData 
+};
+
+// Import coach-group-service functions directly
+import { fetchCoachGroups } from './coach-group-service';
+export { fetchCoachGroups };
 
 export const fetchAllClientProfiles = async (): Promise<any[]> => {
   try {

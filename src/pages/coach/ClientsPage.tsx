@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Filter, Calendar, Clock, Award, Info, Send, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Loader2, Users, Filter, Calendar, Clock, Award, Info, Send, CheckCircle2 } from 'lucide-react';
 import { 
   Table, 
   TableHeader, 
@@ -11,12 +11,12 @@ import {
   TableBody, 
   TableCell 
 } from '@/components/ui/table';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ClientData } from '@/services/client-service';
-import { fetchCoachClients, countClientCompletedWorkouts } from '@/services/coach-service';
+import { fetchCoachClients } from '@/services/coach-service';
 import { fetchCoachGroups } from '@/services/coach-group-service';
 import { ClientDetailView } from '@/components/coach/ClientDetailView';
 import ClientMessageForm from '@/components/coach/ClientMessageForm';
@@ -49,15 +49,9 @@ const ClientsPage = () => {
   const [activeTab, setActiveTab] = useState<'details' | 'message'>('details');
   const [messageStatus, setMessageStatus] = useState<Record<string, boolean>>({});
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [workoutCounts, setWorkoutCounts] = useState<Record<string, number>>({});
   const itemsPerPage = 10;
 
-  const { 
-    data: clients, 
-    isLoading: isLoadingClients, 
-    error: clientsError,
-    refetch: refetchClients 
-  } = useQuery({
+  const { data: clients, isLoading: isLoadingClients, error: clientsError } = useQuery({
     queryKey: ['coach-clients', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
@@ -65,22 +59,16 @@ const ClientsPage = () => {
         const clientData = await fetchCoachClients(user.id);
         console.log('Fetched clients:', clientData);
         return clientData;
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error in client fetch query function:', error);
-        toast.error(error.message || 'Failed to load clients. Please try again later.');
-        throw error;
+        toast.error('Failed to load clients. Please try again later.');
+        return [];
       }
     },
     enabled: !!user?.id,
-    retry: 1,
   });
 
-  const { 
-    data: groups, 
-    isLoading: isLoadingGroups, 
-    error: groupsError,
-    refetch: refetchGroups
-  } = useQuery({
+  const { data: groups, isLoading: isLoadingGroups, error: groupsError } = useQuery({
     queryKey: ['coach-groups', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
@@ -88,47 +76,18 @@ const ClientsPage = () => {
         const groupData = await fetchCoachGroups(user.id);
         console.log('Fetched groups:', groupData);
         return groupData;
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error in group fetch query function:', error);
-        toast.error(error.message || 'Failed to load groups. Please try again later.');
-        throw error;
+        toast.error('Failed to load groups. Please try again later.');
+        return [];
       }
     },
     enabled: !!user?.id,
-    retry: 1,
   });
 
   const filteredClients = clients?.filter(client => 
     selectedGroupId === 'all' || client.group_ids.includes(selectedGroupId)
   ) || [];
-
-  const totalPages = Math.ceil((filteredClients?.length || 0) / itemsPerPage);
-  const paginatedClients = filteredClients.slice(
-    (currentPage - 1) * itemsPerPage, 
-    currentPage * itemsPerPage
-  );
-
-  useEffect(() => {
-    const fetchWorkoutCounts = async () => {
-      if (!paginatedClients.length) return;
-      
-      const counts: Record<string, number> = {};
-      
-      for (const client of paginatedClients) {
-        try {
-          const count = await countClientCompletedWorkouts(client.id);
-          counts[client.id] = count;
-        } catch (error) {
-          console.error(`Error fetching workout count for client ${client.id}:`, error);
-          counts[client.id] = 0;
-        }
-      }
-      
-      setWorkoutCounts(counts);
-    };
-    
-    fetchWorkoutCounts();
-  }, [paginatedClients]);
 
   useQuery({
     queryKey: ['client-message-status', user?.id, filteredClients, currentPage],
@@ -160,6 +119,12 @@ const ClientsPage = () => {
     },
     enabled: !!user?.id && !!clients?.length,
   });
+
+  const totalPages = Math.ceil((filteredClients?.length || 0) / itemsPerPage);
+  const paginatedClients = filteredClients.slice(
+    (currentPage - 1) * itemsPerPage, 
+    currentPage * itemsPerPage
+  );
 
   const handleViewClient = (clientId: string, clientEmail: string) => {
     setSelectedClientId(clientId);
@@ -196,15 +161,6 @@ const ClientsPage = () => {
     return `${days} days ago`;
   };
 
-  const handleRetryFetch = async () => {
-    toast.info('Retrying data fetch...');
-    try {
-      await Promise.all([refetchClients(), refetchGroups()]);
-    } catch (error) {
-      toast.error('Retry failed. Please refresh the page or try again later.');
-    }
-  };
-
   if (isLoadingClients || isLoadingGroups) {
     return (
       <CoachLayout>
@@ -224,18 +180,13 @@ const ClientsPage = () => {
           </h1>
           <Card>
             <CardContent className="pt-6">
-              <div className="bg-destructive/10 text-destructive p-4 rounded-md flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">Error loading data</p>
-                  <p className="text-sm mt-1">
-                    {clientsError instanceof Error ? clientsError.message : 'There was a problem loading your client data.'}
-                  </p>
-                </div>
+              <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+                <p className="font-medium">Error loading data</p>
+                <p className="text-sm mt-1">There was a problem loading your client data. Please refresh the page or try again later.</p>
               </div>
               <Button 
                 className="mt-4" 
-                onClick={handleRetryFetch}
+                onClick={() => window.location.reload()}
               >
                 Retry
               </Button>
@@ -315,9 +266,7 @@ const ClientsPage = () => {
                               {getWorkoutStatusText(client.days_since_last_workout)}
                             </span>
                           </TableCell>
-                          <TableCell>
-                            {workoutCounts[client.id] !== undefined ? workoutCounts[client.id] : 0}
-                          </TableCell>
+                          <TableCell>{client.total_workouts_completed}</TableCell>
                           <TableCell>
                             {client.current_program_title ? (
                               <span className="text-coach">{client.current_program_title}</span>

@@ -13,6 +13,7 @@ import { ExpiredInvitationsTab } from '@/components/admin/ExpiredInvitationsTab'
 import { AcceptedInvitationsTab } from '@/components/admin/AcceptedInvitationsTab';
 import { InvitationForm } from '@/components/admin/InvitationForm';
 import { InvitationLinkDialog } from '@/components/admin/InvitationLinkDialog';
+import { ShareInvitationDialog } from '@/components/admin/ShareInvitationDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Info } from 'lucide-react';
 import { 
@@ -24,6 +25,12 @@ import {
 
 const InvitationsPage: React.FC = () => {
   const [inviteLink, setInviteLink] = useState('');
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareInfo, setShareInfo] = useState<{
+    link: string;
+    email: string;
+    userType: string;
+  }>({ link: '', email: '', userType: '' });
   const [lastEmailStatus, setLastEmailStatus] = useState<{
     sent: boolean;
     email?: string;
@@ -53,16 +60,6 @@ const InvitationsPage: React.FC = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      
-      // Debug log for specific email
-      const debugEmail = "jdholakia12@gmail.com";
-      const debugInvitation = data?.find(inv => inv.email === debugEmail);
-      if (debugInvitation) {
-        console.log(`Debug - Found invitation for ${debugEmail}:`, debugInvitation);
-        console.log(`Debug - Invitation accepted: ${debugInvitation.accepted}`);
-        console.log(`Debug - Is accepted value a boolean?`, typeof debugInvitation.accepted === 'boolean');
-        console.log(`Debug - Invitation accepted_at:`, debugInvitation.accepted_at);
-      }
       
       return data as Invitation[];
     },
@@ -195,6 +192,22 @@ const InvitationsPage: React.FC = () => {
     toast.success('Invitation link copied to clipboard');
   };
 
+  const handleShareInvite = (token: string, userType: string) => {
+    const link = `${window.location.origin}/register?token=${token}&type=${userType}`;
+    
+    // Find the email address for this token
+    const invitation = invitations?.find(inv => inv.token === token);
+    const email = invitation?.email || '';
+    
+    setShareInfo({
+      link,
+      email,
+      userType
+    });
+    
+    setShareDialogOpen(true);
+  };
+
   // Group invitations by status
   const { pending: pendingInvitations, expired: expiredInvitations, accepted: acceptedInvitations } = 
     invitations ? getInvitationsGroupedByStatus(invitations) : { pending: [], expired: [], accepted: [] };
@@ -242,6 +255,14 @@ const InvitationsPage: React.FC = () => {
             />
             
             {inviteLink && <InvitationLinkDialog inviteLink={inviteLink} />}
+            
+            <ShareInvitationDialog 
+              inviteLink={shareInfo.link}
+              emailAddress={shareInfo.email}
+              userType={shareInfo.userType}
+              isOpen={shareDialogOpen}
+              onClose={() => setShareDialogOpen(false)}
+            />
           </div>
         </div>
         
@@ -263,6 +284,7 @@ const InvitationsPage: React.FC = () => {
               invitations={pendingInvitations}
               isLoading={isLoading}
               onCopyInvite={handleCopyInvite}
+              onShareInvite={handleShareInvite}
               onResendInvite={handleResendInvite}
               isResending={resendingInvitations}
             />

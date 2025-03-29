@@ -5,7 +5,7 @@ import {
   TableHead, TableHeader, TableRow 
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Copy, Loader2, RefreshCw } from 'lucide-react';
+import { Copy, Loader2, RefreshCw, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export interface Invitation {
@@ -26,6 +26,7 @@ interface InvitationTableProps {
   type: 'pending' | 'expired' | 'accepted';
   onCopyInvite?: (token: string, userType: string) => void;
   onResendInvite?: (invitation: Invitation) => void;
+  onShareInvite?: (token: string, userType: string) => void;
   isResending?: Record<string, boolean>;
 }
 
@@ -46,12 +47,19 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
   type,
   onCopyInvite,
   onResendInvite,
+  onShareInvite,
   isResending = {}
 }) => {
   const handleResendClick = (invitation: Invitation) => {
     if (onResendInvite) {
       console.log("Resending invitation:", invitation);
       onResendInvite(invitation);
+    }
+  };
+
+  const handleShareClick = (token: string, userType: string) => {
+    if (onShareInvite) {
+      onShareInvite(token, userType);
     }
   };
 
@@ -115,14 +123,24 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
                 <TableCell>
                   <div className="flex gap-2">
                     {type === 'pending' && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => onCopyInvite && onCopyInvite(invitation.token, invitation.user_type)}
-                        title="Copy invitation link"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
+                      <>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => onCopyInvite && onCopyInvite(invitation.token, invitation.user_type)}
+                          title="Copy invitation link"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleShareClick(invitation.token, invitation.user_type)}
+                          title="Share invitation link"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </Button>
+                      </>
                     )}
                     <Button 
                       variant="ghost" 

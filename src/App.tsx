@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -46,7 +47,6 @@ import ClientSettingsPage from './pages/client/SettingsPage';
 
 import './App.css';
 import RequireAuth from './components/RequireAuth';
-import { ClientLayout } from './layouts/ClientLayout';
 import ExerciseImportPage from './pages/ExerciseImportPage';
 
 const queryClient = new QueryClient();
@@ -169,15 +169,15 @@ function App() {
             {/* Redirects */}
             <Route path="/login" element={<Navigate to="/client-login" />} />
             
-            {/* 404 */}
-            <Route path="*" element={<NotFound />} />
-            
-            {/* Add the new import route */}
+            {/* Exercise Import Page - Make it accessible directly */}
             <Route path="/exercise-import" element={
               <RequireAuth userType="admin">
                 <ExerciseImportPage />
               </RequireAuth>
             } />
+            
+            {/* 404 */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
           
           <Toaster />

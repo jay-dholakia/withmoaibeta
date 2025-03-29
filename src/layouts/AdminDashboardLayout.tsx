@@ -1,10 +1,9 @@
-
 import React, { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Users, Mail, UserPlus, LogOut, 
   BarChart, Settings, ChevronDown, 
-  UserSquare, CircleDashed
+  UserSquare, CircleDashed, Database
 } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { Logo } from '@/components/Logo';
@@ -58,6 +57,11 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
       name: 'Coaches',
       path: '/admin-dashboard/coaches',
       icon: <UserPlus className="w-5 h-5" />,
+    },
+    {
+      name: 'Exercise Import',
+      path: '/exercise-import',
+      icon: <Database className="w-5 h-5" />,
     },
   ];
   

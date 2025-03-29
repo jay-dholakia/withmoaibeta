@@ -127,82 +127,135 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     );
   }
 
-  // Improved helper function to get exercise info from workout_exercise_id
+  // Enhanced helper function for exercise lookup - fixed to handle multiple ID scenarios
   const findExerciseInfo = (workout_exercise_id: string, workout: WorkoutHistoryItem) => {
     console.log(`Looking for exercise with workout_exercise_id: ${workout_exercise_id}`);
     
-    // First check within this specific workout's exercises
-    if (workout.workout?.workout_exercises) {
-      for (const exercise of workout.workout.workout_exercises) {
-        if (exercise.id === workout_exercise_id) {
-          console.log(`Found exercise in current workout: ${exercise.exercise?.name || 'N/A'}`);
-          return {
-            name: exercise.exercise?.name || "Unknown Exercise",
-            type: exercise.exercise?.exercise_type || "strength"
-          };
-        }
-      }
-      console.log(`Exercise not found in current workout's exercises`);
-    }
+    // Create a comprehensive map of all exercises with various ID mappings
+    const exerciseMap = new Map();
     
-    // If not found in current workout, create a map of all exercises across all workouts
-    const allExercises = new Map();
-    
-    // Collect all exercises from all workouts in this day
+    // First, collect all exercises from all workouts in this day to create a complete mapping
     for (const w of workouts) {
       if (w.workout?.workout_exercises) {
         for (const exercise of w.workout.workout_exercises) {
+          // Map by workout_exercise.id
           if (exercise.id) {
-            console.log(`Adding to map: exercise id ${exercise.id}, name: ${exercise.exercise?.name || 'N/A'}`);
-            allExercises.set(exercise.id, {
+            exerciseMap.set(exercise.id, {
               name: exercise.exercise?.name || "Unknown Exercise",
               type: exercise.exercise?.exercise_type || "strength"
             });
+            console.log(`Added mapping for exercise.id ${exercise.id} -> ${exercise.exercise?.name || "Unknown"}`);
           }
           
-          // Also map by exercise_id in case that's what is being referenced
+          // Map by exercise.id (from the exercises table)
           if (exercise.exercise_id) {
-            console.log(`Also adding exercise_id ${exercise.exercise_id} to map`);
-            allExercises.set(exercise.exercise_id, {
+            exerciseMap.set(exercise.exercise_id, {
               name: exercise.exercise?.name || "Unknown Exercise",
               type: exercise.exercise?.exercise_type || "strength"
             });
+            console.log(`Added mapping for exercise_id ${exercise.exercise_id} -> ${exercise.exercise?.name || "Unknown"}`);
+          }
+          
+          // Map by the exercise's own id if it exists
+          if (exercise.exercise?.id) {
+            exerciseMap.set(exercise.exercise.id, {
+              name: exercise.exercise.name || "Unknown Exercise",
+              type: exercise.exercise.exercise_type || "strength"
+            });
+            console.log(`Added mapping for exercise.exercise.id ${exercise.exercise.id} -> ${exercise.exercise.name || "Unknown"}`);
           }
         }
       }
-    }
-    
-    // Try to find by workout_exercise_id
-    if (allExercises.has(workout_exercise_id)) {
-      const exerciseInfo = allExercises.get(workout_exercise_id);
-      console.log(`Found exercise by workout_exercise_id: ${exerciseInfo.name}`);
-      return exerciseInfo;
-    }
-    
-    // As a fallback, try to see if there's a direct match in workout_set_completions
-    // This handles cases where workout_exercise_id actually refers to an exercise_id directly
-    for (const w of workouts) {
+      
+      // Also check set completions for any additional exercise ID references
       if (w.workout_set_completions) {
-        for (const completion of w.workout_set_completions) {
-          if (completion.workout_exercise_id === workout_exercise_id && w.workout?.workout_exercises) {
-            // Now look for a matching exercise in the workout
-            for (const exercise of w.workout.workout_exercises) {
-              if (exercise.exercise_id) {
-                console.log(`Found potential match checking exercise_ids: ${exercise.exercise?.name || 'N/A'}`);
-                return {
-                  name: exercise.exercise?.name || "Unknown Exercise",
-                  type: exercise.exercise?.exercise_type || "strength"
-                };
-              }
-            }
+        const completionExerciseIds = new Set(w.workout_set_completions.map(sc => sc.workout_exercise_id));
+        console.log(`Found these unique IDs in completions: ${Array.from(completionExerciseIds).join(', ')}`);
+      }
+    }
+    
+    console.log(`Built exercise map with ${exerciseMap.size} entries`);
+    
+    // Try direct match in the map
+    if (exerciseMap.has(workout_exercise_id)) {
+      const info = exerciseMap.get(workout_exercise_id);
+      console.log(`Direct match found for ${workout_exercise_id}: ${info.name}`);
+      return info;
+    }
+    
+    // If not found directly, try to infer from set completions and workout exercises
+    for (const w of workouts) {
+      // Look within the current workout's exercises
+      if (w.workout?.workout_exercises) {
+        for (const exercise of w.workout.workout_exercises) {
+          // Check every possible ID field
+          if (exercise.id === workout_exercise_id || 
+              exercise.exercise_id === workout_exercise_id ||
+              (exercise.exercise && exercise.exercise.id === workout_exercise_id)) {
+            console.log(`Found match for ${workout_exercise_id} in workout exercises: ${exercise.exercise?.name || "Unknown"}`);
+            return {
+              name: exercise.exercise?.name || "Unknown Exercise",
+              type: exercise.exercise?.exercise_type || "strength"
+            };
+          }
+        }
+      }
+      
+      // Try matching in set completions
+      if (w.workout_set_completions) {
+        const matchingCompletion = w.workout_set_completions.find(
+          sc => sc.workout_exercise_id === workout_exercise_id
+        );
+        
+        if (matchingCompletion && w.workout?.workout_exercises) {
+          // Check if it's an existing workout for a rough guess based on position/order
+          const exerciseIndex = w.workout_set_completions.findIndex(
+            sc => sc.workout_exercise_id === workout_exercise_id
+          );
+          
+          if (exerciseIndex >= 0 && exerciseIndex < w.workout.workout_exercises.length) {
+            const potentialExercise = w.workout.workout_exercises[exerciseIndex];
+            console.log(`Position-based match for ${workout_exercise_id}: ${potentialExercise.exercise?.name || "Unknown"}`);
+            return {
+              name: potentialExercise.exercise?.name || "Unknown Exercise",
+              type: potentialExercise.exercise?.exercise_type || "strength"
+            };
           }
         }
       }
     }
     
-    console.log(`Could not find exercise with id: ${workout_exercise_id}`);
+    // Fallback for cardio/flexibility workouts that might not have proper exercise links
+    const completions = workout.workout_set_completions || [];
+    const matchingCompletion = completions.find(c => c.workout_exercise_id === workout_exercise_id);
+    
+    if (matchingCompletion) {
+      // Check if it has cardio or flexibility indicators
+      if (matchingCompletion.distance || matchingCompletion.duration) {
+        const exerciseType = matchingCompletion.distance ? "cardio" : "flexibility";
+        const name = matchingCompletion.distance ? "Cardio Workout" : "Flexibility Session";
+        
+        console.log(`Inferred ${exerciseType} workout for ${workout_exercise_id}`);
+        return { name, type: exerciseType };
+      }
+    }
+    
+    // Last resort - try to guess based on the workout type
+    if (workout.workout?.workout_type) {
+      const workoutType = workout.workout.workout_type.toLowerCase();
+      if (workoutType.includes('cardio')) {
+        return { name: "Cardio Exercise", type: "cardio" };
+      } else if (workoutType.includes('flex')) {
+        return { name: "Flexibility Exercise", type: "flexibility" };
+      }
+    }
+    
+    // If all else fails, return a generic exercise based on pattern in ID
+    // This helps avoid "Unknown Exercise" in the UI
+    const idStart = workout_exercise_id.substring(0, 8);
+    console.log(`No match found for ${workout_exercise_id}, using generic name with ID prefix ${idStart}`);
     return {
-      name: "Unknown Exercise",
+      name: `Exercise ${idStart}`,
       type: "strength"
     };
   };

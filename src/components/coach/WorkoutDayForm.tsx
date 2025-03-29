@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
+import { Trash2, Plus, ArrowUp, ArrowDown, ChevronDown, ChevronRight } from "lucide-react";
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
 import { DAYS_OF_WEEK } from "@/types/workout";
@@ -48,6 +48,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEdit);
+  const [exerciseListExpanded, setExerciseListExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (workoutId && isEdit) {
@@ -83,12 +84,25 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       const workoutExercises = await fetchWorkoutExercises(workoutId);
       setExercises(workoutExercises);
       
+      const expandedState: Record<string, boolean> = {};
+      workoutExercises.forEach(exercise => {
+        expandedState[exercise.id] = true;
+      });
+      setExerciseListExpanded(expandedState);
+      
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading workout details:', error);
       toast.error('Failed to load workout details');
       setIsLoading(false);
     }
+  };
+
+  const toggleExerciseExpanded = (exerciseId: string) => {
+    setExerciseListExpanded(prev => ({
+      ...prev,
+      [exerciseId]: !prev[exerciseId]
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -356,9 +370,16 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
                 <Card key={exercise.id} className="bg-background">
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-center">
-                      <CardTitle className="text-base">
-                        {exercise.exercise?.name || 'Exercise'}
-                      </CardTitle>
+                      <div className="flex items-center gap-2 cursor-pointer" onClick={() => toggleExerciseExpanded(exercise.id)}>
+                        {exerciseListExpanded[exercise.id] ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <CardTitle className="text-base">
+                          {exercise.exercise?.name || 'Exercise'}
+                        </CardTitle>
+                      </div>
                       <div className="flex gap-1">
                         <Button 
                           variant="ghost" 
@@ -393,13 +414,15 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <WorkoutExerciseForm
-                      initialData={exercise}
-                      onSubmit={(data) => handleUpdateExercise(exercise.id, data)}
-                      isSubmitting={isSubmitting}
-                    />
-                  </CardContent>
+                  {exerciseListExpanded[exercise.id] && (
+                    <CardContent>
+                      <WorkoutExerciseForm
+                        initialData={exercise}
+                        onSubmit={(data) => handleUpdateExercise(exercise.id, data)}
+                        isSubmitting={isSubmitting}
+                      />
+                    </CardContent>
+                  )}
                 </Card>
               ))}
             </div>

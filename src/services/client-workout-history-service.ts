@@ -107,8 +107,6 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
                   });
                 }
                 
-                console.log("Debug - Week map with program data:", Array.from(weekMap.entries()));
-                
                 // Add week data to each workout in workoutMap
                 workoutMap.forEach((workout, workoutId) => {
                   if (workout.week_id) {
@@ -134,18 +132,26 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
       }
     }
     
-    // Combine the data
+    // Combine the data - ensure completed_at is a proper date string
     return completions.map(completion => {
+      // Ensure completed_at is a valid date string and not null/undefined
+      const completed_at = completion.completed_at 
+        ? new Date(completion.completed_at).toISOString() 
+        : new Date().toISOString();
+        
       // If workout_id is null, return completion without workout details
       if (!completion.workout_id) {
         return {
           ...completion,
+          completed_at, // Use the validated date
           workout: null
         };
       }
+      
       const workoutDetails = workoutMap.get(completion.workout_id) || null;
       return {
         ...completion,
+        completed_at, // Use the validated date
         workout: workoutDetails
       };
     });

@@ -1,13 +1,13 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchClientWorkoutHistory } from '@/services/workout-history-service';
+import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { fetchClientPrograms } from '@/services/program-service';
 import { Loader2, Calendar, Dumbbell, Clock, Award, User } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, isValid } from 'date-fns';
 import { 
   Table, 
   TableHeader, 
@@ -44,6 +44,32 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   const currentProgram = clientPrograms?.find(assignment => 
     !assignment.end_date || new Date(assignment.end_date) >= new Date()
   );
+
+  // Function to safely format dates
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    
+    if (!isValid(date) || date.getFullYear() <= 1970) {
+      return 'Invalid date';
+    }
+    
+    return format(date, 'MMM d, yyyy');
+  };
+  
+  // Function to safely format relative time
+  const formatRelativeTime = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    
+    if (!isValid(date) || date.getFullYear() <= 1970) {
+      return '';
+    }
+    
+    return formatDistanceToNow(date, { addSuffix: true });
+  };
 
   return (
     <div className="space-y-4">
@@ -97,9 +123,9 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                       {workoutHistory.map((entry) => (
                         <TableRow key={entry.id}>
                           <TableCell>
-                            {format(new Date(entry.completed_at), 'MMM d, yyyy')}
+                            {formatDate(entry.completed_at)}
                             <div className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(entry.completed_at), { addSuffix: true })}
+                              {formatRelativeTime(entry.completed_at)}
                             </div>
                           </TableCell>
                           <TableCell className="font-medium">
@@ -170,11 +196,11 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                               </div>
                             </TableCell>
                             <TableCell>
-                              {format(new Date(assignment.start_date), 'MMM d, yyyy')}
+                              {formatDate(assignment.start_date)}
                             </TableCell>
                             <TableCell>
                               {assignment.end_date 
-                                ? format(new Date(assignment.end_date), 'MMM d, yyyy')
+                                ? formatDate(assignment.end_date)
                                 : 'Ongoing'}
                             </TableCell>
                             <TableCell>
@@ -207,7 +233,7 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="text-sm">
-                  <p><strong>Started:</strong> {format(new Date(currentProgram.start_date), 'MMMM d, yyyy')}</p>
+                  <p><strong>Started:</strong> {formatDate(currentProgram.start_date)}</p>
                   <p><strong>Duration:</strong> {currentProgram.program?.weeks} weeks</p>
                   <p className="mt-2">{currentProgram.program?.description}</p>
                 </div>

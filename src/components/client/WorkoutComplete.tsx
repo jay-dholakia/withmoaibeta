@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -131,8 +130,7 @@ const WorkoutComplete = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Workout Complete</h1>
-          <p className="text-muted-foreground">Great job!</p>
+          <h1 className="text-2xl font-bold">{workoutData?.workout?.title || 'Workout'}</h1>
         </div>
       </div>
 
@@ -141,9 +139,6 @@ const WorkoutComplete = () => {
           <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 mb-4 border border-green-200">
             <CheckCircle2 className="w-12 h-12 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">
-            {workoutData?.workout?.title || 'Workout'} Completed!
-          </h2>
           <p className="text-muted-foreground">
             {new Date().toLocaleDateString(undefined, {
               weekday: 'long',

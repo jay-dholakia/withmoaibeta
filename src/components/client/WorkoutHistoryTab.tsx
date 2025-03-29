@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import { User, Loader2 } from 'lucide-react';
-import { fetchClientWorkoutHistory } from '@/services/workout-history-service';
+import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { format } from 'date-fns';
 import { WorkoutType } from '@/components/client/WorkoutTypeIcon';

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -137,6 +136,11 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       return 'rest_day';
     }
 
+    // If it's a life happens pass, mark it as rest_day
+    if (workoutsForDay.every(w => w.life_happens_pass)) {
+      return 'rest_day';
+    }
+
     // Check if there's explicitly a workout type provided from the database
     for (const workout of workoutsForDay) {
       if (workout.workout?.workout_type) {
@@ -150,7 +154,11 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       if (workout.workout?.workout_exercises?.length > 0) {
         const firstExercise = workout.workout.workout_exercises[0];
         if (firstExercise.exercise?.exercise_type) {
-          return firstExercise.exercise.exercise_type as WorkoutType;
+          const type = firstExercise.exercise.exercise_type.toLowerCase();
+          if (type.includes('strength')) return 'strength';
+          if (type.includes('cardio')) return 'cardio';
+          if (type.includes('body')) return 'bodyweight';
+          if (type.includes('flex')) return 'flexibility';
         }
       }
     }

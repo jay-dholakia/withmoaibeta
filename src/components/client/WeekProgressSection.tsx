@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchClientWorkoutHistory, getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
@@ -63,6 +63,7 @@ export const WeekProgressSection = ({
   const startOfYear = new Date(now.getFullYear(), 0, 1);
   const weekNumber = getWeek(now, { weekStartsOn: 1 });
   
+  // Move all hooks to the top level - no conditional hooks!
   const { data: programWeekData } = useQuery({
     queryKey: ['program-week', user?.id],
     queryFn: async () => {
@@ -103,7 +104,7 @@ export const WeekProgressSection = ({
       if (!user?.id) return [];
       return fetchClientWorkoutHistory(user.id);
     },
-    enabled: !!user?.id && showPersonal,
+    enabled: !!user?.id,
   });
   
   const { data: assignedWorkoutsCount, isLoading: isLoadingAssignedCount } = useQuery({
@@ -114,7 +115,7 @@ export const WeekProgressSection = ({
       console.log('Assigned workouts count:', count);
       return count;
     },
-    enabled: !!user?.id && showPersonal,
+    enabled: !!user?.id,
   });
   
   const { data: groupData, isLoading: isLoadingGroupData } = useQuery({
@@ -209,10 +210,10 @@ export const WeekProgressSection = ({
         userEmails: userEmails || []
       };
     },
-    enabled: !!user?.id && (showTeam || showGroupMembers),
+    enabled: !!user?.id,
   });
   
-  // Fetch member profile when selected
+  // Member profile query - always define the hook, but only fetch when needed
   const { data: memberProfile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['member-profile', selectedMember],
     queryFn: async () => {
@@ -234,7 +235,7 @@ export const WeekProgressSection = ({
     enabled: !!selectedMember
   });
   
-  // Fetch member workouts when selected
+  // Member workouts query - always define the hook, but only fetch when needed
   const { data: memberWorkouts, isLoading: isLoadingWorkouts } = useQuery({
     queryKey: ['member-workouts', selectedMember],
     queryFn: async () => {
@@ -263,35 +264,36 @@ export const WeekProgressSection = ({
     enabled: !!selectedMember
   });
   
-  const clientCompletedDates = React.useMemo(() => {
+  // Calculate derived data with useMemo to avoid recalculation
+  const clientCompletedDates = useMemo(() => {
     if (!clientWorkouts) return [];
     return clientWorkouts
       .filter(workout => workout.completed_at && !workout.life_happens_pass)
       .map(workout => new Date(workout.completed_at));
   }, [clientWorkouts]);
   
-  const clientLifeHappensDates = React.useMemo(() => {
+  const clientLifeHappensDates = useMemo(() => {
     if (!clientWorkouts) return [];
     return clientWorkouts
       .filter(workout => workout.completed_at && workout.life_happens_pass)
       .map(workout => new Date(workout.completed_at));
   }, [clientWorkouts]);
   
-  const groupCompletedDates = React.useMemo(() => {
+  const groupCompletedDates = useMemo(() => {
     if (!groupData?.completions) return [];
     return groupData.completions
       .filter(workout => workout.completed_at && !workout.life_happens_pass)
       .map(workout => new Date(workout.completed_at));
   }, [groupData?.completions]);
   
-  const groupLifeHappensDates = React.useMemo(() => {
+  const groupLifeHappensDates = useMemo(() => {
     if (!groupData?.completions) return [];
     return groupData.completions
       .filter(workout => workout.completed_at && workout.life_happens_pass)
       .map(workout => new Date(workout.completed_at));
   }, [groupData?.completions]);
   
-  const calculatedWorkoutTypesMap = React.useMemo(() => {
+  const calculatedWorkoutTypesMap = useMemo(() => {
     const typesMap: Record<string, WorkoutType> = {};
     
     if (clientWorkouts) {
@@ -344,7 +346,26 @@ export const WeekProgressSection = ({
     return typesMap;
   }, [clientWorkouts]);
   
-  // If a member is selected, show their profile
+  // Add debugging effects to track hook execution
+  useEffect(() => {
+    if (clientWorkouts && clientWorkouts.length > 0) {
+      console.log("Client Workouts:", clientWorkouts);
+      console.log("Client Completed Dates:", clientCompletedDates);
+      console.log("Client Life Happens Dates:", clientLifeHappensDates);
+    }
+  }, [clientWorkouts, clientCompletedDates, clientLifeHappensDates]);
+  
+  // Loading state - at the bottom after all hooks are defined
+  if ((showPersonal && (isLoadingClientWorkouts || isLoadingAssignedCount)) || 
+      ((showTeam || showGroupMembers) && isLoadingGroupData)) {
+    return (
+      <div className="flex justify-center py-6">
+        <Loader2 className="h-6 w-6 animate-spin text-client" />
+      </div>
+    );
+  }
+  
+  // If a member is selected, show their profile (with enableMemberClick check)
   if (selectedMember && enableMemberClick) {
     return (
       <div className="space-y-4">
@@ -565,23 +586,7 @@ export const WeekProgressSection = ({
     );
   }
   
-  React.useEffect(() => {
-    if (clientWorkouts && clientWorkouts.length > 0) {
-      console.log("Client Workouts:", clientWorkouts);
-      console.log("Client Completed Dates:", clientCompletedDates);
-      console.log("Client Life Happens Dates:", clientLifeHappensDates);
-    }
-  }, [clientWorkouts, clientCompletedDates, clientLifeHappensDates]);
-  
-  if ((showPersonal && (isLoadingClientWorkouts || isLoadingAssignedCount)) || 
-      ((showTeam || showGroupMembers) && isLoadingGroupData)) {
-    return (
-      <div className="flex justify-center py-6">
-        <Loader2 className="h-6 w-6 animate-spin text-client" />
-      </div>
-    );
-  }
-  
+  // Calculate data needed for the main view
   const thisWeekWorkouts = clientCompletedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   const thisWeekLifeHappens = clientLifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   const totalThisWeek = thisWeekWorkouts + thisWeekLifeHappens;

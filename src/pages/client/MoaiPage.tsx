@@ -6,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Users, UserRound, AlertTriangle, Search, RefreshCw } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
-import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import { fetchUserGroups, diagnoseGroupAccess, verifyUserGroupMembership, ensureUserHasGroup } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';

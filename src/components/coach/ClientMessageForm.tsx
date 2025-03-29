@@ -26,12 +26,59 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasPermission, setHasPermission] = useState(true);
+  const [programWeek, setProgramWeek] = useState<number | null>(null);
   
   const getCurrentWeekDate = () => {
     const now = new Date();
     const day = now.getDay(); // 0 is Sunday
     const diff = now.getDate() - day;
     return new Date(now.setDate(diff));
+  };
+  
+  // Calculate which program week the client is currently in
+  const calculateProgramWeek = async () => {
+    try {
+      // Fetch the client's assigned program(s)
+      const { data, error } = await supabase
+        .from('program_assignments')
+        .select('start_date, program_id')
+        .eq('user_id', clientId)
+        .order('start_date', { ascending: false })
+        .limit(1);
+      
+      if (error) {
+        console.error('Error fetching program assignment:', error);
+        return null;
+      }
+      
+      if (data && data.length > 0) {
+        const assignment = data[0];
+        const startDate = new Date(assignment.start_date);
+        const currentDate = new Date();
+        
+        // If program hasn't started yet
+        if (currentDate < startDate) {
+          setProgramWeek(0);
+          return 0;
+        }
+        
+        // Calculate the difference in weeks
+        const diffTime = currentDate.getTime() - startDate.getTime();
+        const diffDays = diffTime / (1000 * 3600 * 24);
+        const weekNumber = Math.floor(diffDays / 7) + 1; // +1 because we're in the first week when we start
+        
+        setProgramWeek(weekNumber);
+        return weekNumber;
+      }
+      
+      // No program assigned
+      setProgramWeek(0);
+      return 0;
+    } catch (error) {
+      console.error('Error calculating program week:', error);
+      setProgramWeek(0);
+      return 0;
+    }
   };
   
   useEffect(() => {
@@ -47,6 +94,9 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
           setIsLoading(false);
           return;
         }
+        
+        // Calculate which program week the client is in
+        await calculateProgramWeek();
         
         // Then fetch existing messages
         const messages = await fetchCoachMessagesForClient(coachId, clientId);
@@ -149,7 +199,8 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
               />
               
               <div className="text-xs text-muted-foreground mt-2">
-                This message will be saved for the week of {getCurrentWeekDate().toLocaleDateString()}.
+                This message will be saved for {programWeek !== null ? `Week ${programWeek}` : 'Week 0'} 
+                (week of {getCurrentWeekDate().toLocaleDateString()}).
               </div>
             </CardContent>
           </Card>

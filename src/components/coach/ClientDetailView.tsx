@@ -3,7 +3,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { fetchClientPrograms } from '@/services/program-service';
-import { Loader2, Calendar, Dumbbell, Clock, Award, User } from 'lucide-react';
+import { Loader2, Calendar, Dumbbell, Clock, Award, User, FileX } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -106,7 +106,8 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                 </div>
               ) : !workoutHistory || workoutHistory.length === 0 ? (
                 <div className="text-center py-6 bg-muted/30 rounded-lg">
-                  <p>No workout history found for this client.</p>
+                  <FileX className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">No completed workouts found for this client.</p>
                 </div>
               ) : (
                 <div className="rounded-md border">
@@ -129,14 +130,14 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                             </div>
                           </TableCell>
                           <TableCell className="font-medium">
-                            {entry.workout?.title}
+                            {entry.workout?.title || (entry.rest_day ? 'Rest Day' : 'One-off Workout')}
                             <div className="text-xs text-muted-foreground">
-                              {DAYS_OF_WEEK[entry.workout?.day_of_week || 0]}
+                              {entry.workout?.day_of_week !== undefined ? DAYS_OF_WEEK[entry.workout.day_of_week] : ''}
                               {entry.workout?.week?.week_number ? `, Week ${entry.workout.week.week_number}` : ''}
                             </div>
                           </TableCell>
                           <TableCell>
-                            {entry.workout?.week?.program?.title || 'Unknown Program'}
+                            {entry.workout?.week?.program?.title || 'N/A'}
                           </TableCell>
                           <TableCell>
                             {entry.rating ? `${entry.rating}/5` : 'Not rated'}

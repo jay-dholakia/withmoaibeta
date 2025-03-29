@@ -7,11 +7,12 @@ import { WorkoutBasic, WorkoutHistoryItem } from "@/types/workout";
  */
 export const fetchClientWorkoutHistory = async (clientId: string): Promise<WorkoutHistoryItem[]> => {
   try {
-    // First, get the basic completion data
+    // First, get the basic completion data - only include properly completed workouts
     const { data: completions, error: completionsError } = await supabase
       .from('workout_completions')
       .select('id, completed_at, notes, rating, user_id, workout_id, life_happens_pass, rest_day')
       .eq('user_id', clientId)
+      .not('completed_at', 'is', null)  // Only include workouts that have a completion date
       .order('completed_at', { ascending: false });
     
     if (completionsError) {

@@ -2,8 +2,19 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ClientProfile } from '@/services/client-service';
-import { Card, CardContent } from '@/components/ui/card';
-import { Check } from 'lucide-react';
+import { format } from "date-fns";
+import { CalendarIcon, Check } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from "@/lib/utils";
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ProfileBuilderStepTwoProps {
   profile: Partial<ClientProfile>;
@@ -25,6 +36,24 @@ const fitnessGoals = [
   { id: 'stress-reduction', label: 'Stress Reduction' }
 ];
 
+const eventTypes = [
+  { value: 'none', label: 'Not training for a specific event' },
+  { value: 'half-marathon', label: 'Half Marathon' },
+  { value: 'marathon', label: 'Marathon' },
+  { value: 'triathlon', label: 'Triathlon' },
+  { value: 'ironman', label: 'Ironman' },
+  { value: '5k', label: '5K Race' },
+  { value: '10k', label: '10K Race' },
+  { value: 'obstacle', label: 'Obstacle Race' },
+  { value: 'cycling-event', label: 'Cycling Event' },
+  { value: 'swimming-event', label: 'Swimming Event' },
+  { value: 'crossfit', label: 'CrossFit Competition' },
+  { value: 'wedding', label: 'Wedding' },
+  { value: 'vacation', label: 'Vacation' },
+  { value: 'photoshoot', label: 'Photoshoot' },
+  { value: 'other', label: 'Other Event' }
+];
+
 export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
   profile,
   onUpdate,
@@ -32,6 +61,11 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
   onBack
 }) => {
   const [selectedGoals, setSelectedGoals] = useState<string[]>(profile.fitness_goals || []);
+  const [trainingForEvent, setTrainingForEvent] = useState<string>(profile.event_type || 'none');
+  const [eventDate, setEventDate] = useState<Date | undefined>(
+    profile.event_date ? new Date(profile.event_date) : undefined
+  );
+  const [eventName, setEventName] = useState<string>(profile.event_name || '');
 
   const toggleGoal = (goalId: string) => {
     setSelectedGoals(current => 
@@ -42,7 +76,23 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
   };
 
   const handleNext = () => {
-    onUpdate({ fitness_goals: selectedGoals });
+    const updateData: Partial<ClientProfile> = {
+      fitness_goals: selectedGoals
+    };
+
+    // Only include event data if user is training for an event
+    if (trainingForEvent !== 'none') {
+      updateData.event_type = trainingForEvent;
+      updateData.event_date = eventDate?.toISOString();
+      updateData.event_name = eventName;
+    } else {
+      // Clear event data if not training for an event
+      updateData.event_type = 'none';
+      updateData.event_date = undefined;
+      updateData.event_name = '';
+    }
+
+    onUpdate(updateData);
     onNext();
   };
 
@@ -79,6 +129,79 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="border-t pt-6">
+        <h2 className="text-xl font-semibold text-client mb-4">Are you preparing for a specific event?</h2>
+        
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="event-type" className="block text-sm font-medium text-foreground mb-2">
+              Event Type
+            </label>
+            <Select
+              value={trainingForEvent}
+              onValueChange={setTrainingForEvent}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select an event type" />
+              </SelectTrigger>
+              <SelectContent>
+                {eventTypes.map((event) => (
+                  <SelectItem key={event.value} value={event.value}>
+                    {event.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {trainingForEvent !== 'none' && (
+            <>
+              <div>
+                <label htmlFor="event-name" className="block text-sm font-medium text-foreground mb-2">
+                  Event Name
+                </label>
+                <Input
+                  id="event-name"
+                  placeholder="NYC Marathon, My Wedding, etc."
+                  value={eventName}
+                  onChange={(e) => setEventName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="event-date" className="block text-sm font-medium text-foreground mb-2">
+                  Event Date
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !eventDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {eventDate ? format(eventDate, "PPP") : <span>Select event date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={eventDate}
+                      onSelect={setEventDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                      disabled={(date) => date < new Date()}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="pt-4 flex justify-between">

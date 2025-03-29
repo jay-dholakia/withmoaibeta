@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,6 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Get the current week's date (Sunday)
   const getCurrentWeekDate = () => {
     const now = new Date();
     const day = now.getDay(); // 0 is Sunday
@@ -39,7 +37,6 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
       try {
         const messages = await fetchCoachMessagesForClient(coachId, clientId);
         if (messages && messages.length > 0) {
-          // Get most recent message for the current week
           const currentWeekDate = getCurrentWeekDate();
           const currentWeekMessage = messages.find(msg => 
             new Date(msg.week_of).getTime() === currentWeekDate.getTime()

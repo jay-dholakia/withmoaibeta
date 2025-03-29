@@ -20,7 +20,7 @@ import { ClientData } from '@/services/client-service';
 import { fetchCoachClients } from '@/services/coach-service';
 import { fetchCoachGroups } from '@/services/coach-group-service';
 import { ClientDetailView } from '@/components/coach/ClientDetailView';
-import { ClientMessageForm } from '@/components/coach/ClientMessageForm';
+import ClientMessageForm from '@/components/coach/ClientMessageForm';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { 
@@ -85,6 +85,10 @@ const ClientsPage = () => {
     enabled: !!user?.id,
   });
 
+  const filteredClients = clients?.filter(client => 
+    selectedGroupId === 'all' || client.group_ids.includes(selectedGroupId)
+  ) || [];
+
   // Query to check message status for clients in the current page
   useQuery({
     queryKey: ['client-message-status', user?.id, filteredClients, currentPage],
@@ -117,10 +121,6 @@ const ClientsPage = () => {
     },
     enabled: !!user?.id && !!clients?.length,
   });
-
-  const filteredClients = clients?.filter(client => 
-    selectedGroupId === 'all' || client.group_ids.includes(selectedGroupId)
-  ) || [];
 
   const totalPages = Math.ceil((filteredClients?.length || 0) / itemsPerPage);
   const paginatedClients = filteredClients.slice(

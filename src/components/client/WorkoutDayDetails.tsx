@@ -18,6 +18,35 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   console.log(`WorkoutDayDetails - Receiving date: ${format(date, 'MM/dd/yyyy')}`);
   console.log(`WorkoutDayDetails - Receiving ${workouts.length} workouts`);
   
+  if (workouts.length > 0 && workouts[0].workout_set_completions) {
+    console.log('First workout has set completions:', workouts[0].workout_set_completions.length);
+    
+    // Log the first few workout_set_completions for inspection
+    workouts[0].workout_set_completions.slice(0, 3).forEach((completion, idx) => {
+      console.log(`Completion ${idx}:`, {
+        id: completion.id,
+        exercise_id: completion.workout_exercise_id,
+        set_number: completion.set_number,
+        reps: completion.reps_completed,
+        weight: completion.weight
+      });
+    });
+    
+    // Log workout exercises from the workout object if available
+    if (workouts[0].workout?.workout_exercises) {
+      console.log('Workout exercises available:', workouts[0].workout.workout_exercises.length);
+      workouts[0].workout.workout_exercises.forEach((ex, idx) => {
+        console.log(`Exercise ${idx}:`, {
+          id: ex.id,
+          name: ex.exercise?.name || 'N/A',
+          exercise_id: ex.exercise_id
+        });
+      });
+    } else {
+      console.log('No workout exercises available in workout object');
+    }
+  }
+  
   // Helper function to convert workout type string to WorkoutType
   const getWorkoutType = (typeString: string | undefined): WorkoutType => {
     if (!typeString) return 'strength';
@@ -97,6 +126,47 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       </Card>
     );
   }
+
+  // Helper function to get exercise info from workout_exercise_id
+  const findExerciseInfo = (workout_exercise_id: string) => {
+    // Create a map of all workout exercises for efficient lookup
+    const allExercises = new Map();
+    
+    // Log the lookup attempt for debugging
+    console.log(`Looking for exercise with workout_exercise_id: ${workout_exercise_id}`);
+    
+    // Collect all exercises from all workouts in this day
+    for (const workout of workouts) {
+      if (workout.workout?.workout_exercises) {
+        for (const exercise of workout.workout.workout_exercises) {
+          if (exercise.id) {
+            // Log the exercise being added to the map
+            console.log(`Adding to map: exercise id ${exercise.id}, name: ${exercise.exercise?.name || 'N/A'}`);
+            allExercises.set(exercise.id, {
+              name: exercise.exercise?.name || "Unknown Exercise",
+              type: exercise.exercise?.exercise_type || "strength"
+            });
+          }
+        }
+      }
+    }
+    
+    // Log the map size for debugging
+    console.log(`Built exercise map with ${allExercises.size} entries`);
+    
+    // Check if we have the exercise in our map
+    if (allExercises.has(workout_exercise_id)) {
+      const exerciseInfo = allExercises.get(workout_exercise_id);
+      console.log(`Found exercise: ${exerciseInfo.name}`);
+      return exerciseInfo;
+    }
+    
+    console.log(`Could not find exercise with id: ${workout_exercise_id}`);
+    return {
+      name: "Unknown Exercise",
+      type: "strength"
+    };
+  };
 
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm mb-8 w-full">
@@ -178,43 +248,12 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                           const exerciseId = set.workout_exercise_id;
                           
                           if (!exerciseGroups[exerciseId]) {
-                            let exerciseName = "Unknown Exercise";
-                            let exerciseType = "strength";
-                            
-                            // First try looking up the exercise in the workout_exercises of this workout
-                            if (workout.workout?.workout_exercises) {
-                              const exerciseInfo = workout.workout.workout_exercises.find(
-                                e => e.id === exerciseId
-                              );
-                              
-                              if (exerciseInfo?.exercise) {
-                                exerciseName = exerciseInfo.exercise.name;
-                                exerciseType = exerciseInfo.exercise.exercise_type || "strength";
-                              }
-                            }
-                            
-                            // If we can't find it, try looking through all workout_set_completions to see if there's additional info
-                            if (exerciseName === "Unknown Exercise" && workouts.length > 0) {
-                              // Log for debugging
-                              console.log(`Looking up exercise ID: ${exerciseId}`);
-                              
-                              // Look across all workouts for this exercise
-                              for (const w of workouts) {
-                                if (w.workout?.workout_exercises) {
-                                  const ex = w.workout.workout_exercises.find(e => e.id === exerciseId);
-                                  if (ex?.exercise?.name) {
-                                    exerciseName = ex.exercise.name;
-                                    exerciseType = ex.exercise.exercise_type || "strength";
-                                    console.log(`Found exercise: ${exerciseName}`);
-                                    break;
-                                  }
-                                }
-                              }
-                            }
+                            // Find exercise info using our helper function
+                            const exerciseInfo = findExerciseInfo(exerciseId);
                             
                             exerciseGroups[exerciseId] = {
-                              name: exerciseName,
-                              type: exerciseType,
+                              name: exerciseInfo.name,
+                              type: exerciseInfo.type,
                               sets: []
                             };
                           }

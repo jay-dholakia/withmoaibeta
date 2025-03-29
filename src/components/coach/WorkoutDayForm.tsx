@@ -72,8 +72,9 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
         
         if (normalizedType.includes('strength')) setWorkoutType('strength');
         else if (normalizedType.includes('body') || normalizedType.includes('weight')) setWorkoutType('bodyweight');
-        else if (normalizedType.includes('cardio')) setWorkoutType('cardio');
-        else if (normalizedType.includes('flex') || normalizedType.includes('yoga')) setWorkoutType('flexibility');
+        else if (normalizedType.includes('cardio') || normalizedType.includes('hiit')) setWorkoutType('cardio');
+        else if (normalizedType.includes('flex') || normalizedType.includes('yoga') || 
+                normalizedType.includes('recovery')) setWorkoutType('flexibility');
         else if (normalizedType.includes('rest')) setWorkoutType('rest_day');
         else if (normalizedType.includes('custom')) setWorkoutType('custom');
         else if (normalizedType.includes('one')) setWorkoutType('one_off');

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -89,7 +88,6 @@ const ClientsPage = () => {
     selectedGroupId === 'all' || client.group_ids.includes(selectedGroupId)
   ) || [];
 
-  // Query to check message status for clients in the current page
   useQuery({
     queryKey: ['client-message-status', user?.id, filteredClients, currentPage],
     queryFn: async () => {
@@ -102,7 +100,6 @@ const ClientsPage = () => {
       
       const statusObj: Record<string, boolean> = {};
       
-      // Only check message status for clients on current page
       for (const client of paginatedClients) {
         try {
           const messages = await fetchCoachMessagesForClient(user.id, client.id);

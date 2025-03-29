@@ -300,38 +300,6 @@ serve(async (req) => {
         // Capitalize the user type for better readability in the email
         const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
         
-        // Test the Resend API key with a simple validation request
-        try {
-          console.log(`Testing Resend API connection with key: ${resendApiKey.substring(0, 5)}...${resendApiKey.substring(resendApiKey.length - 4)}`);
-          const testResponse = await fetch("https://api.resend.com/domains", {
-            headers: {
-              "Authorization": `Bearer ${resendApiKey}`
-            }
-          });
-          
-          if (!testResponse.ok) {
-            const errorText = await testResponse.text();
-            console.error("Resend API key validation failed:", testResponse.status, errorText);
-            throw new Error(`Resend API key validation failed: ${testResponse.status} ${errorText}`);
-          } else {
-            console.log("Resend API key validation successful!");
-            const domains = await testResponse.json();
-            console.log("Available domains:", domains);
-          }
-        } catch (validationError) {
-          console.error("Error validating Resend API key:", validationError);
-          // We'll continue with the email send attempt anyway
-        }
-        
-        // Log detailed info about the request we're about to make
-        console.log("Preparing to send email via Resend API with payload:", {
-          from: "Moai <jay@withmoai.co>",
-          to: email,
-          subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
-          // Not logging the full HTML for brevity
-          htmlLength: `HTML template with invite link: ${inviteLink}`.length
-        });
-        
         // Send email using fetch instead of Resend SDK
         const emailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",

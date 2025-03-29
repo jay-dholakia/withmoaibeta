@@ -22,17 +22,13 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-const corsResponse = () => {
-  return new Response(null, {
-    status: 204,
-    headers: corsHeaders,
-  });
-};
-
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return corsResponse();
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
   }
 
   // We only allow POST requests
@@ -71,25 +67,65 @@ Deno.serve(async (req) => {
       const content = await file.text();
       const lines = content.split('\n');
       
+      if (lines.length < 2) {
+        return new Response(JSON.stringify({ error: 'CSV file must contain at least header row and one data row' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
       // Assuming first line is header
-      const headers = lines[0].split(',').map(h => h.trim());
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      
+      // Check for required columns
+      if (!headers.includes('name') || !headers.includes('category')) {
+        return new Response(JSON.stringify({ error: 'CSV must include name and category columns' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      // Map indexes for required fields
+      const nameIndex = headers.indexOf('name');
+      const categoryIndex = headers.indexOf('category');
+      const descriptionIndex = headers.indexOf('description');
+      const exerciseTypeIndex = headers.indexOf('exercise_type');
       
       for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue; // Skip empty lines
         
         const values = lines[i].split(',').map(v => v.trim());
-        const exercise: Record<string, string> = {};
         
-        headers.forEach((header, index) => {
-          if (values[index]) {
-            exercise[header] = values[index];
-          }
-        });
+        // Skip if we don't have at least enough values for the required fields
+        if (values.length <= Math.max(nameIndex, categoryIndex)) continue;
         
-        exercises.push(exercise as unknown as Exercise);
+        const exercise: Exercise = {
+          name: values[nameIndex],
+          category: values[categoryIndex],
+        };
+        
+        if (descriptionIndex >= 0 && values[descriptionIndex]) {
+          exercise.description = values[descriptionIndex];
+        }
+        
+        if (exerciseTypeIndex >= 0 && values[exerciseTypeIndex]) {
+          exercise.exercise_type = values[exerciseTypeIndex];
+        } else {
+          exercise.exercise_type = 'strength'; // Default value
+        }
+        
+        exercises.push(exercise);
       }
     } else {
       return new Response(JSON.stringify({ error: 'Unsupported file type' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate exercises
+    if (exercises.length === 0) {
+      return new Response(JSON.stringify({ error: 'No valid exercises found in file' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -123,7 +159,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error processing import:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to process file' }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Failed to process file' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

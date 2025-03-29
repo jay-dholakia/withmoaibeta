@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, FileDown } from 'lucide-react';
+import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 
 const ExerciseImportPage = () => {
   const [file, setFile] = useState<File | null>(null);
-  const [fileType, setFileType] = useState<'json' | 'csv'>('json');
+  const [fileType, setFileType] = useState<'json' | 'csv'>('csv');
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
@@ -81,8 +82,7 @@ const ExerciseImportPage = () => {
   };
 
   return (
-    <Container className="px-4 py-8 mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Import Exercise Data</h1>
+    <AdminDashboardLayout title="Import Exercise Data">
       <Card className="p-6">
         <div className="space-y-4">
           <div>
@@ -171,11 +171,12 @@ const ExerciseImportPage = () => {
             <ul className="list-disc list-inside space-y-1">
               <li><strong>JSON</strong>: Array of objects with name, category, and optional description and exercise_type</li>
               <li><strong>CSV</strong>: First row as headers, must include name and category columns</li>
+              <li>If exercise_type is not specified, it defaults to "strength"</li>
             </ul>
           </div>
         </div>
       </Card>
-    </Container>
+    </AdminDashboardLayout>
   );
 };
 

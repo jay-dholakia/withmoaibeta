@@ -86,6 +86,16 @@ const ClientsPage = () => {
     enabled: !!user?.id,
   });
 
+  const filteredClients = clients?.filter(client => 
+    selectedGroupId === 'all' || client.group_ids.includes(selectedGroupId)
+  ) || [];
+
+  const totalPages = Math.ceil((filteredClients?.length || 0) / itemsPerPage);
+  const paginatedClients = filteredClients.slice(
+    (currentPage - 1) * itemsPerPage, 
+    currentPage * itemsPerPage
+  );
+
   useEffect(() => {
     const fetchWorkoutCounts = async () => {
       if (!paginatedClients.length) return;
@@ -107,10 +117,6 @@ const ClientsPage = () => {
     
     fetchWorkoutCounts();
   }, [paginatedClients]);
-
-  const filteredClients = clients?.filter(client => 
-    selectedGroupId === 'all' || client.group_ids.includes(selectedGroupId)
-  ) || [];
 
   useQuery({
     queryKey: ['client-message-status', user?.id, filteredClients, currentPage],
@@ -142,12 +148,6 @@ const ClientsPage = () => {
     },
     enabled: !!user?.id && !!clients?.length,
   });
-
-  const totalPages = Math.ceil((filteredClients?.length || 0) / itemsPerPage);
-  const paginatedClients = filteredClients.slice(
-    (currentPage - 1) * itemsPerPage, 
-    currentPage * itemsPerPage
-  );
 
   const handleViewClient = (clientId: string, clientEmail: string) => {
     setSelectedClientId(clientId);

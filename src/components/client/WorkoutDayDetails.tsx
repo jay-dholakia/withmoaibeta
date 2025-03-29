@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { CalendarClock, ListChecks, CircleSlash, FileText, Heart, ChevronDown, ChevronUp } from 'lucide-react';
@@ -16,35 +17,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   // Debug output to verify what workouts are being passed
   console.log(`WorkoutDayDetails - Receiving date: ${format(date, 'MM/dd/yyyy')}`);
   console.log(`WorkoutDayDetails - Receiving ${workouts.length} workouts`);
-  
-  if (workouts.length > 0 && workouts[0].workout_set_completions) {
-    console.log('First workout has set completions:', workouts[0].workout_set_completions.length);
-    
-    // Log the first few workout_set_completions for inspection
-    workouts[0].workout_set_completions.slice(0, 3).forEach((completion, idx) => {
-      console.log(`Completion ${idx}:`, {
-        id: completion.id,
-        exercise_id: completion.workout_exercise_id,
-        set_number: completion.set_number,
-        reps: completion.reps_completed,
-        weight: completion.weight
-      });
-    });
-    
-    // Log workout exercises from the workout object if available
-    if (workouts[0].workout?.workout_exercises) {
-      console.log('Workout exercises available:', workouts[0].workout.workout_exercises.length);
-      workouts[0].workout.workout_exercises.forEach((ex, idx) => {
-        console.log(`Exercise ${idx}:`, {
-          id: ex.id,
-          name: ex.exercise?.name || 'N/A',
-          exercise_id: ex.exercise_id
-        });
-      });
-    } else {
-      console.log('No workout exercises available in workout object');
-    }
-  }
   
   // Helper function to convert workout type string to WorkoutType
   const getWorkoutType = (typeString: string | undefined): WorkoutType => {
@@ -126,19 +98,20 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     );
   }
 
-  // Improved helper function for exercise lookup that correctly ties to the exercises table
+  // Improved helper function that properly accesses exercises data
   const findExerciseInfo = (workout_exercise_id: string, workout: WorkoutHistoryItem) => {
     console.log(`Looking for exercise with workout_exercise_id: ${workout_exercise_id}`);
     
     // First, try to find the exercise in the current workout's workout_exercises
     if (workout.workout?.workout_exercises) {
-      // Look for the workout_exercise with matching id (this is the junction table record ID)
+      // Look for the workout_exercise with matching id (junction table record)
       const matchingWorkoutExercise = workout.workout.workout_exercises.find(
         we => we.id === workout_exercise_id
       );
       
+      // If we found a match and it has associated exercise data from the exercises table
       if (matchingWorkoutExercise && matchingWorkoutExercise.exercise) {
-        console.log(`Found exercise by workout_exercise.id: ${matchingWorkoutExercise.exercise.name}`);
+        console.log(`Found exercise data: ${matchingWorkoutExercise.exercise.name} from exercises table`);
         return {
           name: matchingWorkoutExercise.exercise.name,
           type: matchingWorkoutExercise.exercise.exercise_type || "strength"
@@ -146,16 +119,15 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       }
     }
     
-    // Search across all workouts in case the exercise is defined in another workout
+    // If not found in the current workout, try searching across all workouts
     for (const w of workouts) {
       if (w.workout?.workout_exercises) {
-        // Try finding by workout_exercise.id
         const matchingExercise = w.workout.workout_exercises.find(
           we => we.id === workout_exercise_id
         );
         
         if (matchingExercise && matchingExercise.exercise) {
-          console.log(`Found exercise in another workout: ${matchingExercise.exercise.name}`);
+          console.log(`Found exercise in another workout: ${matchingExercise.exercise.name} from exercises table`);
           return {
             name: matchingExercise.exercise.name,
             type: matchingExercise.exercise.exercise_type || "strength"
@@ -164,18 +136,18 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       }
     }
     
-    // If we still can't find the exercise, try to examine completion details
-    // for cardio/flexibility workouts that might not have proper exercise links
+    // If we still can't find the exercise data through the proper table relationship,
+    // try to infer from the completion details
     const completions = workout.workout_set_completions || [];
     const matchingCompletion = completions.find(c => c.workout_exercise_id === workout_exercise_id);
     
     if (matchingCompletion) {
-      // Check if it has cardio or flexibility indicators
+      // Infer type from available data
       if (matchingCompletion.distance || matchingCompletion.duration) {
         const exerciseType = matchingCompletion.distance ? "cardio" : "flexibility";
         const name = matchingCompletion.distance ? "Cardio Workout" : "Flexibility Session";
         
-        console.log(`Inferred ${exerciseType} workout for ${workout_exercise_id}`);
+        console.log(`Inferred ${exerciseType} workout - exercises table data not linked`);
         return { name, type: exerciseType };
       }
     }
@@ -191,7 +163,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     }
     
     // If all else fails, return a generic exercise name
-    console.log(`No match found for ${workout_exercise_id}, using generic name`);
+    console.log(`No exercise data found in exercises table for ${workout_exercise_id}`);
     return {
       name: `Exercise`,
       type: "strength"
@@ -236,6 +208,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                   <ul className="text-sm space-y-1 mb-4">
                     {workout.workout.workout_exercises.slice(0, 5).map((exercise, index) => (
                       <li key={index} className="flex justify-between">
+                        {/* Directly accessing exercise data from exercises table */}
                         <span>{exercise.exercise?.name || "Unknown Exercise"}</span>
                         <span className="text-gray-500">
                           {exercise.sets} × {exercise.reps}
@@ -278,7 +251,8 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                           const exerciseId = set.workout_exercise_id;
                           
                           if (!exerciseGroups[exerciseId]) {
-                            // Find exercise info using our helper function
+                            // Find exercise info using our improved helper function that properly
+                            // references the exercises table data
                             const exerciseInfo = findExerciseInfo(exerciseId, workout);
                             
                             exerciseGroups[exerciseId] = {

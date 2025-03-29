@@ -72,30 +72,19 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
         return [];
       }
       
-      // Get accurate workout completion counts directly from the workout_completions table
-      // Fix for TypeScript error - use proper query format for counting
-      const { data: workoutCompletions, error: workoutCompletionsError } = await supabase
-        .from('workout_completions')
-        .select('user_id')
-        .in('user_id', clientIds)
-        .not('life_happens_pass', 'eq', true)
-        .not('rest_day', 'eq', true)
-        .count();
-        
-      if (workoutCompletionsError) {
-        console.error('Error fetching workout completions:', workoutCompletionsError);
-      }
-      
-      // Fetch individual completion counts per user
+      // Individual workout completion counts per user using Promise.all
       const workoutCountPromises = clientIds.map(async (clientId) => {
         const { count, error } = await supabase
           .from('workout_completions')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', clientId)
-          .not('life_happens_pass', 'eq', true)
-          .not('rest_day', 'eq', true);
+          .is('life_happens_pass', false)
+          .is('rest_day', false);
           
-        return { userId: clientId, count: count || 0, error };
+        return { 
+          userId: clientId, 
+          count: count !== null ? count : 0 
+        };
       });
       
       const workoutCountResults = await Promise.all(workoutCountPromises);
@@ -210,10 +199,13 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
           .from('workout_completions')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', clientId)
-          .not('life_happens_pass', 'eq', true)
-          .not('rest_day', 'eq', true);
+          .is('life_happens_pass', false)
+          .is('rest_day', false);
           
-        return { userId: clientId, count: count || 0, error };
+        return { 
+          userId: clientId, 
+          count: count !== null ? count : 0 
+        };
       });
       
       const workoutCountResults = await Promise.all(workoutCountPromises);

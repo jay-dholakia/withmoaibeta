@@ -28,6 +28,11 @@ const SettingsPage = () => {
     }
   };
 
+  const handleEditProfile = () => {
+    // Navigate to profile editor with state indicating we came from settings
+    navigate('/client-profile-editor', { state: { from: 'settings' } });
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not provided';
     return new Date(dateString).toLocaleDateString();
@@ -90,7 +95,7 @@ const SettingsPage = () => {
         <CardFooter className="flex justify-end border-t pt-4">
           <Button
             variant="outline"
-            onClick={() => navigate('/client-profile-editor')}
+            onClick={handleEditProfile}
             className="flex items-center"
           >
             <Edit className="mr-2 h-4 w-4" />

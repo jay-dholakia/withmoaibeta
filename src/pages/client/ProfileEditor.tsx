@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -9,17 +9,22 @@ import { ProfileBuilderLayout } from '@/components/client/ProfileBuilder/Profile
 import { ProfileBuilderStepOne } from '@/components/client/ProfileBuilder/ProfileBuilderStepOne';
 import { ProfileBuilderStepTwo } from '@/components/client/ProfileBuilder/ProfileBuilderStepTwo';
 import { ProfileBuilderStepThree } from '@/components/client/ProfileBuilder/ProfileBuilderStepThree';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronLeft } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
+import { Button } from '@/components/ui/button';
 
 const TOTAL_STEPS = 3;
 
 const ProfileEditor = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [profileData, setProfileData] = useState<Partial<ClientProfile>>({});
   const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // Check if we came from settings page
+  const fromSettings = location.state?.from === 'settings';
 
   // Fetch client profile
   const { data: profile, isLoading } = useQuery({
@@ -98,6 +103,11 @@ const ProfileEditor = () => {
     updateProfileMutation.mutate(profileData);
   };
 
+  // Navigate back to settings page
+  const handleReturnToSettings = () => {
+    navigate('/client-dashboard/settings');
+  };
+
   if (isRedirecting) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -117,33 +127,48 @@ const ProfileEditor = () => {
 
   return (
     <PageTransition>
-      <ProfileBuilderLayout step={currentStep} totalSteps={TOTAL_STEPS} title="Edit Your Profile">
-        {currentStep === 1 && (
-          <ProfileBuilderStepOne
-            profile={profileData}
-            onUpdate={handleUpdateProfile}
-            onNext={handleNext}
-          />
-        )}
+      <div className="relative">
+        {/* Back to settings button */}
+        <div className="absolute left-4 top-4 z-10">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleReturnToSettings}
+            className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back to Settings
+          </Button>
+        </div>
+        
+        <ProfileBuilderLayout step={currentStep} totalSteps={TOTAL_STEPS} title="Edit Your Profile">
+          {currentStep === 1 && (
+            <ProfileBuilderStepOne
+              profile={profileData}
+              onUpdate={handleUpdateProfile}
+              onNext={handleNext}
+            />
+          )}
 
-        {currentStep === 2 && (
-          <ProfileBuilderStepTwo
-            profile={profileData}
-            onUpdate={handleUpdateProfile}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        )}
+          {currentStep === 2 && (
+            <ProfileBuilderStepTwo
+              profile={profileData}
+              onUpdate={handleUpdateProfile}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
 
-        {currentStep === 3 && (
-          <ProfileBuilderStepThree
-            profile={profileData}
-            onUpdate={handleUpdateProfile}
-            onComplete={handleComplete}
-            onBack={handleBack}
-          />
-        )}
-      </ProfileBuilderLayout>
+          {currentStep === 3 && (
+            <ProfileBuilderStepThree
+              profile={profileData}
+              onUpdate={handleUpdateProfile}
+              onComplete={handleComplete}
+              onBack={handleBack}
+            />
+          )}
+        </ProfileBuilderLayout>
+      </div>
     </PageTransition>
   );
 };

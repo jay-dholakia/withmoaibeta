@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -45,14 +44,12 @@ const InvitationsPage: React.FC = () => {
   const navigate = useNavigate();
   const { userType: currentUserType, session } = useAuth();
   
-  // Redirect non-admin users
   useEffect(() => {
     if (currentUserType !== 'admin') {
       navigate('/admin');
     }
   }, [currentUserType, navigate]);
 
-  // Fetch invitations
   const { data: invitations, isLoading } = useQuery({
     queryKey: ['invitations'],
     queryFn: async () => {
@@ -66,10 +63,9 @@ const InvitationsPage: React.FC = () => {
       return data as Invitation[];
     },
     enabled: currentUserType === 'admin',
-    refetchInterval: 10000 // Refetch every 10 seconds
+    refetchInterval: 10000
   });
-  
-  // Set up realtime subscription
+
   useEffect(() => {
     if (currentUserType !== 'admin') return;
     
@@ -80,7 +76,7 @@ const InvitationsPage: React.FC = () => {
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen for all changes: INSERT, UPDATE, DELETE
+          event: '*',
           schema: 'public',
           table: 'invitations'
         },
@@ -102,8 +98,7 @@ const InvitationsPage: React.FC = () => {
       supabase.removeChannel(channel);
     };
   }, [currentUserType, queryClient]);
-  
-  // Send invitation mutation
+
   const sendInvitation = useMutation({
     mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' | 'admin' }) => {
       if (!session?.access_token) {
@@ -139,7 +134,6 @@ const InvitationsPage: React.FC = () => {
     }
   });
 
-  // Create shareable link mutation
   const createShareableLink = useMutation({
     mutationFn: async (userType: 'client' | 'coach' | 'admin') => {
       if (!session?.access_token) {
@@ -154,7 +148,6 @@ const InvitationsPage: React.FC = () => {
       
       toast.success(`Shareable invitation link created successfully!`);
       
-      // Copy to clipboard automatically
       navigator.clipboard.writeText(data.inviteLink);
       toast.info('Link copied to clipboard');
     },
@@ -163,8 +156,7 @@ const InvitationsPage: React.FC = () => {
       toast.error(`Failed to create shareable link: ${error.message}`);
     }
   });
-  
-  // Resend invitation mutation
+
   const resendInvitation = useMutation({
     mutationFn: async (invitation: Invitation) => {
       if (!session?.access_token) {
@@ -208,22 +200,21 @@ const InvitationsPage: React.FC = () => {
       toast.error(`Failed to update invitation: ${error.message}`);
     }
   });
-  
+
   const handleInvite = async (email: string, userType: 'client' | 'coach' | 'admin') => {
     return sendInvitation.mutateAsync({ email, userType });
   };
-  
+
   const handleCreateShareableLink = (userType: 'client' | 'coach' | 'admin') => {
     createShareableLink.mutate(userType);
   };
-  
+
   const handleResendInvite = (invitation: Invitation) => {
     resendInvitation.mutate(invitation);
   };
 
   const handleCopyInvite = (token: string, userType: string) => {
     const link = `${window.location.origin}/register?token=${token}&type=${userType}`;
-    setInviteLink(link);
     navigator.clipboard.writeText(link);
     toast.success('Invitation link copied to clipboard');
   };
@@ -240,7 +231,6 @@ const InvitationsPage: React.FC = () => {
     setShareDialogOpen(true);
   };
 
-  // Group invitations by status
   const { pending: pendingInvitations, expired: expiredInvitations, accepted: acceptedInvitations } = 
     invitations ? getInvitationsGroupedByStatus(invitations) : { pending: [], expired: [], accepted: [] };
 

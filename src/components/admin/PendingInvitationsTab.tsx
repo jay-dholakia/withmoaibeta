@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { InvitationTable, Invitation } from './InvitationTable';
+import { toast } from 'sonner';
 
 interface PendingInvitationsTabProps {
   invitations: Invitation[];
@@ -30,7 +31,11 @@ export const PendingInvitationsTab: React.FC<PendingInvitationsTabProps> = ({
           isLoading={isLoading}
           emptyMessage="No pending invitations found"
           type="pending"
-          onCopyInvite={onCopyInvite}
+          onCopyInvite={(token, userType) => {
+            const link = `${window.location.origin}/register?token=${token}&type=${userType}`;
+            navigator.clipboard.writeText(link);
+            toast.success('Invitation link copied to clipboard');
+          }}
           onShareInvite={onShareInvite}
           onResendInvite={onResendInvite}
           isResending={isResending}
@@ -40,3 +45,4 @@ export const PendingInvitationsTab: React.FC<PendingInvitationsTabProps> = ({
     </Card>
   );
 };
+

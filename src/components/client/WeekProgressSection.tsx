@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -646,7 +647,7 @@ export const WeekProgressSection = ({
       
       {(showGroupMembers || (showTeam && !showPersonal)) && groupData?.members?.length > 0 && (
         <div className="mt-8 space-y-4">
-          <h3 className="text-lg font-medium text-center mb-2">Member Progress</h3>
+          {/* Removed the "Member Progress" heading here */}
           <div className="grid grid-cols-1 gap-4">
             {groupData.members.map(member => {
               const memberWorkoutTypes: Record<string, WorkoutType> = {};

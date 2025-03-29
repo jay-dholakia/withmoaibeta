@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -258,52 +257,52 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
             
             <TabsContent value="profile">
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Member Profile</CardTitle>
+                <CardHeader className="pb-0">
+                  <CardTitle className="text-xl text-center">
+                    {formatDisplayName(memberProfile?.first_name, memberProfile?.last_name)}
+                    {selectedMember === user?.id && <Badge className="ml-2">You</Badge>}
+                  </CardTitle>
+                  {(memberProfile?.city || memberProfile?.state) && (
+                    <p className="text-muted-foreground text-center mt-1">
+                      {memberProfile.city}{memberProfile.city && memberProfile.state ? ', ' : ''}{memberProfile.state}
+                    </p>
+                  )}
+                  {memberProfile?.event_type && (
+                    <p className="text-sm font-medium text-center mt-3">
+                      Preparing for {memberProfile.event_type}
+                      {memberProfile.event_date && (
+                        <> on {formatEventDate(memberProfile.event_date)}</>
+                      )}
+                    </p>
+                  )}
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 pt-6">
                   {memberProfile ? (
                     <>
-                      <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-                        <Avatar className="h-24 w-24">
-                          <AvatarImage src={memberProfile.avatar_url || ''} alt="Member" />
-                          <AvatarFallback className="text-xl bg-client/80 text-white">
-                            {memberProfile.first_name ? memberProfile.first_name.charAt(0) : ''}
-                            {memberProfile.last_name ? memberProfile.last_name.charAt(0) : ''}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="space-y-3 flex-1 text-center sm:text-left">
-                          <div>
-                            <h3 className="font-semibold text-lg">
-                              {formatDisplayName(memberProfile.first_name, memberProfile.last_name)}
-                              {selectedMember === user?.id && <Badge className="ml-2">You</Badge>}
-                            </h3>
-                            
-                            {(memberProfile.city || memberProfile.state) && (
-                              <p className="text-muted-foreground">
-                                {memberProfile.city}{memberProfile.city && memberProfile.state ? ', ' : ''}{memberProfile.state}
-                              </p>
-                            )}
-                            
-                            {memberProfile.event_type && (
-                              <p className="mt-2 text-sm font-medium">
-                                Preparing for {memberProfile.event_type}
-                                {memberProfile.event_date && (
-                                  <> on {formatEventDate(memberProfile.event_date)}</>
-                                )}
-                              </p>
-                            )}
-                          </div>
+                      <div className="flex flex-col sm:flex-row gap-6 items-center justify-center">
+                        <div className="flex items-center gap-4">
+                          {memberProfile.height && (
+                            <div className="text-center">
+                              <p className="text-sm text-muted-foreground">Height</p>
+                              <p className="font-medium">{memberProfile.height}</p>
+                            </div>
+                          )}
+                          
+                          {memberProfile.weight && (
+                            <div className="text-center">
+                              <p className="text-sm text-muted-foreground">Weight</p>
+                              <p className="font-medium">{memberProfile.weight}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                       
-                      <Separator />
+                      <Separator className="my-4" />
                       
                       {memberProfile.fitness_goals && memberProfile.fitness_goals.length > 0 && (
                         <div>
-                          <h4 className="font-medium mb-2">Fitness Goals</h4>
-                          <div className="flex flex-wrap gap-2">
+                          <h4 className="font-medium mb-2 text-center">Fitness Goals</h4>
+                          <div className="flex flex-wrap gap-2 justify-center">
                             {memberProfile.fitness_goals.map(goal => (
                               <Badge key={goal} variant="secondary">{goal}</Badge>
                             ))}
@@ -313,8 +312,8 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                       
                       {memberProfile.favorite_movements && memberProfile.favorite_movements.length > 0 && (
                         <div>
-                          <h4 className="font-medium mb-2">Favorite Movements</h4>
-                          <div className="flex flex-wrap gap-2">
+                          <h4 className="font-medium mb-2 text-center">Favorite Movements</h4>
+                          <div className="flex flex-wrap gap-2 justify-center">
                             {memberProfile.favorite_movements.map(movement => (
                               <Badge key={movement} variant="outline">
                                 {movementEmojis[movement] || ''} {movement}

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Users, UserRound, AlertTriangle, Search, RefreshCw } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
-import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import { fetchUserGroups, diagnoseGroupAccess, verifyUserGroupMembership, ensureUserHasGroup } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
@@ -286,15 +284,11 @@ const MoaiPage = () => {
         </CardContent>
       </Card>
       
-      <Tabs defaultValue="members" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+      <Tabs defaultValue="progress" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="progress">
             <Users className="h-4 w-4 mr-2" />
             Group Progress
-          </TabsTrigger>
-          <TabsTrigger value="members">
-            <Users className="h-4 w-4 mr-2" />
-            Members
           </TabsTrigger>
           <TabsTrigger value="coach">
             <UserRound className="h-4 w-4 mr-2" />
@@ -310,10 +304,6 @@ const MoaiPage = () => {
             enableMemberClick={true}
             workoutTypesMap={{}}
           />
-        </TabsContent>
-        
-        <TabsContent value="members">
-          <MoaiMembersTab groupId={group.id} />
         </TabsContent>
         
         <TabsContent value="coach">

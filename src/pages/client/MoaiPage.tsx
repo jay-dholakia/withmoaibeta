@@ -299,11 +299,11 @@ const MoaiPage = () => {
         )}
       </div>
       
-      <Tabs defaultValue="members" className="w-full">
+      <Tabs defaultValue="progress" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="members">
+          <TabsTrigger value="progress">
             <Users className="h-4 w-4 mr-2" />
-            Group Members
+            Group Progress
           </TabsTrigger>
           <TabsTrigger value="coach">
             <UserRound className="h-4 w-4 mr-2" />
@@ -311,23 +311,20 @@ const MoaiPage = () => {
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="members">
-          <MoaiMembersTab groupId={group.id} />
+        <TabsContent value="progress">
+          <WeekProgressSection 
+            showTeam={false} 
+            showPersonal={false}
+            showGroupMembers={true}
+            enableMemberClick={true}
+            workoutTypesMap={{}}
+          />
         </TabsContent>
         
         <TabsContent value="coach">
           <MoaiCoachTab groupId={group.id} />
         </TabsContent>
       </Tabs>
-      
-      <div className="mt-6 pt-6 border-t">
-        <h2 className="text-xl font-bold mb-4">Team Leaderboard</h2>
-        <WeekProgressSection 
-          showTeam={true} 
-          showPersonal={false}
-          workoutTypesMap={{}}
-        />
-      </div>
     </div>
   );
 };

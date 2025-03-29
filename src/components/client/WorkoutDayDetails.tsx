@@ -169,74 +169,81 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                     
                     <CollapsibleContent className="mt-2 space-y-3">
                       {/* Group exercises and their sets */}
-                      {workout.workout_set_completions.reduce((exerciseGroups, set) => {
-                        // Find the exercise this set belongs to
-                        const exerciseId = set.workout_exercise_id;
+                      {(() => {
+                        // Create a map to group sets by exercise
+                        const exerciseGroups: Record<string, { name: string; type: string; sets: any[] }> = {};
                         
-                        if (!exerciseGroups[exerciseId]) {
-                          // Find the exercise name
-                          const exercise = workout.workout?.workout_exercises?.find(
-                            e => e.id === exerciseId
-                          );
-                          exerciseGroups[exerciseId] = {
-                            name: exercise?.exercise?.name || "Unknown Exercise",
-                            type: exercise?.exercise?.exercise_type || "strength",
-                            sets: []
-                          };
-                        }
-                        
-                        exerciseGroups[exerciseId].sets.push(set);
-                        return exerciseGroups;
-                      }, {} as Record<string, { name: string; type: string; sets: any[] }>).map((group, exerciseId) => (
-                        <div key={exerciseId} className="rounded border border-gray-100 p-2">
-                          <h5 className="text-sm font-medium">{group.name}</h5>
+                        // Group the sets by exercise ID
+                        workout.workout_set_completions.forEach(set => {
+                          const exerciseId = set.workout_exercise_id;
                           
-                          {group.type === 'cardio' ? (
-                            // Display cardio details
-                            <div className="mt-1 grid grid-cols-3 gap-2 text-xs">
-                              <div>
-                                <span className="font-medium">Distance: </span>
-                                <span>{group.sets[0]?.distance || 'N/A'}</span>
+                          if (!exerciseGroups[exerciseId]) {
+                            // Find the exercise name
+                            const exercise = workout.workout?.workout_exercises?.find(
+                              e => e.id === exerciseId
+                            );
+                            exerciseGroups[exerciseId] = {
+                              name: exercise?.exercise?.name || "Unknown Exercise",
+                              type: exercise?.exercise?.exercise_type || "strength",
+                              sets: []
+                            };
+                          }
+                          
+                          exerciseGroups[exerciseId].sets.push(set);
+                        });
+                        
+                        // Now render each exercise group
+                        return Object.entries(exerciseGroups).map(([exerciseId, group]) => (
+                          <div key={exerciseId} className="rounded border border-gray-100 p-2">
+                            <h5 className="text-sm font-medium">{group.name}</h5>
+                            
+                            {group.type === 'cardio' ? (
+                              // Display cardio details
+                              <div className="mt-1 grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                  <span className="font-medium">Distance: </span>
+                                  <span>{group.sets[0]?.distance || 'N/A'}</span>
+                                </div>
+                                <div>
+                                  <span className="font-medium">Duration: </span>
+                                  <span>{group.sets[0]?.duration || 'N/A'}</span>
+                                </div>
+                                <div>
+                                  <span className="font-medium">Location: </span>
+                                  <span className="capitalize">{group.sets[0]?.location || 'N/A'}</span>
+                                </div>
                               </div>
-                              <div>
+                            ) : group.type === 'flexibility' ? (
+                              // Display flexibility details
+                              <div className="mt-1 text-xs">
                                 <span className="font-medium">Duration: </span>
                                 <span>{group.sets[0]?.duration || 'N/A'}</span>
                               </div>
-                              <div>
-                                <span className="font-medium">Location: </span>
-                                <span className="capitalize">{group.sets[0]?.location || 'N/A'}</span>
+                            ) : (
+                              // Display strength/bodyweight sets
+                              <div className="mt-1 space-y-1">
+                                {group.sets.sort((a, b) => a.set_number - b.set_number).map((set) => (
+                                  <div key={set.id} className="grid grid-cols-3 gap-2 text-xs">
+                                    <div>
+                                      <span className="font-medium">Set {set.set_number}: </span>
+                                    </div>
+                                    <div>
+                                      {set.reps_completed && (
+                                        <span>{set.reps_completed} reps</span>
+                                      )}
+                                    </div>
+                                    <div>
+                                      {set.weight && (
+                                        <span>{set.weight} lbs</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            </div>
-                          ) : group.type === 'flexibility' ? (
-                            // Display flexibility details
-                            <div className="mt-1 text-xs">
-                              <span className="font-medium">Duration: </span>
-                              <span>{group.sets[0]?.duration || 'N/A'}</span>
-                            </div>
-                          ) : (
-                            // Display strength/bodyweight sets
-                            <div className="mt-1 space-y-1">
-                              {group.sets.sort((a, b) => a.set_number - b.set_number).map((set) => (
-                                <div key={set.id} className="grid grid-cols-3 gap-2 text-xs">
-                                  <div>
-                                    <span className="font-medium">Set {set.set_number}: </span>
-                                  </div>
-                                  <div>
-                                    {set.reps_completed && (
-                                      <span>{set.reps_completed} reps</span>
-                                    )}
-                                  </div>
-                                  <div>
-                                    {set.weight && (
-                                      <span>{set.weight} lbs</span>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                            )}
+                          </div>
+                        ));
+                      })()}
                     </CollapsibleContent>
                   </Collapsible>
                 </>
@@ -252,3 +259,4 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     </div>
   );
 };
+

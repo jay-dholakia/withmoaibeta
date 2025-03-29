@@ -451,8 +451,6 @@ export type Database = {
           expires_at: string
           id: string
           invited_by: string
-          is_share_link: boolean | null
-          share_link_type: string | null
           token: string
           user_type: string
         }
@@ -464,8 +462,6 @@ export type Database = {
           expires_at: string
           id?: string
           invited_by: string
-          is_share_link?: boolean | null
-          share_link_type?: string | null
           token: string
           user_type: string
         }
@@ -477,8 +473,6 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string
-          is_share_link?: boolean | null
-          share_link_type?: string | null
           token?: string
           user_type?: string
         }

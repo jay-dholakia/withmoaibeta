@@ -53,6 +53,31 @@ export const fetchCoachMessagesForClient = async (coachId: string, clientId: str
 };
 
 /**
+ * Checks if a coach is allowed to send messages to a client
+ */
+export const canCoachMessageClient = async (coachId: string, clientId: string): Promise<boolean> => {
+  try {
+    console.log('Checking if coach', coachId, 'can message client', clientId);
+    
+    // Check if the client belongs to a group that the coach is assigned to
+    const { data, error } = await supabase.rpc('is_coach_for_client', {
+      coach_id: coachId,
+      client_id: clientId
+    });
+    
+    if (error) {
+      console.error('Error checking coach-client relationship:', error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error('Error in canCoachMessageClient:', error);
+    return false;
+  }
+};
+
+/**
  * Creates or updates a coach message for a client
  */
 export const saveCoachMessage = async (
@@ -67,6 +92,13 @@ export const saveCoachMessage = async (
     console.log('Message content:', message);
     console.log('Week of:', weekOf);
     console.log('Existing message ID:', existingMessageId);
+    
+    // First verify the coach can message this client
+    const canMessage = await canCoachMessageClient(coachId, clientId);
+    if (!canMessage) {
+      console.error('Coach is not authorized to message this client');
+      throw new Error('You are not authorized to send messages to this client');
+    }
     
     // Format the date to YYYY-MM-DD
     const formattedWeekOf = weekOf.toISOString().split('T')[0];

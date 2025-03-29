@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Send } from 'lucide-react';
-import { saveCoachMessage, fetchCoachMessagesForClient } from '@/services/coach-client-message-service';
+import { saveCoachMessage, fetchCoachMessagesForClient, canCoachMessageClient } from '@/services/coach-client-message-service';
 import { toast } from 'sonner';
 import { SheetTitle } from '@/components/ui/sheet';
 
@@ -25,6 +25,7 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
   const [existingMessageId, setExistingMessageId] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasPermission, setHasPermission] = useState(true);
   
   const getCurrentWeekDate = () => {
     const now = new Date();
@@ -34,9 +35,20 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
   };
   
   useEffect(() => {
-    const fetchExistingMessage = async () => {
+    const checkPermissionAndFetchMessage = async () => {
       setIsLoading(true);
       try {
+        // First check if coach can message this client
+        const canMessage = await canCoachMessageClient(coachId, clientId);
+        setHasPermission(canMessage);
+        
+        if (!canMessage) {
+          toast.error("You don't have permission to message this client");
+          setIsLoading(false);
+          return;
+        }
+        
+        // Then fetch existing messages
         const messages = await fetchCoachMessagesForClient(coachId, clientId);
         if (messages && messages.length > 0) {
           const currentWeekDate = getCurrentWeekDate();
@@ -50,17 +62,23 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
           }
         }
       } catch (error) {
-        console.error('Error fetching existing message:', error);
+        console.error('Error initializing message form:', error);
+        toast.error('Could not load existing messages');
       } finally {
         setIsLoading(false);
       }
     };
     
-    fetchExistingMessage();
+    checkPermissionAndFetchMessage();
   }, [coachId, clientId]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!hasPermission) {
+      toast.error("You don't have permission to message this client");
+      return;
+    }
     
     if (!message.trim()) {
       toast.error('Please enter a message');
@@ -84,13 +102,30 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
       } else {
         toast.error('Failed to save message');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving message:', error);
-      toast.error('An error occurred while saving the message');
+      toast.error(error.message || 'An error occurred while saving the message');
     } finally {
       setIsSaving(false);
     }
   };
+  
+  if (!hasPermission) {
+    return (
+      <div className="space-y-4">
+        <SheetTitle className="text-lg font-medium">
+          Weekly Message for {clientEmail}
+        </SheetTitle>
+        <div className="p-4 bg-destructive/10 text-destructive rounded-md">
+          You don't have permission to send messages to this client. 
+          This usually means the client is not in any of your coaching groups.
+        </div>
+        <div className="flex justify-end">
+          <Button type="button" onClick={onClose}>Close</Button>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-4">

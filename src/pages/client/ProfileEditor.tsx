@@ -87,20 +87,18 @@ const ProfileEditor = () => {
 
   // Handle updates to profile data
   const handleUpdateProfile = (data: Partial<ClientProfile>) => {
+    console.log('handleUpdateProfile received:', data);
     // Ensure we don't lose any existing profile data, especially favorite_movements
     setProfileData(prev => {
       const merged = { 
         ...prev, 
         ...data,
         // Make sure favorite_movements is preserved from previous data if not included in update
-        favorite_movements: data.favorite_movements || prev.favorite_movements || []
+        favorite_movements: Array.isArray(data.favorite_movements) ? data.favorite_movements : prev.favorite_movements || []
       };
       console.log('Updated profile data:', merged);
       return merged;
     });
-    
-    // Only update in database when user completes all steps
-    // The actual update will be done in handleComplete
   };
 
   // Handle completion of the profile editing
@@ -108,8 +106,8 @@ const ProfileEditor = () => {
     // Ensure favorite_movements is included in the final data
     const finalData = {
       ...profileData,
-      // Just to be extra safe, make sure favorite_movements is present
-      favorite_movements: profileData.favorite_movements || []
+      // Just to be extra safe, make sure favorite_movements is present and is an array
+      favorite_movements: Array.isArray(profileData.favorite_movements) ? profileData.favorite_movements : []
     };
     
     console.log('Submitting final profile data:', finalData);

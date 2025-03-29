@@ -22,11 +22,17 @@ export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = (
   onComplete,
   onBack
 }) => {
-  const [movements, setMovements] = useState<string[]>(profile.favorite_movements || []);
+  const [movements, setMovements] = useState<string[]>(Array.isArray(profile.favorite_movements) ? profile.favorite_movements : []);
 
   // Update movements when profile changes
   useEffect(() => {
-    setMovements(profile.favorite_movements || []);
+    if (Array.isArray(profile.favorite_movements)) {
+      console.log('ProfileBuilderStepThree: Setting movements from profile:', profile.favorite_movements);
+      setMovements(profile.favorite_movements);
+    } else {
+      console.log('ProfileBuilderStepThree: No valid movements found in profile, using empty array');
+      setMovements([]);
+    }
   }, [profile]);
 
   const movementOptions: MovementOption[] = [
@@ -74,18 +80,27 @@ export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = (
   ];
 
   const toggleMovement = (movement: string) => {
+    let updatedMovements: string[];
+    
     if (movements.includes(movement)) {
-      setMovements(movements.filter(m => m !== movement));
+      updatedMovements = movements.filter(m => m !== movement);
     } else {
-      setMovements([...movements, movement]);
+      updatedMovements = [...movements, movement];
     }
+    
+    setMovements(updatedMovements);
+    // Important: Update parent component immediately with the changes
+    onUpdate({ favorite_movements: updatedMovements });
+    console.log('ProfileBuilderStepThree: Updated movements:', updatedMovements);
   };
 
   const handleComplete = () => {
+    // Make sure to include the current movements in the final update
     onUpdate({ 
       favorite_movements: movements,
       profile_completed: true
     });
+    console.log('ProfileBuilderStepThree: Completing with movements:', movements);
     onComplete();
   };
 

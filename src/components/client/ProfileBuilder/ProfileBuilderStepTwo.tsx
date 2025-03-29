@@ -15,6 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ProfileBuilderStepTwoProps {
   profile: Partial<ClientProfile>;
@@ -211,13 +217,26 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
         >
           Back
         </Button>
-        <Button 
-          onClick={handleNext} 
-          disabled={selectedGoals.length === 0}
-          className="bg-client hover:bg-client/90"
-        >
-          Next
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button 
+                  onClick={handleNext} 
+                  disabled={selectedGoals.length === 0}
+                  className="bg-client hover:bg-client/90"
+                >
+                  Next
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {selectedGoals.length === 0 && (
+              <TooltipContent>
+                <p>Please select at least one fitness goal</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );

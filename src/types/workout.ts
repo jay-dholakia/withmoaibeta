@@ -1,4 +1,3 @@
-
 export interface Exercise {
   id: string;
   name: string;
@@ -156,3 +155,23 @@ export const STANDARD_WORKOUT_TYPES = [
 ] as const;
 
 export type StandardWorkoutType = typeof STANDARD_WORKOUT_TYPES[number];
+
+export interface ClientProfile {
+  id?: string;
+  first_name: string | null;
+  last_name: string | null;
+  city: string | null;
+  state: string | null;
+  birthday: string | null;
+  height: string | null;
+  weight: string | null;
+  avatar_url: string | null;
+  fitness_goals: string[];
+  favorite_movements: string[];
+  profile_completed: boolean;
+  created_at?: string;
+  updated_at?: string;
+  event_type?: string | null;
+  event_date?: string | null; 
+  event_name?: string | null;
+}

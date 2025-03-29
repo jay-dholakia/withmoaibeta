@@ -1,9 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./client-workout-history-service";
-// Remove the duplicate import of fetchCoachGroups - we'll use the coach-service export instead
-// import { fetchCoachGroups } from "./coach-group-service";
 
 /**
  * Tracks a workout set completion
@@ -160,6 +157,9 @@ export interface ClientProfile {
   profile_completed: boolean;
   created_at?: string;
   updated_at?: string;
+  event_type?: string | null;
+  event_date?: string | null;
+  event_name?: string | null;
 }
 
 // Coach Profile Types - Updated to match the actual database schema

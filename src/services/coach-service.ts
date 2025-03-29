@@ -7,6 +7,8 @@ import { ClientData } from "./client-service";
  */
 export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> => {
   try {
+    console.log("Fetching coach clients for coach ID:", coachId);
+    
     // Custom query using RPC function to get client data
     const { data, error } = await supabase.rpc('get_coach_clients', {
       coach_id: coachId
@@ -14,13 +16,14 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
     
     if (error) {
       console.error("Error fetching coach clients:", error);
-      throw error;
+      throw new Error(`Failed to fetch clients: ${error.message}`);
     }
     
+    console.log("Successfully fetched coach clients:", data?.length || 0);
     return data || [];
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in fetchCoachClients:", error);
-    throw error;
+    throw new Error(error.message || "Failed to fetch clients. Please try again later.");
   }
 };
 
@@ -29,6 +32,20 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
  */
 export const countClientCompletedWorkouts = async (clientId: string): Promise<number> => {
   try {
+    console.log("Counting workouts for client ID:", clientId);
+    
+    // First try to use the RPC function
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_client_completed_workouts_count', {
+      user_id_param: clientId
+    });
+    
+    if (!rpcError && rpcData !== null) {
+      console.log("Successfully counted workouts via RPC:", rpcData);
+      return rpcData;
+    }
+    
+    // Fallback to direct query if RPC fails or isn't available
+    console.log("Falling back to direct query for workout count");
     const { count, error } = await supabase
       .from('workout_completions')
       .select('*', { count: 'exact', head: true })
@@ -40,6 +57,7 @@ export const countClientCompletedWorkouts = async (clientId: string): Promise<nu
       return 0;
     }
     
+    console.log("Successfully counted workouts via direct query:", count);
     return count || 0;
   } catch (error) {
     console.error("Error in countClientCompletedWorkouts:", error);

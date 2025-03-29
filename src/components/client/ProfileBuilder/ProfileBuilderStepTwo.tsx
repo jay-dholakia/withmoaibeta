@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ClientProfile } from '@/services/client-service';
@@ -112,9 +113,9 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="mb-6">
+      <div className="mb-6 text-left">
         <h1 className="text-xl font-semibold text-black mb-2">What Are Your Fitness Goals?</h1>
-        <p className="text-muted-foreground">Select all that apply to you</p>
+        <p className="text-muted-foreground text-left">Select all that apply to you</p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

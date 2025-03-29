@@ -74,7 +74,7 @@ const LeaderboardPage = () => {
         {user && <CoachMessageCard userId={user.id} />}
         
         <WeekProgressSection 
-          showTeam={true} 
+          showTeam={false} 
           showPersonal={true}
           workoutTypesMap={workoutTypesMap}
         />

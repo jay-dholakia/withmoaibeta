@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Users, UserRound, AlertTriangle, Search, RefreshCw } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
@@ -16,7 +15,6 @@ const MoaiPage = () => {
   const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
   const [isFixingGroup, setIsFixingGroup] = useState(false);
   
-  // Fetch the user's groups with improved error handling and logging
   const { data: userGroups, isLoading: isLoadingGroups, refetch } = useQuery({
     queryKey: ['client-groups', user?.id],
     queryFn: async () => {
@@ -27,7 +25,6 @@ const MoaiPage = () => {
       
       console.log('Fetching groups for user ID:', user.id);
       try {
-        // First do a direct database query to check membership
         const { data: membershipData, error: membershipError } = await supabase
           .from('group_members')
           .select('group_id')
@@ -39,7 +36,6 @@ const MoaiPage = () => {
           console.log('Direct membership check result:', membershipData);
         }
         
-        // Then use the service function to get full group details
         const groups = await fetchUserGroups(user.id);
         return groups;
       } catch (err) {
@@ -51,10 +47,9 @@ const MoaiPage = () => {
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     staleTime: 0, 
-    gcTime: 10000, // Short cache time
+    gcTime: 10000,
   });
   
-  // Enhanced diagnostics on mount - with toast notifications disabled
   useEffect(() => {
     if (user?.id) {
       verifyUserExistsInAuth(user.id);
@@ -63,7 +58,6 @@ const MoaiPage = () => {
           console.log('Group access diagnosis result:', result);
           setDiagnosticDetails(result);
           
-          // If we found new group memberships that weren't showing before, refresh the groups
           if (result.hasGroupMemberships && (!userGroups || userGroups.length === 0)) {
             refetch();
           }
@@ -71,7 +65,6 @@ const MoaiPage = () => {
     }
   }, [user?.id]);
   
-  // Verify the user actually exists in auth
   const verifyUserExistsInAuth = async (userId: string) => {
     try {
       console.log('Verifying user existence in auth for ID:', userId);
@@ -88,7 +81,6 @@ const MoaiPage = () => {
       
       console.log('User profile exists:', profileData);
       
-      // Also check group_members count in the entire table
       const { count, error: countError } = await supabase
         .from('group_members')
         .select('*', { count: 'exact', head: true });
@@ -114,7 +106,6 @@ const MoaiPage = () => {
     setIsFixingGroup(true);
     
     try {
-      // First, check available groups
       const { data: availableGroups, error: groupsError } = await supabase
         .from('groups')
         .select('id, name')
@@ -127,18 +118,14 @@ const MoaiPage = () => {
       
       console.log('Available groups before fix:', availableGroups);
       
-      // Proceed with fix attempt
       const result = await ensureUserHasGroup(user.id);
       console.log('Group assignment fix result:', result);
       
       if (result.success) {
-        // Refresh the data
         refetch();
-        // Re-run diagnostics
         const diagResult = await diagnoseGroupAccess(user.id);
         setDiagnosticDetails(diagResult);
       } else {
-        // Fixed: Safely access details property only if it exists
         if ('details' in result && result.details) {
           console.error('Fix error details:', result.details);
         }
@@ -156,13 +143,11 @@ const MoaiPage = () => {
     }
     
     try {
-      // Verify user exists first
       const userExists = await verifyUserExistsInAuth(user.id);
       if (!userExists) {
         console.error('User profile not found in database!');
       }
       
-      // Check for direct group membership using raw query
       const { data: membershipData, error: membershipError } = await supabase
         .from('group_members')
         .select('*')
@@ -174,7 +159,6 @@ const MoaiPage = () => {
         console.log('Direct membership check:', membershipData);
       }
       
-      // Check for available groups
       const { data: availableGroups, error: groupsError } = await supabase
         .from('groups')
         .select('id, name');
@@ -185,12 +169,10 @@ const MoaiPage = () => {
         console.log('Available groups:', availableGroups);
       }
       
-      // Run the full diagnostic
       const result = await diagnoseGroupAccess(user.id);
       console.log('Comprehensive diagnostic result:', result);
       setDiagnosticDetails(result);
       
-      // Force a fresh reload of groups data
       refetch();
     } catch (err) {
       console.error('Error running diagnostics:', err);
@@ -291,12 +273,16 @@ const MoaiPage = () => {
   
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-muted-foreground">Group: {group.name}</p>
-        {group.description && (
-          <p className="text-muted-foreground mt-1 text-sm">{group.description}</p>
-        )}
-      </div>
+      <Card className="bg-client/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl text-center font-semibold text-client">
+            Moai - Pace Setters
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center text-sm text-muted-foreground pt-0">
+          {group.description && <p>{group.description}</p>}
+        </CardContent>
+      </Card>
       
       <Tabs defaultValue="progress" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6">

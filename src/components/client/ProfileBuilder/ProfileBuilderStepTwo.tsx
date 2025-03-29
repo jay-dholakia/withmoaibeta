@@ -150,7 +150,7 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
       </div>
 
       <div className="border-t pt-6">
-        <h2 className="text-xl font-semibold text-client mb-4">Are you preparing for a specific event?</h2>
+        <h2 className="text-xl font-semibold text-black mb-4">Are you preparing for a specific event?</h2>
         
         <div className="space-y-4">
           <div>

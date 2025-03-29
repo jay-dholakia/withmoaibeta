@@ -43,8 +43,11 @@ serve(async (req) => {
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       console.error("Missing required Supabase environment variables");
       return new Response(
-        JSON.stringify({ error: "Server configuration error: Missing Supabase credentials" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          success: false, 
+          error: "Server configuration error: Missing Supabase credentials" 
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -52,10 +55,12 @@ serve(async (req) => {
       console.error("Missing Resend API key, unable to send emails");
       return new Response(
         JSON.stringify({ 
+          success: true, // Still returning 200 for frontend
+          emailSent: false, 
           error: "Email service not configured: Missing Resend API key", 
           details: "The RESEND_API_KEY environment variable is not set or not accessible by the Edge Function."
         }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -72,11 +77,13 @@ serve(async (req) => {
       console.error("Failed to initialize Resend client:", resendError);
       return new Response(
         JSON.stringify({ 
+          success: true, // Still returning 200 for frontend
+          emailSent: false,
           error: "Email service initialization failed", 
           details: "Could not initialize the Resend client with the provided API key.",
           resendError: resendError.message
         }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -94,8 +101,11 @@ serve(async (req) => {
     } catch (jsonError) {
       console.error("Failed to parse request body:", jsonError);
       return new Response(
-        JSON.stringify({ error: "Invalid request body" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          success: false, 
+          error: "Invalid request body" 
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -104,8 +114,11 @@ serve(async (req) => {
     if (!email || !userType) {
       console.error("Missing required fields:", { email, userType });
       return new Response(
-        JSON.stringify({ error: "Email and userType are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          success: false, 
+          error: "Email and userType are required" 
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -125,8 +138,11 @@ serve(async (req) => {
         if (userError || !user) {
           console.error("Invalid token or user not found:", userError);
           return new Response(
-            JSON.stringify({ error: "Invalid token" }),
-            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ 
+              success: false, 
+              error: "Invalid token" 
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -142,16 +158,22 @@ serve(async (req) => {
         if (profileError) {
           console.error("Error fetching profile:", profileError);
           return new Response(
-            JSON.stringify({ error: "Error fetching user profile" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ 
+              success: false, 
+              error: "Error fetching user profile" 
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
         if (!profile || profile.user_type !== "admin") {
           console.error("Unauthorized - user is not an admin:", profile?.user_type);
           return new Response(
-            JSON.stringify({ error: "Unauthorized - Admin access required" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ 
+              success: false, 
+              error: "Unauthorized - Admin access required" 
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
         
@@ -159,8 +181,11 @@ serve(async (req) => {
       } catch (authError) {
         console.error("Error during authentication:", authError);
         return new Response(
-          JSON.stringify({ error: "Authentication error" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ 
+            success: false, 
+            error: "Authentication error" 
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     } else {
@@ -173,8 +198,11 @@ serve(async (req) => {
     if (!userId) {
       console.error("No user ID available for invitation");
       return new Response(
-        JSON.stringify({ error: "Authentication required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          success: false, 
+          error: "Authentication required" 
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -193,8 +221,11 @@ serve(async (req) => {
       if (getInvitationError || !existingInvitation) {
         console.error("Error fetching invitation:", getInvitationError);
         return new Response(
-          JSON.stringify({ error: "Invitation not found" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ 
+            success: false, 
+            error: "Invitation not found" 
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
@@ -217,8 +248,11 @@ serve(async (req) => {
       if (updateError) {
         console.error("Error updating invitation:", updateError);
         return new Response(
-          JSON.stringify({ error: updateError.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ 
+            success: false, 
+            error: updateError.message 
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
@@ -253,8 +287,11 @@ serve(async (req) => {
       if (invitationError) {
         console.error("Error creating invitation:", invitationError);
         return new Response(
-          JSON.stringify({ error: invitationError.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ 
+            success: false, 
+            error: invitationError.message 
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
@@ -290,36 +327,55 @@ serve(async (req) => {
       });
       
       // Attempt to send the email with Resend
-      const { data: emailData, error: emailError } = await resend.emails.send({
-        from: "Moai <jay@withmoai.co>",
-        to: [email],
-        subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #333; margin-bottom: 20px;">Moai Invitation</h1>
-            <p>You've been invited to join Moai as a ${userTypeCapitalized}.</p>
-            <p>Click the button below to create your account:</p>
-            <div style="margin: 30px 0;">
-              <a href="${inviteLink}" style="background-color: #0066cc; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Accept Invitation</a>
+      let emailData = null;
+      let emailError = null;
+      
+      try {
+        const result = await resend.emails.send({
+          from: "Moai <jay@withmoai.co>",
+          to: [email],
+          subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #333; margin-bottom: 20px;">Moai Invitation</h1>
+              <p>You've been invited to join Moai as a ${userTypeCapitalized}.</p>
+              <p>Click the button below to create your account:</p>
+              <div style="margin: 30px 0;">
+                <a href="${inviteLink}" style="background-color: #0066cc; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Accept Invitation</a>
+              </div>
+              <p>Or copy and paste this link into your browser:</p>
+              <p style="word-break: break-all; font-size: 14px; color: #666;">${inviteLink}</p>
+              <p>This invitation will expire in 7 days.</p>
+              <p>If you did not expect this invitation, you can safely ignore this email.</p>
+              <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #999;">
+                <p>© Moai. All rights reserved.</p>
+              </div>
             </div>
-            <p>Or copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; font-size: 14px; color: #666;">${inviteLink}</p>
-            <p>This invitation will expire in 7 days.</p>
-            <p>If you did not expect this invitation, you can safely ignore this email.</p>
-            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #999;">
-              <p>© Moai. All rights reserved.</p>
-            </div>
-          </div>
-        `
-      });
+          `
+        });
+        
+        emailData = result.data;
+        emailError = result.error;
+        console.log("Resend response:", { data: emailData, error: emailError });
+      } catch (err) {
+        console.error("Exception during resend.emails.send():", err);
+        emailError = {
+          message: err.message || "Unknown error during email sending",
+          code: err.code || "UNKNOWN",
+          name: err.name || "Error"
+        };
+      }
       
       if (emailError) {
         console.error("Error sending email:", emailError);
+        
+        // Still return success but with emailSent: false
         return new Response(
           JSON.stringify({ 
-            success: true, // We succeeded in creating the invitation
+            success: true,
             emailSent: false,
-            emailError: emailError.message,
+            emailError: emailError.message || "Unknown error",
+            emailErrorCode: emailError.code,
             invitationId: invitation.id,
             token: invitation.token,
             expiresAt: invitation.expires_at,
@@ -374,11 +430,12 @@ serve(async (req) => {
     console.error("Stack trace:", error.stack);
     return new Response(
       JSON.stringify({ 
+        success: false,
         error: error.message || "An unexpected error occurred",
         stack: error.stack,
         name: error.name 
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

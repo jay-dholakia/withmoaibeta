@@ -62,7 +62,6 @@ serve(async (req) => {
     // Create a Supabase client with the service role key
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Initialize Resend with explicit error handling and logging
     let resend;
     try {
       console.log("Initializing Resend client with API key");
@@ -276,7 +275,6 @@ serve(async (req) => {
     const inviteLink = `${effectiveSiteUrl}/register?token=${invitation.token}&type=${userType}`;
     console.log("Generated invite link:", inviteLink);
 
-    // Enhanced email sending with detailed logging and error handling
     try {
       console.log("Preparing to send email to:", email);
       
@@ -292,7 +290,7 @@ serve(async (req) => {
       });
       
       // Attempt to send the email with Resend
-      const emailResult = await resend.emails.send({
+      const { data: emailData, error: emailError } = await resend.emails.send({
         from: "Moai <jay@withmoai.co>",
         to: [email],
         subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
@@ -315,18 +313,35 @@ serve(async (req) => {
         `
       });
       
-      console.log("Email sent successfully via Resend:", emailResult);
+      if (emailError) {
+        console.error("Error sending email:", emailError);
+        return new Response(
+          JSON.stringify({ 
+            success: true, // We succeeded in creating the invitation
+            emailSent: false,
+            emailError: emailError.message,
+            invitationId: invitation.id,
+            token: invitation.token,
+            expiresAt: invitation.expires_at,
+            inviteLink
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      console.log("Email sent successfully via Resend:", emailData);
       
       // Return success
       return new Response(
         JSON.stringify({
           success: true,
+          emailSent: true,
           message: isResend ? `Invitation resent to ${email}` : `Invitation sent to ${email}`,
           invitationId: invitation.id,
           token: invitation.token,
           expiresAt: invitation.expires_at,
           inviteLink,
-          emailResult
+          emailData
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

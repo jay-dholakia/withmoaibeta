@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ensureCoachGroupAssignment } from './coach-group-service';
 import { ClientData } from './client-service';
@@ -73,17 +74,25 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       }
       
       // Individual workout completion counts per user using Promise.all
+      // Only count actual completed workouts, excluding life happens passes and rest days
       const workoutCountPromises = clientIds.map(async (clientId) => {
-        const { count, error } = await supabase
+        const { data: completions, error: countError } = await supabase
           .from('workout_completions')
-          .select('*', { count: 'exact', head: true })
+          .select('id')
           .eq('user_id', clientId)
           .is('life_happens_pass', false)
-          .is('rest_day', false);
+          .is('rest_day', false)
+          .not('completed_at', 'is', null); // Ensure only completed workouts are counted
           
+        if (countError) {
+          console.error(`Error counting workouts for client ${clientId}:`, countError);
+          return { userId: clientId, count: 0 };
+        }
+        
+        // Count the actual completed workouts
         return { 
           userId: clientId, 
-          count: count !== null ? count : 0 
+          count: completions ? completions.length : 0 
         };
       });
       
@@ -178,7 +187,7 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
           email: emailMap.get(client.id) || 'Unknown',
           user_type: client.user_type,
           last_workout_at: clientWorkoutInfo?.last_workout_at || null,
-          // Use the accurate count from workout_completions instead of client_workout_info
+          // Use the accurate count from completed workouts
           total_workouts_completed: workoutCountMap.get(client.id) || 0,
           current_program_id: clientWorkoutInfo?.current_program_id || null,
           current_program_title: program?.title || null,
@@ -195,16 +204,22 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       
       // Fetch individual workout counts for each client
       const workoutCountPromises = clientIds.map(async (clientId) => {
-        const { count, error } = await supabase
+        const { data: completions, error: countError } = await supabase
           .from('workout_completions')
-          .select('*', { count: 'exact', head: true })
+          .select('id')
           .eq('user_id', clientId)
           .is('life_happens_pass', false)
-          .is('rest_day', false);
+          .is('rest_day', false)
+          .not('completed_at', 'is', null); // Only count actually completed workouts
           
+        if (countError) {
+          console.error(`Error counting workouts for client ${clientId}:`, countError);
+          return { userId: clientId, count: 0 };
+        }
+        
         return { 
           userId: clientId, 
-          count: count !== null ? count : 0 
+          count: completions ? completions.length : 0
         };
       });
       

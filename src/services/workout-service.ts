@@ -9,6 +9,8 @@ export const createWorkout = async (data: {
   workout_type: string;
   priority?: number;
 }) => {
+  const normalizedType = normalizeWorkoutType(data.workout_type);
+  
   const { data: workout, error } = await supabase
     .from('workouts')
     .insert({
@@ -16,7 +18,7 @@ export const createWorkout = async (data: {
       day_of_week: data.day_of_week,
       title: data.title,
       description: data.description,
-      workout_type: data.workout_type,
+      workout_type: normalizedType,
       priority: data.priority || 0
     } as any) // Use type assertion to avoid TS error
     .select('*')
@@ -37,15 +39,14 @@ export const updateWorkout = async (id: string, data: {
   workout_type?: string;
   priority?: number;
 }) => {
+  const updateData = { ...data };
+  if (updateData.workout_type) {
+    updateData.workout_type = normalizeWorkoutType(updateData.workout_type);
+  }
+  
   const { data: workout, error } = await supabase
     .from('workouts')
-    .update({
-      title: data.title,
-      description: data.description,
-      day_of_week: data.day_of_week,
-      workout_type: data.workout_type,
-      priority: data.priority
-    } as any) // Use type assertion to avoid TS error
+    .update(updateData as any) // Use type assertion to avoid TS error
     .eq('id', id)
     .select('*')
     .single();
@@ -433,9 +434,17 @@ export const createStandaloneWorkout = async (data: {
   category?: string;
   workout_type: string;
 }) => {
+  const normalizedType = normalizeWorkoutType(data.workout_type);
+  
   const { data: workout, error } = await supabase
     .from('standalone_workouts')
-    .insert(data)
+    .insert({
+      title: data.title,
+      description: data.description,
+      coach_id: data.coach_id,
+      category: data.category,
+      workout_type: normalizedType
+    })
     .select('*')
     .single();
 
@@ -483,9 +492,14 @@ export const updateStandaloneWorkout = async (workoutId: string, data: {
   category?: string;
   workout_type?: string;
 }) => {
+  const updateData = { ...data };
+  if (updateData.workout_type) {
+    updateData.workout_type = normalizeWorkoutType(updateData.workout_type);
+  }
+  
   const { data: workout, error } = await supabase
     .from('standalone_workouts')
-    .update(data)
+    .update(updateData)
     .eq('id', workoutId)
     .select('*')
     .single();
@@ -864,3 +878,18 @@ export const copyTemplateWorkoutToWeek = async (
     throw error;
   }
 };
+
+function normalizeWorkoutType(workoutType: string): string {
+  const type = workoutType.toLowerCase();
+  
+  if (type.includes('strength')) return 'strength';
+  if (type.includes('body') || type.includes('weight')) return 'bodyweight';
+  if (type.includes('cardio') || type.includes('hiit')) return 'cardio';
+  if (type.includes('flex') || type.includes('yoga') || type.includes('recovery')) return 'flexibility';
+  if (type.includes('rest')) return 'rest_day';
+  if (type.includes('custom')) return 'custom';
+  if (type.includes('one')) return 'one_off';
+  
+  // Default to 'strength' if no match is found
+  return 'strength';
+}

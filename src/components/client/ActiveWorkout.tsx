@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -246,10 +247,19 @@ const ActiveWorkout = () => {
               (set: any) => set.workout_exercise_id === exercise.id && set.set_number === i + 1
             );
             
+            // Extract numeric value from reps string if it's a simple number
+            let defaultReps = '';
+            if (exercise.reps) {
+              const repsMatch = exercise.reps.match(/^(\d+)$/);
+              if (repsMatch) {
+                defaultReps = repsMatch[1];
+              }
+            }
+            
             return {
               setNumber: i + 1,
               weight: existingSet?.weight?.toString() || '',
-              reps: existingSet?.reps_completed?.toString() || '',
+              reps: existingSet?.reps_completed?.toString() || defaultReps, // Auto-populate reps from workout plan
               completed: !!existingSet?.completed,
             };
           });

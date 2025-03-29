@@ -55,6 +55,9 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
             placeholder="e.g., 10 or 30s"
             className="w-full"
           />
+          <p className="text-xs text-muted-foreground mt-1">
+            For strength exercises, use just numbers (e.g., "10") to auto-populate client tracking
+          </p>
         </div>
       </div>
       

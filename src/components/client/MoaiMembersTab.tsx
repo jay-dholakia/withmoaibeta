@@ -1,16 +1,16 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, ArrowLeft, UserRound, Trophy, FileText, Calendar } from 'lucide-react';
+import { Loader2, ArrowLeft, UserRound, Trophy, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import MoaiMemberItem from './MoaiMemberItem';
+import { format } from 'date-fns';
 
 interface MemberProfile {
   id: string;
@@ -24,7 +24,53 @@ interface MemberProfile {
   avatar_url: string | null;
   fitness_goals: string[] | null;
   favorite_movements: string[] | null;
+  event_type: string | null;
+  event_date: string | null;
+  event_name: string | null;
 }
+
+const movementEmojis: Record<string, string> = {
+  'Walking': '🚶',
+  'Running': '🏃',
+  'Swimming': '🏊',
+  'Cycling': '🚴',
+  'Weight Training': '🏋️',
+  'Yoga': '🧘',
+  'Dance': '💃',
+  'Hiking': '🥾',
+  'Basketball': '🏀',
+  'Soccer': '⚽',
+  'Tennis': '🎾',
+  'Volleyball': '🏐',
+  'Pilates': '🤸',
+  'CrossFit': '💪',
+  'Martial Arts': '🥋',
+  'Rock Climbing': '🧗',
+  'Skating': '⛸️',
+  'Skiing': '⛷️',
+  'Snowboarding': '🏂',
+  'Rowing': '🚣',
+  'Surfing': '🏄',
+  'Golf': '🏌️',
+  'Boxing': '🥊',
+  'Paddleboarding': '🏄‍♂️',
+  'Trail Running': '🏞️',
+  'Badminton': '🏸',
+  'Table Tennis': '🏓',
+  'Baseball': '⚾',
+  'Cricket': '🏏',
+  'Rugby': '🏉',
+  'Football': '🏈',
+  'Archery': '🏹',
+  'Horseback Riding': '🏇',
+  'Gymnastics': '🤸‍♀️',
+  'Parkour': '🧱',
+  'Skateboarding': '🛹',
+  'Ice Hockey': '🏒',
+  'Handball': '🤾',
+  'Diving': '🤿',
+  'Fencing': '🤺',
+};
 
 interface MemberWorkout {
   id: string;
@@ -46,7 +92,6 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
   const { user } = useAuth();
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   
-  // Fetch group members
   const { data: members, isLoading: isLoadingMembers } = useQuery({
     queryKey: ['moai-members', groupId],
     queryFn: async () => {
@@ -60,7 +105,6 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
         throw membersError;
       }
       
-      // For each member, fetch their profile
       const memberData = await Promise.all(
         groupMembers.map(async (member) => {
           try {
@@ -70,8 +114,6 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
               .eq('id', member.user_id)
               .maybeSingle();
               
-            // For privacy reasons, we don't fetch actual emails
-            // Instead, we create a placeholder
             const email = `user_${member.user_id.substring(0, 8)}@example.com`;
             
             return {
@@ -95,7 +137,6 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
     }
   });
   
-  // Fetch member profile when selected
   const { data: memberProfile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['member-profile', selectedMember],
     queryFn: async () => {
@@ -117,7 +158,6 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
     enabled: !!selectedMember
   });
   
-  // Fetch member workouts when selected
   const { data: memberWorkouts, isLoading: isLoadingWorkouts } = useQuery({
     queryKey: ['member-workouts', selectedMember],
     queryFn: async () => {
@@ -146,6 +186,22 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
     enabled: !!selectedMember
   });
   
+  const formatDisplayName = (firstName: string | null, lastName: string | null): string => {
+    const first = firstName || '';
+    const last = lastName ? `${lastName.charAt(0)}.` : '';
+    return `${first} ${last}`.trim();
+  };
+
+  const formatEventDate = (dateString: string | null): string => {
+    if (!dateString) return '';
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
+  };
+
   if (isLoadingMembers) {
     return (
       <div className="flex justify-center items-center h-40">
@@ -164,7 +220,6 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
     );
   }
   
-  // If a member is selected, show their profile
   if (selectedMember) {
     return (
       <div className="space-y-4 mt-4">
@@ -219,7 +274,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                         <div className="space-y-3 flex-1 text-center sm:text-left">
                           <div>
                             <h3 className="font-semibold text-lg">
-                              {memberProfile.first_name || ''} {memberProfile.last_name || ''}
+                              {formatDisplayName(memberProfile.first_name, memberProfile.last_name)}
                               {selectedMember === user?.id && <Badge className="ml-2">You</Badge>}
                             </h3>
                             {(memberProfile.city || memberProfile.state) && (
@@ -227,24 +282,16 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                                 {memberProfile.city}{memberProfile.city && memberProfile.state ? ', ' : ''}{memberProfile.state}
                               </p>
                             )}
+                            
+                            {memberProfile.event_type && (
+                              <p className="mt-2 text-sm font-medium">
+                                Preparing for {memberProfile.event_type}
+                                {memberProfile.event_date && (
+                                  <> on {formatEventDate(memberProfile.event_date)}</>
+                                )}
+                              </p>
+                            )}
                           </div>
-                          
-                          {(memberProfile.height || memberProfile.weight) && (
-                            <div className="flex gap-4 justify-center sm:justify-start">
-                              {memberProfile.height && (
-                                <div>
-                                  <span className="text-muted-foreground text-sm">Height</span>
-                                  <p>{memberProfile.height}</p>
-                                </div>
-                              )}
-                              {memberProfile.weight && (
-                                <div>
-                                  <span className="text-muted-foreground text-sm">Weight</span>
-                                  <p>{memberProfile.weight}</p>
-                                </div>
-                              )}
-                            </div>
-                          )}
                         </div>
                       </div>
                       
@@ -266,7 +313,9 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                           <h4 className="font-medium mb-2">Favorite Movements</h4>
                           <div className="flex flex-wrap gap-2">
                             {memberProfile.favorite_movements.map(movement => (
-                              <Badge key={movement} variant="outline">{movement}</Badge>
+                              <Badge key={movement} variant="outline">
+                                {movementEmojis[movement] || ''} {movement}
+                              </Badge>
                             ))}
                           </div>
                         </div>
@@ -348,7 +397,6 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
     );
   }
   
-  // Otherwise, show the member list
   return (
     <div className="space-y-3 mt-4">
       {members.map(member => (

@@ -151,7 +151,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                 </>
               )}
               
-              {/* Replace notes with workout set details */}
+              {/* Display workout set details */}
               {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
                 <>
                   <Separator className="my-3" />
@@ -178,14 +178,43 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                           const exerciseId = set.workout_exercise_id;
                           
                           if (!exerciseGroups[exerciseId]) {
-                            // Find the exercise name by looking up the workout_exercise in the workout
-                            const exerciseInfo = workout.workout?.workout_exercises?.find(
-                              e => e.id === exerciseId
-                            );
+                            let exerciseName = "Unknown Exercise";
+                            let exerciseType = "strength";
+                            
+                            // First try looking up the exercise in the workout_exercises of this workout
+                            if (workout.workout?.workout_exercises) {
+                              const exerciseInfo = workout.workout.workout_exercises.find(
+                                e => e.id === exerciseId
+                              );
+                              
+                              if (exerciseInfo?.exercise) {
+                                exerciseName = exerciseInfo.exercise.name;
+                                exerciseType = exerciseInfo.exercise.exercise_type || "strength";
+                              }
+                            }
+                            
+                            // If we can't find it, try looking through all workout_set_completions to see if there's additional info
+                            if (exerciseName === "Unknown Exercise" && workouts.length > 0) {
+                              // Log for debugging
+                              console.log(`Looking up exercise ID: ${exerciseId}`);
+                              
+                              // Look across all workouts for this exercise
+                              for (const w of workouts) {
+                                if (w.workout?.workout_exercises) {
+                                  const ex = w.workout.workout_exercises.find(e => e.id === exerciseId);
+                                  if (ex?.exercise?.name) {
+                                    exerciseName = ex.exercise.name;
+                                    exerciseType = ex.exercise.exercise_type || "strength";
+                                    console.log(`Found exercise: ${exerciseName}`);
+                                    break;
+                                  }
+                                }
+                              }
+                            }
                             
                             exerciseGroups[exerciseId] = {
-                              name: exerciseInfo?.exercise?.name || "Unknown Exercise",
-                              type: exerciseInfo?.exercise?.exercise_type || "strength",
+                              name: exerciseName,
+                              type: exerciseType,
                               sets: []
                             };
                           }

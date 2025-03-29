@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./client-workout-history-service";
@@ -450,17 +449,9 @@ export const uploadCoachAvatar = async (coachId: string, file: File): Promise<st
 };
 
 // Coach Client Functions
-export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> => {
-  try {
-    const { data, error } = await supabase.rpc('get_coach_clients', { coach_id: coachId });
-    
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error("Error fetching coach clients:", error);
-    return [];
-  }
-};
+export { fetchCoachClients } from './coach-clients-service';
+export type { ClientData } from './coach-clients-service';
+export { fetchCoachGroups } from './coach-group-service'; 
 
 export const fetchAllClientProfiles = async (): Promise<any[]> => {
   try {

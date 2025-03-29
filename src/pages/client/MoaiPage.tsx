@@ -276,7 +276,7 @@ const MoaiPage = () => {
     <div className="space-y-6">
       <Card className="bg-client/5">
         <CardHeader className="pb-2">
-          <CardTitle className="text-2xl text-center font-semibold text-client">
+          <CardTitle className="text-2xl text-center font-semibold text-black">
             🏃‍♀️ Pace Setters 🏃‍♂️
           </CardTitle>
         </CardHeader>

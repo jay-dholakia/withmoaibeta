@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -489,34 +488,32 @@ const ActiveWorkout = () => {
     : [];
 
   return (
-    <div className="space-y-6 pb-28">
-      <div className="flex items-center gap-4">
+    <div className="space-y-6 pb-28 flex flex-col items-center max-w-md mx-auto">
+      <div className="flex flex-col items-center gap-2 text-center w-full">
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={() => navigate('/client-dashboard/workouts')}
-          className="border border-gray-200 hover:border-gray-300"
+          className="border border-gray-200 hover:border-gray-300 self-start mb-2"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold">{workoutData?.workout.title}</h1>
-          <p className="text-muted-foreground">Track your progress</p>
-        </div>
+        <h1 className="text-2xl font-bold">{workoutData?.workout.title}</h1>
+        <p className="text-muted-foreground">Track your progress</p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 w-full">
         {workoutExercises.map((exercise: any) => {
           const exerciseType = exercise.exercise?.exercise_type || 'strength';
           
           return (
-            <Card key={exercise.id} className="overflow-hidden border-gray-200">
+            <Card key={exercise.id} className="overflow-hidden border-gray-200 w-full">
               <CardHeader 
-                className="cursor-pointer bg-client/5" 
+                className="cursor-pointer bg-client/5 text-center" 
                 onClick={() => toggleExerciseExpanded(exercise.id)}
               >
                 <div className="flex justify-between items-center">
-                  <div>
+                  <div className="text-center w-full">
                     <CardTitle className="text-base">{exercise.exercise.name}</CardTitle>
                     <CardDescription>
                       {exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
@@ -563,7 +560,7 @@ const ActiveWorkout = () => {
                 <>
                   <CardContent className="pt-4">
                     {exercise.notes && (
-                      <div className="mb-4 text-sm bg-muted p-3 rounded-md">
+                      <div className="mb-4 text-sm bg-muted p-3 rounded-md text-center">
                         <p className="font-medium mb-1">Notes:</p>
                         <p>{exercise.notes}</p>
                       </div>
@@ -571,12 +568,12 @@ const ActiveWorkout = () => {
                     
                     {exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
                       <div className="space-y-4">
-                        <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 text-sm font-medium border-b pb-2">
-                          <div>Set</div>
-                          <div className="text-left">Reps</div>
-                          {exerciseType === 'strength' && <div className="text-left">Weight</div>}
+                        <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 text-sm font-medium border-b pb-2 text-center">
+                          <div className="text-center">Set</div>
+                          <div className="text-center">Reps</div>
+                          {exerciseType === 'strength' && <div className="text-center">Weight</div>}
                           {exerciseType === 'bodyweight' && <div className="opacity-0">-</div>}
-                          <div>Done</div>
+                          <div className="text-center">Done</div>
                         </div>
                         
                         {exerciseStates[exercise.id]?.sets.map((set, setIdx) => (
@@ -584,13 +581,13 @@ const ActiveWorkout = () => {
                             key={`${exercise.id}-set-${setIdx}`}
                             className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 items-center"
                           >
-                            <div className="font-medium">{set.setNumber}</div>
+                            <div className="font-medium text-center">{set.setNumber}</div>
                             <Input
                               type="number"
                               placeholder="count"
                               value={set.reps}
                               onChange={(e) => handleSetChange(exercise.id, setIdx, 'reps', e.target.value)}
-                              className="h-9 text-left"
+                              className="h-9 text-center"
                             />
                             {exerciseType === 'strength' ? (
                               <Input
@@ -598,10 +595,10 @@ const ActiveWorkout = () => {
                                 placeholder="lbs"
                                 value={set.weight}
                                 onChange={(e) => handleSetChange(exercise.id, setIdx, 'weight', e.target.value)}
-                                className="h-9 text-left"
+                                className="h-9 text-center"
                               />
                             ) : (
-                              <div className="text-left text-sm text-muted-foreground">
+                              <div className="text-center text-sm text-muted-foreground">
                                 Bodyweight
                               </div>
                             )}
@@ -610,7 +607,7 @@ const ActiveWorkout = () => {
                               onCheckedChange={(checked) => 
                                 handleSetCompletion(exercise.id, setIdx, checked === true)
                               }
-                              className="h-5 w-5 data-[state=checked]:bg-client data-[state=checked]:border-client"
+                              className="h-5 w-5 data-[state=checked]:bg-client data-[state=checked]:border-client mx-auto"
                             />
                           </div>
                         ))}
@@ -618,8 +615,8 @@ const ActiveWorkout = () => {
                     ) : exerciseType === 'cardio' ? (
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium mb-1 text-left">Distance (miles)</label>
+                          <div className="text-center">
+                            <label className="block text-sm font-medium mb-1 text-center">Distance (miles)</label>
                             <Input
                               type="number"
                               step="0.01"
@@ -627,12 +624,12 @@ const ActiveWorkout = () => {
                               placeholder="0.00"
                               value={exerciseStates[exercise.id]?.cardioData?.distance || ''}
                               onChange={(e) => handleCardioChange(exercise.id, 'distance', e.target.value)}
-                              className="h-9 text-left border border-gray-200"
+                              className="h-9 text-center border border-gray-200"
                             />
-                            <p className="text-xs text-muted-foreground mt-1 text-left">Enter distance in miles</p>
+                            <p className="text-xs text-muted-foreground mt-1 text-center">Enter distance in miles</p>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-1 text-left">Duration (hh:mm:ss)</label>
+                          <div className="text-center">
+                            <label className="block text-sm font-medium mb-1 text-center">Duration (hh:mm:ss)</label>
                             <Input
                               placeholder="00:00:00"
                               value={exerciseStates[exercise.id]?.cardioData?.duration || ''}
@@ -641,15 +638,15 @@ const ActiveWorkout = () => {
                                 'duration', 
                                 formatDurationInput(e.target.value)
                               )}
-                              className="h-9 text-left border border-gray-200"
+                              className="h-9 text-center border border-gray-200"
                             />
-                            <p className="text-xs text-muted-foreground mt-1 text-left">Format: hours:minutes:seconds</p>
+                            <p className="text-xs text-muted-foreground mt-1 text-center">Format: hours:minutes:seconds</p>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-1 text-left">Location</label>
+                          <div className="text-center">
+                            <label className="block text-sm font-medium mb-1 text-center">Location</label>
                             <ToggleGroup 
                               type="single" 
-                              className="justify-start"
+                              className="justify-center"
                               value={exerciseStates[exercise.id]?.cardioData?.location || ''}
                               onValueChange={(value) => {
                                 if (value) handleCardioChange(exercise.id, 'location', value);
@@ -670,7 +667,7 @@ const ActiveWorkout = () => {
                             </ToggleGroup>
                           </div>
                         </div>
-                        <div className="flex justify-end items-center mt-2">
+                        <div className="flex justify-center items-center mt-2">
                           <span className="mr-2 text-sm">Mark as completed:</span>
                           <Checkbox
                             checked={exerciseStates[exercise.id]?.cardioData?.completed || false}
@@ -683,8 +680,8 @@ const ActiveWorkout = () => {
                       </div>
                     ) : exerciseType === 'flexibility' ? (
                       <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-1 text-left">Duration</label>
+                        <div className="text-center">
+                          <label className="block text-sm font-medium mb-1 text-center">Duration</label>
                           <Input
                             placeholder="e.g., 00:30, 01:00"
                             value={exerciseStates[exercise.id]?.flexibilityData?.duration || ''}
@@ -693,11 +690,11 @@ const ActiveWorkout = () => {
                               'duration', 
                               formatDurationInput(e.target.value)
                             )}
-                            className="h-9 text-left border border-gray-200"
+                            className="h-9 text-center border border-gray-200 max-w-xs mx-auto"
                           />
-                          <p className="text-xs text-muted-foreground mt-1 text-left">Format: minutes:seconds</p>
+                          <p className="text-xs text-muted-foreground mt-1 text-center">Format: minutes:seconds</p>
                         </div>
-                        <div className="flex justify-end items-center mt-2">
+                        <div className="flex justify-center items-center mt-2">
                           <span className="mr-2 text-sm">Mark as completed:</span>
                           <Checkbox
                             checked={exerciseStates[exercise.id]?.flexibilityData?.completed || false}

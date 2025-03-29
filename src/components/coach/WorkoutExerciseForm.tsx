@@ -33,55 +33,55 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-3 text-center">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="sets">Sets</Label>
+          <Label htmlFor="sets" className="text-center block">Sets</Label>
           <Input
             id="sets"
             type="number"
             value={sets}
             onChange={(e) => setSets(Number(e.target.value))}
             min={1}
-            className="w-full"
+            className="w-full text-center"
           />
         </div>
         <div>
-          <Label htmlFor="reps">Reps/Duration</Label>
+          <Label htmlFor="reps" className="text-center block">Reps/Duration</Label>
           <Input
             id="reps"
             value={reps}
             onChange={(e) => setReps(e.target.value)}
             placeholder="e.g., 10 or 30s"
-            className="w-full"
+            className="w-full text-center"
           />
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1 text-center">
             For strength exercises, use just numbers (e.g., "10") to auto-populate client tracking
           </p>
         </div>
       </div>
       
       <div>
-        <Label htmlFor="rest">Rest (seconds)</Label>
+        <Label htmlFor="rest" className="text-center block">Rest (seconds)</Label>
         <Input
           id="rest"
           type="number"
           value={restSeconds}
           onChange={(e) => setRestSeconds(Number(e.target.value))}
           min={0}
-          className="w-full"
+          className="w-full text-center"
         />
       </div>
       
       <div>
-        <Label htmlFor="notes">Notes (Optional)</Label>
+        <Label htmlFor="notes" className="text-center block">Notes (Optional)</Label>
         <Textarea
           id="notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Add special instructions or cues"
           rows={2}
-          className="min-h-[60px]"
+          className="min-h-[60px] text-center"
         />
       </div>
       

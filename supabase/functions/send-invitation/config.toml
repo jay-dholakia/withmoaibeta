@@ -1,7 +1,0 @@
-
-project_id = "gjrheltyxjilxcphbzdj"
-
-[env.SUPABASE_URL]
-[env.SUPABASE_SERVICE_ROLE_KEY]
-[env.RESEND_API_KEY]
-[env.SITE_URL]

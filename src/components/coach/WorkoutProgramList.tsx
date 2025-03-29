@@ -74,9 +74,7 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
       {programs.map((program) => (
         <div key={program.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
           <h3 className="font-medium text-lg text-left">{program.title}</h3>
-          <p className="text-muted-foreground mb-4 line-clamp-2 text-left">
-            {program.description || 'No description'}
-          </p>
+          {/* Description is now hidden */}
           <div className="flex flex-wrap gap-2 mb-4">
             <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
               <Calendar className="h-3 w-3" />

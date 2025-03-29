@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ClientProfile } from '@/services/client-service';
 import { Activity } from 'lucide-react';
@@ -23,6 +23,11 @@ export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = (
   onBack
 }) => {
   const [movements, setMovements] = useState<string[]>(profile.favorite_movements || []);
+
+  // Update movements when profile changes
+  useEffect(() => {
+    setMovements(profile.favorite_movements || []);
+  }, [profile]);
 
   const movementOptions: MovementOption[] = [
     { label: 'Walking', emoji: '🚶' },

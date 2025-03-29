@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ClientProfile } from '@/services/client-service';
 import { format } from "date-fns";
@@ -72,6 +72,18 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
     profile.event_date ? new Date(profile.event_date) : undefined
   );
   const [eventName, setEventName] = useState<string>(profile.event_name || '');
+
+  // Update state when profile changes
+  useEffect(() => {
+    setSelectedGoals(profile.fitness_goals || []);
+    setTrainingForEvent(profile.event_type || 'none');
+    
+    if (profile.event_date) {
+      setEventDate(new Date(profile.event_date));
+    }
+    
+    setEventName(profile.event_name || '');
+  }, [profile]);
 
   const toggleGoal = (goalId: string) => {
     setSelectedGoals(current => 

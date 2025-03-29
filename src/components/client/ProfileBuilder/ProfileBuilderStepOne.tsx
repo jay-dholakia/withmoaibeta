@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,8 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   const [birthDay, setBirthDay] = useState<string>('');
   const [birthYear, setBirthYear] = useState<string>('');
   
-  React.useEffect(() => {
+  // Parse and set birthday from profile data
+  useEffect(() => {
     if (profile.birthday) {
       const date = new Date(profile.birthday);
       setBirthMonth((date.getMonth() + 1).toString());
@@ -61,7 +63,8 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     state: !!state
   });
 
-  React.useEffect(() => {
+  // Parse and set height from profile data
+  useEffect(() => {
     if (profile.height) {
       const heightMatch = profile.height.match(/(\d+)'(\d+)"/);
       if (heightMatch) {
@@ -70,6 +73,27 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
       }
     }
   }, [profile.height]);
+
+  // Update focus states when profile data changes
+  useEffect(() => {
+    setFirstName(profile.first_name || '');
+    setLastName(profile.last_name || '');
+    setCity(profile.city || '');
+    setState(profile.state || '');
+    setAvatarUrl(profile.avatar_url || '');
+    
+    if (profile.weight) {
+      setWeight(profile.weight.replace(/[^0-9.]/g, '') || '');
+      setWeightUnit(profile.weight.toLowerCase().includes('kg') ? 'kg' : 'lbs');
+    }
+    
+    setFocusStates({
+      firstName: !!profile.first_name,
+      lastName: !!profile.last_name,
+      city: !!profile.city,
+      state: !!profile.state
+    });
+  }, [profile]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;

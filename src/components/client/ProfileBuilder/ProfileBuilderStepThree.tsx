@@ -1,33 +1,8 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ClientProfile } from '@/services/client-service';
-import { 
-  Activity, 
-  User2, 
-  UserRound, 
-  Bike, 
-  Dumbbell, 
-  Music, 
-  Mountain, 
-  Waves,
-  Snowflake, 
-  Hammer, 
-  Workflow,
-  LifeBuoy,
-  PenTool,
-  Sailboat,
-  Ship,
-  Map,
-  Footprints,
-  Bird,
-  Heart,
-  Timer,
-  Medal,
-  Anchor,
-  Mic2,
-  Sword,
-  Flame
-} from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 interface ProfileBuilderStepThreeProps {
   profile: Partial<ClientProfile>;
@@ -38,7 +13,7 @@ interface ProfileBuilderStepThreeProps {
 
 interface MovementOption {
   label: string;
-  icon: React.ReactNode;
+  emoji: string;
 }
 
 export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = ({
@@ -50,31 +25,47 @@ export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = (
   const [movements, setMovements] = useState<string[]>(profile.favorite_movements || []);
 
   const movementOptions: MovementOption[] = [
-    { label: 'Walking', icon: <Footprints className="h-5 w-5" /> },
-    { label: 'Running', icon: <User2 className="h-5 w-5" /> },
-    { label: 'Swimming', icon: <Waves className="h-5 w-5" /> },
-    { label: 'Cycling', icon: <Bike className="h-5 w-5" /> },
-    { label: 'Weight Training', icon: <Dumbbell className="h-5 w-5" /> },
-    { label: 'Yoga', icon: <Activity className="h-5 w-5 rotate-45" /> },
-    { label: 'Dance', icon: <Music className="h-5 w-5" /> },
-    { label: 'Hiking', icon: <Mountain className="h-5 w-5" /> },
-    { label: 'Basketball', icon: <Timer className="h-5 w-5" /> },
-    { label: 'Soccer', icon: <Flame className="h-5 w-5" /> },
-    { label: 'Tennis', icon: <PenTool className="h-5 w-5" /> },
-    { label: 'Volleyball', icon: <Medal className="h-5 w-5" /> },
-    { label: 'Pilates', icon: <Heart className="h-5 w-5" /> },
-    { label: 'CrossFit', icon: <Workflow className="h-5 w-5" /> },
-    { label: 'Martial Arts', icon: <Sword className="h-5 w-5" /> },
-    { label: 'Rock Climbing', icon: <Mountain className="h-5 w-5" /> },
-    { label: 'Skating', icon: <PenTool className="h-5 w-5" /> },
-    { label: 'Skiing', icon: <Bird className="h-5 w-5" /> },
-    { label: 'Snowboarding', icon: <Snowflake className="h-5 w-5" /> },
-    { label: 'Rowing', icon: <Ship className="h-5 w-5" /> },
-    { label: 'Surfing', icon: <Waves className="h-5 w-5" /> },
-    { label: 'Golf', icon: <Hammer className="h-5 w-5" /> },
-    { label: 'Boxing', icon: <Hammer className="h-5 w-5" /> },
-    { label: 'Paddleboarding', icon: <Sailboat className="h-5 w-5" /> },
-    { label: 'Trail Running', icon: <Map className="h-5 w-5" /> },
+    { label: 'Walking', emoji: '🚶' },
+    { label: 'Running', emoji: '🏃' },
+    { label: 'Swimming', emoji: '🏊' },
+    { label: 'Cycling', emoji: '🚴' },
+    { label: 'Weight Training', emoji: '🏋️' },
+    { label: 'Yoga', emoji: '🧘' },
+    { label: 'Dance', emoji: '💃' },
+    { label: 'Hiking', emoji: '🥾' },
+    { label: 'Basketball', emoji: '🏀' },
+    { label: 'Soccer', emoji: '⚽' },
+    { label: 'Tennis', emoji: '🎾' },
+    { label: 'Volleyball', emoji: '🏐' },
+    { label: 'Pilates', emoji: '🤸' },
+    { label: 'CrossFit', emoji: '💪' },
+    { label: 'Martial Arts', emoji: '🥋' },
+    { label: 'Rock Climbing', emoji: '🧗' },
+    { label: 'Skating', emoji: '⛸️' },
+    { label: 'Skiing', emoji: '⛷️' },
+    { label: 'Snowboarding', emoji: '🏂' },
+    { label: 'Rowing', emoji: '🚣' },
+    { label: 'Surfing', emoji: '🏄' },
+    { label: 'Golf', emoji: '🏌️' },
+    { label: 'Boxing', emoji: '🥊' },
+    { label: 'Paddleboarding', emoji: '🏄‍♂️' },
+    { label: 'Trail Running', emoji: '🏞️' },
+    // Additional movement options
+    { label: 'Badminton', emoji: '🏸' },
+    { label: 'Table Tennis', emoji: '🏓' },
+    { label: 'Baseball', emoji: '⚾' },
+    { label: 'Cricket', emoji: '🏏' },
+    { label: 'Rugby', emoji: '🏉' },
+    { label: 'American Football', emoji: '🏈' },
+    { label: 'Archery', emoji: '🏹' },
+    { label: 'Horseback Riding', emoji: '🏇' },
+    { label: 'Gymnastics', emoji: '🤸‍♀️' },
+    { label: 'Parkour', emoji: '🧱' },
+    { label: 'Skateboarding', emoji: '🛹' },
+    { label: 'Ice Hockey', emoji: '🏒' },
+    { label: 'Handball', emoji: '🤾' },
+    { label: 'Diving', emoji: '🤿' },
+    { label: 'Fencing', emoji: '🤺' },
   ];
 
   const toggleMovement = (movement: string) => {
@@ -116,7 +107,7 @@ export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = (
                   : 'bg-background border-input hover:bg-muted/50'}
               `}
             >
-              {option.icon}
+              <span className="text-xl">{option.emoji}</span>
               <span className="text-sm whitespace-nowrap truncate">{option.label}</span>
             </div>
           ))}

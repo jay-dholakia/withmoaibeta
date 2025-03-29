@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,7 +62,6 @@ export const WeekProgressSection = ({
   const startOfYear = new Date(now.getFullYear(), 0, 1);
   const weekNumber = getWeek(now, { weekStartsOn: 1 });
   
-  // Move all hooks to the top level - no conditional hooks!
   const { data: programWeekData } = useQuery({
     queryKey: ['program-week', user?.id],
     queryFn: async () => {
@@ -82,7 +80,6 @@ export const WeekProgressSection = ({
       
       const startDate = new Date(assignments[0].start_date);
       
-      // Check if program hasn't started yet
       if (isFuture(startDate)) {
         return { weekNumber: 0 };
       }
@@ -213,7 +210,6 @@ export const WeekProgressSection = ({
     enabled: !!user?.id,
   });
   
-  // Member profile query - always define the hook, but only fetch when needed
   const { data: memberProfile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['member-profile', selectedMember],
     queryFn: async () => {
@@ -235,7 +231,6 @@ export const WeekProgressSection = ({
     enabled: !!selectedMember
   });
   
-  // Member workouts query - always define the hook, but only fetch when needed
   const { data: memberWorkouts, isLoading: isLoadingWorkouts } = useQuery({
     queryKey: ['member-workouts', selectedMember],
     queryFn: async () => {
@@ -264,7 +259,6 @@ export const WeekProgressSection = ({
     enabled: !!selectedMember
   });
   
-  // Calculate derived data with useMemo to avoid recalculation
   const clientCompletedDates = useMemo(() => {
     if (!clientWorkouts) return [];
     return clientWorkouts
@@ -346,7 +340,6 @@ export const WeekProgressSection = ({
     return typesMap;
   }, [clientWorkouts]);
   
-  // Add debugging effects to track hook execution
   useEffect(() => {
     if (clientWorkouts && clientWorkouts.length > 0) {
       console.log("Client Workouts:", clientWorkouts);
@@ -355,7 +348,6 @@ export const WeekProgressSection = ({
     }
   }, [clientWorkouts, clientCompletedDates, clientLifeHappensDates]);
   
-  // Loading state - at the bottom after all hooks are defined
   if ((showPersonal && (isLoadingClientWorkouts || isLoadingAssignedCount)) || 
       ((showTeam || showGroupMembers) && isLoadingGroupData)) {
     return (
@@ -365,7 +357,6 @@ export const WeekProgressSection = ({
     );
   }
   
-  // If a member is selected, show their profile (with enableMemberClick check)
   if (selectedMember && enableMemberClick) {
     return (
       <div className="space-y-4">
@@ -539,7 +530,6 @@ export const WeekProgressSection = ({
                 </CardHeader>
                 <CardContent>
                   {(() => {
-                    // Find the selected member's data
                     const memberData = groupData?.members?.find(m => m.userId === selectedMember);
                     
                     if (!memberData) {
@@ -586,7 +576,6 @@ export const WeekProgressSection = ({
     );
   }
   
-  // Calculate data needed for the main view
   const thisWeekWorkouts = clientCompletedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   const thisWeekLifeHappens = clientLifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   const totalThisWeek = thisWeekWorkouts + thisWeekLifeHappens;
@@ -655,7 +644,6 @@ export const WeekProgressSection = ({
         </>
       )}
       
-      {/* This section renders the individual member cards */}
       {(showGroupMembers || (showTeam && !showPersonal)) && groupData?.members?.length > 0 && (
         <div className="mt-8 space-y-4">
           <h3 className="text-lg font-medium text-center mb-2">Member Progress</h3>

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
-import { format, startOfWeek, addDays, isSameDay, isThisWeek } from 'date-fns';
+import { format, startOfWeek, addDays, isSameDay, isThisWeek, isToday } from 'date-fns';
 import { Calendar } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -100,19 +100,23 @@ export const WeekProgressBar = ({
             const isCompleted = completedDates.some(date => isSameDay(day, date));
             const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
             const workoutType = getWorkoutTypeForDay(day);
+            const isCurrentDay = isToday(day);
             
             return (
               <div key={index} className="flex flex-col items-center space-y-1">
                 <div 
                   className={`h-7 w-7 rounded-md flex items-center justify-center ${
                     isCompleted ? 'bg-green-100' : isLifeHappens ? 'bg-blue-100' : 'bg-slate-100'
-                  }`}
+                  } ${isCurrentDay ? 'ring-2 ring-client/70' : ''}`}
                 >
                   {(isLifeHappens || isCompleted) && workoutType && (
                     <WorkoutTypeIcon type={workoutType} size={14} />
                   )}
                 </div>
-                <span className="text-xs text-slate-400">{format(day, 'E')[0]}</span>
+                <span className={`text-xs ${isCurrentDay ? 'font-bold text-client' : 'text-slate-400'}`}>
+                  {format(day, 'E')[0]}
+                  {isCurrentDay && <span className="ml-0.5">•</span>}
+                </span>
               </div>
             );
           })}
@@ -165,20 +169,22 @@ export const WeekProgressBar = ({
             const isCompleted = completedDates.some(date => isSameDay(day, date));
             const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
             const workoutType = getWorkoutTypeForDay(day);
+            const isCurrentDay = isToday(day);
             
             return (
               <div key={index} className="flex flex-col items-center space-y-1">
                 <div 
                   className={`flex items-center justify-center w-8 h-8 rounded-full ${
                     isCompleted ? 'bg-green-100' : isLifeHappens ? 'bg-blue-100' : 'bg-slate-100'
-                  }`}
+                  } ${isCurrentDay ? 'ring-2 ring-client/70' : ''}`}
                 >
                   {(isLifeHappens || isCompleted) && workoutType && (
                     <WorkoutTypeIcon type={workoutType} size={16} />
                   )}
                 </div>
-                <div className="text-xs text-center text-slate-500">
+                <div className={`text-xs text-center ${isCurrentDay ? 'font-bold text-client' : 'text-slate-500'}`}>
                   {format(day, 'E')[0]}
+                  {isCurrentDay && <span className="ml-0.5">•</span>}
                 </div>
               </div>
             );

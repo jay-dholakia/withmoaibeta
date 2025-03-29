@@ -8,6 +8,7 @@ import { saveCoachMessage, fetchCoachMessagesForClient, canCoachMessageClient } 
 import { toast } from 'sonner';
 import { SheetTitle } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
+import { isFuture } from 'date-fns';
 
 interface ClientMessageFormProps {
   coachId: string;
@@ -56,6 +57,12 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
         const assignment = data[0];
         const startDate = new Date(assignment.start_date);
         const currentDate = new Date();
+        
+        // If program hasn't started yet, return Week 0
+        if (isFuture(startDate)) {
+          setProgramWeek(0);
+          return 0;
+        }
         
         // If program hasn't started yet
         if (currentDate < startDate) {

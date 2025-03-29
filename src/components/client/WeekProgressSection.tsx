@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +9,7 @@ import { Loader2, Users, User, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { isThisWeek, getWeek, startOfWeek, format } from 'date-fns';
+import { isThisWeek, getWeek, startOfWeek, format, isFuture } from 'date-fns';
 import { WorkoutType } from './WorkoutTypeIcon';
 
 interface WeekProgressSectionProps {
@@ -45,6 +46,12 @@ export const WeekProgressSection = ({
       }
       
       const startDate = new Date(assignments[0].start_date);
+      
+      // Check if program hasn't started yet
+      if (isFuture(startDate)) {
+        return { weekNumber: 0 };
+      }
+      
       const startOfProgramWeek = startOfWeek(startDate, { weekStartsOn: 1 });
       const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 1 });
       

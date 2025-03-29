@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { fetchLatestCoachMessage, CoachMessage, markCoachMessageAsRead } from '@/services/coach-message-service';
 import { MessageSquare } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
+import { isFuture } from 'date-fns';
 
 interface CoachMessageCardProps {
   userId: string;
@@ -34,6 +34,12 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
       
       if (data && data.length > 0) {
         const startDate = new Date(data[0].start_date);
+        
+        // If program hasn't started yet, return Week 0
+        if (isFuture(startDate)) {
+          setProgramWeek(0);
+          return 0;
+        }
         
         // If message is before program start
         if (messageDate < startDate) {

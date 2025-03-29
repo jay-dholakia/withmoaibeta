@@ -90,7 +90,7 @@ const Index = () => {
         </main>
         
         <footer className="py-8 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} Portal System. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Moai. All rights reserved.</p>
         </footer>
       </PageTransition>
     </div>

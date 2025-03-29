@@ -54,7 +54,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       </PageTransition>
       
       <footer className="py-6 text-center text-sm text-muted-foreground">
-        <p>© {new Date().getFullYear()} Portal System. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Moai. All rights reserved.</p>
       </footer>
     </div>
   );

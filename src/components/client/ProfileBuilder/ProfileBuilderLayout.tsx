@@ -1,4 +1,3 @@
-
 import React, { ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
@@ -66,7 +65,7 @@ export const ProfileBuilderLayout: React.FC<ProfileBuilderLayoutProps> = ({
       
       <footer className="py-6 text-center text-sm text-muted-foreground">
         <Container>
-          <p>© {new Date().getFullYear()} Fitness Portal. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Moai. All rights reserved.</p>
         </Container>
       </footer>
     </div>

@@ -92,6 +92,10 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
         <main className="w-full max-w-screen-xl mx-auto px-4 md:px-6 py-6">
           {children}
         </main>
+        
+        <footer className="py-6 text-center text-sm text-muted-foreground">
+          <p>© {new Date().getFullYear()} Moai. All rights reserved.</p>
+        </footer>
       </div>
     </PageTransition>
   );

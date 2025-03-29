@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -8,9 +9,14 @@ import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
 interface MonthlyCalendarViewProps {
   workouts: WorkoutHistoryItem[];
   onDaySelect?: (date: Date, workouts: WorkoutHistoryItem[]) => void;
+  workoutTypesMap?: Record<string, WorkoutType>;
 }
 
-export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workouts, onDaySelect }) => {
+export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ 
+  workouts, 
+  onDaySelect,
+  workoutTypesMap = {} 
+}) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
 
@@ -115,6 +121,13 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ workou
   };
 
   const getWorkoutTypeForDay = (day: Date): WorkoutType | undefined => {
+    const formattedDate = format(day, 'yyyy-MM-dd');
+    
+    // First check if we have a predefined type in the map
+    if (workoutTypesMap && workoutTypesMap[formattedDate]) {
+      return workoutTypesMap[formattedDate];
+    }
+    
     const workoutsForDay = getWorkoutsForDay(day);
 
     if (workoutsForDay.length === 0) return undefined;

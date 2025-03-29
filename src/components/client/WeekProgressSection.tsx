@@ -9,15 +9,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { isThisWeek, getWeek, startOfWeek, format } from 'date-fns';
+import { WorkoutType } from './WorkoutTypeIcon';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
   showPersonal?: boolean;
+  workoutTypesMap?: Record<string, WorkoutType>;
 }
 
 export const WeekProgressSection = ({ 
   showTeam = true, 
-  showPersonal = true 
+  showPersonal = true,
+  workoutTypesMap = {}
 }: WeekProgressSectionProps) => {
   const { user } = useAuth();
   
@@ -196,8 +199,8 @@ export const WeekProgressSection = ({
       .map(workout => new Date(workout.completed_at));
   }, [groupData?.completions]);
   
-  const workoutTypesMap = React.useMemo(() => {
-    const typesMap: Record<string, string> = {};
+  const calculatedWorkoutTypesMap = React.useMemo(() => {
+    const typesMap: Record<string, WorkoutType> = {};
     
     if (clientWorkouts) {
       clientWorkouts.forEach(workout => {
@@ -219,7 +222,14 @@ export const WeekProgressSection = ({
         if (workout.workout?.workout_exercises && workout.workout.workout_exercises.length > 0) {
           const firstExercise = workout.workout.workout_exercises[0];
           if (firstExercise.exercise?.exercise_type) {
-            typesMap[dateKey] = firstExercise.exercise.exercise_type;
+            const exerciseType = firstExercise.exercise.exercise_type.toLowerCase();
+            
+            if (exerciseType.includes('strength')) typesMap[dateKey] = 'strength';
+            else if (exerciseType.includes('body') || exerciseType.includes('weight')) typesMap[dateKey] = 'bodyweight';
+            else if (exerciseType.includes('cardio') || exerciseType.includes('hiit')) typesMap[dateKey] = 'cardio';
+            else if (exerciseType.includes('flex') || exerciseType.includes('yoga')) typesMap[dateKey] = 'flexibility';
+            else typesMap[dateKey] = 'custom';
+            
             return;
           }
         }
@@ -296,7 +306,7 @@ export const WeekProgressSection = ({
             showDayCircles={true}
             showProgressBar={true}
             weekNumber={programWeekData?.weekNumber}
-            workoutTypes={workoutTypesMap}
+            workoutTypes={workoutTypesMap || calculatedWorkoutTypesMap}
           />
         </>
       )}
@@ -321,7 +331,7 @@ export const WeekProgressSection = ({
             showDayCircles={false}
             showProgressBar={false}
             weekNumber={programWeekData?.weekNumber}
-            workoutTypes={workoutTypesMap}
+            workoutTypes={workoutTypesMap || calculatedWorkoutTypesMap}
           />
           
           {showTeam && !showPersonal && (
@@ -329,7 +339,7 @@ export const WeekProgressSection = ({
               <h3 className="text-lg font-medium text-center mb-2">Member Progress</h3>
               <div className="grid grid-cols-1 gap-4">
                 {groupData.members.map(member => {
-                  const memberWorkoutTypes: Record<string, 'strength' | 'cardio' | 'flexibility' | 'bodyweight' | 'rest_day' | 'custom' | 'one_off'> = {};
+                  const memberWorkoutTypes: Record<string, WorkoutType> = {};
                   
                   member.completedWorkouts.forEach(date => {
                     memberWorkoutTypes[format(date, 'yyyy-MM-dd')] = 'strength';

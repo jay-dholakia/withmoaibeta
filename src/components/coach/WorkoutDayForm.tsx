@@ -66,7 +66,19 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       setTitle(workout.title);
       setDescription(workout.description || '');
       setDayOfWeek(workout.day_of_week);
-      setWorkoutType(workout.workout_type || 'strength');
+      
+      if (workout.workout_type) {
+        const normalizedType = workout.workout_type.toLowerCase();
+        
+        if (normalizedType.includes('strength')) setWorkoutType('strength');
+        else if (normalizedType.includes('body') || normalizedType.includes('weight')) setWorkoutType('bodyweight');
+        else if (normalizedType.includes('cardio')) setWorkoutType('cardio');
+        else if (normalizedType.includes('flex') || normalizedType.includes('yoga')) setWorkoutType('flexibility');
+        else if (normalizedType.includes('rest')) setWorkoutType('rest_day');
+        else if (normalizedType.includes('custom')) setWorkoutType('custom');
+        else if (normalizedType.includes('one')) setWorkoutType('one_off');
+        else setWorkoutType('strength');
+      }
       
       const workoutExercises = await fetchWorkoutExercises(workoutId);
       setExercises(workoutExercises);
@@ -292,7 +304,9 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
             <Label htmlFor="type">Workout Type</Label>
             <Select 
               value={workoutType} 
-              onValueChange={(value) => setWorkoutType(value as WorkoutType)}
+              onValueChange={(value: string) => {
+                setWorkoutType(value as WorkoutType);
+              }}
             >
               <SelectTrigger id="type">
                 <SelectValue placeholder="Select type" />

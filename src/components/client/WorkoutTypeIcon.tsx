@@ -18,11 +18,11 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
   const getIconForType = () => {
     switch (type) {
       case 'strength':
-        return <Dumbbell size={size} className="text-gray-800" />;
+        return '🏋️'; // Weightlifting emoji
       case 'bodyweight':
-        return <PersonStanding size={size} className="text-gray-800" />;
+        return '💪'; // Muscle emoji
       case 'cardio':
-        return <Heart size={size} className="text-gray-800" />;
+        return '🏃'; // Running emoji
       case 'flexibility':
         return '🧘'; // Yoga/flexibility emoji
       case 'rest_day':
@@ -36,18 +36,14 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
     }
   };
 
-  // If it's an emoji, render as a span
-  if (typeof getIconForType() === 'string') {
-    return (
-      <span className={`workout-type-icon ${className}`} role="img" aria-label={`${type} workout`}>
-        {getIconForType()}
-      </span>
-    );
-  }
-
-  // If it's a Lucide icon component, render it directly
+  // Since we're only using emojis now, always render as a span
   return (
-    <span className={`workout-type-icon ${className}`} aria-label={`${type} workout`}>
+    <span 
+      className={`workout-type-icon ${className}`} 
+      role="img" 
+      aria-label={`${type} workout`}
+      style={{ fontSize: `${size}px` }}
+    >
       {getIconForType()}
     </span>
   );
@@ -55,9 +51,9 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
 
 // Export the workout types with labels for use in dropdowns
 export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.ReactNode}[] = [
-  { value: 'strength', label: 'Strength', icon: <Dumbbell size={16} /> },
-  { value: 'bodyweight', label: 'Bodyweight', icon: <PersonStanding size={16} /> },
-  { value: 'cardio', label: 'Cardio', icon: <Heart size={16} /> },
+  { value: 'strength', label: 'Strength', icon: '🏋️' },
+  { value: 'bodyweight', label: 'Bodyweight', icon: '💪' },
+  { value: 'cardio', label: 'Cardio', icon: '🏃' },
   { value: 'flexibility', label: 'Flexibility', icon: '🧘' },
   { value: 'custom', label: 'Custom', icon: '✨' },
   { value: 'one_off', label: 'One-off', icon: '🎯' },

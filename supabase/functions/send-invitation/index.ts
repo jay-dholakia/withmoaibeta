@@ -41,7 +41,8 @@ serve(async (req) => {
       hasSupabaseUrl: !!supabaseUrl,
       hasServiceRoleKey: !!supabaseServiceRoleKey,
       hasResendApiKey: !!resendApiKey,
-      hasSiteUrl: !!siteUrl
+      hasSiteUrl: !!siteUrl,
+      resendKeyFirstChars: resendApiKey ? `${resendApiKey.substring(0, 6)}...` : "not set"
     });
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
@@ -55,10 +56,28 @@ serve(async (req) => {
     // Create a Supabase client with the service role key
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
+    // Verify request body exists
+    const contentLength = req.headers.get("content-length");
+    if (!contentLength || parseInt(contentLength) === 0) {
+      console.error("Empty request body received");
+      return new Response(
+        JSON.stringify({ error: "Empty request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     // Parse the request body
     let payload: InvitationPayload;
+    let rawBody = "";
     try {
-      payload = await req.json();
+      rawBody = await req.text();
+      console.log("Raw request body:", rawBody);
+      
+      if (!rawBody) {
+        throw new Error("Empty request body");
+      }
+      
+      payload = JSON.parse(rawBody);
       console.log("Request payload received:", { 
         email: payload.email, 
         userType: payload.userType,
@@ -67,9 +86,9 @@ serve(async (req) => {
         invitationId: payload.invitationId
       });
     } catch (jsonError) {
-      console.error("Failed to parse request body:", jsonError);
+      console.error("Failed to parse request body:", jsonError, "Raw body:", rawBody);
       return new Response(
-        JSON.stringify({ error: "Invalid request body" }),
+        JSON.stringify({ error: "Invalid request body", details: jsonError.message, rawBody }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -312,10 +331,13 @@ serve(async (req) => {
         
         // Detailed logging of the response
         console.log("Resend API response status:", emailResponse.status);
+        console.log("Resend API response headers:", Object.fromEntries(emailResponse.headers.entries()));
         
         // Handle different response statuses
         if (!emailResponse.ok) {
           const errorText = await emailResponse.text();
+          console.log("Resend API error response text:", errorText);
+          
           let errorData;
           try {
             errorData = JSON.parse(errorText);

@@ -163,6 +163,13 @@ function App() {
               </RequireAuth>
             } />
             
+            {/* Add direct route to profile editor */}
+            <Route path="/client-profile-editor" element={
+              <RequireAuth userType="client">
+                <ProfileEditor />
+              </RequireAuth>
+            } />
+            
             {/* Add redirect for /client */}
             <Route path="/client" element={<Navigate to="/client-login" replace />} />
             

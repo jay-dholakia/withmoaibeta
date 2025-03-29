@@ -7,6 +7,7 @@ import MoaiPage from './MoaiPage';
 import LeaderboardPage from './LeaderboardPage';
 import SettingsPage from './SettingsPage';
 import NotesPage from './NotesPage';
+import ProfileEditor from './ProfileEditor';
 
 const ClientDashboard = () => {
   console.log("ClientDashboard component rendering with path:", window.location.pathname);
@@ -20,6 +21,7 @@ const ClientDashboard = () => {
           <Route path="moai" element={<MoaiPage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings/edit-profile" element={<ProfileEditor />} />
           <Route path="notes" element={<NotesPage />} />
           <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
         </Routes>

@@ -6,10 +6,8 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Users, Copy, Link } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ShareableLinkDialogProps {
   onCreateShareableLink: (userType: 'client' | 'coach' | 'admin') => void;
@@ -25,8 +23,14 @@ export const ShareableLinkDialog: React.FC<ShareableLinkDialogProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onCreateShareableLink(userType);
-    setIsDialogOpen(false);
+    
+    try {
+      onCreateShareableLink(userType);
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error creating shareable link:", error);
+      toast.error("Failed to create shareable link");
+    }
   };
 
   return (

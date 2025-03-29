@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.37.0";
 import { Resend } from "https://esm.sh/resend@2.0.0";
@@ -71,10 +70,12 @@ serve(async (req) => {
     // Parse the request body
     let payload: InvitationPayload;
     try {
-      // Get the request body as a string
+      // Get the request body as text
       const requestText = await req.text();
+      
+      // Log the request body to help debug empty requests
       console.log("Request body length:", requestText.length);
-      console.log("Request body content:", requestText.substring(0, 200)); // Log first 200 chars to avoid huge logs
+      console.log("Request body content:", requestText.substring(0, 500)); // Log up to 500 chars to avoid huge logs
       
       if (!requestText || requestText.trim() === '') {
         console.error("Empty request body received");
@@ -87,8 +88,9 @@ serve(async (req) => {
         );
       }
       
-      // Parse JSON
+      // Parse the text as JSON
       payload = JSON.parse(requestText);
+      
       console.log("Request payload parsed:", { 
         email: payload.email, 
         userType: payload.userType,
@@ -97,6 +99,30 @@ serve(async (req) => {
         invitationId: payload.invitationId,
         isShareLink: payload.isShareLink
       });
+      
+      // Validate the required fields based on the request type
+      if (payload.isShareLink && !payload.userType) {
+        console.error("Missing userType for share link");
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "userType is required for share links" 
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      if (!payload.isShareLink && !payload.email) {
+        console.error("Missing email for regular invitation");
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Email is required for regular invitations" 
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
     } catch (jsonError) {
       console.error("Failed to parse request body:", jsonError);
       return new Response(

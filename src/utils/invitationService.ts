@@ -75,37 +75,41 @@ export const createShareableLink = async (
   
   console.log("Creating shareable link with payload:", payload);
   
-  // Stringifying the payload explicitly to ensure it's not empty
-  const stringifiedPayload = JSON.stringify(payload);
-  console.log("Stringified payload:", stringifiedPayload);
+  // Fix: Explicitly check that we have a valid payload before sending
+  if (!payload || !payload.userType || !payload.siteUrl) {
+    console.error("Invalid payload for creating shareable link:", payload);
+    throw new Error("Invalid payload for creating shareable link");
+  }
   
   const response = await supabase.functions.invoke('send-invitation', {
-    body: payload, // Supabase SDK should handle this correctly, but we're logging to verify
+    body: payload, // The Supabase SDK should handle this correctly
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
     }
   });
   
+  console.log("Raw edge function response:", response);
+  
   if (response.error) {
     console.error("Error invoking send-invitation function:", response.error);
     throw new Error(response.error.message || 'Failed to create shareable invitation link');
   }
   
-  console.log("Shareable link raw response:", response);
+  if (!response.data) {
+    console.error("Empty response data received");
+    throw new Error("Failed to create shareable invitation link - empty response");
+  }
+  
   console.log("Shareable link response data:", response.data);
   
   // Ensure we have a complete invitation link
   const data = response.data as InvitationResponse;
   
   // If we don't have an invite link but have a token, construct the link
-  if (!data?.inviteLink && data?.token) {
+  if (!data.inviteLink && data.token) {
     data.inviteLink = `${siteUrl}/register?token=${data.token}&type=${userType}`;
     console.log("Generated invite link:", data.inviteLink);
-  } else if (!data) {
-    // Handle completely empty response
-    console.error("Empty response data received");
-    throw new Error("Failed to create shareable invitation link - empty response");
   }
   
   return data;

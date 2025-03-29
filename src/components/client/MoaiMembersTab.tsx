@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, ArrowLeft, UserRound, Trophy, Calendar } from 'lucide-react';
+import { Loader2, ArrowLeft, UserRound, Trophy, Calendar, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -204,6 +204,9 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
     }
   };
 
+  // Determine if the current user is viewing their own profile
+  const isOwnProfile = selectedMember === user?.id;
+
   if (isLoadingMembers) {
     return (
       <div className="flex justify-center items-center h-40">
@@ -261,7 +264,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                 <CardHeader className="pb-0">
                   <CardTitle className="text-xl font-semibold text-center">
                     {formatDisplayName(memberProfile?.first_name, memberProfile?.last_name)}
-                    {selectedMember === user?.id && <Badge className="ml-2">You</Badge>}
+                    {isOwnProfile && <Badge className="ml-2">You</Badge>}
                   </CardTitle>
                   {(memberProfile?.city || memberProfile?.state) && (
                     <p className="text-muted-foreground text-center mt-1">
@@ -272,10 +275,16 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                 <CardContent className="space-y-6 pt-6">
                   {memberProfile ? (
                     <>
-                      {memberProfile.event_type && (
+                      {/* Event preparation section - should always be visible */}
+                      {memberProfile.event_type && memberProfile.event_type !== 'none' && (
                         <div className="text-center">
                           <p className="text-sm font-medium">
-                            Preparing for {memberProfile.event_type}
+                            Preparing for{' '}
+                            {memberProfile.event_name ? (
+                              <span className="font-semibold">{memberProfile.event_name}</span>
+                            ) : (
+                              <span>{memberProfile.event_type}</span>
+                            )}
                             {memberProfile.event_date && (
                               <> on {formatEventDate(memberProfile.event_date)}</>
                             )}
@@ -283,21 +292,33 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                         </div>
                       )}
                     
-                      <div className="flex justify-center gap-6">
-                        {memberProfile.height && (
-                          <div className="text-center">
-                            <p className="text-sm text-muted-foreground">Height</p>
-                            <p className="font-medium">{memberProfile.height}</p>
+                      {/* Height and weight section - only show if looking at own profile or if data exists */}
+                      {(isOwnProfile || (memberProfile.height || memberProfile.weight)) && (
+                        <div className="flex justify-center gap-6">
+                          {memberProfile.height && (
+                            <div className="text-center">
+                              <p className="text-sm text-muted-foreground">Height</p>
+                              <p className="font-medium">{memberProfile.height}</p>
+                            </div>
+                          )}
+                          
+                          {memberProfile.weight && (
+                            <div className="text-center">
+                              <p className="text-sm text-muted-foreground">Weight</p>
+                              <p className="font-medium">{memberProfile.weight}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {!isOwnProfile && !(memberProfile.height || memberProfile.weight) && (
+                        <div className="flex justify-center py-2">
+                          <div className="flex items-center text-muted-foreground text-sm">
+                            <ShieldCheck className="h-4 w-4 mr-1.5" />
+                            <span>Physical stats are private</span>
                           </div>
-                        )}
-                        
-                        {memberProfile.weight && (
-                          <div className="text-center">
-                            <p className="text-sm text-muted-foreground">Weight</p>
-                            <p className="font-medium">{memberProfile.weight}</p>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                       
                       <Separator className="my-4" />
                       

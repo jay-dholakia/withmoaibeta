@@ -129,6 +129,9 @@ export type Database = {
           birthday: string | null
           city: string | null
           created_at: string | null
+          event_date: string | null
+          event_name: string | null
+          event_type: string | null
           favorite_movements: string[] | null
           first_name: string | null
           fitness_goals: string[] | null
@@ -145,6 +148,9 @@ export type Database = {
           birthday?: string | null
           city?: string | null
           created_at?: string | null
+          event_date?: string | null
+          event_name?: string | null
+          event_type?: string | null
           favorite_movements?: string[] | null
           first_name?: string | null
           fitness_goals?: string[] | null
@@ -161,6 +167,9 @@ export type Database = {
           birthday?: string | null
           city?: string | null
           created_at?: string | null
+          event_date?: string | null
+          event_name?: string | null
+          event_type?: string | null
           favorite_movements?: string[] | null
           first_name?: string | null
           fitness_goals?: string[] | null

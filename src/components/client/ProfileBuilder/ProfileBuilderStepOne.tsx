@@ -7,14 +7,14 @@ import { useToast } from '@/components/ui/use-toast';
 import { Image, Loader2, Upload, User } from 'lucide-react';
 import { ClientProfile, uploadClientAvatar } from '@/services/client-service';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 
 interface ProfileBuilderStepOneProps {
   profile: Partial<ClientProfile>;

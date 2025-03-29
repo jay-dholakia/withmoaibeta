@@ -54,6 +54,9 @@ export const createOneOffWorkoutCompletion = async (params: {
   notes?: string;
   rating?: number;
   workout_type?: string;
+  distance?: string;
+  duration?: string;
+  location?: string;
 }) => {
   try {
     const { data: user } = await supabase.auth.getUser();
@@ -81,9 +84,13 @@ export const createOneOffWorkoutCompletion = async (params: {
       .from('workout_completions')
       .insert({
         user_id: user.user.id,
-        workout_id: workoutData.id, // Link to the created workout
+        standalone_workout_id: workoutData.id, // Link to the standalone workout instead of regular workout
+        workout_id: null, // Set workout_id to null for one-off workouts
         notes: params.notes || null,
-        rating: params.rating || null
+        rating: params.rating || null,
+        distance: params.distance || null,
+        duration: params.duration || null,
+        location: params.location || null
       })
       .select()
       .single();

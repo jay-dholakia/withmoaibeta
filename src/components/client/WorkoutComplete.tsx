@@ -8,7 +8,7 @@ import { completeWorkout, fetchPersonalRecords } from '@/services/client-service
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, CheckCircle2, Award, Share2, ArrowLeft } from 'lucide-react';
+import { Loader2, CheckCircle2, Share2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -154,29 +154,6 @@ const WorkoutComplete = () => {
           </p>
         </div>
       </div>
-
-      {personalRecords && personalRecords.length > 0 && (
-        <Card className="bg-amber-50 border-amber-200">
-          <CardHeader>
-            <CardTitle className="flex items-center text-amber-800">
-              <Award className="h-5 w-5 mr-2 text-amber-600" />
-              New Personal Records
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {personalRecords.map((pr: any) => (
-                <li key={pr.id} className="flex justify-between">
-                  <span className="font-medium">{pr.exercise.name}</span>
-                  <span>
-                    {pr.weight} lbs × {pr.reps} reps
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="space-y-4">
         <div>

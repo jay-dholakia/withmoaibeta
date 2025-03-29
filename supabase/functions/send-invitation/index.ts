@@ -71,9 +71,10 @@ serve(async (req) => {
     // Parse the request body
     let payload: InvitationPayload;
     try {
-      // First get the request body as text to validate it's not empty
+      // Get the request body as a string
       const requestText = await req.text();
       console.log("Request body length:", requestText.length);
+      console.log("Request body content:", requestText.substring(0, 200)); // Log first 200 chars to avoid huge logs
       
       if (!requestText || requestText.trim() === '') {
         console.error("Empty request body received");
@@ -86,9 +87,9 @@ serve(async (req) => {
         );
       }
       
-      // Then parse it as JSON
+      // Parse JSON
       payload = JSON.parse(requestText);
-      console.log("Request payload received:", { 
+      console.log("Request payload parsed:", { 
         email: payload.email, 
         userType: payload.userType,
         hasSiteUrl: !!payload.siteUrl,
@@ -101,7 +102,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Invalid JSON in request body" 
+          error: "Invalid JSON in request body: " + String(jsonError) 
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -308,7 +309,7 @@ serve(async (req) => {
       }
       
       invitation = newInvitation;
-      console.log("Invitation created successfully");
+      console.log("Invitation created successfully:", invitation);
     }
 
     // Generate the invitation link
@@ -317,6 +318,7 @@ serve(async (req) => {
 
     // For shareable links, we don't send emails
     if (invitation.is_share_link) {
+      console.log("Returning shareable link response");
       return new Response(
         JSON.stringify({
           success: true,

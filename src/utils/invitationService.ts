@@ -75,8 +75,12 @@ export const createShareableLink = async (
   
   console.log("Creating shareable link with payload:", payload);
   
+  // Stringifying the payload explicitly to ensure it's not empty
+  const stringifiedPayload = JSON.stringify(payload);
+  console.log("Stringified payload:", stringifiedPayload);
+  
   const response = await supabase.functions.invoke('send-invitation', {
-    body: payload,
+    body: payload, // Supabase SDK should handle this correctly, but we're logging to verify
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
@@ -88,12 +92,20 @@ export const createShareableLink = async (
     throw new Error(response.error.message || 'Failed to create shareable invitation link');
   }
   
-  console.log("Shareable link response:", response.data);
+  console.log("Shareable link raw response:", response);
+  console.log("Shareable link response data:", response.data);
   
   // Ensure we have a complete invitation link
   const data = response.data as InvitationResponse;
-  if (!data.inviteLink && data.token) {
+  
+  // If we don't have an invite link but have a token, construct the link
+  if (!data?.inviteLink && data?.token) {
     data.inviteLink = `${siteUrl}/register?token=${data.token}&type=${userType}`;
+    console.log("Generated invite link:", data.inviteLink);
+  } else if (!data) {
+    // Handle completely empty response
+    console.error("Empty response data received");
+    throw new Error("Failed to create shareable invitation link - empty response");
   }
   
   return data;

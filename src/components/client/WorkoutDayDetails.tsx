@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { CalendarClock, ListChecks, CircleSlash, FileText, Heart, ChevronDown, ChevronRight } from 'lucide-react';
+import { CalendarClock, ListChecks, CircleSlash, FileText, Heart, ChevronDown, ChevronUp } from 'lucide-react';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -178,13 +178,14 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                           const exerciseId = set.workout_exercise_id;
                           
                           if (!exerciseGroups[exerciseId]) {
-                            // Find the exercise name
-                            const exercise = workout.workout?.workout_exercises?.find(
+                            // Find the exercise name by looking up the workout_exercise in the workout
+                            const exerciseInfo = workout.workout?.workout_exercises?.find(
                               e => e.id === exerciseId
                             );
+                            
                             exerciseGroups[exerciseId] = {
-                              name: exercise?.exercise?.name || "Unknown Exercise",
-                              type: exercise?.exercise?.exercise_type || "strength",
+                              name: exerciseInfo?.exercise?.name || "Unknown Exercise",
+                              type: exerciseInfo?.exercise?.exercise_type || "strength",
                               sets: []
                             };
                           }
@@ -259,4 +260,3 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     </div>
   );
 };
-

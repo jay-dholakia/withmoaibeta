@@ -15,6 +15,13 @@ interface InvitationPayload {
   invitationId?: string;
 }
 
+interface EmailSendingResult {
+  id: string;
+  from: string;
+  to: string;
+  created: string;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -243,28 +250,68 @@ serve(async (req) => {
     const inviteLink = `${effectiveSiteUrl}/register?token=${invitation.token}&type=${userType}`;
     console.log("Generated invite link:", inviteLink);
 
-    // Email functionality is now optional - we'll try to use Resend if configured
+    // Email functionality
     let emailSent = false;
     let emailError = null;
     let emailResult = null;
 
     if (resendApiKey) {
       try {
-        // We'll manually construct the email HTML instead of using the Resend SDK
-        // This avoids potential issues with the SDK in the Edge Function environment
+        console.log("Sending email with Resend API");
         
         // Capitalize the user type for better readability in the email
         const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
         
-        console.log("Email would be sent with the following details:", {
-          to: email,
-          subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
-          inviteLink
+        // Send email using fetch instead of Resend SDK
+        const emailResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            from: "Moai <jay@withmoai.co>",
+            to: email,
+            subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e9e9e9; border-radius: 5px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                  <img src="https://withmoai.co/moai-logo.png" alt="Moai Logo" style="max-width: 120px;">
+                </div>
+                <h1 style="color: #333; font-size: 24px; margin-bottom: 20px;">You've been invited to join Moai</h1>
+                <p style="color: #666; font-size: 16px; line-height: 1.5; margin-bottom: 20px;">
+                  Someone has invited you to join Moai as a <strong>${userTypeCapitalized}</strong>. Click the button below to create your account and get started.
+                </p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${inviteLink}" style="background-color: #D19275; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">
+                    Accept Invitation
+                  </a>
+                </div>
+                <p style="color: #666; font-size: 16px; line-height: 1.5; margin-bottom: 10px;">
+                  If the button doesn't work, you can also copy and paste this link into your browser:
+                </p>
+                <p style="background-color: #f5f5f5; padding: 10px; border-radius: 4px; word-break: break-all; font-size: 14px;">
+                  ${inviteLink}
+                </p>
+                <p style="color: #999; font-size: 14px; margin-top: 30px; text-align: center; border-top: 1px solid #e9e9e9; padding-top: 20px;">
+                  This invitation will expire in 30 days. If you didn't request this invitation, you can ignore this email.
+                </p>
+              </div>
+            `
+          })
         });
         
-        // Successfully simulated sending the email
+        if (!emailResponse.ok) {
+          const errorData = await emailResponse.json();
+          console.error("Resend API error:", errorData);
+          throw new Error(`Resend API error: ${JSON.stringify(errorData)}`);
+        }
+        
+        const responseData = await emailResponse.json();
+        console.log("Email sent successfully:", responseData);
+        
         emailSent = true;
-        emailResult = { success: true, simulated: true };
+        emailResult = responseData as EmailSendingResult;
         
       } catch (emailSendError) {
         console.error("Error sending email:", emailSendError);

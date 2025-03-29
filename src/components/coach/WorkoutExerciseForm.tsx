@@ -78,6 +78,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Add special instructions or cues"
           rows={2}
+          className="min-h-[60px]"
         />
       </div>
       

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -108,12 +109,13 @@ const InvitationsPage: React.FC = () => {
       return sendInvitationService(email, userType, session.access_token);
     },
     onSuccess: (data) => {
+      // Store the complete invite link
       setInviteLink(data.inviteLink);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       
       setLastEmailStatus({
         sent: data.emailSent,
-        email: data.inviteLink.split('token=')[1].split('&')[0],
+        email: data.email || data.inviteLink.split('token=')[1]?.split('&')[0],
         error: data.emailError,
         timestamp: new Date()
       });
@@ -143,13 +145,20 @@ const InvitationsPage: React.FC = () => {
       return createShareableLinkService(userType, session.access_token);
     },
     onSuccess: (data) => {
+      console.log("Shareable link created:", data);
+      // Make sure we're storing the full link
       setInviteLink(data.inviteLink);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       
       toast.success(`Shareable invitation link created successfully!`);
       
-      navigator.clipboard.writeText(data.inviteLink);
-      toast.info('Link copied to clipboard');
+      if (data.inviteLink) {
+        navigator.clipboard.writeText(data.inviteLink);
+        toast.info('Link copied to clipboard');
+      } else {
+        console.error("Missing invite link in response:", data);
+        toast.error("Failed to generate link");
+      }
     },
     onError: (error: Error) => {
       console.error("Shareable link error details:", error);
@@ -174,6 +183,10 @@ const InvitationsPage: React.FC = () => {
       
       if (invitation.is_share_link) {
         toast.success(`Shareable link refreshed successfully!`);
+        if (data.inviteLink) {
+          navigator.clipboard.writeText(data.inviteLink);
+          toast.info('New link copied to clipboard');
+        }
         return;
       }
       

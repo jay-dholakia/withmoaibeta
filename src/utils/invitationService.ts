@@ -24,6 +24,7 @@ export interface InvitationResponse {
   emailError?: string;
   message?: string;
   emailData?: any;
+  email?: string;
 }
 
 export const sendInvitation = async (
@@ -54,7 +55,10 @@ export const sendInvitation = async (
     throw new Error(response.error.message || 'Failed to send invitation');
   }
   
-  return response.data as InvitationResponse;
+  return {
+    ...response.data,
+    email: email
+  } as InvitationResponse;
 };
 
 export const createShareableLink = async (
@@ -84,7 +88,15 @@ export const createShareableLink = async (
     throw new Error(response.error.message || 'Failed to create shareable invitation link');
   }
   
-  return response.data as InvitationResponse;
+  console.log("Shareable link response:", response.data);
+  
+  // Ensure we have a complete invitation link
+  const data = response.data as InvitationResponse;
+  if (!data.inviteLink && data.token) {
+    data.inviteLink = `${siteUrl}/register?token=${data.token}&type=${userType}`;
+  }
+  
+  return data;
 };
 
 export const resendInvitation = async (
@@ -117,7 +129,17 @@ export const resendInvitation = async (
     throw new Error(response.error.message || 'Failed to resend invitation');
   }
   
-  return response.data as InvitationResponse;
+  const data = response.data as InvitationResponse;
+  
+  // Ensure we have a complete invitation link
+  if (!data.inviteLink && data.token) {
+    data.inviteLink = `${siteUrl}/register?token=${data.token}&type=${invitation.user_type}`;
+  }
+  
+  return {
+    ...data,
+    email: invitation.email
+  };
 };
 
 export const getInvitationsGroupedByStatus = (invitations: Invitation[]) => {

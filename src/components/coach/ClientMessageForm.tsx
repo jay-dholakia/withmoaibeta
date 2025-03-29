@@ -7,6 +7,7 @@ import { Loader2, Send } from 'lucide-react';
 import { saveCoachMessage, fetchCoachMessagesForClient, canCoachMessageClient } from '@/services/coach-client-message-service';
 import { toast } from 'sonner';
 import { SheetTitle } from '@/components/ui/sheet';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ClientMessageFormProps {
   coachId: string;

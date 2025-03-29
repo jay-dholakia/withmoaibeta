@@ -16,8 +16,9 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
   const [programWeek, setProgramWeek] = useState<number | null>(null);
 
   // Calculate which program week the message corresponds to
-  const calculateProgramWeek = async (messageDate: string) => {
+  const calculateProgramWeek = async (messageDateStr: string) => {
     try {
+      const messageDate = new Date(messageDateStr);
       // Fetch the user's assigned program
       const { data, error } = await supabase
         .from('program_assignments')
@@ -33,7 +34,6 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
       
       if (data && data.length > 0) {
         const startDate = new Date(data[0].start_date);
-        const messageDate = new Date(messageDate);
         
         // If message is before program start
         if (messageDate < startDate) {

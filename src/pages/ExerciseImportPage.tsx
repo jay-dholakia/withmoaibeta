@@ -6,13 +6,15 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, FileDown } from 'lucide-react';
+import { Loader2, FileDown, AlertTriangle } from 'lucide-react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const ExerciseImportPage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [fileType, setFileType] = useState<'json' | 'csv'>('csv');
   const [isUploading, setIsUploading] = useState(false);
+  const [checkExisting, setCheckExisting] = useState(true);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,6 +47,7 @@ const ExerciseImportPage = () => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('fileType', fileType);
+      formData.append('checkExisting', checkExisting.toString());
 
       const { data, error } = await supabase.functions.invoke('import-exercises', {
         body: formData,
@@ -56,7 +59,7 @@ const ExerciseImportPage = () => {
 
       toast({
         title: 'Import successful',
-        description: `${data.count} exercises were imported.`,
+        description: `Processed ${data.total} exercises: ${data.inserted} inserted, ${data.updated} updated, ${data.skipped} skipped.`,
         variant: 'default',
       });
 
@@ -121,6 +124,30 @@ const ExerciseImportPage = () => {
                 />
                 <span>CSV</span>
               </label>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="check-existing" 
+              checked={checkExisting}
+              onCheckedChange={(checked) => setCheckExisting(checked as boolean)}
+            />
+            <label 
+              htmlFor="check-existing" 
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Check for existing exercises (safer, prevents duplicates and reference errors)
+            </label>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+            <div className="flex items-start">
+              <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 mr-2" />
+              <p className="text-sm text-amber-800">
+                When enabled, exercises already used in personal records will be preserved to prevent data loss. 
+                This option is recommended.
+              </p>
             </div>
           </div>
 

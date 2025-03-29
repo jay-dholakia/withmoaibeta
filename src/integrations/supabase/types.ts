@@ -324,6 +324,33 @@ export type Database = {
         }
         Relationships: []
       }
+      exercises_backup_safe: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          exercise_type: string | null
+          id: string | null
+          name: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          exercise_type?: string | null
+          id?: string | null
+          name?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          exercise_type?: string | null
+          id?: string | null
+          name?: string | null
+        }
+        Relationships: []
+      }
       group_coaches: {
         Row: {
           coach_id: string

@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
     const formData = await req.formData();
     const file = formData.get('file');
     const fileType = formData.get('fileType')?.toString() || '';
+    const shouldCheckExisting = formData.get('checkExisting')?.toString() === 'true';
 
     if (!file || !(file instanceof File)) {
       return new Response(JSON.stringify({ error: 'No file uploaded' }), {
@@ -134,22 +135,99 @@ Deno.serve(async (req) => {
     // Log the parsed exercises
     console.log(`Found ${exercises.length} exercises to import`);
 
-    // Insert exercises into the database
-    const { data, error } = await supabase.from('exercises').insert(exercises);
+    let insertedCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
 
-    if (error) {
-      console.error('Error inserting exercises:', error);
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // If we should check for existing exercises
+    if (shouldCheckExisting) {
+      // For each exercise, check if it exists and update or insert accordingly
+      for (const exercise of exercises) {
+        // Check if exercise with same name and category exists
+        const { data: existingExercises, error: searchError } = await supabase
+          .from('exercises')
+          .select('id, name, category')
+          .eq('name', exercise.name)
+          .eq('category', exercise.category);
+
+        if (searchError) {
+          console.error('Error checking existing exercises:', searchError);
+          continue;
+        }
+
+        if (existingExercises && existingExercises.length > 0) {
+          const existingId = existingExercises[0].id;
+          
+          // Check if exercise is referenced in personal_records
+          const { count, error: refError } = await supabase
+            .from('personal_records')
+            .select('*', { count: 'exact', head: true })
+            .eq('exercise_id', existingId);
+            
+          if (refError) {
+            console.error('Error checking exercise references:', refError);
+            skippedCount++;
+            continue;
+          }
+
+          // If not referenced in personal_records, update it
+          if (count === 0) {
+            const { data: updatedData, error: updateError } = await supabase
+              .from('exercises')
+              .update({
+                description: exercise.description,
+                exercise_type: exercise.exercise_type || 'strength'
+              })
+              .eq('id', existingId);
+              
+            if (updateError) {
+              console.error('Error updating exercise:', updateError);
+              skippedCount++;
+            } else {
+              updatedCount++;
+            }
+          } else {
+            // Exercise is referenced, skip it
+            console.log(`Skipping exercise '${exercise.name}' as it's referenced in personal records`);
+            skippedCount++;
+          }
+        } else {
+          // Exercise doesn't exist, insert it
+          const { data: insertedData, error: insertError } = await supabase
+            .from('exercises')
+            .insert([exercise]);
+            
+          if (insertError) {
+            console.error('Error inserting exercise:', insertError);
+            skippedCount++;
+          } else {
+            insertedCount++;
+          }
+        }
+      }
+    } else {
+      // Bulk insert all exercises
+      const { data, error } = await supabase.from('exercises').insert(exercises);
+
+      if (error) {
+        console.error('Error inserting exercises:', error);
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      insertedCount = exercises.length;
     }
 
     // Return success response
     return new Response(
       JSON.stringify({ 
-        message: 'Exercises imported successfully', 
-        count: exercises.length 
+        message: 'Exercises processed successfully', 
+        inserted: insertedCount,
+        updated: updatedCount,
+        skipped: skippedCount,
+        total: exercises.length
       }),
       {
         status: 200,

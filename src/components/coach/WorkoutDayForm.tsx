@@ -21,7 +21,8 @@ import {
   updateWorkoutExercise,
   deleteWorkoutExercise,
   moveWorkoutExerciseUp,
-  moveWorkoutExerciseDown
+  moveWorkoutExerciseDown,
+  fetchWorkouts
 } from '@/services/workout-service';
 import { Exercise } from '@/types/workout';
 
@@ -45,6 +46,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   const [dayOfWeek, setDayOfWeek] = useState(0);
   const [workoutType, setWorkoutType] = useState<WorkoutType>('strength');
   const [priority, setPriority] = useState(0);
+  const [workoutCount, setWorkoutCount] = useState(0);
   
   const [exercises, setExercises] = useState<any[]>([]);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
@@ -56,7 +58,19 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     if (workoutId && isEdit) {
       loadWorkoutDetails();
     }
-  }, [workoutId, isEdit]);
+    
+    // Load all workouts for the week to determine the count
+    const loadWeekWorkouts = async () => {
+      try {
+        const workouts = await fetchWorkouts(weekId);
+        setWorkoutCount(workouts.length);
+      } catch (error) {
+        console.error('Error loading week workouts:', error);
+      }
+    };
+    
+    loadWeekWorkouts();
+  }, [workoutId, isEdit, weekId]);
 
   const loadWorkoutDetails = async () => {
     if (!workoutId) return;
@@ -99,6 +113,28 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       toast.error('Failed to load workout details');
       setIsLoading(false);
     }
+  };
+
+  // Generate priority options based on workout count
+  const generatePriorityOptions = () => {
+    // Get the adjusted count (original count in edit mode, or original count + 1 in create mode)
+    const adjustedCount = isEdit ? workoutCount : workoutCount + 1;
+    
+    // Start with default option
+    const options = [
+      <SelectItem key="0" value="0">Default (0)</SelectItem>
+    ];
+    
+    // Add numbered options from 1 to workout count
+    for (let i = 1; i <= adjustedCount; i++) {
+      options.push(
+        <SelectItem key={i} value={i.toString()}>
+          {i === 1 ? "Highest Priority (1)" : `Priority ${i}`}
+        </SelectItem>
+      );
+    }
+    
+    return options;
   };
 
   const toggleExerciseExpanded = (exerciseId: string) => {
@@ -296,13 +332,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
                 <SelectValue placeholder="Set priority" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">Default (0)</SelectItem>
-                <SelectItem value="1">Highest Priority (1)</SelectItem>
-                <SelectItem value="2">Priority 2</SelectItem>
-                <SelectItem value="3">Priority 3</SelectItem>
-                <SelectItem value="4">Priority 4</SelectItem>
-                <SelectItem value="5">Priority 5</SelectItem>
-                <SelectItem value="10">Lowest Priority (10)</SelectItem>
+                {generatePriorityOptions()}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">

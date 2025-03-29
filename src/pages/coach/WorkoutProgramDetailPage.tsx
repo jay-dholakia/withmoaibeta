@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -171,7 +172,22 @@ const WorkoutProgramDetailPage = () => {
       const loadWorkouts = async () => {
         try {
           const workouts = await fetchWorkouts(selectedWeek);
-          setWorkouts(workouts);
+          
+          // Sort workouts by priority first, then by day_of_week as a backup
+          const sortedWorkouts = workouts.sort((a, b) => {
+            // First by priority (lower number = higher priority)
+            const priorityA = a.priority ?? Number.MAX_SAFE_INTEGER;
+            const priorityB = b.priority ?? Number.MAX_SAFE_INTEGER;
+            
+            if (priorityA !== priorityB) {
+              return priorityA - priorityB;
+            }
+            
+            // If priority is the same, sort by day_of_week
+            return a.day_of_week - b.day_of_week;
+          });
+          
+          setWorkouts(sortedWorkouts);
         } catch (error) {
           console.error('Error loading workouts:', error);
           toast.error('Failed to load workouts for this week');

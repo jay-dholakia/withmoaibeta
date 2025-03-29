@@ -175,9 +175,7 @@ function App() {
             {/* Add the new import route */}
             <Route path="/exercise-import" element={
               <RequireAuth userType="admin">
-                <ClientLayout>
-                  <ExerciseImportPage />
-                </ClientLayout>
+                <ExerciseImportPage />
               </RequireAuth>
             } />
           </Routes>

@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, FileDown } from 'lucide-react';
 
 const ExerciseImportPage = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -75,6 +75,11 @@ const ExerciseImportPage = () => {
     }
   };
 
+  const handleDownloadSample = (type: 'json' | 'csv') => {
+    const fileName = type === 'json' ? 'sample-exercises.json' : 'sample-exercises.csv';
+    window.open(`/${fileName}`, '_blank');
+  };
+
   return (
     <Container className="px-4 py-8 mx-auto">
       <h1 className="text-2xl font-bold mb-6">Import Exercise Data</h1>
@@ -139,6 +144,26 @@ const ExerciseImportPage = () => {
                 'Import Exercises'
               )}
             </Button>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-sm font-medium mb-2">Sample Files:</p>
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleDownloadSample('json')}
+              >
+                <FileDown className="mr-1 h-4 w-4" /> Download JSON Sample
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleDownloadSample('csv')}
+              >
+                <FileDown className="mr-1 h-4 w-4" /> Download CSV Sample
+              </Button>
+            </div>
           </div>
 
           <div className="mt-4 text-sm text-slate-500">

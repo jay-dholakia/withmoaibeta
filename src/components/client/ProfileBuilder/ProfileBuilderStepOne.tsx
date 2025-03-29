@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -33,12 +32,10 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   const [city, setCity] = useState(profile.city || '');
   const [state, setState] = useState(profile.state || '');
   
-  // Birthday as separate fields
   const [birthMonth, setBirthMonth] = useState<string>('');
   const [birthDay, setBirthDay] = useState<string>('');
   const [birthYear, setBirthYear] = useState<string>('');
   
-  // Initialize birthday fields from profile if available
   React.useEffect(() => {
     if (profile.birthday) {
       const date = new Date(profile.birthday);
@@ -57,7 +54,6 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '');
   const [uploading, setUploading] = useState(false);
   
-  // State for tracking focus of each field
   const [focusStates, setFocusStates] = useState({
     firstName: !!firstName,
     lastName: !!lastName,
@@ -65,7 +61,6 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     state: !!state
   });
 
-  // Parse existing height on component mount
   React.useEffect(() => {
     if (profile.height) {
       const heightMatch = profile.height.match(/(\d+)'(\d+)"/);
@@ -110,7 +105,6 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     }
   };
 
-  // Validate birthday
   const isValidBirthday = (): boolean => {
     if (!birthMonth || !birthDay || !birthYear) return false;
     
@@ -122,7 +116,6 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     if (month < 1 || month > 12) return false;
     if (day < 1 || day > 31) return false;
     
-    // Simplified validation for days in month
     if ((month === 4 || month === 6 || month === 9 || month === 11) && day > 30) return false;
     if (month === 2) {
       const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
@@ -130,26 +123,23 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     }
     
     const birthDate = new Date(year, month - 1, day);
-    return birthDate <= new Date(); // Ensure date is not in the future
+    return birthDate <= new Date();
   };
 
   const handleNext = () => {
-    // Format birthday as ISO string
     let birthdayString: string | null = null;
     if (isValidBirthday()) {
       const birthDate = new Date(
         parseInt(birthYear),
-        parseInt(birthMonth) - 1, // JavaScript months are 0-indexed
+        parseInt(birthMonth) - 1,
         parseInt(birthDay)
       );
       birthdayString = birthDate.toISOString();
     }
     
-    // Format height and weight with units
     const formattedHeight = feet && inches ? `${feet}'${inches}"` : '';
     const formattedWeight = weight ? `${weight} ${weightUnit}` : '';
 
-    // Save current data
     onUpdate({
       first_name: firstName,
       last_name: lastName,
@@ -162,12 +152,10 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     onNext();
   };
 
-  // Helper function to handle input focus
   const handleFocus = (field: keyof typeof focusStates) => {
     setFocusStates(prev => ({ ...prev, [field]: true }));
   };
 
-  // Helper function to handle input blur
   const handleBlur = (field: keyof typeof focusStates, value: string) => {
     setFocusStates(prev => ({ ...prev, [field]: value.length > 0 }));
   };
@@ -176,7 +164,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
                       isValidBirthday() && feet && inches && weight;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-left">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-client mb-2">Let's Get to Know You</h1>
         <p className="text-muted-foreground">Tell us a bit about yourself to help us personalize your experience</p>
@@ -258,7 +246,6 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
         </div>
       </div>
 
-      {/* City and State on one line */}
       <div className="grid grid-cols-2 gap-4">
         <div className="relative">
           <Input 
@@ -299,7 +286,6 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
         </div>
       </div>
 
-      {/* Birthdate with header and separate month/day/year inputs */}
       <div className="mt-6">
         <h3 className="text-sm font-medium mb-2">Birthdate</h3>
         <div className="grid grid-cols-3 gap-4">
@@ -342,8 +328,8 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
         </div>
       </div>
 
-      {/* Height on its own line */}
-      <div>
+      <div className="mt-6">
+        <h3 className="text-sm font-medium mb-2">Height</h3>
         <div className="grid grid-cols-2 gap-2">
           <div className="relative">
             <Input 
@@ -372,27 +358,29 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
         </div>
       </div>
         
-      {/* Weight on its own line */}
-      <div className="flex gap-2">
-        <Input 
-          type="number" 
-          placeholder="Weight"
-          value={weight}
-          onChange={e => setWeight(e.target.value)}
-          className="flex-1 h-14"
-        />
-        <Select 
-          value={weightUnit} 
-          onValueChange={(value: 'lbs' | 'kg') => setWeightUnit(value)}
-        >
-          <SelectTrigger className="w-24 h-14">
-            <SelectValue placeholder="Unit" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="lbs">lbs</SelectItem>
-            <SelectItem value="kg">kg</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="mt-6">
+        <h3 className="text-sm font-medium mb-2">Weight</h3>
+        <div className="flex gap-2">
+          <Input 
+            type="number" 
+            placeholder="Weight"
+            value={weight}
+            onChange={e => setWeight(e.target.value)}
+            className="flex-1 h-14"
+          />
+          <Select 
+            value={weightUnit} 
+            onValueChange={(value: 'lbs' | 'kg') => setWeightUnit(value)}
+          >
+            <SelectTrigger className="w-24 h-14">
+              <SelectValue placeholder="Unit" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="lbs">lbs</SelectItem>
+              <SelectItem value="kg">kg</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="pt-4 flex justify-end">

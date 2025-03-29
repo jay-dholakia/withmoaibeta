@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -188,7 +187,8 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
       state,
       birthday: birthdayString,
       height: formattedHeight,
-      weight: formattedWeight
+      weight: formattedWeight,
+      favorite_movements: profile.favorite_movements || []
     });
     onNext();
   };

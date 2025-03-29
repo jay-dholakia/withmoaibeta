@@ -87,9 +87,14 @@ const ProfileEditor = () => {
 
   // Handle updates to profile data
   const handleUpdateProfile = (data: Partial<ClientProfile>) => {
-    // Update local state only, don't update in database yet
+    // Ensure we don't lose any existing profile data, especially favorite_movements
     setProfileData(prev => {
-      const merged = { ...prev, ...data };
+      const merged = { 
+        ...prev, 
+        ...data,
+        // Make sure favorite_movements is preserved from previous data if not included in update
+        favorite_movements: data.favorite_movements || prev.favorite_movements || []
+      };
       console.log('Updated profile data:', merged);
       return merged;
     });
@@ -100,8 +105,15 @@ const ProfileEditor = () => {
 
   // Handle completion of the profile editing
   const handleComplete = () => {
-    console.log('Submitting final profile data:', profileData);
-    updateProfileMutation.mutate(profileData);
+    // Ensure favorite_movements is included in the final data
+    const finalData = {
+      ...profileData,
+      // Just to be extra safe, make sure favorite_movements is present
+      favorite_movements: profileData.favorite_movements || []
+    };
+    
+    console.log('Submitting final profile data:', finalData);
+    updateProfileMutation.mutate(finalData);
   };
 
   // Navigate back to settings page

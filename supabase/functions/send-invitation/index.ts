@@ -88,10 +88,37 @@ serve(async (req) => {
       );
     }
 
+    // Check if there's a request body before trying to parse it
+    let reqText;
+    try {
+      reqText = await req.text();
+      console.log("Request body length:", reqText.length);
+      
+      if (!reqText || reqText.trim() === '') {
+        console.error("Empty request body received");
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Empty request body. Please provide valid JSON data." 
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } catch (textError) {
+      console.error("Failed to read request body as text:", textError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Failed to read request body" 
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Parse the request body
     let payload: InvitationPayload;
     try {
-      payload = await req.json();
+      payload = JSON.parse(reqText);
       console.log("Request payload received:", { 
         email: payload.email, 
         userType: payload.userType,
@@ -101,10 +128,12 @@ serve(async (req) => {
       });
     } catch (jsonError) {
       console.error("Failed to parse request body:", jsonError);
+      console.error("Raw request body:", reqText);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Invalid request body" 
+          error: "Invalid JSON in request body",
+          details: jsonError.message
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

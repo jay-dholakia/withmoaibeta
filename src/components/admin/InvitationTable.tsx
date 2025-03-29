@@ -48,6 +48,14 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
   onResendInvite,
   isResending = {}
 }) => {
+  const handleResendClick = (invitation: Invitation) => {
+    // Ensure we're passing the full invitation object
+    if (onResendInvite) {
+      console.log("Resending invitation:", invitation);
+      onResendInvite(invitation);
+    }
+  };
+
   return (
     <Table>
       <TableHeader>
@@ -120,7 +128,7 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => onResendInvite && onResendInvite(invitation)}
+                      onClick={() => handleResendClick(invitation)}
                       disabled={isResending[invitation.id]}
                       title="Resend invitation"
                     >

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -138,14 +137,17 @@ const InvitationsPage: React.FC = () => {
         const inviteLink = `${siteUrl}/register?token=${token}&type=${userType}`;
         
         try {
-          console.log("Invoking send-invitation edge function");
+          console.log("Invoking send-invitation edge function with payload:", { email, userType, siteUrl, invitationId: data.id });
+          
+          const payload = {
+            email,
+            userType,
+            siteUrl,
+            invitationId: data.id
+          };
+          
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
-            body: {
-              email,
-              userType,
-              siteUrl,
-              invitationId: data.id
-            },
+            body: payload,
             headers: {
               Authorization: `Bearer ${session?.access_token}`,
               'Content-Type': 'application/json'
@@ -161,7 +163,6 @@ const InvitationsPage: React.FC = () => {
           
           const responseData = edgeFunctionResponse.data as InvitationResponse;
           
-          // Update email status tracking
           setLastEmailStatus({
             sent: responseData.emailSent,
             email: email,
@@ -192,7 +193,6 @@ const InvitationsPage: React.FC = () => {
         } catch (emailError) {
           console.error("Failed to send email, but invitation created:", emailError);
           
-          // Update email status tracking
           setLastEmailStatus({
             sent: false,
             email: email,
@@ -268,14 +268,24 @@ const InvitationsPage: React.FC = () => {
         const inviteLink = `${siteUrl}/register?token=${newToken}&type=${invitation.user_type}`;
         
         try {
+          console.log("Invoking send-invitation edge function for resend with payload:", {
+            email: invitation.email,
+            userType: invitation.user_type,
+            siteUrl,
+            resend: true,
+            invitationId: invitation.id
+          });
+          
+          const payload = {
+            email: invitation.email,
+            userType: invitation.user_type,
+            siteUrl,
+            resend: true,
+            invitationId: invitation.id
+          };
+          
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
-            body: {
-              email: invitation.email,
-              userType: invitation.user_type,
-              siteUrl,
-              resend: true,
-              invitationId: invitation.id
-            },
+            body: payload,
             headers: {
               Authorization: `Bearer ${session?.access_token}`,
               'Content-Type': 'application/json'
@@ -291,7 +301,6 @@ const InvitationsPage: React.FC = () => {
           
           const responseData = edgeFunctionResponse.data as InvitationResponse;
           
-          // Update email status tracking
           setLastEmailStatus({
             sent: responseData.emailSent,
             email: invitation.email,
@@ -310,7 +319,6 @@ const InvitationsPage: React.FC = () => {
         } catch (emailError) {
           console.error("Failed to send email, but invitation updated:", emailError);
           
-          // Update email status tracking
           setLastEmailStatus({
             sent: false,
             email: invitation.email,

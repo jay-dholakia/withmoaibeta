@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Dumbbell, PersonStanding, Heart, Yoga } from 'lucide-react';
+import { Dumbbell, PersonStanding, Heart } from 'lucide-react';
 
 export type WorkoutType = 'strength' | 'bodyweight' | 'cardio' | 'flexibility' | 'rest_day' | 'custom' | 'one_off';
 
@@ -24,7 +24,7 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
       case 'cardio':
         return <Heart size={size} className="text-gray-800" />;
       case 'flexibility':
-        return <Yoga size={size} className="text-gray-800" />;
+        return '🧘'; // Yoga/flexibility emoji
       case 'rest_day':
         return '😴'; // Rest day emoji
       case 'custom':
@@ -58,7 +58,7 @@ export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.Reac
   { value: 'strength', label: 'Strength', icon: <Dumbbell size={16} /> },
   { value: 'bodyweight', label: 'Bodyweight', icon: <PersonStanding size={16} /> },
   { value: 'cardio', label: 'Cardio', icon: <Heart size={16} /> },
-  { value: 'flexibility', label: 'Flexibility', icon: <Yoga size={16} /> },
+  { value: 'flexibility', label: 'Flexibility', icon: '🧘' },
   { value: 'custom', label: 'Custom', icon: '✨' },
   { value: 'one_off', label: 'One-off', icon: '🎯' },
   { value: 'rest_day', label: 'Rest Day', icon: '😴' }

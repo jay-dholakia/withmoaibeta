@@ -3,7 +3,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { CalendarClock, ListChecks, CircleSlash, FileText, Heart } from 'lucide-react';
 import { WorkoutHistoryItem } from '@/types/workout';
-import { WorkoutTypeIcon } from './WorkoutTypeIcon';
+import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
@@ -16,6 +16,22 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   // Debug output to verify what workouts are being passed
   console.log(`WorkoutDayDetails - Receiving date: ${format(date, 'MM/dd/yyyy')}`);
   console.log(`WorkoutDayDetails - Receiving ${workouts.length} workouts`);
+  
+  // Helper function to convert workout type string to WorkoutType
+  const getWorkoutType = (typeString: string | undefined): WorkoutType => {
+    if (!typeString) return 'strength';
+    
+    const normalizedType = typeString.toLowerCase();
+    if (normalizedType.includes('strength')) return 'strength';
+    if (normalizedType.includes('body') || normalizedType.includes('weight')) return 'bodyweight';
+    if (normalizedType.includes('cardio') || normalizedType.includes('run') || normalizedType.includes('hiit')) return 'cardio';
+    if (normalizedType.includes('flex') || normalizedType.includes('yoga') || normalizedType.includes('stretch') || normalizedType.includes('recovery')) return 'flexibility';
+    if (normalizedType.includes('rest')) return 'rest_day';
+    if (normalizedType.includes('custom')) return 'custom';
+    if (normalizedType.includes('one')) return 'one_off';
+    
+    return 'strength';
+  };
   
   if (!workouts || workouts.length === 0) {
     return (
@@ -93,8 +109,8 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           <Card key={workout.id} className="overflow-hidden border">
             <CardHeader className="py-3 px-4 bg-gray-50 flex flex-row items-center justify-between">
               <div className="flex items-center gap-2">
-                {workout.workout?.workout_exercises && workout.workout.workout_exercises[0]?.exercise?.exercise_type && (
-                  <WorkoutTypeIcon type={workout.workout.workout_exercises[0].exercise.exercise_type} />
+                {workout.workout?.workout_type && (
+                  <WorkoutTypeIcon type={getWorkoutType(workout.workout.workout_type)} />
                 )}
                 <CardTitle className="text-base">{workout.workout?.title || "Untitled Workout"}</CardTitle>
               </div>

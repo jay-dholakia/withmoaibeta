@@ -25,10 +25,16 @@ export const fetchCoachMessagesForClient = async (coachId: string, clientId: str
       return [];
     }
     
-    return data.map(item => ({
-      ...item,
-      coach_first_name: item.coach_profiles?.first_name || null
-    })) as CoachMessage[];
+    return data.map(item => {
+      // Extract the coach's first name from the nested object structure
+      // Handle cases where the coach profile might not exist
+      const coachFirstName = item.coach_profiles?.first_name || null;
+      
+      return {
+        ...item,
+        coach_first_name: coachFirstName
+      };
+    }) as CoachMessage[];
   } catch (error) {
     console.error('Error in fetchCoachMessagesForClient:', error);
     return [];

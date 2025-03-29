@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ClientData } from '@/services/client-service';
-import { fetchCoachClients } from '@/services/coach-service';
+import { fetchCoachClients, countClientCompletedWorkouts } from '@/services/coach-service';
 import { fetchCoachGroups } from '@/services/coach-group-service';
 import { ClientDetailView } from '@/components/coach/ClientDetailView';
 import ClientMessageForm from '@/components/coach/ClientMessageForm';
@@ -49,6 +49,7 @@ const ClientsPage = () => {
   const [activeTab, setActiveTab] = useState<'details' | 'message'>('details');
   const [messageStatus, setMessageStatus] = useState<Record<string, boolean>>({});
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [workoutCounts, setWorkoutCounts] = useState<Record<string, number>>({});
   const itemsPerPage = 10;
 
   const { data: clients, isLoading: isLoadingClients, error: clientsError } = useQuery({
@@ -84,6 +85,28 @@ const ClientsPage = () => {
     },
     enabled: !!user?.id,
   });
+
+  useEffect(() => {
+    const fetchWorkoutCounts = async () => {
+      if (!paginatedClients.length) return;
+      
+      const counts: Record<string, number> = {};
+      
+      for (const client of paginatedClients) {
+        try {
+          const count = await countClientCompletedWorkouts(client.id);
+          counts[client.id] = count;
+        } catch (error) {
+          console.error(`Error fetching workout count for client ${client.id}:`, error);
+          counts[client.id] = 0;
+        }
+      }
+      
+      setWorkoutCounts(counts);
+    };
+    
+    fetchWorkoutCounts();
+  }, [paginatedClients]);
 
   const filteredClients = clients?.filter(client => 
     selectedGroupId === 'all' || client.group_ids.includes(selectedGroupId)
@@ -266,7 +289,9 @@ const ClientsPage = () => {
                               {getWorkoutStatusText(client.days_since_last_workout)}
                             </span>
                           </TableCell>
-                          <TableCell>{client.total_workouts_completed}</TableCell>
+                          <TableCell>
+                            {workoutCounts[client.id] !== undefined ? workoutCounts[client.id] : 0}
+                          </TableCell>
                           <TableCell>
                             {client.current_program_title ? (
                               <span className="text-coach">{client.current_program_title}</span>

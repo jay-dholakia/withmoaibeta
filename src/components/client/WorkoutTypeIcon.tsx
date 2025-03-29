@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Dumbbell, PersonStanding, Heart } from 'lucide-react';
 
 export type WorkoutType = 'strength' | 'bodyweight' | 'cardio' | 'flexibility' | 'rest_day' | 'custom' | 'one_off';
 

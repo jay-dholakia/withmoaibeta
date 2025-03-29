@@ -61,16 +61,19 @@ export const WeekProgressBar = ({
   const getWorkoutTypeForDay = (day: Date): WorkoutType | undefined => {
     const dateString = format(day, 'yyyy-MM-dd');
     
-    if (workoutTypes[dateString]) {
-      return workoutTypes[dateString] as WorkoutType;
+    // First check if we have a predefined type in the map
+    if (workoutTypes && workoutTypes[dateString]) {
+      return workoutTypes[dateString];
     }
     
+    // If it's a life happens pass, mark it as rest day
     if (lifeHappensDates.some(d => isSameDay(d, day))) {
       return 'rest_day';
     }
     
+    // For completed dates without an explicit type, default to strength
     if (completedDates.some(d => isSameDay(d, day))) {
-      return 'strength'; // Default for backwards compatibility
+      return 'strength';
     }
     
     return undefined;

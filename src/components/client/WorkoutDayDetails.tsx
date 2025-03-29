@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { CalendarClock, ListChecks, CircleSlash, FileText, Heart, ChevronDown, ChevronUp } from 'lucide-react';
@@ -98,12 +97,19 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     );
   }
 
-  // Improved helper function that properly uses exercise_id for matching
+  // Improved helper function that correctly uses exercise_id for matching
   const findExerciseInfo = (workout_exercise_id: string, workout: WorkoutHistoryItem) => {
     console.log(`Looking for exercise with workout_exercise_id: ${workout_exercise_id}`);
     
     // First, try to find the workout_exercise record with matching id
     if (workout.workout?.workout_exercises) {
+      // Log all available workout_exercises for debugging
+      console.log('Available workout_exercises:', workout.workout.workout_exercises.map(we => ({
+        id: we.id,
+        exercise_id: we.exercise_id,
+        exercise: we.exercise ? we.exercise.name : 'no exercise data'
+      })));
+      
       // Look for the workout_exercise with matching id
       const matchingWorkoutExercise = workout.workout.workout_exercises.find(
         we => we.id === workout_exercise_id
@@ -122,15 +128,15 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           };
         }
         
-        // If we don't have the joined exercise data, try to find it in all workouts
-        // by using the exercise_id to match against other exercises
-        const exercise_id = matchingWorkoutExercise.exercise_id;
-        
+        // If we don't have the joined exercise data, try to find the exercise by exercise_id
         // Search across all workouts for this exercise_id
+        const exercise_id = matchingWorkoutExercise.exercise_id;
+        console.log(`Looking for exercise with exercise_id: ${exercise_id}`);
+        
         for (const w of workouts) {
           if (w.workout?.workout_exercises) {
             for (const we of w.workout.workout_exercises) {
-              if (we.exercise_id === exercise_id && we.exercise) {
+              if (we.exercise && we.exercise_id === exercise_id) {
                 console.log(`Found exercise by exercise_id: ${we.exercise.name}`);
                 return {
                   name: we.exercise.name,
@@ -140,15 +146,54 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
             }
           }
         }
+        
+        // If we still couldn't find the exercise by exercise_id, 
+        // try finding any exercise with this exercise_id across all workouts
+        for (const w of workouts) {
+          if (w.workout?.workout_exercises) {
+            for (const we of w.workout.workout_exercises) {
+              if (we.exercise_id === exercise_id) {
+                // Found a workout_exercise with matching exercise_id but maybe no exercise data
+                // Look for other instances of this exercise_id that might have the data
+                for (const w2 of workouts) {
+                  if (w2.workout?.workout_exercises) {
+                    for (const we2 of w2.workout.workout_exercises) {
+                      if (we2.exercise_id === exercise_id && we2.exercise) {
+                        console.log(`Found exercise data through another workout_exercise: ${we2.exercise.name}`);
+                        return {
+                          name: we2.exercise.name,
+                          type: we2.exercise.exercise_type || "strength"
+                        };
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        // If we got here, we found the workout_exercise but couldn't find the exercise data
+        // Try to infer type from the workout_exercise
+        console.log(`Found workout_exercise but couldn't find exercise data. Using fallback.`);
+        return {
+          name: `Exercise ${matchingWorkoutExercise.order_index + 1}`,
+          type: "strength"
+        };
+      } else {
+        console.log(`No matching workout_exercise found with id: ${workout_exercise_id}`);
       }
     }
     
     // If we still can't find the exercise data through the proper table relationship,
     // try to infer from the completion details
     const completions = workout.workout_set_completions || [];
+    console.log(`Checking ${completions.length} set completions for workout_exercise_id: ${workout_exercise_id}`);
+    
     const matchingCompletion = completions.find(c => c.workout_exercise_id === workout_exercise_id);
     
     if (matchingCompletion) {
+      console.log(`Found matching completion for workout_exercise_id: ${workout_exercise_id}`);
       // Infer type from available data
       if (matchingCompletion.distance || matchingCompletion.duration) {
         const exerciseType = matchingCompletion.distance ? "cardio" : "flexibility";
@@ -253,6 +298,13 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                         // Create a map to group sets by exercise
                         const exerciseGroups: Record<string, { name: string; type: string; sets: any[] }> = {};
                         
+                        // Before grouping, log all set completions for debugging
+                        console.log('All workout set completions:', workout.workout_set_completions?.map(sc => ({
+                          id: sc.id,
+                          workout_exercise_id: sc.workout_exercise_id,
+                          set_number: sc.set_number
+                        })));
+                        
                         // Group the sets by exercise ID
                         workout.workout_set_completions.forEach(set => {
                           const exerciseId = set.workout_exercise_id;
@@ -270,6 +322,14 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                           
                           exerciseGroups[exerciseId].sets.push(set);
                         });
+                        
+                        // Log the exercise groups we found for debugging
+                        console.log('Exercise groups created:', Object.keys(exerciseGroups).map(key => ({
+                          id: key,
+                          name: exerciseGroups[key].name,
+                          type: exerciseGroups[key].type,
+                          setCount: exerciseGroups[key].sets.length
+                        })));
                         
                         // Now render each exercise group
                         return Object.entries(exerciseGroups).map(([exerciseId, group]) => (

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -189,7 +188,6 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
   
   const formatDisplayName = (firstName: string | null, lastName: string | null): string => {
     if (!firstName) return '';
-    // Format name to first name and first initial of last name with period
     const formattedLastName = lastName ? `${lastName.charAt(0)}.` : '';
     return `${firstName} ${formattedLastName}`.trim();
   };
@@ -204,7 +202,6 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
     }
   };
 
-  // Determine if the current user is viewing their own profile
   const isOwnProfile = selectedMember === user?.id;
 
   if (isLoadingMembers) {
@@ -262,20 +259,31 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
             <TabsContent value="profile">
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-xl font-semibold text-center">
-                    {formatDisplayName(memberProfile?.first_name, memberProfile?.last_name)}
-                    {isOwnProfile && <Badge className="ml-2">You</Badge>}
-                  </CardTitle>
-                  {(memberProfile?.city || memberProfile?.state) && (
-                    <p className="text-muted-foreground text-center mt-1">
-                      {memberProfile.city}{memberProfile.city && memberProfile.state ? ', ' : ''}{memberProfile.state}
-                    </p>
-                  )}
+                  <div className="flex flex-col items-center">
+                    <Avatar className="h-24 w-24 mb-4">
+                      <AvatarImage 
+                        src={memberProfile?.avatar_url || ''} 
+                        alt={formatDisplayName(memberProfile?.first_name, memberProfile?.last_name)} 
+                      />
+                      <AvatarFallback className="text-xl bg-client/80 text-white">
+                        {memberProfile?.first_name ? memberProfile.first_name.charAt(0) : ''}
+                        {memberProfile?.last_name ? memberProfile.last_name.charAt(0) : ''}
+                      </AvatarFallback>
+                    </Avatar>
+                    <CardTitle className="text-xl font-semibold text-center">
+                      {formatDisplayName(memberProfile?.first_name, memberProfile?.last_name)}
+                      {isOwnProfile && <Badge className="ml-2">You</Badge>}
+                    </CardTitle>
+                    {(memberProfile?.city || memberProfile?.state) && (
+                      <p className="text-muted-foreground text-center mt-1">
+                        {memberProfile.city}{memberProfile.city && memberProfile.state ? ', ' : ''}{memberProfile.state}
+                      </p>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-3">
                   {memberProfile ? (
                     <>
-                      {/* Event preparation section - should always be visible */}
                       {memberProfile.event_type && memberProfile.event_type !== 'none' && (
                         <div className="text-center">
                           <p className="text-sm font-medium">
@@ -292,7 +300,6 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                         </div>
                       )}
                     
-                      {/* Height and weight section - only show if looking at own profile or if data exists */}
                       {(isOwnProfile || (memberProfile.height || memberProfile.weight)) && (
                         <div className="flex justify-center gap-6">
                           {memberProfile.height && (

@@ -127,22 +127,43 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     );
   }
 
-  // Helper function to get exercise info from workout_exercise_id
-  const findExerciseInfo = (workout_exercise_id: string) => {
-    // Create a map of all workout exercises for efficient lookup
-    const allExercises = new Map();
-    
-    // Log the lookup attempt for debugging
+  // Improved helper function to get exercise info from workout_exercise_id
+  const findExerciseInfo = (workout_exercise_id: string, workout: WorkoutHistoryItem) => {
     console.log(`Looking for exercise with workout_exercise_id: ${workout_exercise_id}`);
     
+    // First check within this specific workout's exercises
+    if (workout.workout?.workout_exercises) {
+      for (const exercise of workout.workout.workout_exercises) {
+        if (exercise.id === workout_exercise_id) {
+          console.log(`Found exercise in current workout: ${exercise.exercise?.name || 'N/A'}`);
+          return {
+            name: exercise.exercise?.name || "Unknown Exercise",
+            type: exercise.exercise?.exercise_type || "strength"
+          };
+        }
+      }
+      console.log(`Exercise not found in current workout's exercises`);
+    }
+    
+    // If not found in current workout, create a map of all exercises across all workouts
+    const allExercises = new Map();
+    
     // Collect all exercises from all workouts in this day
-    for (const workout of workouts) {
-      if (workout.workout?.workout_exercises) {
-        for (const exercise of workout.workout.workout_exercises) {
+    for (const w of workouts) {
+      if (w.workout?.workout_exercises) {
+        for (const exercise of w.workout.workout_exercises) {
           if (exercise.id) {
-            // Log the exercise being added to the map
             console.log(`Adding to map: exercise id ${exercise.id}, name: ${exercise.exercise?.name || 'N/A'}`);
             allExercises.set(exercise.id, {
+              name: exercise.exercise?.name || "Unknown Exercise",
+              type: exercise.exercise?.exercise_type || "strength"
+            });
+          }
+          
+          // Also map by exercise_id in case that's what is being referenced
+          if (exercise.exercise_id) {
+            console.log(`Also adding exercise_id ${exercise.exercise_id} to map`);
+            allExercises.set(exercise.exercise_id, {
               name: exercise.exercise?.name || "Unknown Exercise",
               type: exercise.exercise?.exercise_type || "strength"
             });
@@ -151,14 +172,32 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       }
     }
     
-    // Log the map size for debugging
-    console.log(`Built exercise map with ${allExercises.size} entries`);
-    
-    // Check if we have the exercise in our map
+    // Try to find by workout_exercise_id
     if (allExercises.has(workout_exercise_id)) {
       const exerciseInfo = allExercises.get(workout_exercise_id);
-      console.log(`Found exercise: ${exerciseInfo.name}`);
+      console.log(`Found exercise by workout_exercise_id: ${exerciseInfo.name}`);
       return exerciseInfo;
+    }
+    
+    // As a fallback, try to see if there's a direct match in workout_set_completions
+    // This handles cases where workout_exercise_id actually refers to an exercise_id directly
+    for (const w of workouts) {
+      if (w.workout_set_completions) {
+        for (const completion of w.workout_set_completions) {
+          if (completion.workout_exercise_id === workout_exercise_id && w.workout?.workout_exercises) {
+            // Now look for a matching exercise in the workout
+            for (const exercise of w.workout.workout_exercises) {
+              if (exercise.exercise_id) {
+                console.log(`Found potential match checking exercise_ids: ${exercise.exercise?.name || 'N/A'}`);
+                return {
+                  name: exercise.exercise?.name || "Unknown Exercise",
+                  type: exercise.exercise?.exercise_type || "strength"
+                };
+              }
+            }
+          }
+        }
+      }
     }
     
     console.log(`Could not find exercise with id: ${workout_exercise_id}`);
@@ -249,7 +288,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                           
                           if (!exerciseGroups[exerciseId]) {
                             // Find exercise info using our helper function
-                            const exerciseInfo = findExerciseInfo(exerciseId);
+                            const exerciseInfo = findExerciseInfo(exerciseId, workout);
                             
                             exerciseGroups[exerciseId] = {
                               name: exerciseInfo.name,

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -286,15 +285,11 @@ const MoaiPage = () => {
         </CardContent>
       </Card>
       
-      <Tabs defaultValue="members" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+      <Tabs defaultValue="progress" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="progress">
             <Users className="h-4 w-4 mr-2" />
             Group Progress
-          </TabsTrigger>
-          <TabsTrigger value="members">
-            <Users className="h-4 w-4 mr-2" />
-            Members
           </TabsTrigger>
           <TabsTrigger value="coach">
             <UserRound className="h-4 w-4 mr-2" />
@@ -310,10 +305,6 @@ const MoaiPage = () => {
             enableMemberClick={true}
             workoutTypesMap={{}}
           />
-        </TabsContent>
-        
-        <TabsContent value="members">
-          <MoaiMembersTab groupId={group.id} />
         </TabsContent>
         
         <TabsContent value="coach">

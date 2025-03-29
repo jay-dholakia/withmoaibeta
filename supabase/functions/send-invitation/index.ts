@@ -262,6 +262,15 @@ serve(async (req) => {
         // Capitalize the user type for better readability in the email
         const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
         
+        // Log detailed info about the request we're about to make
+        console.log("Preparing to send email via Resend API with payload:", {
+          from: "Moai <jay@withmoai.co>",
+          to: email,
+          subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
+          // Not logging the full HTML for brevity
+          htmlLength: `HTML template with invite link: ${inviteLink}`.length
+        });
+        
         // Send email using fetch instead of Resend SDK
         const emailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -301,10 +310,26 @@ serve(async (req) => {
           })
         });
         
+        // Detailed logging of the response
+        console.log("Resend API response status:", emailResponse.status);
+        
+        // Handle different response statuses
         if (!emailResponse.ok) {
-          const errorData = await emailResponse.json();
-          console.error("Resend API error:", errorData);
-          throw new Error(`Resend API error: ${JSON.stringify(errorData)}`);
+          const errorText = await emailResponse.text();
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch (e) {
+            errorData = { raw: errorText };
+          }
+          
+          console.error("Resend API error details:", {
+            status: emailResponse.status,
+            statusText: emailResponse.statusText,
+            data: errorData
+          });
+          
+          throw new Error(`Resend API error (${emailResponse.status}): ${JSON.stringify(errorData)}`);
         }
         
         const responseData = await emailResponse.json();
@@ -316,6 +341,9 @@ serve(async (req) => {
       } catch (emailSendError) {
         console.error("Error sending email:", emailSendError);
         emailError = emailSendError.message;
+        
+        // Continue execution - we'll still return the invitation details
+        // even if sending the email failed
       }
     } else {
       console.warn("Resend API key not configured, skipping email sending");
@@ -323,6 +351,8 @@ serve(async (req) => {
     }
 
     // Return success response with invitation details
+    // We're returning success: true even if email sending failed,
+    // as long as the invitation record was created/updated successfully
     return new Response(
       JSON.stringify({ 
         success: true,

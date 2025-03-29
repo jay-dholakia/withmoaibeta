@@ -48,6 +48,7 @@ const ClientsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<'details' | 'message'>('details');
   const [messageStatus, setMessageStatus] = useState<Record<string, boolean>>({});
+  const [sheetOpen, setSheetOpen] = useState(false);
   const itemsPerPage = 10;
 
   const { data: clients, isLoading: isLoadingClients, error: clientsError } = useQuery({
@@ -129,17 +130,20 @@ const ClientsPage = () => {
     setSelectedClientId(clientId);
     setSelectedClientEmail(clientEmail);
     setActiveTab('details');
+    setSheetOpen(true);
   };
 
   const handleMessageClient = (clientId: string, clientEmail: string) => {
     setSelectedClientId(clientId);
     setSelectedClientEmail(clientEmail);
     setActiveTab('message');
+    setSheetOpen(true);
   };
 
   const handleCloseClientView = () => {
     setSelectedClientId(null);
     setSelectedClientEmail(null);
+    setSheetOpen(false);
   };
 
   const getWorkoutStatusClass = (days: number | null) => {
@@ -288,38 +292,13 @@ const ClientsPage = () => {
                             )}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Sheet>
-                              <SheetTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => handleViewClient(client.id, client.email)}
-                                >
-                                  <Info className="h-4 w-4 mr-1" /> View Details
-                                </Button>
-                              </SheetTrigger>
-                              <SheetContent className="sm:max-w-md md:max-w-lg">
-                                {selectedClientId === client.id && (
-                                  <>
-                                    {activeTab === 'details' && (
-                                      <ClientDetailView 
-                                        clientId={client.id} 
-                                        clientEmail={client.email}
-                                        onClose={handleCloseClientView} 
-                                      />
-                                    )}
-                                    {activeTab === 'message' && (
-                                      <ClientMessageForm
-                                        coachId={user?.id || ''}
-                                        clientId={client.id}
-                                        clientEmail={client.email}
-                                        onClose={handleCloseClientView}
-                                      />
-                                    )}
-                                  </>
-                                )}
-                              </SheetContent>
-                            </Sheet>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleViewClient(client.id, client.email)}
+                            >
+                              <Info className="h-4 w-4 mr-1" /> View Details
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -364,6 +343,30 @@ const ClientsPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent className="sm:max-w-md md:max-w-lg">
+          {selectedClientId && selectedClientEmail && (
+            <>
+              {activeTab === 'details' && (
+                <ClientDetailView 
+                  clientId={selectedClientId} 
+                  clientEmail={selectedClientEmail}
+                  onClose={handleCloseClientView} 
+                />
+              )}
+              {activeTab === 'message' && (
+                <ClientMessageForm
+                  coachId={user?.id || ''}
+                  clientId={selectedClientId}
+                  clientEmail={selectedClientEmail}
+                  onClose={handleCloseClientView}
+                />
+              )}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </CoachLayout>
   );
 };

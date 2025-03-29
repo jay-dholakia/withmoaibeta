@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -187,9 +188,10 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
   });
   
   const formatDisplayName = (firstName: string | null, lastName: string | null): string => {
-    const first = firstName || '';
-    const last = lastName ? `${lastName.charAt(0)}.` : '';
-    return `${first} ${last}`.trim();
+    if (!firstName) return '';
+    // Format name to first name and first initial of last name with period
+    const formattedLastName = lastName ? `${lastName.charAt(0)}.` : '';
+    return `${firstName} ${formattedLastName}`.trim();
   };
 
   const formatEventDate = (dateString: string | null): string => {
@@ -277,6 +279,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                               {formatDisplayName(memberProfile.first_name, memberProfile.last_name)}
                               {selectedMember === user?.id && <Badge className="ml-2">You</Badge>}
                             </h3>
+                            
                             {(memberProfile.city || memberProfile.state) && (
                               <p className="text-muted-foreground">
                                 {memberProfile.city}{memberProfile.city && memberProfile.state ? ', ' : ''}{memberProfile.state}

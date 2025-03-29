@@ -51,7 +51,8 @@ import {
   fetchStandaloneWorkouts,
   addWorkoutToWeek,
   updateWorkoutProgram,
-  copyTemplateWorkoutToWeek
+  copyTemplateWorkoutToWeek,
+  copyWorkoutToWeek
 } from '@/services/workout-service';
 import { WorkoutProgram, WorkoutWeek, Workout, DAYS_OF_WEEK, StandaloneWorkout } from '@/types/workout';
 import { toast } from 'sonner';
@@ -98,6 +99,10 @@ const WorkoutProgramDetailPage = () => {
   const [isAddingTemplateToWeek, setIsAddingTemplateToWeek] = useState<string | null>(null);
   
   const [workoutCounts, setWorkoutCounts] = useState<Record<string, number>>({});
+  
+  const [isCopyingWorkout, setIsCopyingWorkout] = useState<string | null>(null);
+  const [targetWeekId, setTargetWeekId] = useState<string | null>(null);
+  const [isCopying, setIsCopying] = useState(false);
   
   const updateWorkoutCount = async (weekId: string) => {
     try {
@@ -358,6 +363,36 @@ const WorkoutProgramDetailPage = () => {
       toast.error('Failed to add template workout');
     } finally {
       setIsAddingTemplate(false);
+    }
+  };
+  
+  const handleCopyWorkout = async () => {
+    if (!isCopyingWorkout || !targetWeekId) {
+      toast.error('Please select a target week');
+      return;
+    }
+    
+    try {
+      setIsCopying(true);
+      await copyWorkoutToWeek(isCopyingWorkout, targetWeekId);
+      
+      // Refresh workouts for the target week if it's currently selected
+      if (targetWeekId === selectedWeek) {
+        const updatedWorkouts = await fetchWorkouts(targetWeekId);
+        setWorkouts(updatedWorkouts);
+      }
+      
+      // Update workout count for the target week
+      updateWorkoutCount(targetWeekId);
+      
+      toast.success('Workout copied successfully');
+      setIsCopyingWorkout(null);
+      setTargetWeekId(null);
+    } catch (error) {
+      console.error('Error copying workout:', error);
+      toast.error('Failed to copy workout');
+    } finally {
+      setIsCopying(false);
     }
   };
   
@@ -727,6 +762,29 @@ const WorkoutProgramDetailPage = () => {
                                     <Trash2 className="h-4 w-4" />
                                     <span className="sr-only">Delete workout</span>
                                   </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => setIsCopyingWorkout(workout.id)}
+                                    title="Copy to another week"
+                                  >
+                                    <svg 
+                                      xmlns="http://www.w3.org/2000/svg" 
+                                      width="16" 
+                                      height="16" 
+                                      viewBox="0 0 24 24" 
+                                      fill="none" 
+                                      stroke="currentColor" 
+                                      strokeWidth="2" 
+                                      strokeLinecap="round" 
+                                      strokeLinejoin="round"
+                                    >
+                                      <rect x="8" y="8" width="12" height="12" rx="2" />
+                                      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                                    </svg>
+                                    <span className="sr-only">Copy workout</span>
+                                  </Button>
                                 </div>
                               </CardHeader>
                               <CardContent>
@@ -890,6 +948,53 @@ const WorkoutProgramDetailPage = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog 
+          open={isCopyingWorkout !== null} 
+          onOpenChange={(open) => {
+            if (!open) {
+              setIsCopyingWorkout(null);
+              setTargetWeekId(null);
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Copy Workout to Another Week</DialogTitle>
+              <DialogDescription>
+                Select the week where you want to copy this workout
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <h4 className="font-medium">Target Week</h4>
+                <Select 
+                  value={targetWeekId || ''} 
+                  onValueChange={setTargetWeekId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a week" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {weeks.map(week => (
+                      <SelectItem key={week.id} value={week.id}>
+                        Week {week.week_number}: {week.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                onClick={handleCopyWorkout}
+                disabled={!targetWeekId || isCopying}
+              >
+                {isCopying ? 'Copying...' : 'Copy Workout'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </CoachLayout>
   );

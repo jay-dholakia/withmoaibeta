@@ -879,6 +879,52 @@ export const copyTemplateWorkoutToWeek = async (
   }
 };
 
+export const copyWorkoutToWeek = async (
+  sourceWorkoutId: string, 
+  targetWeekId: string,
+  dayOfWeek?: number
+) => {
+  try {
+    // Fetch source workout details
+    const sourceWorkout = await fetchWorkout(sourceWorkoutId);
+    
+    if (!sourceWorkout) {
+      throw new Error("Source workout not found");
+    }
+    
+    // Create new workout in target week
+    const newWorkout = await addWorkoutToWeek(targetWeekId, {
+      title: sourceWorkout.title,
+      description: sourceWorkout.description,
+      day_of_week: dayOfWeek !== undefined ? dayOfWeek : sourceWorkout.day_of_week,
+      workout_type: sourceWorkout.workout_type || 'strength'
+    });
+    
+    // Fetch exercises from source workout
+    const exercises = await fetchWorkoutExercises(sourceWorkoutId);
+    
+    // Add exercises to new workout
+    if (exercises.length > 0) {
+      for (const exercise of exercises) {
+        await createWorkoutExercise({
+          workout_id: newWorkout.id,
+          exercise_id: exercise.exercise_id,
+          sets: exercise.sets || 0,
+          reps: exercise.reps || '',
+          rest_seconds: exercise.rest_seconds,
+          notes: exercise.notes,
+          order_index: exercise.order_index
+        });
+      }
+    }
+    
+    return newWorkout;
+  } catch (error) {
+    console.error("Error copying workout:", error);
+    throw error;
+  }
+};
+
 function normalizeWorkoutType(workoutType: string): string {
   const type = workoutType.toLowerCase();
   

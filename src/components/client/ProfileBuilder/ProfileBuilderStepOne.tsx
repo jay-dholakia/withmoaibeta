@@ -4,13 +4,10 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { Image, Loader2, Upload, User, CalendarIcon } from 'lucide-react';
+import { Image, Loader2, Upload, User } from 'lucide-react';
 import { ClientProfile, uploadClientAvatar } from '@/services/client-service';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import {
   Select,
   SelectContent,
@@ -35,9 +32,22 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   const [lastName, setLastName] = useState(profile.last_name || '');
   const [city, setCity] = useState(profile.city || '');
   const [state, setState] = useState(profile.state || '');
-  const [birthdayDate, setBirthdayDate] = useState<Date | undefined>(
-    profile.birthday ? new Date(profile.birthday) : undefined
-  );
+  
+  // Birthday as separate fields
+  const [birthMonth, setBirthMonth] = useState<string>('');
+  const [birthDay, setBirthDay] = useState<string>('');
+  const [birthYear, setBirthYear] = useState<string>('');
+  
+  // Initialize birthday fields from profile if available
+  React.useEffect(() => {
+    if (profile.birthday) {
+      const date = new Date(profile.birthday);
+      setBirthMonth((date.getMonth() + 1).toString());
+      setBirthDay(date.getDate().toString());
+      setBirthYear(date.getFullYear().toString());
+    }
+  }, [profile.birthday]);
+  
   const [feet, setFeet] = useState('');
   const [inches, setInches] = useState('');
   const [weight, setWeight] = useState(profile.weight?.replace(/[^0-9.]/g, '') || '');
@@ -100,7 +110,41 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     }
   };
 
+  // Validate birthday
+  const isValidBirthday = (): boolean => {
+    if (!birthMonth || !birthDay || !birthYear) return false;
+    
+    const month = parseInt(birthMonth, 10);
+    const day = parseInt(birthDay, 10);
+    const year = parseInt(birthYear, 10);
+    
+    if (isNaN(month) || isNaN(day) || isNaN(year)) return false;
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+    
+    // Simplified validation for days in month
+    if ((month === 4 || month === 6 || month === 9 || month === 11) && day > 30) return false;
+    if (month === 2) {
+      const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+      if (day > (isLeapYear ? 29 : 28)) return false;
+    }
+    
+    const birthDate = new Date(year, month - 1, day);
+    return birthDate <= new Date(); // Ensure date is not in the future
+  };
+
   const handleNext = () => {
+    // Format birthday as ISO string
+    let birthdayString: string | null = null;
+    if (isValidBirthday()) {
+      const birthDate = new Date(
+        parseInt(birthYear),
+        parseInt(birthMonth) - 1, // JavaScript months are 0-indexed
+        parseInt(birthDay)
+      );
+      birthdayString = birthDate.toISOString();
+    }
+    
     // Format height and weight with units
     const formattedHeight = feet && inches ? `${feet}'${inches}"` : '';
     const formattedWeight = weight ? `${weight} ${weightUnit}` : '';
@@ -111,7 +155,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
       last_name: lastName,
       city,
       state,
-      birthday: birthdayDate ? birthdayDate.toISOString() : null,
+      birthday: birthdayString,
       height: formattedHeight,
       weight: formattedWeight
     });
@@ -128,7 +172,8 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     setFocusStates(prev => ({ ...prev, [field]: value.length > 0 }));
   };
 
-  const isFormValid = firstName && lastName && city && state && birthdayDate && feet && inches && weight;
+  const isFormValid = firstName && lastName && city && state && 
+                      isValidBirthday() && feet && inches && weight;
 
   return (
     <div className="space-y-6">
@@ -213,7 +258,8 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {/* City and State on one line */}
+      <div className="grid grid-cols-2 gap-4">
         <div className="relative">
           <Input 
             value={city}
@@ -253,73 +299,75 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <div className="text-sm text-muted-foreground mb-1">Birthday</div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-full justify-start text-left font-normal h-14",
-                !birthdayDate && "text-muted-foreground"
-              )}
-            >
-              {birthdayDate ? (
-                format(birthdayDate, "MMMM d, yyyy")
-              ) : (
-                <span>Select your birthday</span>
-              )}
-              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={birthdayDate}
-              onSelect={setBirthdayDate}
-              disabled={(date) => date > new Date()}
-              initialFocus
-              className="p-3 pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      <div>
-        <div className="text-sm text-muted-foreground mb-1">Height</div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center">
-            <div className="relative flex-1">
-              <Input 
-                type="number" 
-                value={feet}
-                onChange={e => setFeet(e.target.value)}
-                min="1"
-                max="8"
-                className="h-14 pr-8 text-right"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">ft</span>
-            </div>
-          </div>
-          
-          <div className="flex items-center">
-            <div className="relative flex-1">
-              <Input 
-                type="number" 
-                value={inches}
-                onChange={e => setInches(e.target.value)}
-                min="0"
-                max="11"
-                className="h-14 pr-8 text-right"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">in</span>
-            </div>
-          </div>
+      {/* Birthday with separate month/day/year inputs */}
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <Input
+            type="number"
+            placeholder="MM"
+            min="1"
+            max="12"
+            value={birthMonth}
+            onChange={(e) => setBirthMonth(e.target.value)}
+            className="h-14 text-center"
+            aria-label="Birth Month"
+          />
+        </div>
+        <div>
+          <Input
+            type="number"
+            placeholder="DD"
+            min="1"
+            max="31"
+            value={birthDay}
+            onChange={(e) => setBirthDay(e.target.value)}
+            className="h-14 text-center"
+            aria-label="Birth Day"
+          />
+        </div>
+        <div>
+          <Input
+            type="number"
+            placeholder="YYYY"
+            min="1900"
+            max={new Date().getFullYear()}
+            value={birthYear}
+            onChange={(e) => setBirthYear(e.target.value)}
+            className="h-14 text-center"
+            aria-label="Birth Year"
+          />
         </div>
       </div>
 
-      <div>
-        <div className="text-sm text-muted-foreground mb-1">Weight</div>
+      {/* Height and Weight on one line */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="relative">
+            <Input 
+              type="number" 
+              value={feet}
+              onChange={e => setFeet(e.target.value)}
+              min="1"
+              max="8"
+              className="h-14 pr-8 text-right"
+              placeholder="ft"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">ft</span>
+          </div>
+          <div className="relative">
+            <Input 
+              type="number" 
+              value={inches}
+              onChange={e => setInches(e.target.value)}
+              min="0"
+              max="11"
+              className="h-14 pr-8 text-right"
+              placeholder="in"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">in</span>
+          </div>
+        </div>
+        
         <div className="flex gap-2">
           <Input 
             type="number" 

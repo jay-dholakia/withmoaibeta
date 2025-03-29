@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.37.0";
 
@@ -37,18 +36,37 @@ serve(async (req) => {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const siteUrl = Deno.env.get("SITE_URL");
     
+    // More detailed logging for API key validation
     console.log("Environment check:", {
       hasSupabaseUrl: !!supabaseUrl,
       hasServiceRoleKey: !!supabaseServiceRoleKey,
       hasResendApiKey: !!resendApiKey,
       hasSiteUrl: !!siteUrl,
-      resendKeyFirstChars: resendApiKey ? `${resendApiKey.substring(0, 6)}...` : "not set"
+      resendKeyFirstChars: resendApiKey ? `${resendApiKey.substring(0, 6)}...` : "not set",
+      resendKeyLength: resendApiKey ? resendApiKey.length : 0,
+      resendKeyStartsWithPrefix: resendApiKey ? resendApiKey.startsWith("re_") : false
     });
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       console.error("Missing required Supabase environment variables");
       return new Response(
         JSON.stringify({ error: "Server configuration error: Missing Supabase credentials" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!resendApiKey) {
+      console.error("Missing Resend API key in environment variables");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error: Missing Resend API key" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!resendApiKey.startsWith("re_")) {
+      console.error("Invalid Resend API key format - should start with 're_'");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error: Invalid Resend API key format" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -280,6 +298,29 @@ serve(async (req) => {
         
         // Capitalize the user type for better readability in the email
         const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
+        
+        // Test the Resend API key with a simple validation request
+        try {
+          console.log(`Testing Resend API connection with key: ${resendApiKey.substring(0, 5)}...${resendApiKey.substring(resendApiKey.length - 4)}`);
+          const testResponse = await fetch("https://api.resend.com/domains", {
+            headers: {
+              "Authorization": `Bearer ${resendApiKey}`
+            }
+          });
+          
+          if (!testResponse.ok) {
+            const errorText = await testResponse.text();
+            console.error("Resend API key validation failed:", testResponse.status, errorText);
+            throw new Error(`Resend API key validation failed: ${testResponse.status} ${errorText}`);
+          } else {
+            console.log("Resend API key validation successful!");
+            const domains = await testResponse.json();
+            console.log("Available domains:", domains);
+          }
+        } catch (validationError) {
+          console.error("Error validating Resend API key:", validationError);
+          // We'll continue with the email send attempt anyway
+        }
         
         // Log detailed info about the request we're about to make
         console.log("Preparing to send email via Resend API with payload:", {

@@ -9,6 +9,8 @@ export const fetchCoachMessagesForClient = async (coachId: string, clientId: str
   if (!coachId || !clientId) return [];
   
   try {
+    console.log('Fetching messages for coach', coachId, 'and client', clientId);
+    
     // First, fetch all coach messages
     const { data: messages, error } = await supabase
       .from('coach_messages')
@@ -20,7 +22,7 @@ export const fetchCoachMessagesForClient = async (coachId: string, clientId: str
     
     if (error) {
       console.error('Error fetching coach messages for client:', error);
-      return [];
+      throw error;
     }
     
     // If we have messages, fetch the coach name separately
@@ -46,7 +48,7 @@ export const fetchCoachMessagesForClient = async (coachId: string, clientId: str
     return [];
   } catch (error) {
     console.error('Error in fetchCoachMessagesForClient:', error);
-    return [];
+    throw error;
   }
 };
 
@@ -61,10 +63,16 @@ export const saveCoachMessage = async (
   existingMessageId?: string
 ): Promise<CoachMessage | null> => {
   try {
+    console.log('Saving message for coach', coachId, 'and client', clientId);
+    console.log('Message content:', message);
+    console.log('Week of:', weekOf);
+    console.log('Existing message ID:', existingMessageId);
+    
     // Format the date to YYYY-MM-DD
     const formattedWeekOf = weekOf.toISOString().split('T')[0];
     
     if (existingMessageId) {
+      console.log('Updating existing message');
       // Update existing message
       const { data, error } = await supabase
         .from('coach_messages')
@@ -81,11 +89,12 @@ export const saveCoachMessage = async (
       
       if (error) {
         console.error('Error updating coach message:', error);
-        return null;
+        throw error;
       }
       
       return data as CoachMessage;
     } else {
+      console.log('Creating new message');
       // Create new message
       const { data, error } = await supabase
         .from('coach_messages')
@@ -100,13 +109,13 @@ export const saveCoachMessage = async (
       
       if (error) {
         console.error('Error creating coach message:', error);
-        return null;
+        throw error;
       }
       
       return data as CoachMessage;
     }
   } catch (error) {
     console.error('Error in saveCoachMessage:', error);
-    return null;
+    throw error;
   }
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Send } from 'lucide-react';
 import { saveCoachMessage, fetchCoachMessagesForClient } from '@/services/coach-client-message-service';
 import { toast } from 'sonner';
+import { SheetTitle } from '@/components/ui/sheet';
 
 interface ClientMessageFormProps {
   coachId: string;
@@ -92,9 +94,9 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
   
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">
+      <SheetTitle className="text-lg font-medium">
         Weekly Message for {clientEmail}
-      </h3>
+      </SheetTitle>
       
       {isLoading ? (
         <div className="flex justify-center py-8">

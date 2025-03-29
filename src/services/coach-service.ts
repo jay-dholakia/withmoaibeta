@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ensureCoachGroupAssignment } from './coach-group-service';
 import { ClientData } from './client-service';
@@ -74,32 +73,38 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       }
       
       // Get accurate workout completion counts directly from the workout_completions table
-      // Fix for TypeScript error - use proper syntax for grouping in Supabase JS client
-      const workoutCompletionQuery = supabase
+      // Fix for TypeScript error - use proper query format for counting
+      const { data: workoutCompletions, error: workoutCompletionsError } = await supabase
         .from('workout_completions')
-        .select('user_id, count(*)')
+        .select('user_id')
         .in('user_id', clientIds)
-        .not('life_happens_pass', 'eq', true) // Don't count life happens passes
-        .not('rest_day', 'eq', true); // Don't count rest days
-      
-      // Add the groupBy as a string parameter to select()
-      const { data: workoutCompletions, error: workoutCompletionsError } = await workoutCompletionQuery
-        .select('user_id, count(*)', { count: 'exact', head: false })
-        .order('user_id');
+        .not('life_happens_pass', 'eq', true)
+        .not('rest_day', 'eq', true)
+        .count();
         
       if (workoutCompletionsError) {
         console.error('Error fetching workout completions:', workoutCompletionsError);
       }
       
-      // Create a map of id -> workout completion count from raw SQL response
+      // Fetch individual completion counts per user
+      const workoutCountPromises = clientIds.map(async (clientId) => {
+        const { count, error } = await supabase
+          .from('workout_completions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', clientId)
+          .not('life_happens_pass', 'eq', true)
+          .not('rest_day', 'eq', true);
+          
+        return { userId: clientId, count: count || 0, error };
+      });
+      
+      const workoutCountResults = await Promise.all(workoutCountPromises);
+      
+      // Create a map of id -> workout completion count
       const workoutCountMap = new Map();
-      if (workoutCompletions) {
-        workoutCompletions.forEach(wc => {
-          // Parse the count which might be returned as a string
-          const count = typeof wc.count === 'string' ? parseInt(wc.count, 10) : wc.count;
-          workoutCountMap.set(wc.user_id, count || 0);
-        });
-      }
+      workoutCountResults.forEach(result => {
+        workoutCountMap.set(result.userId, result.count);
+      });
       
       // Get client workout info for last workout dates
       const { data: workoutInfo, error: workoutInfoError } = await supabase
@@ -199,33 +204,25 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
     if (rpcData && rpcData.length > 0) {
       const clientIds = rpcData.map(client => client.id);
       
-      // Fix for TypeScript error - use proper syntax for grouping in Supabase JS client
-      const workoutCompletionQuery = supabase
-        .from('workout_completions')
-        .select('user_id, count(*)')
-        .in('user_id', clientIds)
-        .not('life_happens_pass', 'eq', true) // Don't count life happens passes
-        .not('rest_day', 'eq', true); // Don't count rest days
+      // Fetch individual workout counts for each client
+      const workoutCountPromises = clientIds.map(async (clientId) => {
+        const { count, error } = await supabase
+          .from('workout_completions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', clientId)
+          .not('life_happens_pass', 'eq', true)
+          .not('rest_day', 'eq', true);
+          
+        return { userId: clientId, count: count || 0, error };
+      });
       
-      // Add the groupBy as a string parameter to select()
-      const { data: workoutCompletions, error: workoutCompletionsError } = await workoutCompletionQuery
-        .select('user_id, count(*)', { count: 'exact', head: false })
-        .order('user_id');
-        
-      if (workoutCompletionsError) {
-        console.error('Error fetching workout completions for RPC data:', workoutCompletionsError);
-        return rpcData;
-      }
+      const workoutCountResults = await Promise.all(workoutCountPromises);
       
       // Create a map of id -> workout completion count
       const workoutCountMap = new Map();
-      if (workoutCompletions) {
-        workoutCompletions.forEach(wc => {
-          // Parse the count which might be returned as a string
-          const count = typeof wc.count === 'string' ? parseInt(wc.count, 10) : wc.count;
-          workoutCountMap.set(wc.user_id, count || 0);
-        });
-      }
+      workoutCountResults.forEach(result => {
+        workoutCountMap.set(result.userId, result.count);
+      });
       
       // Update the total_workouts_completed value with the accurate count
       return rpcData.map(client => ({

@@ -261,7 +261,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
             
             <TabsContent value="profile">
               <Card>
-                <CardHeader className="pb-0">
+                <CardHeader className="pb-3">
                   <CardTitle className="text-xl font-semibold text-center">
                     {formatDisplayName(memberProfile?.first_name, memberProfile?.last_name)}
                     {isOwnProfile && <Badge className="ml-2">You</Badge>}
@@ -272,7 +272,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                     </p>
                   )}
                 </CardHeader>
-                <CardContent className="space-y-6 pt-6">
+                <CardContent className="space-y-6 pt-3">
                   {memberProfile ? (
                     <>
                       {/* Event preparation section - should always be visible */}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +24,7 @@ import {
 } from '@/services/workout-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { Exercise } from '@/types/workout';
+import { WorkoutType, WORKOUT_TYPES } from '@/components/client/WorkoutTypeIcon';
 
 interface StandaloneWorkoutFormProps {
   workoutId?: string;
@@ -45,7 +45,7 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
-  const [workoutType, setWorkoutType] = useState('strength');
+  const [workoutType, setWorkoutType] = useState<WorkoutType>('strength');
   
   const [exercises, setExercises] = useState<any[]>([]);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
@@ -68,7 +68,20 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
       setTitle(workout.title);
       setDescription(workout.description || '');
       setCategory(workout.category || '');
-      setWorkoutType(workout.workout_type || 'strength');
+      
+      if (workout.workout_type) {
+        const normalizedType = workout.workout_type.toLowerCase();
+        
+        if (normalizedType.includes('strength')) setWorkoutType('strength');
+        else if (normalizedType.includes('body') || normalizedType.includes('weight')) setWorkoutType('bodyweight');
+        else if (normalizedType.includes('cardio') || normalizedType.includes('hiit')) setWorkoutType('cardio');
+        else if (normalizedType.includes('flex') || normalizedType.includes('yoga') || 
+                normalizedType.includes('recovery')) setWorkoutType('flexibility');
+        else if (normalizedType.includes('rest')) setWorkoutType('rest_day');
+        else if (normalizedType.includes('custom')) setWorkoutType('custom');
+        else if (normalizedType.includes('one')) setWorkoutType('one_off');
+        else setWorkoutType('strength');
+      }
       
       if (workout.workout_exercises && workout.workout_exercises.length > 0) {
         setExercises(workout.workout_exercises);
@@ -243,10 +256,8 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
     }
   };
   
-  // Dummy handler for the onSelectExercise prop to satisfy TypeScript
   const handleSelectExercise = (exercise: Exercise) => {
     console.log("Exercise selected:", exercise);
-    // This won't be used directly as we're using onSelect instead
   };
   
   if (isLoading) {
@@ -293,17 +304,25 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
             <Label htmlFor="type">Workout Type</Label>
             <Select 
               value={workoutType} 
-              onValueChange={setWorkoutType}
+              onValueChange={(value: string) => {
+                setWorkoutType(value as WorkoutType);
+              }}
             >
               <SelectTrigger id="type">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="strength">Strength</SelectItem>
-                <SelectItem value="cardio">Cardio</SelectItem>
-                <SelectItem value="hiit">HIIT</SelectItem>
-                <SelectItem value="yoga">Yoga</SelectItem>
-                <SelectItem value="recovery">Recovery</SelectItem>
+                {WORKOUT_TYPES.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    <div className="flex items-center gap-2">
+                      {typeof type.icon === 'string' ? 
+                        <span>{type.icon}</span> : 
+                        type.icon
+                      }
+                      <span>{type.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

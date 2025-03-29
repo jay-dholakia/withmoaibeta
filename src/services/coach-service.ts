@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ensureCoachGroupAssignment } from './coach-group-service';
 import { ClientData } from './client-service';
@@ -9,7 +10,7 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
   if (!coachId) throw new Error('Coach ID is required');
   
   try {
-    // First try using RPC function - we'll fix the ambiguous coach_id error by using parameter name
+    // First try using RPC function
     const { data: rpcData, error: rpcError } = await supabase.rpc('get_coach_clients', {
       coach_id: coachId
     });
@@ -72,7 +73,26 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
         return [];
       }
       
-      // Get client workout info
+      // Get accurate workout completion counts directly from the workout_completions table
+      const { data: workoutCompletions, error: workoutCompletionsError } = await supabase
+        .from('workout_completions')
+        .select('user_id, count(*)', { count: 'exact' })
+        .in('user_id', clientIds)
+        .not('life_happens_pass', 'eq', true) // Don't count life happens passes
+        .not('rest_day', 'eq', true) // Don't count rest days
+        .group('user_id');
+        
+      if (workoutCompletionsError) {
+        console.error('Error fetching workout completions:', workoutCompletionsError);
+      }
+      
+      // Create a map of id -> workout completion count
+      const workoutCountMap = new Map();
+      if (workoutCompletions) {
+        workoutCompletions.forEach(wc => workoutCountMap.set(wc.user_id, wc.count));
+      }
+      
+      // Get client workout info for last workout dates
       const { data: workoutInfo, error: workoutInfoError } = await supabase
         .from('client_workout_info')
         .select('*')
@@ -155,13 +175,45 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
           email: emailMap.get(client.id) || 'Unknown',
           user_type: client.user_type,
           last_workout_at: clientWorkoutInfo?.last_workout_at || null,
-          total_workouts_completed: clientWorkoutInfo?.total_workouts_completed || 0,
+          // Use the accurate count from workout_completions instead of client_workout_info
+          total_workouts_completed: workoutCountMap.get(client.id) || 0,
           current_program_id: clientWorkoutInfo?.current_program_id || null,
           current_program_title: program?.title || null,
           days_since_last_workout: daysSinceLastWorkout,
           group_ids: groupMap.get(client.id) || []
         };
       });
+    }
+    
+    // If we're here, RPC was successful, but we want to double-check the workout counts
+    // Fetch the accurate workout counts from the workout_completions table
+    if (rpcData && rpcData.length > 0) {
+      const clientIds = rpcData.map(client => client.id);
+      
+      const { data: workoutCompletions, error: workoutCompletionsError } = await supabase
+        .from('workout_completions')
+        .select('user_id, count(*)', { count: 'exact' })
+        .in('user_id', clientIds)
+        .not('life_happens_pass', 'eq', true) // Don't count life happens passes
+        .not('rest_day', 'eq', true) // Don't count rest days
+        .group('user_id');
+        
+      if (workoutCompletionsError) {
+        console.error('Error fetching workout completions for RPC data:', workoutCompletionsError);
+        return rpcData;
+      }
+      
+      // Create a map of id -> workout completion count
+      const workoutCountMap = new Map();
+      if (workoutCompletions) {
+        workoutCompletions.forEach(wc => workoutCountMap.set(wc.user_id, wc.count));
+      }
+      
+      // Update the total_workouts_completed value with the accurate count
+      return rpcData.map(client => ({
+        ...client,
+        total_workouts_completed: workoutCountMap.get(client.id) || 0
+      }));
     }
     
     return rpcData || [];

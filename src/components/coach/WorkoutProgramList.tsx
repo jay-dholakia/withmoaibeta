@@ -73,8 +73,8 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
     <div className="space-y-4">
       {programs.map((program) => (
         <div key={program.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-          <h3 className="font-medium text-lg">{program.title}</h3>
-          <p className="text-muted-foreground mb-4 line-clamp-2">
+          <h3 className="font-medium text-lg text-left">{program.title}</h3>
+          <p className="text-muted-foreground mb-4 line-clamp-2 text-left">
             {program.description || 'No description'}
           </p>
           <div className="flex flex-wrap gap-2 mb-4">

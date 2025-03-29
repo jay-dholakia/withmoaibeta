@@ -113,10 +113,12 @@ export const WeekProgressBar = ({
                     <WorkoutTypeIcon type={workoutType} size={14} />
                   )}
                 </div>
-                <span className={`text-xs ${isCurrentDay ? 'font-bold text-client' : 'text-slate-400'}`}>
-                  {format(day, 'E')[0]}
-                  {isCurrentDay && <span className="ml-0.5">•</span>}
-                </span>
+                <div className="flex flex-col items-center">
+                  <span className={`text-xs ${isCurrentDay ? 'font-bold text-client' : 'text-slate-400'}`}>
+                    {format(day, 'E')[0]}
+                  </span>
+                  {isCurrentDay && <span className="h-1 w-1 rounded-full bg-client mt-0.5"></span>}
+                </div>
               </div>
             );
           })}
@@ -182,9 +184,11 @@ export const WeekProgressBar = ({
                     <WorkoutTypeIcon type={workoutType} size={16} />
                   )}
                 </div>
-                <div className={`text-xs text-center ${isCurrentDay ? 'font-bold text-client' : 'text-slate-500'}`}>
-                  {format(day, 'E')[0]}
-                  {isCurrentDay && <span className="ml-0.5">•</span>}
+                <div className="flex flex-col items-center">
+                  <span className={`text-xs ${isCurrentDay ? 'font-bold text-client' : 'text-slate-500'}`}>
+                    {format(day, 'E')[0]}
+                  </span>
+                  {isCurrentDay && <span className="h-1 w-1 rounded-full bg-client mt-0.5"></span>}
                 </div>
               </div>
             );

@@ -1,7 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.37.0";
-import { Resend } from "https://esm.sh/resend@1.0.0";
+// Use a newer version of Resend that's compatible with Deno
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,14 +40,6 @@ serve(async (req) => {
       hasSiteUrl: !!siteUrl
     });
     
-    // More detailed logging for the Resend API key
-    console.log("Resend API key details:", {
-      isSet: !!resendApiKey,
-      length: resendApiKey ? resendApiKey.length : 0,
-      prefix: resendApiKey ? resendApiKey.substring(0, 5) : "not set",
-      value: resendApiKey // Include the full key for debugging
-    });
-    
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       console.error("Missing required Supabase environment variables");
       return new Response(
@@ -60,11 +53,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: "Email service not configured: Missing Resend API key", 
-          details: "The RESEND_API_KEY environment variable is not set or not accessible by the Edge Function.",
-          environment: {
-            resendKeySet: !!Deno.env.get("RESEND_API_KEY"),
-            allEnvKeys: Object.keys(Deno.env.toObject())
-          }
+          details: "The RESEND_API_KEY environment variable is not set or not accessible by the Edge Function."
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -76,17 +65,16 @@ serve(async (req) => {
     // Initialize Resend with explicit error handling and logging
     let resend;
     try {
-      console.log("Initializing Resend client with API key:", resendApiKey);
+      console.log("Initializing Resend client with API key");
       resend = new Resend(resendApiKey);
-      console.log("Resend client initialized successfully:", resend);
+      console.log("Resend client initialized successfully");
     } catch (resendError) {
       console.error("Failed to initialize Resend client:", resendError);
       return new Response(
         JSON.stringify({ 
           error: "Email service initialization failed", 
           details: "Could not initialize the Resend client with the provided API key.",
-          resendError: resendError.message,
-          apiKey: resendApiKey
+          resendError: resendError.message
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -290,12 +278,6 @@ serve(async (req) => {
     // Enhanced email sending with detailed logging and error handling
     try {
       console.log("Preparing to send email to:", email);
-      console.log("Using Resend API key:", resendApiKey);
-      
-      // Ensure resend object is valid before proceeding
-      if (!resend || typeof resend.emails?.send !== 'function') {
-        throw new Error(`Invalid Resend instance: ${JSON.stringify(resend)}`);
-      }
       
       // Capitalize the user type for better readability in the email
       const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
@@ -307,9 +289,6 @@ serve(async (req) => {
         subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
         hasHtmlContent: true
       });
-      
-      // Test the Resend API directly
-      console.log("Testing Resend API connection...");
       
       // Attempt to send the email with Resend
       const emailResult = await resend.emails.send({
@@ -356,8 +335,7 @@ serve(async (req) => {
         message: emailSendError.message,
         stack: emailSendError.stack,
         name: emailSendError.name,
-        code: emailSendError.code,
-        resendApiKey: resendApiKey
+        code: emailSendError.code
       });
       
       // Still return a 200 status with info about the invitation, but include error details

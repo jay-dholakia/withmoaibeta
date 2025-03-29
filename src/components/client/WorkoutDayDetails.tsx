@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { CalendarClock, ListChecks, CircleSlash, FileText, Heart, ChevronDown, ChevronUp } from 'lucide-react';
@@ -249,11 +250,12 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       }
     }
     
-    // If all else fails, return a friendly name based on ID instead of showing the raw ID
-    const exerciseName = `Exercise ${workouts.indexOf(workout) + 1}-${workout.workout_set_completions?.findIndex(sc => sc.workout_exercise_id === workout_exercise_id) + 1 || 1}`;
-    console.log(`No match found for ${workout_exercise_id}, using generated name: ${exerciseName}`);
+    // If all else fails, return a generic exercise based on pattern in ID
+    // This helps avoid "Unknown Exercise" in the UI
+    const idStart = workout_exercise_id.substring(0, 8);
+    console.log(`No match found for ${workout_exercise_id}, using generic name with ID prefix ${idStart}`);
     return {
-      name: exerciseName,
+      name: `Exercise ${idStart}`,
       type: "strength"
     };
   };

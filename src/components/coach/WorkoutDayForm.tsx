@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -365,67 +366,80 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
               <p className="text-muted-foreground">No exercises added yet. Click "Add Exercise" to start building your workout.</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {exercises.map((exercise, index) => (
-                <Card key={exercise.id} className="bg-background">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2 cursor-pointer" onClick={() => toggleExerciseExpanded(exercise.id)}>
-                        {exerciseListExpanded[exercise.id] ? (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        )}
-                        <CardTitle className="text-base">
-                          {exercise.exercise?.name || 'Exercise'}
-                        </CardTitle>
+            <>
+              <div className="space-y-3">
+                {exercises.map((exercise, index) => (
+                  <Card key={exercise.id} className="bg-background">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => toggleExerciseExpanded(exercise.id)}>
+                          {exerciseListExpanded[exercise.id] ? (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          )}
+                          <CardTitle className="text-base">
+                            {exercise.exercise?.name || 'Exercise'}
+                          </CardTitle>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleMoveExerciseUp(exercise.id)}
+                            disabled={index === 0 || isSubmitting}
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                            <span className="sr-only">Move up</span>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleMoveExerciseDown(exercise.id)}
+                            disabled={index === exercises.length - 1 || isSubmitting}
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                            <span className="sr-only">Move down</span>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteExercise(exercise.id)}
+                            disabled={isSubmitting}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0"
-                          onClick={() => handleMoveExerciseUp(exercise.id)}
-                          disabled={index === 0 || isSubmitting}
-                        >
-                          <ArrowUp className="h-4 w-4" />
-                          <span className="sr-only">Move up</span>
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0"
-                          onClick={() => handleMoveExerciseDown(exercise.id)}
-                          disabled={index === exercises.length - 1 || isSubmitting}
-                        >
-                          <ArrowDown className="h-4 w-4" />
-                          <span className="sr-only">Move down</span>
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteExercise(exercise.id)}
-                          disabled={isSubmitting}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  {exerciseListExpanded[exercise.id] && (
-                    <CardContent>
-                      <WorkoutExerciseForm
-                        initialData={exercise}
-                        onSubmit={(data) => handleUpdateExercise(exercise.id, data)}
-                        isSubmitting={isSubmitting}
-                      />
-                    </CardContent>
-                  )}
-                </Card>
-              ))}
-            </div>
+                    </CardHeader>
+                    {exerciseListExpanded[exercise.id] && (
+                      <CardContent>
+                        <WorkoutExerciseForm
+                          initialData={exercise}
+                          onSubmit={(data) => handleUpdateExercise(exercise.id, data)}
+                          isSubmitting={isSubmitting}
+                        />
+                      </CardContent>
+                    )}
+                  </Card>
+                ))}
+              </div>
+              
+              {/* Save button moved outside the cards list */}
+              <div className="flex justify-end mt-4">
+                <Button 
+                  type="button" 
+                  disabled={isSubmitting}
+                  onClick={handleSubmit}
+                >
+                  {isSubmitting ? 'Saving...' : 'Save Workout'}
+                </Button>
+              </div>
+            </>
           )}
         </div>
       )}

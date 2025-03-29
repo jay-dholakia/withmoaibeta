@@ -66,6 +66,7 @@ serve(async (req) => {
     let resend;
     try {
       console.log("Initializing Resend client with API key");
+      // Create a new instance of Resend with the API key
       resend = new Resend(resendApiKey);
       console.log("Resend client initialized successfully");
     } catch (resendError) {

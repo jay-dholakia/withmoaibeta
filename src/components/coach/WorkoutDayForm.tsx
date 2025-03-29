@@ -255,65 +255,63 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit}>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="title">Workout Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Lower Body Strength"
-                required
-              />
-            </div>
-          </div>
-          
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 gap-4">
           <div>
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add notes or instructions for this workout"
-              rows={2}
-              className="min-h-[60px]"
+            <Label htmlFor="title">Workout Title</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Lower Body Strength"
+              required
             />
           </div>
-          
-          <div>
-            <Label htmlFor="type">Workout Type</Label>
-            <Select 
-              value={workoutType} 
-              onValueChange={(value: string) => {
-                setWorkoutType(value as WorkoutType);
-              }}
-            >
-              <SelectTrigger id="type">
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                {WORKOUT_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    <div className="flex items-center gap-2">
-                      {typeof type.icon === 'string' ? 
-                        <span>{type.icon}</span> : 
-                        type.icon
-                      }
-                      <span>{type.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex justify-end">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : isEdit ? 'Update Workout' : 'Create Workout'}
-            </Button>
-          </div>
+        </div>
+        
+        <div>
+          <Label htmlFor="description">Description (Optional)</Label>
+          <Textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Add notes or instructions for this workout"
+            rows={2}
+            className="min-h-[60px]"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="type">Workout Type</Label>
+          <Select 
+            value={workoutType} 
+            onValueChange={(value: string) => {
+              setWorkoutType(value as WorkoutType);
+            }}
+          >
+            <SelectTrigger id="type">
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              {WORKOUT_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  <div className="flex items-center gap-2">
+                    {typeof type.icon === 'string' ? 
+                      <span>{type.icon}</span> : 
+                      type.icon
+                    }
+                    <span>{type.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Save'}
+          </Button>
         </div>
       </form>
       

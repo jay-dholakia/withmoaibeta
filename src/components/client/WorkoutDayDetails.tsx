@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { CalendarClock, ListChecks, CircleSlash, FileText, Heart } from 'lucide-react';
+import { CalendarClock, ListChecks, CircleSlash, FileText, Heart, ChevronDown, ChevronRight } from 'lucide-react';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -150,16 +151,94 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                 </>
               )}
               
-              {workout.notes && (
+              {/* Replace notes with workout set details */}
+              {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
                 <>
                   <Separator className="my-3" />
-                  <div className="flex items-start gap-2">
-                    <FileText className="h-4 w-4 text-gray-500 mt-0.5" />
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Notes</h4>
-                      <p className="text-sm text-gray-600">{workout.notes}</p>
+                  <Collapsible className="w-full">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <FileText className="h-4 w-4 text-gray-500" />
+                        <span>Workout Details</span>
+                      </div>
+                      <CollapsibleTrigger className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
+                        <span>View Details</span>
+                        <ChevronDown className="h-3 w-3" />
+                      </CollapsibleTrigger>
                     </div>
-                  </div>
+                    
+                    <CollapsibleContent className="mt-2 space-y-3">
+                      {/* Group exercises and their sets */}
+                      {workout.workout_set_completions.reduce((exerciseGroups, set) => {
+                        // Find the exercise this set belongs to
+                        const exerciseId = set.workout_exercise_id;
+                        
+                        if (!exerciseGroups[exerciseId]) {
+                          // Find the exercise name
+                          const exercise = workout.workout?.workout_exercises?.find(
+                            e => e.id === exerciseId
+                          );
+                          exerciseGroups[exerciseId] = {
+                            name: exercise?.exercise?.name || "Unknown Exercise",
+                            type: exercise?.exercise?.exercise_type || "strength",
+                            sets: []
+                          };
+                        }
+                        
+                        exerciseGroups[exerciseId].sets.push(set);
+                        return exerciseGroups;
+                      }, {} as Record<string, { name: string; type: string; sets: any[] }>).map((group, exerciseId) => (
+                        <div key={exerciseId} className="rounded border border-gray-100 p-2">
+                          <h5 className="text-sm font-medium">{group.name}</h5>
+                          
+                          {group.type === 'cardio' ? (
+                            // Display cardio details
+                            <div className="mt-1 grid grid-cols-3 gap-2 text-xs">
+                              <div>
+                                <span className="font-medium">Distance: </span>
+                                <span>{group.sets[0]?.distance || 'N/A'}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium">Duration: </span>
+                                <span>{group.sets[0]?.duration || 'N/A'}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium">Location: </span>
+                                <span className="capitalize">{group.sets[0]?.location || 'N/A'}</span>
+                              </div>
+                            </div>
+                          ) : group.type === 'flexibility' ? (
+                            // Display flexibility details
+                            <div className="mt-1 text-xs">
+                              <span className="font-medium">Duration: </span>
+                              <span>{group.sets[0]?.duration || 'N/A'}</span>
+                            </div>
+                          ) : (
+                            // Display strength/bodyweight sets
+                            <div className="mt-1 space-y-1">
+                              {group.sets.sort((a, b) => a.set_number - b.set_number).map((set) => (
+                                <div key={set.id} className="grid grid-cols-3 gap-2 text-xs">
+                                  <div>
+                                    <span className="font-medium">Set {set.set_number}: </span>
+                                  </div>
+                                  <div>
+                                    {set.reps_completed && (
+                                      <span>{set.reps_completed} reps</span>
+                                    )}
+                                  </div>
+                                  <div>
+                                    {set.weight && (
+                                      <span>{set.weight} lbs</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
                 </>
               )}
               

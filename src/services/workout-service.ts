@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Exercise, Workout } from "@/types/workout";
 
@@ -818,6 +819,7 @@ export const addWorkoutToWeek = async (weekId: string, data: {
   description?: string | null;
   day_of_week: number;
   workout_type: string;
+  priority?: number;
 }) => {
   const { data: workout, error } = await supabase
     .from('workouts')
@@ -826,7 +828,8 @@ export const addWorkoutToWeek = async (weekId: string, data: {
       title: data.title,
       description: data.description || null,
       day_of_week: data.day_of_week,
-      workout_type: data.workout_type
+      workout_type: data.workout_type,
+      priority: data.priority || 0
     } as any) // Use type assertion to avoid TS error
     .select('*')
     .single();

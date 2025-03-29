@@ -44,6 +44,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   const [description, setDescription] = useState('');
   const [dayOfWeek, setDayOfWeek] = useState(0);
   const [workoutType, setWorkoutType] = useState<WorkoutType>('strength');
+  const [priority, setPriority] = useState(0);
   
   const [exercises, setExercises] = useState<any[]>([]);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
@@ -67,6 +68,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       setTitle(workout.title);
       setDescription(workout.description || '');
       setDayOfWeek(workout.day_of_week);
+      setPriority(workout.priority || 0);
       
       if (workout.workout_type) {
         const normalizedType = workout.workout_type.toLowerCase();
@@ -124,7 +126,8 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           title,
           description: description || null,
           day_of_week: dayOfWeek,
-          workout_type: workoutType
+          workout_type: workoutType,
+          priority
         });
       } else {
         const workout = await createWorkout({
@@ -133,7 +136,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           description: description || null,
           day_of_week: dayOfWeek,
           workout_type: workoutType,
-          priority: 0
+          priority
         });
         
         savedWorkoutId = workout.id;
@@ -271,7 +274,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="title">Workout Title</Label>
             <Input
@@ -281,6 +284,30 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
               placeholder="e.g., Lower Body Strength"
               required
             />
+          </div>
+          
+          <div>
+            <Label htmlFor="priority">Priority (Order in Client View)</Label>
+            <Select 
+              value={priority.toString()} 
+              onValueChange={(value) => setPriority(parseInt(value))}
+            >
+              <SelectTrigger id="priority">
+                <SelectValue placeholder="Set priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Default (0)</SelectItem>
+                <SelectItem value="1">Highest Priority (1)</SelectItem>
+                <SelectItem value="2">Priority 2</SelectItem>
+                <SelectItem value="3">Priority 3</SelectItem>
+                <SelectItem value="4">Priority 4</SelectItem>
+                <SelectItem value="5">Priority 5</SelectItem>
+                <SelectItem value="10">Lowest Priority (10)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Lower numbers appear first (1 is highest priority)
+            </p>
           </div>
         </div>
         

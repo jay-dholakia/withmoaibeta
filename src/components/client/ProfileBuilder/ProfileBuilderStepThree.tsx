@@ -56,7 +56,7 @@ export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = (
     { label: 'Baseball', emoji: '⚾' },
     { label: 'Cricket', emoji: '🏏' },
     { label: 'Rugby', emoji: '🏉' },
-    { label: 'American Football', emoji: '🏈' },
+    { label: 'Football', emoji: '🏈' },
     { label: 'Archery', emoji: '🏹' },
     { label: 'Horseback Riding', emoji: '🏇' },
     { label: 'Gymnastics', emoji: '🤸‍♀️' },

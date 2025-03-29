@@ -1,6 +1,5 @@
 
-project_id = "unspecified"
-postgres_connection_string = "DATABASE_URL"
+project_id = "gjrheltyxjilxcphbzdj"
 
 [env.SUPABASE_URL]
 [env.SUPABASE_SERVICE_ROLE_KEY]

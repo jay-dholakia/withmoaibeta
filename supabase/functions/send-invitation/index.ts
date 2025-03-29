@@ -37,7 +37,8 @@ serve(async (req) => {
       hasSupabaseUrl: !!supabaseUrl,
       hasServiceRoleKey: !!supabaseServiceRoleKey,
       hasResendApiKey: !!resendApiKey,
-      hasSiteUrl: !!siteUrl
+      hasSiteUrl: !!siteUrl,
+      resendKeyFirstChars: resendApiKey ? `${resendApiKey.substring(0, 5)}...` : 'not set'
     });
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
@@ -327,11 +328,13 @@ serve(async (req) => {
       });
       
       // Attempt to send the email with Resend
-      let emailData = null;
+      let emailSendResult = null;
       let emailError = null;
       
       try {
-        const result = await resend.emails.send({
+        // Send the email with detailed error and response logging
+        console.log("Calling Resend API to send email...");
+        const response = await resend.emails.send({
           from: "Moai <jay@withmoai.co>",
           to: [email],
           subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
@@ -354,15 +357,21 @@ serve(async (req) => {
           `
         });
         
-        emailData = result.data;
-        emailError = result.error;
-        console.log("Resend response:", { data: emailData, error: emailError });
-      } catch (err) {
-        console.error("Exception during resend.emails.send():", err);
+        console.log("Resend API response received:", response);
+        
+        if (response.error) {
+          emailError = response.error;
+          console.error("Resend reported an error:", emailError);
+        } else {
+          emailSendResult = response.data;
+          console.log("Email sent successfully via Resend:", emailSendResult);
+        }
+      } catch (resendError) {
+        console.error("Exception during resend.emails.send():", resendError);
         emailError = {
-          message: err.message || "Unknown error during email sending",
-          code: err.code || "UNKNOWN",
-          name: err.name || "Error"
+          message: resendError.message || "Unknown error during email sending",
+          code: resendError.code || "UNKNOWN",
+          name: resendError.name || "Error"
         };
       }
       
@@ -385,7 +394,7 @@ serve(async (req) => {
         );
       }
       
-      console.log("Email sent successfully via Resend:", emailData);
+      console.log("Email sent successfully via Resend:", emailSendResult);
       
       // Return success
       return new Response(
@@ -397,7 +406,7 @@ serve(async (req) => {
           token: invitation.token,
           expiresAt: invitation.expires_at,
           inviteLink,
-          emailData
+          emailData: emailSendResult
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

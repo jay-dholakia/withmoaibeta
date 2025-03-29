@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -61,10 +62,41 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
+  // Add the workout notes to the journal
+  const addToJournal = async (notes: string) => {
+    if (!user?.id || !notes.trim() || !workoutData) return;
+    
+    const workoutTitle = workoutData.workout?.title || 'Workout';
+    const journalContent = `🏋️‍♀️ ${workoutTitle}:\n\n${notes}`;
+    const completionDate = workoutData.completed_at ? new Date(workoutData.completed_at) : new Date();
+    
+    try {
+      const { error } = await supabase
+        .from('client_notes')
+        .insert({
+          user_id: user.id,
+          content: journalContent,
+          entry_date: completionDate.toISOString()
+        });
+        
+      if (error) throw error;
+      
+      console.log('Workout notes added to journal successfully');
+    } catch (error) {
+      console.error('Error adding workout notes to journal:', error);
+    }
+  };
+
   const completeMutation = useMutation({
     mutationFn: async () => {
       if (!workoutCompletionId) return null;
       console.log("Attempting to complete workout with ID:", workoutCompletionId);
+      
+      // If there are notes, add them to the journal
+      if (notes.trim()) {
+        await addToJournal(notes);
+      }
+      
       return completeWorkout(
         workoutCompletionId,
         rating,
@@ -183,6 +215,9 @@ const WorkoutComplete = () => {
             rows={4}
             className="border border-gray-200"
           />
+          <p className="text-xs text-muted-foreground mt-1 text-center">
+            Your notes will be saved to your journal with this workout's title.
+          </p>
         </div>
       </div>
 

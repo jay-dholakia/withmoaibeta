@@ -12,6 +12,7 @@ import { ProfileBuilderStepThree } from '@/components/client/ProfileBuilder/Prof
 import { Loader2, ChevronLeft } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const TOTAL_STEPS = 3;
 
@@ -128,17 +129,26 @@ const ProfileEditor = () => {
   return (
     <PageTransition>
       <div className="relative">
-        {/* Back to settings button */}
-        <div className="absolute left-4 top-4 z-10">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleReturnToSettings}
-            className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Back to Settings
-          </Button>
+        {/* Back to settings button - fixed position instead of absolute */}
+        <div className="fixed left-4 top-4 z-50">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleReturnToSettings}
+                  className="flex items-center gap-1 bg-white shadow-md border border-gray-200 rounded-full px-3 py-1 text-sm"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back to Settings
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Return to settings page</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         
         <ProfileBuilderLayout step={currentStep} totalSteps={TOTAL_STEPS} title="Edit Your Profile">

@@ -21,7 +21,7 @@ export const ProfileBuilderLayout: React.FC<ProfileBuilderLayoutProps> = ({
 }) => {
   return (
     <div className="min-h-screen w-full flex flex-col bg-gradient-to-b from-background to-background/80">
-      <header className="w-full py-6 flex justify-center z-10">
+      <header className="w-full py-6 flex justify-center z-10 mt-10">
         <Container>
           <Logo variant="client" size="md" />
         </Container>

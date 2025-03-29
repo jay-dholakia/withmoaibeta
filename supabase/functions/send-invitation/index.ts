@@ -357,17 +357,23 @@ serve(async (req) => {
           `
         });
         
-        console.log("Resend API response received:", response);
+        console.log("Resend API response received:", JSON.stringify(response));
         
         if (response.error) {
           emailError = response.error;
           console.error("Resend reported an error:", emailError);
         } else {
           emailSendResult = response.data;
-          console.log("Email sent successfully via Resend:", emailSendResult);
+          console.log("Email sent successfully via Resend:", JSON.stringify(emailSendResult));
         }
       } catch (resendError) {
         console.error("Exception during resend.emails.send():", resendError);
+        console.error("Error details:", {
+          message: resendError.message,
+          stack: resendError.stack,
+          name: resendError.name,
+          code: resendError.code
+        });
         emailError = {
           message: resendError.message || "Unknown error during email sending",
           code: resendError.code || "UNKNOWN",
@@ -394,7 +400,7 @@ serve(async (req) => {
         );
       }
       
-      console.log("Email sent successfully via Resend:", emailSendResult);
+      console.log("Email sent successfully via Resend:", JSON.stringify(emailSendResult));
       
       // Return success
       return new Response(

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,6 +13,8 @@ import { ExpiredInvitationsTab } from '@/components/admin/ExpiredInvitationsTab'
 import { AcceptedInvitationsTab } from '@/components/admin/AcceptedInvitationsTab';
 import { InvitationForm } from '@/components/admin/InvitationForm';
 import { InvitationLinkDialog } from '@/components/admin/InvitationLinkDialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, Info } from 'lucide-react';
 
 interface InvitationResponse {
   success: boolean;
@@ -23,11 +26,18 @@ interface InvitationResponse {
   emailError?: string;
   email?: string;
   emailErrorCode?: string;
-  emailResult?: any;
+  emailData?: any;
+  message?: string;
 }
 
 const InvitationsPage: React.FC = () => {
   const [inviteLink, setInviteLink] = useState('');
+  const [lastEmailStatus, setLastEmailStatus] = useState<{
+    sent: boolean;
+    email?: string;
+    error?: string;
+    timestamp: Date;
+  } | null>(null);
   const [resendingInvitations, setResendingInvitations] = useState<Record<string, boolean>>({});
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -149,34 +159,47 @@ const InvitationsPage: React.FC = () => {
             throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
           }
           
-          const responseData = edgeFunctionResponse.data;
+          const responseData = edgeFunctionResponse.data as InvitationResponse;
+          
+          // Update email status tracking
+          setLastEmailStatus({
+            sent: responseData.emailSent,
+            email: email,
+            error: responseData.emailError,
+            timestamp: new Date()
+          });
+          
           if (responseData && responseData.emailSent === false) {
             console.warn("Email was not sent due to service error:", responseData.emailError);
             return {
-              success: true,
-              emailSent: false,
+              ...responseData,
+              email,
               invitationId: data.id,
               token: data.token,
               expiresAt: data.expires_at,
               inviteLink,
-              emailError: responseData.emailError,
-              emailErrorCode: responseData.emailErrorCode,
-              email
             };
           }
           
           return {
-            success: true,
-            emailSent: true,
+            ...responseData,
+            email,
             invitationId: data.id,
             token: data.token,
             expiresAt: data.expires_at,
             inviteLink,
-            email,
-            emailResult: responseData?.emailResult
           };
         } catch (emailError) {
           console.error("Failed to send email, but invitation created:", emailError);
+          
+          // Update email status tracking
+          setLastEmailStatus({
+            sent: false,
+            email: email,
+            error: emailError.message,
+            timestamp: new Date()
+          });
+          
           return {
             success: true,
             emailSent: false,
@@ -198,8 +221,10 @@ const InvitationsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       
       if (data.emailSent) {
-        toast.success(`Invitation sent to ${data.email || 'user'} successfully!`);
-        console.log("Email send result:", data.emailResult);
+        toast.success(`Invitation sent to ${data.email || 'user'} successfully!`, {
+          description: "Email delivered via Resend."
+        });
+        console.log("Email send result:", data.emailData);
       } else {
         toast.info(`Invitation created for ${data.email || 'user'}, but email could not be sent: ${data.emailError || 'Unknown error'}. Please share the invitation link manually.`, {
           duration: 8000
@@ -264,17 +289,35 @@ const InvitationsPage: React.FC = () => {
             throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
           }
           
+          const responseData = edgeFunctionResponse.data as InvitationResponse;
+          
+          // Update email status tracking
+          setLastEmailStatus({
+            sent: responseData.emailSent,
+            email: invitation.email,
+            error: responseData.emailError,
+            timestamp: new Date()
+          });
+          
           return {
-            success: true,
-            emailSent: true,
+            ...responseData,
+            email: invitation.email,
             invitationId: data.id,
             token: data.token,
             expiresAt: data.expires_at,
             inviteLink,
-            email: invitation.email
           };
         } catch (emailError) {
           console.error("Failed to send email, but invitation updated:", emailError);
+          
+          // Update email status tracking
+          setLastEmailStatus({
+            sent: false,
+            email: invitation.email,
+            error: emailError.message,
+            timestamp: new Date()
+          });
+          
           return {
             success: true,
             emailSent: false,
@@ -297,7 +340,9 @@ const InvitationsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       
       if (data.emailSent) {
-        toast.success(`Invitation resent to ${invitation.email} successfully!`);
+        toast.success(`Invitation resent to ${invitation.email} successfully!`, {
+          description: "Email delivered via Resend."
+        });
       } else {
         toast.info(`Invitation updated for ${invitation.email}. Email service is unavailable - please share the invitation link manually.`, {
           duration: 5000
@@ -345,6 +390,32 @@ const InvitationsPage: React.FC = () => {
   return (
     <AdminDashboardLayout title="Manage Invitations">
       <div className="space-y-6">
+        {lastEmailStatus && (
+          <Alert variant={lastEmailStatus.sent ? "default" : "destructive"} className="mb-4">
+            <div className="flex items-start">
+              {lastEmailStatus.sent ? (
+                <Info className="h-5 w-5 mr-2 text-blue-500" />
+              ) : (
+                <AlertCircle className="h-5 w-5 mr-2" />
+              )}
+              <AlertDescription>
+                <p className="font-medium">
+                  {lastEmailStatus.sent 
+                    ? `Email sent successfully to ${lastEmailStatus.email}` 
+                    : `Email could not be sent to ${lastEmailStatus.email}`
+                  }
+                </p>
+                {!lastEmailStatus.sent && lastEmailStatus.error && (
+                  <p className="text-sm mt-1">{lastEmailStatus.error}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {new Date(lastEmailStatus.timestamp).toLocaleTimeString()}
+                </p>
+              </AlertDescription>
+            </div>
+          </Alert>
+        )}
+
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold">Invitations</h2>
           

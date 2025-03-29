@@ -7,9 +7,10 @@ interface PendingInvitationsTabProps {
   invitations: Invitation[];
   isLoading: boolean;
   onCopyInvite: (token: string, userType: string) => void;
-  onShareInvite: (token: string, userType: string) => void;
+  onShareInvite: (token: string, userType: string, email: string) => void;
   onResendInvite: (invitation: Invitation) => void;
   isResending: Record<string, boolean>;
+  showShareLinks?: boolean;
 }
 
 export const PendingInvitationsTab: React.FC<PendingInvitationsTabProps> = ({
@@ -18,7 +19,8 @@ export const PendingInvitationsTab: React.FC<PendingInvitationsTabProps> = ({
   onCopyInvite,
   onShareInvite,
   onResendInvite,
-  isResending
+  isResending,
+  showShareLinks = true
 }) => {
   return (
     <Card>
@@ -32,6 +34,7 @@ export const PendingInvitationsTab: React.FC<PendingInvitationsTabProps> = ({
           onShareInvite={onShareInvite}
           onResendInvite={onResendInvite}
           isResending={isResending}
+          showShareLinks={showShareLinks}
         />
       </CardContent>
     </Card>

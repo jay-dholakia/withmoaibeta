@@ -10,6 +10,8 @@ export interface Invitation {
   token: string;
   expires_at: string;
   accepted_at: string | null;
+  is_share_link?: boolean;
+  share_link_type?: string;
 }
 
 export interface InvitationResponse {
@@ -55,6 +57,36 @@ export const sendInvitation = async (
   return response.data as InvitationResponse;
 };
 
+export const createShareableLink = async (
+  userType: 'client' | 'coach' | 'admin',
+  accessToken: string
+): Promise<InvitationResponse> => {
+  const siteUrl = window.location.origin;
+  
+  const payload = {
+    userType,
+    siteUrl,
+    isShareLink: true
+  };
+  
+  console.log("Creating shareable link with payload:", payload);
+  
+  const response = await supabase.functions.invoke('send-invitation', {
+    body: payload,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  if (response.error) {
+    console.error("Error invoking send-invitation function:", response.error);
+    throw new Error(response.error.message || 'Failed to create shareable invitation link');
+  }
+  
+  return response.data as InvitationResponse;
+};
+
 export const resendInvitation = async (
   invitation: Invitation,
   accessToken: string
@@ -66,7 +98,8 @@ export const resendInvitation = async (
     userType: invitation.user_type,
     siteUrl,
     resend: true,
-    invitationId: invitation.id
+    invitationId: invitation.id,
+    isShareLink: invitation.is_share_link
   };
   
   console.log("Resending invitation with payload:", payload);

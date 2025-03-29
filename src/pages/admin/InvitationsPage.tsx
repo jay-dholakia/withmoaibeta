@@ -14,11 +14,13 @@ import { AcceptedInvitationsTab } from '@/components/admin/AcceptedInvitationsTa
 import { InvitationForm } from '@/components/admin/InvitationForm';
 import { InvitationLinkDialog } from '@/components/admin/InvitationLinkDialog';
 import { ShareInvitationDialog } from '@/components/admin/ShareInvitationDialog';
+import { ShareableLinkDialog } from '@/components/admin/ShareableLinkDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Info } from 'lucide-react';
 import { 
   sendInvitation as sendInvitationService,
   resendInvitation as resendInvitationService,
+  createShareableLink as createShareableLinkService,
   getInvitationsGroupedByStatus,
   InvitationResponse
 } from '@/utils/invitationService';
@@ -136,6 +138,31 @@ const InvitationsPage: React.FC = () => {
       toast.error(`Failed to create invitation: ${error.message}`);
     }
   });
+
+  // Create shareable link mutation
+  const createShareableLink = useMutation({
+    mutationFn: async (userType: 'client' | 'coach' | 'admin') => {
+      if (!session?.access_token) {
+        throw new Error('Authentication required');
+      }
+      
+      return createShareableLinkService(userType, session.access_token);
+    },
+    onSuccess: (data) => {
+      setInviteLink(data.inviteLink);
+      queryClient.invalidateQueries({ queryKey: ['invitations'] });
+      
+      toast.success(`Shareable invitation link created successfully!`);
+      
+      // Copy to clipboard automatically
+      navigator.clipboard.writeText(data.inviteLink);
+      toast.info('Link copied to clipboard');
+    },
+    onError: (error: Error) => {
+      console.error("Shareable link error details:", error);
+      toast.error(`Failed to create shareable link: ${error.message}`);
+    }
+  });
   
   // Resend invitation mutation
   const resendInvitation = useMutation({
@@ -152,6 +179,11 @@ const InvitationsPage: React.FC = () => {
       setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
       setInviteLink(data.inviteLink);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
+      
+      if (invitation.is_share_link) {
+        toast.success(`Shareable link refreshed successfully!`);
+        return;
+      }
       
       setLastEmailStatus({
         sent: data.emailSent,
@@ -181,6 +213,10 @@ const InvitationsPage: React.FC = () => {
     return sendInvitation.mutateAsync({ email, userType });
   };
   
+  const handleCreateShareableLink = (userType: 'client' | 'coach' | 'admin') => {
+    createShareableLink.mutate(userType);
+  };
+  
   const handleResendInvite = (invitation: Invitation) => {
     resendInvitation.mutate(invitation);
   };
@@ -192,12 +228,8 @@ const InvitationsPage: React.FC = () => {
     toast.success('Invitation link copied to clipboard');
   };
 
-  const handleShareInvite = (token: string, userType: string) => {
+  const handleShareInvite = (token: string, userType: string, email: string) => {
     const link = `${window.location.origin}/register?token=${token}&type=${userType}`;
-    
-    // Find the email address for this token
-    const invitation = invitations?.find(inv => inv.token === token);
-    const email = invitation?.email || '';
     
     setShareInfo({
       link,
@@ -252,6 +284,11 @@ const InvitationsPage: React.FC = () => {
             <InvitationForm 
               onInvite={handleInvite} 
               isLoading={sendInvitation.isPending} 
+            />
+            
+            <ShareableLinkDialog
+              onCreateShareableLink={handleCreateShareableLink}
+              isLoading={createShareableLink.isPending}
             />
             
             {inviteLink && <InvitationLinkDialog inviteLink={inviteLink} />}

@@ -11,11 +11,12 @@ const corsHeaders = {
 
 // Define the structure of the invitation payload
 interface InvitationPayload {
-  email: string;
+  email?: string;
   userType: string;
   siteUrl: string;
   resend?: boolean;
   invitationId?: string;
+  isShareLink?: boolean;
 }
 
 serve(async (req) => {
@@ -49,38 +50,22 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    if (!resendApiKey) {
-      console.error("Missing Resend API key, unable to send emails");
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          emailSent: false, 
-          error: "Email service not configured: Missing Resend API key"
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
     
     // Create Supabase client
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Initialize Resend client
+    // Initialize Resend client if API key is available
     let resend;
-    try {
-      console.log("Initializing Resend client");
-      resend = new Resend(resendApiKey);
-      console.log("Resend client initialized successfully");
-    } catch (resendError) {
-      console.error("Failed to initialize Resend client:", resendError);
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          emailSent: false,
-          error: "Email service initialization failed"
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (resendApiKey) {
+      try {
+        console.log("Initializing Resend client");
+        resend = new Resend(resendApiKey);
+        console.log("Resend client initialized successfully");
+      } catch (resendError) {
+        console.error("Failed to initialize Resend client:", resendError);
+      }
+    } else {
+      console.log("No Resend API key provided, email functionality disabled");
     }
 
     // Parse the request body
@@ -108,7 +93,8 @@ serve(async (req) => {
         userType: payload.userType,
         hasSiteUrl: !!payload.siteUrl,
         resend: payload.resend,
-        invitationId: payload.invitationId
+        invitationId: payload.invitationId,
+        isShareLink: payload.isShareLink
       });
     } catch (jsonError) {
       console.error("Failed to parse request body:", jsonError);
@@ -122,14 +108,27 @@ serve(async (req) => {
     }
 
     // Extract fields from payload
-    const { email, userType, resend: isResend, invitationId, siteUrl } = payload;
+    const { email, userType, resend: isResend, invitationId, siteUrl, isShareLink } = payload;
 
-    if (!email || !userType) {
-      console.error("Missing required fields:", { email, userType });
+    // Regular email invitations require an email
+    if (!isShareLink && !email) {
+      console.error("Missing required email field for regular invitation");
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Email and userType are required" 
+          error: "Email is required for regular invitations" 
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // All invitations require a user type
+    if (!userType) {
+      console.error("Missing required userType field");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "userType is required" 
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -274,7 +273,7 @@ serve(async (req) => {
       invitation = updatedInvitation;
       console.log("Invitation updated successfully");
     } else {
-      console.log("Creating new invitation for:", { email, userType, createdBy: userId });
+      console.log("Creating new invitation for:", { email, userType, isShareLink, createdBy: userId });
 
       // Generate token and expiration date
       const token = crypto.randomUUID();
@@ -285,12 +284,14 @@ serve(async (req) => {
       const { data: newInvitation, error: invitationError } = await supabaseClient
         .from("invitations")
         .insert({
-          email,
+          email: isShareLink ? null : email,
           user_type: userType,
           invited_by: userId,
           token,
           expires_at: expiresAt.toISOString(),
-          accepted: false
+          accepted: false,
+          is_share_link: isShareLink || false,
+          share_link_type: isShareLink ? userType : null
         })
         .select()
         .single();
@@ -314,62 +315,94 @@ serve(async (req) => {
     const inviteLink = `${siteUrl}/register?token=${invitation.token}&type=${userType}`;
     console.log("Generated invite link:", inviteLink);
 
-    // Send the email with Resend
-    try {
-      console.log("Preparing to send email to:", email);
-      
-      // Capitalize the user type for better readability in the email
-      const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
-      
-      // Send the email
-      const emailResponse = await resend.emails.send({
-        from: "Moai <jay@withmoai.co>",
-        to: [email],
-        subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #333; margin-bottom: 20px;">Moai Invitation</h1>
-            <p>You've been invited to join Moai as a ${userTypeCapitalized}.</p>
-            <p>Click the button below to create your account:</p>
-            <div style="margin: 30px 0;">
-              <a href="${inviteLink}" style="background-color: #0066cc; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Accept Invitation</a>
-            </div>
-            <p>Or copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; font-size: 14px; color: #666;">${inviteLink}</p>
-            <p>This invitation will expire in 30 days.</p>
-            <p>If you did not expect this invitation, you can safely ignore this email.</p>
-            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #999;">
-              <p>© Moai. All rights reserved.</p>
-            </div>
-          </div>
-        `
-      });
-      
-      console.log("Email sent successfully:", JSON.stringify(emailResponse));
-      
-      // Return success with the invitation details
+    // For shareable links, we don't send emails
+    if (invitation.is_share_link) {
       return new Response(
         JSON.stringify({
           success: true,
-          emailSent: true,
-          message: isResend ? `Invitation resent to ${email}` : `Invitation sent to ${email}`,
+          emailSent: false, // No email for shareable links
+          message: `Shareable invitation link created for ${userType} account`,
           invitationId: invitation.id,
           token: invitation.token,
           expiresAt: invitation.expires_at,
-          inviteLink,
-          emailData: emailResponse
+          inviteLink
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    } catch (emailSendError) {
-      console.error("Exception sending email with Resend:", emailSendError);
-      
-      // Return a 200 status with info about the invitation, but include error details
+    }
+
+    // Only try to send email if we have Resend client and this is a regular invitation
+    if (resend && email && !invitation.is_share_link) {
+      try {
+        console.log("Preparing to send email to:", email);
+        
+        // Capitalize the user type for better readability in the email
+        const userTypeCapitalized = userType.charAt(0).toUpperCase() + userType.slice(1);
+        
+        // Send the email
+        const emailResponse = await resend.emails.send({
+          from: "Moai <jay@withmoai.co>",
+          to: [email],
+          subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #333; margin-bottom: 20px;">Moai Invitation</h1>
+              <p>You've been invited to join Moai as a ${userTypeCapitalized}.</p>
+              <p>Click the button below to create your account:</p>
+              <div style="margin: 30px 0;">
+                <a href="${inviteLink}" style="background-color: #0066cc; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Accept Invitation</a>
+              </div>
+              <p>Or copy and paste this link into your browser:</p>
+              <p style="word-break: break-all; font-size: 14px; color: #666;">${inviteLink}</p>
+              <p>This invitation will expire in 30 days.</p>
+              <p>If you did not expect this invitation, you can safely ignore this email.</p>
+              <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #999;">
+                <p>© Moai. All rights reserved.</p>
+              </div>
+            </div>
+          `
+        });
+        
+        console.log("Email sent successfully:", JSON.stringify(emailResponse));
+        
+        // Return success with the invitation details
+        return new Response(
+          JSON.stringify({
+            success: true,
+            emailSent: true,
+            message: isResend ? `Invitation resent to ${email}` : `Invitation sent to ${email}`,
+            invitationId: invitation.id,
+            token: invitation.token,
+            expiresAt: invitation.expires_at,
+            inviteLink,
+            emailData: emailResponse
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (emailSendError) {
+        console.error("Exception sending email with Resend:", emailSendError);
+        
+        // Return a 200 status with info about the invitation, but include error details
+        return new Response(
+          JSON.stringify({ 
+            success: true, // We succeeded in creating the invitation
+            emailSent: false,
+            emailError: emailSendError.message || "Unknown email sending error",
+            invitationId: invitation.id,
+            token: invitation.token,
+            expiresAt: invitation.expires_at,
+            inviteLink
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      // No Resend client or this is a shareable link
       return new Response(
-        JSON.stringify({ 
-          success: true, // We succeeded in creating the invitation
+        JSON.stringify({
+          success: true,
           emailSent: false,
-          emailError: emailSendError.message || "Unknown email sending error",
+          emailError: "Email service not available",
           invitationId: invitation.id,
           token: invitation.token,
           expiresAt: invitation.expires_at,

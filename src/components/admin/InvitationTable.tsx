@@ -5,7 +5,7 @@ import {
   TableHead, TableHeader, TableRow 
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Copy, Loader2, RefreshCw, Share2 } from 'lucide-react';
+import { Copy, Loader2, RefreshCw, Share2, Link } from 'lucide-react';
 import { toast } from 'sonner';
 
 export interface Invitation {
@@ -17,6 +17,8 @@ export interface Invitation {
   token: string;
   expires_at: string;
   accepted_at: string | null;
+  is_share_link?: boolean;
+  share_link_type?: string;
 }
 
 interface InvitationTableProps {
@@ -26,8 +28,9 @@ interface InvitationTableProps {
   type: 'pending' | 'expired' | 'accepted';
   onCopyInvite?: (token: string, userType: string) => void;
   onResendInvite?: (invitation: Invitation) => void;
-  onShareInvite?: (token: string, userType: string) => void;
+  onShareInvite?: (token: string, userType: string, email: string) => void;
   isResending?: Record<string, boolean>;
+  showShareLinks?: boolean;
 }
 
 export const formatDate = (dateString: string) => {
@@ -48,7 +51,8 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
   onCopyInvite,
   onResendInvite,
   onShareInvite,
-  isResending = {}
+  isResending = {},
+  showShareLinks = true
 }) => {
   const handleResendClick = (invitation: Invitation) => {
     if (onResendInvite) {
@@ -57,9 +61,9 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
     }
   };
 
-  const handleShareClick = (token: string, userType: string) => {
+  const handleShareClick = (token: string, userType: string, email: string) => {
     if (onShareInvite) {
-      onShareInvite(token, userType);
+      onShareInvite(token, userType, email);
     }
   };
 
@@ -95,7 +99,16 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
         ) : (
           invitations.map((invitation) => (
             <TableRow key={invitation.id}>
-              <TableCell>{invitation.email}</TableCell>
+              <TableCell>
+                {invitation.is_share_link ? (
+                  <div className="flex items-center">
+                    <Link className="w-4 h-4 mr-2 text-blue-500" />
+                    <span className="italic text-muted-foreground">Shareable Link</span>
+                  </div>
+                ) : (
+                  invitation.email
+                )}
+              </TableCell>
               <TableCell>
                 <span className={invitation.user_type === 'client' ? 'text-client' : 'text-coach'}>
                   {invitation.user_type.charAt(0).toUpperCase() + invitation.user_type.slice(1)}
@@ -132,14 +145,16 @@ export const InvitationTable: React.FC<InvitationTableProps> = ({
                         >
                           <Copy className="w-4 h-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleShareClick(invitation.token, invitation.user_type)}
-                          title="Share invitation link"
-                        >
-                          <Share2 className="w-4 h-4" />
-                        </Button>
+                        {!invitation.is_share_link && showShareLinks && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleShareClick(invitation.token, invitation.user_type, invitation.email)}
+                            title="Share invitation link"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </>
                     )}
                     <Button 

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./client-workout-history-service";
@@ -445,14 +446,14 @@ export const uploadCoachAvatar = async (coachId: string, file: File): Promise<st
 import {
   fetchCoachClients,
   syncCoachEmailWithGroups,
-  ClientData
 } from './coach-service';
+import type { ClientData } from './coach-service';
 
 export {
   fetchCoachClients,
   syncCoachEmailWithGroups,
-  ClientData 
 };
+export type { ClientData };
 
 // Import coach-group-service functions directly
 import { fetchCoachGroups } from './coach-group-service';

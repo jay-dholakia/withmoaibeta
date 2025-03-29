@@ -190,7 +190,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   return (
     <div className="space-y-6 text-left">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-client mb-2">Let's Get to Know You</h1>
+        <h1 className="text-xl font-semibold text-black mb-2">Let's Get to Know You</h1>
         <p className="text-muted-foreground">Tell us a bit about yourself to help us personalize your experience</p>
       </div>
 

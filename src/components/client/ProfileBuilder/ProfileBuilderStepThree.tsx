@@ -94,7 +94,7 @@ export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = (
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Activity className="h-6 w-6 text-client" />
-          <h1 className="text-2xl font-bold text-client">Favorite Ways to Move</h1>
+          <h1 className="text-xl font-semibold text-black">Favorite Ways to Move</h1>
         </div>
         <p className="text-muted-foreground">Select your favorite ways to move and be active</p>
       </div>

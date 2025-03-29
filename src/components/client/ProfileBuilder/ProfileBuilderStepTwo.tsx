@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ClientProfile } from '@/services/client-service';
@@ -73,7 +72,6 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
   );
   const [eventName, setEventName] = useState<string>(profile.event_name || '');
 
-  // Update state when profile changes
   useEffect(() => {
     setSelectedGoals(profile.fitness_goals || []);
     setTrainingForEvent(profile.event_type || 'none');
@@ -98,13 +96,11 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
       fitness_goals: selectedGoals
     };
 
-    // Only include event data if user is training for an event
     if (trainingForEvent !== 'none') {
       updateData.event_type = trainingForEvent;
       updateData.event_date = eventDate?.toISOString();
       updateData.event_name = eventName;
     } else {
-      // Clear event data if not training for an event
       updateData.event_type = 'none';
       updateData.event_date = undefined;
       updateData.event_name = '';
@@ -117,7 +113,7 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
   return (
     <div className="space-y-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-client mb-2">What Are Your Fitness Goals?</h1>
+        <h1 className="text-xl font-semibold text-black mb-2">What Are Your Fitness Goals?</h1>
         <p className="text-muted-foreground">Select all that apply to you</p>
       </div>
 
@@ -150,7 +146,7 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
       </div>
 
       <div className="border-t pt-6">
-        <h2 className="text-xl font-semibold text-black mb-4">Are you preparing for a specific event?</h2>
+        <h2 className="text-lg font-semibold text-black mb-4">Are you preparing for a specific event?</h2>
         
         <div className="space-y-4">
           <div>

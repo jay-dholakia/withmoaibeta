@@ -46,7 +46,7 @@ import ClientSettingsPage from './pages/client/SettingsPage';
 
 import './App.css';
 import RequireAuth from './components/RequireAuth';
-import ClientLayout from './components/ClientLayout';
+import { ClientLayout } from './layouts/ClientLayout';
 import ExerciseImportPage from './pages/ExerciseImportPage';
 
 const queryClient = new QueryClient();
@@ -174,7 +174,7 @@ function App() {
             
             {/* Add the new import route */}
             <Route path="/exercise-import" element={
-              <RequireAuth>
+              <RequireAuth userType="admin">
                 <ClientLayout>
                   <ExerciseImportPage />
                 </ClientLayout>

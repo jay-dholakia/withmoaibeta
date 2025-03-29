@@ -13,7 +13,7 @@ export const fetchCoachMessagesForClient = async (coachId: string, clientId: str
       .from('coach_messages')
       .select(`
         *,
-        coach_profiles!inner(first_name)
+        coach_profiles:coach_id(first_name)
       `)
       .eq('coach_id', coachId)
       .eq('client_id', clientId)

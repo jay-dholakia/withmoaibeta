@@ -91,8 +91,8 @@ export const ProfileBuilderStepThree: React.FC<ProfileBuilderStepThreeProps> = (
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-6">
-        <div className="flex items-center justify-center gap-2 mb-2">
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-2">
           <Activity className="h-6 w-6 text-client" />
           <h1 className="text-2xl font-bold text-client">Favorite Ways to Move</h1>
         </div>

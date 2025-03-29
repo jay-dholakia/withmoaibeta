@@ -147,11 +147,11 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
       </div>
 
       <div className="border-t pt-6">
-        <h2 className="text-lg font-semibold text-black mb-4">Are you preparing for a specific event?</h2>
+        <h2 className="text-lg font-semibold text-black mb-4 text-left">Are you preparing for a specific event?</h2>
         
-        <div className="space-y-4">
+        <div className="space-y-4 text-left">
           <div>
-            <label htmlFor="event-type" className="block text-sm font-medium text-foreground mb-2">
+            <label htmlFor="event-type" className="block text-sm font-medium text-foreground mb-2 text-left">
               Event Type
             </label>
             <Select
@@ -174,7 +174,7 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
           {trainingForEvent !== 'none' && (
             <>
               <div>
-                <label htmlFor="event-name" className="block text-sm font-medium text-foreground mb-2">
+                <label htmlFor="event-name" className="block text-sm font-medium text-foreground mb-2 text-left">
                   Event Name
                 </label>
                 <Input
@@ -186,7 +186,7 @@ export const ProfileBuilderStepTwo: React.FC<ProfileBuilderStepTwoProps> = ({
               </div>
 
               <div>
-                <label htmlFor="event-date" className="block text-sm font-medium text-foreground mb-2">
+                <label htmlFor="event-date" className="block text-sm font-medium text-foreground mb-2 text-left">
                   Event Date
                 </label>
                 <Popover>

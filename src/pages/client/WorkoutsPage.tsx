@@ -9,8 +9,9 @@ import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import PassCounter from '@/components/client/PassCounter';
 import LifeHappensButton from '@/components/client/LifeHappensButton';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
+import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Armchair } from 'lucide-react';
+import { PlusCircle, Armchair, ListTodo, History } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
 import { toast } from 'sonner';
 import {
@@ -21,6 +22,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const WorkoutsPage = () => {
   const [showRestDayDialog, setShowRestDayDialog] = useState(false);
@@ -55,7 +57,47 @@ const WorkoutsPage = () => {
       )}
       
       <Routes>
-        <Route index element={<WorkoutsList />} />
+        <Route index element={
+          <Tabs defaultValue="active-workouts" className="w-full">
+            <TabsList className="w-full mb-6">
+              <TabsTrigger value="active-workouts" className="flex-1 flex items-center justify-center gap-2">
+                <ListTodo className="h-4 w-4" />
+                <span>My Workouts</span>
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex-1 flex items-center justify-center gap-2">
+                <History className="h-4 w-4" />
+                <span>Workout History</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="active-workouts">
+              <WorkoutsList />
+              
+              <div className="mt-8 border-t pt-6">
+                <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
+                  <Link to="/client-dashboard/workouts/one-off">
+                    <PlusCircle className="h-4 w-4" />
+                    Enter Custom Workout
+                  </Link>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full mb-4 flex items-center justify-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
+                  onClick={() => setShowRestDayDialog(true)}
+                >
+                  <Armchair className="h-4 w-4" />
+                  Log Rest Day
+                </Button>
+              </div>
+              <LifeHappensButton />
+            </TabsContent>
+            
+            <TabsContent value="history">
+              <WorkoutHistoryTab />
+            </TabsContent>
+          </Tabs>
+        } />
         <Route path="active/:workoutCompletionId" element={<ActiveWorkout />} />
         <Route path="complete/:workoutCompletionId" element={<WorkoutComplete />} />
         <Route path="create" element={<CreateCustomWorkout />} />
@@ -63,29 +105,6 @@ const WorkoutsPage = () => {
         <Route path="one-off" element={<EnterOneOffWorkout />} />
         <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
-      
-      {isMainWorkoutsPage && (
-        <div>
-          <div className="mt-8 border-t pt-6">
-            <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
-              <Link to="/client-dashboard/workouts/one-off">
-                <PlusCircle className="h-4 w-4" />
-                Enter Custom Workout
-              </Link>
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="w-full mb-4 flex items-center justify-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
-              onClick={() => setShowRestDayDialog(true)}
-            >
-              <Armchair className="h-4 w-4" />
-              Log Rest Day
-            </Button>
-          </div>
-          <LifeHappensButton />
-        </div>
-      )}
       
       <Dialog open={showRestDayDialog} onOpenChange={setShowRestDayDialog}>
         <DialogContent className="sm:max-w-md">

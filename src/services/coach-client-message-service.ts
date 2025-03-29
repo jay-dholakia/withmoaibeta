@@ -9,12 +9,10 @@ export const fetchCoachMessagesForClient = async (coachId: string, clientId: str
   if (!coachId || !clientId) return [];
   
   try {
-    const { data, error } = await supabase
+    // First, fetch all coach messages
+    const { data: messages, error } = await supabase
       .from('coach_messages')
-      .select(`
-        *,
-        coach_profiles!coach_id(first_name)
-      `)
+      .select('*')
       .eq('coach_id', coachId)
       .eq('client_id', clientId)
       .order('week_of', { ascending: false })
@@ -25,16 +23,27 @@ export const fetchCoachMessagesForClient = async (coachId: string, clientId: str
       return [];
     }
     
-    return data.map(item => {
-      // Extract the coach's first name from the nested object structure
-      // Handle cases where the coach profile might not exist
-      const coachFirstName = item.coach_profiles?.first_name || null;
+    // If we have messages, fetch the coach name separately
+    if (messages && messages.length > 0) {
+      // Get coach profile info for the coach ID
+      const { data: coachProfile, error: coachError } = await supabase
+        .from('coach_profiles')
+        .select('first_name')
+        .eq('id', coachId)
+        .single();
       
-      return {
-        ...item,
-        coach_first_name: coachFirstName
-      };
-    }) as CoachMessage[];
+      if (coachError) {
+        console.error('Error fetching coach profile:', coachError);
+      }
+      
+      // Combine the data
+      return messages.map(message => ({
+        ...message,
+        coach_first_name: coachProfile?.first_name || null
+      })) as CoachMessage[];
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error in fetchCoachMessagesForClient:', error);
     return [];

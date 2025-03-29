@@ -278,7 +278,8 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Add notes or instructions for this workout"
-              rows={3}
+              rows={2}
+              className="min-h-[60px]"
             />
           </div>
           

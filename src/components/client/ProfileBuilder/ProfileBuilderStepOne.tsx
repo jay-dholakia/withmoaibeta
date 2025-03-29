@@ -129,6 +129,23 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     }
   };
 
+  // Generate arrays for the dropdown options
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: (i + 1).toString(),
+    label: new Date(2000, i, 1).toLocaleString('default', { month: 'long' })
+  }));
+  
+  const days = Array.from({ length: 31 }, (_, i) => ({
+    value: (i + 1).toString(),
+    label: (i + 1).toString()
+  }));
+  
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => ({
+    value: (currentYear - 99 + i).toString(),
+    label: (currentYear - 99 + i).toString()
+  }));
+
   const isValidBirthday = (): boolean => {
     if (!birthMonth || !birthDay || !birthYear) return false;
     
@@ -314,40 +331,55 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
         <h3 className="text-sm font-medium mb-2">Birthdate</h3>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <Input
-              type="number"
-              placeholder="MM"
-              min="1"
-              max="12"
+            <Select
               value={birthMonth}
-              onChange={(e) => setBirthMonth(e.target.value)}
-              className="h-14 text-center"
-              aria-label="Birth Month"
-            />
+              onValueChange={setBirthMonth}
+            >
+              <SelectTrigger className="h-14">
+                <SelectValue placeholder="Month" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map(month => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
-            <Input
-              type="number"
-              placeholder="DD"
-              min="1"
-              max="31"
+            <Select
               value={birthDay}
-              onChange={(e) => setBirthDay(e.target.value)}
-              className="h-14 text-center"
-              aria-label="Birth Day"
-            />
+              onValueChange={setBirthDay}
+            >
+              <SelectTrigger className="h-14">
+                <SelectValue placeholder="Day" />
+              </SelectTrigger>
+              <SelectContent>
+                {days.map(day => (
+                  <SelectItem key={day.value} value={day.value}>
+                    {day.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
-            <Input
-              type="number"
-              placeholder="YYYY"
-              min="1900"
-              max={new Date().getFullYear()}
+            <Select
               value={birthYear}
-              onChange={(e) => setBirthYear(e.target.value)}
-              className="h-14 text-center"
-              aria-label="Birth Year"
-            />
+              onValueChange={setBirthYear}
+            >
+              <SelectTrigger className="h-14">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map(year => (
+                  <SelectItem key={year.value} value={year.value}>
+                    {year.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

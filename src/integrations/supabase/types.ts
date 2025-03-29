@@ -174,6 +174,39 @@ export type Database = {
         }
         Relationships: []
       }
+      coach_messages: {
+        Row: {
+          client_id: string
+          coach_id: string
+          created_at: string
+          id: string
+          message: string
+          read_by_client: boolean
+          updated_at: string
+          week_of: string
+        }
+        Insert: {
+          client_id: string
+          coach_id: string
+          created_at?: string
+          id?: string
+          message: string
+          read_by_client?: boolean
+          updated_at?: string
+          week_of: string
+        }
+        Update: {
+          client_id?: string
+          coach_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          read_by_client?: boolean
+          updated_at?: string
+          week_of?: string
+        }
+        Relationships: []
+      }
       coach_notes: {
         Row: {
           coach_id: string
@@ -941,6 +974,22 @@ export type Database = {
           user_id: string
           email: string
           total_workouts: number
+        }[]
+      }
+      get_latest_coach_message: {
+        Args: {
+          client_id_param: string
+        }
+        Returns: {
+          id: string
+          coach_id: string
+          client_id: string
+          message: string
+          created_at: string
+          updated_at: string
+          week_of: string
+          read_by_client: boolean
+          coach_first_name: string
         }[]
       }
       get_users_email: {

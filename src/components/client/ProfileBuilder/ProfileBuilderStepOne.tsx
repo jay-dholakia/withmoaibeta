@@ -299,48 +299,51 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
         </div>
       </div>
 
-      {/* Birthday with separate month/day/year inputs */}
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <Input
-            type="number"
-            placeholder="MM"
-            min="1"
-            max="12"
-            value={birthMonth}
-            onChange={(e) => setBirthMonth(e.target.value)}
-            className="h-14 text-center"
-            aria-label="Birth Month"
-          />
-        </div>
-        <div>
-          <Input
-            type="number"
-            placeholder="DD"
-            min="1"
-            max="31"
-            value={birthDay}
-            onChange={(e) => setBirthDay(e.target.value)}
-            className="h-14 text-center"
-            aria-label="Birth Day"
-          />
-        </div>
-        <div>
-          <Input
-            type="number"
-            placeholder="YYYY"
-            min="1900"
-            max={new Date().getFullYear()}
-            value={birthYear}
-            onChange={(e) => setBirthYear(e.target.value)}
-            className="h-14 text-center"
-            aria-label="Birth Year"
-          />
+      {/* Birthdate with header and separate month/day/year inputs */}
+      <div className="mt-6">
+        <h3 className="text-sm font-medium mb-2">Birthdate</h3>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <Input
+              type="number"
+              placeholder="MM"
+              min="1"
+              max="12"
+              value={birthMonth}
+              onChange={(e) => setBirthMonth(e.target.value)}
+              className="h-14 text-center"
+              aria-label="Birth Month"
+            />
+          </div>
+          <div>
+            <Input
+              type="number"
+              placeholder="DD"
+              min="1"
+              max="31"
+              value={birthDay}
+              onChange={(e) => setBirthDay(e.target.value)}
+              className="h-14 text-center"
+              aria-label="Birth Day"
+            />
+          </div>
+          <div>
+            <Input
+              type="number"
+              placeholder="YYYY"
+              min="1900"
+              max={new Date().getFullYear()}
+              value={birthYear}
+              onChange={(e) => setBirthYear(e.target.value)}
+              className="h-14 text-center"
+              aria-label="Birth Year"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Height and Weight on one line */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Height on its own line */}
+      <div>
         <div className="grid grid-cols-2 gap-2">
           <div className="relative">
             <Input 
@@ -367,28 +370,29 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">in</span>
           </div>
         </div>
+      </div>
         
-        <div className="flex gap-2">
-          <Input 
-            type="number" 
-            placeholder="Weight"
-            value={weight}
-            onChange={e => setWeight(e.target.value)}
-            className="flex-1 h-14"
-          />
-          <Select 
-            value={weightUnit} 
-            onValueChange={(value: 'lbs' | 'kg') => setWeightUnit(value)}
-          >
-            <SelectTrigger className="w-24 h-14">
-              <SelectValue placeholder="Unit" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="lbs">lbs</SelectItem>
-              <SelectItem value="kg">kg</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Weight on its own line */}
+      <div className="flex gap-2">
+        <Input 
+          type="number" 
+          placeholder="Weight"
+          value={weight}
+          onChange={e => setWeight(e.target.value)}
+          className="flex-1 h-14"
+        />
+        <Select 
+          value={weightUnit} 
+          onValueChange={(value: 'lbs' | 'kg') => setWeightUnit(value)}
+        >
+          <SelectTrigger className="w-24 h-14">
+            <SelectValue placeholder="Unit" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="lbs">lbs</SelectItem>
+            <SelectItem value="kg">kg</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="pt-4 flex justify-end">

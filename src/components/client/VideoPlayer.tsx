@@ -31,11 +31,9 @@ export const VideoPlayer = ({
         setLoading(true);
         
         // Get public URL if the bucket is public
-        const { data, error } = await supabase.storage
+        const { data } = await supabase.storage
           .from(bucketName)
           .getPublicUrl(filePath);
-        
-        if (error) throw error;
         
         if (data.publicUrl) {
           setVideoUrl(data.publicUrl);

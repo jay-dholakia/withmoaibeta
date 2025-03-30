@@ -33,9 +33,18 @@ const WorkoutsList = () => {
 
   // If we're on a workout detail page, redirect back to the main workouts page
   useEffect(() => {
-    if (location.pathname !== "/client-dashboard/workouts" && 
-        !location.pathname.includes('/active/') && 
-        !location.pathname.includes('/complete/')) {
+    // Check if we're on the main workouts page or a valid sub-page
+    const isMainPage = location.pathname === "/client-dashboard/workouts";
+    const isValidSubPage = 
+      location.pathname.includes('/active/') || 
+      location.pathname.includes('/complete/') ||
+      location.pathname.includes('/custom/') ||
+      location.pathname.includes('/create') ||
+      location.pathname.includes('/one-off');
+      
+    // Only redirect if we're on an invalid sub-page
+    if (!isMainPage && !isValidSubPage) {
+      console.log("Redirecting from invalid workout sub-page:", location.pathname);
       navigate("/client-dashboard/workouts");
     }
   }, [location.pathname, navigate]);
@@ -49,6 +58,7 @@ const WorkoutsList = () => {
 
   const handleWeekFilterChange = (value: string) => {
     // Just update the filter state, don't navigate
+    console.log(`Setting week filter to ${value} without navigation`);
     setWeekFilter(value);
   };
 

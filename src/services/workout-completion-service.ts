@@ -111,8 +111,8 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
     
     // Map the data to ensure it conforms to the WorkoutCompletionExercise interface
     const exercises: WorkoutCompletionExercise[] = (data || []).map(item => {
-      // Handle the case where exercise might have error
-      const exercise = typeof item.exercise === 'object' && !item.exercise.error ? 
+      // Handle the case where exercise might be null or have error
+      const exercise = item.exercise && typeof item.exercise === 'object' && !('error' in item.exercise) ? 
         {
           id: item.exercise.id || '',
           name: item.exercise.name || '',
@@ -162,8 +162,8 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
 
     if (error) throw error;
     
-    // Handle the case where exercise might have error
-    const exercise = typeof data.exercise === 'object' && !data.exercise.error ? 
+    // Handle the case where exercise might be null or have error
+    const exercise = data.exercise && typeof data.exercise === 'object' && !('error' in data.exercise) ? 
       {
         id: data.exercise.id || '',
         name: data.exercise.name || '',

@@ -34,6 +34,7 @@ import StandaloneWorkoutsPage from './pages/coach/StandaloneWorkoutsPage';
 import LeaderboardPage from './pages/coach/LeaderboardPage';
 import ProfilePage from './pages/coach/ProfilePage';
 import CoachClientsPage from './pages/coach/ClientsPage';
+import WorkoutExerciseList from './pages/coach/WorkoutExerciseList'; // Add import for new page
 
 // Client pages
 import ClientDashboard from './pages/client/ClientDashboard';
@@ -130,6 +131,12 @@ function App() {
             <Route path="/coach-dashboard/workouts/:programId" element={
               <RequireAuth userType="coach">
                 <WorkoutProgramDetailPage />
+              </RequireAuth>
+            } />
+            {/* Add the new route for workout exercises and supersets management */}
+            <Route path="/coach-dashboard/workout/:workoutId/exercises" element={
+              <RequireAuth userType="coach">
+                <WorkoutExerciseList />
               </RequireAuth>
             } />
             <Route path="/coach-dashboard/workouts/:programId/assign" element={

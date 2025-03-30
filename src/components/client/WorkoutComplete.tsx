@@ -95,6 +95,7 @@ const WorkoutComplete = () => {
         await addToJournal(notes);
       }
       
+      // Call completeWorkout but don't show toast here - it's already shown in the service
       return completeWorkout(
         workoutCompletionId,
         rating,
@@ -102,7 +103,7 @@ const WorkoutComplete = () => {
       );
     },
     onSuccess: () => {
-      // Only show one toast message on success
+      // Navigate without showing toast - toast is shown in client-service.ts
       navigate('/client-dashboard/workouts');
     },
     onError: (error) => {

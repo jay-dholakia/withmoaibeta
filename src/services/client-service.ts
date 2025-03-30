@@ -570,8 +570,10 @@ export const completeWorkout = async (
       
     if (error) throw error;
     
-    // Show a toast notification here
-    toast.success('Workout completed!');
+    // Show a single toast notification here
+    toast.success('Workout completed!', {
+      id: `workout-complete-${workoutCompletionId}`, // Use a unique ID to prevent duplicates
+    });
     
     return data;
   } catch (error) {

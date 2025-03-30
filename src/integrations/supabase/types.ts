@@ -447,7 +447,7 @@ export type Database = {
           accepted: boolean | null
           accepted_at: string | null
           created_at: string
-          email: string
+          email: string | null
           expires_at: string
           id: string
           invited_by: string
@@ -460,7 +460,7 @@ export type Database = {
           accepted?: boolean | null
           accepted_at?: string | null
           created_at?: string
-          email: string
+          email?: string | null
           expires_at: string
           id?: string
           invited_by: string
@@ -473,7 +473,7 @@ export type Database = {
           accepted?: boolean | null
           accepted_at?: string | null
           created_at?: string
-          email?: string
+          email?: string | null
           expires_at?: string
           id?: string
           invited_by?: string

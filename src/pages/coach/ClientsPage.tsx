@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -30,7 +29,8 @@ import {
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination';
-import { fetchCoachMessagesForClient, CoachMessage } from '@/services/coach-client-message-service';
+import { fetchCoachMessagesForClient } from '@/services/coach-client-message-service';
+import { CoachMessage } from '@/services/coach-message-service';
 
 interface Group {
   id: string;

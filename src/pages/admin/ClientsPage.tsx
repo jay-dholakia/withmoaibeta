@@ -8,7 +8,17 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Client {
   id: string;
@@ -106,6 +116,8 @@ const ClientsPage: React.FC = () => {
   const { userType } = useAuth();
   const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Redirect if not admin
   useEffect(() => {
@@ -135,6 +147,33 @@ const ClientsPage: React.FC = () => {
       setTimeout(() => {
         setIsRefreshing(false);
       }, 500);
+    }
+  };
+
+  const handleDeleteClient = async () => {
+    if (!clientToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      // Delete the user from Supabase auth
+      const { error } = await supabase.rpc('admin_delete_user', {
+        user_id: clientToDelete.id
+      });
+      
+      if (error) {
+        console.error('Error deleting user:', error);
+        toast.error('Failed to delete user');
+        throw error;
+      }
+      
+      toast.success(`User ${clientToDelete.email} was deleted successfully`);
+      refetch(); // Refresh the client list
+    } catch (err) {
+      console.error('Error in delete process:', err);
+      toast.error('An error occurred while deleting the user');
+    } finally {
+      setIsDeleting(false);
+      setClientToDelete(null);
     }
   };
 
@@ -185,12 +224,13 @@ const ClientsPage: React.FC = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Group</TableHead>
                 <TableHead>Joined</TableHead>
+                <TableHead className="w-[80px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading || isRefreshing ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8">
+                  <TableCell colSpan={4} className="text-center py-8">
                     <div className="flex justify-center items-center">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mr-2" />
                       Loading clients...
@@ -207,11 +247,22 @@ const ClientsPage: React.FC = () => {
                     <TableCell>
                       {new Date(client.created_at).toLocaleDateString()}
                     </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setClientToDelete(client)}
+                        title="Delete user"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8">
+                  <TableCell colSpan={4} className="text-center py-8">
                     No clients found.
                   </TableCell>
                 </TableRow>
@@ -220,6 +271,41 @@ const ClientsPage: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!clientToDelete} onOpenChange={(open) => !open && setClientToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the user account for{' '}
+              <span className="font-semibold">{clientToDelete?.email}</span>?
+              <br /><br />
+              This action is <span className="text-destructive font-semibold">permanent</span> and cannot be undone.
+              The user will need to sign up again to create a new account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteClient();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete User"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminDashboardLayout>
   );
 };

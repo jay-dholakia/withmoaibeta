@@ -748,3 +748,21 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<Lea
     return [];
   }
 };
+
+export const deleteUser = async (userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.rpc('admin_delete_user', {
+      user_id: userId
+    });
+    
+    if (error) {
+      console.error("Error deleting user:", error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    return false;
+  }
+};

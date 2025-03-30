@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 
 interface Client {
   id: string;
@@ -106,6 +106,7 @@ const fetchClients = async (): Promise<Client[]> => {
 const ClientsPage: React.FC = () => {
   const { userType } = useAuth();
   const navigate = useNavigate();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Redirect if not admin
   useEffect(() => {
@@ -126,6 +127,18 @@ const ClientsPage: React.FC = () => {
     }
   }, [error]);
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      // Add a small delay to make the animation visible even for fast refreshes
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 500);
+    }
+  };
+
   if (userType !== 'admin') {
     return null;
   }
@@ -139,7 +152,13 @@ const ClientsPage: React.FC = () => {
           </h2>
         </div>
         <div>
-          <Button variant="outline" onClick={() => refetch()}>
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
@@ -156,7 +175,7 @@ const ClientsPage: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {isLoading || isRefreshing ? (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center py-8">
                     <div className="flex justify-center items-center">

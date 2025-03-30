@@ -76,24 +76,43 @@ export const countCompletedWorkoutsForWeek = async (userId: string, weekStart: D
 };
 
 /**
- * Get user ID by email
+ * Get user ID by email - we need to use profiles table because we can't query auth.users directly
  */
 export const getUserIdByEmail = async (email: string): Promise<string | null> => {
   try {
     console.log(`Looking up user ID for email: ${email}`);
     
-    const { data, error } = await supabase
-      .from('users')
+    // First, query the profiles table
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
       .select('id')
       .eq('email', email)
-      .single();
+      .maybeSingle();
     
-    if (error) {
-      console.error("Error fetching user by email:", error);
+    if (profileError) {
+      console.error("Error fetching profile by email:", profileError);
       return null;
     }
     
-    return data?.id || null;
+    // If found in profiles, return the ID
+    if (profileData?.id) {
+      return profileData.id;
+    }
+    
+    // If not found in profiles, try a more generalized approach
+    // This might be needed if user data is stored in a different way
+    console.warn("User not found in profiles table by email, using more general approach");
+    
+    // Try using a Supabase function if available
+    const { data: functionData, error: functionError } = await supabase
+      .rpc('get_user_id_by_email', { email_param: email });
+    
+    if (functionError) {
+      console.error("Error fetching user by email with RPC:", functionError);
+      return null;
+    }
+    
+    return functionData || null;
   } catch (error) {
     console.error("Error in getUserIdByEmail:", error);
     return null;

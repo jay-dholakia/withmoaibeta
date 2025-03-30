@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, ArrowUp, ArrowDown, RotateCw, X } from "lucide-react";
+import { Trash2, Plus, ArrowUp, ArrowDown, RotateCw, X, ChevronUp, ChevronDown } from "lucide-react";
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
 import StandaloneSupersetManager from './StandaloneSupersetManager';
@@ -23,11 +22,13 @@ import {
   moveStandaloneWorkoutExerciseUp,
   moveStandaloneWorkoutExerciseDown,
   fetchStandaloneSupersetGroups,
-  removeExerciseFromStandaloneSupersetGroup
+  removeExerciseFromStandaloneSupersetGroup,
+  updateExerciseStandaloneSupersetOrder
 } from '@/services/workout-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { Exercise, SupersetGroup } from '@/types/workout';
 import { WorkoutType, WORKOUT_TYPES } from '@/components/client/WorkoutTypeIcon';
+import { groupExercisesBySuperset, moveSupersetExerciseUp, moveSupersetExerciseDown } from '@/services/workout/utils';
 
 interface StandaloneWorkoutFormProps {
   workoutId?: string;
@@ -94,7 +95,6 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
         setExercises(workoutExercises);
       }
       
-      // Fetch superset groups
       const fetchedSupersetGroups = await fetchStandaloneSupersetGroups(workoutId);
       setSupersetGroups(fetchedSupersetGroups);
       
@@ -263,6 +263,56 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  const handleMoveSupersetExerciseUp = async (exerciseId: string) => {
+    if (!workoutId) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      const updatedExercises = moveSupersetExerciseUp(exercises, exerciseId);
+      setExercises(updatedExercises);
+      
+      const exercise = updatedExercises.find(ex => ex.id === exerciseId);
+      if (exercise) {
+        await updateExerciseStandaloneSupersetOrder(exerciseId, exercise.superset_order || 0);
+      }
+      
+    } catch (error) {
+      console.error('Error moving exercise up in superset:', error);
+      toast.error('Failed to reorder exercise in superset');
+      
+      const workoutExercises = await fetchStandaloneWorkoutExercises(workoutId);
+      setExercises(workoutExercises);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMoveSupersetExerciseDown = async (exerciseId: string) => {
+    if (!workoutId) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      const updatedExercises = moveSupersetExerciseDown(exercises, exerciseId);
+      setExercises(updatedExercises);
+      
+      const exercise = updatedExercises.find(ex => ex.id === exerciseId);
+      if (exercise) {
+        await updateExerciseStandaloneSupersetOrder(exerciseId, exercise.superset_order || 0);
+      }
+      
+    } catch (error) {
+      console.error('Error moving exercise down in superset:', error);
+      toast.error('Failed to reorder exercise in superset');
+      
+      const workoutExercises = await fetchStandaloneWorkoutExercises(workoutId);
+      setExercises(workoutExercises);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   const handleSelectExercise = (exercise: Exercise) => {
     console.log("Exercise selected:", exercise);
@@ -271,7 +321,6 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
   const handleSupersetCreated = async () => {
     if (!workoutId) return;
     try {
-      // Refresh superset groups and exercises
       const fetchedSupersetGroups = await fetchStandaloneSupersetGroups(workoutId);
       setSupersetGroups(fetchedSupersetGroups);
       
@@ -292,7 +341,6 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
       
       await removeExerciseFromStandaloneSupersetGroup(exerciseId);
       
-      // Refresh superset groups and exercises
       const fetchedSupersetGroups = await fetchStandaloneSupersetGroups(workoutId);
       setSupersetGroups(fetchedSupersetGroups);
       
@@ -308,27 +356,7 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
     }
   };
   
-  // Group exercises by superset
-  const exercisesBySupersetId: Record<string, any[]> = {};
-  const standaloneExercises: any[] = [];
-  
-  exercises.forEach(exercise => {
-    if (exercise.superset_group_id) {
-      if (!exercisesBySupersetId[exercise.superset_group_id]) {
-        exercisesBySupersetId[exercise.superset_group_id] = [];
-      }
-      exercisesBySupersetId[exercise.superset_group_id].push(exercise);
-    } else {
-      standaloneExercises.push(exercise);
-    }
-  });
-  
-  // Sort superset exercises by superset_order
-  Object.keys(exercisesBySupersetId).forEach(groupId => {
-    exercisesBySupersetId[groupId].sort((a, b) => {
-      return (a.superset_order || 0) - (b.superset_order || 0);
-    });
-  });
+  const { exercisesBySupersetId, standaloneExercises } = groupExercisesBySuperset(exercises);
   
   if (isLoading) {
     return <div className="py-6">Loading workout details...</div>;
@@ -454,7 +482,6 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
           ) : (
             <ScrollArea className="h-[calc(100vh-450px)]">
               <div className="space-y-4">
-                {/* Render superset groups */}
                 {supersetGroups.map(group => {
                   const groupExercises = exercisesBySupersetId[group.id] || [];
                   if (groupExercises.length === 0) return null;
@@ -477,6 +504,28 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
                                   {exercise.exercise?.name || 'Exercise'}
                                 </CardTitle>
                                 <div className="flex gap-1">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => handleMoveSupersetExerciseUp(exercise.id)}
+                                    disabled={index === 0 || isSubmitting}
+                                    title="Move up in superset"
+                                  >
+                                    <ChevronUp className="h-4 w-4" />
+                                    <span className="sr-only">Move up in superset</span>
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => handleMoveSupersetExerciseDown(exercise.id)}
+                                    disabled={index === groupExercises.length - 1 || isSubmitting}
+                                    title="Move down in superset"
+                                  >
+                                    <ChevronDown className="h-4 w-4" />
+                                    <span className="sr-only">Move down in superset</span>
+                                  </Button>
                                   <Button 
                                     variant="ghost" 
                                     size="sm" 
@@ -516,7 +565,6 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
                   );
                 })}
                 
-                {/* Render standalone exercises */}
                 <div className="space-y-3">
                   {standaloneExercises.map((exercise, index) => (
                     <Card key={exercise.id} className="bg-background">

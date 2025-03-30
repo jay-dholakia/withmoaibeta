@@ -39,3 +39,83 @@ export const groupExercisesBySuperset = (exercises: any[]) => {
   
   return { exercisesBySupersetId, standaloneExercises };
 };
+
+// New function to move an exercise up within a superset
+export const moveSupersetExerciseUp = (exercises: any[], exerciseId: string) => {
+  const { exercisesBySupersetId } = groupExercisesBySuperset(exercises);
+  
+  // Find which superset the exercise belongs to
+  let targetSupersetId: string | null = null;
+  let exerciseIndex = -1;
+  
+  Object.keys(exercisesBySupersetId).forEach(supersetId => {
+    const index = exercisesBySupersetId[supersetId].findIndex(ex => ex.id === exerciseId);
+    if (index !== -1) {
+      targetSupersetId = supersetId;
+      exerciseIndex = index;
+    }
+  });
+  
+  if (!targetSupersetId || exerciseIndex <= 0) {
+    return exercises; // Can't move up if it's already at the top
+  }
+  
+  // Get the superset exercises
+  const supersetExercises = exercisesBySupersetId[targetSupersetId];
+  
+  // Swap orders with the exercise above
+  const currentExercise = supersetExercises[exerciseIndex];
+  const previousExercise = supersetExercises[exerciseIndex - 1];
+  
+  // Create a copy of the exercises array with updated superset_order values
+  return exercises.map(ex => {
+    if (ex.id === currentExercise.id) {
+      return { ...ex, superset_order: previousExercise.superset_order };
+    } else if (ex.id === previousExercise.id) {
+      return { ...ex, superset_order: currentExercise.superset_order };
+    }
+    return ex;
+  });
+};
+
+// New function to move an exercise down within a superset
+export const moveSupersetExerciseDown = (exercises: any[], exerciseId: string) => {
+  const { exercisesBySupersetId } = groupExercisesBySuperset(exercises);
+  
+  // Find which superset the exercise belongs to
+  let targetSupersetId: string | null = null;
+  let exerciseIndex = -1;
+  
+  Object.keys(exercisesBySupersetId).forEach(supersetId => {
+    const index = exercisesBySupersetId[supersetId].findIndex(ex => ex.id === exerciseId);
+    if (index !== -1) {
+      targetSupersetId = supersetId;
+      exerciseIndex = index;
+    }
+  });
+  
+  if (!targetSupersetId) {
+    return exercises; // Not in a superset
+  }
+  
+  // Get the superset exercises
+  const supersetExercises = exercisesBySupersetId[targetSupersetId];
+  
+  if (exerciseIndex >= supersetExercises.length - 1) {
+    return exercises; // Can't move down if it's already at the bottom
+  }
+  
+  // Swap orders with the exercise below
+  const currentExercise = supersetExercises[exerciseIndex];
+  const nextExercise = supersetExercises[exerciseIndex + 1];
+  
+  // Create a copy of the exercises array with updated superset_order values
+  return exercises.map(ex => {
+    if (ex.id === currentExercise.id) {
+      return { ...ex, superset_order: nextExercise.superset_order };
+    } else if (ex.id === nextExercise.id) {
+      return { ...ex, superset_order: currentExercise.superset_order };
+    }
+    return ex;
+  });
+};

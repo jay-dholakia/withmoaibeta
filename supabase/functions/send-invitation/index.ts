@@ -116,12 +116,22 @@ serve(async (req) => {
 
     const { email, userType, resend: isResend, invitationId, generateShareLink } = payload;
 
-    // Check for either email or generateShareLink flag
-    if ((!email && !generateShareLink) || !userType) {
+    // Check requirements based on the operation type
+    if (generateShareLink) {
+      if (!userType) {
+        return new Response(
+          JSON.stringify({ 
+            error: "userType is required for shareable links",
+            receivedPayload: { userType, generateShareLink }
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else if (!email || !userType) {
       console.error("Missing required fields:", { email, userType, generateShareLink });
       return new Response(
         JSON.stringify({ 
-          error: "Either email or generateShareLink flag is required, along with userType",
+          error: "Email and userType are required for email invitations",
           receivedPayload: { email, userType, isResend, invitationId, generateShareLink }
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -267,6 +277,45 @@ serve(async (req) => {
           JSON.stringify({ error: "Failed to get user from token" }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      }
+
+      // First, check if we need to modify the email column constraint for share links
+      if (generateShareLink) {
+        // Check if we need to modify the invitations table
+        const { data: tableInfo, error: tableError } = await supabaseClient
+          .rpc('check_column_nullable', { table_name: 'invitations', column_name: 'email' });
+          
+        if (tableError) {
+          console.error("Error checking column nullable property:", tableError);
+          return new Response(
+            JSON.stringify({ error: "Error checking database schema", details: tableError.message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        // If email column is not nullable, create a database function to check and alter it
+        if (tableInfo && !tableInfo.is_nullable) {
+          console.log("Email column is not nullable, creating function to modify it");
+          
+          // Create the RPC function if it doesn't exist
+          const { error: createFunctionError } = await supabaseClient.rpc('make_column_nullable', {
+            table_name: 'invitations',
+            column_name: 'email'
+          });
+          
+          if (createFunctionError) {
+            console.error("Error making column nullable:", createFunctionError);
+            return new Response(
+              JSON.stringify({ 
+                error: "Failed to modify database schema for share links", 
+                details: createFunctionError.message 
+              }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          
+          console.log("Successfully made email column nullable");
+        }
       }
 
       // Insert the invitation

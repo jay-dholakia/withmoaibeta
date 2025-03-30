@@ -1,7 +1,7 @@
+
 import React, { useMemo } from 'react';
 import { format, isThisWeek, startOfWeek, endOfWeek, addDays, isSameDay } from 'date-fns';
-import { WorkoutType } from './WorkoutTypeIcon';
-import WorkoutTypeIcon from './WorkoutTypeIcon';
+import { WorkoutType, WorkoutTypeIcon } from './WorkoutTypeIcon';
 
 interface WeekProgressBarProps {
   label?: string;
@@ -153,3 +153,4 @@ export const WeekProgressBar = ({
     </div>
   );
 };
+

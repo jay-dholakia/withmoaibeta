@@ -50,7 +50,7 @@ export const WorkoutProgressCard = ({
           />
         </div>
         
-        <div className="flex justify-between items-center mt-4 px-1">
+        <div className="flex justify-between items-start mt-4 px-1">
           {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => {
             const today = new Date();
             const weekStart = new Date(today);
@@ -86,9 +86,6 @@ export const WorkoutProgressCard = ({
             
             return (
               <div key={index} className="flex flex-col items-center">
-                {/* Day letter placed outside the circle */}
-                <span className="text-xs font-medium text-slate-600 mb-1">{day}</span>
-                
                 {/* Circle with workout type emoji inside */}
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor}`}
@@ -96,9 +93,12 @@ export const WorkoutProgressCard = ({
                   {workoutType && <WorkoutTypeIcon type={workoutType} size={16} />}
                 </div>
                 
-                {/* Current day indicator dot */}
+                {/* Day letter placed below the circle */}
+                <span className="text-xs font-medium text-slate-600 mt-1">{day}</span>
+                
+                {/* Current day indicator dot - placed below the day letter */}
                 {isToday && (
-                  <div className="w-1.5 h-1.5 bg-client rounded-full mt-1"></div>
+                  <div className="w-1.5 h-1.5 bg-client rounded-full mt-0.5"></div>
                 )}
               </div>
             );

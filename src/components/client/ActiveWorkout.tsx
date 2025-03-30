@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, Weight, Clock, Distance, Repeat } from 'lucide-react';
 import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
@@ -34,7 +35,7 @@ const ActiveWorkout = () => {
         location: string;
         completed: boolean;
       };
-      flexibilityData?: {
+      durationData?: {
         duration: string;
         completed: boolean;
       };
@@ -55,7 +56,7 @@ const ActiveWorkout = () => {
     location: string;
   }>>([]);
 
-  const [pendingFlexibility, setPendingFlexibility] = useState<Array<{
+  const [pendingDuration, setPendingDuration] = useState<Array<{
     exerciseId: string;
     duration: string;
   }>>([]);
@@ -240,8 +241,8 @@ const ActiveWorkout = () => {
         promises.push(...cardioPromises);
       }
       
-      if (pendingFlexibility.length > 0) {
-        const flexibilityPromises = pendingFlexibility.map(item => {
+      if (pendingDuration.length > 0) {
+        const durationPromises = pendingDuration.map(item => {
           return trackWorkoutSet(
             workoutCompletionId!,
             item.exerciseId,
@@ -254,7 +255,7 @@ const ActiveWorkout = () => {
             null
           );
         });
-        promises.push(...flexibilityPromises);
+        promises.push(...durationPromises);
       }
       
       return Promise.all(promises);
@@ -263,7 +264,7 @@ const ActiveWorkout = () => {
       queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
       setPendingSets([]);
       setPendingCardio([]);
-      setPendingFlexibility([]);
+      setPendingDuration([]);
       navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
     },
     onError: (error: any) => {
@@ -282,8 +283,9 @@ const ActiveWorkout = () => {
       
       workoutExercises.forEach((exercise: any) => {
         const exerciseType = exercise.exercise?.exercise_type || 'strength';
+        const logType = exercise.exercise?.log_type || 'weight_reps';
         
-        if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+        if (logType === 'weight_reps') {
           const sets = Array.from({ length: exercise.sets }, (_, i) => {
             const existingSet = workoutData.workout_set_completions?.find(
               (set: any) => set.workout_exercise_id === exercise.id && set.set_number === i + 1
@@ -309,7 +311,7 @@ const ActiveWorkout = () => {
             expanded: true,
             sets,
           };
-        } else if (exerciseType === 'cardio') {
+        } else if (logType === 'duration_distance') {
           const existingSet = workoutData.workout_set_completions?.find(
             (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
           );
@@ -324,7 +326,7 @@ const ActiveWorkout = () => {
               completed: !!existingSet?.completed
             }
           };
-        } else if (exerciseType === 'flexibility') {
+        } else if (logType === 'duration') {
           const existingSet = workoutData.workout_set_completions?.find(
             (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
           );
@@ -332,7 +334,7 @@ const ActiveWorkout = () => {
           initialState[exercise.id] = {
             expanded: true,
             sets: [],
-            flexibilityData: {
+            durationData: {
               duration: existingSet?.duration || '',
               completed: !!existingSet?.completed
             }
@@ -381,9 +383,9 @@ const ActiveWorkout = () => {
     });
   };
 
-  const handleFlexibilityChange = (exerciseId: string, field: 'duration', value: string) => {
+  const handleDurationChange = (exerciseId: string, value: string) => {
     setExerciseStates((prev) => {
-      if (!prev[exerciseId] || !prev[exerciseId].flexibilityData) {
+      if (!prev[exerciseId] || !prev[exerciseId].durationData) {
         return prev;
       }
 
@@ -391,9 +393,9 @@ const ActiveWorkout = () => {
         ...prev,
         [exerciseId]: {
           ...prev[exerciseId],
-          flexibilityData: {
-            ...prev[exerciseId].flexibilityData!,
-            [field]: value
+          durationData: {
+            ...prev[exerciseId].durationData!,
+            duration: value
           }
         }
       };
@@ -480,9 +482,9 @@ const ActiveWorkout = () => {
     }
   };
 
-  const handleFlexibilityCompletion = (exerciseId: string, completed: boolean) => {
+  const handleDurationCompletion = (exerciseId: string, completed: boolean) => {
     setExerciseStates((prev) => {
-      if (!prev[exerciseId] || !prev[exerciseId].flexibilityData) {
+      if (!prev[exerciseId] || !prev[exerciseId].durationData) {
         return prev;
       }
 
@@ -490,8 +492,8 @@ const ActiveWorkout = () => {
         ...prev,
         [exerciseId]: {
           ...prev[exerciseId],
-          flexibilityData: {
-            ...prev[exerciseId].flexibilityData!,
+          durationData: {
+            ...prev[exerciseId].durationData!,
             completed
           }
         }
@@ -499,21 +501,21 @@ const ActiveWorkout = () => {
     });
 
     if (completed) {
-      if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].flexibilityData) {
-        console.error(`Invalid exercise ID or missing flexibility data: ${exerciseId}`);
+      if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].durationData) {
+        console.error(`Invalid exercise ID or missing duration data: ${exerciseId}`);
         return;
       }
 
-      const flexData = exerciseStates[exerciseId].flexibilityData!;
-      setPendingFlexibility(prev => [
-        ...prev.filter(f => f.exerciseId !== exerciseId),
+      const durationData = exerciseStates[exerciseId].durationData!;
+      setPendingDuration(prev => [
+        ...prev.filter(d => d.exerciseId !== exerciseId),
         {
           exerciseId,
-          duration: flexData.duration
+          duration: durationData.duration
         }
       ]);
     } else {
-      setPendingFlexibility(prev => prev.filter(item => item.exerciseId !== exerciseId));
+      setPendingDuration(prev => prev.filter(item => item.exerciseId !== exerciseId));
     }
   };
 
@@ -603,6 +605,7 @@ const ActiveWorkout = () => {
       <div className="space-y-4 w-full">
         {workoutExercises.map((exercise: any) => {
           const exerciseType = exercise.exercise?.exercise_type || 'strength';
+          const logType = exercise.exercise?.log_type || 'weight_reps';
           const exerciseState = exerciseStates[exercise.id];
           
           if (!exerciseState) {
@@ -619,15 +622,15 @@ const ActiveWorkout = () => {
                   <div className="text-center w-full">
                     <CardTitle className="text-base">{exercise.exercise.name}</CardTitle>
                     <CardDescription>
-                      {exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
+                      {logType === 'weight_reps' ? (
                         <>
                           {exercise.sets} sets • {exercise.reps} reps
                           {exercise.rest_seconds ? ` • ${exercise.rest_seconds}s rest` : ''}
                         </>
-                      ) : exerciseType === 'cardio' ? (
+                      ) : logType === 'duration_distance' ? (
                         <span className="text-blue-600">Cardio</span>
-                      ) : exerciseType === 'flexibility' ? (
-                        <span className="text-purple-600">Flexibility/Mobility</span>
+                      ) : logType === 'duration' ? (
+                        <span className="text-purple-600">Duration</span>
                       ) : (
                         <>
                           {exercise.sets} sets • {exercise.reps} reps
@@ -637,16 +640,16 @@ const ActiveWorkout = () => {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    {exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
+                    {logType === 'weight_reps' ? (
                       exerciseState.sets.every(set => set.completed) && (
                         <CheckCircle2 className="text-green-500 h-5 w-5" />
                       )
-                    ) : exerciseType === 'cardio' ? (
+                    ) : logType === 'duration_distance' ? (
                       exerciseState.cardioData?.completed && (
                         <CheckCircle2 className="text-green-500 h-5 w-5" />
                       )
-                    ) : exerciseType === 'flexibility' ? (
-                      exerciseState.flexibilityData?.completed && (
+                    ) : logType === 'duration' ? (
+                      exerciseState.durationData?.completed && (
                         <CheckCircle2 className="text-green-500 h-5 w-5" />
                       )
                     ) : null}
@@ -669,7 +672,7 @@ const ActiveWorkout = () => {
                       </div>
                     )}
                     
-                    {exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
+                    {logType === 'weight_reps' ? (
                       <div className="space-y-4">
                         <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 text-sm font-medium border-b pb-2 text-center">
                           <div className="text-center">Set</div>
@@ -715,34 +718,40 @@ const ActiveWorkout = () => {
                           </div>
                         ))}
                       </div>
-                    ) : exerciseType === 'cardio' ? (
+                    ) : logType === 'duration_distance' ? (
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="text-center">
                             <label className="block text-sm font-medium mb-1 text-center">Distance (miles)</label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              placeholder="0.00"
-                              value={exerciseState.cardioData?.distance || ''}
-                              onChange={(e) => handleCardioChange(exercise.id, 'distance', e.target.value)}
-                              className="h-9 text-center border border-gray-200"
-                            />
+                            <div className="flex items-center">
+                              <Distance className="h-4 w-4 mr-2 text-blue-500" />
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                value={exerciseState.cardioData?.distance || ''}
+                                onChange={(e) => handleCardioChange(exercise.id, 'distance', e.target.value)}
+                                className="h-9 text-center border border-gray-200"
+                              />
+                            </div>
                             <p className="text-xs text-muted-foreground mt-1 text-center">Enter distance in miles</p>
                           </div>
                           <div className="text-center">
                             <label className="block text-sm font-medium mb-1 text-center">Duration (hh:mm:ss)</label>
-                            <Input
-                              placeholder="00:00:00"
-                              value={exerciseState.cardioData?.duration || ''}
-                              onChange={(e) => handleCardioChange(
-                                exercise.id, 
-                                'duration', 
-                                formatDurationInput(e.target.value)
-                              )}
-                              className="h-9 text-center border border-gray-200"
-                            />
+                            <div className="flex items-center">
+                              <Clock className="h-4 w-4 mr-2 text-blue-500" />
+                              <Input
+                                placeholder="00:00:00"
+                                value={exerciseState.cardioData?.duration || ''}
+                                onChange={(e) => handleCardioChange(
+                                  exercise.id, 
+                                  'duration', 
+                                  formatDurationInput(e.target.value)
+                                )}
+                                className="h-9 text-center border border-gray-200"
+                              />
+                            </div>
                             <p className="text-xs text-muted-foreground mt-1 text-center">Format: hours:minutes:seconds</p>
                           </div>
                           <div className="text-center">
@@ -781,28 +790,29 @@ const ActiveWorkout = () => {
                           />
                         </div>
                       </div>
-                    ) : exerciseType === 'flexibility' ? (
+                    ) : logType === 'duration' ? (
                       <div className="space-y-4">
                         <div className="text-center">
-                          <label className="block text-sm font-medium mb-1 text-center">Duration</label>
-                          <Input
-                            placeholder="e.g., 00:30, 01:00"
-                            value={exerciseState.flexibilityData?.duration || ''}
-                            onChange={(e) => handleFlexibilityChange(
-                              exercise.id, 
-                              'duration', 
-                              formatDurationInput(e.target.value)
-                            )}
-                            className="h-9 text-center border border-gray-200 max-w-xs mx-auto"
-                          />
-                          <p className="text-xs text-muted-foreground mt-1 text-center">Format: minutes:seconds</p>
+                          <label className="block text-sm font-medium mb-1 text-center">Duration (in seconds)</label>
+                          <div className="flex items-center justify-center">
+                            <Clock className="h-4 w-4 mr-2 text-purple-500" />
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="Duration in seconds"
+                              value={exerciseState.durationData?.duration || ''}
+                              onChange={(e) => handleDurationChange(exercise.id, e.target.value)}
+                              className="h-9 text-center border border-gray-200 max-w-xs"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1 text-center">Enter number of seconds</p>
                         </div>
                         <div className="flex justify-center items-center mt-2">
                           <span className="mr-2 text-sm">Mark as completed:</span>
                           <Checkbox
-                            checked={exerciseState.flexibilityData?.completed || false}
+                            checked={exerciseState.durationData?.completed || false}
                             onCheckedChange={(checked) => 
-                              handleFlexibilityCompletion(exercise.id, checked === true)
+                              handleDurationCompletion(exercise.id, checked === true)
                             }
                             className="h-5 w-5 data-[state=checked]:bg-client data-[state=checked]:border-client border-2"
                           />
@@ -844,7 +854,7 @@ const ActiveWorkout = () => {
             )}
             Complete Workout
           </Button>
-          {(pendingSets.length > 0 || pendingCardio.length > 0 || pendingFlexibility.length > 0) && (
+          {(pendingSets.length > 0 || pendingCardio.length > 0 || pendingDuration.length > 0) && (
             <p className="text-xs text-center mt-2 text-muted-foreground">
               All tracking data will be saved when you complete the workout
             </p>

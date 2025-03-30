@@ -286,6 +286,7 @@ export type Database = {
           description: string | null
           exercise_type: string
           id: string
+          log_type: string | null
           name: string
         }
         Insert: {
@@ -294,6 +295,7 @@ export type Database = {
           description?: string | null
           exercise_type?: string
           id?: string
+          log_type?: string | null
           name: string
         }
         Update: {
@@ -302,6 +304,7 @@ export type Database = {
           description?: string | null
           exercise_type?: string
           id?: string
+          log_type?: string | null
           name?: string
         }
         Relationships: []

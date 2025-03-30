@@ -1,3 +1,4 @@
+
 export interface Exercise {
   id: string;
   name: string;
@@ -86,6 +87,9 @@ export interface WorkoutExercise {
   notes: string | null;
   order_index: number;
   created_at: string;
+  // Added superset support
+  superset_group_id?: string | null;
+  superset_order?: number | null;
   // Optional joined data
   exercise?: Exercise;
   workout?: Workout;
@@ -132,6 +136,16 @@ export interface WorkoutHistoryItem {
   rest_day?: boolean;
   // Add the workout_set_completions property
   workout_set_completions?: WorkoutSetCompletion[];
+}
+
+// New interface for superset grouping
+export interface SupersetGroup {
+  id: string;
+  workout_id: string;
+  title?: string | null;
+  description?: string | null;
+  created_at: string;
+  workout_exercises?: WorkoutExercise[];
 }
 
 export const DAYS_OF_WEEK = [

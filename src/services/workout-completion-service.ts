@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface WorkoutCompletion {
@@ -30,8 +31,6 @@ export interface WorkoutCompletionExercise {
   completed: boolean;
   created_at: string;
   result: any; // This can be structured based on the exercise type
-  superset_group_id?: string | null;
-  superset_order?: number | null;
   exercise?: {
     id: string;
     name: string;
@@ -59,13 +58,6 @@ function isValidExercise(obj: any): obj is {
  */
 export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promise<WorkoutCompletion> => {
   try {
-    console.log("Fetching workout completion data for ID:", workoutCompletionId);
-    
-    // Get the current user ID first to avoid Promise in the query
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || '';
-    
-    // First try to get the completion data directly
     const { data, error } = await supabase
       .from('workout_completions')
       .select(`
@@ -77,78 +69,33 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
         )
       `)
       .eq('id', workoutCompletionId)
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Error fetching workout completion data:", error);
-      throw error;
-    }
-    
-    if (data) {
-      console.log("Found workout completion:", data);
-      
-      // Ensure distance is a number or null
-      const processedData: WorkoutCompletion = {
-        ...data,
-        distance: data.distance ? Number(data.distance) : null
-      };
-      
-      return processedData;
-    }
-    
-    // If no completion record found, try to fetch workout data to create a new completion
-    console.log("No workout completion found with ID, trying to fetch workout directly");
-    const { data: workoutData, error: workoutError } = await supabase
-      .from('workouts')
-      .select(`
-        id,
-        title,
-        description
-      `)
-      .eq('id', workoutCompletionId)
-      .maybeSingle();
-    
-    if (workoutError) {
-      console.error("Error fetching workout data:", workoutError);
-      throw workoutError;
-    }
-    
-    if (!workoutData) {
-      console.error("No workout found with ID:", workoutCompletionId);
-      throw new Error('Workout not found');
-    }
-    
-    console.log("Found workout data, creating default completion:", workoutData);
-    
-    // Create a new workout completion record in the database
-    const { data: newCompletion, error: insertError } = await supabase
-      .from('workout_completions')
-      .insert({
-        id: workoutCompletionId, // Use the same ID as the workout for simplicity
-        user_id: userId,
-        workout_id: workoutCompletionId,
-        rest_day: false,
-        life_happens_pass: false
-      })
-      .select('*')
       .single();
+
+    if (error) throw error;
     
-    if (insertError) {
-      console.error("Error creating workout completion:", insertError);
-      throw insertError;
-    }
-    
-    console.log("Created new workout completion:", newCompletion);
-    
-    // Return the newly created workout completion with workout data
-    return {
-      ...newCompletion,
-      workout: workoutData,
-      distance: null
+    // Ensure the data conforms to the WorkoutCompletion interface
+    const completion: WorkoutCompletion = {
+      id: data.id,
+      user_id: data.user_id,
+      workout_id: data.workout_id,
+      created_at: data.created_at || new Date().toISOString(), 
+      completed_at: data.completed_at,
+      rest_day: data.rest_day || false,
+      life_happens_pass: data.life_happens_pass || false,
+      notes: data.notes,
+      rating: data.rating,
+      title: data.title || null, 
+      description: data.description || null, 
+      workout_type: data.workout_type || null, 
+      distance: typeof data.distance === 'string' ? parseFloat(data.distance) : data.distance,
+      duration: data.duration,
+      location: data.location,
+      workout: data.workout
     };
+    
+    return completion;
   } catch (error) {
-    console.error("Error in workout completion data query:", error);
+    console.error('Error fetching workout completion:', error);
     throw error;
   }
 };
@@ -158,18 +105,11 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
  */
 export const fetchWorkoutCompletionExercises = async (workoutCompletionId: string): Promise<WorkoutCompletionExercise[]> => {
   try {
-    // First check if there are existing completion exercises
-    // Use the standard join syntax instead of explicit foreign key relationship
-    const { data: existingExercises, error: existingError } = await supabase
+    const { data, error } = await supabase
       .from('workout_completion_exercises')
       .select(`
-        id,
-        workout_completion_id,
-        exercise_id,
-        completed,
-        created_at,
-        result,
-        exercise:exercises (
+        *,
+        exercise:exercise_id (
           id,
           name,
           description,
@@ -177,160 +117,34 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
           log_type
         )
       `)
-      .eq('workout_completion_id', workoutCompletionId);
+      .eq('workout_completion_id', workoutCompletionId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
     
-    if (existingError) {
-      console.error("Error checking existing completion exercises:", existingError);
-      throw existingError;
-    }
+    // Map the data to ensure it conforms to the WorkoutCompletionExercise interface
+    const exercises: WorkoutCompletionExercise[] = (data || []).map(item => {
+      // Use the type guard to check if exercise is valid
+      const exercise = isValidExercise(item.exercise) ? {
+        id: item.exercise.id || '',
+        name: item.exercise.name || '',
+        description: item.exercise.description || null,
+        log_type: (item.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
+        category: item.exercise.category || ''
+      } : undefined;
+
+      return {
+        id: item.id,
+        workout_completion_id: item.workout_completion_id,
+        exercise_id: item.exercise_id,
+        completed: item.completed || false,
+        created_at: item.created_at,
+        result: item.result,
+        exercise
+      };
+    });
     
-    // If we already have completion exercises, return them
-    if (existingExercises && existingExercises.length > 0) {
-      console.log(`Found ${existingExercises.length} existing completion exercises`);
-      
-      // Map the data to ensure it conforms to the WorkoutCompletionExercise interface
-      const exercises: WorkoutCompletionExercise[] = existingExercises.map(item => {
-        // Use the type guard to check if exercise is valid
-        const exercise = isValidExercise(item.exercise) ? {
-          id: item.exercise.id || '',
-          name: item.exercise.name || '',
-          description: item.exercise.description || null,
-          log_type: (item.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
-          category: item.exercise.category || ''
-        } : undefined;
-        
-        return {
-          id: item.id,
-          workout_completion_id: item.workout_completion_id,
-          exercise_id: item.exercise_id,
-          completed: item.completed || false,
-          created_at: item.created_at,
-          result: item.result,
-          exercise
-        };
-      });
-      
-      return exercises;
-    }
-    
-    // If no completion exercises exist, we need to fetch workout exercises and create them
-    console.log("No completion exercises found, creating from workout exercises");
-    
-    // Ensure the workout completion exists before trying to create exercises
-    // This will create it if it doesn't exist
-    await fetchWorkoutCompletion(workoutCompletionId);
-    
-    // Fetch the workout ID from the completion
-    const { data: completion, error: completionError } = await supabase
-      .from('workout_completions')
-      .select('workout_id')
-      .eq('id', workoutCompletionId)
-      .single();
-    
-    if (completionError) {
-      console.error("Error fetching workout completion:", completionError);
-      throw completionError;
-    }
-    
-    if (!completion.workout_id) {
-      console.error("No workout ID associated with this completion");
-      throw new Error('No workout ID associated with this completion');
-    }
-    
-    // Fetch workout exercises
-    const { data: workoutExercises, error: workoutExercisesError } = await supabase
-      .from('workout_exercises')
-      .select(`
-        id,
-        workout_id,
-        exercise_id,
-        sets,
-        reps,
-        order_index,
-        rest_seconds,
-        superset_group_id,
-        superset_order,
-        exercise:exercises (
-          id,
-          name,
-          description,
-          category,
-          log_type
-        )
-      `)
-      .eq('workout_id', completion.workout_id)
-      .order('order_index', { ascending: true });
-    
-    if (workoutExercisesError) {
-      console.error("Error fetching workout exercises:", workoutExercisesError);
-      throw workoutExercisesError;
-    }
-    
-    if (!workoutExercises || workoutExercises.length === 0) {
-      console.log("No workout exercises found");
-      return [];
-    }
-    
-    console.log(`Found ${workoutExercises.length} workout exercises, creating completion exercises`);
-    
-    // Create completion exercises for each workout exercise
-    const createdExercises: WorkoutCompletionExercise[] = [];
-    
-    for (const workoutExercise of workoutExercises) {
-      try {
-        // Insert the completion exercise
-        const { data: newExercise, error: insertError } = await supabase
-          .from('workout_completion_exercises')
-          .insert({
-            workout_completion_id: workoutCompletionId,
-            exercise_id: workoutExercise.exercise_id,
-            completed: false,
-            result: null
-          })
-          .select(`
-            id,
-            workout_completion_id,
-            exercise_id,
-            completed,
-            created_at,
-            result,
-            exercise:exercises (
-              id,
-              name,
-              description,
-              category,
-              log_type
-            )
-          `)
-          .single();
-        
-        if (insertError) {
-          console.error("Error creating completion exercise:", insertError);
-          continue;
-        }
-        
-        // Use the type guard to check if exercise is valid
-        const exercise = isValidExercise(newExercise.exercise) ? {
-          id: newExercise.exercise.id || '',
-          name: newExercise.exercise.name || '',
-          description: newExercise.exercise.description || null,
-          log_type: (newExercise.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
-          category: newExercise.exercise.category || ''
-        } : undefined;
-        
-        createdExercises.push({
-          ...newExercise,
-          exercise,
-          superset_group_id: workoutExercise.superset_group_id,
-          superset_order: workoutExercise.superset_order
-        });
-      } catch (err) {
-        console.error('Error creating completion exercise for exercise:', workoutExercise.id, err);
-        // Continue with other exercises even if one fails
-      }
-    }
-    
-    return createdExercises;
+    return exercises;
   } catch (error) {
     console.error('Error fetching workout completion exercises:', error);
     throw error;
@@ -348,13 +162,8 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
       const { data: currentExercise, error: fetchError } = await supabase
         .from('workout_completion_exercises')
         .select(`
-          id,
-          workout_completion_id,
-          exercise_id,
-          completed,
-          created_at,
-          result,
-          exercise:exercises (
+          *,
+          exercise:exercise_id (
             id,
             name,
             description,
@@ -413,28 +222,13 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
       }
     }
 
-    // Determine what fields need to be updated
-    const updateFields: any = {};
-    if (updates.result !== undefined) updateFields.result = updates.result;
-    if (updates.completed !== undefined) updateFields.completed = updates.completed;
-
-    // Only proceed with the update if there are fields to update
-    if (Object.keys(updateFields).length === 0) {
-      throw new Error('No valid fields to update');
-    }
-
     const { data, error } = await supabase
       .from('workout_completion_exercises')
-      .update(updateFields)
+      .update(updates)
       .eq('id', exerciseId)
       .select(`
-        id,
-        workout_completion_id,
-        exercise_id,
-        completed,
-        created_at,
-        result,
-        exercise:exercises (
+        *,
+        exercise:exercise_id (
           id,
           name,
           description,
@@ -444,14 +238,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
       `)
       .single();
 
-    if (error) {
-      console.error('Supabase error updating workout completion exercise:', error);
-      throw error;
-    }
-    
-    if (!data) {
-      throw new Error('No data returned from update operation');
-    }
+    if (error) throw error;
     
     // Use the type guard to check if exercise is valid
     const exercise = isValidExercise(data.exercise) ? {

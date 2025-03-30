@@ -6,10 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, ArrowUp, ArrowDown, RotateCw, X, ChevronUp, ChevronDown } from "lucide-react";
+import { Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
+import { DAYS_OF_WEEK } from "@/types/workout";
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
-import StandaloneSupersetManager from './StandaloneSupersetManager';
 import { toast } from "sonner";
 import { 
   createStandaloneWorkout, 
@@ -20,15 +20,11 @@ import {
   updateStandaloneWorkoutExercise,
   deleteStandaloneWorkoutExercise,
   moveStandaloneWorkoutExerciseUp,
-  moveStandaloneWorkoutExerciseDown,
-  fetchStandaloneSupersetGroups,
-  removeExerciseFromStandaloneSupersetGroup,
-  updateExerciseStandaloneSupersetOrder
+  moveStandaloneWorkoutExerciseDown
 } from '@/services/workout-service';
 import { useAuth } from '@/contexts/AuthContext';
-import { Exercise, SupersetGroup } from '@/types/workout';
+import { Exercise } from '@/types/workout';
 import { WorkoutType, WORKOUT_TYPES } from '@/components/client/WorkoutTypeIcon';
-import { groupExercisesBySuperset, moveSupersetExerciseUp, moveSupersetExerciseDown } from '@/services/workout/utils';
 
 interface StandaloneWorkoutFormProps {
   workoutId?: string;
@@ -52,7 +48,6 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
   const [workoutType, setWorkoutType] = useState<WorkoutType>('strength');
   
   const [exercises, setExercises] = useState<any[]>([]);
-  const [supersetGroups, setSupersetGroups] = useState<SupersetGroup[]>([]);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEdit);
@@ -94,9 +89,6 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
         const workoutExercises = await fetchStandaloneWorkoutExercises(workoutId);
         setExercises(workoutExercises);
       }
-      
-      const fetchedSupersetGroups = await fetchStandaloneSupersetGroups(workoutId);
-      setSupersetGroups(fetchedSupersetGroups);
       
       setIsLoading(false);
     } catch (error) {
@@ -263,100 +255,10 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
       setIsSubmitting(false);
     }
   };
-
-  const handleMoveSupersetExerciseUp = async (exerciseId: string) => {
-    if (!workoutId) return;
-    
-    try {
-      setIsSubmitting(true);
-      
-      const updatedExercises = moveSupersetExerciseUp(exercises, exerciseId);
-      setExercises(updatedExercises);
-      
-      const exercise = updatedExercises.find(ex => ex.id === exerciseId);
-      if (exercise) {
-        await updateExerciseStandaloneSupersetOrder(exerciseId, exercise.superset_order || 0);
-      }
-      
-    } catch (error) {
-      console.error('Error moving exercise up in superset:', error);
-      toast.error('Failed to reorder exercise in superset');
-      
-      const workoutExercises = await fetchStandaloneWorkoutExercises(workoutId);
-      setExercises(workoutExercises);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleMoveSupersetExerciseDown = async (exerciseId: string) => {
-    if (!workoutId) return;
-    
-    try {
-      setIsSubmitting(true);
-      
-      const updatedExercises = moveSupersetExerciseDown(exercises, exerciseId);
-      setExercises(updatedExercises);
-      
-      const exercise = updatedExercises.find(ex => ex.id === exerciseId);
-      if (exercise) {
-        await updateExerciseStandaloneSupersetOrder(exerciseId, exercise.superset_order || 0);
-      }
-      
-    } catch (error) {
-      console.error('Error moving exercise down in superset:', error);
-      toast.error('Failed to reorder exercise in superset');
-      
-      const workoutExercises = await fetchStandaloneWorkoutExercises(workoutId);
-      setExercises(workoutExercises);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
   
   const handleSelectExercise = (exercise: Exercise) => {
     console.log("Exercise selected:", exercise);
   };
-
-  const handleSupersetCreated = async () => {
-    if (!workoutId) return;
-    try {
-      const fetchedSupersetGroups = await fetchStandaloneSupersetGroups(workoutId);
-      setSupersetGroups(fetchedSupersetGroups);
-      
-      const updatedExercises = await fetchStandaloneWorkoutExercises(workoutId);
-      setExercises(updatedExercises);
-      
-      toast.success('Superset created successfully');
-    } catch (error) {
-      console.error('Error refreshing data after superset creation:', error);
-    }
-  };
-
-  const handleRemoveFromSuperset = async (exerciseId: string) => {
-    if (!workoutId) return;
-    
-    try {
-      setIsSubmitting(true);
-      
-      await removeExerciseFromStandaloneSupersetGroup(exerciseId);
-      
-      const fetchedSupersetGroups = await fetchStandaloneSupersetGroups(workoutId);
-      setSupersetGroups(fetchedSupersetGroups);
-      
-      const updatedExercises = await fetchStandaloneWorkoutExercises(workoutId);
-      setExercises(updatedExercises);
-      
-      toast.success('Exercise removed from superset');
-    } catch (error) {
-      console.error('Error removing exercise from superset:', error);
-      toast.error('Failed to remove from superset');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  const { exercisesBySupersetId, standaloneExercises } = groupExercisesBySuperset(exercises);
   
   if (isLoading) {
     return <div className="py-6">Loading workout details...</div>;
@@ -440,23 +342,15 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">Exercises</h3>
-            <div className="flex gap-2">
-              <StandaloneSupersetManager 
-                workoutId={workoutId}
-                exercises={exercises}
-                onSupersetCreated={handleSupersetCreated}
-                onError={(message) => toast.error(message)}
-              />
-              <Button 
-                onClick={() => setIsAddingExercise(true)} 
-                disabled={isAddingExercise}
-                size="sm"
-                className="gap-1"
-              >
-                <Plus className="h-4 w-4" />
-                Add Exercise
-              </Button>
-            </div>
+            <Button 
+              onClick={() => setIsAddingExercise(true)} 
+              disabled={isAddingExercise}
+              size="sm"
+              className="gap-1"
+            >
+              <Plus className="h-4 w-4" />
+              Add Exercise
+            </Button>
           </div>
           
           {isAddingExercise && (
@@ -481,142 +375,57 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
             </div>
           ) : (
             <ScrollArea className="h-[calc(100vh-450px)]">
-              <div className="space-y-4">
-                {supersetGroups.map(group => {
-                  const groupExercises = exercisesBySupersetId[group.id] || [];
-                  if (groupExercises.length === 0) return null;
-                  
-                  return (
-                    <div key={group.id} className="p-3 bg-primary/5 border-primary/20 border rounded-lg">
-                      <h3 className="text-base font-medium flex items-center gap-2 mb-3">
-                        <RotateCw className="h-4 w-4 text-primary" />
-                        {group.title || 'Superset'}
-                        <span className="bg-primary/20 text-primary text-xs px-2 py-0.5 rounded">
-                          Perform back-to-back
-                        </span>
-                      </h3>
-                      <div className="space-y-3">
-                        {groupExercises.map((exercise, index) => (
-                          <Card key={exercise.id} className="bg-background">
-                            <CardHeader className="pb-2">
-                              <div className="flex justify-between items-center">
-                                <CardTitle className="text-base">
-                                  {exercise.exercise?.name || 'Exercise'}
-                                </CardTitle>
-                                <div className="flex gap-1">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => handleMoveSupersetExerciseUp(exercise.id)}
-                                    disabled={index === 0 || isSubmitting}
-                                    title="Move up in superset"
-                                  >
-                                    <ChevronUp className="h-4 w-4" />
-                                    <span className="sr-only">Move up in superset</span>
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => handleMoveSupersetExerciseDown(exercise.id)}
-                                    disabled={index === groupExercises.length - 1 || isSubmitting}
-                                    title="Move down in superset"
-                                  >
-                                    <ChevronDown className="h-4 w-4" />
-                                    <span className="sr-only">Move down in superset</span>
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                    onClick={() => handleRemoveFromSuperset(exercise.id)}
-                                    disabled={isSubmitting}
-                                    title="Remove from superset"
-                                  >
-                                    <X className="h-4 w-4" />
-                                    <span className="sr-only">Remove from superset</span>
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                    onClick={() => handleDeleteExercise(exercise.id)}
-                                    disabled={isSubmitting}
-                                    title="Delete exercise"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Delete</span>
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardHeader>
-                            <CardContent>
-                              <WorkoutExerciseForm
-                                initialData={exercise}
-                                onSubmit={(data) => handleUpdateExercise(exercise.id, data)}
-                                isSubmitting={isSubmitting}
-                              />
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-                
-                <div className="space-y-3">
-                  {standaloneExercises.map((exercise, index) => (
-                    <Card key={exercise.id} className="bg-background">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-center">
-                          <CardTitle className="text-base">
-                            {exercise.exercise?.name || 'Exercise'}
-                          </CardTitle>
-                          <div className="flex gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleMoveExerciseUp(exercise.id)}
-                              disabled={index === 0 || isSubmitting}
-                            >
-                              <ArrowUp className="h-4 w-4" />
-                              <span className="sr-only">Move up</span>
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleMoveExerciseDown(exercise.id)}
-                              disabled={index === standaloneExercises.length - 1 || isSubmitting}
-                            >
-                              <ArrowDown className="h-4 w-4" />
-                              <span className="sr-only">Move down</span>
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteExercise(exercise.id)}
-                              disabled={isSubmitting}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Delete</span>
-                            </Button>
-                          </div>
+              <div className="space-y-3">
+                {exercises.map((exercise, index) => (
+                  <Card key={exercise.id} className="bg-background">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-base">
+                          {exercise.exercise?.name || 'Exercise'}
+                        </CardTitle>
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleMoveExerciseUp(exercise.id)}
+                            disabled={index === 0 || isSubmitting}
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                            <span className="sr-only">Move up</span>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleMoveExerciseDown(exercise.id)}
+                            disabled={index === exercises.length - 1 || isSubmitting}
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                            <span className="sr-only">Move down</span>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteExercise(exercise.id)}
+                            disabled={isSubmitting}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <WorkoutExerciseForm
-                          initialData={exercise}
-                          onSubmit={(data) => handleUpdateExercise(exercise.id, data)}
-                          isSubmitting={isSubmitting}
-                        />
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <WorkoutExerciseForm
+                        initialData={exercise}
+                        onSubmit={(data) => handleUpdateExercise(exercise.id, data)}
+                        isSubmitting={isSubmitting}
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </ScrollArea>
           )}

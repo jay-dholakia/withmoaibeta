@@ -10,16 +10,12 @@ export interface WorkoutExerciseFormProps {
   initialData: any;
   onSubmit: (data: any) => Promise<void>;
   isSubmitting?: boolean;
-  isSupersetMember?: boolean;
-  supersetOrder?: number | null;
 }
 
 export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   initialData,
   onSubmit,
-  isSubmitting = false,
-  isSupersetMember = false,
-  supersetOrder = null
+  isSubmitting = false
 }) => {
   const [sets, setSets] = useState(initialData?.sets || 3);
   const [reps, setReps] = useState(initialData?.reps || '10');
@@ -36,9 +32,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     e.preventDefault();
     
     const formData: any = {
-      notes: notes,
-      superset_group_id: initialData?.superset_group_id || null,
-      superset_order: supersetOrder
+      notes: notes
     };
 
     // Add fields based on log type
@@ -77,14 +71,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 text-center">
-      {isSupersetMember && (
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-2 mb-3 text-sm">
-          <p className="text-blue-700">
-            This exercise is part of a superset ({supersetOrder !== null ? `Position: ${supersetOrder + 1}` : ''})
-          </p>
-        </div>
-      )}
-    
       {logType === 'weight_reps' && (
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -238,7 +224,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       )}
       
       {/* Only show Rest input for weight_reps, reps and duration types */}
-      {(logType === 'weight_reps' || logType === 'duration' || logType === 'reps') && !isSupersetMember && (
+      {(logType === 'weight_reps' || logType === 'duration' || logType === 'reps') && (
         <div>
           <Label htmlFor="rest" className="text-center block">Rest (seconds)</Label>
           <Input
@@ -249,29 +235,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
             min={0}
             className="w-full text-center"
           />
-        </div>
-      )}
-
-      {/* For superset members, show rest only for the last exercise in the superset */}
-      {(logType === 'weight_reps' || logType === 'duration' || logType === 'reps') && isSupersetMember && (
-        <div>
-          <Label htmlFor="rest" className="text-center block">
-            {initialData?.is_last_in_superset ? "Rest after superset (seconds)" : "No rest (superset)"}
-          </Label>
-          {initialData?.is_last_in_superset ? (
-            <Input
-              id="rest"
-              type="number"
-              value={restSeconds}
-              onChange={(e) => setRestSeconds(Number(e.target.value))}
-              min={0}
-              className="w-full text-center"
-            />
-          ) : (
-            <p className="text-xs text-muted-foreground mt-1 text-center">
-              Minimal rest between superset exercises
-            </p>
-          )}
         </div>
       )}
       

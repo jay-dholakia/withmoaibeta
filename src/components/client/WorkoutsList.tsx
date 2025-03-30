@@ -30,10 +30,12 @@ const WorkoutsList = () => {
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
   const [isChangingFilter, setIsChangingFilter] = useState(false);
+  const [preventAutoNavigation, setPreventAutoNavigation] = useState(false);
 
   useEffect(() => {
     // Only handle navigation if we're not in the middle of a filter change
-    if (isChangingFilter) {
+    // and not explicitly preventing navigation
+    if (isChangingFilter || preventAutoNavigation) {
       return;
     }
     
@@ -54,7 +56,7 @@ const WorkoutsList = () => {
       console.log("Redirecting from invalid workout sub-page:", location.pathname);
       navigate("/client-dashboard/workouts");
     }
-  }, [location.pathname, navigate, isChangingFilter]);
+  }, [location.pathname, navigate, isChangingFilter, preventAutoNavigation]);
 
   const toggleWorkoutDetails = (workoutId: string) => {
     setExpandedWorkouts(prev => ({
@@ -64,25 +66,39 @@ const WorkoutsList = () => {
   };
 
   const handleWeekFilterChange = (value: string) => {
-    // Signal that we're changing the filter - this prevents unwanted navigation in the useEffect
+    // Signal that we're changing the filter - this prevents unwanted navigation
     setIsChangingFilter(true);
+    // Also set preventAutoNavigation to true to ensure no unwanted navigation happens
+    setPreventAutoNavigation(true);
     
     console.log(`Setting week filter to ${value}`);
     
-    // If we're not on the main workouts page, force navigation there
+    // If we're not on the main workouts page, force navigation there first
     if (location.pathname !== "/client-dashboard/workouts") {
       // Use replace to ensure back button works correctly
       navigate("/client-dashboard/workouts", { replace: true });
       
-      // Set the filter after a short delay to ensure navigation completes
+      // Set the filter after a delay to ensure navigation completes
       setTimeout(() => {
         setWeekFilter(value);
+        // Reset the flags after filter change is complete
         setIsChangingFilter(false);
-      }, 100);
+        
+        // Keep preventAutoNavigation true for a bit longer to prevent any navigation
+        // that might be triggered by React effects running after state changes
+        setTimeout(() => {
+          setPreventAutoNavigation(false);
+        }, 500);
+      }, 200);
     } else {
       // Already on the main page, just update the filter
       setWeekFilter(value);
-      setIsChangingFilter(false);
+      
+      // Reset the flags after a delay
+      setTimeout(() => {
+        setIsChangingFilter(false);
+        setPreventAutoNavigation(false);
+      }, 500);
     }
   };
 

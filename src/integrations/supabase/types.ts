@@ -286,7 +286,6 @@ export type Database = {
           description: string | null
           exercise_type: string
           id: string
-          log_type: string | null
           name: string
         }
         Insert: {
@@ -295,7 +294,6 @@ export type Database = {
           description?: string | null
           exercise_type?: string
           id?: string
-          log_type?: string | null
           name: string
         }
         Update: {
@@ -304,7 +302,6 @@ export type Database = {
           description?: string | null
           exercise_type?: string
           id?: string
-          log_type?: string | null
           name?: string
         }
         Relationships: []
@@ -672,67 +669,9 @@ export type Database = {
         }
         Relationships: []
       }
-      workout_completion_exercises: {
-        Row: {
-          completed: boolean | null
-          created_at: string | null
-          exercise_id: string
-          id: string
-          result: Json | null
-          workout_completion_id: string
-        }
-        Insert: {
-          completed?: boolean | null
-          created_at?: string | null
-          exercise_id: string
-          id?: string
-          result?: Json | null
-          workout_completion_id: string
-        }
-        Update: {
-          completed?: boolean | null
-          created_at?: string | null
-          exercise_id?: string
-          id?: string
-          result?: Json | null
-          workout_completion_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_exercise"
-            columns: ["exercise_id"]
-            isOneToOne: false
-            referencedRelation: "exercises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_workout_completion"
-            columns: ["workout_completion_id"]
-            isOneToOne: false
-            referencedRelation: "workout_completions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "workout_completion_exercises_exercise_id_fkey"
-            columns: ["exercise_id"]
-            isOneToOne: false
-            referencedRelation: "exercises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "workout_completion_exercises_workout_completion_id_fkey"
-            columns: ["workout_completion_id"]
-            isOneToOne: false
-            referencedRelation: "workout_completions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       workout_completions: {
         Row: {
           completed_at: string | null
-          created_at: string | null
-          description: string | null
           distance: string | null
           duration: string | null
           id: string
@@ -742,15 +681,11 @@ export type Database = {
           rating: number | null
           rest_day: boolean | null
           standalone_workout_id: string | null
-          title: string | null
           user_id: string
           workout_id: string | null
-          workout_type: string | null
         }
         Insert: {
           completed_at?: string | null
-          created_at?: string | null
-          description?: string | null
           distance?: string | null
           duration?: string | null
           id?: string
@@ -760,15 +695,11 @@ export type Database = {
           rating?: number | null
           rest_day?: boolean | null
           standalone_workout_id?: string | null
-          title?: string | null
           user_id: string
           workout_id?: string | null
-          workout_type?: string | null
         }
         Update: {
           completed_at?: string | null
-          created_at?: string | null
-          description?: string | null
           distance?: string | null
           duration?: string | null
           id?: string
@@ -778,10 +709,8 @@ export type Database = {
           rating?: number | null
           rest_day?: boolean | null
           standalone_workout_id?: string | null
-          title?: string | null
           user_id?: string
           workout_id?: string | null
-          workout_type?: string | null
         }
         Relationships: [
           {

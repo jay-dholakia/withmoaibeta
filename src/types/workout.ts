@@ -5,7 +5,6 @@ export interface Exercise {
   description: string | null;
   created_at: string;
   exercise_type: string; 
-  log_type?: 'weight_reps' | 'duration' | 'duration_distance' | 'reps';
 }
 
 export interface WorkoutProgram {

@@ -153,6 +153,7 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
 export const fetchWorkoutCompletionExercises = async (workoutCompletionId: string): Promise<WorkoutCompletionExercise[]> => {
   try {
     // First check if there are existing completion exercises
+    // Fix the ambiguous relationship by specifying the full foreign key path
     const { data: existingExercises, error: existingError } = await supabase
       .from('workout_completion_exercises')
       .select(`
@@ -162,7 +163,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
         completed,
         created_at,
         result,
-        exercise:exercise_id (
+        exercises:exercise_id (
           id,
           name,
           description,
@@ -184,12 +185,12 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
       // Map the data to ensure it conforms to the WorkoutCompletionExercise interface
       const exercises: WorkoutCompletionExercise[] = existingExercises.map(item => {
         // Use the type guard to check if exercise is valid
-        const exercise = isValidExercise(item.exercise) ? {
-          id: item.exercise.id || '',
-          name: item.exercise.name || '',
-          description: item.exercise.description || null,
-          log_type: (item.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
-          category: item.exercise.category || ''
+        const exercise = isValidExercise(item.exercises) ? {
+          id: item.exercises.id || '',
+          name: item.exercises.name || '',
+          description: item.exercises.description || null,
+          log_type: (item.exercises.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
+          category: item.exercises.category || ''
         } : undefined;
         
         return {
@@ -230,7 +231,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
         rest_seconds,
         superset_group_id,
         superset_order,
-        exercise:exercise_id (
+        exercises:exercise_id (
           id,
           name,
           description,
@@ -274,7 +275,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
             completed,
             created_at,
             result,
-            exercise:exercise_id (
+            exercises:exercise_id (
               id,
               name,
               description,
@@ -290,12 +291,12 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
         }
         
         // Use the type guard to check if exercise is valid
-        const exercise = isValidExercise(newExercise.exercise) ? {
-          id: newExercise.exercise.id || '',
-          name: newExercise.exercise.name || '',
-          description: newExercise.exercise.description || null,
-          log_type: (newExercise.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
-          category: newExercise.exercise.category || ''
+        const exercise = isValidExercise(newExercise.exercises) ? {
+          id: newExercise.exercises.id || '',
+          name: newExercise.exercises.name || '',
+          description: newExercise.exercises.description || null,
+          log_type: (newExercise.exercises.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
+          category: newExercise.exercises.category || ''
         } : undefined;
         
         createdExercises.push({
@@ -334,7 +335,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
           completed,
           created_at,
           result,
-          exercise:exercise_id (
+          exercises:exercise_id (
             id,
             name,
             description,
@@ -348,8 +349,8 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
       if (fetchError) throw fetchError;
 
       // Format the result based on the exercise type
-      if (isValidExercise(currentExercise.exercise)) {
-        const logType = currentExercise.exercise.log_type;
+      if (isValidExercise(currentExercise.exercises)) {
+        const logType = currentExercise.exercises.log_type;
         
         switch (logType) {
           case 'weight_reps':
@@ -414,7 +415,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
         completed,
         created_at,
         result,
-        exercise:exercise_id (
+        exercises:exercise_id (
           id,
           name,
           description,
@@ -434,12 +435,12 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
     }
     
     // Use the type guard to check if exercise is valid
-    const exercise = isValidExercise(data.exercise) ? {
-      id: data.exercise.id || '',
-      name: data.exercise.name || '',
-      description: data.exercise.description || null,
-      log_type: (data.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
-      category: data.exercise.category || ''
+    const exercise = isValidExercise(data.exercises) ? {
+      id: data.exercises.id || '',
+      name: data.exercises.name || '',
+      description: data.exercises.description || null,
+      log_type: (data.exercises.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
+      category: data.exercises.category || ''
     } : undefined;
     
     // Ensure the data conforms to the WorkoutCompletionExercise interface

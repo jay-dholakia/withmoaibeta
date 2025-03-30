@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Filter, Calendar, Clock, Award, Info, Send, CheckCircle2 } from 'lucide-react';
+import { Loader2, Users, Filter, Calendar, Clock, Award, Info, Send, CheckCircle2, Pencil } from 'lucide-react';
 import { 
   Table, 
   TableHeader, 
@@ -30,7 +30,7 @@ import {
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination';
-import { fetchCoachMessagesForClient } from '@/services/coach-client-message-service';
+import { fetchCoachMessagesForClient, CoachMessage } from '@/services/coach-client-message-service';
 
 interface Group {
   id: string;
@@ -40,6 +40,15 @@ interface Group {
   created_by: string;
 }
 
+interface MessageStatus {
+  hasMessage: boolean;
+  message?: {
+    id: string;
+    message: string;
+    weekOf: string;
+  };
+}
+
 const ClientsPage = () => {
   const { user } = useAuth();
   const [selectedGroupId, setSelectedGroupId] = useState<string | 'all'>('all');
@@ -47,8 +56,9 @@ const ClientsPage = () => {
   const [selectedClientEmail, setSelectedClientEmail] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<'details' | 'message'>('details');
-  const [messageStatus, setMessageStatus] = useState<Record<string, boolean>>({});
+  const [messageStatus, setMessageStatus] = useState<Record<string, MessageStatus>>({});
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editMessage, setEditMessage] = useState<{id: string; message: string; weekOf: string} | undefined>(undefined);
   const itemsPerPage = 10;
 
   const { data: clients, isLoading: isLoadingClients, error: clientsError } = useQuery({
@@ -99,18 +109,30 @@ const ClientsPage = () => {
       const diff = currentWeekDate.getDate() - day;
       currentWeekDate.setDate(diff); // Set to this week's Sunday
       
-      const statusObj: Record<string, boolean> = {};
+      const statusObj: Record<string, MessageStatus> = {};
       
       for (const client of paginatedClients) {
         try {
           const messages = await fetchCoachMessagesForClient(user.id, client.id);
-          const hasMessageThisWeek = messages.some(message => 
+          const thisWeekMessage = messages.find(message => 
             new Date(message.week_of).toDateString() === currentWeekDate.toDateString()
           );
-          statusObj[client.id] = hasMessageThisWeek;
+          
+          if (thisWeekMessage) {
+            statusObj[client.id] = {
+              hasMessage: true,
+              message: {
+                id: thisWeekMessage.id,
+                message: thisWeekMessage.message,
+                weekOf: thisWeekMessage.week_of
+              }
+            };
+          } else {
+            statusObj[client.id] = { hasMessage: false };
+          }
         } catch (error) {
           console.error(`Error checking message status for client ${client.id}:`, error);
-          statusObj[client.id] = false;
+          statusObj[client.id] = { hasMessage: false };
         }
       }
       
@@ -130,6 +152,7 @@ const ClientsPage = () => {
     setSelectedClientId(clientId);
     setSelectedClientEmail(clientEmail);
     setActiveTab('details');
+    setEditMessage(undefined);
     setSheetOpen(true);
   };
 
@@ -137,12 +160,26 @@ const ClientsPage = () => {
     setSelectedClientId(clientId);
     setSelectedClientEmail(clientEmail);
     setActiveTab('message');
+    setEditMessage(undefined);
     setSheetOpen(true);
+  };
+
+  const handleEditMessage = (clientId: string, clientEmail: string) => {
+    if (messageStatus[clientId]?.message) {
+      setSelectedClientId(clientId);
+      setSelectedClientEmail(clientEmail);
+      setActiveTab('message');
+      setEditMessage(messageStatus[clientId].message);
+      setSheetOpen(true);
+    } else {
+      toast.error("No message found to edit");
+    }
   };
 
   const handleCloseClientView = () => {
     setSelectedClientId(null);
     setSelectedClientEmail(null);
+    setEditMessage(undefined);
     setSheetOpen(false);
   };
 
@@ -275,10 +312,20 @@ const ClientsPage = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            {messageStatus[client.id] ? (
-                              <div className="flex items-center text-green-600">
-                                <CheckCircle2 className="h-4 w-4 mr-1" />
-                                <span className="text-xs">Sent</span>
+                            {messageStatus[client.id]?.hasMessage ? (
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center text-green-600">
+                                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                                  <span className="text-xs">Sent</span>
+                                </div>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="text-blue-500 hover:text-blue-600 -ml-1"
+                                  onClick={() => handleEditMessage(client.id, client.email)}
+                                >
+                                  <Pencil className="h-3 w-3 mr-1" /> Edit
+                                </Button>
                               </div>
                             ) : (
                               <Button 
@@ -361,6 +408,7 @@ const ClientsPage = () => {
                   clientId={selectedClientId}
                   clientEmail={selectedClientEmail}
                   onClose={handleCloseClientView}
+                  editMessage={editMessage}
                 />
               )}
             </>

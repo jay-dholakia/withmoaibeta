@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -15,13 +14,19 @@ interface ClientMessageFormProps {
   clientId: string;
   clientEmail: string;
   onClose: () => void;
+  editMessage?: {
+    id: string;
+    message: string;
+    weekOf: string;
+  };
 }
 
 const ClientMessageForm: React.FC<ClientMessageFormProps> = ({ 
   coachId, 
   clientId,
   clientEmail, 
-  onClose 
+  onClose,
+  editMessage 
 }) => {
   const [message, setMessage] = useState('');
   const [existingMessageId, setExistingMessageId] = useState<string | undefined>(undefined);
@@ -31,16 +36,20 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
   const [programWeek, setProgramWeek] = useState<number | null>(null);
   
   const getCurrentWeekDate = () => {
+    if (editMessage) {
+      return new Date(editMessage.weekOf);
+    }
+    
     const now = new Date();
     const day = now.getDay(); // 0 is Sunday
     const diff = now.getDate() - day;
     return new Date(now.setDate(diff));
   };
   
-  // Calculate which program week the client is currently in
   const calculateProgramWeek = async () => {
     try {
-      // Fetch the client's assigned program(s)
+      const dateToUse = getCurrentWeekDate();
+      
       const { data, error } = await supabase
         .from('program_assignments')
         .select('start_date, program_id')
@@ -56,30 +65,25 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
       if (data && data.length > 0) {
         const assignment = data[0];
         const startDate = new Date(assignment.start_date);
-        const currentDate = new Date();
         
-        // If program hasn't started yet, return Week 0
         if (isFuture(startDate)) {
           setProgramWeek(0);
           return 0;
         }
         
-        // If program hasn't started yet
-        if (currentDate < startDate) {
+        if (dateToUse < startDate) {
           setProgramWeek(0);
           return 0;
         }
         
-        // Calculate the difference in weeks
-        const diffTime = currentDate.getTime() - startDate.getTime();
+        const diffTime = dateToUse.getTime() - startDate.getTime();
         const diffDays = diffTime / (1000 * 3600 * 24);
-        const weekNumber = Math.floor(diffDays / 7) + 1; // +1 because we're in the first week when we start
+        const weekNumber = Math.floor(diffDays / 7) + 1;
         
         setProgramWeek(weekNumber);
         return weekNumber;
       }
       
-      // No program assigned
       setProgramWeek(0);
       return 0;
     } catch (error) {
@@ -93,7 +97,6 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
     const checkPermissionAndFetchMessage = async () => {
       setIsLoading(true);
       try {
-        // First check if coach can message this client
         const canMessage = await canCoachMessageClient(coachId, clientId);
         setHasPermission(canMessage);
         
@@ -103,22 +106,25 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
           return;
         }
         
-        // Calculate which program week the client is in
-        await calculateProgramWeek();
-        
-        // Then fetch existing messages
-        const messages = await fetchCoachMessagesForClient(coachId, clientId);
-        if (messages && messages.length > 0) {
-          const currentWeekDate = getCurrentWeekDate();
-          const currentWeekMessage = messages.find(msg => 
-            new Date(msg.week_of).getTime() === currentWeekDate.getTime()
-          );
-          
-          if (currentWeekMessage) {
-            setMessage(currentWeekMessage.message);
-            setExistingMessageId(currentWeekMessage.id);
+        if (editMessage) {
+          setMessage(editMessage.message);
+          setExistingMessageId(editMessage.id);
+        } else {
+          const messages = await fetchCoachMessagesForClient(coachId, clientId);
+          if (messages && messages.length > 0) {
+            const currentWeekDate = getCurrentWeekDate();
+            const currentWeekMessage = messages.find(msg => 
+              new Date(msg.week_of).getTime() === currentWeekDate.getTime()
+            );
+            
+            if (currentWeekMessage) {
+              setMessage(currentWeekMessage.message);
+              setExistingMessageId(currentWeekMessage.id);
+            }
           }
         }
+        
+        await calculateProgramWeek();
       } catch (error) {
         console.error('Error initializing message form:', error);
         toast.error('Could not load existing messages');
@@ -128,7 +134,7 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
     };
     
     checkPermissionAndFetchMessage();
-  }, [coachId, clientId]);
+  }, [coachId, clientId, editMessage]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,7 +178,7 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
     return (
       <div className="space-y-4">
         <SheetTitle className="text-lg font-medium">
-          Weekly Message for {clientEmail}
+          {editMessage ? 'Edit Message' : 'Weekly Message'} for {clientEmail}
         </SheetTitle>
         <div className="p-4 bg-destructive/10 text-destructive rounded-md">
           You don't have permission to send messages to this client. 
@@ -188,7 +194,7 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
   return (
     <div className="space-y-4">
       <SheetTitle className="text-lg font-medium">
-        Weekly Message for {clientEmail}
+        {editMessage ? 'Edit Message' : 'Weekly Message'} for {clientEmail}
       </SheetTitle>
       
       {isLoading ? (
@@ -235,7 +241,7 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
               ) : (
                 <>
                   <Send className="mr-2 h-4 w-4" />
-                  Save Message
+                  {editMessage ? 'Update' : 'Save'} Message
                 </>
               )}
             </Button>

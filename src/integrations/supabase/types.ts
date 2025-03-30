@@ -445,6 +445,42 @@ export type Database = {
         }
         Relationships: []
       }
+      invitation_usage: {
+        Row: {
+          id: string
+          invitation_id: string | null
+          used_at: string
+          user_email: string
+        }
+        Insert: {
+          id?: string
+          invitation_id?: string | null
+          used_at?: string
+          user_email: string
+        }
+        Update: {
+          id?: string
+          invitation_id?: string | null
+          used_at?: string
+          user_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitation_usage_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitation_usage_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "type_refresh_helper"
+            referencedColumns: ["invitation_id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           accepted: boolean | null
@@ -1126,6 +1162,14 @@ export type Database = {
           total_workouts_completed?: never
           user_id?: string | null
           user_type?: string | null
+        }
+        Relationships: []
+      }
+      type_refresh_helper: {
+        Row: {
+          invitation_id: string | null
+          share_link_type: string | null
+          usage_id: string | null
         }
         Relationships: []
       }

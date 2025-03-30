@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -16,7 +15,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Form schema
 const formSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -40,7 +38,6 @@ const RegisterPage = () => {
   const navigate = useNavigate();
   const { signUp, user } = useAuth();
   
-  // Form setup
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -50,7 +47,6 @@ const RegisterPage = () => {
     },
   });
   
-  // Handle redirection after successful registration
   useEffect(() => {
     if (user && type) {
       console.log('User authenticated, redirecting to dashboard for type:', type);
@@ -64,7 +60,6 @@ const RegisterPage = () => {
     }
   }, [user, type, navigate]);
   
-  // Validate the invitation token
   useEffect(() => {
     const validateToken = async () => {
       if (!token || !type) {
@@ -77,7 +72,6 @@ const RegisterPage = () => {
       try {
         console.log(`Validating token: ${token} for type: ${type}`);
         
-        // Check if token exists and is not expired
         const { data, error } = await supabase
           .from('invitations')
           .select('id, email, accepted, expires_at, is_share_link')
@@ -92,7 +86,6 @@ const RegisterPage = () => {
           setIsValid(false);
           toast.error('Invalid invitation link');
         } else if (data.accepted && !data.is_share_link) {
-          // Only check "accepted" status for non-shareable links
           setIsValid(false);
           toast.error('This invitation has already been used');
         } else if (new Date(data.expires_at) < new Date()) {
@@ -106,7 +99,6 @@ const RegisterPage = () => {
           setInvitationEmail(data.email || '');
           setInvitation(data);
           
-          // Only prefill email if this is a direct invitation (not a shareable link)
           if (data.email && !data.is_share_link) {
             form.setValue('email', data.email);
           }
@@ -123,7 +115,6 @@ const RegisterPage = () => {
     validateToken();
   }, [token, type, form]);
   
-  // Handle form submission
   const onSubmit = async (values: RegisterFormValues) => {
     if (!isValid || !type || !invitation) {
       toast.error('Invalid invitation');
@@ -133,51 +124,43 @@ const RegisterPage = () => {
     try {
       console.log('Starting registration with values:', values);
       
-      // Register the user
       const signUpResult = await signUp(values.email, values.password, type as 'client' | 'coach' | 'admin');
       console.log('Signup result:', signUpResult);
       
       if (isShareableLink) {
-        // For shareable links, track usage without marking as accepted
         const now = new Date().toISOString();
         
-        // Use the REST API directly since the TypeScript types aren't updated yet
-        const { error: usageError } = await supabase.from('invitation_usage')
+        const { error: usageError } = await supabase.from('invitation_usage' as any)
           .insert({ 
             invitation_id: invitation.id,
             user_email: values.email,
             used_at: now
-          } as any); // Using 'as any' to bypass TypeScript error temporarily
+          } as any);
           
         if (usageError) {
           console.error('Error tracking invitation usage:', usageError);
-          // Continue anyway since the user has been created
         } else {
           console.log('Invitation usage tracked successfully');
         }
       } else {
-        // For regular invitations, mark as accepted
         const now = new Date().toISOString();
         const { error: updateError } = await supabase
           .from('invitations')
           .update({ 
             accepted: true,
             accepted_at: now,
-            email: values.email // Update the email in case this was a shareable link
+            email: values.email
           })
           .eq('id', invitation.id);
         
         if (updateError) {
           console.error('Error updating invitation:', updateError);
-          // Continue anyway since the user has been created
         } else {
           console.log('Invitation marked as accepted successfully');
         }
       }
       
       toast.success('Registration successful!');
-      
-      // The useEffect hook will handle redirection after authentication
     } catch (error) {
       console.error('Error in registration:', error);
       toast.error('Registration failed. Please try again.');

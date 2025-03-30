@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WorkoutType } from './WorkoutTypeIcon';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MemberProgressProps {
   groupId: string;
@@ -26,6 +27,7 @@ interface GroupMember {
 }
 
 const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
+  const { user } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Fetch group members
@@ -69,8 +71,8 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
               // Get assigned workouts count for the current week
               const { data: assignedCount, error: countError } = await supabase
                 .rpc('count_workouts_for_user_and_week', {
-                  user_id: member.user_id,
-                  week_number: null // null means current week
+                  user_id_param: member.user_id,
+                  week_number_param: null // null means current week
                 });
               
               const completedDates: Date[] = [];
@@ -97,7 +99,7 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
                 completedDates,
                 lifeHappensDates,
                 totalAssigned: assignedCount || 4, // Default to 4 if count not available
-                isCurrentUser: false // Will be set later
+                isCurrentUser: member.user_id === user?.id
               };
             } catch (error) {
               console.error('Error fetching member data:', error);
@@ -205,7 +207,7 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
             count={member.completedDates.length + member.lifeHappensDates.length}
             total={member.totalAssigned}
             showProgressBar={true}
-            showDayCircles={false}
+            showDayCircles={true}
             compact={true}
           />
         </div>

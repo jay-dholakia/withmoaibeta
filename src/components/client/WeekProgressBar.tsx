@@ -1,7 +1,7 @@
-
 import React, { useMemo } from 'react';
 import { format, isThisWeek, startOfWeek, endOfWeek, addDays, isSameDay } from 'date-fns';
-import WorkoutTypeIcon, { WorkoutType } from './WorkoutTypeIcon';
+import { WorkoutType } from './WorkoutTypeIcon';
+import WorkoutTypeIcon from './WorkoutTypeIcon';
 
 interface WeekProgressBarProps {
   label?: string;
@@ -34,7 +34,6 @@ export const WeekProgressBar = ({
   hasError = false,
   compact = false,
 }: WeekProgressBarProps) => {
-  // Get current week's start and end dates (Monday to Sunday)
   const { weekStart, weekDays } = useMemo(() => {
     const start = startOfWeek(new Date(), { weekStartsOn: 1 });
     const days = [];
@@ -49,16 +48,10 @@ export const WeekProgressBar = ({
     };
   }, []);
   
-  // Check if each day of this week has a completed workout
   const dayStatus = useMemo(() => {
     return weekDays.map(day => {
-      // Check for completed workout
       const hasCompleted = completedDates.some(date => isSameDay(date, day));
-      
-      // Check for life happens pass
       const hasLifeHappens = lifeHappensDates.some(date => isSameDay(date, day));
-      
-      // Get workout type for this date if available
       const dateStr = format(day, 'yyyy-MM-dd');
       const workoutType = workoutTypes[dateStr] || 'strength';
       
@@ -104,7 +97,7 @@ export const WeekProgressBar = ({
     return (
       <div className="flex justify-between items-center mt-3 px-1">
         {dayStatus.map((day, index) => {
-          const dayName = format(day.date, 'E')[0]; // First letter of day name
+          const dayName = format(day.date, 'E')[0];
           const isToday = isSameDay(today, day.date);
           
           let bgColor = 'bg-gray-100';
@@ -112,19 +105,16 @@ export const WeekProgressBar = ({
           let border = '';
           
           if (isToday) {
-            // Today's circle has a border
             border = 'border-2 border-gray-300';
             textColor = 'text-gray-500';
           }
           
           if (day.isLifeHappens) {
-            // Life happens pass - yellow/gold
             bgColor = 'bg-yellow-100';
             textColor = 'text-yellow-700';
           }
           
           if (day.isCompleted) {
-            // Completed workout
             bgColor = `${color}/90`;
             textColor = 'text-white';
           }

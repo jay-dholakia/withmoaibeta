@@ -158,7 +158,7 @@ serve(async (req) => {
       
       try {
         // Verify the JWT token and get the user
-        const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser(authHeader);
         
         if (userError || !user) {
           console.error("Invalid token or user not found:", userError);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -66,8 +65,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   
   const [focusStates, setFocusStates] = useState({
     firstName: !!firstName,
-    lastName: !!lastName,
-    city: !!city
+    lastName: !!lastName
   });
 
   // Parse and set height from profile data
@@ -96,8 +94,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     
     setFocusStates({
       firstName: !!profile.first_name,
-      lastName: !!profile.last_name,
-      city: !!profile.city
+      lastName: !!profile.last_name
     });
   }, [profile]);
 
@@ -284,26 +281,18 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="relative">
+        <div>
+          <h3 className="text-sm font-medium mb-2">City</h3>
           <Input 
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            onFocus={() => handleFocus('city')}
-            onBlur={() => handleBlur('city', city)}
-            className={`h-14 ${focusStates.city ? 'pt-7 pb-2' : 'py-4'}`}
+            className="h-14"
+            placeholder="Enter your city"
           />
-          <span 
-            className={`absolute left-3 pointer-events-none transition-all duration-200 ${
-              focusStates.city 
-                ? 'top-2 text-xs text-muted-foreground' 
-                : 'top-1/2 -translate-y-1/2 text-muted-foreground'
-            }`}
-          >
-            City
-          </span>
         </div>
         
         <div>
+          <h3 className="text-sm font-medium mb-2">State</h3>
           <Select
             value={state}
             onValueChange={setState}

@@ -231,13 +231,13 @@ const MoaiPage = () => {
             <span className="w-full">🏃‍♀️ {group.name} 🏃‍♂️</span>
             <Button 
               variant="outline" 
-              size="sm" 
-              className="ml-auto flex items-center gap-1" 
+              size="icon" 
+              className={isResetingGroup ? "animate-spin" : ""} 
               onClick={resetGroupAssignment}
               disabled={isResetingGroup}
+              title="Reset Group Assignment"
             >
-              <RefreshCw className={`h-3 w-3 ${isResetingGroup ? 'animate-spin' : ''}`} />
-              <span className="text-xs">Reset</span>
+              <RefreshCw className="h-4 w-4" />
             </Button>
           </CardTitle>
         </CardHeader>

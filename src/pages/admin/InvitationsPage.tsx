@@ -24,6 +24,7 @@ interface InvitationResponse {
   email?: string;
   emailErrorCode?: string;
   emailResult?: any;
+  message?: string;
 }
 
 const InvitationsPage: React.FC = () => {
@@ -128,17 +129,19 @@ const InvitationsPage: React.FC = () => {
         const inviteLink = `${siteUrl}/register?token=${token}&type=${userType}`;
         
         try {
-          console.log("Invoking send-invitation edge function");
+          console.log("Invoking send-invitation edge function with payload:", {
+            email,
+            userType,
+            siteUrl,
+            invitationId: data.id
+          });
+          
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
             body: {
               email,
               userType,
               siteUrl,
               invitationId: data.id
-            },
-            headers: {
-              Authorization: `Bearer ${session?.access_token}`,
-              'Content-Type': 'application/json'
             }
           });
           
@@ -161,7 +164,8 @@ const InvitationsPage: React.FC = () => {
               inviteLink,
               emailError: responseData.emailError,
               emailErrorCode: responseData.emailErrorCode,
-              email
+              email,
+              message: responseData.message
             };
           }
           
@@ -173,7 +177,8 @@ const InvitationsPage: React.FC = () => {
             expiresAt: data.expires_at,
             inviteLink,
             email,
-            emailResult: responseData?.emailResult
+            emailResult: responseData?.emailResult,
+            message: responseData?.message
           };
         } catch (emailError) {
           console.error("Failed to send email, but invitation created:", emailError);
@@ -198,7 +203,7 @@ const InvitationsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       
       if (data.emailSent) {
-        toast.success(`Invitation sent to ${data.email || 'user'} successfully!`);
+        toast.success(`Invitation sent to ${data.email || 'user'} successfully! ${data.message || ''}`);
         console.log("Email send result:", data.emailResult);
       } else {
         toast.info(`Invitation created for ${data.email || 'user'}, but email could not be sent: ${data.emailError || 'Unknown error'}. Please share the invitation link manually.`, {
@@ -243,6 +248,14 @@ const InvitationsPage: React.FC = () => {
         const inviteLink = `${siteUrl}/register?token=${newToken}&type=${invitation.user_type}`;
         
         try {
+          console.log("Invoking send-invitation edge function for resend with payload:", {
+            email: invitation.email,
+            userType: invitation.user_type,
+            siteUrl,
+            resend: true,
+            invitationId: invitation.id
+          });
+          
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
             body: {
               email: invitation.email,
@@ -250,10 +263,6 @@ const InvitationsPage: React.FC = () => {
               siteUrl,
               resend: true,
               invitationId: invitation.id
-            },
-            headers: {
-              Authorization: `Bearer ${session?.access_token}`,
-              'Content-Type': 'application/json'
             }
           });
           
@@ -264,14 +273,17 @@ const InvitationsPage: React.FC = () => {
             throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
           }
           
+          const responseData = edgeFunctionResponse.data;
           return {
             success: true,
-            emailSent: true,
+            emailSent: responseData?.emailSent || false,
             invitationId: data.id,
             token: data.token,
             expiresAt: data.expires_at,
             inviteLink,
-            email: invitation.email
+            email: invitation.email,
+            emailError: responseData?.emailError,
+            message: responseData?.message
           };
         } catch (emailError) {
           console.error("Failed to send email, but invitation updated:", emailError);
@@ -297,9 +309,9 @@ const InvitationsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       
       if (data.emailSent) {
-        toast.success(`Invitation resent to ${invitation.email} successfully!`);
+        toast.success(`Invitation resent to ${invitation.email} successfully! ${data.message || ''}`);
       } else {
-        toast.info(`Invitation updated for ${invitation.email}. Email service is unavailable - please share the invitation link manually.`, {
+        toast.info(`Invitation updated for ${invitation.email}. ${data.emailError ? `Email error: ${data.emailError}.` : 'Email service is unavailable.'} Please share the invitation link manually.`, {
           duration: 5000
         });
       }

@@ -31,8 +31,14 @@ export const InvitationForm: React.FC<InvitationFormProps> = ({
       return;
     }
     
+    if (!email.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
+      console.log(`Submitting invitation for ${email} with type ${userType}`);
       await onInvite(email, userType);
       setEmail('');
       setIsDialogOpen(false);

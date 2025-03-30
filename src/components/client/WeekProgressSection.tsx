@@ -112,6 +112,9 @@ export const WeekProgressSection = ({
   const hasAssignedWorkouts = finalAssignedWorkoutsCount > 0;
   const hasError = isWorkoutsCountError && assignedWorkoutsCount === undefined;
   
+  // Get user display name
+  const userDisplayName = user?.email ? user.email.split('@')[0] : 'You';
+  
   return (
     <div className="w-full">
       {showPersonal && (
@@ -122,6 +125,8 @@ export const WeekProgressSection = ({
           count={totalCompletedThisWeek}
           total={finalAssignedWorkoutsCount}
           workoutTypesMap={workoutTypesMap}
+          userName={userDisplayName}
+          isCurrentUser={true}
         />
       )}
       

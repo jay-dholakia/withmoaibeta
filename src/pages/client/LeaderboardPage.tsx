@@ -118,6 +118,9 @@ const LeaderboardPage = () => {
   
   const totalWorkouts = assignedWorkoutsCount || 5; // Default to 5 if undefined
   
+  // Get user display name
+  const userDisplayName = user?.email ? user.email.split('@')[0] : 'You';
+  
   return (
     <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">
       <div className="w-full">
@@ -131,6 +134,8 @@ const LeaderboardPage = () => {
             count={totalCompletedThisWeek}
             total={totalWorkouts}
             workoutTypesMap={workoutTypesMap}
+            userName={userDisplayName}
+            isCurrentUser={true}
           />
         </div>
       </div>

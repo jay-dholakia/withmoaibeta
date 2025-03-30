@@ -166,6 +166,16 @@ const WorkoutsList = () => {
     });
   }, [workouts, weekFilter]);
 
+  // This function prevents event propagation to stop accidental redirects
+  const handleWeekFilterChange = (value: string, event?: React.MouseEvent | React.TouchEvent) => {
+    // Stop event propagation if the event exists
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    setWeekFilter(value);
+  };
+
   if (isLoading) {
     return (
       <div className="py-10 text-center">
@@ -209,7 +219,7 @@ const WorkoutsList = () => {
           <div className="flex justify-center mb-2">
             <Select
               value={weekFilter}
-              onValueChange={setWeekFilter}
+              onValueChange={(value) => handleWeekFilterChange(value)}
             >
               <SelectTrigger className="w-[200px] h-8 text-sm">
                 <div className="flex items-center gap-1">
@@ -217,13 +227,22 @@ const WorkoutsList = () => {
                   <SelectValue placeholder="Filter by week" />
                 </div>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent onPointerDownOutside={(e) => e.preventDefault()}>
                 {availableWeeks
                   .sort((a, b) => a - b)
                   .map((weekNumber) => (
                     <SelectItem 
                       key={weekNumber} 
                       value={weekNumber.toString()}
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleWeekFilterChange(weekNumber.toString(), e);
+                      }}
                     >
                       {`Week ${weekNumber}`}
                     </SelectItem>

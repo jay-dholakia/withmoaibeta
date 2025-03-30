@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, UserRound, AlertTriangle, Search, RefreshCw } from 'lucide-react';
+import { Loader2, Users, UserRound, RefreshCw } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
@@ -108,18 +107,6 @@ const MoaiPage = () => {
     setIsFixingGroup(true);
     
     try {
-      const { data: availableGroups, error: groupsError } = await supabase
-        .from('groups')
-        .select('id, name')
-        .order('created_at', { ascending: false });
-        
-      if (groupsError) {
-        console.error('Error checking available groups:', groupsError);
-        return;
-      }
-      
-      console.log('Available groups before fix:', availableGroups);
-      
       const result = await ensureUserHasGroup(user.id);
       console.log('Group assignment fix result:', result);
       
@@ -136,48 +123,6 @@ const MoaiPage = () => {
       console.error('Error fixing group assignment:', err);
     } finally {
       setIsFixingGroup(false);
-    }
-  };
-  
-  const runDiagnostics = async () => {
-    if (!user?.id) {
-      return;
-    }
-    
-    try {
-      const userExists = await verifyUserExistsInAuth(user.id);
-      if (!userExists) {
-        console.error('User profile not found in database!');
-      }
-      
-      const { data: membershipData, error: membershipError } = await supabase
-        .from('group_members')
-        .select('*')
-        .eq('user_id', user.id);
-        
-      if (membershipError) {
-        console.error('Error checking memberships:', membershipError);
-      } else {
-        console.log('Direct membership check:', membershipData);
-      }
-      
-      const { data: availableGroups, error: groupsError } = await supabase
-        .from('groups')
-        .select('id, name');
-        
-      if (groupsError) {
-        console.error('Error checking available groups:', groupsError);
-      } else {
-        console.log('Available groups:', availableGroups);
-      }
-      
-      const result = await diagnoseGroupAccess(user.id);
-      console.log('Comprehensive diagnostic result:', result);
-      setDiagnosticDetails(result);
-      
-      refetch();
-    } catch (err) {
-      console.error('Error running diagnostics:', err);
     }
   };
   
@@ -205,66 +150,22 @@ const MoaiPage = () => {
         <Card className="text-center py-12">
           <CardContent>
             <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h2 className="text-xl font-medium mb-2">No Groups Found</h2>
+            <h2 className="text-xl font-medium mb-2">Moai Assignment Pending</h2>
             <p className="text-muted-foreground">
-              You're not currently assigned to any group. Groups help you stay motivated 
+              You'll be assigned to a Moai group shortly. Moai groups help you stay motivated 
               with others on the same fitness journey.
             </p>
-            <p className="text-sm text-muted-foreground mt-4">
-              User ID: {user?.id || 'Not logged in'}
-            </p>
             
-            <div className="mt-6 flex justify-center gap-3">
+            <div className="mt-6 flex justify-center">
               <Button 
                 onClick={fixGroupAssignment}
                 className="flex items-center gap-2"
                 disabled={isFixingGroup}
               >
                 <RefreshCw className={`h-4 w-4 ${isFixingGroup ? 'animate-spin' : ''}`} />
-                {isFixingGroup ? 'Fixing...' : 'Fix Group Assignment'}
-              </Button>
-              
-              <Button 
-                variant="outline"
-                onClick={runDiagnostics}
-                className="flex items-center gap-2"
-              >
-                <Search className="h-4 w-4" />
-                Deep Diagnostic Scan
+                {isFixingGroup ? 'Assigning...' : 'Assign Me Now'}
               </Button>
             </div>
-            
-            {diagnosticDetails && (
-              <div className="mt-6 p-4 border rounded text-left text-sm bg-gray-50">
-                <h3 className="font-medium mb-2">Diagnostic Results:</h3>
-                <div className="space-y-1">
-                  <p>Status: {diagnosticDetails.success ? 'Success' : 'Failed'}</p>
-                  <p>Has Memberships: {diagnosticDetails.hasGroupMemberships ? 'Yes' : 'No'}</p>
-                  {diagnosticDetails.message && <p>Message: {diagnosticDetails.message}</p>}
-                  {diagnosticDetails.groupMembershipsCount !== undefined && (
-                    <p>Membership Count: {diagnosticDetails.groupMembershipsCount}</p>
-                  )}
-                  {diagnosticDetails.groupMemberships && diagnosticDetails.groupMemberships.length > 0 && (
-                    <div>
-                      <p className="font-medium">Membership Details:</p>
-                      <pre className="text-xs bg-gray-100 p-2 overflow-auto max-h-32">
-                        {JSON.stringify(diagnosticDetails.groupMemberships, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                  {diagnosticDetails.availableGroups && diagnosticDetails.availableGroups.length > 0 && (
-                    <div>
-                      <p className="font-medium">Available Groups:</p>
-                      <ul className="list-disc pl-5 text-xs">
-                        {diagnosticDetails.availableGroups.map((g: any) => (
-                          <li key={g.id}>{g.name} ({g.id.substring(0, 8)}...)</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,6 +21,7 @@ interface InvitationResponse {
   token: string;
   expiresAt: string;
   inviteLink: string;
+  isShareLink?: boolean;
   emailError?: string;
   email?: string;
   emailErrorCode?: string;
@@ -29,6 +31,7 @@ interface InvitationResponse {
 
 const InvitationsPage: React.FC = () => {
   const [inviteLink, setInviteLink] = useState('');
+  const [isShareableLink, setIsShareableLink] = useState(false);
   const [resendingInvitations, setResendingInvitations] = useState<Record<string, boolean>>({});
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -49,17 +52,6 @@ const InvitationsPage: React.FC = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      
-      const debugEmail = "jdholakia12@gmail.com";
-      const debugInvitation = data?.find(inv => inv.email === debugEmail);
-      if (debugInvitation) {
-        console.log(`Debug - Found invitation for ${debugEmail}:`, debugInvitation);
-        console.log(`Debug - Invitation accepted: ${debugInvitation.accepted}`);
-        console.log(`Debug - Is accepted value a boolean?`, typeof debugInvitation.accepted === 'boolean');
-        console.log(`Debug - Invitation accepted_at:`, debugInvitation.accepted_at);
-      } else {
-        console.log(`Debug - Invitation for ${debugEmail} not found in results`);
-      }
       
       return data as Invitation[];
     },
@@ -88,7 +80,7 @@ const InvitationsPage: React.FC = () => {
           if (payload.eventType === 'UPDATE' && 
               payload.new.accepted === true && 
               payload.old.accepted === false) {
-            toast.success(`Invitation for ${payload.new.email} has been accepted!`);
+            toast.success(`Invitation for ${payload.new.email || 'user'} has been accepted!`);
           }
         }
       )
@@ -137,6 +129,7 @@ const InvitationsPage: React.FC = () => {
           token: responseData?.token,
           expiresAt: responseData?.expiresAt,
           inviteLink: responseData?.inviteLink,
+          isShareLink: responseData?.isShareLink || false,
           emailError: responseData?.emailError,
           email,
           emailResult: responseData?.emailResult,
@@ -149,6 +142,7 @@ const InvitationsPage: React.FC = () => {
     },
     onSuccess: (data) => {
       setInviteLink(data.inviteLink);
+      setIsShareableLink(data.isShareLink || false);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       
       if (data.emailSent) {
@@ -163,6 +157,70 @@ const InvitationsPage: React.FC = () => {
     onError: (error: Error) => {
       console.error("Invitation error details:", error);
       toast.error(`Failed to create invitation: ${error.message}`);
+    }
+  });
+
+  const createShareLink = useMutation({
+    mutationFn: async (userType: 'client' | 'coach' | 'admin'): Promise<InvitationResponse> => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        const accessToken = currentSession?.access_token;
+        
+        if (!accessToken) {
+          throw new Error("Authentication token is missing. Please log in again.");
+        }
+        
+        const siteUrl = window.location.origin;
+        
+        console.log("Invoking send-invitation edge function to create share link:", { userType, siteUrl });
+        
+        const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
+          body: { 
+            userType, 
+            siteUrl,
+            generateShareLink: true
+          },
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        });
+        
+        console.log("Edge function response for share link:", edgeFunctionResponse);
+        
+        if (edgeFunctionResponse.error) {
+          console.error("Edge function error:", edgeFunctionResponse.error);
+          throw new Error(`Share link error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
+        }
+        
+        const responseData = edgeFunctionResponse.data;
+        
+        return {
+          success: true,
+          emailSent: false,
+          invitationId: responseData?.invitationId,
+          token: responseData?.token,
+          expiresAt: responseData?.expiresAt,
+          inviteLink: responseData?.inviteLink,
+          isShareLink: true,
+          message: responseData?.message
+        };
+      } catch (error: any) {
+        console.error("Error creating share link:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      setInviteLink(data.inviteLink);
+      setIsShareableLink(true);
+      queryClient.invalidateQueries({ queryKey: ['invitations'] });
+      
+      toast.success(`Shareable registration link created successfully!`, {
+        duration: 5000
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Share link error details:", error);
+      toast.error(`Failed to create shareable link: ${error.message}`);
     }
   });
   
@@ -212,6 +270,7 @@ const InvitationsPage: React.FC = () => {
           token: responseData?.token,
           expiresAt: responseData?.expiresAt,
           inviteLink: responseData?.inviteLink,
+          isShareLink: responseData?.isShareLink || false,
           email: invitation.email,
           emailError: responseData?.emailError,
           message: responseData?.message
@@ -224,10 +283,13 @@ const InvitationsPage: React.FC = () => {
     onSuccess: (data, invitation) => {
       setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
       setInviteLink(data.inviteLink);
+      setIsShareableLink(data.isShareLink || false);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       
       if (data.emailSent) {
         toast.success(`Invitation resent to ${invitation.email} successfully! ${data.message || ''}`);
+      } else if (data.isShareLink) {
+        toast.success(`Shareable link refreshed successfully!`);
       } else {
         toast.info(`Invitation updated for ${invitation.email}. ${data.emailError ? `Email error: ${data.emailError}.` : 'Email service is unavailable.'} Please share the invitation link manually.`, {
           duration: 5000
@@ -245,6 +307,10 @@ const InvitationsPage: React.FC = () => {
     return sendInvitation.mutateAsync({ email, userType });
   };
   
+  const handleCreateShareLink = async (userType: 'client' | 'coach' | 'admin') => {
+    return createShareLink.mutateAsync(userType);
+  };
+  
   const handleResendInvite = (invitation: Invitation) => {
     resendInvitation.mutate(invitation);
   };
@@ -252,6 +318,7 @@ const InvitationsPage: React.FC = () => {
   const handleCopyInvite = (token: string, userType: string) => {
     const link = `${window.location.origin}/register?token=${token}&type=${userType}`;
     setInviteLink(link);
+    setIsShareableLink(!!invitations?.find(inv => inv.token === token)?.is_share_link);
     navigator.clipboard.writeText(link);
     toast.success('Invitation link copied to clipboard');
   };
@@ -280,11 +347,17 @@ const InvitationsPage: React.FC = () => {
           
           <div className="flex space-x-2">
             <InvitationForm 
-              onInvite={handleInvite} 
-              isLoading={sendInvitation.isPending} 
+              onInvite={handleInvite}
+              onCreateShareLink={handleCreateShareLink} 
+              isLoading={sendInvitation.isPending || createShareLink.isPending} 
             />
             
-            {inviteLink && <InvitationLinkDialog inviteLink={inviteLink} />}
+            {inviteLink && (
+              <InvitationLinkDialog 
+                inviteLink={inviteLink} 
+                isShareLink={isShareableLink}
+              />
+            )}
           </div>
         </div>
         

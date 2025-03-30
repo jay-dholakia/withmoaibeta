@@ -34,6 +34,7 @@ const RegisterPage = () => {
   const type = searchParams.get('type');
   const [loading, setLoading] = useState(true);
   const [isValid, setIsValid] = useState(false);
+  const [isShareableLink, setIsShareableLink] = useState(false);
   const [invitationEmail, setInvitationEmail] = useState('');
   const [invitation, setInvitation] = useState<any>(null);
   const navigate = useNavigate();
@@ -79,7 +80,7 @@ const RegisterPage = () => {
         // Check if token exists and is not expired
         const { data, error } = await supabase
           .from('invitations')
-          .select('id, email, accepted, expires_at')
+          .select('id, email, accepted, expires_at, is_share_link')
           .eq('token', token)
           .eq('user_type', type)
           .single();
@@ -100,9 +101,14 @@ const RegisterPage = () => {
         } else {
           console.log('Invitation is valid:', data);
           setIsValid(true);
-          setInvitationEmail(data.email);
+          setIsShareableLink(data.is_share_link || false);
+          setInvitationEmail(data.email || '');
           setInvitation(data);
-          form.setValue('email', data.email);
+          
+          // Only prefill email if this is a direct invitation (not a shareable link)
+          if (data.email && !data.is_share_link) {
+            form.setValue('email', data.email);
+          }
         }
       } catch (error) {
         console.error('Error in validateToken:', error);
@@ -136,7 +142,8 @@ const RegisterPage = () => {
         .from('invitations')
         .update({ 
           accepted: true,
-          accepted_at: now
+          accepted_at: now,
+          email: values.email // Update the email in case this was a shareable link
         })
         .eq('id', invitation.id);
       
@@ -204,7 +211,14 @@ const RegisterPage = () => {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input {...field} type="email" readOnly disabled className="bg-muted" />
+                    <Input 
+                      {...field} 
+                      type="email" 
+                      readOnly={!isShareableLink && !!invitationEmail}
+                      disabled={!isShareableLink && !!invitationEmail}
+                      className={!isShareableLink && !!invitationEmail ? "bg-muted" : ""}
+                      placeholder={isShareableLink ? "Enter your email address" : ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -8,11 +8,12 @@ const corsHeaders = {
 };
 
 interface InvitationPayload {
-  email: string;
+  email?: string;
   userType: "client" | "coach" | "admin";
   siteUrl?: string;
   resend?: boolean;
   invitationId?: string;
+  generateShareLink?: boolean;
 }
 
 serve(async (req) => {
@@ -98,7 +99,8 @@ serve(async (req) => {
         userType: payload.userType,
         hasSiteUrl: !!payload.siteUrl,
         resend: payload.resend,
-        invitationId: payload.invitationId
+        invitationId: payload.invitationId,
+        generateShareLink: payload.generateShareLink
       });
       
     } catch (bodyError) {
@@ -112,14 +114,15 @@ serve(async (req) => {
       );
     }
 
-    const { email, userType, resend: isResend, invitationId } = payload;
+    const { email, userType, resend: isResend, invitationId, generateShareLink } = payload;
 
-    if (!email || !userType) {
-      console.error("Missing required fields:", { email, userType });
+    // Check for either email or generateShareLink flag
+    if ((!email && !generateShareLink) || !userType) {
+      console.error("Missing required fields:", { email, userType, generateShareLink });
       return new Response(
         JSON.stringify({ 
-          error: "Email and userType are required",
-          receivedPayload: { email, userType, isResend, invitationId }
+          error: "Either email or generateShareLink flag is required, along with userType",
+          receivedPayload: { email, userType, isResend, invitationId, generateShareLink }
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -247,7 +250,7 @@ serve(async (req) => {
         expiresAt: invitation.expires_at
       });
     } else {
-      console.log("Creating new invitation for:", { email, userType });
+      console.log("Creating new invitation");
 
       // Generate token and expiration date
       const token = crypto.randomUUID();
@@ -267,16 +270,20 @@ serve(async (req) => {
       }
 
       // Insert the invitation
+      const invitationData = {
+        email: email || null, // May be null for shareable links
+        user_type: userType,
+        invited_by: user.id,
+        token,
+        expires_at: expiresAt.toISOString(),
+        accepted: false,
+        is_share_link: !!generateShareLink,
+        share_link_type: generateShareLink ? userType : null
+      };
+
       const { data: newInvitation, error: invitationError } = await supabaseClient
         .from("invitations")
-        .insert({
-          email,
-          user_type: userType,
-          invited_by: user.id,
-          token,
-          expires_at: expiresAt.toISOString(),
-          accepted: false
-        })
+        .insert(invitationData)
         .select()
         .single();
 
@@ -292,7 +299,8 @@ serve(async (req) => {
       console.log("Invitation created successfully:", { 
         invitationId: invitation.id, 
         token: invitation.token,
-        expiresAt: invitation.expires_at
+        expiresAt: invitation.expires_at,
+        isShareLink: invitation.is_share_link
       });
     }
 
@@ -305,12 +313,12 @@ serve(async (req) => {
     const inviteLink = `${effectiveSiteUrl}/register?token=${invitation.token}&type=${userType}`;
     console.log("Generated invite link:", inviteLink);
 
-    // Email functionality
+    // Email functionality - only send if an email address is provided
     let emailSent = false;
     let emailError = null;
     let emailResult = null;
 
-    if (resendApiKey) {
+    if (email && resendApiKey) {
       try {
         console.log("Sending email with Resend API");
         
@@ -388,9 +396,11 @@ serve(async (req) => {
         console.error("Error sending email:", emailSendError);
         emailError = emailSendError.message;
       }
-    } else {
+    } else if (email) {
       console.warn("Resend API key not configured, skipping email sending");
       emailError = "Resend API key not configured";
+    } else {
+      console.log("No email address provided, skipping email sending (using share link)");
     }
 
     // Return success response with invitation details
@@ -404,7 +414,12 @@ serve(async (req) => {
         token: invitation.token,
         expiresAt: invitation.expires_at,
         inviteLink,
-        message: isResend ? `Invitation resent to ${email}` : `Invitation sent to ${email}`
+        isShareLink: invitation.is_share_link,
+        message: isResend 
+          ? `Invitation resent ${email ? `to ${email}` : ''}`
+          : generateShareLink 
+            ? `Shareable invitation link created for ${userType} role` 
+            : `Invitation sent to ${email}`
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

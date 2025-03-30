@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { format, startOfWeek, addDays, isSameDay, isThisWeek, isToday } from 'date-fns';
@@ -43,7 +42,7 @@ export const WeekProgressBar = ({
   // Create array of days for the current week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   
-  // Calculate percentage complete - including both completed workouts and life happens passes
+  // Calculate completed workouts count - including both completed workouts and life happens passes
   const completedDaysThisWeek = count !== undefined 
     ? count 
     : completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;

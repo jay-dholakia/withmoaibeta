@@ -161,7 +161,6 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
       return 0;
     }
     
-    // Get workouts for this week based on day_of_week
     // Calculate the current week number relative to program start date
     const { data: programAssignments } = await supabase
       .from('program_assignments')
@@ -224,17 +223,17 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
         console.log(`[Debug] SQL verification result: ${sqlWorkouts} workouts in week ${currentWeekNumber}`);
         // Use the SQL result if available and it's a number
         if (typeof sqlWorkouts === 'number' && sqlWorkouts > 0) {
-          return sqlWorkouts; 
+          return Math.max(sqlWorkouts, 1); // Ensure we return at least 1 to prevent division by zero
         }
       }
     }
     
-    // Return the number of workouts for the current week, or use a fallback of the completed workouts count
-    // This ensures we always have a positive number as our denominator
-    return currentWeekWorkouts.length;
+    // Return the number of workouts for the current week with a minimum of 1
+    // This prevents the denominator from being 0 and ensures we have a meaningful ratio
+    return Math.max(currentWeekWorkouts.length, 1);
   } catch (error) {
     console.error('Error getting weekly assigned workouts count:', error);
-    return 0;
+    return 1; // Return at least 1 as fallback to prevent division by zero
   }
 };
 

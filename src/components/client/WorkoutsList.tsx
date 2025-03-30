@@ -4,7 +4,7 @@ import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Filter, ChevronDown, ChevronUp, Play, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
@@ -22,15 +22,17 @@ const WorkoutsList = () => {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [weekFilter, setWeekFilter] = useState<string>("");
-  const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
-  const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
-  const [isFilterLocked, setIsFilterLocked] = useState(false);
+  const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
+  const [currentProgram, setCurrentProgram] = useState<any | null>(null);
+  
+  // Get week filter from URL search params instead of state
+  const weekFilter = searchParams.get('week') || "";
   
   // Check if we're on the main workouts page
   const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
@@ -42,30 +44,16 @@ const WorkoutsList = () => {
     }));
   };
 
-  // Fixed filter handler that ensures we're on the main page
+  // Handle week filter change
   const handleWeekFilterChange = useCallback((weekValue: string) => {
-    if (isFilterLocked) return;
-    
-    setIsFilterLocked(true);
-    
-    // If we're not already on the main workouts page, navigate there first
     if (!isMainWorkoutsPage) {
-      // Use navigate with replace:true to avoid adding to history stack
-      navigate("/client-dashboard/workouts", { replace: true });
-      
-      // Set a short timeout to ensure navigation completes before changing filter
-      setTimeout(() => {
-        console.log(`Now applying week filter: ${weekValue}`);
-        setWeekFilter(weekValue);
-        setIsFilterLocked(false);
-      }, 100);
+      // If we're not on the main page, navigate there with the week parameter
+      navigate(`/client-dashboard/workouts?week=${weekValue}`, { replace: true });
     } else {
-      // Already on main page, just apply the filter
-      console.log(`Directly applying week filter: ${weekValue}`);
-      setWeekFilter(weekValue);
-      setIsFilterLocked(false);
+      // If we're already on the main page, just update the search params
+      setSearchParams({ week: weekValue });
     }
-  }, [isMainWorkoutsPage, navigate, isFilterLocked]);
+  }, [isMainWorkoutsPage, navigate, setSearchParams]);
 
   // Load workouts and program data
   useEffect(() => {
@@ -141,14 +129,12 @@ const WorkoutsList = () => {
         console.log("Debug - Extracted week numbers:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
-        if (extractedWeeks.length > 0 && !weekFilter) {
+        // Set initial week filter in URL if not already set and we have weeks
+        if (extractedWeeks.length > 0 && !weekFilter && isMainWorkoutsPage) {
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
-          
-          // Only set initial filter if we don't already have one
-          if (!weekFilter) {
-            console.log(`Setting initial week filter to ${sortedWeeks[0]}`);
-            setWeekFilter(sortedWeeks[0].toString());
-          }
+          const initialWeek = sortedWeeks[0].toString();
+          console.log(`Setting initial week filter to ${initialWeek}`);
+          setSearchParams({ week: initialWeek });
         }
       } catch (error) {
         console.error('Error loading workouts:', error);
@@ -160,7 +146,7 @@ const WorkoutsList = () => {
     };
 
     loadWorkoutsAndProgram();
-  }, [user]);
+  }, [user, weekFilter, isMainWorkoutsPage, setSearchParams]);
 
   const filteredWorkouts = React.useMemo(() => {
     if (!weekFilter) {
@@ -238,7 +224,6 @@ const WorkoutsList = () => {
             <Select
               value={weekFilter}
               onValueChange={handleWeekFilterChange}
-              disabled={isFilterLocked}
             >
               <SelectTrigger className="w-[200px] h-8 text-sm">
                 <div className="flex items-center gap-1">

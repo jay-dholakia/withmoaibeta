@@ -22,24 +22,71 @@ const WorkoutComplete = () => {
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['complete-workout', workoutCompletionId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('workout_completions')
-        .select(`
-          *,
-          workout:workout_id (
+      console.log("Fetching workout completion data for ID:", workoutCompletionId);
+      
+      try {
+        // Query by workout_id, not id
+        const { data, error } = await supabase
+          .from('workout_completions')
+          .select(`
             *,
-            workout_exercises (
+            workout:workout_id (
               *,
-              exercise:exercise_id (*)
-            )
-          ),
-          workout_set_completions (*)
-        `)
-        .eq('id', workoutCompletionId || '')
-        .single();
+              workout_exercises (
+                *,
+                exercise:exercise_id (*)
+              )
+            ),
+            workout_set_completions (*)
+          `)
+          .eq('workout_id', workoutCompletionId || '')
+          .eq('user_id', user?.id)
+          .maybeSingle();
 
-      if (error) throw error;
-      return data;
+        if (error) {
+          console.error("Error fetching workout completion data:", error);
+          throw error;
+        }
+        
+        if (!data) {
+          console.log("No workout completion found, trying to fetch workout directly");
+          
+          // If no completion record, try to get just the workout data
+          const { data: workoutOnly, error: workoutError } = await supabase
+            .from('workouts')
+            .select(`
+              *,
+              workout_exercises (
+                *,
+                exercise:exercise_id (*)
+              )
+            `)
+            .eq('id', workoutCompletionId || '')
+            .single();
+            
+          if (workoutError) {
+            console.error("Error fetching workout data:", workoutError);
+            throw workoutError;
+          }
+          
+          return {
+            id: null,
+            user_id: user?.id,
+            workout_id: workoutCompletionId,
+            completed_at: null,
+            notes: null,
+            rating: null,
+            workout: workoutOnly,
+            workout_set_completions: []
+          };
+        }
+        
+        console.log("Fetched workout completion data:", data);
+        return data;
+      } catch (error) {
+        console.error("Error in workout completion data query:", error);
+        throw error;
+      }
     },
     enabled: !!workoutCompletionId && !!user?.id,
   });
@@ -137,6 +184,21 @@ const WorkoutComplete = () => {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-client" />
+      </div>
+    );
+  }
+
+  if (!workoutData) {
+    return (
+      <div className="text-center py-12">
+        <AlertCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
+        <h2 className="text-xl font-medium mb-2">Workout Not Found</h2>
+        <p className="text-muted-foreground mb-6">
+          The workout you're looking for doesn't exist or you don't have permission to view it.
+        </p>
+        <Button onClick={() => navigate('/client-dashboard/workouts')}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Workouts
+        </Button>
       </div>
     );
   }

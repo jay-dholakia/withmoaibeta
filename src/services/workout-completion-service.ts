@@ -196,13 +196,17 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
             break;
           
           case 'duration_distance':
-            // For duration_distance exercises, ensure we have both distance and duration
+            // For duration_distance exercises, we only need distance and duration
+            // Sets and rest_seconds are not applicable
             if (!updates.result.distance) {
               throw new Error('Distance is required for duration_distance exercises');
             }
             if (!updates.result.duration) {
               updates.result.duration = '00:00:00';
             }
+            // Remove sets and rest_seconds if they were included
+            delete updates.result.sets;
+            delete updates.result.rest_seconds;
             break;
         }
       }

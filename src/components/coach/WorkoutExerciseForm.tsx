@@ -32,13 +32,17 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     e.preventDefault();
     
     const formData: any = {
-      sets: sets,
-      reps: reps,
-      rest_seconds: restSeconds,
       notes: notes
     };
 
-    // Add additional fields based on log type
+    // Add fields based on log type
+    if (logType === 'weight_reps' || logType === 'duration') {
+      formData.sets = sets;
+      formData.reps = reps;
+      formData.rest_seconds = restSeconds;
+    }
+    
+    // Add additional fields for cardio exercises
     if (logType === 'duration_distance') {
       formData.distance = distance;
       formData.duration = duration;
@@ -122,34 +126,21 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
 
       {logType === 'duration_distance' && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="sets" className="text-center block">Sets</Label>
-              <Input
-                id="sets"
-                type="number"
-                value={sets}
-                onChange={(e) => setSets(Number(e.target.value))}
-                min={1}
-                className="w-full text-center"
-              />
+          <div>
+            <div className="flex items-center justify-center mb-1">
+              <Ruler className="h-4 w-4 mr-1 text-muted-foreground" />
+              <Label htmlFor="distance" className="text-center">Distance (miles)</Label>
             </div>
-            <div>
-              <div className="flex items-center justify-center mb-1">
-                <Ruler className="h-4 w-4 mr-1 text-muted-foreground" />
-                <Label htmlFor="distance" className="text-center">Distance (miles)</Label>
-              </div>
-              <Input
-                id="distance"
-                type="number"
-                step="0.01"
-                min="0"
-                value={distance}
-                onChange={(e) => setDistance(e.target.value)}
-                placeholder="0.00"
-                className="w-full text-center"
-              />
-            </div>
+            <Input
+              id="distance"
+              type="number"
+              step="0.01"
+              min="0"
+              value={distance}
+              onChange={(e) => setDistance(e.target.value)}
+              placeholder="0.00"
+              className="w-full text-center"
+            />
           </div>
           
           <div>
@@ -193,17 +184,20 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
         </div>
       )}
       
-      <div>
-        <Label htmlFor="rest" className="text-center block">Rest (seconds)</Label>
-        <Input
-          id="rest"
-          type="number"
-          value={restSeconds}
-          onChange={(e) => setRestSeconds(Number(e.target.value))}
-          min={0}
-          className="w-full text-center"
-        />
-      </div>
+      {/* Only show Rest input for weight_reps and duration types */}
+      {(logType === 'weight_reps' || logType === 'duration') && (
+        <div>
+          <Label htmlFor="rest" className="text-center block">Rest (seconds)</Label>
+          <Input
+            id="rest"
+            type="number"
+            value={restSeconds}
+            onChange={(e) => setRestSeconds(Number(e.target.value))}
+            min={0}
+            className="w-full text-center"
+          />
+        </div>
+      )}
       
       <div>
         <Label htmlFor="notes" className="text-center block">Notes (Optional)</Label>
@@ -227,3 +221,4 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     </form>
   );
 };
+

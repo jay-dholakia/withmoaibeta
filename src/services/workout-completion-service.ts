@@ -65,15 +65,15 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
       id: data.id,
       user_id: data.user_id,
       workout_id: data.workout_id,
-      created_at: new Date().toISOString(), // Default value since this field is missing in db
+      created_at: data.created_at || new Date().toISOString(), // Default value if missing in db
       completed_at: data.completed_at,
       rest_day: data.rest_day || false,
       life_happens_pass: data.life_happens_pass || false,
       notes: data.notes,
       rating: data.rating,
-      title: null, // Default value since this field is missing in db
-      description: null, // Default value since this field is missing in db
-      workout_type: null, // Default value since this field is missing in db
+      title: data.title || null, // Default value if missing in db
+      description: data.description || null, // Default value if missing in db
+      workout_type: data.workout_type || null, // Default value if missing in db
       distance: typeof data.distance === 'string' ? parseFloat(data.distance) : data.distance,
       duration: data.duration,
       location: data.location,
@@ -114,11 +114,11 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
       // Handle the case where exercise might be null or have error
       const exercise = item.exercise && typeof item.exercise === 'object' && !('error' in item.exercise) ? 
         {
-          id: item.exercise.id || '',
-          name: item.exercise.name || '',
-          description: item.exercise.description,
-          log_type: (item.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
-          category: item.exercise.category || ''
+          id: item.exercise?.id || '',
+          name: item.exercise?.name || '',
+          description: item.exercise?.description,
+          log_type: (item.exercise?.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
+          category: item.exercise?.category || ''
         } : undefined;
 
       return {
@@ -165,11 +165,11 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
     // Handle the case where exercise might be null or have error
     const exercise = data.exercise && typeof data.exercise === 'object' && !('error' in data.exercise) ? 
       {
-        id: data.exercise.id || '',
-        name: data.exercise.name || '',
-        description: data.exercise.description,
-        log_type: (data.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
-        category: data.exercise.category || ''
+        id: data.exercise?.id || '',
+        name: data.exercise?.name || '',
+        description: data.exercise?.description,
+        log_type: (data.exercise?.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
+        category: data.exercise?.category || ''
       } : undefined;
     
     // Ensure the data conforms to the WorkoutCompletionExercise interface

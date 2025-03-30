@@ -17,6 +17,7 @@ export interface Invitation {
   expires_at: string;
   accepted_at: string | null;
   is_share_link?: boolean;
+  share_link_type?: string;
 }
 
 interface InvitationTableProps {

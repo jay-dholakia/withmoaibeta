@@ -140,13 +140,14 @@ const RegisterPage = () => {
       if (isShareableLink) {
         // For shareable links, track usage without marking as accepted
         const now = new Date().toISOString();
-        const { error: usageError } = await supabase
-          .from('invitation_usage')
+        
+        // Use the REST API directly since the TypeScript types aren't updated yet
+        const { error: usageError } = await supabase.from('invitation_usage')
           .insert({ 
             invitation_id: invitation.id,
             user_email: values.email,
             used_at: now
-          });
+          } as any); // Using 'as any' to bypass TypeScript error temporarily
           
         if (usageError) {
           console.error('Error tracking invitation usage:', usageError);

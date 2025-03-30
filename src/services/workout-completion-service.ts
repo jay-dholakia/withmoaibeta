@@ -35,7 +35,7 @@ export interface WorkoutCompletionExercise {
     id: string;
     name: string;
     description: string | null;
-    log_type: 'weight_reps' | 'duration_distance' | 'duration';
+    log_type: 'weight_reps' | 'duration_distance' | 'duration' | 'reps';
     category: string;
   };
 }
@@ -47,7 +47,7 @@ function isValidExercise(obj: any): obj is {
   id: string;
   name: string;
   description: string | null;
-  log_type: 'weight_reps' | 'duration_distance' | 'duration';
+  log_type: 'weight_reps' | 'duration_distance' | 'duration' | 'reps';
   category: string;
 } {
   return obj && typeof obj === 'object' && !('error' in obj);
@@ -129,7 +129,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
         id: item.exercise.id || '',
         name: item.exercise.name || '',
         description: item.exercise.description || null,
-        log_type: (item.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
+        log_type: (item.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
         category: item.exercise.category || ''
       } : undefined;
 
@@ -189,6 +189,15 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
             // Weight is optional but included if provided
             break;
           
+          case 'reps':
+            // For reps exercises, ensure we have reps and sets
+            if (!updates.result.reps || !updates.result.sets) {
+              throw new Error('Reps and sets are required for reps exercises');
+            }
+            // Remove weight if it was included
+            delete updates.result.weight;
+            break;
+          
           case 'duration':
             // For duration exercises, ensure we have duration
             if (!updates.result.duration) {
@@ -236,7 +245,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
       id: data.exercise.id || '',
       name: data.exercise.name || '',
       description: data.exercise.description || null,
-      log_type: (data.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
+      log_type: (data.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
       category: data.exercise.category || ''
     } : undefined;
     

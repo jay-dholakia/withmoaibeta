@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +48,10 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       formData.distance = distance;
       formData.duration = duration;
       formData.location = location;
+    } else if (logType === 'reps') {
+      formData.sets = sets;
+      formData.reps = reps;
+      formData.rest_seconds = restSeconds;
     }
     
     onSubmit(formData);
@@ -109,6 +112,35 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
               placeholder="0.0"
               className="w-full text-center"
             />
+          </div>
+        </div>
+      )}
+
+      {logType === 'reps' && (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="sets" className="text-center block">Sets</Label>
+            <Input
+              id="sets"
+              type="number"
+              value={sets}
+              onChange={(e) => setSets(Number(e.target.value))}
+              min={1}
+              className="w-full text-center"
+            />
+          </div>
+          <div>
+            <Label htmlFor="reps" className="text-center block">Reps</Label>
+            <Input
+              id="reps"
+              value={reps}
+              onChange={(e) => setReps(e.target.value)}
+              placeholder="e.g., 10"
+              className="w-full text-center"
+            />
+            <p className="text-xs text-muted-foreground mt-1 text-center">
+              For bodyweight exercises, use just numbers (e.g., "10")
+            </p>
           </div>
         </div>
       )}
@@ -191,8 +223,8 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
         </div>
       )}
       
-      {/* Only show Rest input for weight_reps and duration types */}
-      {(logType === 'weight_reps' || logType === 'duration') && (
+      {/* Only show Rest input for weight_reps, reps and duration types */}
+      {(logType === 'weight_reps' || logType === 'duration' || logType === 'reps') && (
         <div>
           <Label htmlFor="rest" className="text-center block">Rest (seconds)</Label>
           <Input

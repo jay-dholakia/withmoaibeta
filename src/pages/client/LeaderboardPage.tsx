@@ -27,8 +27,10 @@ const LeaderboardPage = () => {
   const { data: assignedWorkoutsCount } = useQuery({
     queryKey: ['assigned-workouts-count', user?.id],
     queryFn: async () => {
-      if (!user?.id) return 5; // Default to 5 if user ID is not available
-      return getWeeklyAssignedWorkoutsCount(user.id);
+      if (!user?.id) throw new Error('User ID not available');
+      const count = await getWeeklyAssignedWorkoutsCount(user.id);
+      if (count <= 0) throw new Error('No assigned workouts found');
+      return count;
     },
     enabled: !!user?.id,
   });

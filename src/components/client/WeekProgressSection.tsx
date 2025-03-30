@@ -44,15 +44,15 @@ export const WeekProgressSection = ({
   });
   
   // Query the total number of workouts assigned for the current week
-  const { data: totalAssignedWorkouts = 5 } = useQuery({
+  const { data: totalAssignedWorkouts, isError: isWorkoutsCountError } = useQuery({
     queryKey: ['weekly-assigned-workouts-count', user?.id],
     queryFn: async () => {
-      if (!user?.id) return 5; // Default to 5 if user ID is not available
+      if (!user?.id) throw new Error('User ID not available');
       const count = await getWeeklyAssignedWorkoutsCount(user.id);
-      console.log('[Debug] assignedWorkoutsCount in WeekProgressSection:', count);
       
-      // Return at least 1 to prevent denominator from being 0
-      return count > 0 ? count : 5; // Default to 5 if count is 0
+      if (count <= 0) throw new Error('No assigned workouts found');
+      
+      return count;
     },
     enabled: !!user?.id && assignedWorkoutsCount === undefined,
   });
@@ -105,10 +105,8 @@ export const WeekProgressSection = ({
   // Calculate the total completed including life happens passes
   const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;
   
-  // For demonstration purposes, to show 3 of 5 workouts completed
-  // But using actual data when available
-  const displayCompletedCount = totalCompletedThisWeek || 3;
-  const displayTotalCount = finalAssignedWorkoutsCount || 5;
+  const hasAssignedWorkouts = finalAssignedWorkoutsCount && finalAssignedWorkoutsCount > 0;
+  const hasError = isWorkoutsCountError && assignedWorkoutsCount === undefined;
   
   return (
     <div className="w-full">
@@ -117,12 +115,13 @@ export const WeekProgressSection = ({
           label="Your Workouts"
           completedDates={completedDates}
           lifeHappensDates={lifeHappensDates}
-          count={displayCompletedCount}
-          total={displayTotalCount}
+          count={totalCompletedThisWeek}
+          total={finalAssignedWorkoutsCount}
           showDayCircles={true}
           showProgressBar={false}
           weekNumber={weekNumber}
           workoutTypes={workoutTypesMap}
+          hasError={hasError}
         />
       )}
       

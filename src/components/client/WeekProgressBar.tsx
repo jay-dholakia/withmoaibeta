@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { format, startOfWeek, addDays, isSameDay, isThisWeek, isToday } from 'date-fns';
@@ -18,6 +19,7 @@ interface WeekProgressBarProps {
   weekNumber?: number; // Optional week number to display
   compact?: boolean; // New prop for compact display in member cards
   workoutTypes?: Record<string, WorkoutType>;
+  hasError?: boolean; // New prop to indicate error state
 }
 
 export const WeekProgressBar = ({ 
@@ -25,14 +27,15 @@ export const WeekProgressBar = ({
   lifeHappensDates = [], // Default to empty array
   label, 
   count, 
-  total = 7, 
+  total, 
   color = 'bg-client', 
   textColor = 'text-client',
   showDayCircles = false,
   showProgressBar = false, // Default to not showing the progress bar
   weekNumber,
   compact = false,
-  workoutTypes = {} // Default to empty object
+  workoutTypes = {}, // Default to empty object
+  hasError = false // Default to no error
 }: WeekProgressBarProps) => {
   const isMobile = useIsMobile();
   
@@ -53,7 +56,7 @@ export const WeekProgressBar = ({
   
   const totalCompletedCount = count !== undefined ? count : completedDaysThisWeek + lifeHappensDaysThisWeek;
   
-  const hasAssignedWorkouts = total > 0;
+  const hasAssignedWorkouts = total !== undefined && total > 0;
 
   // Helper function to get the workout type for a date
   const getWorkoutTypeForDay = (day: Date): WorkoutType | undefined => {
@@ -138,7 +141,11 @@ export const WeekProgressBar = ({
               </span>
             )}
           </div>
-          {hasAssignedWorkouts ? (
+          {hasError ? (
+            <p className="text-sm text-red-500 text-center mt-1">
+              Unable to calculate workouts
+            </p>
+          ) : hasAssignedWorkouts ? (
             <p className="text-sm text-slate-500 text-center">
               {totalCompletedCount} of {total} {total === 1 ? 'workout' : 'workouts'} completed
             </p>

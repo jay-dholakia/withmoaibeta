@@ -588,6 +588,38 @@ export type Database = {
           },
         ]
       }
+      standalone_superset_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          title: string | null
+          workout_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string | null
+          workout_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string | null
+          workout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_standalone_superset_groups_workout"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       standalone_workout_exercises: {
         Row: {
           created_at: string
@@ -598,6 +630,8 @@ export type Database = {
           reps: string | null
           rest_seconds: number | null
           sets: number | null
+          superset_group_id: string | null
+          superset_order: number | null
           workout_id: string
         }
         Insert: {
@@ -609,6 +643,8 @@ export type Database = {
           reps?: string | null
           rest_seconds?: number | null
           sets?: number | null
+          superset_group_id?: string | null
+          superset_order?: number | null
           workout_id: string
         }
         Update: {
@@ -620,9 +656,18 @@ export type Database = {
           reps?: string | null
           rest_seconds?: number | null
           sets?: number | null
+          superset_group_id?: string | null
+          superset_order?: number | null
           workout_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_standalone_workout_exercises_superset_group"
+            columns: ["superset_group_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_superset_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "standalone_workout_exercises_exercise_id_fkey"
             columns: ["exercise_id"]
@@ -671,6 +716,38 @@ export type Database = {
           workout_type?: string | null
         }
         Relationships: []
+      }
+      superset_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          title: string | null
+          workout_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string | null
+          workout_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string | null
+          workout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_superset_groups_workout"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workout_completion_exercises: {
         Row: {
@@ -810,6 +887,8 @@ export type Database = {
           reps: string
           rest_seconds: number | null
           sets: number
+          superset_group_id: string | null
+          superset_order: number | null
           workout_id: string
         }
         Insert: {
@@ -821,6 +900,8 @@ export type Database = {
           reps: string
           rest_seconds?: number | null
           sets: number
+          superset_group_id?: string | null
+          superset_order?: number | null
           workout_id: string
         }
         Update: {
@@ -832,9 +913,18 @@ export type Database = {
           reps?: string
           rest_seconds?: number | null
           sets?: number
+          superset_group_id?: string | null
+          superset_order?: number | null
           workout_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_workout_exercises_superset_group"
+            columns: ["superset_group_id"]
+            isOneToOne: false
+            referencedRelation: "superset_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workout_exercises_exercise_id_fkey"
             columns: ["exercise_id"]

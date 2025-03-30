@@ -34,7 +34,7 @@ export const WeekProgressSection = ({
   const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
   
   // Query client workouts to get completed dates
-  const { data: clientWorkouts } = useQuery({
+  const { data: clientWorkouts, isLoading: isLoadingWorkouts } = useQuery({
     queryKey: ['client-workouts-week-progress', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -48,11 +48,16 @@ export const WeekProgressSection = ({
     queryKey: ['weekly-assigned-workouts-count', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
-      const count = await getWeeklyAssignedWorkoutsCount(user.id);
-      
-      if (count <= 0) throw new Error('No assigned workouts found');
-      
-      return count;
+      try {
+        const count = await getWeeklyAssignedWorkoutsCount(user.id);
+        
+        if (count <= 0) return 4; // Default to 4 if no assigned workouts
+        
+        return count;
+      } catch (error) {
+        console.error("Error fetching workout count:", error);
+        return 4; // Default fallback
+      }
     },
     enabled: !!user?.id && assignedWorkoutsCount === undefined,
   });
@@ -60,21 +65,21 @@ export const WeekProgressSection = ({
   // Use either the passed in count or the fetched count
   const finalAssignedWorkoutsCount = assignedWorkoutsCount !== undefined ? 
     assignedWorkoutsCount : 
-    totalAssignedWorkouts;
-  
-  console.log('Client Completed Dates:', completedDates);
-  console.log('Client Life Happens Dates:', lifeHappensDates);
+    totalAssignedWorkouts || 4; // Add default value
   
   // Extract completed dates and life happens dates
   useEffect(() => {
-    if (clientWorkouts) {
+    if (clientWorkouts && clientWorkouts.length > 0) {
       const newCompletedDates: Date[] = [];
       const newLifeHappensDates: Date[] = [];
       
       clientWorkouts.forEach(workout => {
         if (workout.completed_at) {
-          const completionDate = new Date(workout.completed_at);
-          
+          // Handle both string and Date objects
+          const completionDate = typeof workout.completed_at === 'string' 
+            ? new Date(workout.completed_at) 
+            : workout.completed_at;
+            
           if (workout.life_happens_pass) {
             newLifeHappensDates.push(completionDate);
           } else {
@@ -82,6 +87,9 @@ export const WeekProgressSection = ({
           }
         }
       });
+      
+      console.log("Extracted completed dates:", newCompletedDates);
+      console.log("Extracted life happens dates:", newLifeHappensDates);
       
       setCompletedDates(newCompletedDates);
       setLifeHappensDates(newLifeHappensDates);
@@ -105,7 +113,7 @@ export const WeekProgressSection = ({
   // Calculate the total completed including life happens passes
   const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;
   
-  const hasAssignedWorkouts = finalAssignedWorkoutsCount && finalAssignedWorkoutsCount > 0;
+  const hasAssignedWorkouts = finalAssignedWorkoutsCount > 0;
   const hasError = isWorkoutsCountError && assignedWorkoutsCount === undefined;
   
   return (
@@ -118,7 +126,7 @@ export const WeekProgressSection = ({
           count={totalCompletedThisWeek}
           total={finalAssignedWorkoutsCount}
           showDayCircles={true}
-          showProgressBar={false}
+          showProgressBar={true}
           weekNumber={weekNumber}
           workoutTypes={workoutTypesMap}
           hasError={hasError}

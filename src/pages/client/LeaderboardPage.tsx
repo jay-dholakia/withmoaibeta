@@ -14,7 +14,7 @@ const LeaderboardPage = () => {
   const { user } = useAuth();
   
   // Query client workouts to get workout types
-  const { data: clientWorkouts } = useQuery({
+  const { data: clientWorkouts, isLoading: isLoadingWorkouts } = useQuery({
     queryKey: ['client-workouts-leaderboard', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -24,34 +24,38 @@ const LeaderboardPage = () => {
   });
   
   // Query the assigned workouts count from the coach-assigned program
-  const { data: assignedWorkoutsCount } = useQuery({
+  const { data: assignedWorkoutsCount, isLoading: isLoadingCount } = useQuery({
     queryKey: ['assigned-workouts-count', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
-      const count = await getWeeklyAssignedWorkoutsCount(user.id);
-      if (count <= 0) return 4; // Default to 4 if no assigned workouts
-      return count;
-    },
-    enabled: !!user?.id,
-    // Add fallback value for when the query fails
-    meta: {
-      onError: () => {
-        console.log('Error fetching workout count, defaulting to 4');
-        return 4;
+      try {
+        const count = await getWeeklyAssignedWorkoutsCount(user.id);
+        if (count <= 0) return 4; // Default to 4 if no assigned workouts
+        return count;
+      } catch (error) {
+        console.error("Error fetching workout count:", error);
+        return 4; // Default fallback
       }
     },
+    enabled: !!user?.id,
   });
   
   // Create workout types map
   const workoutTypesMap = useMemo(() => {
     const typesMap: Record<string, WorkoutType> = {};
     
-    if (clientWorkouts) {
+    if (clientWorkouts && clientWorkouts.length > 0) {
       clientWorkouts.forEach(item => {
         if (!item.completed_at) return;
         
-        const date = new Date(item.completed_at);
-        const dateKey = format(date, 'yyyy-MM-dd');
+        // Convert the completed_at string to a Date object if it's a string
+        const completedDate = typeof item.completed_at === 'string' 
+          ? new Date(item.completed_at) 
+          : item.completed_at;
+          
+        if (!completedDate) return;
+        
+        const dateKey = format(completedDate, 'yyyy-MM-dd');
         
         if (item.life_happens_pass || item.rest_day) {
           typesMap[dateKey] = 'rest_day';
@@ -85,6 +89,7 @@ const LeaderboardPage = () => {
       });
     }
     
+    console.log("Workout types map:", typesMap);
     return typesMap;
   }, [clientWorkouts]);
   

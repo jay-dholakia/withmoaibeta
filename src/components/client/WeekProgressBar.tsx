@@ -50,8 +50,22 @@ export const WeekProgressBar = ({
   
   const dayStatus = useMemo(() => {
     return weekDays.map(day => {
-      const hasCompleted = completedDates.some(date => isSameDay(date, day));
-      const hasLifeHappens = lifeHappensDates.some(date => isSameDay(date, day));
+      const hasCompleted = completedDates.some(date => {
+        // Handle both Date objects and string dates
+        if (typeof date === 'string') {
+          return isSameDay(new Date(date), day);
+        }
+        return isSameDay(date, day);
+      });
+      
+      const hasLifeHappens = lifeHappensDates.some(date => {
+        // Handle both Date objects and string dates
+        if (typeof date === 'string') {
+          return isSameDay(new Date(date), day);
+        }
+        return isSameDay(date, day);
+      });
+      
       const dateStr = format(day, 'yyyy-MM-dd');
       const workoutType = workoutTypes[dateStr] || 'strength';
       

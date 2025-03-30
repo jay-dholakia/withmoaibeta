@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, ArrowUp, ArrowDown, RotateCw } from "lucide-react";
+import { Trash2, Plus, ArrowUp, ArrowDown, RotateCw, X } from "lucide-react";
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
 import StandaloneSupersetManager from './StandaloneSupersetManager';

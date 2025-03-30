@@ -269,9 +269,6 @@ const WorkoutsList = () => {
                   handleSelectClose();
                 }}
                 onEscapeKeyDown={handleSelectClose}
-                onInteractOutside={(e) => {
-                  e.preventDefault();
-                }}
               >
                 {availableWeeks
                   .sort((a, b) => a - b)

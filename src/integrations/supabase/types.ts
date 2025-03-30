@@ -672,6 +672,62 @@ export type Database = {
         }
         Relationships: []
       }
+      workout_completion_exercises: {
+        Row: {
+          completed: boolean | null
+          created_at: string | null
+          exercise_id: string
+          id: string
+          result: Json | null
+          workout_completion_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string | null
+          exercise_id: string
+          id?: string
+          result?: Json | null
+          workout_completion_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string | null
+          exercise_id?: string
+          id?: string
+          result?: Json | null
+          workout_completion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_exercise"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_workout_completion"
+            columns: ["workout_completion_id"]
+            isOneToOne: false
+            referencedRelation: "workout_completions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_completion_exercises_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_completion_exercises_workout_completion_id_fkey"
+            columns: ["workout_completion_id"]
+            isOneToOne: false
+            referencedRelation: "workout_completions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workout_completions: {
         Row: {
           completed_at: string | null

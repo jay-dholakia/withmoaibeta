@@ -1,102 +1,85 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { WorkoutType } from './WorkoutTypeIcon';
+import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { format, isThisWeek } from 'date-fns';
+import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
 
 interface WorkoutProgressCardProps {
-  label: string;
-  completedDates: Date[];
-  lifeHappensDates: Date[];
+  label?: string;
   count: number;
   total: number;
-  workoutTypesMap?: Record<string, WorkoutType>;
-  userName?: string;
-  isCurrentUser?: boolean;
+  completedDates: Date[];
+  lifeHappensDates: Date[];
+  workoutTypesMap: Record<string, WorkoutType>;
+  userName: string;
+  isCurrentUser: boolean;
 }
 
-export const WorkoutProgressCard = ({
+export const WorkoutProgressCard: React.FC<WorkoutProgressCardProps> = ({
   label,
-  completedDates,
-  lifeHappensDates,
   count,
   total,
-  workoutTypesMap = {},
+  completedDates,
+  lifeHappensDates,
+  workoutTypesMap,
   userName,
   isCurrentUser
-}: WorkoutProgressCardProps) => {
+}) => {
+  const percentage = Math.min(Math.round((count / total) * 100), 100);
+  
+  // Get this week's dates for display
+  const thisWeekWorkouts = completedDates
+    .filter(date => isThisWeek(date, { weekStartsOn: 1 }))
+    .map(date => format(date, 'yyyy-MM-dd'));
+    
+  const thisWeekLifeHappens = lifeHappensDates
+    .filter(date => isThisWeek(date, { weekStartsOn: 1 }))
+    .map(date => format(date, 'yyyy-MM-dd'));
+  
+  // Handle click to prevent bubbling and accidental navigation
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+  
   return (
-    <Card className="shadow-sm border-slate-200">
-      <CardHeader className="pb-2 pt-4 px-4">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-base font-medium">
-            {userName ? (
-              <span>
-                {userName}
-                {isCurrentUser && <span className="text-xs text-muted-foreground ml-1">(You)</span>}
-              </span>
-            ) : (
-              label
-            )}
-          </CardTitle>
-          <span className="text-base font-semibold text-client">{count}/{total}</span>
+    <Card className="relative overflow-hidden" onClick={handleClick}>
+      {isCurrentUser && (
+        <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-bl-md">
+          You
         </div>
-      </CardHeader>
-      <CardContent className="pt-0 pb-4 px-4">
-        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-          <div 
-            className="bg-client h-full rounded-full"
-            style={{ width: `${Math.min(100, (count / total) * 100)}%` }}
-          />
+      )}
+      <CardContent className="pt-6">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-lg font-medium">{userName}</h3>
+          <span className="text-lg font-semibold">{count}/{total}</span>
         </div>
         
-        <div className="flex justify-between items-center mt-4 px-1">
-          {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => {
-            const today = new Date();
-            const weekStart = new Date(today);
-            weekStart.setDate(today.getDate() - today.getDay() + 1); // Start from Monday
-            
-            const currentDay = new Date(weekStart);
-            currentDay.setDate(weekStart.getDate() + index);
-            
-            const isDayCompleted = completedDates.some(date => 
-              new Date(date).toDateString() === currentDay.toDateString()
-            );
-            
-            const isLifeHappens = lifeHappensDates.some(date => 
-              new Date(date).toDateString() === currentDay.toDateString()
-            );
-            
-            const isToday = today.toDateString() === currentDay.toDateString();
-            
-            // Format date to get the correct workout type from map
-            const dateStr = currentDay.toISOString().split('T')[0];
-            const workoutType = isDayCompleted ? (workoutTypesMap[dateStr] || 'strength') : undefined;
-            
-            let bgColor = 'bg-slate-100';
-            let textColor = 'text-slate-400';
-            let border = '';
-            
-            if (isToday) {
-              border = 'border-2 border-slate-300';
-              textColor = 'text-slate-500';
-            }
-            
-            if (isLifeHappens) {
-              bgColor = 'bg-yellow-100';
-              textColor = 'text-yellow-700';
-            }
-            
-            if (isDayCompleted) {
-              bgColor = 'bg-client/90';
-              textColor = 'text-white';
-            }
+        <Progress value={percentage} className="h-2 mb-4" />
+        
+        <div className="grid grid-cols-7 gap-1 mt-4">
+          {Array.from({ length: 7 }).map((_, i) => {
+            const dayNum = i + 1;
+            const dateKey = format(new Date(2025, 2, 23 + i), 'yyyy-MM-dd');
+            const isCompleted = thisWeekWorkouts.includes(dateKey);
+            const isLifeHappens = thisWeekLifeHappens.includes(dateKey);
+            const workoutType = workoutTypesMap[dateKey];
             
             return (
-              <div key={index} className="flex flex-col items-center">
-                <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${textColor} ${border}`}
-                >
-                  <span className="text-xs font-medium">{day}</span>
+              <div 
+                key={i} 
+                className="flex flex-col items-center"
+                data-week={`day-${dayNum}`}
+              >
+                <div className="text-xs text-gray-500">Day {dayNum}</div>
+                <div className="h-8 w-8 flex items-center justify-center mt-1">
+                  {isCompleted ? (
+                    <WorkoutTypeIcon type={workoutType || 'strength'} />
+                  ) : isLifeHappens ? (
+                    <WorkoutTypeIcon type="rest_day" />
+                  ) : (
+                    <div className="h-4 w-4 rounded-full border-2 border-gray-200"></div>
+                  )}
                 </div>
               </div>
             );

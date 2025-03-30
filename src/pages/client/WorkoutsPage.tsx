@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
 import ActiveWorkout from '@/components/client/ActiveWorkout';
 import WorkoutComplete from '@/components/client/WorkoutComplete';
@@ -27,7 +26,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 const WorkoutsPage = () => {
   const [showRestDayDialog, setShowRestDayDialog] = useState(false);
   const location = useLocation();
-  console.log("WorkoutsPage component rendering");
+  const navigate = useNavigate();
+  
+  console.log("WorkoutsPage component rendering with path:", location.pathname);
   
   // Check if the current route is the main workouts page
   const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
@@ -35,6 +36,36 @@ const WorkoutsPage = () => {
   // Check if we're on the active workout or complete workout page
   const isActiveOrCompleteWorkout = location.pathname.includes('/active/') || 
                                    location.pathname.includes('/complete/');
+  
+  // Prevent accidental navigation to workouts page when on another route
+  React.useEffect(() => {
+    // This will only run when the component mounts
+    const handleInvalidNavigation = (e: MouseEvent) => {
+      // Only handle this logic when we're NOT already on the workouts page
+      if (!location.pathname.startsWith('/client-dashboard/workouts')) {
+        // Find if the click is on an element that might trigger navigation to workouts
+        const element = e.target as HTMLElement;
+        const isWorkoutLink = element.closest('a[href*="workouts"]') || 
+                             element.closest('button[data-workout-link]');
+                             
+        if (isWorkoutLink) {
+          // Check if it's an accidental click from another page
+          const intentionalNavigation = window.confirm('Navigate to Workouts page?');
+          if (!intentionalNavigation) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+      }
+    };
+    
+    // Add this listener to catch accidental navigation
+    document.addEventListener('click', handleInvalidNavigation, true);
+    
+    return () => {
+      document.removeEventListener('click', handleInvalidNavigation, true);
+    };
+  }, [location.pathname]);
   
   const handleLogRestDay = () => {
     // Call the service function to log a rest day

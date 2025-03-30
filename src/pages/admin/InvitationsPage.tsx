@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -129,20 +130,20 @@ const InvitationsPage: React.FC = () => {
         const inviteLink = `${siteUrl}/register?token=${token}&type=${userType}`;
         
         try {
-          console.log("Invoking send-invitation edge function with payload:", {
+          const payload = {
             email,
             userType,
             siteUrl,
             invitationId: data.id
-          });
+          };
+          
+          console.log("Invoking send-invitation edge function with payload:", payload);
           
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
-            body: {
-              email,
-              userType,
-              siteUrl,
-              invitationId: data.id
-            }
+            body: payload,
+            headers: session?.access_token ? {
+              Authorization: `Bearer ${session.access_token}`
+            } : undefined
           });
           
           console.log("Edge function response:", edgeFunctionResponse);
@@ -248,22 +249,21 @@ const InvitationsPage: React.FC = () => {
         const inviteLink = `${siteUrl}/register?token=${newToken}&type=${invitation.user_type}`;
         
         try {
-          console.log("Invoking send-invitation edge function for resend with payload:", {
+          const payload = {
             email: invitation.email,
             userType: invitation.user_type,
             siteUrl,
             resend: true,
             invitationId: invitation.id
-          });
+          };
+          
+          console.log("Invoking send-invitation edge function for resend with payload:", payload);
           
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
-            body: {
-              email: invitation.email,
-              userType: invitation.user_type,
-              siteUrl,
-              resend: true,
-              invitationId: invitation.id
-            }
+            body: payload,
+            headers: session?.access_token ? {
+              Authorization: `Bearer ${session.access_token}`
+            } : undefined
           });
           
           console.log("Edge function response for resend:", edgeFunctionResponse);

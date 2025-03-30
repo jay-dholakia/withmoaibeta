@@ -29,22 +29,18 @@ const WorkoutsList = () => {
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
+  const [isChangingFilter, setIsChangingFilter] = useState(false);
 
   useEffect(() => {
-    // Force redirect to main workouts page if we detect we're on an active workout page 
-    // and we're trying to view the workouts list
-    const isActiveWorkoutPage = location.pathname.includes('/active/');
-    const shouldShowList = location.pathname === "/client-dashboard/workouts" || 
-                          location.pathname.endsWith("/workouts/");
-    
-    if (isActiveWorkoutPage && weekFilter) {
-      // User selected a week filter while on an active workout - redirect to main page
-      console.log("Detected week filter change while on active workout page - redirecting to main page");
-      navigate("/client-dashboard/workouts");
+    // Only handle navigation if we're not in the middle of a filter change
+    if (isChangingFilter) {
       return;
     }
     
-    // Handle other invalid routes
+    // Check if we're on an active workout page
+    const isActiveWorkoutPage = location.pathname.includes('/active/');
+    
+    // Handle redirection for invalid routes
     const isMainPage = location.pathname === "/client-dashboard/workouts";
     const isValidSubPage = 
       location.pathname.includes('/active/') || 
@@ -58,7 +54,7 @@ const WorkoutsList = () => {
       console.log("Redirecting from invalid workout sub-page:", location.pathname);
       navigate("/client-dashboard/workouts");
     }
-  }, [location.pathname, navigate, weekFilter]);
+  }, [location.pathname, navigate, isChangingFilter]);
 
   const toggleWorkoutDetails = (workoutId: string) => {
     setExpandedWorkouts(prev => ({
@@ -68,20 +64,25 @@ const WorkoutsList = () => {
   };
 
   const handleWeekFilterChange = (value: string) => {
-    console.log(`Setting week filter to ${value} - redirecting to main workouts page`);
+    // Signal that we're changing the filter - this prevents unwanted navigation in the useEffect
+    setIsChangingFilter(true);
     
-    // Force redirect to main workouts page BEFORE changing the filter
-    // This ensures we're on the right page before filters are applied
+    console.log(`Setting week filter to ${value}`);
+    
+    // If we're not on the main workouts page, force navigation there
     if (location.pathname !== "/client-dashboard/workouts") {
+      // Use replace to ensure back button works correctly
       navigate("/client-dashboard/workouts", { replace: true });
       
-      // Add a small delay to ensure navigation completes before filter change
+      // Set the filter after a short delay to ensure navigation completes
       setTimeout(() => {
         setWeekFilter(value);
-      }, 50);
+        setIsChangingFilter(false);
+      }, 100);
     } else {
-      // If already on main page, just update the filter
+      // Already on the main page, just update the filter
       setWeekFilter(value);
+      setIsChangingFilter(false);
     }
   };
 

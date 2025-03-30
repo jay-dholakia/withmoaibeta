@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -239,21 +240,6 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     }
   }, [groupMembers]);
   
-  // Add stop propagation for any workouts-related week clicks
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Prevent accidental redirection to workouts page
-    const target = e.target as HTMLElement;
-    const isWeekElement = target.textContent?.includes('Week') || 
-                          target.closest('[data-week]') ||
-                          target.closest('[data-workout-week]');
-                          
-    if (isWeekElement) {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log('Prevented navigation from week element click');
-    }
-  };
-  
   // Get formatted display name for a member
   const getDisplayName = (member: GroupMember): string => {
     if (member.profileData?.first_name) {
@@ -307,7 +293,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
   }
   
   return (
-    <div className="space-y-4" onClick={handleCardClick}>
+    <div className="space-y-4">
       {user && (
         <WorkoutProgressCard 
           label="Your Workouts"

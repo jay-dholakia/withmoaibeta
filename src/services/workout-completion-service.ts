@@ -65,15 +65,17 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
       id: data.id,
       user_id: data.user_id,
       workout_id: data.workout_id,
-      created_at: data.created_at || new Date().toISOString(), // Default value if missing in db
+      // Use optional chaining to safely handle missing properties
+      created_at: data?.created_at || new Date().toISOString(), 
       completed_at: data.completed_at,
       rest_day: data.rest_day || false,
       life_happens_pass: data.life_happens_pass || false,
       notes: data.notes,
       rating: data.rating,
-      title: data.title || null, // Default value if missing in db
-      description: data.description || null, // Default value if missing in db
-      workout_type: data.workout_type || null, // Default value if missing in db
+      // Use optional chaining to safely handle missing properties
+      title: data?.title || null, 
+      description: data?.description || null, 
+      workout_type: data?.workout_type || null, 
       distance: typeof data.distance === 'string' ? parseFloat(data.distance) : data.distance,
       duration: data.duration,
       location: data.location,
@@ -116,7 +118,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
         {
           id: item.exercise?.id || '',
           name: item.exercise?.name || '',
-          description: item.exercise?.description,
+          description: item.exercise?.description || null,
           log_type: (item.exercise?.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
           category: item.exercise?.category || ''
         } : undefined;
@@ -167,7 +169,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
       {
         id: data.exercise?.id || '',
         name: data.exercise?.name || '',
-        description: data.exercise?.description,
+        description: data.exercise?.description || null,
         log_type: (data.exercise?.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
         category: data.exercise?.category || ''
       } : undefined;

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -139,6 +138,7 @@ const InvitationsPage: React.FC = () => {
           
           console.log("Invoking send-invitation edge function with payload:", payload);
           
+          // Make sure we're passing the session token in the Authorization header
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
             body: payload,
             headers: session?.access_token ? {
@@ -259,6 +259,7 @@ const InvitationsPage: React.FC = () => {
           
           console.log("Invoking send-invitation edge function for resend with payload:", payload);
           
+          // Make sure we're passing the access token for authorization
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
             body: payload,
             headers: session?.access_token ? {

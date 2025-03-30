@@ -1,8 +1,2 @@
 
 project_id = "gjrheltyxjilxcphbzdj"
-
-[functions.send-invitation]
-verify_jwt = false
-
-[functions.send-invitation.environment]
-SITE_URL = "https://b6a84091-4644-4e34-aa23-8e5607f4a294.lovableproject.com"

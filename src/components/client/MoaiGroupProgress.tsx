@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,11 +38,10 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
       if (!user?.id) throw new Error('User ID not available');
       try {
         const count = await getWeeklyAssignedWorkoutsCount(user.id);
-        if (count <= 0) return 5; // Default to 5 if no assigned workouts
         return count;
       } catch (error) {
         console.error("Error fetching workout count:", error);
-        return 5; // Default to 5 as fallback
+        return 6; // Default to 6 as fallback
       }
     },
     enabled: !!user?.id,
@@ -280,7 +278,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
   // Total completed including life happens
   const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;
   
-  const totalWorkouts = assignedWorkoutsCount || 5; // Default to 5 if undefined
+  const totalWorkouts = assignedWorkoutsCount || 6; // Default to 6 if undefined
   
   if (isLoadingCurrentUser || isLoadingMembers || isLoadingCurrentUserProfile) {
     return (

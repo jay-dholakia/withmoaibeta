@@ -15,7 +15,7 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     
     if (!currentProgram || !currentProgram.program) {
       console.error("No current program found for user");
-      throw new Error("No program assigned");
+      return 6; // Default to 6 workouts if no program assigned
     }
     
     // Calculate the current week within the program
@@ -33,7 +33,7 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     
     if (!currentWeek) {
       console.error(`Week ${currentWeekNumber} not found in program`);
-      return 5; // Default to 5 workouts if week not found
+      return 6; // Default to 6 workouts if week not found
     }
     
     // Count the number of workouts in this week
@@ -41,11 +41,11 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     
     console.log(`Found ${workoutsCount} workouts assigned for week ${currentWeekNumber}`);
     
-    // If no workouts found in the week, return default of 5
-    return workoutsCount > 0 ? workoutsCount : 5;
+    // If no workouts found in the week, return default of 6
+    return workoutsCount > 0 ? workoutsCount : 6;
   } catch (error) {
     console.error("Error getting weekly assigned workouts count:", error);
-    return 5; // Default to 5 workouts on error
+    return 6; // Default to 6 workouts on error
   }
 };
 

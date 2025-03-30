@@ -25,6 +25,9 @@ export const WorkoutProgressCard = ({
   userName,
   isCurrentUser
 }: WorkoutProgressCardProps) => {
+  // Default to 6 if total is 0 or undefined
+  const displayTotal = total <= 0 ? 6 : total;
+  
   return (
     <Card className="shadow-sm border-slate-200">
       <CardHeader className="pb-2 pt-4 px-4">
@@ -39,14 +42,14 @@ export const WorkoutProgressCard = ({
               label
             )}
           </CardTitle>
-          <span className="text-base font-semibold text-client">{count}/{total}</span>
+          <span className="text-base font-semibold text-client">{count}/{displayTotal}</span>
         </div>
       </CardHeader>
       <CardContent className="pt-0 pb-4 px-4">
         <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
           <div 
             className="bg-client h-full rounded-full"
-            style={{ width: `${Math.min(100, (count / total) * 100)}%` }}
+            style={{ width: `${Math.min(100, (count / displayTotal) * 100)}%` }}
           />
         </div>
         
@@ -70,7 +73,7 @@ export const WorkoutProgressCard = ({
             const isToday = today.toDateString() === currentDay.toDateString();
             
             // Format date to get the correct workout type from map
-            const dateStr = currentDay.toISOString().split('T')[0];
+            const dateStr = format(currentDay, 'yyyy-MM-dd');
             const workoutType = isDayCompleted || isLifeHappens ? 
               (workoutTypesMap[dateStr] || (isLifeHappens ? 'rest_day' : 'strength')) : undefined;
             

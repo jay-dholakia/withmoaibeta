@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { WeekProgressBar } from './WeekProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,13 +48,10 @@ export const WeekProgressSection = ({
       if (!user?.id) throw new Error('User ID not available');
       try {
         const count = await getWeeklyAssignedWorkoutsCount(user.id);
-        
-        if (count <= 0) return 5; // Default to 5 if no assigned workouts
-        
         return count;
       } catch (error) {
         console.error("Error fetching workout count:", error);
-        return 5; // Default fallback
+        return 6; // Default fallback
       }
     },
     enabled: !!user?.id && assignedWorkoutsCount === undefined,
@@ -64,7 +60,7 @@ export const WeekProgressSection = ({
   // Use either the passed in count or the fetched count
   const finalAssignedWorkoutsCount = assignedWorkoutsCount !== undefined ? 
     assignedWorkoutsCount : 
-    totalAssignedWorkouts || 5; // Change default value to 5
+    totalAssignedWorkouts || 6; // Change default value to 6
   
   // Extract completed dates and life happens dates
   useEffect(() => {

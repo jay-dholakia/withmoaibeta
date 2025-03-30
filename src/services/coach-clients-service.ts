@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -52,10 +53,10 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
         total_workouts_completed: workoutCounts.get(client.id) || 0,
         first_name: client.first_name || null,
         last_name: client.last_name || null
-      }));
+      })) as ClientData[];
     }
     
-    return rpcData || [];
+    return (rpcData || []) as ClientData[];
   } catch (error) {
     console.error('Error fetching coach clients:', error);
     return [];

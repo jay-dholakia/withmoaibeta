@@ -74,21 +74,22 @@ export const WorkoutProgressCard = ({
             const workoutType = isDayCompleted || isLifeHappens ? 
               (workoutTypesMap[dateStr] || (isLifeHappens ? 'rest_day' : 'strength')) : undefined;
             
-            let bgColor = 'bg-slate-100';
+            // Use lighter background colors for better emoji visibility
+            let bgColor = 'bg-slate-50';
             
             if (isLifeHappens) {
-              bgColor = 'bg-yellow-100';
+              bgColor = 'bg-yellow-50';
             }
             
             if (isDayCompleted) {
-              bgColor = 'bg-client/90';
+              bgColor = 'bg-client/20';
             }
             
             return (
               <div key={index} className="flex flex-col items-center">
                 {/* Circle with workout type emoji inside */}
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor}`}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} border border-slate-200`}
                 >
                   {workoutType && <WorkoutTypeIcon type={workoutType} size={16} />}
                 </div>

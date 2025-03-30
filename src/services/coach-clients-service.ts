@@ -46,6 +46,7 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       const workoutCounts = await fetchAccurateWorkoutCounts(clientIds);
       
       // Update the total_workouts_completed value with the accurate count
+      // Make sure to include first_name and last_name properties
       return rpcData.map(client => ({
         ...client,
         total_workouts_completed: workoutCounts.get(client.id) || 0,

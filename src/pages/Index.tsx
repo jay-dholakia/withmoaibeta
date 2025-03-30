@@ -79,7 +79,7 @@ const Index = () => {
             
             <motion.div variants={item} className="w-full">
               <PortalCard
-                title="Client Portal"
+                title="Member Portal"
                 description="View your schedule, access resources, and manage your account settings."
                 icon={User}
                 to="/client"

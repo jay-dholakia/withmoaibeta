@@ -74,7 +74,7 @@ const ClientLogin = () => {
     <PageTransition>
       <AuthLayout 
         variant="client"
-        title="Client Portal"
+        title="Member Portal"
         subtitle="Sign in or sign up to access your personal dashboard"
       >
         <div className="w-full max-w-md">

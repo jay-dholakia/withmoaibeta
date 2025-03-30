@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Container } from '@/components/ui/container';
 import { CoachMessageCard } from '@/components/client/CoachMessageCard';
@@ -11,9 +10,20 @@ import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
 import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { WorkoutProgressCard } from '@/components/client/WorkoutProgressCard';
 import { Card } from '@/components/ui/card';
+import { fetchClientProfile } from '@/services/client-service';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
+  
+  // Fetch client profile to get the first name
+  const { data: profile } = useQuery({
+    queryKey: ['client-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      return fetchClientProfile(user.id);
+    },
+    enabled: !!user?.id,
+  });
   
   // Query client workouts to get workout types
   const { data: clientWorkouts, isLoading: isLoadingWorkouts } = useQuery({
@@ -118,8 +128,8 @@ const LeaderboardPage = () => {
   
   const totalWorkouts = assignedWorkoutsCount || 5; // Default to 5 if undefined
   
-  // Get user display name
-  const userDisplayName = user?.email ? user.email.split('@')[0] : 'You';
+  // Get user display name - prioritize first name from profile
+  const userDisplayName = profile?.first_name || (user?.email ? user.email.split('@')[0] : 'You');
   
   return (
     <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">

@@ -13,3 +13,29 @@ export const normalizeWorkoutType = (workoutType: string): string => {
   // Default to 'strength' if no match is found
   return 'strength';
 };
+
+// Helper function to group exercises by superset
+export const groupExercisesBySuperset = (exercises: any[]) => {
+  const exercisesBySupersetId: Record<string, any[]> = {};
+  const standaloneExercises: any[] = [];
+  
+  exercises.forEach(exercise => {
+    if (exercise.superset_group_id) {
+      if (!exercisesBySupersetId[exercise.superset_group_id]) {
+        exercisesBySupersetId[exercise.superset_group_id] = [];
+      }
+      exercisesBySupersetId[exercise.superset_group_id].push(exercise);
+    } else {
+      standaloneExercises.push(exercise);
+    }
+  });
+  
+  // Sort superset exercises by superset_order
+  Object.keys(exercisesBySupersetId).forEach(groupId => {
+    exercisesBySupersetId[groupId].sort((a, b) => {
+      return (a.superset_order || 0) - (b.superset_order || 0);
+    });
+  });
+  
+  return { exercisesBySupersetId, standaloneExercises };
+};

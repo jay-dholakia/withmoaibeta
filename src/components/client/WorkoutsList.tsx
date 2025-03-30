@@ -31,19 +31,16 @@ const WorkoutsList = () => {
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
   const [isChangingFilter, setIsChangingFilter] = useState(false);
   const [preventAutoNavigation, setPreventAutoNavigation] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
-    // Only handle navigation if we're not in the middle of a filter change
-    // and not explicitly preventing navigation
-    if (isChangingFilter || preventAutoNavigation) {
+    if (initialLoad || isChangingFilter || preventAutoNavigation) {
       return;
     }
     
-    // Check if we're on an active workout page
     const isActiveWorkoutPage = location.pathname.includes('/active/');
-    
-    // Handle redirection for invalid routes
     const isMainPage = location.pathname === "/client-dashboard/workouts";
+    
     const isValidSubPage = 
       location.pathname.includes('/active/') || 
       location.pathname.includes('/complete/') ||
@@ -51,12 +48,11 @@ const WorkoutsList = () => {
       location.pathname.includes('/create') ||
       location.pathname.includes('/one-off');
       
-    // Only redirect if we're on an invalid sub-page
     if (!isMainPage && !isValidSubPage) {
       console.log("Redirecting from invalid workout sub-page:", location.pathname);
       navigate("/client-dashboard/workouts");
     }
-  }, [location.pathname, navigate, isChangingFilter, preventAutoNavigation]);
+  }, [location.pathname, navigate, isChangingFilter, preventAutoNavigation, initialLoad]);
 
   const toggleWorkoutDetails = (workoutId: string) => {
     setExpandedWorkouts(prev => ({
@@ -66,39 +62,41 @@ const WorkoutsList = () => {
   };
 
   const handleWeekFilterChange = (value: string) => {
-    // Signal that we're changing the filter - this prevents unwanted navigation
     setIsChangingFilter(true);
-    // Also set preventAutoNavigation to true to ensure no unwanted navigation happens
     setPreventAutoNavigation(true);
     
     console.log(`Setting week filter to ${value}`);
     
-    // If we're not on the main workouts page, force navigation there first
-    if (location.pathname !== "/client-dashboard/workouts") {
-      // Use replace to ensure back button works correctly
+    const needsNavigation = location.pathname !== "/client-dashboard/workouts";
+    
+    if (needsNavigation) {
+      console.log("Navigating to main workouts page before applying filter");
       navigate("/client-dashboard/workouts", { replace: true });
       
-      // Set the filter after a delay to ensure navigation completes
       setTimeout(() => {
+        console.log("Navigation complete, now applying filter");
         setWeekFilter(value);
-        // Reset the flags after filter change is complete
-        setIsChangingFilter(false);
         
-        // Keep preventAutoNavigation true for a bit longer to prevent any navigation
-        // that might be triggered by React effects running after state changes
         setTimeout(() => {
-          setPreventAutoNavigation(false);
-        }, 500);
-      }, 200);
+          setIsChangingFilter(false);
+          
+          setTimeout(() => {
+            setPreventAutoNavigation(false);
+            console.log("Navigation prevention removed");
+          }, 800);
+        }, 200);
+      }, 400);
     } else {
-      // Already on the main page, just update the filter
       setWeekFilter(value);
       
-      // Reset the flags after a delay
       setTimeout(() => {
         setIsChangingFilter(false);
-        setPreventAutoNavigation(false);
-      }, 500);
+        
+        setTimeout(() => {
+          setPreventAutoNavigation(false);
+          console.log("Navigation prevention removed");
+        }, 800);
+      }, 200);
     }
   };
 
@@ -133,21 +131,17 @@ const WorkoutsList = () => {
         
         console.log("Assigned workouts loaded:", assignedWorkouts.length);
         
-        // Filter out completed workouts here
         const pendingWorkouts = assignedWorkouts.filter(workout => !workout.completed_at);
         console.log("Pending workouts (not completed):", pendingWorkouts.length);
         
         setCurrentProgram(program);
         setWorkouts(pendingWorkouts);
         
-        // Get all workouts (including completed) for checking completed weeks
         const allWorkouts = assignedWorkouts;
         
-        // Determine which weeks are completed by checking if all workouts for that week are completed
         const weekCompletionStatus: Record<string, boolean> = {};
         const weeksSet = new Set<number>();
         
-        // Group all workouts by week
         const workoutsByWeek: Record<number, WorkoutHistoryItem[]> = {};
         
         allWorkouts.forEach(workout => {
@@ -162,7 +156,6 @@ const WorkoutsList = () => {
           }
         });
         
-        // Check if all workouts in each week are completed
         Object.entries(workoutsByWeek).forEach(([weekNum, weekWorkouts]) => {
           const allCompleted = weekWorkouts.every(workout => !!workout.completed_at);
           weekCompletionStatus[weekNum] = allCompleted;
@@ -183,9 +176,10 @@ const WorkoutsList = () => {
         if (extractedWeeks.length > 0) {
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
           
-          // Set initial week filter without triggering navigation
           setWeekFilter(sortedWeeks[0].toString());
         }
+        
+        setInitialLoad(false);
       } catch (error) {
         console.error('Error loading workouts:', error);
         setError('Failed to load your assigned workouts');
@@ -219,9 +213,7 @@ const WorkoutsList = () => {
       return weekMatches;
     });
     
-    // Sort workouts by priority first, then by day_of_week as a backup
     return filtered.sort((a, b) => {
-      // First by priority (lower number = higher priority)
       const priorityA = a.workout?.priority ?? Number.MAX_SAFE_INTEGER;
       const priorityB = b.workout?.priority ?? Number.MAX_SAFE_INTEGER;
       
@@ -229,7 +221,6 @@ const WorkoutsList = () => {
         return priorityA - priorityB;
       }
       
-      // If priority is the same, sort by day_of_week
       return (a.workout?.day_of_week ?? 0) - (b.workout?.day_of_week ?? 0);
     });
   }, [workouts, weekFilter]);
@@ -254,7 +245,6 @@ const WorkoutsList = () => {
     );
   }
 
-  // Check if the selected week is completed
   const isSelectedWeekCompleted = weekFilter ? completedWeeks[weekFilter] : false;
 
   return (

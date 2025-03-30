@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -32,13 +33,28 @@ const WorkoutsList = () => {
   const [isChangingFilter, setIsChangingFilter] = useState(false);
   const [preventAutoNavigation, setPreventAutoNavigation] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [forceMainPage, setForceMainPage] = useState(false);
 
+  // First, check and handle if we're not on the main workouts page
+  useEffect(() => {
+    if (forceMainPage) {
+      const mainWorkoutsPath = "/client-dashboard/workouts";
+      
+      if (location.pathname !== mainWorkoutsPath) {
+        console.log("Forcing navigation to main workouts page");
+        navigate(mainWorkoutsPath, { replace: true });
+      }
+      
+      setForceMainPage(false);
+    }
+  }, [forceMainPage, location.pathname, navigate]);
+
+  // Regular navigation check effect
   useEffect(() => {
     if (initialLoad || isChangingFilter || preventAutoNavigation) {
       return;
     }
     
-    const isActiveWorkoutPage = location.pathname.includes('/active/');
     const isMainPage = location.pathname === "/client-dashboard/workouts";
     
     const isValidSubPage = 
@@ -62,41 +78,43 @@ const WorkoutsList = () => {
   };
 
   const handleWeekFilterChange = (value: string) => {
-    setIsChangingFilter(true);
-    setPreventAutoNavigation(true);
-    
-    console.log(`Setting week filter to ${value}`);
-    
-    const needsNavigation = location.pathname !== "/client-dashboard/workouts";
-    
-    if (needsNavigation) {
-      console.log("Navigating to main workouts page before applying filter");
-      navigate("/client-dashboard/workouts", { replace: true });
+    // If we're not on the main page, we need to navigate first before applying filter
+    if (location.pathname !== "/client-dashboard/workouts") {
+      console.log("Not on main workouts page, forcing navigation before filter change");
+      setIsChangingFilter(true);
+      setPreventAutoNavigation(true);
+      setForceMainPage(true);
       
+      // Apply filter after navigation with a longer delay to ensure navigation completes
       setTimeout(() => {
-        console.log("Navigation complete, now applying filter");
+        console.log("Now applying filter after navigation");
         setWeekFilter(value);
         
+        // Release the locks after a longer delay
         setTimeout(() => {
           setIsChangingFilter(false);
           
           setTimeout(() => {
             setPreventAutoNavigation(false);
             console.log("Navigation prevention removed");
-          }, 800);
-        }, 200);
-      }, 400);
+          }, 1000);
+        }, 500);
+      }, 800);
     } else {
+      console.log(`Setting week filter to ${value} (already on main page)`);
+      setIsChangingFilter(true);
+      setPreventAutoNavigation(true);
       setWeekFilter(value);
       
+      // Release the locks after delays
       setTimeout(() => {
         setIsChangingFilter(false);
         
         setTimeout(() => {
           setPreventAutoNavigation(false);
           console.log("Navigation prevention removed");
-        }, 800);
-      }, 200);
+        }, 1000);
+      }, 300);
     }
   };
 
@@ -268,6 +286,7 @@ const WorkoutsList = () => {
             <Select
               value={weekFilter}
               onValueChange={handleWeekFilterChange}
+              disabled={isChangingFilter || preventAutoNavigation}
             >
               <SelectTrigger className="w-[200px] h-8 text-sm">
                 <div className="flex items-center gap-1">

@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./client-workout-history-service";
+import { toast } from 'sonner';
 
 /**
  * Tracks a workout set completion
@@ -544,31 +545,37 @@ export const startWorkout = async (userId: string, workoutId: string): Promise<s
 
 export const completeWorkout = async (
   workoutCompletionId: string,
-  rating: number | null,
-  notes: string
+  rating: number | null = null,
+  notes: string | null = null
 ): Promise<any> => {
   try {
-    console.log(`Completing workout ${workoutCompletionId} with rating: ${rating}, notes: ${notes}`);
+    const { data: user } = await supabase.auth.getUser();
     
+    if (!user.user) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Update the workout completion record
     const { data, error } = await supabase
       .from('workout_completions')
       .update({
         completed_at: new Date().toISOString(),
-        rating: rating,
-        notes: notes
+        rating,
+        notes
       })
       .eq('id', workoutCompletionId)
-      .select();
+      .eq('user_id', user.user.id)
+      .select()
+      .single();
+      
+    if (error) throw error;
     
-    if (error) {
-      console.error("Error completing workout:", error);
-      throw error;
-    }
+    // Show a toast notification here
+    toast.success('Workout completed!');
     
-    console.log("Workout completed successfully:", data);
     return data;
   } catch (error) {
-    console.error("Error completing workout:", error);
+    console.error('Error completing workout:', error);
     throw error;
   }
 };

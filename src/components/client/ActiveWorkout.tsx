@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -216,7 +215,6 @@ const ActiveWorkout = () => {
       return Promise.all(promises);
     },
     onSuccess: () => {
-      toast.success('Workout completed successfully');
       queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
       setPendingSets([]);
       setPendingCardio([]);

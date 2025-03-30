@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -101,7 +102,7 @@ const WorkoutComplete = () => {
       );
     },
     onSuccess: () => {
-      toast.success('Workout completed!');
+      // Only show one toast message on success
       navigate('/client-dashboard/workouts');
     },
     onError: (error) => {

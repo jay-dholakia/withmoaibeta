@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -31,7 +30,7 @@ const WorkoutsList = () => {
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
 
-  // If we're on a workout detail page, redirect back to the main workouts page
+  // If we're on a workout detail page, redirect back to the main workouts page if needed
   useEffect(() => {
     // Check if we're on the main workouts page or a valid sub-page
     const isMainPage = location.pathname === "/client-dashboard/workouts";
@@ -60,6 +59,12 @@ const WorkoutsList = () => {
     // Just update the filter state, don't navigate
     console.log(`Setting week filter to ${value} without navigation`);
     setWeekFilter(value);
+    
+    // Ensure we're on the main workouts page when filtering
+    if (location.pathname !== "/client-dashboard/workouts") {
+      console.log("Navigating to main workouts page for filtering");
+      navigate("/client-dashboard/workouts");
+    }
   };
 
   useEffect(() => {
@@ -142,6 +147,8 @@ const WorkoutsList = () => {
         
         if (extractedWeeks.length > 0) {
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
+          
+          // Set initial week filter without triggering navigation
           setWeekFilter(sortedWeeks[0].toString());
         }
       } catch (error) {

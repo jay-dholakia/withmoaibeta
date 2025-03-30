@@ -4,28 +4,20 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, UserRound, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Loader2, Users, UserRound } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
-import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import { 
   fetchUserGroups, 
   diagnoseGroupAccess, 
-  verifyUserGroupMembership, 
-  ensureUserHasGroup,
-  resetUserGroupMembership 
+  verifyUserGroupMembership
 } from '@/services/moai-service';
-import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const MoaiPage = () => {
   const { user } = useAuth();
   const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
-  const [isFixingGroup, setIsFixingGroup] = useState(false);
-  const [isResetingGroup, setIsResetingGroup] = useState(false);
   
   const { data: userGroups, isLoading: isLoadingGroups, refetch } = useQuery({
     queryKey: ['client-groups', user?.id],
@@ -110,63 +102,6 @@ const MoaiPage = () => {
     }
   };
   
-  const fixGroupAssignment = async () => {
-    if (!user?.id) {
-      return;
-    }
-    
-    setIsFixingGroup(true);
-    
-    try {
-      const result = await ensureUserHasGroup(user.id);
-      console.log('Group assignment fix result:', result);
-      
-      if (result.success) {
-        refetch();
-        const diagResult = await diagnoseGroupAccess(user.id);
-        setDiagnosticDetails(diagResult);
-      } else {
-        if ('details' in result && result.details) {
-          console.error('Fix error details:', result.details);
-        }
-      }
-    } catch (err) {
-      console.error('Error fixing group assignment:', err);
-    } finally {
-      setIsFixingGroup(false);
-    }
-  };
-  
-  const resetGroupAssignment = async () => {
-    if (!user?.id) {
-      return;
-    }
-    
-    setIsResetingGroup(true);
-    
-    try {
-      const result = await resetUserGroupMembership(user.id);
-      console.log('Group assignment reset result:', result);
-      
-      if (result.success) {
-        toast.success('Group membership has been reset successfully');
-        refetch();
-        const diagResult = await diagnoseGroupAccess(user.id);
-        setDiagnosticDetails(diagResult);
-      } else {
-        toast.error('Failed to reset group membership');
-        if ('details' in result && result.details) {
-          console.error('Reset error details:', result.details);
-        }
-      }
-    } catch (err) {
-      console.error('Error resetting group assignment:', err);
-      toast.error('Unexpected error occurred');
-    } finally {
-      setIsResetingGroup(false);
-    }
-  };
-  
   if (isLoadingGroups) {
     return (
       <div className="space-y-6">
@@ -196,27 +131,6 @@ const MoaiPage = () => {
               You'll be assigned to a Moai group shortly. Moai groups help you stay motivated 
               with others on the same fitness journey.
             </p>
-            
-            <div className="mt-6 flex flex-col gap-3">
-              <Button 
-                onClick={fixGroupAssignment}
-                className="flex items-center gap-2"
-                disabled={isFixingGroup || isResetingGroup}
-              >
-                <RefreshCw className={`h-4 w-4 ${isFixingGroup ? 'animate-spin' : ''}`} />
-                {isFixingGroup ? 'Assigning...' : 'Assign Me Now'}
-              </Button>
-              
-              <Button 
-                onClick={resetGroupAssignment}
-                variant="outline"
-                className="flex items-center gap-2"
-                disabled={isFixingGroup || isResetingGroup}
-              >
-                <AlertTriangle className="h-4 w-4" />
-                {isResetingGroup ? 'Resetting...' : 'Reset Group Assignment'}
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -236,25 +150,6 @@ const MoaiPage = () => {
         <CardContent className="text-center text-sm text-muted-foreground pt-0">
           {group.description && <p>{group.description}</p>}
         </CardContent>
-        
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className={`absolute bottom-2 right-2 h-7 w-7 ${isResetingGroup ? "animate-spin" : ""}`} 
-                onClick={resetGroupAssignment}
-                disabled={isResetingGroup}
-              >
-                <RefreshCw className="h-3 w-3" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Reset Group Assignment</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </Card>
       
       <Tabs defaultValue="progress" className="w-full">

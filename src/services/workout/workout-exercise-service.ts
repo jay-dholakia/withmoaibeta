@@ -30,7 +30,7 @@ export const fetchWorkoutExercises = async (workoutId: string) => {
     .from('workout_exercises')
     .select(`
       *,
-      exercise:exercise_id (*)
+      exercise:exercises (*)
     `)
     .eq('workout_id', workoutId)
     .order('order_index');

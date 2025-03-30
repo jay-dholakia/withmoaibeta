@@ -159,7 +159,7 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
 export const fetchWorkoutCompletionExercises = async (workoutCompletionId: string): Promise<WorkoutCompletionExercise[]> => {
   try {
     // First check if there are existing completion exercises
-    // Now using the fk_exercise relationship explicitly
+    // Use the standard join syntax instead of explicit foreign key relationship
     const { data: existingExercises, error: existingError } = await supabase
       .from('workout_completion_exercises')
       .select(`
@@ -169,7 +169,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
         completed,
         created_at,
         result,
-        exercise:exercises!fk_exercise (
+        exercise:exercises (
           id,
           name,
           description,
@@ -250,7 +250,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
         rest_seconds,
         superset_group_id,
         superset_order,
-        exercise:exercises!fk_exercise (
+        exercise:exercises (
           id,
           name,
           description,
@@ -294,7 +294,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
             completed,
             created_at,
             result,
-            exercise:exercises!fk_exercise (
+            exercise:exercises (
               id,
               name,
               description,
@@ -354,7 +354,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
           completed,
           created_at,
           result,
-          exercise:exercises!fk_exercise (
+          exercise:exercises (
             id,
             name,
             description,
@@ -434,7 +434,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
         completed,
         created_at,
         result,
-        exercise:exercises!fk_exercise (
+        exercise:exercises (
           id,
           name,
           description,

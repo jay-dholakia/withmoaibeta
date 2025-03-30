@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -17,6 +16,7 @@ export interface Invitation {
   token: string;
   expires_at: string;
   accepted_at: string | null;
+  is_share_link?: boolean;
 }
 
 interface InvitationTableProps {

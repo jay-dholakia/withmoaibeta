@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface WorkoutCompletion {
@@ -122,24 +121,31 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
     
     console.log("Found workout data, creating default completion:", workoutData);
     
-    // Create a default WorkoutCompletion object with workout data
+    // Create a new workout completion record in the database
+    const { data: newCompletion, error: insertError } = await supabase
+      .from('workout_completions')
+      .insert({
+        id: workoutCompletionId, // Use the same ID as the workout for simplicity
+        user_id: userId,
+        workout_id: workoutCompletionId,
+        rest_day: false,
+        life_happens_pass: false
+      })
+      .select('*')
+      .single();
+    
+    if (insertError) {
+      console.error("Error creating workout completion:", insertError);
+      throw insertError;
+    }
+    
+    console.log("Created new workout completion:", newCompletion);
+    
+    // Return the newly created workout completion with workout data
     return {
-      id: '',
-      user_id: userId,
-      workout_id: workoutCompletionId,
-      completed_at: null,
-      notes: null,
-      rating: null,
+      ...newCompletion,
       workout: workoutData,
-      created_at: new Date().toISOString(),
-      rest_day: false,
-      life_happens_pass: false,
-      title: null,
-      description: null,
-      workout_type: null,
-      distance: null,
-      duration: null,
-      location: null
+      distance: null
     };
   } catch (error) {
     console.error("Error in workout completion data query:", error);
@@ -210,8 +216,21 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
     // If no completion exercises exist, we need to fetch workout exercises and create them
     console.log("No completion exercises found, creating from workout exercises");
     
+    // Ensure the workout completion exists before trying to create exercises
+    // This will create it if it doesn't exist
+    await fetchWorkoutCompletion(workoutCompletionId);
+    
     // Fetch the workout ID from the completion
-    const completion = await fetchWorkoutCompletion(workoutCompletionId);
+    const { data: completion, error: completionError } = await supabase
+      .from('workout_completions')
+      .select('workout_id')
+      .eq('id', workoutCompletionId)
+      .single();
+    
+    if (completionError) {
+      console.error("Error fetching workout completion:", completionError);
+      throw completionError;
+    }
     
     if (!completion.workout_id) {
       console.error("No workout ID associated with this completion");
@@ -231,7 +250,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
         rest_seconds,
         superset_group_id,
         superset_order,
-        exercise:exercises!exercise_id (
+        exercise:exercises!fk_exercise (
           id,
           name,
           description,

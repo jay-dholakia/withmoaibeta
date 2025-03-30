@@ -156,6 +156,58 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
  */
 export const updateWorkoutCompletionExercise = async (exerciseId: string, updates: Partial<WorkoutCompletionExercise>): Promise<WorkoutCompletionExercise> => {
   try {
+    // Format the result data based on exercise log_type if available
+    if (updates.result) {
+      // First, fetch current exercise data to get the log_type
+      const { data: currentExercise, error: fetchError } = await supabase
+        .from('workout_completion_exercises')
+        .select(`
+          *,
+          exercise:exercise_id (
+            id,
+            name,
+            description,
+            category,
+            log_type
+          )
+        `)
+        .eq('id', exerciseId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Format the result based on the exercise type
+      if (isValidExercise(currentExercise.exercise)) {
+        const logType = currentExercise.exercise.log_type;
+        
+        switch (logType) {
+          case 'weight_reps':
+            // For weight_reps exercises, ensure we have both reps and sets
+            if (!updates.result.reps || !updates.result.sets) {
+              throw new Error('Reps and sets are required for weight_reps exercises');
+            }
+            break;
+          
+          case 'duration':
+            // For duration exercises, make sure we have duration
+            if (!updates.result.duration) {
+              updates.result.duration = '00:00:00';
+            }
+            break;
+          
+          case 'duration_distance':
+            // For duration_distance exercises, ensure we have both distance and duration
+            if (!updates.result.distance) {
+              throw new Error('Distance is required for duration_distance exercises');
+            }
+            if (!updates.result.duration) {
+              updates.result.duration = '00:00:00';
+            }
+            break;
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from('workout_completion_exercises')
       .update(updates)

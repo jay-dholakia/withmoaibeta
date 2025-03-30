@@ -4,7 +4,7 @@ import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Filter, ChevronDown, ChevronUp, Play, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,6 +20,8 @@ import {
 
 const WorkoutsList = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,7 @@ const WorkoutsList = () => {
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
+  const [selectOpen, setSelectOpen] = useState(false);
 
   const toggleWorkoutDetails = (workoutId: string) => {
     setExpandedWorkouts(prev => ({
@@ -116,7 +119,10 @@ const WorkoutsList = () => {
         
         if (extractedWeeks.length > 0) {
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
-          setWeekFilter(sortedWeeks[0].toString());
+          // Wait until component is fully mounted before setting the filter
+          setTimeout(() => {
+            setWeekFilter(sortedWeeks[0].toString());
+          }, 0);
         }
       } catch (error) {
         console.error('Error loading workouts:', error);
@@ -166,14 +172,28 @@ const WorkoutsList = () => {
     });
   }, [workouts, weekFilter]);
 
-  // This function prevents event propagation to stop accidental redirects
+  // Enhanced function to safely handle week filter changes
   const handleWeekFilterChange = (value: string, event?: React.MouseEvent | React.TouchEvent) => {
-    // Stop event propagation if the event exists
+    // Prevent default behavior and stop propagation
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
+    
+    // Log the value being set for debugging
+    console.log(`Setting week filter to: ${value}`);
+    
+    // Update the filter state
     setWeekFilter(value);
+  };
+
+  // Safe click handler for start workout
+  const handleStartWorkout = (e: React.MouseEvent, workoutId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Only navigate if this was intentional
+    navigate(`/client-dashboard/workouts/active/${workoutId}`);
   };
 
   if (isLoading) {
@@ -199,6 +219,11 @@ const WorkoutsList = () => {
   // Check if the selected week is completed
   const isSelectedWeekCompleted = weekFilter ? completedWeeks[weekFilter] : false;
 
+  // Callback function for when select is closed
+  const handleSelectClose = () => {
+    setSelectOpen(false);
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-4">
@@ -219,15 +244,35 @@ const WorkoutsList = () => {
           <div className="flex justify-center mb-2">
             <Select
               value={weekFilter}
-              onValueChange={(value) => handleWeekFilterChange(value)}
+              onValueChange={(value) => {
+                // Ensure we don't trigger any navigation
+                setTimeout(() => {
+                  handleWeekFilterChange(value);
+                }, 0);
+              }}
+              open={selectOpen}
+              onOpenChange={setSelectOpen}
             >
-              <SelectTrigger className="w-[200px] h-8 text-sm">
+              <SelectTrigger className="w-[200px] h-8 text-sm" onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setSelectOpen(true);
+              }}>
                 <div className="flex items-center gap-1">
                   <Filter className="h-3.5 w-3.5" />
                   <SelectValue placeholder="Filter by week" />
                 </div>
               </SelectTrigger>
-              <SelectContent onPointerDownOutside={(e) => e.preventDefault()}>
+              <SelectContent 
+                onPointerDownOutside={(e) => {
+                  e.preventDefault();
+                  handleSelectClose();
+                }}
+                onEscapeKeyDown={handleSelectClose}
+                onInteractOutside={(e) => {
+                  e.preventDefault();
+                }}
+              >
                 {availableWeeks
                   .sort((a, b) => a - b)
                   .map((weekNumber) => (
@@ -241,7 +286,12 @@ const WorkoutsList = () => {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        handleWeekFilterChange(weekNumber.toString(), e);
+                        
+                        // Use timeout to ensure this doesn't interfere with routing
+                        setTimeout(() => {
+                          handleWeekFilterChange(weekNumber.toString(), e);
+                          handleSelectClose();
+                        }, 0);
                       }}
                     >
                       {`Week ${weekNumber}`}
@@ -351,11 +401,13 @@ const WorkoutsList = () => {
                 </Collapsible>
                 
                 <CardFooter className="p-3">
-                  <Button asChild className="w-full h-9 py-1" size="sm">
-                    <Link to={`/client-dashboard/workouts/active/${workout.id}`}>
-                      <Play className="h-4 w-4 mr-2" />
-                      Start Workout
-                    </Link>
+                  <Button 
+                    className="w-full h-9 py-1" 
+                    size="sm"
+                    onClick={(e) => handleStartWorkout(e, workout.id)}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Start Workout
                   </Button>
                 </CardFooter>
               </Card>

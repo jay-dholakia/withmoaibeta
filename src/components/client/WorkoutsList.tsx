@@ -30,7 +30,7 @@ const WorkoutsList = () => {
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
-  const [isFilterProcessing, setIsFilterProcessing] = useState(false);
+  const [isFilterLocked, setIsFilterLocked] = useState(false);
   
   // Check if we're on the main workouts page
   const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
@@ -42,40 +42,30 @@ const WorkoutsList = () => {
     }));
   };
 
-  // Safe navigation function that ensures we're on the main page before applying filters
-  const safeNavigateAndFilter = useCallback((weekValue: string) => {
-    if (isFilterProcessing) return;
+  // Fixed filter handler that ensures we're on the main page
+  const handleWeekFilterChange = useCallback((weekValue: string) => {
+    if (isFilterLocked) return;
     
-    setIsFilterProcessing(true);
+    setIsFilterLocked(true);
     
-    // If we're not on the main page, navigate there first
+    // If we're not already on the main workouts page, navigate there first
     if (!isMainWorkoutsPage) {
-      console.log("Navigating to main workouts page before applying filter");
-      
-      // Navigate to the main workouts page
+      // Use navigate with replace:true to avoid adding to history stack
       navigate("/client-dashboard/workouts", { replace: true });
       
-      // After navigation completes, apply the filter with a delay
+      // Set a short timeout to ensure navigation completes before changing filter
       setTimeout(() => {
         console.log(`Now applying week filter: ${weekValue}`);
         setWeekFilter(weekValue);
-        
-        // Release the lock after filter is applied
-        setTimeout(() => {
-          setIsFilterProcessing(false);
-        }, 500);
-      }, 300);
+        setIsFilterLocked(false);
+      }, 100);
     } else {
       // Already on main page, just apply the filter
       console.log(`Directly applying week filter: ${weekValue}`);
       setWeekFilter(weekValue);
-      
-      // Release the lock after a short delay
-      setTimeout(() => {
-        setIsFilterProcessing(false);
-      }, 300);
+      setIsFilterLocked(false);
     }
-  }, [isMainWorkoutsPage, navigate, isFilterProcessing]);
+  }, [isMainWorkoutsPage, navigate, isFilterLocked]);
 
   // Load workouts and program data
   useEffect(() => {
@@ -247,8 +237,8 @@ const WorkoutsList = () => {
           <div className="flex justify-center mb-2">
             <Select
               value={weekFilter}
-              onValueChange={safeNavigateAndFilter}
-              disabled={isFilterProcessing}
+              onValueChange={handleWeekFilterChange}
+              disabled={isFilterLocked}
             >
               <SelectTrigger className="w-[200px] h-8 text-sm">
                 <div className="flex items-center gap-1">

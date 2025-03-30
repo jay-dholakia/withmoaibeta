@@ -8,7 +8,7 @@ import { completeWorkout, fetchPersonalRecords } from '@/services/client-service
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, CheckCircle2, Share2, ArrowLeft } from 'lucide-react';
+import { Loader2, CheckCircle2, Share2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 

@@ -66,7 +66,7 @@ const ActiveWorkout = () => {
       try {
         console.log("Fetching workout data for completion ID:", workoutCompletionId);
         
-        const { data, error } = await supabase
+        const { data: completionData, error: completionError } = await supabase
           .from('workout_completions')
           .select(`
             *,
@@ -79,21 +79,53 @@ const ActiveWorkout = () => {
             ),
             workout_set_completions (*)
           `)
-          .eq('id', workoutCompletionId || '')
-          .single();
+          .eq('workout_id', workoutCompletionId || '')
+          .eq('user_id', user?.id)
+          .maybeSingle();
 
-        if (error) {
-          console.error("Error fetching workout data:", error);
-          throw error;
+        if (completionError) {
+          console.error("Error fetching workout data:", completionError);
+          throw completionError;
         }
         
-        console.log("Fetched workout data:", data);
+        console.log("Fetched workout data:", completionData);
         
-        if (!data || !data.workout) {
-          console.error("Workout data missing or incomplete:", data);
+        if (!completionData || !completionData.workout) {
+          console.error("Workout data missing or incomplete:", completionData);
+          
+          const { data: workoutOnlyData, error: workoutError } = await supabase
+            .from('workouts')
+            .select(`
+              *,
+              workout_exercises (
+                *,
+                exercise:exercise_id (*)
+              )
+            `)
+            .eq('id', workoutCompletionId || '')
+            .maybeSingle();
+            
+          if (workoutError) {
+            console.error("Error fetching workout directly:", workoutError);
+            throw workoutError;
+          }
+          
+          if (!workoutOnlyData) {
+            console.error("Workout not found with ID:", workoutCompletionId);
+            return null;
+          }
+          
+          return {
+            id: null,
+            user_id: user?.id,
+            workout_id: workoutCompletionId,
+            completed_at: null,
+            workout: workoutOnlyData,
+            workout_set_completions: []
+          };
         }
         
-        return data;
+        return completionData;
       } catch (error) {
         console.error("Error in workout data query:", error);
         throw error;
@@ -174,7 +206,6 @@ const ActiveWorkout = () => {
       
       const promises = [];
       
-      // Handle strength/bodyweight sets
       if (pendingSets.length > 0) {
         const setPromises = pendingSets.map(set => 
           trackWorkoutSet(
@@ -188,10 +219,8 @@ const ActiveWorkout = () => {
         promises.push(...setPromises);
       }
       
-      // Handle cardio exercises
       if (pendingCardio.length > 0) {
         const cardioPromises = pendingCardio.map(item => {
-          // Make sure distance is either a valid value or null
           const distance = item.distance && item.distance.trim() !== '' 
             ? item.distance
             : null;
@@ -199,31 +228,30 @@ const ActiveWorkout = () => {
           return trackWorkoutSet(
             workoutCompletionId!,
             item.exerciseId,
-            1, // Just use set 1 for cardio
-            null, // No weight for cardio
-            null, // No reps for cardio
-            null, // No general notes
-            distance, // Store distance in its own column
-            item.duration || null, // Store duration in its own column
-            item.location || null  // Store location in its own column
+            1,
+            null,
+            null,
+            null,
+            distance,
+            item.duration || null,
+            item.location || null
           );
         });
         promises.push(...cardioPromises);
       }
       
-      // Handle flexibility exercises
       if (pendingFlexibility.length > 0) {
         const flexibilityPromises = pendingFlexibility.map(item => {
           return trackWorkoutSet(
             workoutCompletionId!,
             item.exerciseId,
-            1, // Just use set 1 for flexibility
-            null, // No weight for flexibility
-            null, // No reps for flexibility
-            null, // No general notes
-            null, // No distance
-            item.duration || null, // Store duration in its own column
-            null  // No location
+            1,
+            null,
+            null,
+            null,
+            null,
+            item.duration || null,
+            null
           );
         });
         promises.push(...flexibilityPromises);
@@ -256,13 +284,11 @@ const ActiveWorkout = () => {
         const exerciseType = exercise.exercise?.exercise_type || 'strength';
         
         if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
-          // Handle strength and bodyweight exercises with sets and reps
           const sets = Array.from({ length: exercise.sets }, (_, i) => {
             const existingSet = workoutData.workout_set_completions?.find(
               (set: any) => set.workout_exercise_id === exercise.id && set.set_number === i + 1
             );
             
-            // Extract numeric value from reps string if it's a simple number
             let defaultReps = '';
             if (exercise.reps) {
               const repsMatch = exercise.reps.match(/^(\d+)$/);
@@ -274,7 +300,7 @@ const ActiveWorkout = () => {
             return {
               setNumber: i + 1,
               weight: existingSet?.weight?.toString() || '',
-              reps: existingSet?.reps_completed?.toString() || defaultReps, // Auto-populate reps from workout plan
+              reps: existingSet?.reps_completed?.toString() || defaultReps,
               completed: !!existingSet?.completed,
             };
           });
@@ -284,14 +310,13 @@ const ActiveWorkout = () => {
             sets,
           };
         } else if (exerciseType === 'cardio') {
-          // Handle cardio exercises
           const existingSet = workoutData.workout_set_completions?.find(
             (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
           );
           
           initialState[exercise.id] = {
             expanded: true,
-            sets: [], // Empty sets for cardio
+            sets: [],
             cardioData: {
               distance: existingSet?.distance || '',
               duration: existingSet?.duration || '',
@@ -300,14 +325,13 @@ const ActiveWorkout = () => {
             }
           };
         } else if (exerciseType === 'flexibility') {
-          // Handle flexibility exercises
           const existingSet = workoutData.workout_set_completions?.find(
             (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
           );
           
           initialState[exercise.id] = {
             expanded: true,
-            sets: [], // Empty sets for flexibility
+            sets: [],
             flexibilityData: {
               duration: existingSet?.duration || '',
               completed: !!existingSet?.completed
@@ -322,7 +346,6 @@ const ActiveWorkout = () => {
 
   const handleSetChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
     setExerciseStates((prev) => {
-      // Ensure that exerciseId exists in the state
       if (!prev[exerciseId]) {
         return prev;
       }
@@ -341,7 +364,6 @@ const ActiveWorkout = () => {
 
   const handleCardioChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
     setExerciseStates((prev) => {
-      // Ensure that exerciseId exists in the state and has cardioData
       if (!prev[exerciseId] || !prev[exerciseId].cardioData) {
         return prev;
       }
@@ -361,7 +383,6 @@ const ActiveWorkout = () => {
 
   const handleFlexibilityChange = (exerciseId: string, field: 'duration', value: string) => {
     setExerciseStates((prev) => {
-      // Ensure that exerciseId exists in the state and has flexibilityData
       if (!prev[exerciseId] || !prev[exerciseId].flexibilityData) {
         return prev;
       }
@@ -381,7 +402,6 @@ const ActiveWorkout = () => {
 
   const handleSetCompletion = (exerciseId: string, setIndex: number, completed: boolean) => {
     setExerciseStates((prev) => {
-      // Ensure that exerciseId exists in the state
       if (!prev[exerciseId]) {
         return prev;
       }
@@ -398,7 +418,6 @@ const ActiveWorkout = () => {
     });
 
     if (completed) {
-      // Safety check to ensure exerciseId exists in exerciseStates and contains sets
       if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].sets || setIndex >= exerciseStates[exerciseId].sets.length) {
         console.error(`Invalid exercise ID or set index: ${exerciseId}, ${setIndex}`);
         return;
@@ -423,7 +442,6 @@ const ActiveWorkout = () => {
 
   const handleCardioCompletion = (exerciseId: string, completed: boolean) => {
     setExerciseStates((prev) => {
-      // Ensure that exerciseId exists in the state and has cardioData
       if (!prev[exerciseId] || !prev[exerciseId].cardioData) {
         return prev;
       }
@@ -441,7 +459,6 @@ const ActiveWorkout = () => {
     });
 
     if (completed) {
-      // Safety check for cardio data
       if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].cardioData) {
         console.error(`Invalid exercise ID or missing cardio data: ${exerciseId}`);
         return;
@@ -465,7 +482,6 @@ const ActiveWorkout = () => {
 
   const handleFlexibilityCompletion = (exerciseId: string, completed: boolean) => {
     setExerciseStates((prev) => {
-      // Ensure that exerciseId exists in the state and has flexibilityData
       if (!prev[exerciseId] || !prev[exerciseId].flexibilityData) {
         return prev;
       }
@@ -483,7 +499,6 @@ const ActiveWorkout = () => {
     });
 
     if (completed) {
-      // Safety check for flexibility data
       if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].flexibilityData) {
         console.error(`Invalid exercise ID or missing flexibility data: ${exerciseId}`);
         return;
@@ -504,7 +519,6 @@ const ActiveWorkout = () => {
 
   const toggleExerciseExpanded = (exerciseId: string) => {
     setExerciseStates((prev) => {
-      // Check if the exerciseId exists in the state
       if (!prev[exerciseId]) {
         console.error(`Exercise ID not found in state: ${exerciseId}`);
         return prev;
@@ -591,7 +605,6 @@ const ActiveWorkout = () => {
           const exerciseType = exercise.exercise?.exercise_type || 'strength';
           const exerciseState = exerciseStates[exercise.id];
           
-          // Skip rendering if the exercise doesn't have a state yet
           if (!exerciseState) {
             return null;
           }

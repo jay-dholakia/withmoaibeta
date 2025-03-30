@@ -790,13 +790,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "workout_completion_exercises_exercise_id_fkey"
-            columns: ["exercise_id"]
-            isOneToOne: false
-            referencedRelation: "exercises"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "workout_completion_exercises_workout_completion_id_fkey"
             columns: ["workout_completion_id"]
             isOneToOne: false

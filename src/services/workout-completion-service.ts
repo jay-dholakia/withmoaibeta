@@ -153,7 +153,7 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
 export const fetchWorkoutCompletionExercises = async (workoutCompletionId: string): Promise<WorkoutCompletionExercise[]> => {
   try {
     // First check if there are existing completion exercises
-    // Fix the ambiguous relationship by explicitly naming the relationship
+    // Now using the fk_exercise relationship explicitly
     const { data: existingExercises, error: existingError } = await supabase
       .from('workout_completion_exercises')
       .select(`
@@ -163,7 +163,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
         completed,
         created_at,
         result,
-        exercise:exercises!exercise_id (
+        exercise:exercises!fk_exercise (
           id,
           name,
           description,
@@ -275,7 +275,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
             completed,
             created_at,
             result,
-            exercise:exercises!exercise_id (
+            exercise:exercises!fk_exercise (
               id,
               name,
               description,
@@ -335,7 +335,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
           completed,
           created_at,
           result,
-          exercise:exercises!exercise_id (
+          exercise:exercises!fk_exercise (
             id,
             name,
             description,
@@ -415,7 +415,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
         completed,
         created_at,
         result,
-        exercise:exercises!exercise_id (
+        exercise:exercises!fk_exercise (
           id,
           name,
           description,

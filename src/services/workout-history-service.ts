@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCurrentProgram } from "./program-service";
 import { startOfWeek, endOfWeek, format } from "date-fns";
@@ -100,19 +99,14 @@ export const getUserIdByEmail = async (email: string): Promise<string | null> =>
     }
     
     // If not found in profiles, try a more generalized approach
-    // This might be needed if user data is stored in a different way
-    console.warn("User not found in profiles table by email, using more general approach");
+    // Since the RPC function doesn't exist, we'll use a different approach
+    console.warn("User not found in profiles table by email, using another approach");
     
-    // Try using a Supabase function if available
-    const { data: functionData, error: functionError } = await supabase
-      .rpc('get_user_id_by_email', { email_param: email });
+    // Try to get user from auth.users through a different service or table
+    // For now, we're just returning null as we need to implement a proper solution
+    console.warn("No alternative method to get user ID by email is currently implemented");
     
-    if (functionError) {
-      console.error("Error fetching user by email with RPC:", functionError);
-      return null;
-    }
-    
-    return functionData || null;
+    return null;
   } catch (error) {
     console.error("Error in getUserIdByEmail:", error);
     return null;

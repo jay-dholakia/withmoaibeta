@@ -23,13 +23,13 @@ const LeaderboardPage = () => {
     enabled: !!user?.id,
   });
   
-  // Query the assigned workouts count
+  // Query the assigned workouts count from the coach-assigned program
   const { data: assignedWorkoutsCount } = useQuery({
     queryKey: ['assigned-workouts-count', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
       const count = await getWeeklyAssignedWorkoutsCount(user.id);
-      if (count <= 0) throw new Error('No assigned workouts found');
+      if (count <= 0) throw new Error('No assigned workouts found for the current week');
       return count;
     },
     enabled: !!user?.id,

@@ -142,7 +142,7 @@ const WorkoutComplete = () => {
         await addToJournal(notes);
       }
       
-      // Call completeWorkout but don't show toast here - it's already shown in the service
+      // Use the workout ID (workoutCompletionId) not the completion record ID
       return completeWorkout(
         workoutCompletionId,
         rating,

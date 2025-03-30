@@ -544,7 +544,7 @@ export const startWorkout = async (userId: string, workoutId: string): Promise<s
 };
 
 export const completeWorkout = async (
-  workoutCompletionId: string,
+  workoutId: string,
   rating: number | null = null,
   notes: string | null = null
 ): Promise<any> => {
@@ -555,27 +555,67 @@ export const completeWorkout = async (
       throw new Error('User not authenticated');
     }
     
-    // Update the workout completion record
-    const { data, error } = await supabase
+    // Identify if we're using a completion ID or workout ID
+    const { data: existingCompletion, error: queryError } = await supabase
       .from('workout_completions')
-      .update({
-        completed_at: new Date().toISOString(),
-        rating,
-        notes
-      })
-      .eq('id', workoutCompletionId)
+      .select('id')
+      .eq('workout_id', workoutId)
       .eq('user_id', user.user.id)
-      .select()
-      .single();
+      .maybeSingle();
+    
+    if (queryError) {
+      console.error('Error fetching existing workout completion:', queryError);
+      throw queryError;
+    }
+    
+    let completionId = existingCompletion?.id;
+    
+    if (!completionId) {
+      // If no completion exists yet, create one
+      const { data: newCompletion, error: insertError } = await supabase
+        .from('workout_completions')
+        .insert({
+          user_id: user.user.id,
+          workout_id: workoutId,
+          completed_at: new Date().toISOString(),
+          rating,
+          notes
+        })
+        .select()
+        .single();
+        
+      if (insertError) {
+        console.error('Error creating workout completion:', insertError);
+        throw insertError;
+      }
       
-    if (error) throw error;
+      completionId = newCompletion.id;
+    } else {
+      // Update the existing workout completion record
+      const { data, error } = await supabase
+        .from('workout_completions')
+        .update({
+          completed_at: new Date().toISOString(),
+          rating,
+          notes
+        })
+        .eq('id', completionId)
+        .eq('user_id', user.user.id)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error updating workout completion:', error);
+        throw error;
+      }
+    }
     
     // Show a single toast notification here
     toast.success('Workout completed!', {
-      id: `workout-complete-${workoutCompletionId}`, // Use a unique ID to prevent duplicates
+      id: `workout-complete-${workoutId}`, // Use a unique ID to prevent duplicates
     });
     
-    return data;
+    return { completionId };
   } catch (error) {
     console.error('Error completing workout:', error);
     throw error;

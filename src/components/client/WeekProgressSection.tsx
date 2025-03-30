@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -111,7 +110,7 @@ export const WeekProgressSection = ({
       if (!user?.id) return 0;
       const count = await getWeeklyAssignedWorkoutsCount(user.id);
       console.log('Assigned workouts count:', count);
-      return count;
+      return count || 7;
     },
     enabled: !!user?.id,
   });
@@ -613,7 +612,7 @@ export const WeekProgressSection = ({
             color="bg-client"
             textColor="text-client"
             showDayCircles={true}
-            showProgressBar={true}
+            showProgressBar={false}
             weekNumber={programWeekData?.weekNumber}
             workoutTypes={workoutTypesMap || calculatedWorkoutTypesMap}
           />
@@ -647,7 +646,6 @@ export const WeekProgressSection = ({
       
       {(showGroupMembers || (showTeam && !showPersonal)) && groupData?.members?.length > 0 && (
         <div className="mt-8 space-y-4">
-          {/* Removed the "Member Progress" heading here */}
           <div className="grid grid-cols-1 gap-4">
             {groupData.members.map(member => {
               const memberWorkoutTypes: Record<string, WorkoutType> = {};

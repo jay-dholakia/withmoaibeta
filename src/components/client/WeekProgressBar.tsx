@@ -53,7 +53,6 @@ export const WeekProgressBar = ({
   ).length;
   
   const totalCompletedCount = count !== undefined ? count : completedDaysThisWeek + lifeHappensDaysThisWeek;
-  const percentComplete = (totalCompletedCount / total) * 100;
   
   const hasAssignedWorkouts = total > 0;
 

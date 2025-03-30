@@ -325,7 +325,7 @@ serve(async (req) => {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            from: "Moai <onboarding@resend.dev>", // Use the default Resend sender for now
+            from: "Moai <jay@withmoai.co>", // Updated sender email address
             to: email,
             subject: `You've been invited to join Moai as a ${userTypeCapitalized}`,
             html: `
@@ -356,12 +356,29 @@ serve(async (req) => {
           })
         });
         
-        if (!emailResponse.ok) {
-          const errorData = await emailResponse.json();
-          throw new Error(`Resend API error (${emailResponse.status}): ${JSON.stringify(errorData)}`);
+        console.log("Resend API response status:", emailResponse.status);
+        console.log("Resend API response headers:", Object.fromEntries(emailResponse.headers.entries()));
+        
+        const responseText = await emailResponse.text();
+        console.log("Resend API response text:", responseText);
+        
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (e) {
+          console.error("Failed to parse Resend API response:", e);
+          responseData = { error: "Invalid JSON response" };
         }
         
-        const responseData = await emailResponse.json();
+        if (!emailResponse.ok) {
+          console.error("Resend API error details:", {
+            status: emailResponse.status,
+            statusText: emailResponse.statusText,
+            data: responseData
+          });
+          throw new Error(`Resend API error (${emailResponse.status}): ${responseText}`);
+        }
+        
         console.log("Email sent successfully:", responseData);
         
         emailSent = true;

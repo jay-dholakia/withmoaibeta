@@ -731,6 +731,8 @@ export type Database = {
       workout_completions: {
         Row: {
           completed_at: string | null
+          created_at: string | null
+          description: string | null
           distance: string | null
           duration: string | null
           id: string
@@ -740,11 +742,15 @@ export type Database = {
           rating: number | null
           rest_day: boolean | null
           standalone_workout_id: string | null
+          title: string | null
           user_id: string
           workout_id: string | null
+          workout_type: string | null
         }
         Insert: {
           completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
           distance?: string | null
           duration?: string | null
           id?: string
@@ -754,11 +760,15 @@ export type Database = {
           rating?: number | null
           rest_day?: boolean | null
           standalone_workout_id?: string | null
+          title?: string | null
           user_id: string
           workout_id?: string | null
+          workout_type?: string | null
         }
         Update: {
           completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
           distance?: string | null
           duration?: string | null
           id?: string
@@ -768,8 +778,10 @@ export type Database = {
           rating?: number | null
           rest_day?: boolean | null
           standalone_workout_id?: string | null
+          title?: string | null
           user_id?: string
           workout_id?: string | null
+          workout_type?: string | null
         }
         Relationships: [
           {

@@ -1,4 +1,3 @@
-
 export interface Exercise {
   id: string;
   name: string;
@@ -6,7 +5,7 @@ export interface Exercise {
   description: string | null;
   created_at: string;
   exercise_type: string; 
-  log_type?: 'weight_reps' | 'duration' | 'duration_distance' | 'reps';
+  log_type?: 'weight_reps' | 'duration' | 'duration_distance' | 'reps' | string;
 }
 
 export interface WorkoutProgram {
@@ -107,7 +106,6 @@ export interface ProgramAssignment {
   created_at: string;
 }
 
-// Add WorkoutSetCompletion interface
 export interface WorkoutSetCompletion {
   id: string;
   workout_completion_id: string;
@@ -134,11 +132,9 @@ export interface WorkoutHistoryItem {
   workout?: WorkoutBasic | null;
   life_happens_pass?: boolean;
   rest_day?: boolean;
-  // Add the workout_set_completions property
   workout_set_completions?: WorkoutSetCompletion[];
 }
 
-// New interface for superset grouping
 export interface SupersetGroup {
   id: string;
   workout_id: string;
@@ -158,7 +154,6 @@ export const DAYS_OF_WEEK = [
   'Saturday'
 ];
 
-// Standardized workout types
 export const STANDARD_WORKOUT_TYPES = [
   'strength',
   'bodyweight',

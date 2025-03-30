@@ -1,22 +1,29 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, UserRound, RefreshCw } from 'lucide-react';
+import { Loader2, Users, UserRound, RefreshCw, AlertTriangle } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
-import { fetchUserGroups, diagnoseGroupAccess, verifyUserGroupMembership, ensureUserHasGroup } from '@/services/moai-service';
+import { 
+  fetchUserGroups, 
+  diagnoseGroupAccess, 
+  verifyUserGroupMembership, 
+  ensureUserHasGroup,
+  resetUserGroupMembership 
+} from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const MoaiPage = () => {
   const { user } = useAuth();
   const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
   const [isFixingGroup, setIsFixingGroup] = useState(false);
+  const [isResetingGroup, setIsResetingGroup] = useState(false);
   
   const { data: userGroups, isLoading: isLoadingGroups, refetch } = useQuery({
     queryKey: ['client-groups', user?.id],
@@ -128,6 +135,36 @@ const MoaiPage = () => {
     }
   };
   
+  const resetGroupAssignment = async () => {
+    if (!user?.id) {
+      return;
+    }
+    
+    setIsResetingGroup(true);
+    
+    try {
+      const result = await resetUserGroupMembership(user.id);
+      console.log('Group assignment reset result:', result);
+      
+      if (result.success) {
+        toast.success('Group membership has been reset successfully');
+        refetch();
+        const diagResult = await diagnoseGroupAccess(user.id);
+        setDiagnosticDetails(diagResult);
+      } else {
+        toast.error('Failed to reset group membership');
+        if ('details' in result && result.details) {
+          console.error('Reset error details:', result.details);
+        }
+      }
+    } catch (err) {
+      console.error('Error resetting group assignment:', err);
+      toast.error('Unexpected error occurred');
+    } finally {
+      setIsResetingGroup(false);
+    }
+  };
+  
   if (isLoadingGroups) {
     return (
       <div className="space-y-6">
@@ -158,14 +195,24 @@ const MoaiPage = () => {
               with others on the same fitness journey.
             </p>
             
-            <div className="mt-6 flex justify-center">
+            <div className="mt-6 flex flex-col gap-3">
               <Button 
                 onClick={fixGroupAssignment}
                 className="flex items-center gap-2"
-                disabled={isFixingGroup}
+                disabled={isFixingGroup || isResetingGroup}
               >
                 <RefreshCw className={`h-4 w-4 ${isFixingGroup ? 'animate-spin' : ''}`} />
                 {isFixingGroup ? 'Assigning...' : 'Assign Me Now'}
+              </Button>
+              
+              <Button 
+                onClick={resetGroupAssignment}
+                variant="outline"
+                className="flex items-center gap-2"
+                disabled={isFixingGroup || isResetingGroup}
+              >
+                <AlertTriangle className="h-4 w-4" />
+                {isResetingGroup ? 'Resetting...' : 'Reset Group Assignment'}
               </Button>
             </div>
           </CardContent>
@@ -180,8 +227,18 @@ const MoaiPage = () => {
     <div className="space-y-6">
       <Card className="bg-client/5">
         <CardHeader className="pb-2">
-          <CardTitle className="text-2xl text-center font-semibold text-black">
-            🏃‍♀️ Pace Setters 🏃‍♂️
+          <CardTitle className="flex items-center justify-between text-2xl text-center font-semibold text-black">
+            <span className="w-full">🏃‍♀️ {group.name} 🏃‍♂️</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-auto flex items-center gap-1" 
+              onClick={resetGroupAssignment}
+              disabled={isResetingGroup}
+            >
+              <RefreshCw className={`h-3 w-3 ${isResetingGroup ? 'animate-spin' : ''}`} />
+              <span className="text-xs">Reset</span>
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground pt-0">

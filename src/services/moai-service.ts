@@ -363,3 +363,70 @@ export const ensureUserHasGroup = async (userId: string) => {
     };
   }
 };
+
+/**
+ * Clear all group memberships for a user and reassign to a new group
+ * Use this to fix incorrect group assignments
+ */
+export const resetUserGroupMembership = async (userId: string, newGroupId?: string) => {
+  if (!userId) {
+    return { success: false, message: 'User ID is required' };
+  }
+  
+  try {
+    console.log(`Resetting group membership for user: ${userId}`);
+    
+    // First, get all current group memberships to check
+    const { data: currentMemberships, error: fetchError } = await supabase
+      .from('group_members')
+      .select('id, group_id')
+      .eq('user_id', userId);
+      
+    if (fetchError) {
+      console.error('Error checking existing memberships:', fetchError);
+      return { 
+        success: false, 
+        message: 'Error checking existing memberships', 
+        details: fetchError 
+      };
+    }
+    
+    console.log('Current memberships:', currentMemberships);
+    
+    // Delete all existing group memberships
+    if (currentMemberships && currentMemberships.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('group_members')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (deleteError) {
+        console.error('Error deleting existing memberships:', deleteError);
+        return { 
+          success: false, 
+          message: 'Error deleting existing memberships', 
+          details: deleteError 
+        };
+      }
+      
+      console.log('Successfully deleted all existing group memberships');
+    } else {
+      console.log('No existing memberships to delete');
+    }
+    
+    // If a new group ID is provided, assign the user to that group
+    if (newGroupId) {
+      return await assignUserToGroup(userId, newGroupId);
+    } else {
+      // Otherwise, let the system assign to any available group
+      return await ensureUserHasGroup(userId);
+    }
+  } catch (err) {
+    console.error('Unexpected error in resetUserGroupMembership:', err);
+    return { 
+      success: false, 
+      message: 'Unexpected error resetting user group membership', 
+      details: err 
+    };
+  }
+};

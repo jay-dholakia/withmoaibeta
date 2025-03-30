@@ -37,6 +37,7 @@ const NotesPage = () => {
         const { data, error } = await supabase
           .from('client_notes')
           .select('*')
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false });
           
         if (error) throw error;
@@ -75,7 +76,7 @@ const NotesPage = () => {
         .insert({
           user_id: user.id,
           content: newNote,
-          entry_date: entryDate.toISOString() // Store the selected date
+          entry_date: entryDate.toISOString()
         })
         .select()
         .single();

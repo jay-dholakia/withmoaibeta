@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { WeekProgressBar } from './WeekProgressBar';
-import { Loader2, Users, UserRound, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WorkoutType } from './WorkoutTypeIcon';
 import { useAuth } from '@/contexts/AuthContext';
+import { format, isThisWeek } from 'date-fns';
+import { WorkoutProgressCard } from './WorkoutProgressCard';
 
 interface MemberProgressProps {
   groupId: string;
@@ -64,7 +66,7 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
               // Get workout completion data
               const { data: completions } = await supabase
                 .from('workout_completions')
-                .select('id, completed_at, life_happens_pass, workout:workout_id(workout_type)')
+                .select('id, completed_at, life_happens_pass, rest_day, workout:workout_id(workout_type, title)')
                 .eq('user_id', member.user_id)
                 .not('completed_at', 'is', null);
               
@@ -83,29 +85,48 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
                 completions.forEach(completion => {
                   if (completion.completed_at) {
                     const date = new Date(completion.completed_at);
-                    const dateStr = date.toISOString().split('T')[0];
+                    const dateKey = format(date, 'yyyy-MM-dd');
                     
-                    if (completion.life_happens_pass) {
+                    if (completion.life_happens_pass || completion.rest_day) {
                       lifeHappensDates.push(date);
-                      workoutTypes[dateStr] = 'rest_day';
+                      workoutTypes[dateKey] = 'rest_day';
                     } else {
                       completedDates.push(date);
                       
                       // Map workout types
                       if (completion.workout?.workout_type) {
                         const type = String(completion.workout.workout_type).toLowerCase();
-                        if (type.includes('strength')) workoutTypes[dateStr] = 'strength';
-                        else if (type.includes('cardio')) workoutTypes[dateStr] = 'cardio';
-                        else if (type.includes('body')) workoutTypes[dateStr] = 'bodyweight';
-                        else if (type.includes('flex')) workoutTypes[dateStr] = 'flexibility';
-                        else workoutTypes[dateStr] = 'custom';
+                        if (type.includes('strength')) workoutTypes[dateKey] = 'strength';
+                        else if (type.includes('cardio')) workoutTypes[dateKey] = 'cardio';
+                        else if (type.includes('body')) workoutTypes[dateKey] = 'bodyweight';
+                        else if (type.includes('flex')) workoutTypes[dateKey] = 'flexibility';
+                        else workoutTypes[dateKey] = 'custom';
+                      } else if (completion.workout?.title) {
+                        // Try to determine from title
+                        const title = completion.workout.title.toLowerCase();
+                        if (title.includes('strength')) workoutTypes[dateKey] = 'strength';
+                        else if (title.includes('cardio') || title.includes('run')) workoutTypes[dateKey] = 'cardio';
+                        else if (title.includes('body') || title.includes('weight')) workoutTypes[dateKey] = 'bodyweight';
+                        else if (title.includes('flex') || title.includes('yoga')) workoutTypes[dateKey] = 'flexibility';
+                        else workoutTypes[dateKey] = 'strength'; // Default
                       } else {
-                        workoutTypes[dateStr] = 'strength'; // Default
+                        workoutTypes[dateKey] = 'strength'; // Default
                       }
                     }
                   }
                 });
               }
+              
+              // Count completions for this week only
+              const thisWeekCompletedCount = completedDates.filter(date => 
+                isThisWeek(date, { weekStartsOn: 1 })
+              ).length;
+              
+              const thisWeekLifeHappensCount = lifeHappensDates.filter(date => 
+                isThisWeek(date, { weekStartsOn: 1 })
+              ).length;
+              
+              const totalThisWeek = thisWeekCompletedCount + thisWeekLifeHappensCount;
               
               return {
                 userId: member.user_id,
@@ -116,6 +137,7 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
                 lifeHappensDates,
                 workoutTypes,
                 totalAssigned: assignedCount || 4, // Default to 4 if count not available
+                totalThisWeek,
                 isCurrentUser: member.user_id === user?.id
               };
             } catch (error) {
@@ -154,13 +176,7 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="flex items-center space-x-4">
-            <Skeleton className="h-12 w-12 rounded-full" />
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-4 w-[200px]" />
-              <Skeleton className="h-4 w-full" />
-            </div>
-          </div>
+          <Skeleton key={i} className="h-[150px] w-full rounded-lg" />
         ))}
       </div>
     );
@@ -170,7 +186,6 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
     return (
       <Card>
         <CardContent className="py-8 text-center">
-          <Users className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">No members found in this group.</p>
           <Button 
             onClick={handleRefresh} 
@@ -202,33 +217,17 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
       </div>
       
       {groupMembers.map((member) => (
-        <div key={member.userId} className="space-y-1">
-          <div className="flex items-center mb-2">
-            <Avatar className="h-8 w-8 mr-2">
-              <AvatarImage src={member.avatarUrl || ''} />
-              <AvatarFallback className="bg-client/80 text-white">
-                {member.firstName ? member.firstName.charAt(0) : '?'}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium">
-                {member.firstName ? `${member.firstName} ${member.lastName?.charAt(0) || ''}` : 'Anonymous'}
-                {member.isCurrentUser && <span className="text-xs text-muted-foreground ml-1">(You)</span>}
-              </p>
-            </div>
-          </div>
-          
-          <WeekProgressBar 
-            completedDates={member.completedDates}
-            lifeHappensDates={member.lifeHappensDates}
-            count={member.completedDates.length + member.lifeHappensDates.length}
-            total={member.totalAssigned}
-            showProgressBar={true}
-            showDayCircles={true}
-            workoutTypes={member.workoutTypes}
-            compact={true}
-          />
-        </div>
+        <WorkoutProgressCard
+          key={member.userId}
+          label="Progress"
+          userName={member.firstName ? `${member.firstName} ${member.lastName?.charAt(0) || ''}` : 'Anonymous'}
+          isCurrentUser={member.isCurrentUser}
+          completedDates={member.completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 }))}
+          lifeHappensDates={member.lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 }))}
+          count={member.totalThisWeek || 0}
+          total={member.totalAssigned}
+          workoutTypesMap={member.workoutTypes}
+        />
       ))}
     </div>
   );

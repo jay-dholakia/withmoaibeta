@@ -5,8 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { useQuery } from '@tanstack/react-query';
-import { isThisWeek } from 'date-fns';
+import { format, isThisWeek } from 'date-fns';
 import { WorkoutType } from './WorkoutTypeIcon';
+import { WorkoutProgressCard } from './WorkoutProgressCard';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -80,16 +81,13 @@ export const WeekProgressSection = ({
             ? new Date(workout.completed_at) 
             : workout.completed_at;
             
-          if (workout.life_happens_pass) {
+          if (workout.life_happens_pass || workout.rest_day) {
             newLifeHappensDates.push(completionDate);
           } else {
             newCompletedDates.push(completionDate);
           }
         }
       });
-      
-      console.log("Extracted completed dates:", newCompletedDates);
-      console.log("Extracted life happens dates:", newLifeHappensDates);
       
       setCompletedDates(newCompletedDates);
       setLifeHappensDates(newLifeHappensDates);
@@ -119,17 +117,13 @@ export const WeekProgressSection = ({
   return (
     <div className="w-full">
       {showPersonal && (
-        <WeekProgressBar 
+        <WorkoutProgressCard 
           label="Your Workouts"
           completedDates={completedDates}
           lifeHappensDates={lifeHappensDates}
           count={totalCompletedThisWeek}
           total={finalAssignedWorkoutsCount}
-          showDayCircles={true}
-          showProgressBar={true}
-          weekNumber={weekNumber}
-          workoutTypes={workoutTypesMap}
-          hasError={hasError}
+          workoutTypesMap={workoutTypesMap}
         />
       )}
       
@@ -140,18 +134,6 @@ export const WeekProgressSection = ({
           <p className="text-center text-sm text-slate-500">Group members progress would appear here</p>
         </div>
       )}
-      
-      {/* Team progress bar is hidden for now */}
-      {/* {showTeam && (
-        <WeekProgressBar 
-          label="Your Moai Progress"
-          completedDates={[]}
-          count={0}
-          total={5}
-          color="bg-blue-500"
-          textColor="text-blue-500"
-        />
-      )} */}
     </div>
   );
 };

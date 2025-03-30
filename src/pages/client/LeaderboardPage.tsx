@@ -6,9 +6,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import { useQuery } from '@tanstack/react-query';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
-import { format } from 'date-fns';
+import { format, isThisWeek } from 'date-fns';
 import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
 import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
+import { WorkoutProgressCard } from '@/components/client/WorkoutProgressCard';
+import { Card } from '@/components/ui/card';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
@@ -40,8 +42,10 @@ const LeaderboardPage = () => {
     enabled: !!user?.id,
   });
   
-  // Create workout types map
-  const workoutTypesMap = useMemo(() => {
+  // Extract completed dates and life happens dates
+  const { completedDates, lifeHappensDates, workoutTypesMap } = useMemo(() => {
+    const completed: Date[] = [];
+    const lifeHappens: Date[] = [];
     const typesMap: Record<string, WorkoutType> = {};
     
     if (clientWorkouts && clientWorkouts.length > 0) {
@@ -49,18 +53,21 @@ const LeaderboardPage = () => {
         if (!item.completed_at) return;
         
         // Convert the completed_at string to a Date object if it's a string
-        const completedDate = typeof item.completed_at === 'string' 
+        const completionDate = typeof item.completed_at === 'string' 
           ? new Date(item.completed_at) 
           : item.completed_at;
           
-        if (!completedDate) return;
+        if (!completionDate) return;
         
-        const dateKey = format(completedDate, 'yyyy-MM-dd');
+        const dateKey = format(completionDate, 'yyyy-MM-dd');
         
         if (item.life_happens_pass || item.rest_day) {
+          lifeHappens.push(completionDate);
           typesMap[dateKey] = 'rest_day';
           return;
         }
+        
+        completed.push(completionDate);
         
         if (item.workout?.workout_type) {
           // Standardize the workout type
@@ -89,21 +96,43 @@ const LeaderboardPage = () => {
       });
     }
     
-    console.log("Workout types map:", typesMap);
-    return typesMap;
+    return { completedDates: completed, lifeHappensDates: lifeHappens, workoutTypesMap: typesMap };
   }, [clientWorkouts]);
+  
+  // Count number of completed workouts this week
+  const completedThisWeek = useMemo(() => {
+    if (!completedDates.length) return 0;
+    
+    return completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
+  }, [completedDates]);
+  
+  // Count number of life happens passes used this week
+  const lifeHappensThisWeek = useMemo(() => {
+    if (!lifeHappensDates.length) return 0;
+    
+    return lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
+  }, [lifeHappensDates]);
+  
+  // Calculate the total completed including life happens passes
+  const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;
+  
+  const totalWorkouts = assignedWorkoutsCount || 4; // Default to 4 if undefined
   
   return (
     <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">
       <div className="w-full">
         {user && <CoachMessageCard userId={user.id} />}
         
-        <WeekProgressSection 
-          showTeam={false} 
-          showPersonal={true}
-          workoutTypesMap={workoutTypesMap}
-          assignedWorkoutsCount={assignedWorkoutsCount || 4} // Provide default value if undefined
-        />
+        <div className="mt-6">
+          <WorkoutProgressCard 
+            label="Your Workouts"
+            completedDates={completedDates}
+            lifeHappensDates={lifeHappensDates}
+            count={totalCompletedThisWeek}
+            total={totalWorkouts}
+            workoutTypesMap={workoutTypesMap}
+          />
+        </div>
       </div>
     </Container>
   );

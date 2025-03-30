@@ -48,7 +48,9 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       // Update the total_workouts_completed value with the accurate count
       return rpcData.map(client => ({
         ...client,
-        total_workouts_completed: workoutCounts.get(client.id) || 0
+        total_workouts_completed: workoutCounts.get(client.id) || 0,
+        first_name: client.first_name || null,
+        last_name: client.last_name || null
       }));
     }
     

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -23,16 +24,70 @@ export const fetchCoachMessagesForClient = async (coachId: string, clientId: str
 };
 
 /**
+ * Checks if a coach is allowed to message a specific client
+ * This checks if the client is in any of the coach's groups
+ */
+export const canCoachMessageClient = async (coachId: string, clientId: string): Promise<boolean> => {
+  try {
+    // Check if client is in any of coach's groups using the is_coach_for_client RPC
+    const { data, error } = await supabase.rpc('is_coach_for_client', {
+      coach_id: coachId,
+      client_id: clientId
+    });
+    
+    if (error) {
+      console.error('Error checking coach permission:', error);
+      
+      // Fallback to direct query if RPC fails
+      const { data: groupsData, error: groupsError } = await supabase
+        .from('group_coaches')
+        .select('group_id')
+        .eq('coach_id', coachId);
+        
+      if (groupsError) {
+        console.error('Error fetching coach groups:', groupsError);
+        return false;
+      }
+      
+      if (!groupsData || groupsData.length === 0) return false;
+      
+      const groupIds = groupsData.map(g => g.group_id);
+      
+      const { data: membersData, error: membersError } = await supabase
+        .from('group_members')
+        .select('user_id')
+        .eq('user_id', clientId)
+        .in('group_id', groupIds);
+        
+      if (membersError) {
+        console.error('Error checking client membership:', membersError);
+        return false;
+      }
+      
+      return membersData && membersData.length > 0;
+    }
+    
+    return data === true;
+  } catch (error) {
+    console.error('Error in canCoachMessageClient:', error);
+    return false;
+  }
+};
+
+/**
  * Saves a coach message for a client
  */
 export const saveCoachMessage = async (
   coachId: string, 
   clientId: string, 
   message: string,
-  weekOf: string,
+  weekOf: string | Date,
   messageId?: string
 ) => {
   try {
+    // Convert Date object to ISO string if needed
+    const weekOfString = weekOf instanceof Date ? weekOf.toISOString() : weekOf;
+    
     // If messageId is provided, update existing message
     if (messageId) {
       const { data, error } = await supabase
@@ -56,7 +111,7 @@ export const saveCoachMessage = async (
           coach_id: coachId,
           client_id: clientId,
           message,
-          week_of: weekOf
+          week_of: weekOfString
         })
         .select();
         

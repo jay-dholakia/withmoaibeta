@@ -59,7 +59,28 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
       .single();
 
     if (error) throw error;
-    return data as WorkoutCompletion;
+    
+    // Ensure the data conforms to the WorkoutCompletion interface
+    const completion: WorkoutCompletion = {
+      id: data.id,
+      user_id: data.user_id,
+      workout_id: data.workout_id,
+      created_at: data.created_at || new Date().toISOString(),
+      completed_at: data.completed_at,
+      rest_day: data.rest_day || false,
+      life_happens_pass: data.life_happens_pass || false,
+      notes: data.notes,
+      rating: data.rating,
+      title: data.title,
+      description: data.description,
+      workout_type: data.workout_type,
+      distance: data.distance,
+      duration: data.duration,
+      location: data.location,
+      workout: data.workout
+    };
+    
+    return completion;
   } catch (error) {
     console.error('Error fetching workout completion:', error);
     throw error;
@@ -71,7 +92,6 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
  */
 export const fetchWorkoutCompletionExercises = async (workoutCompletionId: string): Promise<WorkoutCompletionExercise[]> => {
   try {
-    // Check if the table exists first
     const { data, error } = await supabase
       .from('workout_completion_exercises')
       .select(`
@@ -88,7 +108,19 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    return (data || []) as WorkoutCompletionExercise[];
+    
+    // Map the data to ensure it conforms to the WorkoutCompletionExercise interface
+    const exercises: WorkoutCompletionExercise[] = (data || []).map(item => ({
+      id: item.id,
+      workout_completion_id: item.workout_completion_id,
+      exercise_id: item.exercise_id,
+      completed: item.completed || false,
+      created_at: item.created_at,
+      result: item.result,
+      exercise: item.exercise
+    }));
+    
+    return exercises;
   } catch (error) {
     console.error('Error fetching workout completion exercises:', error);
     throw error;
@@ -117,7 +149,19 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
       .single();
 
     if (error) throw error;
-    return data as WorkoutCompletionExercise;
+    
+    // Ensure the data conforms to the WorkoutCompletionExercise interface
+    const exercise: WorkoutCompletionExercise = {
+      id: data.id,
+      workout_completion_id: data.workout_completion_id,
+      exercise_id: data.exercise_id,
+      completed: data.completed || false,
+      created_at: data.created_at,
+      result: data.result,
+      exercise: data.exercise
+    };
+    
+    return exercise;
   } catch (error) {
     console.error('Error updating workout completion exercise:', error);
     throw error;

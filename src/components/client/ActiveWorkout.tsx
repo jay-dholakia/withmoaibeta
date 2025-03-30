@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -305,55 +306,89 @@ const ActiveWorkout = () => {
   }, [workoutData]);
 
   const handleSetChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
-    setExerciseStates((prev) => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        sets: prev[exerciseId].sets.map((set, idx) => 
-          idx === setIndex ? { ...set, [field]: value } : set
-        ),
-      },
-    }));
+    setExerciseStates((prev) => {
+      // Ensure that exerciseId exists in the state
+      if (!prev[exerciseId]) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          sets: prev[exerciseId].sets.map((set, idx) => 
+            idx === setIndex ? { ...set, [field]: value } : set
+          ),
+        },
+      };
+    });
   };
 
   const handleCardioChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
-    setExerciseStates((prev) => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        cardioData: {
-          ...prev[exerciseId].cardioData!,
-          [field]: value
-        }
+    setExerciseStates((prev) => {
+      // Ensure that exerciseId exists in the state and has cardioData
+      if (!prev[exerciseId] || !prev[exerciseId].cardioData) {
+        return prev;
       }
-    }));
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          cardioData: {
+            ...prev[exerciseId].cardioData!,
+            [field]: value
+          }
+        }
+      };
+    });
   };
 
   const handleFlexibilityChange = (exerciseId: string, field: 'duration', value: string) => {
-    setExerciseStates((prev) => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        flexibilityData: {
-          ...prev[exerciseId].flexibilityData!,
-          [field]: value
-        }
+    setExerciseStates((prev) => {
+      // Ensure that exerciseId exists in the state and has flexibilityData
+      if (!prev[exerciseId] || !prev[exerciseId].flexibilityData) {
+        return prev;
       }
-    }));
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          flexibilityData: {
+            ...prev[exerciseId].flexibilityData!,
+            [field]: value
+          }
+        }
+      };
+    });
   };
 
   const handleSetCompletion = (exerciseId: string, setIndex: number, completed: boolean) => {
-    setExerciseStates((prev) => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        sets: prev[exerciseId].sets.map((set, idx) => 
-          idx === setIndex ? { ...set, completed } : set
-        ),
-      },
-    }));
+    setExerciseStates((prev) => {
+      // Ensure that exerciseId exists in the state
+      if (!prev[exerciseId]) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          sets: prev[exerciseId].sets.map((set, idx) => 
+            idx === setIndex ? { ...set, completed } : set
+          ),
+        },
+      };
+    });
 
     if (completed) {
+      // Safety check to ensure exerciseId exists in exerciseStates and contains sets
+      if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].sets || setIndex >= exerciseStates[exerciseId].sets.length) {
+        console.error(`Invalid exercise ID or set index: ${exerciseId}, ${setIndex}`);
+        return;
+      }
+
       const set = exerciseStates[exerciseId].sets[setIndex];
       setPendingSets(prev => [
         ...prev.filter(s => !(s.exerciseId === exerciseId && s.setNumber === set.setNumber)),
@@ -372,18 +407,31 @@ const ActiveWorkout = () => {
   };
 
   const handleCardioCompletion = (exerciseId: string, completed: boolean) => {
-    setExerciseStates((prev) => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        cardioData: {
-          ...prev[exerciseId].cardioData!,
-          completed
-        }
+    setExerciseStates((prev) => {
+      // Ensure that exerciseId exists in the state and has cardioData
+      if (!prev[exerciseId] || !prev[exerciseId].cardioData) {
+        return prev;
       }
-    }));
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          cardioData: {
+            ...prev[exerciseId].cardioData!,
+            completed
+          }
+        }
+      };
+    });
 
     if (completed) {
+      // Safety check for cardio data
+      if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].cardioData) {
+        console.error(`Invalid exercise ID or missing cardio data: ${exerciseId}`);
+        return;
+      }
+
       const cardioData = exerciseStates[exerciseId].cardioData!;
       const distance = cardioData.distance.trim() === '' ? null : cardioData.distance;
       setPendingCardio(prev => [
@@ -401,18 +449,31 @@ const ActiveWorkout = () => {
   };
 
   const handleFlexibilityCompletion = (exerciseId: string, completed: boolean) => {
-    setExerciseStates((prev) => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        flexibilityData: {
-          ...prev[exerciseId].flexibilityData!,
-          completed
-        }
+    setExerciseStates((prev) => {
+      // Ensure that exerciseId exists in the state and has flexibilityData
+      if (!prev[exerciseId] || !prev[exerciseId].flexibilityData) {
+        return prev;
       }
-    }));
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          flexibilityData: {
+            ...prev[exerciseId].flexibilityData!,
+            completed
+          }
+        }
+      };
+    });
 
     if (completed) {
+      // Safety check for flexibility data
+      if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].flexibilityData) {
+        console.error(`Invalid exercise ID or missing flexibility data: ${exerciseId}`);
+        return;
+      }
+
       const flexData = exerciseStates[exerciseId].flexibilityData!;
       setPendingFlexibility(prev => [
         ...prev.filter(f => f.exerciseId !== exerciseId),
@@ -427,13 +488,21 @@ const ActiveWorkout = () => {
   };
 
   const toggleExerciseExpanded = (exerciseId: string) => {
-    setExerciseStates((prev) => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        expanded: !prev[exerciseId].expanded,
-      },
-    }));
+    setExerciseStates((prev) => {
+      // Check if the exerciseId exists in the state
+      if (!prev[exerciseId]) {
+        console.error(`Exercise ID not found in state: ${exerciseId}`);
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          expanded: !prev[exerciseId].expanded,
+        },
+      };
+    });
   };
 
   const isWorkoutComplete = () => {
@@ -505,6 +574,12 @@ const ActiveWorkout = () => {
       <div className="space-y-4 w-full">
         {workoutExercises.map((exercise: any) => {
           const exerciseType = exercise.exercise?.exercise_type || 'strength';
+          const exerciseState = exerciseStates[exercise.id];
+          
+          // Skip rendering if the exercise doesn't have a state yet
+          if (!exerciseState) {
+            return null;
+          }
           
           return (
             <Card key={exercise.id} className="overflow-hidden border-gray-200 w-full">
@@ -535,28 +610,28 @@ const ActiveWorkout = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     {exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
-                      exerciseStates[exercise.id]?.sets.every(set => set.completed) && (
+                      exerciseState.sets.every(set => set.completed) && (
                         <CheckCircle2 className="text-green-500 h-5 w-5" />
                       )
                     ) : exerciseType === 'cardio' ? (
-                      exerciseStates[exercise.id]?.cardioData?.completed && (
+                      exerciseState.cardioData?.completed && (
                         <CheckCircle2 className="text-green-500 h-5 w-5" />
                       )
                     ) : exerciseType === 'flexibility' ? (
-                      exerciseStates[exercise.id]?.flexibilityData?.completed && (
+                      exerciseState.flexibilityData?.completed && (
                         <CheckCircle2 className="text-green-500 h-5 w-5" />
                       )
                     ) : null}
                     <ChevronRight 
                       className={`h-5 w-5 transition-transform ${
-                        exerciseStates[exercise.id]?.expanded ? 'rotate-90' : ''
+                        exerciseState.expanded ? 'rotate-90' : ''
                       }`} 
                     />
                   </div>
                 </div>
               </CardHeader>
               
-              {exerciseStates[exercise.id]?.expanded && (
+              {exerciseState.expanded && (
                 <>
                   <CardContent className="pt-4">
                     {exercise.notes && (
@@ -576,7 +651,7 @@ const ActiveWorkout = () => {
                           <div className="text-center">Done</div>
                         </div>
                         
-                        {exerciseStates[exercise.id]?.sets.map((set, setIdx) => (
+                        {exerciseState.sets.map((set, setIdx) => (
                           <div 
                             key={`${exercise.id}-set-${setIdx}`}
                             className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 items-center"
@@ -622,7 +697,7 @@ const ActiveWorkout = () => {
                               step="0.01"
                               min="0"
                               placeholder="0.00"
-                              value={exerciseStates[exercise.id]?.cardioData?.distance || ''}
+                              value={exerciseState.cardioData?.distance || ''}
                               onChange={(e) => handleCardioChange(exercise.id, 'distance', e.target.value)}
                               className="h-9 text-center border border-gray-200"
                             />
@@ -632,7 +707,7 @@ const ActiveWorkout = () => {
                             <label className="block text-sm font-medium mb-1 text-center">Duration (hh:mm:ss)</label>
                             <Input
                               placeholder="00:00:00"
-                              value={exerciseStates[exercise.id]?.cardioData?.duration || ''}
+                              value={exerciseState.cardioData?.duration || ''}
                               onChange={(e) => handleCardioChange(
                                 exercise.id, 
                                 'duration', 
@@ -647,7 +722,7 @@ const ActiveWorkout = () => {
                             <ToggleGroup 
                               type="single" 
                               className="justify-center"
-                              value={exerciseStates[exercise.id]?.cardioData?.location || ''}
+                              value={exerciseState.cardioData?.location || ''}
                               onValueChange={(value) => {
                                 if (value) handleCardioChange(exercise.id, 'location', value);
                               }}
@@ -670,7 +745,7 @@ const ActiveWorkout = () => {
                         <div className="flex justify-center items-center mt-2">
                           <span className="mr-2 text-sm">Mark as completed:</span>
                           <Checkbox
-                            checked={exerciseStates[exercise.id]?.cardioData?.completed || false}
+                            checked={exerciseState.cardioData?.completed || false}
                             onCheckedChange={(checked) => 
                               handleCardioCompletion(exercise.id, checked === true)
                             }
@@ -684,7 +759,7 @@ const ActiveWorkout = () => {
                           <label className="block text-sm font-medium mb-1 text-center">Duration</label>
                           <Input
                             placeholder="e.g., 00:30, 01:00"
-                            value={exerciseStates[exercise.id]?.flexibilityData?.duration || ''}
+                            value={exerciseState.flexibilityData?.duration || ''}
                             onChange={(e) => handleFlexibilityChange(
                               exercise.id, 
                               'duration', 
@@ -697,7 +772,7 @@ const ActiveWorkout = () => {
                         <div className="flex justify-center items-center mt-2">
                           <span className="mr-2 text-sm">Mark as completed:</span>
                           <Checkbox
-                            checked={exerciseStates[exercise.id]?.flexibilityData?.completed || false}
+                            checked={exerciseState.flexibilityData?.completed || false}
                             onCheckedChange={(checked) => 
                               handleFlexibilityCompletion(exercise.id, checked === true)
                             }

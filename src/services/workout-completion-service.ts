@@ -156,8 +156,13 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
     const { data: existingExercises, error: existingError } = await supabase
       .from('workout_completion_exercises')
       .select(`
-        *,
-        exercise:exercises!exercise_id (
+        id,
+        workout_completion_id,
+        exercise_id,
+        completed,
+        created_at,
+        result,
+        exercise:exercise_id (
           id,
           name,
           description,
@@ -216,16 +221,22 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
     const { data: workoutExercises, error: workoutExercisesError } = await supabase
       .from('workout_exercises')
       .select(`
-        *,
-        exercise:exercises!exercise_id (
+        id,
+        workout_id,
+        exercise_id,
+        sets,
+        reps,
+        order_index,
+        rest_seconds,
+        superset_group_id,
+        superset_order,
+        exercise:exercise_id (
           id,
           name,
           description,
           category,
           log_type
-        ),
-        superset_group_id,
-        superset_order
+        )
       `)
       .eq('workout_id', completion.workout_id)
       .order('order_index', { ascending: true });
@@ -246,47 +257,57 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
     const createdExercises: WorkoutCompletionExercise[] = [];
     
     for (const workoutExercise of workoutExercises) {
-      // Insert the completion exercise
-      const { data: newExercise, error: insertError } = await supabase
-        .from('workout_completion_exercises')
-        .insert({
-          workout_completion_id: workoutCompletionId,
-          exercise_id: workoutExercise.exercise_id,
-          completed: false,
-          result: null
-        })
-        .select(`
-          *,
-          exercise:exercises!exercise_id (
+      try {
+        // Insert the completion exercise
+        const { data: newExercise, error: insertError } = await supabase
+          .from('workout_completion_exercises')
+          .insert({
+            workout_completion_id: workoutCompletionId,
+            exercise_id: workoutExercise.exercise_id,
+            completed: false,
+            result: null
+          })
+          .select(`
             id,
-            name,
-            description,
-            category,
-            log_type
-          )
-        `)
-        .single();
-      
-      if (insertError) {
-        console.error("Error creating completion exercise:", insertError);
-        continue;
+            workout_completion_id,
+            exercise_id,
+            completed,
+            created_at,
+            result,
+            exercise:exercise_id (
+              id,
+              name,
+              description,
+              category,
+              log_type
+            )
+          `)
+          .single();
+        
+        if (insertError) {
+          console.error("Error creating completion exercise:", insertError);
+          continue;
+        }
+        
+        // Use the type guard to check if exercise is valid
+        const exercise = isValidExercise(newExercise.exercise) ? {
+          id: newExercise.exercise.id || '',
+          name: newExercise.exercise.name || '',
+          description: newExercise.exercise.description || null,
+          log_type: (newExercise.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
+          category: newExercise.exercise.category || ''
+        } : undefined;
+        
+        createdExercises.push({
+          ...newExercise,
+          exercise,
+          superset_group_id: workoutExercise.superset_group_id,
+          superset_order: workoutExercise.superset_order
+        });
+      } catch (err) {
+        console.error('Error creating completion exercise for exercise:', workoutExercise.id, err);
+        // Continue with other exercises even if one fails
       }
-      
-      // Use the type guard to check if exercise is valid
-      const exercise = isValidExercise(newExercise.exercise) ? {
-        id: newExercise.exercise.id || '',
-        name: newExercise.exercise.name || '',
-        description: newExercise.exercise.description || null,
-        log_type: (newExercise.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
-        category: newExercise.exercise.category || ''
-      } : undefined;
-      
-      createdExercises.push({
-        ...newExercise,
-        exercise,
-        superset_group_id: workoutExercise.superset_group_id,
-        superset_order: workoutExercise.superset_order
-      });
     }
     
     return createdExercises;
@@ -307,8 +328,13 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
       const { data: currentExercise, error: fetchError } = await supabase
         .from('workout_completion_exercises')
         .select(`
-          *,
-          exercise:exercises!exercise_id (
+          id,
+          workout_completion_id,
+          exercise_id,
+          completed,
+          created_at,
+          result,
+          exercise:exercise_id (
             id,
             name,
             description,
@@ -367,13 +393,28 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
       }
     }
 
+    // Determine what fields need to be updated
+    const updateFields: any = {};
+    if (updates.result !== undefined) updateFields.result = updates.result;
+    if (updates.completed !== undefined) updateFields.completed = updates.completed;
+
+    // Only proceed with the update if there are fields to update
+    if (Object.keys(updateFields).length === 0) {
+      throw new Error('No valid fields to update');
+    }
+
     const { data, error } = await supabase
       .from('workout_completion_exercises')
-      .update(updates)
+      .update(updateFields)
       .eq('id', exerciseId)
       .select(`
-        *,
-        exercise:exercises!exercise_id (
+        id,
+        workout_completion_id,
+        exercise_id,
+        completed,
+        created_at,
+        result,
+        exercise:exercise_id (
           id,
           name,
           description,
@@ -383,7 +424,14 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error updating workout completion exercise:', error);
+      throw error;
+    }
+    
+    if (!data) {
+      throw new Error('No data returned from update operation');
+    }
     
     // Use the type guard to check if exercise is valid
     const exercise = isValidExercise(data.exercise) ? {

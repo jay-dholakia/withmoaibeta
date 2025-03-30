@@ -91,7 +91,8 @@ const RegisterPage = () => {
           console.error('Error validating invitation:', error);
           setIsValid(false);
           toast.error('Invalid invitation link');
-        } else if (data.accepted) {
+        } else if (data.accepted && !data.is_share_link) {
+          // Only check "accepted" status for non-shareable links
           setIsValid(false);
           toast.error('This invitation has already been used');
         } else if (new Date(data.expires_at) < new Date()) {
@@ -136,22 +137,41 @@ const RegisterPage = () => {
       const signUpResult = await signUp(values.email, values.password, type as 'client' | 'coach' | 'admin');
       console.log('Signup result:', signUpResult);
       
-      // Mark the invitation as accepted with a timestamp
-      const now = new Date().toISOString();
-      const { error: updateError } = await supabase
-        .from('invitations')
-        .update({ 
-          accepted: true,
-          accepted_at: now,
-          email: values.email // Update the email in case this was a shareable link
-        })
-        .eq('id', invitation.id);
-      
-      if (updateError) {
-        console.error('Error updating invitation:', updateError);
-        // Continue anyway since the user has been created
+      if (isShareableLink) {
+        // For shareable links, track usage without marking as accepted
+        const now = new Date().toISOString();
+        const { error: usageError } = await supabase
+          .from('invitation_usage')
+          .insert({ 
+            invitation_id: invitation.id,
+            user_email: values.email,
+            used_at: now
+          });
+          
+        if (usageError) {
+          console.error('Error tracking invitation usage:', usageError);
+          // Continue anyway since the user has been created
+        } else {
+          console.log('Invitation usage tracked successfully');
+        }
       } else {
-        console.log('Invitation marked as accepted successfully');
+        // For regular invitations, mark as accepted
+        const now = new Date().toISOString();
+        const { error: updateError } = await supabase
+          .from('invitations')
+          .update({ 
+            accepted: true,
+            accepted_at: now,
+            email: values.email // Update the email in case this was a shareable link
+          })
+          .eq('id', invitation.id);
+        
+        if (updateError) {
+          console.error('Error updating invitation:', updateError);
+          // Continue anyway since the user has been created
+        } else {
+          console.log('Invitation marked as accepted successfully');
+        }
       }
       
       toast.success('Registration successful!');

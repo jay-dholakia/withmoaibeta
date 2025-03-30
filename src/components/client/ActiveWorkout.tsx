@@ -21,6 +21,7 @@ import {
 import { fetchSupersetGroups } from '@/services/workout/superset-service';
 import { SupersetGroup } from '@/types/workout';
 import { formatTime } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -116,46 +117,119 @@ const ActiveWorkout = () => {
     return groups;
   }, [exercises]);
 
-  const handleExerciseDataChange = (exerciseId: string, field: string, value: any) => {
-    setExerciseData(prev => ({
-      ...prev,
-      [exerciseId]: {
-        ...(prev[exerciseId] || {}),
-        [field]: value
+  const handleSetDataChange = (exerciseId: string, setIndex: number, field: string, value: any) => {
+    setExerciseData(prev => {
+      const exerciseResults = prev[exerciseId] || { sets: [] };
+      const sets = [...(exerciseResults.sets || [])];
+      
+      // Make sure we have enough sets in the array
+      while (sets.length <= setIndex) {
+        sets.push({});
       }
-    }));
+      
+      // Update the specific field for the set
+      sets[setIndex] = {
+        ...sets[setIndex],
+        [field]: value
+      };
+      
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...exerciseResults,
+          sets: sets
+        }
+      };
+    });
   };
 
-  const handleAddExerciseResult = async (exerciseId: string) => {
-    if (!workoutCompletionId || !exerciseData[exerciseId]) return;
+  const handleCompleteSet = async (exerciseId: string, setIndex: number) => {
+    const exerciseResult = exerciseData[exerciseId];
+    if (!exerciseResult || !exerciseResult.sets || !exerciseResult.sets[setIndex]) {
+      toast.error('Please enter values for this set first');
+      return;
+    }
+
+    const setData = exerciseResult.sets[setIndex];
+    if (!setData.reps || (setData.weight === undefined && !isCardioExercise(exerciseId))) {
+      toast.error('Please enter all required values');
+      return;
+    }
 
     try {
       setIsLogging(true);
-
-      const updatedExercise = await updateWorkoutCompletionExercise(exerciseId, {
-        result: exerciseData[exerciseId],
-        completed: true
-      });
-
-      const updatedExercises = exercises.map(ex =>
-        ex.id === exerciseId ? updatedExercise : ex
-      );
-      setExercises(updatedExercises);
-
-      // Clear just this exercise's data
+      
+      // Mark this set as completed
       setExerciseData(prev => {
-        const newData = {...prev};
-        delete newData[exerciseId];
-        return newData;
+        const exerciseResults = prev[exerciseId] || { sets: [] };
+        const sets = [...(exerciseResults.sets || [])];
+        
+        // Update the completed status
+        sets[setIndex] = {
+          ...sets[setIndex],
+          completed: true
+        };
+        
+        return {
+          ...prev,
+          [exerciseId]: {
+            ...exerciseResults,
+            sets: sets
+          }
+        };
       });
 
-      toast.success('Exercise logged successfully');
+      // Check if all sets are completed for this exercise
+      const allSetsCompleted = () => {
+        const exerciseResult = exerciseData[exerciseId];
+        if (!exerciseResult || !exerciseResult.sets) return false;
+        
+        // Get number of sets from the exercise data
+        const exercise = exercises.find(ex => ex.id === exerciseId);
+        const totalSets = exercise?.sets || 1;
+        
+        // Check if we have the right number of completed sets
+        return exerciseResult.sets.filter(set => set && set.completed).length >= totalSets;
+      };
+
+      // If all sets are completed, mark the exercise as completed
+      if (allSetsCompleted()) {
+        const updatedExercise = await updateWorkoutCompletionExercise(exerciseId, {
+          result: exerciseData[exerciseId],
+          completed: true
+        });
+
+        setExercises(prevExercises => 
+          prevExercises.map(ex => ex.id === exerciseId ? updatedExercise : ex)
+        );
+      }
+
+      toast.success('Set completed');
     } catch (error) {
-      console.error('Error logging exercise:', error);
-      toast.error('Failed to log exercise');
+      console.error('Error logging set:', error);
+      toast.error('Failed to log set');
     } finally {
       setIsLogging(false);
     }
+  };
+
+  const isCardioExercise = (exerciseId: string): boolean => {
+    const exercise = exercises.find(ex => ex.id === exerciseId);
+    if (!exercise || !exercise.exercise) return false;
+    
+    return exercise.exercise.log_type === 'duration' || 
+           exercise.exercise.log_type === 'duration_distance';
+  };
+
+  const getExerciseSets = (exerciseId: string): number => {
+    const exercise = exercises.find(ex => ex.id === exerciseId);
+    if (!exercise) return 1;
+    
+    // Get sets from the workout_exercise data if available
+    if (exercise.sets) return exercise.sets;
+    
+    // Default to 3 sets if not specified
+    return 3;
   };
 
   const allExercisesCompleted = () => {
@@ -207,70 +281,90 @@ const ActiveWorkout = () => {
     return superset?.title || 'Superset';
   };
 
-  const renderExerciseForm = (exercise: WorkoutCompletionExercise) => {
-    const data = exerciseData[exercise.id] || {};
-
+  const renderExerciseSets = (exercise: WorkoutCompletionExercise) => {
     if (!exercise.exercise) {
       return <div>Exercise information not available</div>;
     }
 
-    switch (exercise.exercise.log_type) {
+    const exerciseId = exercise.id;
+    const numberOfSets = getExerciseSets(exerciseId);
+    const logType = exercise.exercise.log_type;
+    
+    if (exercise.completed) {
+      return (
+        <div className="flex items-center text-green-600 font-medium">
+          <Check className="h-5 w-5 mr-2" />
+          Completed
+        </div>
+      );
+    }
+
+    switch (logType) {
       case 'weight_reps':
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <div className="flex items-center mb-1">
-                  <BarChart className="h-4 w-4 mr-1 text-muted-foreground" />
-                  <Label>Reps</Label>
-                </div>
-                <Input
-                  type="number"
-                  min="0"
-                  value={data.reps || ''}
-                  onChange={(e) => handleExerciseDataChange(exercise.id, 'reps', e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <div className="flex items-center mb-1">
-                  <BarChart className="h-4 w-4 mr-1 text-muted-foreground" />
-                  <Label>Sets</Label>
-                </div>
-                <Input
-                  type="number"
-                  min="0"
-                  value={data.sets || ''}
-                  onChange={(e) => handleExerciseDataChange(exercise.id, 'sets', e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <div className="flex items-center mb-1">
-                  <BarChart className="h-4 w-4 mr-1 text-muted-foreground" />
-                  <Label>Weight (lbs)</Label>
-                </div>
-                <Input
-                  type="number"
-                  min="0"
-                  step="2.5"
-                  value={data.weight || ''}
-                  onChange={(e) => handleExerciseDataChange(exercise.id, 'weight', e.target.value)}
-                  className="w-full"
-                />
-              </div>
-            </div>
-            <div>
-              <Button
-                type="button"
-                onClick={() => handleAddExerciseResult(exercise.id)}
-                disabled={!data.reps || !data.sets || isLogging}
-                className="w-full"
-              >
-                <Check className="h-4 w-4 mr-2" />
-                Log Exercise
-              </Button>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Set</TableHead>
+                  <TableHead>Reps</TableHead>
+                  <TableHead>Weight (lbs)</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: numberOfSets }).map((_, setIndex) => {
+                  const setData = exerciseData[exerciseId]?.sets?.[setIndex] || {};
+                  const isCompleted = setData.completed;
+                  
+                  return (
+                    <TableRow key={setIndex} className={isCompleted ? "bg-green-50" : ""}>
+                      <TableCell>{setIndex + 1}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={setData.reps || ''}
+                          onChange={(e) => handleSetDataChange(exerciseId, setIndex, 'reps', e.target.value)}
+                          disabled={isCompleted}
+                          className="w-full"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="2.5"
+                          value={setData.weight || ''}
+                          onChange={(e) => handleSetDataChange(exerciseId, setIndex, 'weight', e.target.value)}
+                          disabled={isCompleted}
+                          className="w-full"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {isCompleted ? (
+                          <div className="text-green-600 flex items-center justify-center">
+                            <Check className="h-4 w-4 mr-1" />
+                            Done
+                          </div>
+                        ) : (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => handleCompleteSet(exerciseId, setIndex)}
+                            disabled={isLogging}
+                            className="w-full"
+                          >
+                            <Check className="h-4 w-4 mr-1" />
+                            Done
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
         );
 
@@ -309,13 +403,31 @@ const ActiveWorkout = () => {
               <Button
                 type="button"
                 onClick={() => {
-                  handleExerciseDataChange(exercise.id, 'duration', formatTime(hours, minutes, seconds));
-                  handleAddExerciseResult(exercise.id);
+                  const exerciseResult = {
+                    duration: formatTime(hours, minutes, seconds)
+                  };
+                  setExerciseData(prev => ({
+                    ...prev,
+                    [exerciseId]: exerciseResult
+                  }));
+                  
+                  updateWorkoutCompletionExercise(exerciseId, {
+                    result: exerciseResult,
+                    completed: true
+                  }).then(updatedExercise => {
+                    setExercises(prevExercises => 
+                      prevExercises.map(ex => ex.id === exerciseId ? updatedExercise : ex)
+                    );
+                    toast.success('Exercise logged successfully');
+                  }).catch(error => {
+                    console.error('Error logging exercise:', error);
+                    toast.error('Failed to log exercise');
+                  });
                 }}
                 className="w-full"
               >
                 <Check className="h-4 w-4 mr-2" />
-                Log Exercise
+                Complete Exercise
               </Button>
             </div>
           </div>
@@ -334,8 +446,16 @@ const ActiveWorkout = () => {
                   type="number"
                   step="0.01"
                   min="0"
-                  value={data.distance || ''}
-                  onChange={(e) => handleExerciseDataChange(exercise.id, 'distance', e.target.value)}
+                  value={exerciseData[exerciseId]?.distance || ''}
+                  onChange={(e) => {
+                    setExerciseData(prev => ({
+                      ...prev,
+                      [exerciseId]: {
+                        ...(prev[exerciseId] || {}),
+                        distance: e.target.value
+                      }
+                    }));
+                  }}
                   className="w-full"
                 />
               </div>
@@ -347,8 +467,16 @@ const ActiveWorkout = () => {
                 <Input
                   type="text"
                   placeholder="00:00:00"
-                  value={data.duration || ''}
-                  onChange={(e) => handleExerciseDataChange(exercise.id, 'duration', e.target.value)}
+                  value={exerciseData[exerciseId]?.duration || ''}
+                  onChange={(e) => {
+                    setExerciseData(prev => ({
+                      ...prev,
+                      [exerciseId]: {
+                        ...(prev[exerciseId] || {}),
+                        duration: e.target.value
+                      }
+                    }));
+                  }}
                   className="w-full"
                 />
               </div>
@@ -356,12 +484,31 @@ const ActiveWorkout = () => {
             <div>
               <Button
                 type="button"
-                onClick={() => handleAddExerciseResult(exercise.id)}
-                disabled={!data.distance || !data.duration || isLogging}
+                onClick={() => {
+                  const exerciseResult = exerciseData[exerciseId];
+                  if (!exerciseResult || !exerciseResult.distance || !exerciseResult.duration) {
+                    toast.error('Please enter distance and duration');
+                    return;
+                  }
+                  
+                  updateWorkoutCompletionExercise(exerciseId, {
+                    result: exerciseResult,
+                    completed: true
+                  }).then(updatedExercise => {
+                    setExercises(prevExercises => 
+                      prevExercises.map(ex => ex.id === exerciseId ? updatedExercise : ex)
+                    );
+                    toast.success('Exercise logged successfully');
+                  }).catch(error => {
+                    console.error('Error logging exercise:', error);
+                    toast.error('Failed to log exercise');
+                  });
+                }}
+                disabled={!exerciseData[exerciseId]?.distance || !exerciseData[exerciseId]?.duration || isLogging}
                 className="w-full"
               >
                 <Check className="h-4 w-4 mr-2" />
-                Log Exercise
+                Complete Exercise
               </Button>
             </div>
           </div>
@@ -422,24 +569,17 @@ const ActiveWorkout = () => {
                       </h3>
                     )}
                     
-                    {exercise.completed ? (
-                      <div className="flex items-center text-green-600 font-medium">
-                        <Check className="h-5 w-5 mr-2" />
-                        Completed
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center cursor-pointer" 
+                           onClick={() => toggleExerciseExpanded(exercise.id)}>
+                        <span className="font-medium">Exercise Details</span>
+                        {expandedExercises[exercise.id] ? 
+                          <ChevronUp className="h-4 w-4" /> : 
+                          <ChevronDown className="h-4 w-4" />}
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center cursor-pointer" 
-                             onClick={() => toggleExerciseExpanded(exercise.id)}>
-                          <span className="font-medium">Exercise Details</span>
-                          {expandedExercises[exercise.id] ? 
-                            <ChevronUp className="h-4 w-4" /> : 
-                            <ChevronDown className="h-4 w-4" />}
-                        </div>
-                        
-                        {expandedExercises[exercise.id] && renderExerciseForm(exercise)}
-                      </div>
-                    )}
+                      
+                      {expandedExercises[exercise.id] && renderExerciseSets(exercise)}
+                    </div>
                   </div>
                 ))}
               </CardContent>

@@ -81,31 +81,24 @@ export const getUserIdByEmail = async (email: string): Promise<string | null> =>
   try {
     console.log(`Looking up user ID for email: ${email}`);
     
-    // First, query the profiles table
-    const { data: profileData, error: profileError } = await supabase
+    // Query the profiles table
+    const { data, error } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, email')
       .eq('email', email)
       .maybeSingle();
     
-    if (profileError) {
-      console.error("Error fetching profile by email:", profileError);
+    if (error) {
+      console.error("Error fetching profile by email:", error);
       return null;
     }
     
-    // If found in profiles, return the ID
-    if (profileData?.id) {
-      return profileData.id;
+    // If found, return the ID
+    if (data?.id) {
+      return data.id;
     }
     
-    // If not found in profiles, try a more generalized approach
-    // Since the RPC function doesn't exist, we'll use a different approach
-    console.warn("User not found in profiles table by email, using another approach");
-    
-    // Try to get user from auth.users through a different service or table
-    // For now, we're just returning null as we need to implement a proper solution
-    console.warn("No alternative method to get user ID by email is currently implemented");
-    
+    console.warn("User not found in profiles table by email");
     return null;
   } catch (error) {
     console.error("Error in getUserIdByEmail:", error);

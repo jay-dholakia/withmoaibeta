@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Clock, BarChart, Check, SkipForward, Play, Flag, Timer, Ruler, Dumbbell } from 'lucide-react';
+import { Clock, BarChart, Check, SkipForward, Play, Flag, Timer, Ruler, Dumbbell, ArrowDown, ArrowUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { useStopwatch } from 'react-timer-hook';
 import { toast } from 'sonner';
 import {
@@ -28,14 +28,13 @@ const ActiveWorkout = () => {
 
   const [workoutCompletion, setWorkoutCompletion] = useState<WorkoutCompletion | null>(null);
   const [exercises, setExercises] = useState<WorkoutCompletionExercise[]>([]);
-  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
-  const [exerciseData, setExerciseData] = useState<any>({});
+  const [exerciseData, setExerciseData] = useState<Record<string, any>>({});
   const [isLogging, setIsLogging] = useState(false);
   const [supersetGroups, setSupersetGroups] = useState<SupersetGroup[]>([]);
-  const [currentSuperset, setCurrentSuperset] = useState<string | null>(null);
+  const [expandedExercises, setExpandedExercises] = useState<Record<string, boolean>>({});
 
   const {
     seconds,
@@ -59,6 +58,13 @@ const ActiveWorkout = () => {
 
         const exercisesData = await fetchWorkoutCompletionExercises(workoutCompletionId);
         setExercises(exercisesData);
+
+        // Initialize expanded state for all exercises
+        const initialExpandedState: Record<string, boolean> = {};
+        exercisesData.forEach(ex => {
+          initialExpandedState[ex.id] = true;
+        });
+        setExpandedExercises(initialExpandedState);
 
         // If workout_id exists, fetch superset groups
         if (completion.workout_id) {
@@ -110,15 +116,6 @@ const ActiveWorkout = () => {
     return groups;
   }, [exercises]);
 
-  // Create a flat list of group keys for navigation
-  const groupKeys = React.useMemo(() => {
-    return Object.keys(groupedExercises);
-  }, [groupedExercises]);
-
-  const currentExerciseGroup = groupKeys[currentExerciseIndex] || null;
-  const currentExercises = currentExerciseGroup ? groupedExercises[currentExerciseGroup] : [];
-  const isSuperset = currentExerciseGroup && !currentExerciseGroup.startsWith('single-');
-
   const handleExerciseDataChange = (exerciseId: string, field: string, value: any) => {
     setExerciseData(prev => ({
       ...prev,
@@ -161,15 +158,16 @@ const ActiveWorkout = () => {
     }
   };
 
-  const allExercisesInGroupCompleted = () => {
-    if (!currentExercises.length) return false;
-    return currentExercises.every(ex => ex.completed);
+  const allExercisesCompleted = () => {
+    if (exercises.length === 0) return false;
+    return exercises.every(ex => ex.completed);
   };
 
-  const handleNextExercise = () => {
-    if (currentExerciseIndex < groupKeys.length - 1) {
-      setCurrentExerciseIndex(currentExerciseIndex + 1);
-    }
+  const toggleExerciseExpanded = (exerciseId: string) => {
+    setExpandedExercises(prev => ({
+      ...prev,
+      [exerciseId]: !prev[exerciseId]
+    }));
   };
 
   const handleCompleteWorkout = async () => {
@@ -220,8 +218,8 @@ const ActiveWorkout = () => {
       case 'weight_reps':
         return (
           <div className="space-y-4">
-            <div className="flex space-x-3">
-              <div className="flex-1">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
                 <div className="flex items-center mb-1">
                   <BarChart className="h-4 w-4 mr-1 text-muted-foreground" />
                   <Label>Reps</Label>
@@ -234,7 +232,7 @@ const ActiveWorkout = () => {
                   className="w-full"
                 />
               </div>
-              <div className="flex-1">
+              <div>
                 <div className="flex items-center mb-1">
                   <BarChart className="h-4 w-4 mr-1 text-muted-foreground" />
                   <Label>Sets</Label>
@@ -247,20 +245,32 @@ const ActiveWorkout = () => {
                   className="w-full"
                 />
               </div>
-            </div>
-            {!isSuperset && (
               <div>
-                <Button
-                  type="button"
-                  onClick={() => handleAddExerciseResult(exercise.id)}
-                  disabled={!data.reps || !data.sets || isLogging}
+                <div className="flex items-center mb-1">
+                  <BarChart className="h-4 w-4 mr-1 text-muted-foreground" />
+                  <Label>Weight (lbs)</Label>
+                </div>
+                <Input
+                  type="number"
+                  min="0"
+                  step="2.5"
+                  value={data.weight || ''}
+                  onChange={(e) => handleExerciseDataChange(exercise.id, 'weight', e.target.value)}
                   className="w-full"
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Log Exercise
-                </Button>
+                />
               </div>
-            )}
+            </div>
+            <div>
+              <Button
+                type="button"
+                onClick={() => handleAddExerciseResult(exercise.id)}
+                disabled={!data.reps || !data.sets || isLogging}
+                className="w-full"
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Log Exercise
+              </Button>
+            </div>
           </div>
         );
 
@@ -295,21 +305,19 @@ const ActiveWorkout = () => {
                 Reset
               </Button>
             </div>
-            {!isSuperset && (
-              <div>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    handleExerciseDataChange(exercise.id, 'duration', formatTime(hours, minutes, seconds));
-                    handleAddExerciseResult(exercise.id);
-                  }}
-                  className="w-full"
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Log Exercise
-                </Button>
-              </div>
-            )}
+            <div>
+              <Button
+                type="button"
+                onClick={() => {
+                  handleExerciseDataChange(exercise.id, 'duration', formatTime(hours, minutes, seconds));
+                  handleAddExerciseResult(exercise.id);
+                }}
+                className="w-full"
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Log Exercise
+              </Button>
+            </div>
           </div>
         );
 
@@ -345,60 +353,23 @@ const ActiveWorkout = () => {
                 />
               </div>
             </div>
-            {!isSuperset && (
-              <div>
-                <Button
-                  type="button"
-                  onClick={() => handleAddExerciseResult(exercise.id)}
-                  disabled={!data.distance || !data.duration || isLogging}
-                  className="w-full"
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Log Exercise
-                </Button>
-              </div>
-            )}
+            <div>
+              <Button
+                type="button"
+                onClick={() => handleAddExerciseResult(exercise.id)}
+                disabled={!data.distance || !data.duration || isLogging}
+                className="w-full"
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Log Exercise
+              </Button>
+            </div>
           </div>
         );
 
       default:
         return <div>Unsupported exercise type</div>;
     }
-  };
-
-  const renderSupersetControls = () => {
-    if (!isSuperset || !currentExercises.length) return null;
-
-    const allCompleted = allExercisesInGroupCompleted();
-    const anyDataMissing = currentExercises.some(ex => {
-      const data = exerciseData[ex.id] || {};
-      if (ex.exercise?.log_type === 'weight_reps') {
-        return !data.reps || !data.sets;
-      } else if (ex.exercise?.log_type === 'duration_distance') {
-        return !data.distance || !data.duration;
-      }
-      return false;
-    });
-
-    return (
-      <div className="mt-4">
-        <Button
-          type="button"
-          onClick={() => {
-            currentExercises.forEach(ex => {
-              if (!ex.completed && exerciseData[ex.id]) {
-                handleAddExerciseResult(ex.id);
-              }
-            });
-          }}
-          disabled={anyDataMissing || allCompleted || isLogging}
-          className="w-full"
-        >
-          <Check className="h-4 w-4 mr-2" />
-          Log Superset
-        </Button>
-      </div>
-    );
   };
 
   if (isLoading) {
@@ -420,99 +391,98 @@ const ActiveWorkout = () => {
 
       <Separator />
 
-      {currentExercises.length > 0 ? (
-        <Card className="bg-muted/30">
-          <CardHeader>
-            {isSuperset ? (
-              <>
-                <CardTitle>
-                  <div className="flex items-center">
-                    <Dumbbell className="h-5 w-5 mr-2 text-primary" />
-                    <span>Superset: {getSupersetTitle(currentExerciseGroup)}</span>
-                  </div>
-                </CardTitle>
-                <CardDescription>
-                  Complete all exercises with minimal rest between them
-                </CardDescription>
-              </>
-            ) : (
-              <CardTitle>
-                {currentExerciseIndex + 1}/{groupKeys.length}: {currentExercises[0]?.exercise?.name}
-              </CardTitle>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {isSuperset ? (
-              <div className="space-y-6">
-                {currentExercises.map((exercise, index) => (
+      <div className="space-y-6">
+        {/* List of all exercises */}
+        {Object.keys(groupedExercises).map(groupKey => {
+          const exerciseGroup = groupedExercises[groupKey];
+          const isSuperset = !groupKey.startsWith('single-');
+          
+          return (
+            <Card key={groupKey} className="bg-muted/30">
+              <CardHeader className="pb-2">
+                {isSuperset ? (
+                  <CardTitle>
+                    <div className="flex items-center">
+                      <Dumbbell className="h-5 w-5 mr-2 text-primary" />
+                      <span>Superset: {getSupersetTitle(groupKey)}</span>
+                    </div>
+                  </CardTitle>
+                ) : (
+                  <CardTitle>
+                    {exerciseGroup[0]?.exercise?.name}
+                  </CardTitle>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {exerciseGroup.map(exercise => (
                   <div key={exercise.id} className="border rounded-lg p-4">
-                    <h3 className="font-medium text-lg mb-2">
-                      {index + 1}. {exercise.exercise?.name}
-                    </h3>
+                    {isSuperset && (
+                      <h3 className="font-medium text-lg mb-3">
+                        {exercise.exercise?.name}
+                      </h3>
+                    )}
+                    
                     {exercise.completed ? (
                       <div className="flex items-center text-green-600 font-medium">
                         <Check className="h-5 w-5 mr-2" />
                         Completed
                       </div>
                     ) : (
-                      renderExerciseForm(exercise)
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center cursor-pointer" 
+                             onClick={() => toggleExerciseExpanded(exercise.id)}>
+                          <span className="font-medium">Exercise Details</span>
+                          {expandedExercises[exercise.id] ? 
+                            <ChevronUp className="h-4 w-4" /> : 
+                            <ChevronDown className="h-4 w-4" />}
+                        </div>
+                        
+                        {expandedExercises[exercise.id] && renderExerciseForm(exercise)}
+                      </div>
                     )}
                   </div>
                 ))}
-                {renderSupersetControls()}
-              </div>
-            ) : (
-              renderExerciseForm(currentExercises[0])
-            )}
+              </CardContent>
+            </Card>
+          );
+        })}
 
-            <div className="flex justify-between">
-              <Button
-                variant="secondary"
-                onClick={handleSkipWorkout}
-                disabled={isSkipping}
-              >
-                {isSkipping ? (
-                  <>
-                    Skipping...
-                    <SkipForward className="h-4 w-4 ml-2 animate-spin" />
-                  </>
-                ) : (
-                  <>
-                    Skip Workout
-                    <SkipForward className="h-4 w-4 ml-2" />
-                  </>
-                )}
-              </Button>
-              <Button
-                onClick={handleNextExercise}
-                disabled={!allExercisesInGroupCompleted()}
-              >
-                {allExercisesInGroupCompleted() ? (
-                  <>
-                    Next
-                    <Flag className="h-4 w-4 ml-2" />
-                  </>
-                ) : (
-                  <>
-                    Complete All Exercises
-                    <Check className="h-4 w-4 ml-2" />
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="text-center py-8">
-          <h2 className="text-xl font-semibold mb-4">Workout Complete!</h2>
-          <p className="text-muted-foreground mb-6">
-            Congratulations on finishing your workout.
-          </p>
-          <Button onClick={handleCompleteWorkout} disabled={isCompleting}>
-            {isCompleting ? 'Completing...' : 'Complete Workout'}
+        {/* Complete Workout Button */}
+        <div className="flex justify-between pt-4">
+          <Button
+            variant="secondary"
+            onClick={handleSkipWorkout}
+            disabled={isSkipping}
+          >
+            {isSkipping ? (
+              <>
+                Skipping...
+                <SkipForward className="h-4 w-4 ml-2 animate-spin" />
+              </>
+            ) : (
+              <>
+                Skip Workout
+                <SkipForward className="h-4 w-4 ml-2" />
+              </>
+            )}
+          </Button>
+          
+          <Button
+            onClick={handleCompleteWorkout}
+            disabled={!allExercisesCompleted() || isCompleting}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            {isCompleting ? (
+              "Completing..."
+            ) : (
+              <>
+                Complete Workout
+                <Check className="h-4 w-4 ml-2" />
+              </>
+            )}
           </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 };

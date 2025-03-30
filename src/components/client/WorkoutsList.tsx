@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { Button } from '@/components/ui/button';
@@ -30,45 +30,10 @@ const WorkoutsList = () => {
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
-  const [isChangingFilter, setIsChangingFilter] = useState(false);
-  const [preventAutoNavigation, setPreventAutoNavigation] = useState(false);
-  const [initialLoad, setInitialLoad] = useState(true);
-  const [forceMainPage, setForceMainPage] = useState(false);
-
-  // First, check and handle if we're not on the main workouts page
-  useEffect(() => {
-    if (forceMainPage) {
-      const mainWorkoutsPath = "/client-dashboard/workouts";
-      
-      if (location.pathname !== mainWorkoutsPath) {
-        console.log("Forcing navigation to main workouts page");
-        navigate(mainWorkoutsPath, { replace: true });
-      }
-      
-      setForceMainPage(false);
-    }
-  }, [forceMainPage, location.pathname, navigate]);
-
-  // Regular navigation check effect
-  useEffect(() => {
-    if (initialLoad || isChangingFilter || preventAutoNavigation) {
-      return;
-    }
-    
-    const isMainPage = location.pathname === "/client-dashboard/workouts";
-    
-    const isValidSubPage = 
-      location.pathname.includes('/active/') || 
-      location.pathname.includes('/complete/') ||
-      location.pathname.includes('/custom/') ||
-      location.pathname.includes('/create') ||
-      location.pathname.includes('/one-off');
-      
-    if (!isMainPage && !isValidSubPage) {
-      console.log("Redirecting from invalid workout sub-page:", location.pathname);
-      navigate("/client-dashboard/workouts");
-    }
-  }, [location.pathname, navigate, isChangingFilter, preventAutoNavigation, initialLoad]);
+  const [isFilterProcessing, setIsFilterProcessing] = useState(false);
+  
+  // Check if we're on the main workouts page
+  const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
 
   const toggleWorkoutDetails = (workoutId: string) => {
     setExpandedWorkouts(prev => ({
@@ -77,47 +42,42 @@ const WorkoutsList = () => {
     }));
   };
 
-  const handleWeekFilterChange = (value: string) => {
-    // If we're not on the main page, we need to navigate first before applying filter
-    if (location.pathname !== "/client-dashboard/workouts") {
-      console.log("Not on main workouts page, forcing navigation before filter change");
-      setIsChangingFilter(true);
-      setPreventAutoNavigation(true);
-      setForceMainPage(true);
+  // Safe navigation function that ensures we're on the main page before applying filters
+  const safeNavigateAndFilter = useCallback((weekValue: string) => {
+    if (isFilterProcessing) return;
+    
+    setIsFilterProcessing(true);
+    
+    // If we're not on the main page, navigate there first
+    if (!isMainWorkoutsPage) {
+      console.log("Navigating to main workouts page before applying filter");
       
-      // Apply filter after navigation with a longer delay to ensure navigation completes
+      // Navigate to the main workouts page
+      navigate("/client-dashboard/workouts", { replace: true });
+      
+      // After navigation completes, apply the filter with a delay
       setTimeout(() => {
-        console.log("Now applying filter after navigation");
-        setWeekFilter(value);
+        console.log(`Now applying week filter: ${weekValue}`);
+        setWeekFilter(weekValue);
         
-        // Release the locks after a longer delay
+        // Release the lock after filter is applied
         setTimeout(() => {
-          setIsChangingFilter(false);
-          
-          setTimeout(() => {
-            setPreventAutoNavigation(false);
-            console.log("Navigation prevention removed");
-          }, 1000);
+          setIsFilterProcessing(false);
         }, 500);
-      }, 800);
+      }, 300);
     } else {
-      console.log(`Setting week filter to ${value} (already on main page)`);
-      setIsChangingFilter(true);
-      setPreventAutoNavigation(true);
-      setWeekFilter(value);
+      // Already on main page, just apply the filter
+      console.log(`Directly applying week filter: ${weekValue}`);
+      setWeekFilter(weekValue);
       
-      // Release the locks after delays
+      // Release the lock after a short delay
       setTimeout(() => {
-        setIsChangingFilter(false);
-        
-        setTimeout(() => {
-          setPreventAutoNavigation(false);
-          console.log("Navigation prevention removed");
-        }, 1000);
+        setIsFilterProcessing(false);
       }, 300);
     }
-  };
+  }, [isMainWorkoutsPage, navigate, isFilterProcessing]);
 
+  // Load workouts and program data
   useEffect(() => {
     const loadWorkoutsAndProgram = async () => {
       if (!user || !user.id) {
@@ -191,13 +151,15 @@ const WorkoutsList = () => {
         console.log("Debug - Extracted week numbers:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
-        if (extractedWeeks.length > 0) {
+        if (extractedWeeks.length > 0 && !weekFilter) {
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
           
-          setWeekFilter(sortedWeeks[0].toString());
+          // Only set initial filter if we don't already have one
+          if (!weekFilter) {
+            console.log(`Setting initial week filter to ${sortedWeeks[0]}`);
+            setWeekFilter(sortedWeeks[0].toString());
+          }
         }
-        
-        setInitialLoad(false);
       } catch (error) {
         console.error('Error loading workouts:', error);
         setError('Failed to load your assigned workouts');
@@ -285,8 +247,8 @@ const WorkoutsList = () => {
           <div className="flex justify-center mb-2">
             <Select
               value={weekFilter}
-              onValueChange={handleWeekFilterChange}
-              disabled={isChangingFilter || preventAutoNavigation}
+              onValueChange={safeNavigateAndFilter}
+              disabled={isFilterProcessing}
             >
               <SelectTrigger className="w-[200px] h-8 text-sm">
                 <div className="flex items-center gap-1">

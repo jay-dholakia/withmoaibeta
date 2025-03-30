@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,7 +28,14 @@ interface InvitationResponse {
   message?: string;
 }
 
+interface ShareLinks {
+  client?: string;
+  coach?: string;
+  admin?: string;
+}
+
 const InvitationsPage: React.FC = () => {
+  const [shareLinks, setShareLinks] = useState<ShareLinks>({});
   const [inviteLink, setInviteLink] = useState('');
   const [isShareableLink, setIsShareableLink] = useState(false);
   const [resendingInvitations, setResendingInvitations] = useState<Record<string, boolean>>({});
@@ -209,12 +215,18 @@ const InvitationsPage: React.FC = () => {
         throw error;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data, userType) => {
+      setShareLinks(prev => ({
+        ...prev,
+        [userType]: data.inviteLink
+      }));
+      
       setInviteLink(data.inviteLink);
       setIsShareableLink(true);
+      
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       
-      toast.success(`Shareable registration link created successfully!`, {
+      toast.success(`Shareable ${userType} registration link created successfully!`, {
         duration: 5000
       });
     },
@@ -282,6 +294,14 @@ const InvitationsPage: React.FC = () => {
     },
     onSuccess: (data, invitation) => {
       setResendingInvitations(prev => ({ ...prev, [invitation.id]: false }));
+      
+      if (data.isShareLink && invitation.user_type) {
+        setShareLinks(prev => ({
+          ...prev,
+          [invitation.user_type]: data.inviteLink
+        }));
+      }
+      
       setInviteLink(data.inviteLink);
       setIsShareableLink(data.isShareLink || false);
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
@@ -317,8 +337,17 @@ const InvitationsPage: React.FC = () => {
 
   const handleCopyInvite = (token: string, userType: string) => {
     const link = `${window.location.origin}/register?token=${token}&type=${userType}`;
+    
+    const isShareLink = !!invitations?.find(inv => inv.token === token)?.is_share_link;
+    if (isShareLink) {
+      setShareLinks(prev => ({
+        ...prev,
+        [userType]: link
+      }));
+    }
+    
     setInviteLink(link);
-    setIsShareableLink(!!invitations?.find(inv => inv.token === token)?.is_share_link);
+    setIsShareableLink(isShareLink);
     navigator.clipboard.writeText(link);
     toast.success('Invitation link copied to clipboard');
   };
@@ -345,17 +374,44 @@ const InvitationsPage: React.FC = () => {
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold">Invitations</h2>
           
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <InvitationForm 
               onInvite={handleInvite}
               onCreateShareLink={handleCreateShareLink} 
               isLoading={sendInvitation.isPending || createShareLink.isPending} 
             />
             
-            {inviteLink && (
+            {shareLinks.client && (
+              <InvitationLinkDialog 
+                inviteLink={shareLinks.client} 
+                isShareLink={true}
+                userType="client"
+                buttonLabel="Client Registration Link"
+              />
+            )}
+            
+            {shareLinks.coach && (
+              <InvitationLinkDialog 
+                inviteLink={shareLinks.coach} 
+                isShareLink={true}
+                userType="coach"
+                buttonLabel="Coach Registration Link"
+              />
+            )}
+            
+            {shareLinks.admin && (
+              <InvitationLinkDialog 
+                inviteLink={shareLinks.admin} 
+                isShareLink={true}
+                userType="admin"
+                buttonLabel="Admin Registration Link"
+              />
+            )}
+            
+            {inviteLink && !isShareableLink && (
               <InvitationLinkDialog 
                 inviteLink={inviteLink} 
-                isShareLink={isShareableLink}
+                isShareLink={false}
               />
             )}
           </div>

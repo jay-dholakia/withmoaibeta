@@ -8,31 +8,41 @@ import {
 } from '@/components/ui/dialog';
 import { Copy, Mail, AlertTriangle, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface InvitationLinkDialogProps {
   inviteLink: string;
   isShareLink?: boolean;
+  userType?: 'client' | 'coach' | 'admin';
+  buttonLabel?: string;
+  className?: string;
 }
 
 export const InvitationLinkDialog: React.FC<InvitationLinkDialogProps> = ({
   inviteLink,
-  isShareLink = false
+  isShareLink = false,
+  userType = 'client',
+  buttonLabel,
+  className
 }) => {
   const copyToClipboard = () => {
     navigator.clipboard.writeText(inviteLink);
     toast.success('Invitation link copied to clipboard');
   };
 
+  // Capitalize the first letter of userType for display
+  const displayUserType = userType.charAt(0).toUpperCase() + userType.slice(1);
+
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className={cn(className)}>
           {isShareLink ? (
             <LinkIcon className="w-4 h-4 mr-2" />
           ) : (
             <Copy className="w-4 h-4 mr-2" />
           )}
-          {isShareLink ? 'Share Registration Link' : 'Share Invitation Link'}
+          {buttonLabel || (isShareLink ? `Share ${displayUserType} Registration Link` : 'Share Invitation Link')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -41,7 +51,7 @@ export const InvitationLinkDialog: React.FC<InvitationLinkDialogProps> = ({
             {isShareLink ? (
               <>
                 <LinkIcon className="w-5 h-5 text-blue-500" />
-                Shareable Registration Link
+                {displayUserType} Shareable Registration Link
               </>
             ) : (
               <>
@@ -52,7 +62,7 @@ export const InvitationLinkDialog: React.FC<InvitationLinkDialogProps> = ({
           </DialogTitle>
           <DialogDescription className={isShareLink ? "text-blue-500" : "text-amber-500"}>
             {isShareLink 
-              ? "Anyone with this link can register an account. No email is required in advance."
+              ? `Anyone with this link can register a ${userType} account. No email is required in advance.`
               : "Email service is currently unavailable. You need to share this invitation link manually."}
           </DialogDescription>
         </DialogHeader>
@@ -86,7 +96,7 @@ export const InvitationLinkDialog: React.FC<InvitationLinkDialogProps> = ({
               <li>Copy the {isShareLink ? 'registration' : 'invitation'} link above</li>
               <li>
                 {isShareLink 
-                  ? 'Share it with anyone who needs to create a new account'
+                  ? `Share it with anyone who needs to create a new ${userType} account`
                   : `Send it to the user via email or messaging`}
               </li>
               <li>

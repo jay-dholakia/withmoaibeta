@@ -16,14 +16,14 @@ const ClientDashboard = () => {
     <ClientLayout>
       <div className="w-full">
         <Routes>
-          <Route index element={<Navigate to="workouts" replace />} />
+          <Route index element={<Navigate to="leaderboard" replace />} />
           <Route path="workouts/*" element={<WorkoutsPage />} />
           <Route path="moai" element={<MoaiPage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="settings/edit-profile" element={<ProfileEditor />} />
           <Route path="notes" element={<NotesPage />} />
-          <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
+          <Route path="*" element={<Navigate to="/client-dashboard/leaderboard" replace />} />
         </Routes>
       </div>
     </ClientLayout>

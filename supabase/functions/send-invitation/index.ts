@@ -152,25 +152,37 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     console.log("Authorization header:", authHeader ? "present" : "not present");
     
+    // For debugging, let's log more information about the auth header
+    if (authHeader) {
+      console.log("Auth header format check:", {
+        startsWithBearer: authHeader.startsWith("Bearer "),
+        length: authHeader.length,
+        excerpt: authHeader.substring(0, 15) + "..."
+      });
+    }
+    
     // Skip authentication in development environment or when not provided
-    // This allows testing the function directly without a valid auth token
     let userId = null;
     
     if (authHeader) {
       console.log("Auth token provided, verifying user");
       
       try {
+        // Extract the token from the header (remove 'Bearer ' prefix)
+        const token = authHeader.replace("Bearer ", "");
+        console.log("Token length:", token.length);
+        
         // Verify the JWT token and get the user
-        const { data: { user }, error: userError } = await supabaseClient.auth.getUser(authHeader);
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
         
         if (userError || !user) {
           console.error("Invalid token or user not found:", userError);
           // For development, continue execution with a dummy user ID
-          // In production, we would return a 401 error
           userId = "00000000-0000-0000-0000-000000000000"; // Dummy UUID
           console.log("Using dummy user ID for development:", userId);
         } else {
           userId = user.id;
+          console.log("User verified successfully:", userId);
           
           // Check if the user is an admin
           const { data: profile, error: profileError } = await supabaseClient
@@ -206,12 +218,10 @@ serve(async (req) => {
     } else {
       console.log("No authorization header provided - bypassing admin check in development");
       // For development, we'll create a default admin user ID
-      // This is a workaround for the invited_by not-null constraint
       userId = "00000000-0000-0000-0000-000000000000"; // Dummy UUID for development
     }
 
     // Always proceed in development mode, even if auth fails
-    // In production, you would want to require proper authentication
     if (!userId) {
       console.error("No user ID available for invitation");
       // Instead of returning an error, we'll continue with a dummy ID for development
@@ -411,8 +421,6 @@ serve(async (req) => {
     }
 
     // Return success response with invitation details
-    // We're returning success: true even if email sending failed,
-    // as long as the invitation record was created/updated successfully
     return new Response(
       JSON.stringify({ 
         success: true,

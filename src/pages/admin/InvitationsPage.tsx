@@ -138,11 +138,17 @@ const InvitationsPage: React.FC = () => {
           
           console.log("Invoking send-invitation edge function with payload:", payload);
           
-          // Make sure we're passing the session token in the Authorization header
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          const accessToken = currentSession?.access_token;
+          
+          if (!accessToken) {
+            console.warn("No access token available - auth might fail");
+          }
+          
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
             body: payload,
-            headers: session?.access_token ? {
-              Authorization: `Bearer ${session.access_token}`
+            headers: accessToken ? {
+              Authorization: `Bearer ${accessToken}`
             } : undefined
           });
           
@@ -259,11 +265,19 @@ const InvitationsPage: React.FC = () => {
           
           console.log("Invoking send-invitation edge function for resend with payload:", payload);
           
-          // Make sure we're passing the access token for authorization
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          const accessToken = currentSession?.access_token;
+          
+          if (!accessToken) {
+            console.warn("No access token available for resend - auth might fail");
+          } else {
+            console.log("Using access token for authentication:", accessToken.substring(0, 10) + "...");
+          }
+          
           const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
             body: payload,
-            headers: session?.access_token ? {
-              Authorization: `Bearer ${session.access_token}`
+            headers: accessToken ? {
+              Authorization: `Bearer ${accessToken}`
             } : undefined
           });
           

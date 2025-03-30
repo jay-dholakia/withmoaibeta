@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label"; 
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Clock, Ruler } from 'lucide-react';
+import { Clock, Ruler, Dumbbell } from 'lucide-react';
 
 export interface WorkoutExerciseFormProps {
   initialData: any;
@@ -20,6 +20,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
 }) => {
   const [sets, setSets] = useState(initialData?.sets || 3);
   const [reps, setReps] = useState(initialData?.reps || '10');
+  const [weight, setWeight] = useState(initialData?.weight || '');
   const [restSeconds, setRestSeconds] = useState(initialData?.rest_seconds || 60);
   const [notes, setNotes] = useState(initialData?.notes || '');
   const [distance, setDistance] = useState(initialData?.distance || '');
@@ -39,6 +40,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     if (logType === 'weight_reps') {
       formData.sets = sets;
       formData.reps = reps;
+      formData.weight = weight;
       formData.rest_seconds = restSeconds;
     } else if (logType === 'duration') {
       formData.duration = reps;
@@ -91,6 +93,22 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
             <p className="text-xs text-muted-foreground mt-1 text-center">
               For strength exercises, use just numbers (e.g., "10") to auto-populate client tracking
             </p>
+          </div>
+          <div className="col-span-2">
+            <div className="flex items-center justify-center mb-1">
+              <Dumbbell className="h-4 w-4 mr-1 text-muted-foreground" />
+              <Label htmlFor="weight" className="text-center">Weight (lbs)</Label>
+            </div>
+            <Input
+              id="weight"
+              type="number"
+              step="0.5"
+              min="0"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              placeholder="0.0"
+              className="w-full text-center"
+            />
           </div>
         </div>
       )}

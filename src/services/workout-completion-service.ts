@@ -182,10 +182,11 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
         
         switch (logType) {
           case 'weight_reps':
-            // For weight_reps exercises, ensure we have both reps and sets
+            // For weight_reps exercises, ensure we have reps, sets, and weight
             if (!updates.result.reps || !updates.result.sets) {
               throw new Error('Reps and sets are required for weight_reps exercises');
             }
+            // Weight is optional but included if provided
             break;
           
           case 'duration':

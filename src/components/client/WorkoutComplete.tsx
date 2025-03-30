@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -62,7 +61,6 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Add the workout notes to the journal
   const addToJournal = async (notes: string) => {
     if (!user?.id || !notes.trim() || !workoutData) return;
     
@@ -92,7 +90,6 @@ const WorkoutComplete = () => {
       if (!workoutCompletionId) return null;
       console.log("Attempting to complete workout with ID:", workoutCompletionId);
       
-      // If there are notes, add them to the journal
       if (notes.trim()) {
         await addToJournal(notes);
       }

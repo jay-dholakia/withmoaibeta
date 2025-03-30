@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { Image, Loader2, Upload, User } from 'lucide-react';
 import { ClientProfile, uploadClientAvatar } from '@/services/client-service';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,6 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   onUpdate,
   onNext
 }) => {
-  const { toast } = useToast();
   const [firstName, setFirstName] = useState(profile.first_name || '');
   const [lastName, setLastName] = useState(profile.last_name || '');
   const [city, setCity] = useState(profile.city || '');
@@ -99,11 +98,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     
     const file = e.target.files[0];
     if (!file.type.includes('image')) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an image file",
-        variant: "destructive"
-      });
+      toast.error("Invalid file type. Please upload an image file");
       return;
     }
 
@@ -112,17 +107,10 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
       const url = await uploadClientAvatar(profile.id as string, file);
       setAvatarUrl(url);
       onUpdate({ avatar_url: url });
-      toast({
-        title: "Avatar uploaded",
-        description: "Your profile picture has been updated"
-      });
+      toast.success("Your profile picture has been updated");
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast({
-        title: "Upload failed",
-        description: "There was an error uploading your image",
-        variant: "destructive"
-      });
+      toast.error("There was an error uploading your image");
     } finally {
       setUploading(false);
     }

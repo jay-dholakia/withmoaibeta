@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Container } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, FileDown, AlertTriangle } from 'lucide-react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
@@ -15,7 +14,6 @@ const ExerciseImportPage = () => {
   const [fileType, setFileType] = useState<'json' | 'csv'>('csv');
   const [isUploading, setIsUploading] = useState(false);
   const [checkExisting, setCheckExisting] = useState(true);
-  const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -33,11 +31,7 @@ const ExerciseImportPage = () => {
 
   const handleImport = async () => {
     if (!file) {
-      toast({
-        title: 'No file selected',
-        description: 'Please select a file to upload',
-        variant: 'destructive',
-      });
+      toast.error('Please select a file to upload');
       return;
     }
 
@@ -57,11 +51,7 @@ const ExerciseImportPage = () => {
         throw new Error(error.message);
       }
 
-      toast({
-        title: 'Import successful',
-        description: `Processed ${data.total} exercises: ${data.inserted} inserted, ${data.updated} updated, ${data.skipped} skipped.`,
-        variant: 'default',
-      });
+      toast.success(`Processed ${data.total} exercises: ${data.inserted} inserted, ${data.updated} updated, ${data.skipped} skipped.`);
 
       // Reset form
       setFile(null);
@@ -69,11 +59,7 @@ const ExerciseImportPage = () => {
       if (fileInput) fileInput.value = '';
     } catch (error) {
       console.error('Import error:', error);
-      toast({
-        title: 'Import failed',
-        description: error instanceof Error ? error.message : 'An error occurred during import',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'An error occurred during import');
     } finally {
       setIsUploading(false);
     }

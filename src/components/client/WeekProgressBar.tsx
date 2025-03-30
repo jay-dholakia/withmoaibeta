@@ -150,21 +150,8 @@ export const WeekProgressBar = ({
             </p>
           )}
         </div>
-        {showProgressBar && hasAssignedWorkouts && (
-          <span className={`text-lg font-bold ${textColor} mt-2 text-center`}>{Math.round(percentComplete)}%</span>
-        )}
       </div>
 
-      {showProgressBar && hasAssignedWorkouts && (
-        <Progress 
-          value={percentComplete} 
-          className="h-3 mb-4 mx-auto" 
-          style={{ 
-            backgroundColor: "rgb(241 245 249)",
-          }}
-        />
-      )}
-      
       {showDayCircles && (
         <div className="flex justify-center space-x-3 mt-4">
           {weekDays.map((day, index) => {

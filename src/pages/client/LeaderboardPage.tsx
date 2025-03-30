@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { format } from 'date-fns';
 import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
+import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
@@ -18,6 +19,16 @@ const LeaderboardPage = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       return fetchClientWorkoutHistory(user.id);
+    },
+    enabled: !!user?.id,
+  });
+  
+  // Query the assigned workouts count
+  const { data: assignedWorkoutsCount } = useQuery({
+    queryKey: ['assigned-workouts-count', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return 5; // Default to 5 if user ID is not available
+      return getWeeklyAssignedWorkoutsCount(user.id);
     },
     enabled: !!user?.id,
   });
@@ -77,6 +88,7 @@ const LeaderboardPage = () => {
           showTeam={false} 
           showPersonal={true}
           workoutTypesMap={workoutTypesMap}
+          assignedWorkoutsCount={assignedWorkoutsCount}
         />
       </div>
     </Container>

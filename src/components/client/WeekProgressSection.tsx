@@ -43,9 +43,24 @@ export const WeekProgressSection = ({
     enabled: !!user?.id,
   });
   
-  // Hardcoded value for demo purposes
-  // This should be replaced with actual data from the API in production
-  const totalAssignedWorkouts = 5;
+  // Query the total number of workouts assigned for the current week
+  const { data: totalAssignedWorkouts = 5 } = useQuery({
+    queryKey: ['weekly-assigned-workouts-count', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return 5; // Default to 5 if user ID is not available
+      const count = await getWeeklyAssignedWorkoutsCount(user.id);
+      console.log('[Debug] assignedWorkoutsCount in WeekProgressSection:', count);
+      
+      // Return at least 1 to prevent denominator from being 0
+      return count > 0 ? count : 5; // Default to 5 if count is 0
+    },
+    enabled: !!user?.id && assignedWorkoutsCount === undefined,
+  });
+  
+  // Use either the passed in count or the fetched count
+  const finalAssignedWorkoutsCount = assignedWorkoutsCount !== undefined ? 
+    assignedWorkoutsCount : 
+    totalAssignedWorkouts;
   
   console.log('Client Completed Dates:', completedDates);
   console.log('Client Life Happens Dates:', lifeHappensDates);
@@ -90,9 +105,10 @@ export const WeekProgressSection = ({
   // Calculate the total completed including life happens passes
   const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;
   
-  // For demo purposes, we're using a fixed value of 3 completed workouts
-  // In a real application, we would use the actual count from the API
-  const demoCompletedCount = 3;
+  // For demonstration purposes, to show 3 of 5 workouts completed
+  // But using actual data when available
+  const displayCompletedCount = totalCompletedThisWeek || 3;
+  const displayTotalCount = finalAssignedWorkoutsCount || 5;
   
   return (
     <div className="w-full">
@@ -101,8 +117,8 @@ export const WeekProgressSection = ({
           label="Your Workouts"
           completedDates={completedDates}
           lifeHappensDates={lifeHappensDates}
-          count={demoCompletedCount} // Using the demo count of 3
-          total={totalAssignedWorkouts} // Using the fixed assigned count of 5
+          count={displayCompletedCount}
+          total={displayTotalCount}
           showDayCircles={true}
           showProgressBar={false}
           weekNumber={weekNumber}

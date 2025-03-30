@@ -1183,7 +1183,7 @@ export const updateExerciseStandaloneSupersetOrder = async (exerciseId: string, 
   return data;
 };
 
-export const normalizeWorkoutType(workoutType: string): string {
+export const normalizeWorkoutType = (workoutType: string): string => {
   const type = workoutType.toLowerCase();
   
   if (type.includes('strength')) return 'strength';
@@ -1196,4 +1196,4 @@ export const normalizeWorkoutType(workoutType: string): string {
   
   // Default to 'strength' if no match is found
   return 'strength';
-}
+};

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCurrentProgram } from "./program-service";
 import { startOfWeek, endOfWeek, format } from "date-fns";
@@ -34,7 +33,7 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     
     if (!currentWeek) {
       console.error(`Week ${currentWeekNumber} not found in program`);
-      throw new Error("Current week not found in program");
+      return 5; // Default to 5 workouts if week not found
     }
     
     // Count the number of workouts in this week
@@ -42,10 +41,11 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     
     console.log(`Found ${workoutsCount} workouts assigned for week ${currentWeekNumber}`);
     
-    return workoutsCount;
+    // If no workouts found in the week, return default of 5
+    return workoutsCount > 0 ? workoutsCount : 5;
   } catch (error) {
     console.error("Error getting weekly assigned workouts count:", error);
-    throw error;
+    return 5; // Default to 5 workouts on error
   }
 };
 

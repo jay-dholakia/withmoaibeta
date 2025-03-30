@@ -14,6 +14,9 @@ interface WeekProgressSectionProps {
   weekNumber?: number;
   assignedWorkoutsCount?: number;
   workoutTypesMap?: Record<string, WorkoutType>;
+  // Adding the missing properties
+  showGroupMembers?: boolean;
+  enableMemberClick?: boolean;
 }
 
 export const WeekProgressSection = ({ 
@@ -21,7 +24,10 @@ export const WeekProgressSection = ({
   showPersonal = true,
   weekNumber,
   assignedWorkoutsCount,
-  workoutTypesMap = {}
+  workoutTypesMap = {},
+  // Default values for the new properties
+  showGroupMembers = false,
+  enableMemberClick = false
 }: WeekProgressSectionProps) => {
   const { user } = useAuth();
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
@@ -113,6 +119,14 @@ export const WeekProgressSection = ({
           weekNumber={weekNumber}
           workoutTypes={workoutTypesMap}
         />
+      )}
+      
+      {/* Group members will be rendered here if showGroupMembers is true */}
+      {showGroupMembers && (
+        <div className="mt-4">
+          {/* This is just a placeholder. The actual implementation would need to be added later */}
+          <p className="text-center text-sm text-slate-500">Group members progress would appear here</p>
+        </div>
       )}
       
       {/* Team progress bar is hidden for now */}

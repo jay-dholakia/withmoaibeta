@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { completeWorkout, fetchPersonalRecords } from '@/services/client-service';
@@ -16,6 +16,7 @@ const WorkoutComplete = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [notes, setNotes] = useState('');
   const [rating, setRating] = useState<number | null>(null);
   
@@ -150,6 +151,9 @@ const WorkoutComplete = () => {
       );
     },
     onSuccess: () => {
+      // Invalidate relevant queries to refresh the workout list
+      queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
+      
       // Navigate without showing toast - toast is shown in client-service.ts
       navigate('/client-dashboard/workouts');
     },

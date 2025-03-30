@@ -257,6 +257,11 @@ const processWorkoutsForAssignment = async (
   
   // First, add in-progress workouts
   for (const workout of workouts) {
+    // Skip if already completed
+    if (completedWorkoutIds.has(workout.id)) {
+      continue;
+    }
+    
     if (inProgressWorkouts.has(workout.id)) {
       const completionId = inProgressWorkouts.get(workout.id);
       const weekInfo = weekMap.get(workout.week_id);

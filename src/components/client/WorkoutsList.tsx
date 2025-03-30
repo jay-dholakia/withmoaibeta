@@ -66,12 +66,16 @@ const WorkoutsList = () => {
         
         console.log("Assigned workouts loaded:", assignedWorkouts.length);
         
+        // Filter out completed workouts here
+        const pendingWorkouts = assignedWorkouts.filter(workout => !workout.completed_at);
+        console.log("Pending workouts (not completed):", pendingWorkouts.length);
+        
         setCurrentProgram(program);
-        setWorkouts(assignedWorkouts);
+        setWorkouts(pendingWorkouts);
         
         const weeksSet = new Set<number>();
         
-        assignedWorkouts.forEach(workout => {
+        pendingWorkouts.forEach(workout => {
           if (workout.workout?.week && workout.workout.week.week_number) {
             weeksSet.add(workout.workout.week.week_number);
           }

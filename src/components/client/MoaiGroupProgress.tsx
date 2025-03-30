@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,7 +27,7 @@ interface GroupMember {
 }
 
 const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
   const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
   const [workoutTypesMap, setWorkoutTypesMap] = useState<Record<string, WorkoutType>>({});
@@ -44,6 +45,28 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
         console.error("Error fetching workout count:", error);
         return 5; // Default to 5 as fallback
       }
+    },
+    enabled: !!user?.id,
+  });
+  
+  // Get current user's profile data
+  const { data: currentUserProfile, isLoading: isLoadingCurrentUserProfile } = useQuery({
+    queryKey: ['current-user-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('client_profiles')
+        .select('first_name, last_name, avatar_url')
+        .eq('id', user.id)
+        .maybeSingle();
+        
+      if (error) {
+        console.error('Error fetching current user profile:', error);
+        return null;
+      }
+      
+      return data;
     },
     enabled: !!user?.id,
   });
@@ -225,6 +248,29 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     return member.email.split('@')[0];
   };
   
+  // Get current user's display name
+  const getCurrentUserDisplayName = (): string => {
+    // First try to use the profile data from the dedicated query
+    if (currentUserProfile?.first_name) {
+      return currentUserProfile.first_name;
+    }
+    
+    // Then try to use the profile data from Auth context
+    if (profile?.user_type) {
+      // This assumes there might be a first_name field in the profile
+      const firstName = (profile as any).first_name;
+      if (firstName) return firstName;
+    }
+    
+    // Fall back to email if available
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    
+    // Ultimate fallback
+    return "You";
+  };
+  
   // Count workouts completed this week
   const completedThisWeek = completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   
@@ -236,7 +282,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
   
   const totalWorkouts = assignedWorkoutsCount || 5; // Default to 5 if undefined
   
-  if (isLoadingCurrentUser || isLoadingMembers) {
+  if (isLoadingCurrentUser || isLoadingMembers || isLoadingCurrentUserProfile) {
     return (
       <Card>
         <CardContent className="py-6">
@@ -256,7 +302,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
           count={totalCompletedThisWeek}
           total={totalWorkouts}
           workoutTypesMap={workoutTypesMap}
-          userName={user.email?.split('@')[0] || 'You'}
+          userName={getCurrentUserDisplayName()}
           isCurrentUser={true}
         />
       )}

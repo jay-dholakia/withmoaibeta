@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Filter, Calendar, Clock, Award, Info, Send, CheckCircle2, Pencil, UserCircle2 } from 'lucide-react';
+import { Loader2, Users, Filter, Calendar, Clock, Award, Info, Send, CheckCircle2, Pencil } from 'lucide-react';
 import { 
   Table, 
   TableHeader, 
@@ -198,30 +198,6 @@ const ClientsPage = () => {
     return `${days} days ago`;
   };
 
-  const getClientGroupName = (client: ClientData) => {
-    if (!groups || !client.group_ids.length) return "No Group";
-    
-    if (selectedGroupId !== 'all' && client.group_ids.includes(selectedGroupId)) {
-      const group = groups.find(g => g.id === selectedGroupId);
-      return group ? group.name : "Unknown Group";
-    }
-    
-    const group = groups.find(g => g.id === client.group_ids[0]);
-    return group ? group.name : "Unknown Group";
-  };
-
-  const getClientDisplayName = (client: ClientData) => {
-    if (!client.first_name && !client.last_name) {
-      return client.email.split('@')[0];
-    }
-    
-    if (client.first_name && client.last_name) {
-      return `${client.first_name} ${client.last_name}`;
-    }
-    
-    return client.first_name || client.last_name || client.email.split('@')[0];
-  };
-
   if (isLoadingClients || isLoadingGroups) {
     return (
       <CoachLayout>
@@ -311,7 +287,6 @@ const ClientsPage = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Client</TableHead>
-                        <TableHead>Group</TableHead>
                         <TableHead>Last Workout</TableHead>
                         <TableHead>Total Workouts</TableHead>
                         <TableHead>Current Program</TableHead>
@@ -322,13 +297,7 @@ const ClientsPage = () => {
                     <TableBody>
                       {paginatedClients.map((client) => (
                         <TableRow key={client.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <UserCircle2 className="h-4 w-4 text-muted-foreground" />
-                              {getClientDisplayName(client)}
-                            </div>
-                          </TableCell>
-                          <TableCell>{getClientGroupName(client)}</TableCell>
+                          <TableCell className="font-medium">{client.email}</TableCell>
                           <TableCell>
                             <span className={getWorkoutStatusClass(client.days_since_last_workout)}>
                               {getWorkoutStatusText(client.days_since_last_workout)}

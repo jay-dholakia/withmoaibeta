@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -153,13 +152,11 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
     setIsSaving(true);
     try {
       const weekDate = getCurrentWeekDate();
-      const weekDateString = weekDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-      
       const result = await saveCoachMessage(
         coachId, 
         clientId, 
         message, 
-        weekDateString,
+        weekDate,
         existingMessageId
       );
       

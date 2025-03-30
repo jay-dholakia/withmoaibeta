@@ -121,16 +121,16 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
     <Card className="mb-6">
       <CardHeader className="pb-2">
         <h3 className="text-lg font-medium">
-          Message from Coach {message?.coach_first_name || 'Your Coach'}
+          Message from Coach {message.coach_first_name || 'Your Coach'}
         </h3>
         <p className="text-sm text-muted-foreground">
           {programWeek !== null ? `Week ${programWeek}` : 'Week 0'} 
-          {' '}(week of {new Date(message?.week_of || '').toLocaleDateString()})
+          {' '}(week of {new Date(message.week_of).toLocaleDateString()})
         </p>
       </CardHeader>
       <CardContent>
         <blockquote className="border-l-4 border-client pl-4 italic text-left">
-          "{message?.message}"
+          "{message.message}"
         </blockquote>
       </CardContent>
     </Card>

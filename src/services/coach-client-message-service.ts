@@ -1,73 +1,76 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { CoachMessage } from './coach-message-service';
 
 /**
- * Fetches all coach messages for a specific client
+ * Fetches all messages a coach has sent to a client
  */
-export const fetchCoachMessagesForClient = async (coachId: string, clientId: string) => {
+export const fetchCoachMessagesForClient = async (coachId: string, clientId: string): Promise<CoachMessage[]> => {
+  if (!coachId || !clientId) return [];
+  
   try {
-    const { data, error } = await supabase
+    console.log('Fetching messages for coach', coachId, 'and client', clientId);
+    
+    // First, fetch all coach messages
+    const { data: messages, error } = await supabase
       .from('coach_messages')
       .select('*')
       .eq('coach_id', coachId)
       .eq('client_id', clientId)
-      .order('week_of', { ascending: false });
+      .order('week_of', { ascending: false })
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching coach messages for client:', error);
+      throw error;
+    }
+    
+    // If we have messages, fetch the coach name separately
+    if (messages && messages.length > 0) {
+      // Get coach profile info for the coach ID
+      const { data: coachProfile, error: coachError } = await supabase
+        .from('coach_profiles')
+        .select('first_name')
+        .eq('id', coachId)
+        .single();
       
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching coach messages:', error);
-    toast.error('Failed to load messages');
+      if (coachError) {
+        console.error('Error fetching coach profile:', coachError);
+      }
+      
+      // Combine the data
+      return messages.map(message => ({
+        ...message,
+        coach_first_name: coachProfile?.first_name || null
+      })) as CoachMessage[];
+    }
+    
     return [];
+  } catch (error) {
+    console.error('Error in fetchCoachMessagesForClient:', error);
+    throw error;
   }
 };
 
 /**
- * Checks if a coach is allowed to message a specific client
- * This checks if the client is in any of the coach's groups
+ * Checks if a coach is allowed to send messages to a client
  */
 export const canCoachMessageClient = async (coachId: string, clientId: string): Promise<boolean> => {
   try {
-    // Check if client is in any of coach's groups using the is_coach_for_client RPC
+    console.log('Checking if coach', coachId, 'can message client', clientId);
+    
+    // Check if the client belongs to a group that the coach is assigned to
     const { data, error } = await supabase.rpc('is_coach_for_client', {
       coach_id: coachId,
       client_id: clientId
     });
     
     if (error) {
-      console.error('Error checking coach permission:', error);
-      
-      // Fallback to direct query if RPC fails
-      const { data: groupsData, error: groupsError } = await supabase
-        .from('group_coaches')
-        .select('group_id')
-        .eq('coach_id', coachId);
-        
-      if (groupsError) {
-        console.error('Error fetching coach groups:', groupsError);
-        return false;
-      }
-      
-      if (!groupsData || groupsData.length === 0) return false;
-      
-      const groupIds = groupsData.map(g => g.group_id);
-      
-      const { data: membersData, error: membersError } = await supabase
-        .from('group_members')
-        .select('user_id')
-        .eq('user_id', clientId)
-        .in('group_id', groupIds);
-        
-      if (membersError) {
-        console.error('Error checking client membership:', membersError);
-        return false;
-      }
-      
-      return membersData && membersData.length > 0;
+      console.error('Error checking coach-client relationship:', error);
+      return false;
     }
     
-    return data === true;
+    return !!data;
   } catch (error) {
     console.error('Error in canCoachMessageClient:', error);
     return false;
@@ -75,70 +78,76 @@ export const canCoachMessageClient = async (coachId: string, clientId: string): 
 };
 
 /**
- * Saves a coach message for a client
+ * Creates or updates a coach message for a client
  */
 export const saveCoachMessage = async (
   coachId: string, 
   clientId: string, 
-  message: string,
-  weekOf: string | Date,
-  messageId?: string
-) => {
+  message: string, 
+  weekOf: Date,
+  existingMessageId?: string
+): Promise<CoachMessage | null> => {
   try {
-    // Convert Date object to ISO string if needed
-    const weekOfString = weekOf instanceof Date ? weekOf.toISOString() : weekOf;
+    console.log('Saving message for coach', coachId, 'and client', clientId);
+    console.log('Message content:', message);
+    console.log('Week of:', weekOf);
+    console.log('Existing message ID:', existingMessageId);
     
-    // If messageId is provided, update existing message
-    if (messageId) {
+    // First verify the coach can message this client
+    const canMessage = await canCoachMessageClient(coachId, clientId);
+    if (!canMessage) {
+      console.error('Coach is not authorized to message this client');
+      throw new Error('You are not authorized to send messages to this client');
+    }
+    
+    // Format the date to YYYY-MM-DD
+    const formattedWeekOf = weekOf.toISOString().split('T')[0];
+    
+    if (existingMessageId) {
+      console.log('Updating existing message');
+      // Update existing message
       const { data, error } = await supabase
         .from('coach_messages')
         .update({
           message,
-          updated_at: new Date().toISOString()
+          week_of: formattedWeekOf,
+          updated_at: new Date().toISOString(),
+          read_by_client: false // Reset read status when updated
         })
-        .eq('id', messageId)
-        .eq('coach_id', coachId) // Safety check
-        .select();
-        
-      if (error) throw error;
-      return data[0];
-    }
-    // Otherwise create a new message
-    else {
+        .eq('id', existingMessageId)
+        .eq('coach_id', coachId) // Security check
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating coach message:', error);
+        throw error;
+      }
+      
+      return data as CoachMessage;
+    } else {
+      console.log('Creating new message');
+      // Create new message
       const { data, error } = await supabase
         .from('coach_messages')
         .insert({
           coach_id: coachId,
           client_id: clientId,
           message,
-          week_of: weekOfString
+          week_of: formattedWeekOf
         })
-        .select();
-        
-      if (error) throw error;
-      return data[0];
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating coach message:', error);
+        throw error;
+      }
+      
+      return data as CoachMessage;
     }
   } catch (error) {
-    console.error('Error saving coach message:', error);
-    toast.error('Failed to save message');
+    console.error('Error in saveCoachMessage:', error);
     throw error;
-  }
-};
-
-/**
- * Marks a message as read by the client
- */
-export const markMessageAsRead = async (messageId: string) => {
-  try {
-    const { error } = await supabase
-      .from('coach_messages')
-      .update({ read_by_client: true })
-      .eq('id', messageId);
-      
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error('Error marking message as read:', error);
-    return false;
   }
 };

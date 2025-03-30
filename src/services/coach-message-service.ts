@@ -1,10 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
-/**
- * Coach Message Type
- */
 export interface CoachMessage {
   id: string;
   coach_id: string;
@@ -14,40 +10,29 @@ export interface CoachMessage {
   updated_at: string;
   week_of: string;
   read_by_client: boolean;
-  coach_first_name?: string;
+  coach_first_name: string | null;
 }
 
 /**
- * Fetches the latest coach message for a client
+ * Fetches the latest coach message for the current client
  */
 export const fetchLatestCoachMessage = async (clientId: string): Promise<CoachMessage | null> => {
+  if (!clientId) return null;
+  
   try {
-    // First try using the RPC function
-    const { data, error } = await supabase.rpc('get_latest_coach_message', {
-      client_id_param: clientId
-    });
+    const { data, error } = await supabase.rpc(
+      'get_latest_coach_message',
+      { client_id_param: clientId }
+    );
     
     if (error) {
-      console.error('Error fetching latest coach message:', error);
-      
-      // Fallback to direct query if RPC fails
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('coach_messages')
-        .select('*')
-        .eq('client_id', clientId)
-        .order('week_of', { ascending: false })
-        .order('updated_at', { ascending: false })
-        .limit(1);
-        
-      if (fallbackError) {
-        console.error('Fallback error fetching coach message:', fallbackError);
-        return null;
-      }
-      
-      return fallbackData && fallbackData.length > 0 ? fallbackData[0] : null;
+      console.error('Error fetching coach message:', error);
+      return null;
     }
     
-    return data && data.length > 0 ? data[0] : null;
+    if (!data || data.length === 0) return null;
+    
+    return data[0] as CoachMessage;
   } catch (error) {
     console.error('Error in fetchLatestCoachMessage:', error);
     return null;
@@ -55,7 +40,7 @@ export const fetchLatestCoachMessage = async (clientId: string): Promise<CoachMe
 };
 
 /**
- * Marks a message as read by the client
+ * Marks a coach message as read
  */
 export const markCoachMessageAsRead = async (messageId: string): Promise<boolean> => {
   try {
@@ -63,13 +48,15 @@ export const markCoachMessageAsRead = async (messageId: string): Promise<boolean
       .from('coach_messages')
       .update({ read_by_client: true })
       .eq('id', messageId);
-      
-    if (error) throw error;
+    
+    if (error) {
+      console.error('Error marking message as read:', error);
+      return false;
+    }
+    
     return true;
   } catch (error) {
-    console.error('Error marking message as read:', error);
+    console.error('Error in markCoachMessageAsRead:', error);
     return false;
   }
 };
-
-// Add any additional coach message related functions here if needed

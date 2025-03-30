@@ -14,8 +14,6 @@ export interface ClientData {
   current_program_title: string | null;
   days_since_last_workout: number | null;
   group_ids: string[];
-  first_name: string | null;
-  last_name: string | null;
 }
 
 /**
@@ -47,16 +45,13 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       const workoutCounts = await fetchAccurateWorkoutCounts(clientIds);
       
       // Update the total_workouts_completed value with the accurate count
-      // Make sure to include first_name and last_name properties
       return rpcData.map(client => ({
         ...client,
-        total_workouts_completed: workoutCounts.get(client.id) || 0,
-        first_name: client.first_name !== undefined ? client.first_name : null,
-        last_name: client.last_name !== undefined ? client.last_name : null
-      })) as ClientData[];
+        total_workouts_completed: workoutCounts.get(client.id) || 0
+      }));
     }
     
-    return (rpcData || []) as ClientData[];
+    return rpcData || [];
   } catch (error) {
     console.error('Error fetching coach clients:', error);
     return [];
@@ -134,21 +129,6 @@ const fetchCoachClientsDirect = async (coachId: string): Promise<ClientData[]> =
       console.error('Error fetching client workout info:', workoutInfoError);
     }
     
-    // Also fetch client profile information to get names
-    const { data: clientDetailProfiles, error: clientProfilesError } = await supabase
-      .from('client_profiles')
-      .select('id, first_name, last_name')
-      .in('id', clientIds);
-      
-    if (clientProfilesError) {
-      console.error('Error fetching client detailed profiles:', clientProfilesError);
-    }
-    
-    // Create a map for client profiles
-    const clientProfilesMap = new Map(
-      clientDetailProfiles ? clientDetailProfiles.map(profile => [profile.id, profile]) : []
-    );
-    
     // Get program info for clients with program assignments
     const programIds = workoutInfo?.filter(wi => wi.current_program_id).map(wi => wi.current_program_id) || [];
     
@@ -190,9 +170,6 @@ const fetchCoachClientsDirect = async (coachId: string): Promise<ClientData[]> =
       // Get workout info from map
       const clientWorkoutInfo = workoutInfoMap.get(client.id);
       
-      // Get profile info from map
-      const profileInfo = clientProfilesMap.get(client.id);
-      
       // Get program info if available
       const program = clientWorkoutInfo?.current_program_id 
         ? programMap.get(clientWorkoutInfo.current_program_id)
@@ -217,9 +194,7 @@ const fetchCoachClientsDirect = async (coachId: string): Promise<ClientData[]> =
         current_program_id: clientWorkoutInfo?.current_program_id || null,
         current_program_title: program?.title || null,
         days_since_last_workout: daysSinceLastWorkout,
-        group_ids: groupMap.get(client.id) || [],
-        first_name: profileInfo?.first_name || null,
-        last_name: profileInfo?.last_name || null
+        group_ids: groupMap.get(client.id) || []
       };
     });
   } catch (error) {

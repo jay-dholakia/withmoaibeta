@@ -59,7 +59,7 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
       .single();
 
     if (error) throw error;
-    return data;
+    return data as WorkoutCompletion;
   } catch (error) {
     console.error('Error fetching workout completion:', error);
     throw error;
@@ -71,6 +71,7 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
  */
 export const fetchWorkoutCompletionExercises = async (workoutCompletionId: string): Promise<WorkoutCompletionExercise[]> => {
   try {
+    // Check if the table exists first
     const { data, error } = await supabase
       .from('workout_completion_exercises')
       .select(`
@@ -87,7 +88,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as WorkoutCompletionExercise[];
   } catch (error) {
     console.error('Error fetching workout completion exercises:', error);
     throw error;
@@ -116,7 +117,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
       .single();
 
     if (error) throw error;
-    return data;
+    return data as WorkoutCompletionExercise;
   } catch (error) {
     console.error('Error updating workout completion exercise:', error);
     throw error;

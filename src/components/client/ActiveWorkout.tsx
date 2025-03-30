@@ -169,7 +169,7 @@ const ActiveWorkout = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {currentExercise.exercise?.log_type === 'reps_sets' && (
+            {currentExercise.exercise?.log_type === 'weight_reps' && (
               <div className="space-y-4">
                 <div className="flex space-x-3">
                   <div className="flex-1">
@@ -238,7 +238,7 @@ const ActiveWorkout = () => {
                   </Button>
                   <Button
                     variant="secondary"
-                    onClick={reset}
+                    onClick={() => reset()}
                   >
                     Reset
                   </Button>

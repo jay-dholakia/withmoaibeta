@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -139,6 +138,20 @@ const ClientsPage: React.FC = () => {
     }
   };
 
+  // Sort clients - unassigned clients first, then alphabetically by email
+  const sortedClients = React.useMemo(() => {
+    if (!clients) return [];
+    
+    return [...clients].sort((a, b) => {
+      // First sort by group assignment (null groups first)
+      if (!a.group_name && b.group_name) return -1;
+      if (a.group_name && !b.group_name) return 1;
+      
+      // Then sort by email alphabetically
+      return a.email.localeCompare(b.email);
+    });
+  }, [clients]);
+
   if (userType !== 'admin') {
     return null;
   }
@@ -184,8 +197,8 @@ const ClientsPage: React.FC = () => {
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : clients && clients.length > 0 ? (
-                clients.map(client => (
+              ) : sortedClients && sortedClients.length > 0 ? (
+                sortedClients.map(client => (
                   <TableRow key={client.id}>
                     <TableCell>{client.email}</TableCell>
                     <TableCell>

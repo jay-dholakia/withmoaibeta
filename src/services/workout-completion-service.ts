@@ -115,7 +115,7 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
       
       // Create a default WorkoutCompletion object with workout data
       return {
-        id: null,
+        id: '',
         user_id: userId,
         workout_id: workoutCompletionId,
         completed_at: null,
@@ -249,7 +249,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
         .from('workout_completion_exercises')
         .select(`
           *,
-          exercise:exercise_id (
+          exercise:exercises!exercise_id (
             id,
             name,
             description,
@@ -314,7 +314,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
       .eq('id', exerciseId)
       .select(`
         *,
-        exercise:exercise_id (
+        exercise:exercises!exercise_id (
           id,
           name,
           description,

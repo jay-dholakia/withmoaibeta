@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const MoaiPage = () => {
   const { user } = useAuth();
@@ -225,25 +227,34 @@ const MoaiPage = () => {
   
   return (
     <div className="space-y-6">
-      <Card className="bg-client/5">
+      <Card className="bg-client/5 relative">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center justify-between text-2xl text-center font-semibold text-black">
-            <span className="w-full">🏃‍♀️ {group.name} 🏃‍♂️</span>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className={isResetingGroup ? "animate-spin" : ""} 
-              onClick={resetGroupAssignment}
-              disabled={isResetingGroup}
-              title="Reset Group Assignment"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+          <CardTitle className="text-2xl text-center font-semibold text-black">
+            {group.name}
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground pt-0">
           {group.description && <p>{group.description}</p>}
         </CardContent>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={`absolute bottom-2 right-2 h-7 w-7 ${isResetingGroup ? "animate-spin" : ""}`} 
+                onClick={resetGroupAssignment}
+                disabled={isResetingGroup}
+              >
+                <RefreshCw className="h-3 w-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Reset Group Assignment</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </Card>
       
       <Tabs defaultValue="progress" className="w-full">

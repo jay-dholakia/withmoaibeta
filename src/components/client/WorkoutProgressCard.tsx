@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { WeekProgressBar } from './WeekProgressBar';
 import { WorkoutType } from './WorkoutTypeIcon';
 
 interface WorkoutProgressCardProps {

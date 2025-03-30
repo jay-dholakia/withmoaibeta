@@ -15,7 +15,6 @@ interface WeekProgressSectionProps {
   weekNumber?: number;
   assignedWorkoutsCount?: number;
   workoutTypesMap?: Record<string, WorkoutType>;
-  // Adding the missing properties
   showGroupMembers?: boolean;
   enableMemberClick?: boolean;
 }
@@ -26,7 +25,6 @@ export const WeekProgressSection = ({
   weekNumber,
   assignedWorkoutsCount,
   workoutTypesMap = {},
-  // Default values for the new properties
   showGroupMembers = false,
   enableMemberClick = false
 }: WeekProgressSectionProps) => {
@@ -52,12 +50,12 @@ export const WeekProgressSection = ({
       try {
         const count = await getWeeklyAssignedWorkoutsCount(user.id);
         
-        if (count <= 0) return 4; // Default to 4 if no assigned workouts
+        if (count <= 0) return 5; // Default to 5 if no assigned workouts
         
         return count;
       } catch (error) {
         console.error("Error fetching workout count:", error);
-        return 4; // Default fallback
+        return 5; // Default fallback
       }
     },
     enabled: !!user?.id && assignedWorkoutsCount === undefined,
@@ -66,7 +64,7 @@ export const WeekProgressSection = ({
   // Use either the passed in count or the fetched count
   const finalAssignedWorkoutsCount = assignedWorkoutsCount !== undefined ? 
     assignedWorkoutsCount : 
-    totalAssignedWorkouts || 4; // Add default value
+    totalAssignedWorkouts || 5; // Change default value to 5
   
   // Extract completed dates and life happens dates
   useEffect(() => {

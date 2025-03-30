@@ -32,11 +32,11 @@ const LeaderboardPage = () => {
       if (!user?.id) throw new Error('User ID not available');
       try {
         const count = await getWeeklyAssignedWorkoutsCount(user.id);
-        if (count <= 0) return 4; // Default to 4 if no assigned workouts
+        if (count <= 0) return 5; // Default to 5 if no assigned workouts
         return count;
       } catch (error) {
         console.error("Error fetching workout count:", error);
-        return 4; // Default fallback
+        return 5; // Default fallback
       }
     },
     enabled: !!user?.id,
@@ -116,7 +116,7 @@ const LeaderboardPage = () => {
   // Calculate the total completed including life happens passes
   const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;
   
-  const totalWorkouts = assignedWorkoutsCount || 4; // Default to 4 if undefined
+  const totalWorkouts = assignedWorkoutsCount || 5; // Default to 5 if undefined
   
   return (
     <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">

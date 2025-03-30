@@ -29,10 +29,17 @@ const LeaderboardPage = () => {
     queryFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
       const count = await getWeeklyAssignedWorkoutsCount(user.id);
-      if (count <= 0) throw new Error('No assigned workouts found for the current week');
+      if (count <= 0) return 4; // Default to 4 if no assigned workouts
       return count;
     },
     enabled: !!user?.id,
+    // Add fallback value for when the query fails
+    meta: {
+      onError: () => {
+        console.log('Error fetching workout count, defaulting to 4');
+        return 4;
+      }
+    },
   });
   
   // Create workout types map
@@ -53,7 +60,7 @@ const LeaderboardPage = () => {
         
         if (item.workout?.workout_type) {
           // Standardize the workout type
-          const type = item.workout.workout_type.toLowerCase();
+          const type = String(item.workout.workout_type).toLowerCase();
           if (type.includes('strength')) typesMap[dateKey] = 'strength';
           else if (type.includes('cardio') || type.includes('run')) typesMap[dateKey] = 'cardio';
           else if (type.includes('body') || type.includes('weight')) typesMap[dateKey] = 'bodyweight';
@@ -90,7 +97,7 @@ const LeaderboardPage = () => {
           showTeam={false} 
           showPersonal={true}
           workoutTypesMap={workoutTypesMap}
-          assignedWorkoutsCount={assignedWorkoutsCount}
+          assignedWorkoutsCount={assignedWorkoutsCount || 4} // Provide default value if undefined
         />
       </div>
     </Container>

@@ -24,6 +24,7 @@ interface GroupMember {
   lifeHappensDates: Date[];
   totalAssigned: number;
   isCurrentUser: boolean;
+  workoutTypes?: Record<string, WorkoutType>;
 }
 
 const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
@@ -64,7 +65,7 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
               // Get workout completion data
               const { data: completions } = await supabase
                 .from('workout_completions')
-                .select('id, completed_at, life_happens_pass')
+                .select('id, completed_at, life_happens_pass, workout:workout_id(workout_type)')
                 .eq('user_id', member.user_id)
                 .not('completed_at', 'is', null);
               
@@ -77,15 +78,31 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
               
               const completedDates: Date[] = [];
               const lifeHappensDates: Date[] = [];
+              const workoutTypes: Record<string, WorkoutType> = {};
               
               if (completions) {
                 completions.forEach(completion => {
                   if (completion.completed_at) {
                     const date = new Date(completion.completed_at);
+                    const dateStr = date.toISOString().split('T')[0];
+                    
                     if (completion.life_happens_pass) {
                       lifeHappensDates.push(date);
+                      workoutTypes[dateStr] = 'rest_day';
                     } else {
                       completedDates.push(date);
+                      
+                      // Map workout types
+                      if (completion.workout?.workout_type) {
+                        const type = String(completion.workout.workout_type).toLowerCase();
+                        if (type.includes('strength')) workoutTypes[dateStr] = 'strength';
+                        else if (type.includes('cardio')) workoutTypes[dateStr] = 'cardio';
+                        else if (type.includes('body')) workoutTypes[dateStr] = 'bodyweight';
+                        else if (type.includes('flex')) workoutTypes[dateStr] = 'flexibility';
+                        else workoutTypes[dateStr] = 'custom';
+                      } else {
+                        workoutTypes[dateStr] = 'strength'; // Default
+                      }
                     }
                   }
                 });
@@ -98,6 +115,7 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
                 avatarUrl: profile?.avatar_url || null,
                 completedDates,
                 lifeHappensDates,
+                workoutTypes,
                 totalAssigned: assignedCount || 4, // Default to 4 if count not available
                 isCurrentUser: member.user_id === user?.id
               };
@@ -208,6 +226,7 @@ const MoaiGroupProgress: React.FC<MemberProgressProps> = ({ groupId }) => {
             total={member.totalAssigned}
             showProgressBar={true}
             showDayCircles={true}
+            workoutTypes={member.workoutTypes}
             compact={true}
           />
         </div>

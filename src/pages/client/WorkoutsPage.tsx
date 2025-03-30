@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -30,15 +29,12 @@ const WorkoutsPage = () => {
   const location = useLocation();
   console.log("WorkoutsPage component rendering");
   
-  // Check if the current route is the main workouts page
   const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
   
-  // Check if we're on the active workout or complete workout page
   const isActiveOrCompleteWorkout = location.pathname.includes('/active/') || 
                                    location.pathname.includes('/complete/');
   
   const handleLogRestDay = () => {
-    // Call the service function to log a rest day
     logRestDay().then(() => {
       toast.success("Rest day logged successfully!");
       setShowRestDayDialog(false);
@@ -72,13 +68,12 @@ const WorkoutsPage = () => {
             </TabsList>
             
             <TabsContent value="active-workouts">
-              {/* Featured Video - Replace 'your-bucket-name' and 'your-video-path.mp4' with your actual values */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium mb-2">Featured Workout</h3>
                 <div className="rounded-lg overflow-hidden shadow-sm border border-slate-200">
                   <VideoPlayer 
                     bucketName="videos" 
-                    filePath="workout-demo.mp4" 
+                    filePath="IMG_2130.MOV" 
                   />
                 </div>
               </div>

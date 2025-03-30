@@ -66,37 +66,29 @@ const InvitationsPage: React.FC = () => {
   });
   
   useEffect(() => {
-    if (currentUserType !== 'admin') return;
-    
-    console.log('Setting up realtime subscription for invitations');
-    
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen for all changes: INSERT, UPDATE, DELETE
-          schema: 'public',
-          table: 'invitations'
-        },
-        (payload) => {
-          console.log('Realtime invitation update:', payload);
-          queryClient.invalidateQueries({ queryKey: ['invitations'] });
+    if (invitations && invitations.length > 0) {
+      const shareableLinks: ShareLinks = {};
+      
+      invitations.forEach(inv => {
+        if (inv.is_share_link && 
+            inv.accepted === false && 
+            new Date(inv.expires_at) > new Date() && 
+            inv.share_link_type) {
           
-          if (payload.eventType === 'UPDATE' && 
-              payload.new.accepted === true && 
-              payload.old.accepted === false) {
-            toast.success(`Invitation for ${payload.new.email || 'user'} has been accepted!`);
+          const link = `${window.location.origin}/register?token=${inv.token}&type=${inv.share_link_type}`;
+          
+          if (!shareableLinks[inv.share_link_type as keyof ShareLinks] || 
+              new Date(inv.created_at) > new Date(invitations.find(i => 
+                i.token === shareableLinks[inv.share_link_type as keyof ShareLinks]?.split('token=')[1]?.split('&')[0]
+              )?.created_at || 0)) {
+            shareableLinks[inv.share_link_type as keyof ShareLinks] = link;
           }
         }
-      )
-      .subscribe();
-    
-    return () => {
-      console.log('Cleaning up realtime subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [currentUserType, queryClient]);
+      });
+      
+      setShareLinks(shareableLinks);
+    }
+  }, [invitations]);
   
   const sendInvitation = useMutation({
     mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' | 'admin' }): Promise<InvitationResponse> => {

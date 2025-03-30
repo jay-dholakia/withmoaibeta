@@ -42,7 +42,7 @@ export const InvitationLinkDialog: React.FC<InvitationLinkDialogProps> = ({
           ) : (
             <Copy className="w-4 h-4 mr-2" />
           )}
-          {buttonLabel || (isShareLink ? `Share ${displayUserType} Registration Link` : 'Share Invitation Link')}
+          {buttonLabel || (isShareLink ? `${displayUserType} Registration Link` : 'Share Invitation Link')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -62,7 +62,7 @@ export const InvitationLinkDialog: React.FC<InvitationLinkDialogProps> = ({
           </DialogTitle>
           <DialogDescription className={isShareLink ? "text-blue-500" : "text-amber-500"}>
             {isShareLink 
-              ? `Anyone with this link can register a ${userType} account. No email is required in advance.`
+              ? `Anyone with this link can register a ${userType} account. The same link can be used by multiple users.`
               : "Email service is currently unavailable. You need to share this invitation link manually."}
           </DialogDescription>
         </DialogHeader>
@@ -101,7 +101,7 @@ export const InvitationLinkDialog: React.FC<InvitationLinkDialogProps> = ({
               </li>
               <li>
                 {isShareLink
-                  ? 'Users who open the link will be able to register by providing their email'
+                  ? 'Multiple users can use this same link to register'
                   : 'Let them know this link will give them access to create their account'}
               </li>
               <li>The link will expire in 30 days</li>

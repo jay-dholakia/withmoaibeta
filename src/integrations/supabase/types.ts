@@ -977,6 +977,12 @@ export type Database = {
       }
     }
     Functions: {
+      admin_delete_user: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
       count_workouts_for_user_and_week: {
         Args: {
           user_id_param: string

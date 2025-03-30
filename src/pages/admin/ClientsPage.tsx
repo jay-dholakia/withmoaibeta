@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { deleteUser } from '@/services/client-service';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -155,15 +156,10 @@ const ClientsPage: React.FC = () => {
     
     setIsDeleting(true);
     try {
-      // Delete the user from Supabase auth
-      const { error } = await supabase.rpc('admin_delete_user', {
-        user_id: clientToDelete.id
-      });
+      const success = await deleteUser(clientToDelete.id);
       
-      if (error) {
-        console.error('Error deleting user:', error);
-        toast.error('Failed to delete user');
-        throw error;
+      if (!success) {
+        throw new Error('Failed to delete user');
       }
       
       toast.success(`User ${clientToDelete.email} was deleted successfully`);

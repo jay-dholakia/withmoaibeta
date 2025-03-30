@@ -751,7 +751,7 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<Lea
 
 export const deleteUser = async (userId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase.rpc('admin_delete_user', {
+    const { data, error } = await supabase.rpc('admin_delete_user', {
       user_id: userId
     });
     
@@ -760,7 +760,7 @@ export const deleteUser = async (userId: string): Promise<boolean> => {
       throw error;
     }
     
-    return true;
+    return data || false;
   } catch (error) {
     console.error("Error deleting user:", error);
     return false;

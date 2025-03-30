@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface WorkoutCompletion {
@@ -60,44 +59,80 @@ function isValidExercise(obj: any): obj is {
  */
 export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promise<WorkoutCompletion> => {
   try {
+    console.log("Fetching workout completion data for ID:", workoutCompletionId);
+    
+    // Query by workout_id, not id - using maybeSingle instead of single
     const { data, error } = await supabase
       .from('workout_completions')
       .select(`
         *,
         workout:workout_id (
-          id,
-          title,
-          description
+          *,
+          workout_exercises (
+            *,
+            exercise:exercise_id (*)
+          )
         )
       `)
-      .eq('id', workoutCompletionId)
-      .single();
+      .eq('workout_id', workoutCompletionId || '')
+      .eq('user_id', supabase.auth.getUser().then(res => res.data.user?.id))
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching workout completion data:", error);
+      throw error;
+    }
     
-    // Ensure the data conforms to the WorkoutCompletion interface
-    const completion: WorkoutCompletion = {
-      id: data.id,
-      user_id: data.user_id,
-      workout_id: data.workout_id,
-      created_at: data.created_at || new Date().toISOString(), 
-      completed_at: data.completed_at,
-      rest_day: data.rest_day || false,
-      life_happens_pass: data.life_happens_pass || false,
-      notes: data.notes,
-      rating: data.rating,
-      title: data.title || null, 
-      description: data.description || null, 
-      workout_type: data.workout_type || null, 
-      distance: typeof data.distance === 'string' ? parseFloat(data.distance) : data.distance,
-      duration: data.duration,
-      location: data.location,
-      workout: data.workout
-    };
+    if (!data) {
+      console.log("No workout completion found, trying to fetch workout directly");
+      
+      // If no completion record, try to get just the workout data
+      const { data: workoutOnly, error: workoutError } = await supabase
+        .from('workouts')
+        .select(`
+          *,
+          workout_exercises (
+            *,
+            exercise:exercise_id (*)
+          )
+        `)
+        .eq('id', workoutCompletionId || '')
+        .maybeSingle();
+        
+      if (workoutError) {
+        console.error("Error fetching workout data:", workoutError);
+        throw workoutError;
+      }
+      
+      if (!workoutOnly) {
+        throw new Error('Workout not found');
+      }
+      
+      return {
+        id: null,
+        user_id: await supabase.auth.getUser().then(res => res.data.user?.id || ''),
+        workout_id: workoutCompletionId,
+        completed_at: null,
+        notes: null,
+        rating: null,
+        workout: workoutOnly,
+        workout_set_completions: [],
+        created_at: new Date().toISOString(),
+        rest_day: false,
+        life_happens_pass: false,
+        title: null,
+        description: null,
+        workout_type: null,
+        distance: null,
+        duration: null,
+        location: null
+      };
+    }
     
-    return completion;
+    console.log("Fetched workout completion data:", data);
+    return data;
   } catch (error) {
-    console.error('Error fetching workout completion:', error);
+    console.error("Error in workout completion data query:", error);
     throw error;
   }
 };

@@ -46,7 +46,12 @@ export const InvitationForm: React.FC<InvitationFormProps> = ({
     } catch (error) {
       console.error('Error submitting invitation:', error);
       setIsSubmitting(false);
-      toast.error('Failed to create invitation. Please try again.');
+      
+      if (error instanceof Error) {
+        toast.error(`Failed to create invitation: ${error.message}`);
+      } else {
+        toast.error('Failed to create invitation. Please try again.');
+      }
     }
   };
 
@@ -63,7 +68,6 @@ export const InvitationForm: React.FC<InvitationFormProps> = ({
           <DialogTitle>Send New Invitation</DialogTitle>
           <DialogDescription>
             Invite a new user to create a client, coach or admin account.
-            {/* Note about email service issues */}
             <p className="mt-2 text-amber-500 text-xs">
               Note: If the email service is unavailable, you'll be provided with a link to share manually.
             </p>

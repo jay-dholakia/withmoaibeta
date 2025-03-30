@@ -78,21 +78,44 @@ serve(async (req) => {
     // Parse the request body - improved handling
     let payload: InvitationPayload;
     try {
-      const rawBody = await req.text();
-      console.log("Raw request body received, length:", rawBody.length);
-      
-      if (!rawBody) {
-        throw new Error("Empty request body");
+      // Read the request body
+      let rawBody = "";
+      try {
+        rawBody = await req.text();
+        console.log("Raw request body received, length:", rawBody.length);
+        
+        if (!rawBody) {
+          throw new Error("Empty request body");
+        }
+      } catch (bodyReadError) {
+        console.error("Failed to read request body:", bodyReadError);
+        return new Response(
+          JSON.stringify({ 
+            error: "Failed to read request body", 
+            details: bodyReadError.message 
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
       
+      // Parse JSON
       try {
         payload = JSON.parse(rawBody);
+        console.log("Request payload parsed successfully.");
       } catch (jsonError) {
         console.error("Failed to parse JSON:", jsonError.message);
         console.log("Raw body content:", rawBody);
-        throw new Error(`Invalid JSON format: ${jsonError.message}`);
+        return new Response(
+          JSON.stringify({ 
+            error: "Invalid JSON format", 
+            details: jsonError.message,
+            rawBody: rawBody.substring(0, 100) + (rawBody.length > 100 ? "..." : "")
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
       
+      // Log the successfully parsed payload
       console.log("Request payload received:", { 
         email: payload.email, 
         userType: payload.userType,
@@ -100,6 +123,7 @@ serve(async (req) => {
         resend: payload.resend,
         invitationId: payload.invitationId
       });
+      
     } catch (bodyError) {
       console.error("Request body error:", bodyError);
       return new Response(
@@ -116,7 +140,10 @@ serve(async (req) => {
     if (!email || !userType) {
       console.error("Missing required fields:", { email, userType });
       return new Response(
-        JSON.stringify({ error: "Email and userType are required" }),
+        JSON.stringify({ 
+          error: "Email and userType are required",
+          receivedPayload: { email, userType, isResend, invitationId }
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -127,7 +154,6 @@ serve(async (req) => {
     
     // If there's an auth header, verify the user is an admin
     if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
       console.log("Auth token provided, verifying user");
       
       try {

@@ -41,6 +41,19 @@ export interface WorkoutCompletionExercise {
 }
 
 /**
+ * Type guard to check if an object is a valid exercise
+ */
+function isValidExercise(obj: any): obj is {
+  id: string;
+  name: string;
+  description: string | null;
+  log_type: 'weight_reps' | 'duration_distance' | 'duration';
+  category: string;
+} {
+  return obj && typeof obj === 'object' && !('error' in obj);
+}
+
+/**
  * Fetches a workout completion by ID
  */
 export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promise<WorkoutCompletion> => {
@@ -111,15 +124,14 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
     
     // Map the data to ensure it conforms to the WorkoutCompletionExercise interface
     const exercises: WorkoutCompletionExercise[] = (data || []).map(item => {
-      // Handle the case where exercise might be null or have error
-      const exercise = item.exercise && typeof item.exercise === 'object' && !('error' in item.exercise) ? 
-        {
-          id: item.exercise?.id || '',
-          name: item.exercise?.name || '',
-          description: item.exercise?.description || null,
-          log_type: (item.exercise?.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
-          category: item.exercise?.category || ''
-        } : undefined;
+      // Use the type guard to check if exercise is valid
+      const exercise = isValidExercise(item.exercise) ? {
+        id: item.exercise.id || '',
+        name: item.exercise.name || '',
+        description: item.exercise.description || null,
+        log_type: (item.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
+        category: item.exercise.category || ''
+      } : undefined;
 
       return {
         id: item.id,
@@ -162,15 +174,14 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
 
     if (error) throw error;
     
-    // Handle the case where exercise might be null or have error
-    const exercise = data.exercise && typeof data.exercise === 'object' && !('error' in data.exercise) ? 
-      {
-        id: data.exercise?.id || '',
-        name: data.exercise?.name || '',
-        description: data.exercise?.description || null,
-        log_type: (data.exercise?.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
-        category: data.exercise?.category || ''
-      } : undefined;
+    // Use the type guard to check if exercise is valid
+    const exercise = isValidExercise(data.exercise) ? {
+      id: data.exercise.id || '',
+      name: data.exercise.name || '',
+      description: data.exercise.description || null,
+      log_type: (data.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
+      category: data.exercise.category || ''
+    } : undefined;
     
     // Ensure the data conforms to the WorkoutCompletionExercise interface
     const exerciseData: WorkoutCompletionExercise = {

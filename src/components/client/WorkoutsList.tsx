@@ -4,7 +4,7 @@ import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Filter, ChevronDown, ChevronUp, Play, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,6 +20,8 @@ import {
 
 const WorkoutsList = () => {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,11 +31,25 @@ const WorkoutsList = () => {
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
 
+  // If we're on a workout detail page, redirect back to the main workouts page
+  useEffect(() => {
+    if (location.pathname !== "/client-dashboard/workouts" && 
+        !location.pathname.includes('/active/') && 
+        !location.pathname.includes('/complete/')) {
+      navigate("/client-dashboard/workouts");
+    }
+  }, [location.pathname, navigate]);
+
   const toggleWorkoutDetails = (workoutId: string) => {
     setExpandedWorkouts(prev => ({
       ...prev,
       [workoutId]: !prev[workoutId]
     }));
+  };
+
+  const handleWeekFilterChange = (value: string) => {
+    // Just update the filter state, don't navigate
+    setWeekFilter(value);
   };
 
   useEffect(() => {
@@ -209,7 +225,7 @@ const WorkoutsList = () => {
           <div className="flex justify-center mb-2">
             <Select
               value={weekFilter}
-              onValueChange={setWeekFilter}
+              onValueChange={handleWeekFilterChange}
             >
               <SelectTrigger className="w-[200px] h-8 text-sm">
                 <div className="flex items-center gap-1">

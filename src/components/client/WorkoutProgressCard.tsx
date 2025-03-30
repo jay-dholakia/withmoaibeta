@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { WorkoutType } from './WorkoutTypeIcon';
+import { WorkoutType, WorkoutTypeIcon } from './WorkoutTypeIcon';
+import { format } from 'date-fns';
 
 interface WorkoutProgressCardProps {
   label: string;
@@ -70,34 +71,35 @@ export const WorkoutProgressCard = ({
             
             // Format date to get the correct workout type from map
             const dateStr = currentDay.toISOString().split('T')[0];
-            const workoutType = isDayCompleted ? (workoutTypesMap[dateStr] || 'strength') : undefined;
+            const workoutType = isDayCompleted || isLifeHappens ? 
+              (workoutTypesMap[dateStr] || (isLifeHappens ? 'rest_day' : 'strength')) : undefined;
             
             let bgColor = 'bg-slate-100';
-            let textColor = 'text-slate-400';
-            let border = '';
-            
-            if (isToday) {
-              border = 'border-2 border-slate-300';
-              textColor = 'text-slate-500';
-            }
             
             if (isLifeHappens) {
               bgColor = 'bg-yellow-100';
-              textColor = 'text-yellow-700';
             }
             
             if (isDayCompleted) {
               bgColor = 'bg-client/90';
-              textColor = 'text-white';
             }
             
             return (
               <div key={index} className="flex flex-col items-center">
+                {/* Day letter placed outside the circle */}
+                <span className="text-xs font-medium text-slate-600 mb-1">{day}</span>
+                
+                {/* Circle with workout type emoji inside */}
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${textColor} ${border}`}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor}`}
                 >
-                  <span className="text-xs font-medium">{day}</span>
+                  {workoutType && <WorkoutTypeIcon type={workoutType} size={16} />}
                 </div>
+                
+                {/* Current day indicator dot */}
+                {isToday && (
+                  <div className="w-1.5 h-1.5 bg-client rounded-full mt-1"></div>
+                )}
               </div>
             );
           })}

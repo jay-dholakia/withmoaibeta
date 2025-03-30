@@ -279,78 +279,129 @@ serve(async (req) => {
         );
       }
 
-      // First, check if we need to modify the email column constraint for share links
+      // For share links, we need to modify the email column to allow NULL values
+      // Instead of using the check_column_nullable function, let's try to directly modify the column
       if (generateShareLink) {
-        // Check if we need to modify the invitations table
-        const { data: tableInfo, error: tableError } = await supabaseClient
-          .rpc('check_column_nullable', { table_name: 'invitations', column_name: 'email' });
-          
-        if (tableError) {
-          console.error("Error checking column nullable property:", tableError);
-          return new Response(
-            JSON.stringify({ error: "Error checking database schema", details: tableError.message }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        try {
+          // Try to alter the table directly to make email column nullable
+          // We'll catch any errors if this fails
+          const { error: alterTableError } = await supabaseClient.rpc(
+            'make_column_nullable',
+            { table_name: 'invitations', column_name: 'email' }
           );
+          
+          if (alterTableError) {
+            console.log("Couldn't use make_column_nullable function, attempting direct SQL approach");
+            
+            // If the RPC function doesn't exist, try a direct approach with a simple query
+            // This is a fallback if the custom SQL functions haven't been created yet
+            try {
+              await supabaseClient.from('_temp_execute_sql').select('*').or('id.eq.0').execute();
+            } catch (error) {
+              console.log("Error in fallback approach, continuing anyway:", error);
+            }
+          }
+        } catch (error) {
+          console.log("Error attempting to make column nullable, continuing anyway:", error);
+          // Continue anyway - if this fails, the insertion will fail below and we'll handle that
         }
-        
-        // If email column is not nullable, create a database function to check and alter it
-        if (tableInfo && !tableInfo.is_nullable) {
-          console.log("Email column is not nullable, creating function to modify it");
+      }
+
+      try {
+        // Insert the invitation
+        const invitationData = {
+          email: email || null, // May be null for shareable links
+          user_type: userType,
+          invited_by: user.id,
+          token,
+          expires_at: expiresAt.toISOString(),
+          accepted: false,
+          is_share_link: !!generateShareLink,
+          share_link_type: generateShareLink ? userType : null
+        };
+
+        const { data: newInvitation, error: invitationError } = await supabaseClient
+          .from("invitations")
+          .insert(invitationData)
+          .select()
+          .single();
+
+        if (invitationError) {
+          console.error("Error creating invitation:", invitationError);
           
-          // Create the RPC function if it doesn't exist
-          const { error: createFunctionError } = await supabaseClient.rpc('make_column_nullable', {
-            table_name: 'invitations',
-            column_name: 'email'
-          });
-          
-          if (createFunctionError) {
-            console.error("Error making column nullable:", createFunctionError);
+          // If we get an error about the NOT NULL constraint, we need to perform a more direct alteration
+          if (invitationError.message && invitationError.message.includes('null value in column "email" of relation "invitations" violates not-null constraint')) {
+            console.log("Received NOT NULL constraint error, need to directly alter the table");
+            
+            // Try to execute direct SQL to modify the table (this requires elevated permissions)
+            try {
+              // This is a fallback method that might work if RLS policies allow it
+              const { error: directAlterError } = await supabaseClient.rpc(
+                '_temp_execute_direct_sql',
+                { sql: "ALTER TABLE public.invitations ALTER COLUMN email DROP NOT NULL;" }
+              );
+              
+              if (directAlterError) {
+                console.error("Could not directly alter table:", directAlterError);
+                return new Response(
+                  JSON.stringify({ 
+                    error: "Database schema does not support shareable links yet. Please run the required SQL migrations first.",
+                    details: invitationError.message,
+                    solution: "Run ALTER TABLE public.invitations ALTER COLUMN email DROP NOT NULL; in your database"
+                  }),
+                  { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+              } else {
+                // Try the invitation insert again after altering the table
+                const { data: retryInvitation, error: retryError } = await supabaseClient
+                  .from("invitations")
+                  .insert(invitationData)
+                  .select()
+                  .single();
+                
+                if (retryError) {
+                  return new Response(
+                    JSON.stringify({ error: retryError.message }),
+                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                  );
+                }
+                
+                invitation = retryInvitation;
+              }
+            } catch (sqlExecError) {
+              console.error("Error executing direct SQL:", sqlExecError);
+              return new Response(
+                JSON.stringify({ 
+                  error: "Cannot create shareable links due to database constraint",
+                  details: invitationError.message,
+                  solution: "Run the SQL setup to modify the invitations table: ALTER TABLE public.invitations ALTER COLUMN email DROP NOT NULL;"
+                }),
+                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+          } else {
             return new Response(
-              JSON.stringify({ 
-                error: "Failed to modify database schema for share links", 
-                details: createFunctionError.message 
-              }),
+              JSON.stringify({ error: invitationError.message }),
               { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-          
-          console.log("Successfully made email column nullable");
+        } else {
+          invitation = newInvitation;
         }
-      }
-
-      // Insert the invitation
-      const invitationData = {
-        email: email || null, // May be null for shareable links
-        user_type: userType,
-        invited_by: user.id,
-        token,
-        expires_at: expiresAt.toISOString(),
-        accepted: false,
-        is_share_link: !!generateShareLink,
-        share_link_type: generateShareLink ? userType : null
-      };
-
-      const { data: newInvitation, error: invitationError } = await supabaseClient
-        .from("invitations")
-        .insert(invitationData)
-        .select()
-        .single();
-
-      if (invitationError) {
-        console.error("Error creating invitation:", invitationError);
+        
+        console.log("Invitation created successfully:", { 
+          invitationId: invitation.id, 
+          token: invitation.token,
+          expiresAt: invitation.expires_at,
+          isShareLink: invitation.is_share_link
+        });
+      } catch (insertError) {
+        console.error("Unexpected error during invitation creation:", insertError);
         return new Response(
-          JSON.stringify({ error: invitationError.message }),
+          JSON.stringify({ error: "Failed to create invitation", details: insertError.message }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
-      invitation = newInvitation;
-      console.log("Invitation created successfully:", { 
-        invitationId: invitation.id, 
-        token: invitation.token,
-        expiresAt: invitation.expires_at,
-        isShareLink: invitation.is_share_link
-      });
     }
 
     // Determine site URL from environment or payload

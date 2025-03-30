@@ -110,7 +110,8 @@ export const WeekProgressSection = ({
       if (!user?.id) return 0;
       const count = await getWeeklyAssignedWorkoutsCount(user.id);
       console.log('Assigned workouts count:', count);
-      return count || 7;
+      
+      return count > 0 ? count : 7; 
     },
     enabled: !!user?.id,
   });

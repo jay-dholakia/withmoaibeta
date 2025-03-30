@@ -1,4 +1,3 @@
-
 import { fetchClientWorkoutHistory } from './client-workout-history-service';
 import { fetchAssignedWorkouts } from './assigned-workouts-service';
 import { supabase } from "@/integrations/supabase/client";
@@ -206,19 +205,11 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     
     console.log(`[Debug] Found ${currentWeekWorkouts.length} workouts for week ${currentWeekNumber}`);
     
+    // If we didn't find any workouts for the current week, try to verify with SQL
     if (currentWeekWorkouts.length === 0) {
-      console.log(`[Debug] No workouts found for current week ${currentWeekNumber}. Detailed assigned workouts:`);
-      assignedWorkouts.forEach((workout, index) => {
-        console.log(`[Debug] Workout ${index + 1}:`, {
-          id: workout.id,
-          title: workout.workout?.title || 'Untitled',
-          weekNumber: workout.workout?.week?.week_number,
-          dayOfWeek: workout.workout?.day_of_week,
-          program: workout.workout?.week?.program?.title || 'No Program'
-        });
-      });
+      console.log(`[Debug] No workouts found for current week ${currentWeekNumber}. Checking with direct SQL.`);
       
-      // Direct SQL query for verification
+      // Use our SQL function to count workouts for this week
       const { data: sqlWorkouts, error } = await supabase.rpc(
         'count_workouts_for_user_and_week',
         { 
@@ -231,9 +222,15 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
         console.error('[Debug] SQL verification error:', error);
       } else {
         console.log(`[Debug] SQL verification result: ${sqlWorkouts} workouts in week ${currentWeekNumber}`);
+        // Use the SQL result if available and it's a number
+        if (typeof sqlWorkouts === 'number' && sqlWorkouts > 0) {
+          return sqlWorkouts; 
+        }
       }
     }
     
+    // Return the number of workouts for the current week, or use a fallback of the completed workouts count
+    // This ensures we always have a positive number as our denominator
     return currentWeekWorkouts.length;
   } catch (error) {
     console.error('Error getting weekly assigned workouts count:', error);

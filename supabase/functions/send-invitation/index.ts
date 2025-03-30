@@ -75,28 +75,24 @@ serve(async (req) => {
     // Create a Supabase client with the service role key
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
     
-    // Verify request body exists
-    const contentLength = req.headers.get("content-length");
-    if (!contentLength || parseInt(contentLength) === 0) {
-      console.error("Empty request body received");
-      return new Response(
-        JSON.stringify({ error: "Empty request body" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    // Parse the request body
+    // Parse the request body - improved handling
     let payload: InvitationPayload;
-    let rawBody = "";
     try {
-      rawBody = await req.text();
-      console.log("Raw request body:", rawBody);
+      const rawBody = await req.text();
+      console.log("Raw request body received, length:", rawBody.length);
       
       if (!rawBody) {
         throw new Error("Empty request body");
       }
       
-      payload = JSON.parse(rawBody);
+      try {
+        payload = JSON.parse(rawBody);
+      } catch (jsonError) {
+        console.error("Failed to parse JSON:", jsonError.message);
+        console.log("Raw body content:", rawBody);
+        throw new Error(`Invalid JSON format: ${jsonError.message}`);
+      }
+      
       console.log("Request payload received:", { 
         email: payload.email, 
         userType: payload.userType,
@@ -104,10 +100,13 @@ serve(async (req) => {
         resend: payload.resend,
         invitationId: payload.invitationId
       });
-    } catch (jsonError) {
-      console.error("Failed to parse request body:", jsonError, "Raw body:", rawBody);
+    } catch (bodyError) {
+      console.error("Request body error:", bodyError);
       return new Response(
-        JSON.stringify({ error: "Invalid request body", details: jsonError.message, rawBody }),
+        JSON.stringify({ 
+          error: "Invalid or empty request body", 
+          details: bodyError.message 
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

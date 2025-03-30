@@ -131,6 +131,8 @@ const LeaderboardPage = () => {
             count={totalCompletedThisWeek}
             total={totalWorkouts}
             workoutTypesMap={workoutTypesMap}
+            userName={user?.first_name || user?.email || "You"}
+            isCurrentUser={true}
           />
         </div>
       </div>

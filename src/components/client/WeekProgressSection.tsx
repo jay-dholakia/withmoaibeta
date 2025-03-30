@@ -122,6 +122,8 @@ export const WeekProgressSection = ({
           count={totalCompletedThisWeek}
           total={finalAssignedWorkoutsCount}
           workoutTypesMap={workoutTypesMap}
+          userName={user?.first_name || user?.email || "You"}
+          isCurrentUser={true}
         />
       )}
       

@@ -31,6 +31,8 @@ export interface WorkoutCompletionExercise {
   completed: boolean;
   created_at: string;
   result: any; // This can be structured based on the exercise type
+  superset_group_id?: string | null;
+  superset_order?: number | null;
   exercise?: {
     id: string;
     name: string;
@@ -105,6 +107,38 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
  */
 export const fetchWorkoutCompletionExercises = async (workoutCompletionId: string): Promise<WorkoutCompletionExercise[]> => {
   try {
+    // First fetch the workout_id from the completion
+    const completion = await fetchWorkoutCompletion(workoutCompletionId);
+    
+    if (!completion.workout_id) {
+      throw new Error('No workout ID associated with this completion');
+    }
+    
+    // Fetch the workout exercises with superset information
+    const { data: workoutExercises, error: workoutExercisesError } = await supabase
+      .from('workout_exercises')
+      .select(`
+        id,
+        exercise_id,
+        superset_group_id,
+        superset_order
+      `)
+      .eq('workout_id', completion.workout_id);
+    
+    if (workoutExercisesError) throw workoutExercisesError;
+    
+    // Create a map of exercise_id to superset information
+    const supersetMap = new Map();
+    workoutExercises.forEach(ex => {
+      if (ex.superset_group_id) {
+        supersetMap.set(ex.exercise_id, {
+          superset_group_id: ex.superset_group_id,
+          superset_order: ex.superset_order
+        });
+      }
+    });
+    
+    // Fetch the completion exercises
     const { data, error } = await supabase
       .from('workout_completion_exercises')
       .select(`
@@ -123,6 +157,7 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
     if (error) throw error;
     
     // Map the data to ensure it conforms to the WorkoutCompletionExercise interface
+    // and add superset information
     const exercises: WorkoutCompletionExercise[] = (data || []).map(item => {
       // Use the type guard to check if exercise is valid
       const exercise = isValidExercise(item.exercise) ? {
@@ -132,7 +167,10 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
         log_type: (item.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration' | 'reps') || 'weight_reps',
         category: item.exercise.category || ''
       } : undefined;
-
+      
+      // Get superset information from the map
+      const supersetInfo = supersetMap.get(item.exercise_id);
+      
       return {
         id: item.id,
         workout_completion_id: item.workout_completion_id,
@@ -140,7 +178,9 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
         completed: item.completed || false,
         created_at: item.created_at,
         result: item.result,
-        exercise
+        exercise,
+        superset_group_id: supersetInfo?.superset_group_id || null,
+        superset_order: supersetInfo?.superset_order || null
       };
     });
     

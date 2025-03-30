@@ -184,12 +184,12 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
       }
     });
     
-    // Fetch the completion exercises
+    // Modified query - explicitly specify the foreign key join path
     const { data, error } = await supabase
       .from('workout_completion_exercises')
       .select(`
         *,
-        exercise:exercise_id (
+        exercise:exercises!exercise_id (
           id,
           name,
           description,

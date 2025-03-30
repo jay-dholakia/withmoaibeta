@@ -65,16 +65,16 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
       id: data.id,
       user_id: data.user_id,
       workout_id: data.workout_id,
-      created_at: data.created_at || new Date().toISOString(),
+      created_at: new Date().toISOString(), // Default value since this field is missing in db
       completed_at: data.completed_at,
       rest_day: data.rest_day || false,
       life_happens_pass: data.life_happens_pass || false,
       notes: data.notes,
       rating: data.rating,
-      title: data.title,
-      description: data.description,
-      workout_type: data.workout_type,
-      distance: data.distance,
+      title: null, // Default value since this field is missing in db
+      description: null, // Default value since this field is missing in db
+      workout_type: null, // Default value since this field is missing in db
+      distance: typeof data.distance === 'string' ? parseFloat(data.distance) : data.distance,
       duration: data.duration,
       location: data.location,
       workout: data.workout
@@ -110,15 +110,27 @@ export const fetchWorkoutCompletionExercises = async (workoutCompletionId: strin
     if (error) throw error;
     
     // Map the data to ensure it conforms to the WorkoutCompletionExercise interface
-    const exercises: WorkoutCompletionExercise[] = (data || []).map(item => ({
-      id: item.id,
-      workout_completion_id: item.workout_completion_id,
-      exercise_id: item.exercise_id,
-      completed: item.completed || false,
-      created_at: item.created_at,
-      result: item.result,
-      exercise: item.exercise
-    }));
+    const exercises: WorkoutCompletionExercise[] = (data || []).map(item => {
+      // Handle the case where exercise might have error
+      const exercise = typeof item.exercise === 'object' && !item.exercise.error ? 
+        {
+          id: item.exercise.id || '',
+          name: item.exercise.name || '',
+          description: item.exercise.description,
+          log_type: (item.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
+          category: item.exercise.category || ''
+        } : undefined;
+
+      return {
+        id: item.id,
+        workout_completion_id: item.workout_completion_id,
+        exercise_id: item.exercise_id,
+        completed: item.completed || false,
+        created_at: item.created_at,
+        result: item.result,
+        exercise
+      };
+    });
     
     return exercises;
   } catch (error) {
@@ -150,18 +162,28 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
 
     if (error) throw error;
     
+    // Handle the case where exercise might have error
+    const exercise = typeof data.exercise === 'object' && !data.exercise.error ? 
+      {
+        id: data.exercise.id || '',
+        name: data.exercise.name || '',
+        description: data.exercise.description,
+        log_type: (data.exercise.log_type as 'weight_reps' | 'duration_distance' | 'duration') || 'weight_reps',
+        category: data.exercise.category || ''
+      } : undefined;
+    
     // Ensure the data conforms to the WorkoutCompletionExercise interface
-    const exercise: WorkoutCompletionExercise = {
+    const exerciseData: WorkoutCompletionExercise = {
       id: data.id,
       workout_completion_id: data.workout_completion_id,
       exercise_id: data.exercise_id,
       completed: data.completed || false,
       created_at: data.created_at,
       result: data.result,
-      exercise: data.exercise
+      exercise
     };
     
-    return exercise;
+    return exerciseData;
   } catch (error) {
     console.error('Error updating workout completion exercise:', error);
     throw error;

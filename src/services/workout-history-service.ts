@@ -76,30 +76,20 @@ export const countCompletedWorkoutsForWeek = async (userId: string, weekStart: D
 };
 
 /**
- * Get user ID by email - using profiles table
+ * Get user ID by email - using auth directly instead of profiles
  */
 export const getUserIdByEmail = async (email: string): Promise<string | null> => {
   try {
     console.log(`Looking up user ID for email: ${email}`);
     
-    // In this case, we can't directly query by email in the profiles table
-    // because 'email' doesn't exist in the profiles table.
-    // We need to query all profiles and then filter by ID
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id');
+    // We cannot directly query auth.users with the supabase client
+    // We'll query for all users with a specific email pattern through an admin function
+    // This is a stub function that returns null - in production, this would need
+    // a server-side function or RPC call that has access to auth.users
+    console.warn("Email lookup requires a server-side function with admin rights");
     
-    if (error) {
-      console.error("Error fetching profiles:", error);
-      return null;
-    }
-    
-    // Since we can't directly find by email, we'll need to implement a different approach
-    // For now, this is a placeholder - in a real implementation, we might use a function
-    // to look up the user ID by email through other means, like a custom RPC function
-    console.warn("Cannot directly look up user by email - email column doesn't exist in profiles");
-    
-    // Return null to indicate we couldn't find the user
+    // Just return null for now since we can't implement this properly
+    // without additional backend setup
     return null;
   } catch (error) {
     console.error("Error in getUserIdByEmail:", error);

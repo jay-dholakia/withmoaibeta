@@ -63,24 +63,41 @@ const ActiveWorkout = () => {
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['active-workout', workoutCompletionId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('workout_completions')
-        .select(`
-          *,
-          workout:workout_id (
+      try {
+        console.log("Fetching workout data for completion ID:", workoutCompletionId);
+        
+        const { data, error } = await supabase
+          .from('workout_completions')
+          .select(`
             *,
-            workout_exercises (
+            workout:workout_id (
               *,
-              exercise:exercise_id (*)
-            )
-          ),
-          workout_set_completions (*)
-        `)
-        .eq('id', workoutCompletionId || '')
-        .single();
+              workout_exercises (
+                *,
+                exercise:exercise_id (*)
+              )
+            ),
+            workout_set_completions (*)
+          `)
+          .eq('id', workoutCompletionId || '')
+          .single();
 
-      if (error) throw error;
-      return data;
+        if (error) {
+          console.error("Error fetching workout data:", error);
+          throw error;
+        }
+        
+        console.log("Fetched workout data:", data);
+        
+        if (!data || !data.workout) {
+          console.error("Workout data missing or incomplete:", data);
+        }
+        
+        return data;
+      } catch (error) {
+        console.error("Error in workout data query:", error);
+        throw error;
+      }
     },
     enabled: !!workoutCompletionId && !!user?.id,
   });

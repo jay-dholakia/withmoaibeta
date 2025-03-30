@@ -36,14 +36,14 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     };
 
     // Add fields based on log type
-    if (logType === 'weight_reps' || logType === 'duration') {
+    if (logType === 'weight_reps') {
       formData.sets = sets;
       formData.reps = reps;
       formData.rest_seconds = restSeconds;
-    }
-    
-    // Add additional fields for cardio exercises
-    if (logType === 'duration_distance') {
+    } else if (logType === 'duration') {
+      formData.duration = reps;
+      formData.rest_seconds = restSeconds;
+    } else if (logType === 'duration_distance') {
       formData.distance = distance;
       formData.duration = duration;
       formData.location = location;
@@ -80,12 +80,12 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
             />
           </div>
           <div>
-            <Label htmlFor="reps" className="text-center block">Reps/Duration</Label>
+            <Label htmlFor="reps" className="text-center block">Reps</Label>
             <Input
               id="reps"
               value={reps}
               onChange={(e) => setReps(e.target.value)}
-              placeholder="e.g., 10 or 30s"
+              placeholder="e.g., 10"
               className="w-full text-center"
             />
             <p className="text-xs text-muted-foreground mt-1 text-center">
@@ -98,20 +98,9 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       {logType === 'duration' && (
         <div className="space-y-3">
           <div>
-            <Label htmlFor="sets" className="text-center block">Sets</Label>
+            <Label htmlFor="duration" className="text-center block">Duration</Label>
             <Input
-              id="sets"
-              type="number"
-              value={sets}
-              onChange={(e) => setSets(Number(e.target.value))}
-              min={1}
-              className="w-full text-center"
-            />
-          </div>
-          <div>
-            <Label htmlFor="reps" className="text-center block">Duration</Label>
-            <Input
-              id="reps"
+              id="duration-input"
               value={reps}
               onChange={(e) => setReps(e.target.value)}
               placeholder="e.g., 30s, 2m, etc."
@@ -221,4 +210,3 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     </form>
   );
 };
-

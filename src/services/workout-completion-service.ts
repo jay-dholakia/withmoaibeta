@@ -189,7 +189,7 @@ export const updateWorkoutCompletionExercise = async (exerciseId: string, update
             break;
           
           case 'duration':
-            // For duration exercises, make sure we have duration
+            // For duration exercises, ensure we have duration
             if (!updates.result.duration) {
               updates.result.duration = '00:00:00';
             }

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,6 +21,15 @@ interface ProfileBuilderStepOneProps {
   onUpdate: (data: Partial<ClientProfile>) => void;
   onNext: () => void;
 }
+
+// US State abbreviations array
+const US_STATES = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+];
 
 export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   profile,
@@ -57,8 +67,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   const [focusStates, setFocusStates] = useState({
     firstName: !!firstName,
     lastName: !!lastName,
-    city: !!city,
-    state: !!state
+    city: !!city
   });
 
   // Parse and set height from profile data
@@ -88,8 +97,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
     setFocusStates({
       firstName: !!profile.first_name,
       lastName: !!profile.last_name,
-      city: !!profile.city,
-      state: !!profile.state
+      city: !!profile.city
     });
   }, [profile]);
 
@@ -295,23 +303,22 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
           </span>
         </div>
         
-        <div className="relative">
-          <Input 
+        <div>
+          <Select
             value={state}
-            onChange={(e) => setState(e.target.value)}
-            onFocus={() => handleFocus('state')}
-            onBlur={() => handleBlur('state', state)}
-            className={`h-14 ${focusStates.state ? 'pt-7 pb-2' : 'py-4'}`}
-          />
-          <span 
-            className={`absolute left-3 pointer-events-none transition-all duration-200 ${
-              focusStates.state 
-                ? 'top-2 text-xs text-muted-foreground' 
-                : 'top-1/2 -translate-y-1/2 text-muted-foreground'
-            }`}
+            onValueChange={setState}
           >
-            State
-          </span>
+            <SelectTrigger className="h-14">
+              <SelectValue placeholder="Select State" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              {US_STATES.map(stateCode => (
+                <SelectItem key={stateCode} value={stateCode}>
+                  {stateCode}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

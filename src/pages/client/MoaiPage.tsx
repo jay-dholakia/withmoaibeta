@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Users, UserRound, RefreshCw } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
+import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import { fetchUserGroups, diagnoseGroupAccess, verifyUserGroupMembership, ensureUserHasGroup } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
@@ -204,13 +206,7 @@ const MoaiPage = () => {
         </TabsList>
         
         <TabsContent value="progress">
-          <WeekProgressSection 
-            showTeam={false} 
-            showPersonal={false}
-            showGroupMembers={true}
-            enableMemberClick={false}
-            workoutTypesMap={{}}
-          />
+          <MoaiGroupProgress groupId={group.id} />
         </TabsContent>
         
         <TabsContent value="members">

@@ -1,192 +1,165 @@
 
-import React from 'react';
-import { Progress } from '@/components/ui/progress';
-import { format, startOfWeek, addDays, isSameDay, isThisWeek, isToday } from 'date-fns';
-import { Calendar } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
+import React, { useMemo } from 'react';
+import { format, isThisWeek, startOfWeek, endOfWeek, addDays, isSameDay } from 'date-fns';
+import WorkoutTypeIcon, { WorkoutType } from './WorkoutTypeIcon';
 
 interface WeekProgressBarProps {
+  label?: string;
   completedDates: Date[];
-  lifeHappensDates?: Date[]; // Optional prop for life happens dates
-  label: string;
-  count?: number;
+  lifeHappensDates: Date[];
+  count: number;
   total?: number;
   color?: string;
   textColor?: string;
+  showProgressBar?: boolean;
   showDayCircles?: boolean;
-  showProgressBar?: boolean; // New prop to control progress bar visibility
-  weekNumber?: number; // Optional week number to display
-  compact?: boolean; // New prop for compact display in member cards
+  weekNumber?: number;
   workoutTypes?: Record<string, WorkoutType>;
-  hasError?: boolean; // New prop to indicate error state
+  hasError?: boolean;
+  compact?: boolean;
 }
 
-export const WeekProgressBar = ({ 
-  completedDates, 
-  lifeHappensDates = [], // Default to empty array
-  label, 
-  count, 
-  total, 
-  color = 'bg-client', 
+export const WeekProgressBar = ({
+  label,
+  completedDates = [],
+  lifeHappensDates = [],
+  count,
+  total = 0,
+  color = 'bg-client',
   textColor = 'text-client',
-  showDayCircles = false,
-  showProgressBar = false, // Default to not showing the progress bar
+  showProgressBar = true,
+  showDayCircles = true,
   weekNumber,
+  workoutTypes = {},
+  hasError = false,
   compact = false,
-  workoutTypes = {}, // Default to empty object
-  hasError = false // Default to no error
 }: WeekProgressBarProps) => {
-  const isMobile = useIsMobile();
-  
-  // Get start of current week (Monday as weekStartsOn: 1)
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-  
-  // Create array of days for the current week
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  
-  // Calculate completed workouts count - including both completed workouts and life happens passes
-  const completedDaysThisWeek = count !== undefined 
-    ? count 
-    : completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
-  
-  const lifeHappensDaysThisWeek = lifeHappensDates.filter(date => 
-    isThisWeek(date, { weekStartsOn: 1 })
-  ).length;
-  
-  const totalCompletedCount = count !== undefined ? count : completedDaysThisWeek + lifeHappensDaysThisWeek;
-  
-  const hasAssignedWorkouts = total !== undefined && total > 0;
-
-  // Helper function to get the workout type for a date
-  const getWorkoutTypeForDay = (day: Date): WorkoutType | undefined => {
-    const dateString = format(day, 'yyyy-MM-dd');
+  // Get current week's start and end dates (Monday to Sunday)
+  const { weekStart, weekDays } = useMemo(() => {
+    const start = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const days = [];
     
-    // First check if we have a predefined type in the map
-    if (workoutTypes && workoutTypes[dateString]) {
-      return workoutTypes[dateString];
+    for (let i = 0; i < 7; i++) {
+      days.push(addDays(start, i));
     }
     
-    // If it's a life happens pass, mark it as rest day
-    if (lifeHappensDates.some(d => isSameDay(d, day))) {
-      return 'rest_day';
-    }
-    
-    // For completed dates without an explicit type, default to strength
-    if (completedDates.some(d => isSameDay(d, day))) {
-      return 'strength';
-    }
-    
-    return undefined;
-  };
-
-  // If compact mode is enabled, render a simplified version
-  if (compact) {
-    return (
-      <div className="w-full">
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-sm text-slate-500">
-            {totalCompletedCount} of {total} completed
+    return {
+      weekStart: start,
+      weekDays: days,
+    };
+  }, []);
+  
+  // Check if each day of this week has a completed workout
+  const dayStatus = useMemo(() => {
+    return weekDays.map(day => {
+      // Check for completed workout
+      const hasCompleted = completedDates.some(date => isSameDay(date, day));
+      
+      // Check for life happens pass
+      const hasLifeHappens = lifeHappensDates.some(date => isSameDay(date, day));
+      
+      // Get workout type for this date if available
+      const dateStr = format(day, 'yyyy-MM-dd');
+      const workoutType = workoutTypes[dateStr] || 'strength';
+      
+      return {
+        date: day,
+        isCompleted: hasCompleted,
+        isLifeHappens: hasLifeHappens,
+        workoutType,
+      };
+    });
+  }, [weekDays, completedDates, lifeHappensDates, workoutTypes]);
+  
+  const progressPercentage = total > 0 ? Math.min(100, (count / total) * 100) : 0;
+  
+  const renderProgressBar = () => (
+    <div className="relative pt-1 w-full">
+      <div className="flex mb-2 items-center justify-between">
+        {!compact && (
+          <div>
+            {label && <span className="text-xs font-semibold inline-block text-gray-600">{label}</span>}
+          </div>
+        )}
+        <div className="text-right">
+          <span className={`text-xs font-semibold inline-block ${textColor}`}>
+            {count}/{total}
           </span>
-          {weekNumber !== undefined && (
-            <span className="inline-flex items-center bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">
-              <Calendar className="h-3 w-3 mr-1" />
-              Week {weekNumber}
-            </span>
-          )}
         </div>
-        
-        <div className="flex justify-between space-x-1">
-          {weekDays.map((day, index) => {
-            const isCompleted = completedDates.some(date => isSameDay(day, date));
-            const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
-            const workoutType = getWorkoutTypeForDay(day);
-            const isCurrentDay = isToday(day);
-            
-            return (
-              <div key={index} className="flex flex-col items-center space-y-1">
-                <div 
-                  className={`h-7 w-7 rounded-md flex items-center justify-center ${
-                    isCompleted ? 'bg-green-100' : isLifeHappens ? 'bg-blue-100' : 'bg-slate-100'
-                  } ${isCurrentDay ? 'ring-2 ring-client/70' : ''}`}
-                >
-                  {(isLifeHappens || isCompleted) && workoutType && (
-                    <WorkoutTypeIcon type={workoutType} size={14} />
-                  )}
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className={`text-xs ${isCurrentDay ? 'font-bold text-client' : 'text-slate-400'}`}>
-                    {format(day, 'E')[0]}
-                  </span>
-                  {isCurrentDay && <span className="h-1 w-1 rounded-full bg-client mt-0.5"></span>}
-                </div>
+      </div>
+      <div className="flex h-1.5 overflow-hidden rounded-full bg-gray-200">
+        <div
+          style={{ width: `${progressPercentage}%` }}
+          className={`${color} transition-all duration-300 shadow-none flex flex-col whitespace-nowrap justify-center`}
+        ></div>
+      </div>
+    </div>
+  );
+  
+  const renderDayCircles = () => {
+    if (!showDayCircles) return null;
+    
+    const today = new Date();
+    
+    return (
+      <div className="flex justify-between items-center mt-3 px-1">
+        {dayStatus.map((day, index) => {
+          const dayName = format(day.date, 'E')[0]; // First letter of day name
+          const isToday = isSameDay(today, day.date);
+          
+          let bgColor = 'bg-gray-100';
+          let textColor = 'text-gray-400';
+          let border = '';
+          
+          if (isToday) {
+            // Today's circle has a border
+            border = 'border-2 border-gray-300';
+            textColor = 'text-gray-500';
+          }
+          
+          if (day.isLifeHappens) {
+            // Life happens pass - yellow/gold
+            bgColor = 'bg-yellow-100';
+            textColor = 'text-yellow-700';
+          }
+          
+          if (day.isCompleted) {
+            // Completed workout
+            bgColor = `${color}/90`;
+            textColor = 'text-white';
+          }
+          
+          return (
+            <div key={index} className="flex flex-col items-center">
+              <div
+                className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${textColor} ${border} transition-all duration-200 relative`}
+              >
+                {day.isCompleted && (
+                  <div className="absolute -top-1 -right-1">
+                    <WorkoutTypeIcon type={day.workoutType} size="xs" />
+                  </div>
+                )}
+                <span className="text-xs font-medium">{dayName}</span>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+  
+  if (hasError) {
+    return (
+      <div className="py-2 px-2 text-center rounded-md text-sm text-gray-500 bg-gray-50">
+        Error loading workout data
       </div>
     );
   }
-
+  
   return (
-    <div className="space-y-2 mb-8 bg-white rounded-xl p-5 shadow-sm text-center">
-      <div className="flex justify-center flex-col items-center mb-2">
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-2">
-            <h3 className="text-base font-semibold">{label}</h3>
-            {weekNumber !== undefined && (
-              <span className="inline-flex items-center bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">
-                <Calendar className="h-3 w-3 mr-1" />
-                Week {weekNumber}
-              </span>
-            )}
-          </div>
-          {hasError ? (
-            <p className="text-sm text-red-500 text-center mt-1">
-              Unable to calculate workouts
-            </p>
-          ) : hasAssignedWorkouts ? (
-            <p className="text-sm text-slate-500 text-center">
-              {totalCompletedCount} of {total} {total === 1 ? 'workout' : 'workouts'} completed
-            </p>
-          ) : (
-            <p className="text-sm text-amber-500 flex items-center justify-center gap-1">
-              <span>No assigned workouts this week</span>
-            </p>
-          )}
-        </div>
-      </div>
-
-      {showDayCircles && (
-        <div className="flex justify-center space-x-3 mt-4">
-          {weekDays.map((day, index) => {
-            const isCompleted = completedDates.some(date => isSameDay(day, date));
-            const isLifeHappens = lifeHappensDates.some(date => isSameDay(day, date));
-            const workoutType = getWorkoutTypeForDay(day);
-            const isCurrentDay = isToday(day);
-            
-            return (
-              <div key={index} className="flex flex-col items-center space-y-1">
-                <div 
-                  className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                    isCompleted ? 'bg-green-100' : isLifeHappens ? 'bg-blue-100' : 'bg-slate-100'
-                  } ${isCurrentDay ? 'ring-2 ring-client/70' : ''}`}
-                >
-                  {(isLifeHappens || isCompleted) && workoutType && (
-                    <WorkoutTypeIcon type={workoutType} size={16} />
-                  )}
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className={`text-xs ${isCurrentDay ? 'font-bold text-client' : 'text-slate-500'}`}>
-                    {format(day, 'E')[0]}
-                  </span>
-                  {isCurrentDay && <span className="h-1 w-1 rounded-full bg-client mt-0.5"></span>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+    <div className={`w-full ${compact ? 'py-0' : 'py-2'}`}>
+      {showProgressBar && renderProgressBar()}
+      {showDayCircles && renderDayCircles()}
     </div>
   );
 };

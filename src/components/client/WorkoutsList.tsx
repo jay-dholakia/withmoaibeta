@@ -1,10 +1,10 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Filter, ChevronDown, ChevronUp, Play, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,22 +20,14 @@ import {
 
 const WorkoutsList = () => {
   const { user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
-  const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
+  const [weekFilter, setWeekFilter] = useState<string>("");
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
-  
-  // Get week filter from URL search params instead of state
-  const weekFilter = searchParams.get('week') || "";
-  
-  // Check if we're on the main workouts page
-  const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
+  const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
+  const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
 
   const toggleWorkoutDetails = (workoutId: string) => {
     setExpandedWorkouts(prev => ({
@@ -44,18 +36,6 @@ const WorkoutsList = () => {
     }));
   };
 
-  // Handle week filter change
-  const handleWeekFilterChange = useCallback((weekValue: string) => {
-    if (!isMainWorkoutsPage) {
-      // If we're not on the main page, navigate there with the week parameter
-      navigate(`/client-dashboard/workouts?week=${weekValue}`, { replace: true });
-    } else {
-      // If we're already on the main page, just update the search params
-      setSearchParams({ week: weekValue });
-    }
-  }, [isMainWorkoutsPage, navigate, setSearchParams]);
-
-  // Load workouts and program data
   useEffect(() => {
     const loadWorkoutsAndProgram = async () => {
       if (!user || !user.id) {
@@ -87,17 +67,21 @@ const WorkoutsList = () => {
         
         console.log("Assigned workouts loaded:", assignedWorkouts.length);
         
+        // Filter out completed workouts here
         const pendingWorkouts = assignedWorkouts.filter(workout => !workout.completed_at);
         console.log("Pending workouts (not completed):", pendingWorkouts.length);
         
         setCurrentProgram(program);
         setWorkouts(pendingWorkouts);
         
+        // Get all workouts (including completed) for checking completed weeks
         const allWorkouts = assignedWorkouts;
         
+        // Determine which weeks are completed by checking if all workouts for that week are completed
         const weekCompletionStatus: Record<string, boolean> = {};
         const weeksSet = new Set<number>();
         
+        // Group all workouts by week
         const workoutsByWeek: Record<number, WorkoutHistoryItem[]> = {};
         
         allWorkouts.forEach(workout => {
@@ -112,6 +96,7 @@ const WorkoutsList = () => {
           }
         });
         
+        // Check if all workouts in each week are completed
         Object.entries(workoutsByWeek).forEach(([weekNum, weekWorkouts]) => {
           const allCompleted = weekWorkouts.every(workout => !!workout.completed_at);
           weekCompletionStatus[weekNum] = allCompleted;
@@ -129,12 +114,9 @@ const WorkoutsList = () => {
         console.log("Debug - Extracted week numbers:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
-        // Set initial week filter in URL if not already set and we have weeks
-        if (extractedWeeks.length > 0 && !weekFilter && isMainWorkoutsPage) {
+        if (extractedWeeks.length > 0) {
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
-          const initialWeek = sortedWeeks[0].toString();
-          console.log(`Setting initial week filter to ${initialWeek}`);
-          setSearchParams({ week: initialWeek });
+          setWeekFilter(sortedWeeks[0].toString());
         }
       } catch (error) {
         console.error('Error loading workouts:', error);
@@ -146,7 +128,7 @@ const WorkoutsList = () => {
     };
 
     loadWorkoutsAndProgram();
-  }, [user, weekFilter, isMainWorkoutsPage, setSearchParams]);
+  }, [user]);
 
   const filteredWorkouts = React.useMemo(() => {
     if (!weekFilter) {
@@ -169,7 +151,9 @@ const WorkoutsList = () => {
       return weekMatches;
     });
     
+    // Sort workouts by priority first, then by day_of_week as a backup
     return filtered.sort((a, b) => {
+      // First by priority (lower number = higher priority)
       const priorityA = a.workout?.priority ?? Number.MAX_SAFE_INTEGER;
       const priorityB = b.workout?.priority ?? Number.MAX_SAFE_INTEGER;
       
@@ -177,6 +161,7 @@ const WorkoutsList = () => {
         return priorityA - priorityB;
       }
       
+      // If priority is the same, sort by day_of_week
       return (a.workout?.day_of_week ?? 0) - (b.workout?.day_of_week ?? 0);
     });
   }, [workouts, weekFilter]);
@@ -201,6 +186,7 @@ const WorkoutsList = () => {
     );
   }
 
+  // Check if the selected week is completed
   const isSelectedWeekCompleted = weekFilter ? completedWeeks[weekFilter] : false;
 
   return (
@@ -223,7 +209,7 @@ const WorkoutsList = () => {
           <div className="flex justify-center mb-2">
             <Select
               value={weekFilter}
-              onValueChange={handleWeekFilterChange}
+              onValueChange={setWeekFilter}
             >
               <SelectTrigger className="w-[200px] h-8 text-sm">
                 <div className="flex items-center gap-1">

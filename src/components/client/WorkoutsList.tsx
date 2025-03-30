@@ -1,27 +1,32 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Filter, ChevronDown, ChevronUp, Play, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchCurrentProgram } from '@/services/program-service';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { fetchCurrentProgram } from '@/services/program-service';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 const WorkoutsList = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,14 +35,18 @@ const WorkoutsList = () => {
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
-  const [selectOpen, setSelectOpen] = useState(false);
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const selectRef = useRef<HTMLDivElement>(null);
 
-  const toggleWorkoutDetails = (workoutId: string) => {
+  // Safely toggle workout details 
+  const toggleWorkoutDetails = useCallback((e: React.MouseEvent, workoutId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     setExpandedWorkouts(prev => ({
       ...prev,
       [workoutId]: !prev[workoutId]
     }));
-  };
+  }, []);
 
   useEffect(() => {
     const loadWorkoutsAndProgram = async () => {
@@ -119,7 +128,7 @@ const WorkoutsList = () => {
         
         if (extractedWeeks.length > 0) {
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
-          // Wait until component is fully mounted before setting the filter
+          // Set initial week filter after component is fully mounted
           setTimeout(() => {
             setWeekFilter(sortedWeeks[0].toString());
           }, 0);
@@ -174,42 +183,52 @@ const WorkoutsList = () => {
     });
   }, [workouts, weekFilter]);
 
-  // Completely rewritten to eliminate navigation issues
+  // Handle week filter change - completely rewritten
   const handleWeekFilterChange = useCallback((value: string) => {
     console.log(`Setting week filter to: ${value}`);
     setWeekFilter(value);
-    setSelectOpen(false);
+    setIsSelectOpen(false);
   }, []);
 
-  // Safely handle select trigger click
-  const handleSelectTriggerClick = useCallback((e: React.MouseEvent) => {
+  // Toggle select dropdown visibility
+  const toggleSelectDropdown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setSelectOpen(prev => !prev);
+    setIsSelectOpen(prev => !prev);
   }, []);
 
-  // Safe click handler for week item selection
-  const handleWeekItemClick = useCallback((e: React.MouseEvent, weekNumber: string) => {
+  // Close select dropdown
+  const closeSelectDropdown = useCallback(() => {
+    setIsSelectOpen(false);
+  }, []);
+
+  // Handle week selection
+  const handleWeekSelect = useCallback((e: React.MouseEvent, weekNumber: string) => {
     e.preventDefault();
     e.stopPropagation();
     handleWeekFilterChange(weekNumber);
   }, [handleWeekFilterChange]);
 
-  // Safe click handler for starting a workout
+  // Navigate to active workout
   const handleStartWorkout = useCallback((e: React.MouseEvent, workoutId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    // Use navigate function with a slight delay to avoid any race conditions
-    setTimeout(() => {
-      navigate(`/client-dashboard/workouts/active/${workoutId}`);
-    }, 10);
+    navigate(`/client-dashboard/workouts/active/${workoutId}`);
   }, [navigate]);
 
-  // Close select dropdown
-  const handleSelectClose = useCallback(() => {
-    setSelectOpen(false);
-  }, []);
+  // Close select dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
+        closeSelectDropdown();
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [closeSelectDropdown]);
 
   if (isLoading) {
     return (
@@ -237,60 +256,55 @@ const WorkoutsList = () => {
   return (
     <div className="space-y-4">
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          {currentProgram && currentProgram.program && (
-            <div className="text-center space-y-1 flex-1">
-              <h2 className="text-xl font-bold">{currentProgram.program.title}</h2>
-              {currentProgram.program.description && (
-                <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
-                  {currentProgram.program.description}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+        {currentProgram && currentProgram.program && (
+          <div className="text-center space-y-1 flex-1">
+            <h2 className="text-xl font-bold">{currentProgram.program.title}</h2>
+            {currentProgram.program.description && (
+              <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
+                {currentProgram.program.description}
+              </p>
+            )}
+          </div>
+        )}
         
         {availableWeeks.length > 0 && (
           <div className="flex justify-center mb-2">
-            <Select
-              value={weekFilter}
-              onValueChange={handleWeekFilterChange}
-              open={selectOpen}
-              onOpenChange={setSelectOpen}
-            >
-              <SelectTrigger 
-                className="w-[200px] h-8 text-sm" 
-                onClick={handleSelectTriggerClick}
+            {/* Custom dropdown implementation */}
+            <div className="relative" ref={selectRef}>
+              <button
+                className="flex w-[200px] h-8 text-sm items-center justify-between rounded-md border border-input bg-background px-3 py-2 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                onClick={toggleSelectDropdown}
               >
                 <div className="flex items-center gap-1">
                   <Filter className="h-3.5 w-3.5" />
-                  <SelectValue placeholder="Filter by week" />
+                  <span>{weekFilter ? `Week ${weekFilter}` : "Filter by week"}</span>
                 </div>
-              </SelectTrigger>
-              <SelectContent 
-                onPointerDownOutside={(e) => {
-                  e.preventDefault();
-                  handleSelectClose();
-                }}
-                onEscapeKeyDown={handleSelectClose}
-              >
-                {availableWeeks
-                  .sort((a, b) => a - b)
-                  .map((weekNumber) => (
-                    <SelectItem 
-                      key={weekNumber} 
-                      value={weekNumber.toString()}
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onClick={(e) => handleWeekItemClick(e, weekNumber.toString())}
-                    >
-                      {`Week ${weekNumber}`}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </button>
+              
+              {isSelectOpen && (
+                <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md animate-in fade-in-0 zoom-in-95">
+                  <div className="p-1">
+                    {availableWeeks
+                      .sort((a, b) => a - b)
+                      .map((weekNumber) => (
+                        <button
+                          key={weekNumber}
+                          className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          onClick={(e) => handleWeekSelect(e, weekNumber.toString())}
+                        >
+                          <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                            {weekFilter === weekNumber.toString() && (
+                              <div className="h-4 w-4 flex items-center justify-center">✓</div>
+                            )}
+                          </span>
+                          {`Week ${weekNumber}`}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
         
@@ -320,22 +334,25 @@ const WorkoutsList = () => {
               <Card key={workout.id} className="overflow-hidden">
                 <Collapsible
                   open={expandedWorkouts[workout.id] || false}
-                  onOpenChange={() => toggleWorkoutDetails(workout.id)}
+                  onOpenChange={() => {}}
                 >
                   <CardHeader className="px-4 py-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-lg">
                       {workout.workout?.title || 'Untitled Workout'}
                     </CardTitle>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 ml-2">
-                        {expandedWorkouts[workout.id] ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                        <span className="sr-only">Toggle details</span>
-                      </Button>
-                    </CollapsibleTrigger>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 w-7 p-0 ml-2"
+                      onClick={(e) => toggleWorkoutDetails(e, workout.id)}
+                    >
+                      {expandedWorkouts[workout.id] ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                      <span className="sr-only">Toggle details</span>
+                    </Button>
                   </CardHeader>
                   
                   <CardContent className="p-0">
@@ -353,7 +370,7 @@ const WorkoutsList = () => {
                         <div>
                           <h4 className="text-xs font-medium mb-1">Exercises</h4>
                           <Accordion type="single" collapsible className="w-full">
-                            {workout.workout.workout_exercises.map((exercise, index) => (
+                            {workout.workout.workout_exercises.map((exercise) => (
                               <AccordionItem key={exercise.id} value={exercise.id} className="border-b-0 py-0">
                                 <div className="flex flex-col">
                                   <AccordionTrigger className="py-1 text-xs">

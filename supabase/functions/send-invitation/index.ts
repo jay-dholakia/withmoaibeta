@@ -15,13 +15,6 @@ interface InvitationPayload {
   invitationId?: string;
 }
 
-interface EmailSendingResult {
-  id: string;
-  from: string;
-  to: string;
-  created: string;
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -37,7 +30,7 @@ serve(async (req) => {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const siteUrl = Deno.env.get("SITE_URL");
     
-    // More detailed logging for API key validation
+    // Log environment variables status (safely)
     console.log("Environment check:", {
       hasSupabaseUrl: !!supabaseUrl,
       hasServiceRoleKey: !!supabaseServiceRoleKey,
@@ -52,22 +45,6 @@ serve(async (req) => {
       console.error("Missing required Supabase environment variables");
       return new Response(
         JSON.stringify({ error: "Server configuration error: Missing Supabase credentials" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!resendApiKey) {
-      console.error("Missing Resend API key in environment variables");
-      return new Response(
-        JSON.stringify({ error: "Server configuration error: Missing Resend API key" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!resendApiKey.startsWith("re_")) {
-      console.error("Invalid Resend API key format - should start with 're_'");
-      return new Response(
-        JSON.stringify({ error: "Server configuration error: Invalid Resend API key format" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -148,85 +125,75 @@ serve(async (req) => {
       );
     }
 
-    // Get the JWT token to verify the user
+    // Verify authentication
     const authHeader = req.headers.get("Authorization");
     console.log("Authorization header:", authHeader ? "present" : "not present");
     
-    // For debugging, let's log more information about the auth header
-    if (authHeader) {
-      console.log("Auth header format check:", {
-        startsWithBearer: authHeader.startsWith("Bearer "),
-        length: authHeader.length,
-        excerpt: authHeader.substring(0, 15) + "..."
-      });
+    if (!authHeader) {
+      console.error("Authorization header missing");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - Authorization header required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
-    // Skip authentication in development environment or when not provided
-    let userId = null;
+    console.log("Auth token provided, verifying user");
     
-    if (authHeader) {
-      console.log("Auth token provided, verifying user");
+    try {
+      // Extract the token from the header
+      const token = authHeader.replace("Bearer ", "");
+      console.log("Token length:", token.length);
       
-      try {
-        // Extract the token from the header (remove 'Bearer ' prefix)
-        const token = authHeader.replace("Bearer ", "");
-        console.log("Token length:", token.length);
-        
-        // Verify the JWT token and get the user
-        const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-        
-        if (userError || !user) {
-          console.error("Invalid token or user not found:", userError);
-          // For development, continue execution with a dummy user ID
-          userId = "00000000-0000-0000-0000-000000000000"; // Dummy UUID
-          console.log("Using dummy user ID for development:", userId);
-        } else {
-          userId = user.id;
-          console.log("User verified successfully:", userId);
-          
-          // Check if the user is an admin
-          const { data: profile, error: profileError } = await supabaseClient
-            .from("profiles")
-            .select("user_type")
-            .eq("id", user.id)
-            .single();
-
-          if (profileError) {
-            console.error("Error fetching profile:", profileError);
-            return new Response(
-              JSON.stringify({ error: "Error fetching user profile" }),
-              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          if (!profile || profile.user_type !== "admin") {
-            console.error("Unauthorized - user is not an admin:", profile?.user_type);
-            return new Response(
-              JSON.stringify({ error: "Unauthorized - Admin access required" }),
-              { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-          
-          console.log("User verified as admin");
-        }
-      } catch (authError) {
-        console.error("Error during authentication:", authError);
-        // For development, continue execution with a dummy user ID
-        userId = "00000000-0000-0000-0000-000000000000"; // Dummy UUID
-        console.log("Using dummy user ID due to auth error:", userId);
+      // Verify the JWT token and get the user
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+      
+      if (userError || !user) {
+        console.error("Invalid token or user not found:", userError);
+        return new Response(
+          JSON.stringify({ 
+            error: "Unauthorized - Invalid credentials",
+            details: userError?.message 
+          }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    } else {
-      console.log("No authorization header provided - bypassing admin check in development");
-      // For development, we'll create a default admin user ID
-      userId = "00000000-0000-0000-0000-000000000000"; // Dummy UUID for development
-    }
+      
+      console.log("User verified successfully:", user.id);
+      
+      // Check if the user is an admin
+      const { data: profile, error: profileError } = await supabaseClient
+        .from("profiles")
+        .select("user_type")
+        .eq("id", user.id)
+        .single();
 
-    // Always proceed in development mode, even if auth fails
-    if (!userId) {
-      console.error("No user ID available for invitation");
-      // Instead of returning an error, we'll continue with a dummy ID for development
-      userId = "00000000-0000-0000-0000-000000000000";
-      console.log("Using fallback dummy user ID:", userId);
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        return new Response(
+          JSON.stringify({ error: "Error fetching user profile" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!profile || profile.user_type !== "admin") {
+        console.error("Unauthorized - user is not an admin:", profile?.user_type);
+        return new Response(
+          JSON.stringify({ error: "Unauthorized - Admin access required" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      console.log("User verified as admin");
+      
+    } catch (authError) {
+      console.error("Error during authentication:", authError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Authentication failed", 
+          details: authError.message 
+        }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     let invitation;
@@ -280,20 +247,32 @@ serve(async (req) => {
         expiresAt: invitation.expires_at
       });
     } else {
-      console.log("Creating new invitation for:", { email, userType, createdBy: userId });
+      console.log("Creating new invitation for:", { email, userType });
 
       // Generate token and expiration date
       const token = crypto.randomUUID();
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30); // 30 days from now
 
-      // Insert the invitation directly
+      // Get user ID from the authenticated user's token
+      const { data: { user } } = await supabaseClient.auth.getUser(
+        req.headers.get("Authorization")?.replace("Bearer ", "") || ""
+      );
+
+      if (!user) {
+        return new Response(
+          JSON.stringify({ error: "Failed to get user from token" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Insert the invitation
       const { data: newInvitation, error: invitationError } = await supabaseClient
         .from("invitations")
         .insert({
           email,
           user_type: userType,
-          invited_by: userId,
+          invited_by: user.id,
           token,
           expires_at: expiresAt.toISOString(),
           accepted: false
@@ -377,28 +356,8 @@ serve(async (req) => {
           })
         });
         
-        // Detailed logging of the response
-        console.log("Resend API response status:", emailResponse.status);
-        console.log("Resend API response headers:", Object.fromEntries(emailResponse.headers.entries()));
-        
-        // Handle different response statuses
         if (!emailResponse.ok) {
-          const errorText = await emailResponse.text();
-          console.log("Resend API error response text:", errorText);
-          
-          let errorData;
-          try {
-            errorData = JSON.parse(errorText);
-          } catch (e) {
-            errorData = { raw: errorText };
-          }
-          
-          console.error("Resend API error details:", {
-            status: emailResponse.status,
-            statusText: emailResponse.statusText,
-            data: errorData
-          });
-          
+          const errorData = await emailResponse.json();
           throw new Error(`Resend API error (${emailResponse.status}): ${JSON.stringify(errorData)}`);
         }
         
@@ -406,14 +365,11 @@ serve(async (req) => {
         console.log("Email sent successfully:", responseData);
         
         emailSent = true;
-        emailResult = responseData as EmailSendingResult;
+        emailResult = responseData;
         
       } catch (emailSendError) {
         console.error("Error sending email:", emailSendError);
         emailError = emailSendError.message;
-        
-        // Continue execution - we'll still return the invitation details
-        // even if sending the email failed
       }
     } else {
       console.warn("Resend API key not configured, skipping email sending");

@@ -103,103 +103,45 @@ const InvitationsPage: React.FC = () => {
   const sendInvitation = useMutation({
     mutationFn: async ({ email, userType }: { email: string; userType: 'client' | 'coach' | 'admin' }): Promise<InvitationResponse> => {
       try {
-        const token = crypto.randomUUID();
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        const accessToken = currentSession?.access_token;
         
-        const { data, error } = await supabase
-          .from('invitations')
-          .insert({
-            email,
-            user_type: userType,
-            invited_by: session?.user.id,
-            token,
-            expires_at: expiresAt.toISOString(),
-            accepted: false
-          })
-          .select()
-          .single();
-        
-        if (error) {
-          console.error("Error creating invitation:", error);
-          throw error;
+        if (!accessToken) {
+          throw new Error("Authentication token is missing. Please log in again.");
         }
         
         const siteUrl = window.location.origin;
-        const inviteLink = `${siteUrl}/register?token=${token}&type=${userType}`;
         
-        try {
-          const payload = {
-            email,
-            userType,
-            siteUrl,
-            invitationId: data.id
-          };
-          
-          console.log("Invoking send-invitation edge function with payload:", payload);
-          
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-          const accessToken = currentSession?.access_token;
-          
-          if (!accessToken) {
-            console.warn("No access token available - auth might fail");
+        console.log("Invoking send-invitation edge function with payload:", { email, userType, siteUrl });
+        
+        const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
+          body: { email, userType, siteUrl },
+          headers: {
+            Authorization: `Bearer ${accessToken}`
           }
-          
-          const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
-            body: payload,
-            headers: accessToken ? {
-              Authorization: `Bearer ${accessToken}`
-            } : undefined
-          });
-          
-          console.log("Edge function response:", edgeFunctionResponse);
-          
-          if (edgeFunctionResponse.error) {
-            console.error("Edge function error:", edgeFunctionResponse.error);
-            throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
-          }
-          
-          const responseData = edgeFunctionResponse.data;
-          if (responseData && responseData.emailSent === false) {
-            console.warn("Email was not sent due to service error:", responseData.emailError);
-            return {
-              success: true,
-              emailSent: false,
-              invitationId: data.id,
-              token: data.token,
-              expiresAt: data.expires_at,
-              inviteLink,
-              emailError: responseData.emailError,
-              emailErrorCode: responseData.emailErrorCode,
-              email,
-              message: responseData.message
-            };
-          }
-          
-          return {
-            success: true,
-            emailSent: true,
-            invitationId: data.id,
-            token: data.token,
-            expiresAt: data.expires_at,
-            inviteLink,
-            email,
-            emailResult: responseData?.emailResult,
-            message: responseData?.message
-          };
-        } catch (emailError) {
-          console.error("Failed to send email, but invitation created:", emailError);
-          return {
-            success: true,
-            emailSent: false,
-            invitationId: data.id,
-            token: data.token,
-            expiresAt: data.expires_at,
-            inviteLink,
-            emailError: emailError.message,
-            email
-          };
+        });
+        
+        console.log("Edge function response:", edgeFunctionResponse);
+        
+        if (edgeFunctionResponse.error) {
+          console.error("Edge function error:", edgeFunctionResponse.error);
+          throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
         }
+        
+        const responseData = edgeFunctionResponse.data;
+        
+        return {
+          success: true,
+          emailSent: responseData?.emailSent || false,
+          invitationId: responseData?.invitationId,
+          token: responseData?.token,
+          expiresAt: responseData?.expiresAt,
+          inviteLink: responseData?.inviteLink,
+          emailError: responseData?.emailError,
+          email,
+          emailResult: responseData?.emailResult,
+          message: responseData?.message
+        };
       } catch (error: any) {
         console.error("Error in sendInvitation:", error);
         throw error;
@@ -229,90 +171,51 @@ const InvitationsPage: React.FC = () => {
       try {
         setResendingInvitations(prev => ({ ...prev, [invitation.id]: true }));
         
-        const newToken = crypto.randomUUID();
-        const newExpiresAt = new Date();
-        newExpiresAt.setDate(newExpiresAt.getDate() + 30);
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        const accessToken = currentSession?.access_token;
         
-        const { data, error } = await supabase
-          .from('invitations')
-          .update({
-            token: newToken,
-            expires_at: newExpiresAt.toISOString(),
-            created_at: new Date().toISOString(),
-            accepted: false,
-            accepted_at: null
-          })
-          .eq('id', invitation.id)
-          .select()
-          .single();
-        
-        if (error) {
-          console.error("Error updating invitation:", error);
-          throw error;
+        if (!accessToken) {
+          throw new Error("Authentication token is missing. Please log in again.");
         }
         
         const siteUrl = window.location.origin;
-        const inviteLink = `${siteUrl}/register?token=${newToken}&type=${invitation.user_type}`;
         
-        try {
-          const payload = {
-            email: invitation.email,
-            userType: invitation.user_type,
-            siteUrl,
-            resend: true,
-            invitationId: invitation.id
-          };
-          
-          console.log("Invoking send-invitation edge function for resend with payload:", payload);
-          
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-          const accessToken = currentSession?.access_token;
-          
-          if (!accessToken) {
-            console.warn("No access token available for resend - auth might fail");
-          } else {
-            console.log("Using access token for authentication:", accessToken.substring(0, 10) + "...");
+        const payload = {
+          email: invitation.email,
+          userType: invitation.user_type,
+          siteUrl,
+          resend: true,
+          invitationId: invitation.id
+        };
+        
+        console.log("Invoking send-invitation edge function for resend with payload:", payload);
+        
+        const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
+          body: payload,
+          headers: {
+            Authorization: `Bearer ${accessToken}`
           }
-          
-          const edgeFunctionResponse = await supabase.functions.invoke('send-invitation', {
-            body: payload,
-            headers: accessToken ? {
-              Authorization: `Bearer ${accessToken}`
-            } : undefined
-          });
-          
-          console.log("Edge function response for resend:", edgeFunctionResponse);
-          
-          if (edgeFunctionResponse.error) {
-            console.error("Edge function error for resend:", edgeFunctionResponse.error);
-            throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
-          }
-          
-          const responseData = edgeFunctionResponse.data;
-          return {
-            success: true,
-            emailSent: responseData?.emailSent || false,
-            invitationId: data.id,
-            token: data.token,
-            expiresAt: data.expires_at,
-            inviteLink,
-            email: invitation.email,
-            emailError: responseData?.emailError,
-            message: responseData?.message
-          };
-        } catch (emailError) {
-          console.error("Failed to send email, but invitation updated:", emailError);
-          return {
-            success: true,
-            emailSent: false,
-            invitationId: data.id,
-            token: data.token,
-            expiresAt: data.expires_at,
-            inviteLink,
-            emailError: emailError.message,
-            email: invitation.email
-          };
+        });
+        
+        console.log("Edge function response for resend:", edgeFunctionResponse);
+        
+        if (edgeFunctionResponse.error) {
+          console.error("Edge function error for resend:", edgeFunctionResponse.error);
+          throw new Error(`Email service error: ${edgeFunctionResponse.error.message || 'Unknown error'}`);
         }
+        
+        const responseData = edgeFunctionResponse.data;
+        return {
+          success: true,
+          emailSent: responseData?.emailSent || false,
+          invitationId: responseData?.invitationId,
+          token: responseData?.token,
+          expiresAt: responseData?.expiresAt,
+          inviteLink: responseData?.inviteLink,
+          email: invitation.email,
+          emailError: responseData?.emailError,
+          message: responseData?.message
+        };
       } catch (error: any) {
         console.error("Error in resendInvitation:", error);
         throw error;

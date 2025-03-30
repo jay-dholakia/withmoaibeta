@@ -51,8 +51,8 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       return rpcData.map(client => ({
         ...client,
         total_workouts_completed: workoutCounts.get(client.id) || 0,
-        first_name: client.first_name || null,
-        last_name: client.last_name || null
+        first_name: client.first_name !== undefined ? client.first_name : null,
+        last_name: client.last_name !== undefined ? client.last_name : null
       })) as ClientData[];
     }
     

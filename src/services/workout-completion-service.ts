@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface WorkoutCompletion {
@@ -61,6 +62,10 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
   try {
     console.log("Fetching workout completion data for ID:", workoutCompletionId);
     
+    // Get the current user ID first to avoid Promise in the query
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || '';
+    
     // Query by workout_id, not id - using maybeSingle instead of single
     const { data, error } = await supabase
       .from('workout_completions')
@@ -75,7 +80,7 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
         )
       `)
       .eq('workout_id', workoutCompletionId || '')
-      .eq('user_id', supabase.auth.getUser().then(res => res.data.user?.id))
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (error) {
@@ -108,15 +113,15 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
         throw new Error('Workout not found');
       }
       
+      // Create a default WorkoutCompletion object with workout data
       return {
         id: null,
-        user_id: await supabase.auth.getUser().then(res => res.data.user?.id || ''),
+        user_id: userId,
         workout_id: workoutCompletionId,
         completed_at: null,
         notes: null,
         rating: null,
         workout: workoutOnly,
-        workout_set_completions: [],
         created_at: new Date().toISOString(),
         rest_day: false,
         life_happens_pass: false,
@@ -129,8 +134,14 @@ export const fetchWorkoutCompletion = async (workoutCompletionId: string): Promi
       };
     }
     
-    console.log("Fetched workout completion data:", data);
-    return data;
+    // Ensure distance is a number or null
+    const processedData: WorkoutCompletion = {
+      ...data,
+      distance: data.distance ? Number(data.distance) : null
+    };
+    
+    console.log("Fetched workout completion data:", processedData);
+    return processedData;
   } catch (error) {
     console.error("Error in workout completion data query:", error);
     throw error;

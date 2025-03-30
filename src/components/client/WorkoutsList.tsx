@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { Button } from '@/components/ui/button';
@@ -152,7 +152,9 @@ const WorkoutsList = () => {
       
       const weekMatches = workout.workout.week.week_number === weekNumber;
       
-      console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout.week.week_number}, Program: ${workout.workout.week.program?.title}, Matches: ${weekMatches}`);
+      if (workout.workout && workout.workout.week) {
+        console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout.week.week_number}, Program: ${workout.workout.week.program?.title}, Matches: ${weekMatches}`);
+      }
       
       return weekMatches;
     });
@@ -172,29 +174,42 @@ const WorkoutsList = () => {
     });
   }, [workouts, weekFilter]);
 
-  // Enhanced function to safely handle week filter changes
-  const handleWeekFilterChange = (value: string, event?: React.MouseEvent | React.TouchEvent) => {
-    // Prevent default behavior and stop propagation
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    
-    // Log the value being set for debugging
+  // Completely rewritten to eliminate navigation issues
+  const handleWeekFilterChange = useCallback((value: string) => {
     console.log(`Setting week filter to: ${value}`);
-    
-    // Update the filter state
     setWeekFilter(value);
-  };
+    setSelectOpen(false);
+  }, []);
 
-  // Safe click handler for start workout
-  const handleStartWorkout = (e: React.MouseEvent, workoutId: string) => {
+  // Safely handle select trigger click
+  const handleSelectTriggerClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectOpen(prev => !prev);
+  }, []);
+
+  // Safe click handler for week item selection
+  const handleWeekItemClick = useCallback((e: React.MouseEvent, weekNumber: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleWeekFilterChange(weekNumber);
+  }, [handleWeekFilterChange]);
+
+  // Safe click handler for starting a workout
+  const handleStartWorkout = useCallback((e: React.MouseEvent, workoutId: string) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Only navigate if this was intentional
-    navigate(`/client-dashboard/workouts/active/${workoutId}`);
-  };
+    // Use navigate function with a slight delay to avoid any race conditions
+    setTimeout(() => {
+      navigate(`/client-dashboard/workouts/active/${workoutId}`);
+    }, 10);
+  }, [navigate]);
+
+  // Close select dropdown
+  const handleSelectClose = useCallback(() => {
+    setSelectOpen(false);
+  }, []);
 
   if (isLoading) {
     return (
@@ -219,11 +234,6 @@ const WorkoutsList = () => {
   // Check if the selected week is completed
   const isSelectedWeekCompleted = weekFilter ? completedWeeks[weekFilter] : false;
 
-  // Callback function for when select is closed
-  const handleSelectClose = () => {
-    setSelectOpen(false);
-  };
-
   return (
     <div className="space-y-4">
       <div className="space-y-4">
@@ -244,20 +254,14 @@ const WorkoutsList = () => {
           <div className="flex justify-center mb-2">
             <Select
               value={weekFilter}
-              onValueChange={(value) => {
-                // Ensure we don't trigger any navigation
-                setTimeout(() => {
-                  handleWeekFilterChange(value);
-                }, 0);
-              }}
+              onValueChange={handleWeekFilterChange}
               open={selectOpen}
               onOpenChange={setSelectOpen}
             >
-              <SelectTrigger className="w-[200px] h-8 text-sm" onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setSelectOpen(true);
-              }}>
+              <SelectTrigger 
+                className="w-[200px] h-8 text-sm" 
+                onClick={handleSelectTriggerClick}
+              >
                 <div className="flex items-center gap-1">
                   <Filter className="h-3.5 w-3.5" />
                   <SelectValue placeholder="Filter by week" />
@@ -280,16 +284,7 @@ const WorkoutsList = () => {
                         e.preventDefault();
                         e.stopPropagation();
                       }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        // Use timeout to ensure this doesn't interfere with routing
-                        setTimeout(() => {
-                          handleWeekFilterChange(weekNumber.toString(), e);
-                          handleSelectClose();
-                        }, 0);
-                      }}
+                      onClick={(e) => handleWeekItemClick(e, weekNumber.toString())}
                     >
                       {`Week ${weekNumber}`}
                     </SelectItem>

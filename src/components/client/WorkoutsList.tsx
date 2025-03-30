@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Filter, ChevronDown, ChevronUp, Play } from 'lucide-react';
+import { Loader2, Filter, ChevronDown, ChevronUp, Play, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchCurrentProgram } from '@/services/program-service';
@@ -27,6 +27,7 @@ const WorkoutsList = () => {
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
+  const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
 
   const toggleWorkoutDetails = (workoutId: string) => {
     setExpandedWorkouts(prev => ({
@@ -73,7 +74,35 @@ const WorkoutsList = () => {
         setCurrentProgram(program);
         setWorkouts(pendingWorkouts);
         
+        // Get all workouts (including completed) for checking completed weeks
+        const allWorkouts = assignedWorkouts;
+        
+        // Determine which weeks are completed by checking if all workouts for that week are completed
+        const weekCompletionStatus: Record<string, boolean> = {};
         const weeksSet = new Set<number>();
+        
+        // Group all workouts by week
+        const workoutsByWeek: Record<number, WorkoutHistoryItem[]> = {};
+        
+        allWorkouts.forEach(workout => {
+          if (workout.workout?.week && workout.workout.week.week_number) {
+            const weekNum = workout.workout.week.week_number;
+            weeksSet.add(weekNum);
+            
+            if (!workoutsByWeek[weekNum]) {
+              workoutsByWeek[weekNum] = [];
+            }
+            workoutsByWeek[weekNum].push(workout);
+          }
+        });
+        
+        // Check if all workouts in each week are completed
+        Object.entries(workoutsByWeek).forEach(([weekNum, weekWorkouts]) => {
+          const allCompleted = weekWorkouts.every(workout => !!workout.completed_at);
+          weekCompletionStatus[weekNum] = allCompleted;
+        });
+        
+        setCompletedWeeks(weekCompletionStatus);
         
         pendingWorkouts.forEach(workout => {
           if (workout.workout?.week && workout.workout.week.week_number) {
@@ -157,6 +186,9 @@ const WorkoutsList = () => {
     );
   }
 
+  // Check if the selected week is completed
+  const isSelectedWeekCompleted = weekFilter ? completedWeeks[weekFilter] : false;
+
   return (
     <div className="space-y-4">
       <div className="space-y-4">
@@ -201,7 +233,19 @@ const WorkoutsList = () => {
           </div>
         )}
         
-        {filteredWorkouts.length === 0 ? (
+        {isSelectedWeekCompleted ? (
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="pt-6 pb-6 text-center">
+              <Trophy className="h-12 w-12 mx-auto mb-3 text-green-600" />
+              <h3 className="text-xl font-bold text-green-800 mb-2">
+                Congratulations! 🎉💪
+              </h3>
+              <p className="text-green-700">
+                You've completed all workouts in your plan for Week {weekFilter}.
+              </p>
+            </CardContent>
+          </Card>
+        ) : filteredWorkouts.length === 0 ? (
           <Card>
             <CardContent className="pt-4 pb-4 text-center">
               <p className="text-muted-foreground">

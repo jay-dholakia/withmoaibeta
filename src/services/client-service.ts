@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./client-workout-history-service";
@@ -6,7 +5,7 @@ import { toast } from 'sonner';
 
 /**
  * Tracks a workout set completion
- * @param workoutCompletionId The ID of the workout completion
+ * @param workoutId The ID of the workout or workout completion
  * @param exerciseId The ID of the workout exercise
  * @param setNumber The set number
  * @param weight The weight used (optional)
@@ -17,7 +16,7 @@ import { toast } from 'sonner';
  * @param location Location for cardio exercises (optional)
  */
 export const trackWorkoutSet = async (
-  workoutCompletionId: string,
+  workoutId: string,
   exerciseId: string,
   setNumber: number,
   weight: number | null,
@@ -33,71 +32,71 @@ export const trackWorkoutSet = async (
     if (!user) {
       throw new Error("User not authenticated");
     }
-
-    // Check if we already have a workout completion record
-    const { data: existingCompletion, error: queryError } = await supabase
+    
+    const userId = user.id;
+    
+    // Check if we're dealing with a workout_completion_id or workout_id
+    let workoutCompletionId: string | null = null;
+    let workoutActualId: string | null = null;
+    
+    // Try to fetch by treating the ID as a completion ID first
+    const { data: completionData, error: completionError } = await supabase
       .from('workout_completions')
-      .select('id, user_id, workout_id')
-      .eq('id', workoutCompletionId)
+      .select('id, workout_id')
+      .eq('id', workoutId)
       .maybeSingle();
     
-    let userId = user.id;
-    let completionId = workoutCompletionId;
-    let workoutId = workoutCompletionId; // Default assumption
-    
-    // If no completion exists with this ID, check if this is actually a workout ID
-    if (!existingCompletion) {
-      console.log(`No completion found with ID: ${workoutCompletionId}, checking if this is a workout ID`);
+    if (completionData) {
+      // We found a completion record, use its ID
+      workoutCompletionId = completionData.id;
+      workoutActualId = completionData.workout_id;
+      console.log(`Found workout completion: ${workoutCompletionId} for workout: ${workoutActualId}`);
+    } else {
+      // No completion found with this ID, assume it's a workout_id
+      workoutActualId = workoutId;
+      console.log(`No completion found with ID: ${workoutId}, treating as workout_id: ${workoutActualId}`);
       
       // Check if a completion already exists for this user and workout
-      const { data: existingUserCompletion, error: userCompletionError } = await supabase
+      const { data: existingCompletion, error: existingCompletionError } = await supabase
         .from('workout_completions')
-        .select('id, user_id, workout_id')
+        .select('id')
         .eq('user_id', userId)
-        .eq('workout_id', workoutId)
+        .eq('workout_id', workoutActualId)
         .is('completed_at', null) // Only get in-progress completions
         .maybeSingle();
       
-      if (userCompletionError && userCompletionError.code !== 'PGRST116') {
-        console.error('Error checking for existing user completion:', userCompletionError);
-        throw userCompletionError;
-      }
-      
-      // If a completion exists for this workout, use that
-      if (existingUserCompletion) {
-        console.log('Found existing workout completion:', existingUserCompletion);
-        completionId = existingUserCompletion.id;
+      if (existingCompletion) {
+        // Use the existing workout completion
+        workoutCompletionId = existingCompletion.id;
+        console.log(`Found existing in-progress completion: ${workoutCompletionId}`);
       } else {
         // Create a new workout completion
-        console.log('Creating new workout completion for workout ID:', workoutId);
-        const { data: newCompletion, error: insertError } = await supabase
+        console.log(`Creating new workout completion for workout ID: ${workoutActualId}`);
+        const { data: newCompletion, error: createError } = await supabase
           .from('workout_completions')
           .insert({
             user_id: userId,
-            workout_id: workoutId,
+            workout_id: workoutActualId,
             created_at: new Date().toISOString()
           })
-          .select('id')
+          .select()
           .single();
         
-        if (insertError) {
-          console.error('Error creating workout completion:', insertError);
-          throw insertError;
+        if (createError) {
+          console.error('Error creating workout completion:', createError);
+          throw createError;
         }
         
-        console.log('Created new workout completion:', newCompletion);
-        completionId = newCompletion.id;
+        workoutCompletionId = newCompletion.id;
+        console.log(`Created new workout completion: ${workoutCompletionId}`);
       }
-    } else {
-      userId = existingCompletion.user_id;
-      workoutId = existingCompletion.workout_id;
     }
     
     // Now check if a set completion record already exists
     const { data: existingSet, error: setQueryError } = await supabase
       .from('workout_set_completions')
       .select('*')
-      .eq('workout_completion_id', completionId)
+      .eq('workout_completion_id', workoutCompletionId)
       .eq('workout_exercise_id', exerciseId)
       .eq('set_number', setNumber)
       .maybeSingle();
@@ -106,8 +105,6 @@ export const trackWorkoutSet = async (
       console.error('Error checking for existing set completion:', setQueryError);
       throw setQueryError;
     }
-    
-    console.log('Existing set check result:', existingSet);
     
     // Ensure the distance is either a valid number string or null
     let parsedDistance = null;
@@ -145,7 +142,7 @@ export const trackWorkoutSet = async (
     } else {
       // Create new record
       console.log('Creating new set completion with data:', {
-        workout_completion_id: completionId,
+        workout_completion_id: workoutCompletionId,
         workout_exercise_id: exerciseId,
         set_number: setNumber,
         weight: weight,
@@ -161,7 +158,7 @@ export const trackWorkoutSet = async (
       const { data, error } = await supabase
         .from('workout_set_completions')
         .insert({
-          workout_completion_id: completionId,
+          workout_completion_id: workoutCompletionId,
           workout_exercise_id: exerciseId,
           set_number: setNumber,
           weight: weight,
@@ -222,10 +219,6 @@ export interface CoachProfile {
   first_name: string | null;
   last_name: string | null;
 }
-
-// Client Data Types for Coach Views - use interface from coach service
-// Don't re-define ClientData since it's imported and re-exported in coach-service.ts
-// Instead, import it from there when needed
 
 // Group Types
 export interface GroupData {
@@ -615,73 +608,101 @@ export const completeWorkout = async (
   notes: string | null = null
 ): Promise<any> => {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     
-    if (!user.user) {
+    if (!user) {
       throw new Error('User not authenticated');
     }
     
-    // Identify if we're using a completion ID or workout ID
-    const { data: existingCompletion, error: queryError } = await supabase
+    const userId = user.id;
+    let workoutCompletionId: string | null = null;
+    let workoutActualId: string | null = null;
+    
+    // First, check if we're dealing with a completion ID or workout ID
+    const { data: completionData, error: completionError } = await supabase
       .from('workout_completions')
-      .select('id')
-      .eq('workout_id', workoutId)
-      .eq('user_id', user.user.id)
+      .select('id, workout_id')
+      .eq('id', workoutId)
       .maybeSingle();
     
-    if (queryError) {
-      console.error('Error fetching existing workout completion:', queryError);
-      throw queryError;
-    }
-    
-    let completionId = existingCompletion?.id;
-    
-    if (!completionId) {
-      // If no completion exists yet, create one
-      const { data: newCompletion, error: insertError } = await supabase
-        .from('workout_completions')
-        .insert({
-          user_id: user.user.id,
-          workout_id: workoutId,
-          completed_at: new Date().toISOString(),
-          rating,
-          notes
-        })
-        .select()
-        .single();
-        
-      if (insertError) {
-        console.error('Error creating workout completion:', insertError);
-        throw insertError;
-      }
-      
-      completionId = newCompletion.id;
+    if (completionData) {
+      // Found a completion record
+      workoutCompletionId = completionData.id;
+      workoutActualId = completionData.workout_id;
+      console.log(`Found workout completion: ${workoutCompletionId} for workout: ${workoutActualId}`);
     } else {
-      // Update the existing workout completion record
-      const { data, error } = await supabase
-        .from('workout_completions')
-        .update({
-          completed_at: new Date().toISOString(),
-          rating,
-          notes
-        })
-        .eq('id', completionId)
-        .eq('user_id', user.user.id)
-        .select()
-        .single();
+      // No completion found, check if this is a workout ID
+      const { data: workoutData, error: workoutError } = await supabase
+        .from('workouts')
+        .select('id')
+        .eq('id', workoutId)
+        .maybeSingle();
+      
+      if (workoutData) {
+        // It's a valid workout ID
+        workoutActualId = workoutId;
         
-      if (error) {
-        console.error('Error updating workout completion:', error);
-        throw error;
+        // Check if there's an in-progress completion for this workout
+        const { data: existingCompletion, error: existingError } = await supabase
+          .from('workout_completions')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('workout_id', workoutActualId)
+          .is('completed_at', null)
+          .maybeSingle();
+        
+        if (existingCompletion) {
+          workoutCompletionId = existingCompletion.id;
+          console.log(`Found existing in-progress completion: ${workoutCompletionId}`);
+        } else {
+          // Create a new completion record
+          const { data: newCompletion, error: createError } = await supabase
+            .from('workout_completions')
+            .insert({
+              user_id: userId,
+              workout_id: workoutActualId,
+              created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+          
+          if (createError) {
+            console.error('Error creating workout completion:', createError);
+            throw createError;
+          }
+          
+          workoutCompletionId = newCompletion.id;
+          console.log(`Created new workout completion: ${workoutCompletionId}`);
+        }
+      } else {
+        console.error(`Invalid ID provided: ${workoutId}. Not a valid workout or workout completion.`);
+        throw new Error(`Invalid ID provided: ${workoutId}`);
       }
     }
     
-    // Show a single toast notification here
+    // Now update the completion record to mark it as completed
+    const { data, error } = await supabase
+      .from('workout_completions')
+      .update({
+        completed_at: new Date().toISOString(),
+        rating,
+        notes
+      })
+      .eq('id', workoutCompletionId)
+      .eq('user_id', userId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error completing workout:', error);
+      throw error;
+    }
+    
     toast.success('Workout completed!', {
-      id: `workout-complete-${workoutId}`, // Use a unique ID to prevent duplicates
+      id: `workout-complete-${workoutActualId}`, // Use a unique ID to prevent duplicates
     });
     
-    return { completionId };
+    return { completionId: workoutCompletionId };
   } catch (error) {
     console.error('Error completing workout:', error);
     throw error;

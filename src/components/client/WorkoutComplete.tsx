@@ -11,6 +11,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, CheckCircle2, Share2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const WorkoutComplete = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -19,6 +27,7 @@ const WorkoutComplete = () => {
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState('');
   const [rating, setRating] = useState<number | null>(null);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['complete-workout', workoutCompletionId],
@@ -154,11 +163,8 @@ const WorkoutComplete = () => {
       // Invalidate relevant queries to refresh the workout list
       queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
       
-      // Navigate to Moai page instead of workouts page
-      navigate('/client-dashboard/moai');
-      
-      // Show a toast notification for successful completion
-      toast.success('Workout completed successfully!');
+      // Show share dialog instead of navigating away immediately
+      setShowShareDialog(true);
     },
     onError: (error) => {
       console.error('Error completing workout:', error);
@@ -185,6 +191,12 @@ const WorkoutComplete = () => {
       .catch(() => {
         toast.error('Could not copy text');
       });
+  };
+
+  const handleCloseShareDialog = () => {
+    setShowShareDialog(false);
+    // Navigate to Moai page after closing the dialog
+    navigate('/client-dashboard/moai');
   };
 
   if (isLoading) {
@@ -305,15 +317,63 @@ const WorkoutComplete = () => {
             </>
           )}
         </Button>
-        
-        <Button
-          variant="outline"
-          onClick={handleShareWorkout}
-          className="border-2 border-gray-200 hover:border-gray-300"
-        >
-          <Share2 className="mr-2 h-4 w-4" /> Share Results
-        </Button>
       </div>
+
+      {/* Share Results Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-primary" />
+              Share Your Workout Achievement
+            </DialogTitle>
+            <DialogDescription>
+              Great job completing your workout! Would you like to share your results?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-muted/50 rounded-lg p-4 my-4">
+            <p className="font-medium mb-2">Ready to share:</p>
+            <div className="bg-white p-3 rounded border text-sm">
+              <p className="mb-2">I just finished my workout: {workoutData?.workout?.title || 'Workout'}! 💪</p>
+              
+              {personalRecords && personalRecords.length > 0 && (
+                <>
+                  <p className="font-medium mb-1">🏆 New personal records:</p>
+                  <ul className="list-disc pl-5 mb-2">
+                    {personalRecords.map((pr: any, index: number) => (
+                      <li key={index}>
+                        {pr.exercise.name}: {pr.weight} lbs × {pr.reps} reps
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              
+              <p className="text-muted-foreground">#FitnessJourney #PersonalBest</p>
+            </div>
+          </div>
+          
+          <DialogFooter className="sm:justify-between flex-row gap-3">
+            <Button
+              variant="outline"
+              onClick={handleCloseShareDialog}
+              className="flex-1"
+            >
+              Maybe Later
+            </Button>
+            <Button
+              onClick={() => {
+                handleShareWorkout();
+                handleCloseShareDialog();
+              }}
+              className="bg-primary hover:bg-primary/90 flex-1"
+            >
+              <Share2 className="mr-2 h-4 w-4" /> Copy to Clipboard
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

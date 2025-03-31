@@ -144,6 +144,16 @@ export const WeekProgressBar = ({
                   <span className="text-xs font-medium">{dayName}</span>
                 )}
               </div>
+              
+              {/* Only show day letter when no workout is completed */}
+              {!day.isCompleted && !day.isLifeHappens && (
+                <span className="text-xs font-medium text-gray-500 mt-1">{dayName}</span>
+              )}
+              
+              {/* Current day indicator */}
+              {isToday && (
+                <div className="w-1.5 h-1.5 bg-gray-500 rounded-full mt-0.5"></div>
+              )}
             </div>
           );
         })}

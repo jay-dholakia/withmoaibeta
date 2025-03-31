@@ -97,8 +97,10 @@ export const WorkoutProgressCard = ({
                   )}
                 </div>
                 
-                {/* Day letter placed below the circle */}
-                <span className="text-xs font-medium text-slate-600 mt-1">{day}</span>
+                {/* Only show day letter when no workout is completed */}
+                {!isDayCompleted && !isLifeHappens && (
+                  <span className="text-xs font-medium text-slate-600 mt-1">{day}</span>
+                )}
                 
                 {/* Current day indicator dot - placed below the day letter */}
                 {isToday && (

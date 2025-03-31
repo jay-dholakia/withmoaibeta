@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -358,7 +359,7 @@ const WorkoutComplete = () => {
               Share Your Workout Achievement
             </DialogTitle>
             <DialogDescription>
-              Great job completing your workout! Would you like to share your results?
+              Great job completing your workout! Customize your message and share your results with others.
             </DialogDescription>
           </DialogHeader>
           

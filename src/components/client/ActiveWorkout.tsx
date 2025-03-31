@@ -93,8 +93,7 @@ const ActiveWorkout = () => {
             ),
             workout_set_completions (*)
           `)
-          .eq('workout_id', workoutCompletionId || '')
-          .eq('user_id', user?.id)
+          .eq('id', workoutCompletionId || '')
           .maybeSingle();
 
         if (completionError) {
@@ -107,6 +106,38 @@ const ActiveWorkout = () => {
         if (!completionData || !completionData.workout) {
           console.error("Workout data missing or incomplete:", completionData);
           
+          // Try to get the workout directly if there's a workout_id available
+          if (completionData?.workout_id) {
+            const { data: workoutOnlyData, error: workoutError } = await supabase
+              .from('workouts')
+              .select(`
+                *,
+                workout_exercises (
+                  *,
+                  exercise:exercise_id (*)
+                )
+              `)
+              .eq('id', completionData.workout_id)
+              .maybeSingle();
+            
+            if (workoutError) {
+              console.error("Error fetching workout directly:", workoutError);
+              throw workoutError;
+            }
+            
+            if (!workoutOnlyData) {
+              console.error("Workout not found with ID:", completionData.workout_id);
+              return null;
+            }
+            
+            return {
+              ...completionData,
+              workout: workoutOnlyData,
+              workout_set_completions: completionData.workout_set_completions || []
+            };
+          }
+          
+          // If no workout_id, try a final attempt to get workout directly using the completion ID
           const { data: workoutOnlyData, error: workoutError } = await supabase
             .from('workouts')
             .select(`
@@ -130,12 +161,12 @@ const ActiveWorkout = () => {
           }
           
           return {
-            id: null,
+            id: completionData?.id || null,
             user_id: user?.id,
             workout_id: workoutCompletionId,
-            completed_at: null,
+            completed_at: completionData?.completed_at || null,
             workout: workoutOnlyData,
-            workout_set_completions: []
+            workout_set_completions: completionData?.workout_set_completions || []
           };
         }
         

@@ -792,8 +792,16 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
   try {
     console.log(`Sending password reset email to: ${email}`);
     
+    // Get the current hostname to determine if we're in development or production
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    // Construct an appropriate redirect URL that will work in both environments
+    const redirectUrl = `${window.location.origin}/reset-password`;
+    
+    console.log(`Using redirect URL: ${redirectUrl} for password reset`);
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: redirectUrl,
     });
     
     if (error) {

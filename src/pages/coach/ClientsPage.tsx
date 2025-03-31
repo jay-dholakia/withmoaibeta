@@ -14,12 +14,11 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { ClientData, fetchCoachClients } from '@/services/coach-service';
 import { fetchCoachGroups } from '@/services/coach-group-service';
 import { ClientDetailView } from '@/components/coach/ClientDetailView';
 import ClientMessageForm from '@/components/coach/ClientMessageForm';
-import { formatDistanceToNow } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { 
   Pagination, 
@@ -30,7 +29,6 @@ import {
   PaginationPrevious
 } from '@/components/ui/pagination';
 import { fetchCoachMessagesForClient } from '@/services/coach-client-message-service';
-import { CoachMessage } from '@/services/coach-message-service';
 
 interface Group {
   id: string;
@@ -323,18 +321,19 @@ const ClientsPage = () => {
                           </TableCell>
                           <TableCell>
                             {messageStatus[client.id]?.hasMessage ? (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5">
                                 <div className="flex items-center text-green-600">
                                   <CheckCircle2 className="h-4 w-4 mr-1" />
-                                  <span className="text-xs">Sent</span>
+                                  <span className="text-sm">Sent</span>
                                 </div>
                                 <Button 
                                   variant="ghost" 
                                   size="sm" 
-                                  className="text-blue-500 hover:text-blue-600 -ml-1"
+                                  className="text-blue-500 hover:text-blue-600 ml-1"
                                   onClick={() => handleEditMessage(client.id, client.email)}
                                 >
-                                  <Pencil className="h-3 w-3 mr-1" /> Edit
+                                  <Pencil className="h-3.5 w-3.5 mr-1" />
+                                  Edit
                                 </Button>
                               </div>
                             ) : (
@@ -344,7 +343,8 @@ const ClientsPage = () => {
                                 className="text-amber-500 hover:text-amber-600 -ml-2"
                                 onClick={() => handleMessageClient(client.id, client.email)}
                               >
-                                <Send className="h-4 w-4 mr-1" /> Write
+                                <Send className="h-4 w-4 mr-1" />
+                                Write
                               </Button>
                             )}
                           </TableCell>
@@ -354,7 +354,8 @@ const ClientsPage = () => {
                               size="sm"
                               onClick={() => handleViewClient(client.id, client.email)}
                             >
-                              <Info className="h-4 w-4 mr-1" /> View Details
+                              <Info className="h-4 w-4 mr-1" />
+                              View Details
                             </Button>
                           </TableCell>
                         </TableRow>

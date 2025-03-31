@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { format, isThisWeek, startOfWeek, endOfWeek, addDays, isSameDay } from 'date-fns';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -66,7 +67,7 @@ export const WeekProgressBar = ({
       });
       
       const dateStr = format(day, 'yyyy-MM-dd');
-      const workoutType = workoutTypes[dateStr] || (isLifeHappens ? 'rest_day' : 'strength');
+      const workoutType = workoutTypes[dateStr] || (hasLifeHappens ? 'rest_day' : 'strength');
       
       return {
         date: day,
@@ -130,7 +131,7 @@ export const WeekProgressBar = ({
           
           if (day.isCompleted) {
             bgColor = `${color}/20`;
-            textColor = 'text-black';
+            textColor = 'text-gray-900';
           }
           
           return (
@@ -138,7 +139,7 @@ export const WeekProgressBar = ({
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${textColor} ${border} transition-all duration-200 relative`}
               >
-                {day.isCompleted || day.isLifeHappens ? (
+                {(day.isCompleted || day.isLifeHappens) ? (
                   <WorkoutTypeIcon type={day.workoutType} />
                 ) : (
                   <span className="text-xs font-medium">{dayName}</span>

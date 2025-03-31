@@ -6,13 +6,11 @@ export type WorkoutType = 'strength' | 'bodyweight' | 'cardio' | 'flexibility' |
 interface WorkoutTypeIconProps {
   type: WorkoutType;
   className?: string;
-  size?: number;
 }
 
 export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({ 
   type, 
-  className = '',
-  size = 16 
+  className = ''
 }) => {
   const getIconForType = () => {
     switch (type) {
@@ -35,13 +33,12 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
     }
   };
 
-  // Use inline styles for fontSize to ensure proper emoji sizing
   return (
     <span 
       className={`workout-type-icon ${className}`} 
       role="img" 
       aria-label={`${type} workout`}
-      style={{ fontSize: `${size}px`, lineHeight: 1, display: 'inline-block' }}
+      style={{ fontSize: '16px', lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
     >
       {getIconForType()}
     </span>

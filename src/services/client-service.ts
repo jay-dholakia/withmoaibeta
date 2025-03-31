@@ -34,6 +34,7 @@ export interface CoachProfile {
   favorite_movements?: string[];
 }
 
+// Define the GroupData interface to explicitly include coach_id
 export interface GroupData {
   id: string;
   name: string;
@@ -478,13 +479,18 @@ export const fetchAllGroups = async (coachId?: string) => {
       throw error;
     }
     
-    // Process the data to ensure it matches the GroupData interface
-    return (data || []).map(group => {
-      return {
-        ...group,
-        coach_id: group.coach_id || group.created_by // Use created_by as fallback if coach_id doesn't exist
-      } as GroupData;
-    });
+    // Process the data and explicitly create objects matching the GroupData interface
+    // Using type assertion to tell TypeScript the exact shape of the objects
+    const result: GroupData[] = (data || []).map(group => ({
+      id: group.id,
+      name: group.name,
+      coach_id: group.coach_id || group.created_by, // Use created_by as fallback
+      created_at: group.created_at,
+      created_by: group.created_by,
+      description: group.description
+    }));
+    
+    return result;
   } catch (error) {
     console.error("Error in fetchAllGroups:", error);
     throw error;

@@ -479,9 +479,18 @@ export const fetchAllGroups = async (coachId?: string) => {
       throw error;
     }
     
-    // Process the data and explicitly create objects matching the GroupData interface
-    // Using type assertion to tell TypeScript the exact shape of the objects
-    const result: GroupData[] = (data || []).map(group => ({
+    // Define the shape of what we receive from Supabase
+    interface RawGroupData {
+      id: string;
+      name: string;
+      created_at: string;
+      created_by: string;
+      description?: string | null;
+      coach_id?: string; // This might not exist in all rows
+    }
+    
+    // Convert the raw data to our GroupData interface
+    const result: GroupData[] = (data || []).map((group: RawGroupData) => ({
       id: group.id,
       name: group.name,
       coach_id: group.coach_id || group.created_by, // Use created_by as fallback

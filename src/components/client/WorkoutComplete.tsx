@@ -154,8 +154,11 @@ const WorkoutComplete = () => {
       // Invalidate relevant queries to refresh the workout list
       queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
       
-      // Navigate without showing toast - toast is shown in client-service.ts
-      navigate('/client-dashboard/workouts');
+      // Navigate to Moai page instead of workouts page
+      navigate('/client-dashboard/moai');
+      
+      // Show a toast notification for successful completion
+      toast.success('Workout completed successfully!');
     },
     onError: (error) => {
       console.error('Error completing workout:', error);

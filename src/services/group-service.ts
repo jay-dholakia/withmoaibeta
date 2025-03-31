@@ -53,8 +53,9 @@ export const fetchAllGroups = async (coachId?: string) => {
       throw error;
     }
     
-    // Transform the data to our GroupData interface - fixed the infinite type instantiation
-    const groups: GroupData[] = (data || []).map((item: any) => ({
+    // Transform the data to the GroupData interface
+    // Fix: Explicitly type the item as Record<string, any> to avoid infinite instantiation
+    const groups = (data || []).map((item: Record<string, any>): GroupData => ({
       id: item.id,
       name: item.name,
       coach_id: coachId || item.created_by, // Use created_by as fallback

@@ -207,7 +207,7 @@ export const trackWorkoutSet = async (
       location
     });
 
-    // First, get the user_id from the workout_completions table
+    // First, check if the workout completion record exists
     const { data: completionData, error: completionError } = await supabase
       .from('workout_completions')
       .select('user_id, workout_id')
@@ -219,9 +219,61 @@ export const trackWorkoutSet = async (
       throw completionError;
     }
     
-    if (!completionData || !completionData.user_id) {
-      console.error("Cannot track set: No workout completion found for ID", workoutCompletionId);
-      throw new Error("Workout completion not found");
+    // If no completion record found, we need to create one
+    let userId;
+    let workoutId;
+    
+    if (!completionData) {
+      // Get the current user ID
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (!userData || !userData.user) {
+        console.error("Cannot track set: User not authenticated");
+        throw new Error("User not authenticated");
+      }
+      
+      userId = userData.user.id;
+      
+      // Get the workout ID from the workout_exercises table
+      const { data: exerciseData, error: exerciseError } = await supabase
+        .from('workout_exercises')
+        .select('workout_id')
+        .eq('id', workoutExerciseId)
+        .maybeSingle();
+      
+      if (exerciseError) {
+        console.error("Error fetching workout exercise:", exerciseError);
+        throw exerciseError;
+      }
+      
+      if (!exerciseData) {
+        console.error("Workout exercise not found:", workoutExerciseId);
+        throw new Error("Workout exercise not found");
+      }
+      
+      workoutId = exerciseData.workout_id;
+      
+      // Create a new workout completion record
+      const { data: newCompletion, error: newCompletionError } = await supabase
+        .from('workout_completions')
+        .insert({
+          id: workoutCompletionId,
+          user_id: userId,
+          workout_id: workoutId,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (newCompletionError) {
+        console.error("Error creating workout completion:", newCompletionError);
+        throw newCompletionError;
+      }
+      
+      console.log("Created new workout completion:", newCompletion);
+    } else {
+      userId = completionData.user_id;
+      workoutId = completionData.workout_id;
     }
     
     const { data: existingSetData, error: existingSetError } = await supabase
@@ -266,7 +318,7 @@ export const trackWorkoutSet = async (
         .insert({
           workout_completion_id: workoutCompletionId,
           workout_exercise_id: workoutExerciseId,
-          user_id: completionData.user_id,
+          user_id: userId,
           set_number: setNumber,
           weight,
           reps_completed: reps,

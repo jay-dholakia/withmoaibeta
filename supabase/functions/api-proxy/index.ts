@@ -16,9 +16,21 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request URL and body
-    const url = new URL(req.url);
-    const targetUrl = url.searchParams.get("url");
+    // Parse request body to get parameters
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (e) {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+    
+    const targetUrl = requestData.url;
     
     // Ensure a target URL is provided
     if (!targetUrl) {
@@ -31,9 +43,13 @@ serve(async (req) => {
       );
     }
 
-    // Get request method, headers, and body
-    const method = req.method;
-    const headers = new Headers(req.headers);
+    // Get request method, headers, and body from the request data
+    const method = requestData.method || "GET";
+    const requestHeaders = requestData.headers || {};
+    const bodyData = requestData.body;
+    
+    // Prepare headers for the outgoing request
+    const headers = new Headers(requestHeaders);
     
     // Remove host header as it will be set by fetch
     headers.delete("host");
@@ -44,14 +60,12 @@ serve(async (req) => {
       headers,
     };
     
-    // Add body for non-GET requests
-    if (method !== "GET" && method !== "HEAD") {
-      const contentType = req.headers.get("content-type");
-      if (contentType?.includes("application/json")) {
-        const json = await req.json();
-        fetchOptions.body = JSON.stringify(json);
+    // Add body for non-GET requests if provided
+    if (method !== "GET" && method !== "HEAD" && bodyData) {
+      if (typeof bodyData === 'object') {
+        fetchOptions.body = JSON.stringify(bodyData);
       } else {
-        fetchOptions.body = await req.text();
+        fetchOptions.body = bodyData;
       }
     }
     

@@ -11,11 +11,11 @@ export async function proxyFetch(url: string, options: RequestInit = {}) {
   try {
     const { data, error } = await supabase.functions.invoke('api-proxy', {
       body: {
+        url,  // Include the URL in the body instead of query
         ...options.body ? { body: options.body } : {},
         method: options.method || 'GET',
         headers: options.headers || {},
       },
-      query: { url },
     });
 
     if (error) {

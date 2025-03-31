@@ -35,35 +35,36 @@ export interface LeaderboardEntry {
  */
 export const fetchAllGroups = async (coachId?: string) => {
   try {
-    // Create the base query without executing it yet
     let queryBuilder = supabase
       .from('groups')
       .select('*');
-    
-    // Add coach filter if provided
+
     if (coachId) {
       queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
-    
-    // Execute the query
-    const { data, error } = await queryBuilder.order('created_at', { ascending: false });
-    
+
+    // 🔧 Fix type inference here by breaking the chain
+    const raw = await queryBuilder.order('created_at', { ascending: false });
+    const { data, error } = raw as unknown as {
+      data: Record<string, any>[] | null;
+      error: any;
+    };
+
     if (error) {
       console.error("Error fetching groups:", error);
       throw error;
     }
-    
-    // Transform the data to the GroupData interface
-    // Fix: Explicitly type the item as Record<string, any> to avoid infinite instantiation
-    const groups = (data || []).map((item: Record<string, any>): GroupData => ({
+
+    // 💡 Manually map the response
+    const groups: GroupData[] = (data || []).map((item) => ({
       id: item.id,
       name: item.name,
-      coach_id: coachId || item.created_by, // Use created_by as fallback
+      coach_id: coachId || item.created_by,
       created_at: item.created_at,
       created_by: item.created_by,
-      description: item.description
+      description: item.description,
     }));
-    
+
     return groups;
   } catch (error) {
     console.error("Error in fetchAllGroups:", error);

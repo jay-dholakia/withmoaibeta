@@ -35,13 +35,13 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
     }
   };
 
-  // Since we're only using emojis now, always render as a span
+  // Use inline styles for fontSize to ensure proper emoji sizing
   return (
     <span 
       className={`workout-type-icon ${className}`} 
       role="img" 
       aria-label={`${type} workout`}
-      style={{ fontSize: `${size}px` }}
+      style={{ fontSize: `${size}px`, lineHeight: 1, display: 'inline-block' }}
     >
       {getIconForType()}
     </span>

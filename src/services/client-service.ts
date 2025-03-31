@@ -1,4 +1,3 @@
-
 /**
  * Client service methods for workout tracking and completion
  */
@@ -479,29 +478,24 @@ export const fetchAllGroups = async (coachId?: string) => {
       throw error;
     }
     
-    // Define the shape of what we receive from Supabase
-    type RawGroupData = {
-      id: string;
-      name: string;
-      created_at: string;
-      created_by: string;
-      description?: string | null;
-      coach_id?: string; // This might not exist in all rows
-    };
+    // Explicitly type the data and construct our return value
+    // This avoids the deep type instantiation error
+    const groups: GroupData[] = [];
     
-    // Convert the raw data to our GroupData interface with explicit typing
-    // This breaks the circular type inference that causes the "excessively deep" error
-    const typedData = data as RawGroupData[];
-    const result: GroupData[] = (typedData || []).map((group) => ({
-      id: group.id,
-      name: group.name,
-      coach_id: group.coach_id || group.created_by, // Use created_by as fallback
-      created_at: group.created_at,
-      created_by: group.created_by,
-      description: group.description
-    }));
+    if (data) {
+      for (const item of data) {
+        groups.push({
+          id: item.id,
+          name: item.name,
+          coach_id: item.coach_id || item.created_by, // Use created_by as fallback
+          created_at: item.created_at,
+          created_by: item.created_by,
+          description: item.description
+        });
+      }
+    }
     
-    return result;
+    return groups;
   } catch (error) {
     console.error("Error in fetchAllGroups:", error);
     throw error;

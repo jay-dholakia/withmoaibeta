@@ -109,13 +109,22 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
 
     try {
       setUploading(true);
-      const url = await uploadClientAvatar(profile.id as string, file);
+      console.log('Starting avatar upload for user ID:', profile.id);
+      
+      if (!profile.id) {
+        toast.error("User ID is missing. Cannot upload avatar.");
+        return;
+      }
+      
+      const url = await uploadClientAvatar(profile.id, file);
+      console.log('Avatar uploaded successfully:', url);
+      
       setAvatarUrl(url);
       onUpdate({ avatar_url: url });
       toast.success("Your profile picture has been updated");
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast.error("There was an error uploading your image");
+      toast.error("There was an error uploading your image. Please try again.");
     } finally {
       setUploading(false);
     }

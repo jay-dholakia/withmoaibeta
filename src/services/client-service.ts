@@ -321,20 +321,32 @@ export const updateClientProfile = async (userId: string, profileData: Partial<C
 export const uploadClientAvatar = async (userId: string, file: File): Promise<string> => {
   try {
     const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
+    const fileName = `${userId}/${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `${fileName}`;
     
-    const { error: uploadError } = await supabase.storage
+    console.log('Uploading avatar to path:', filePath);
+    
+    const { error: uploadError, data } = await supabase.storage
       .from('client-avatars')
-      .upload(filePath, file);
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
     
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error("Error uploading avatar:", uploadError);
+      throw uploadError;
+    }
     
-    const { data } = supabase.storage
+    console.log('Upload successful:', data);
+    
+    const { data: urlData } = supabase.storage
       .from('client-avatars')
       .getPublicUrl(filePath);
     
-    return data.publicUrl;
+    console.log('Public URL:', urlData.publicUrl);
+    
+    return urlData.publicUrl;
   } catch (error) {
     console.error("Error uploading avatar:", error);
     throw error;
@@ -396,7 +408,11 @@ export const updateCoachProfile = async (coachId: string, profileData: Partial<C
         .select()
         .single();
       
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Error creating coach profile:', insertError);
+        throw insertError;
+      }
+      
       data = insertData;
     } else {
       // Otherwise update it

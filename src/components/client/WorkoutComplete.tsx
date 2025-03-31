@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,7 +30,6 @@ const WorkoutComplete = () => {
   const [shareMessage, setShareMessage] = useState('');
   const [isEditingMessage, setIsEditingMessage] = useState(false);
   
-  // Workout data query to fetch workout details
   const { data: workoutData, isLoading, error } = useQuery({
     queryKey: ['complete-workout', workoutCompletionId],
     queryFn: async () => {
@@ -42,7 +40,6 @@ const WorkoutComplete = () => {
       }
       
       try {
-        // First try to get it as a workout completion
         const { data: completionData, error: completionError } = await supabase
           .from('workout_completions')
           .select(`
@@ -64,10 +61,8 @@ const WorkoutComplete = () => {
           return completionData;
         }
         
-        // If not found as a completion ID, try as a workout ID
         console.log("No workout completion found with that ID, checking if it's a workout ID");
         
-        // Check if a completion exists for this workout and user
         const { data: existingCompletion, error: existingError } = await supabase
           .from('workout_completions')
           .select(`
@@ -90,7 +85,6 @@ const WorkoutComplete = () => {
           return existingCompletion;
         }
         
-        // If no completion exists, just get the workout details
         console.log("No completion found, fetching workout directly");
         const { data: workoutOnly, error: workoutError } = await supabase
           .from('workouts')
@@ -114,7 +108,7 @@ const WorkoutComplete = () => {
         }
         
         return {
-          id: null, // No completion ID yet
+          id: null,
           user_id: user.id,
           workout_id: workoutCompletionId,
           completed_at: null,
@@ -131,7 +125,6 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Personal records query
   const { data: personalRecords, isLoading: isLoadingPRs } = useQuery({
     queryKey: ['personal-records', user?.id, workoutCompletionId],
     queryFn: async () => {
@@ -150,7 +143,6 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Generate share message when data is loaded
   useEffect(() => {
     if (workoutData && !shareMessage) {
       let message = `I just finished my workout: ${workoutData?.workout?.title || 'Workout'}! 💪\n\n`;
@@ -169,7 +161,6 @@ const WorkoutComplete = () => {
     }
   }, [workoutData, personalRecords, shareMessage]);
 
-  // Function to add workout notes to journal
   const addToJournal = async (notes: string) => {
     if (!user?.id || !notes.trim() || !workoutData) return;
     
@@ -194,7 +185,6 @@ const WorkoutComplete = () => {
     }
   };
 
-  // Mutation for completing the workout
   const completeMutation = useMutation({
     mutationFn: async () => {
       if (!workoutCompletionId) return null;
@@ -221,7 +211,6 @@ const WorkoutComplete = () => {
     },
   });
 
-  // Share workout function
   const handleShareWorkout = () => {
     navigator.clipboard.writeText(shareMessage)
       .then(() => {
@@ -232,18 +221,15 @@ const WorkoutComplete = () => {
       });
   };
 
-  // Close share dialog and navigate away
   const handleCloseShareDialog = () => {
     setShowShareDialog(false);
     navigate('/client-dashboard/moai');
   };
 
-  // Toggle edit mode for share message
   const toggleEditMessage = () => {
     setIsEditingMessage(!isEditingMessage);
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -252,7 +238,6 @@ const WorkoutComplete = () => {
     );
   }
 
-  // Error state when workout not found
   if (!workoutData) {
     return (
       <div className="text-center py-12">
@@ -268,7 +253,6 @@ const WorkoutComplete = () => {
     );
   }
 
-  // Feeling options for workout rating
   const feelingOptions = [
     { value: 1, emoji: "😫", label: "Exhausted" },
     { value: 2, emoji: "😓", label: "Tired" },

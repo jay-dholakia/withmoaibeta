@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -171,7 +172,9 @@ const ClientsPage = () => {
       setEditMessage(messageStatus[clientId].message);
       setSheetOpen(true);
     } else {
-      toast.error("No message found to edit");
+      toast({
+        description: "No message found to edit"
+      });
     }
   };
 
@@ -190,8 +193,7 @@ const ClientsPage = () => {
     setSelectedClientEmail(null);
     setEditMessage(undefined);
     toast({
-      title: "Message saved",
-      description: "Your message has been sent to the client.",
+      description: "Your message has been sent to the client."
     });
   };
 

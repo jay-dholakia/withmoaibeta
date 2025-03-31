@@ -98,6 +98,12 @@ const ClientsPage = () => {
     selectedGroupId === 'all' || client.group_ids.includes(selectedGroupId)
   ) || [];
 
+  const totalPages = Math.ceil((filteredClients?.length || 0) / itemsPerPage);
+  const paginatedClients = filteredClients.slice(
+    (currentPage - 1) * itemsPerPage, 
+    currentPage * itemsPerPage
+  );
+
   const messageStatusQuery = useQuery({
     queryKey: ['client-message-status', user?.id, filteredClients, currentPage],
     queryFn: async () => {
@@ -141,12 +147,6 @@ const ClientsPage = () => {
     enabled: !!user?.id && !!clients?.length,
   });
 
-  const totalPages = Math.ceil((filteredClients?.length || 0) / itemsPerPage);
-  const paginatedClients = filteredClients.slice(
-    (currentPage - 1) * itemsPerPage, 
-    currentPage * itemsPerPage
-  );
-
   const handleViewClient = (clientId: string, clientEmail: string) => {
     setSelectedClientId(clientId);
     setSelectedClientEmail(clientEmail);
@@ -189,6 +189,10 @@ const ClientsPage = () => {
     setSelectedClientId(null);
     setSelectedClientEmail(null);
     setEditMessage(undefined);
+    toast({
+      title: "Message saved",
+      description: "Your message has been sent to the client.",
+    });
   };
 
   const getWorkoutStatusClass = (days: number | null) => {

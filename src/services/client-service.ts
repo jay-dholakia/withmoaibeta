@@ -1,3 +1,4 @@
+
 /**
  * Client service methods for workout tracking and completion
  */
@@ -471,8 +472,9 @@ export const fetchAllGroups = async (coachId?: string) => {
       query = query.eq('coach_id', coachId);
     }
     
-    // Use type assertion to avoid deep type inference
-    const { data, error } = await query.order('created_at', { ascending: false }) as { 
+    // Execute the query with a basic type annotation to avoid deep inference issues
+    const result = await query.order('created_at', { ascending: false });
+    const { data, error } = result as unknown as { 
       data: any[] | null; 
       error: any 
     };

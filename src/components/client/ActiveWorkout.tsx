@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -92,7 +93,8 @@ const ActiveWorkout = () => {
             ),
             workout_set_completions (*)
           `)
-          .eq('id', workoutCompletionId || '')
+          .eq('workout_id', workoutCompletionId || '')
+          .eq('user_id', user?.id)
           .maybeSingle();
 
         if (completionError) {
@@ -103,9 +105,9 @@ const ActiveWorkout = () => {
         console.log("Fetched workout data:", completionData);
         
         if (!completionData || !completionData.workout) {
-          console.log("Workout completion not found or doesn't have workout data. Trying to fetch directly...");
+          console.error("Workout data missing or incomplete:", completionData);
           
-          const { data: directWorkoutData, error: workoutError } = await supabase
+          const { data: workoutOnlyData, error: workoutError } = await supabase
             .from('workouts')
             .select(`
               *,
@@ -122,47 +124,19 @@ const ActiveWorkout = () => {
             throw workoutError;
           }
           
-          if (directWorkoutData) {
-            console.log("Found workout directly:", directWorkoutData);
-            
-            return {
-              id: workoutCompletionId,
-              user_id: user?.id,
-              workout_id: workoutCompletionId,
-              workout: directWorkoutData,
-              workout_set_completions: []
-            };
+          if (!workoutOnlyData) {
+            console.error("Workout not found with ID:", workoutCompletionId);
+            return null;
           }
           
-          if (completionData?.workout_id) {
-            const { data: workoutOnlyData, error: workoutLookupError } = await supabase
-              .from('workouts')
-              .select(`
-                *,
-                workout_exercises (
-                  *,
-                  exercise:exercise_id (*)
-                )
-              `)
-              .eq('id', completionData.workout_id)
-              .maybeSingle();
-            
-            if (workoutLookupError) {
-              console.error("Error fetching workout by ID:", workoutLookupError);
-              throw workoutLookupError;
-            }
-            
-            if (workoutOnlyData) {
-              return {
-                ...completionData,
-                workout: workoutOnlyData,
-                workout_set_completions: completionData.workout_set_completions || []
-              };
-            }
-          }
-          
-          console.error("Could not find workout data by any method");
-          return null;
+          return {
+            id: null,
+            user_id: user?.id,
+            workout_id: workoutCompletionId,
+            completed_at: null,
+            workout: workoutOnlyData,
+            workout_set_completions: []
+          };
         }
         
         return completionData;
@@ -201,7 +175,7 @@ const ActiveWorkout = () => {
       
       console.log("Tracking set:", {
         workoutCompletionId,
-        exerciseId,
+        exerciseId,  // This is actually workout_exercise_id
         setNumber,
         weight: weight ? parseFloat(weight) : null,
         reps: reps ? parseInt(reps, 10) : null,
@@ -214,7 +188,7 @@ const ActiveWorkout = () => {
       try {
         return await trackWorkoutSet(
           workoutCompletionId,
-          exerciseId,
+          exerciseId,  // Passing workout_exercise_id to the function
           setNumber,
           weight ? parseFloat(weight) : null,
           reps ? parseInt(reps, 10) : null,
@@ -240,8 +214,7 @@ const ActiveWorkout = () => {
 
   const saveAllSetsMutation = useMutation({
     mutationFn: async () => {
-      if (!workoutCompletionId || !workoutData) {
-        toast.error("Missing workout data");
+      if (!workoutCompletionId) {
         return null;
       }
       

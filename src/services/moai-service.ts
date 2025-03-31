@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -9,13 +8,6 @@ export const verifyUserGroupMembership = async (userId: string) => {
   
   try {
     console.log('Verifying group membership for user:', userId);
-    
-    // Check for network connectivity
-    if (!navigator.onLine) {
-      console.warn('Network offline: Cannot verify group membership');
-      // Return the last known state or a safe default
-      return false;
-    }
     
     // Use maybeSingle() instead of single() to avoid errors when no records found
     const { data, error, count } = await supabase
@@ -47,13 +39,6 @@ export const fetchUserGroups = async (userId: string) => {
   
   try {
     console.log('Fetching groups for user:', userId);
-    
-    // Check for network connectivity
-    if (!navigator.onLine) {
-      console.warn('Network offline: Cannot fetch user groups');
-      // Return cached data if available or an empty array
-      return [];
-    }
     
     // Direct query for group memberships with inner join to groups
     // This is more reliable than the previous approach
@@ -389,15 +374,6 @@ export const resetUserGroupMembership = async (userId: string, newGroupId?: stri
   }
   
   try {
-    // Check for network connectivity
-    if (!navigator.onLine) {
-      return { 
-        success: false, 
-        message: 'Cannot reset group membership while offline',
-        offline: true
-      };
-    }
-    
     console.log(`Resetting group membership for user: ${userId}`);
     
     // First, get all current group memberships to check

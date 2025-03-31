@@ -26,13 +26,9 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // For running or cardio exercises, we need to make sure reps is set to a valid value
-    // to prevent the personal_records constraint error
-    const exerciseReps = isRunningExercise ? '1' : reps;
-    
     onSubmit({
       sets,
-      reps: exerciseReps,
+      reps: isRunningExercise ? '' : reps,
       rest_seconds: restSeconds,
       notes,
       duration,

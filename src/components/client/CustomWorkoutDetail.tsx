@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Clock, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { 
+  fetchCustomWorkouts,
+  fetchCustomWorkoutExercises,
+  deleteCustomWorkout,
+  moveCustomWorkoutExerciseUp,
+  moveCustomWorkoutExerciseDown,
+  CustomWorkout,
+  CustomWorkoutExercise
+} from '@/services/client-custom-workout-service';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -18,178 +24,248 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Separator } from '@/components/ui/separator';
-import { WorkoutTypeIcon } from './WorkoutTypeIcon';
-import { Clock, CalendarDays, Edit, Trash2, CheckCircle2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { CustomWorkout, deleteCustomWorkout, startCustomWorkout } from '@/services/client-custom-workout-service';
-import { WorkoutType } from './WorkoutTypeIcon';
 
-interface CustomWorkoutDetailProps {
-  workout: CustomWorkout;
-  onDelete?: () => void;
-  onStart?: () => void;
-}
-
-export const CustomWorkoutDetail: React.FC<CustomWorkoutDetailProps> = ({ workout, onDelete, onStart }) => {
+const CustomWorkoutDetail = () => {
+  const { workoutId } = useParams<{ workoutId: string }>();
   const navigate = useNavigate();
+  const [workout, setWorkout] = useState<CustomWorkout | null>(null);
+  const [exercises, setExercises] = useState<CustomWorkoutExercise[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [startingWorkout, setStartingWorkout] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
 
-  const handleDelete = async () => {
+  useEffect(() => {
+    const loadWorkoutDetails = async () => {
+      if (!workoutId) return;
+      
+      try {
+        setIsLoading(true);
+        
+        // Fetch workout details
+        const workouts = await fetchCustomWorkouts();
+        const currentWorkout = workouts.find(w => w.id === workoutId);
+        
+        if (!currentWorkout) {
+          toast.error('Workout not found');
+          navigate('/client-dashboard/workouts');
+          return;
+        }
+        
+        setWorkout(currentWorkout);
+        
+        // Fetch workout exercises
+        const exercisesData = await fetchCustomWorkoutExercises(workoutId);
+        setExercises(exercisesData);
+      } catch (error) {
+        console.error('Error loading workout details:', error);
+        toast.error('Failed to load workout details');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadWorkoutDetails();
+  }, [workoutId, navigate]);
+
+  const handleDeleteWorkout = async () => {
+    if (!workoutId) return;
+    
     try {
       setIsDeleting(true);
-      await deleteCustomWorkout(workout.id);
+      await deleteCustomWorkout(workoutId);
       toast.success('Workout deleted successfully');
-      if (onDelete) onDelete();
+      navigate('/client-dashboard/workouts');
     } catch (error) {
       console.error('Error deleting workout:', error);
       toast.error('Failed to delete workout');
-    } finally {
       setIsDeleting(false);
-      setConfirmDelete(false);
     }
   };
 
-  const handleStartWorkout = async () => {
+  const handleMoveExerciseUp = async (exerciseId: string) => {
+    if (!workoutId) return;
+    
     try {
-      setStartingWorkout(true);
-      
-      const result = await startCustomWorkout(workout.id);
-      
-      if (result.success) {
-        toast.success('Workout started!');
-        if (result.session_id) {
-          navigate(`/client-dashboard/workout-session/${result.session_id}`);
-        }
-      } else {
-        toast.error(result.message || 'Failed to start workout');
-      }
-      
-      if (onStart) onStart();
+      setIsReordering(true);
+      const updatedExercises = await moveCustomWorkoutExerciseUp(exerciseId, workoutId);
+      setExercises(updatedExercises);
     } catch (error) {
-      console.error('Error starting workout:', error);
-      toast.error('Failed to start workout');
+      console.error('Error moving exercise up:', error);
+      toast.error('Failed to reorder exercise');
     } finally {
-      setStartingWorkout(false);
+      setIsReordering(false);
     }
   };
 
-  const workoutType = (workout.workout_type as WorkoutType) || 'strength';
+  const handleMoveExerciseDown = async (exerciseId: string) => {
+    if (!workoutId) return;
+    
+    try {
+      setIsReordering(true);
+      const updatedExercises = await moveCustomWorkoutExerciseDown(exerciseId, workoutId);
+      setExercises(updatedExercises);
+    } catch (error) {
+      console.error('Error moving exercise down:', error);
+      toast.error('Failed to reorder exercise');
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="py-12 flex justify-center">
+        <p className="text-muted-foreground">Loading workout details...</p>
+      </div>
+    );
+  }
+
+  if (!workout) {
+    return (
+      <div className="py-12 flex justify-center">
+        <p className="text-muted-foreground">Workout not found</p>
+      </div>
+    );
+  }
 
   return (
-    <Card className="overflow-hidden border">
-      <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <WorkoutTypeIcon type={workoutType} />
-          <CardTitle className="text-lg font-medium">{workout.title}</CardTitle>
-        </div>
-        <div className="flex space-x-1">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-8 w-8 p-0" 
-            onClick={() => navigate(`/client-dashboard/custom-workout/${workout.id}/edit`)}
-          >
-            <Edit className="h-4 w-4" />
-            <span className="sr-only">Edit</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-8 w-8 p-0 text-destructive" 
-            onClick={() => setConfirmDelete(true)}
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="sr-only">Delete</span>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="p-4 pt-2">
-        {workout.description && (
-          <p className="text-sm text-muted-foreground mb-2">{workout.description}</p>
-        )}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate('/client-dashboard/workouts')}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Workouts
+        </Button>
         
-        <div className="flex flex-wrap gap-2 mb-3">
-          <div className="bg-muted text-xs rounded-full px-2 py-1 flex items-center">
-            <CalendarDays className="w-3 h-3 mr-1" />
-            {new Date(workout.created_at).toLocaleDateString()}
-          </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm" disabled={isDeleting}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              {isDeleting ? 'Deleting...' : 'Delete Workout'}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the custom workout and cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteWorkout}>
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+
+      <div>
+        <h1 className="text-2xl font-bold mb-2">{workout.title}</h1>
+        
+        <div className="flex items-center text-muted-foreground mb-4">
           {workout.duration_minutes && (
-            <div className="bg-muted text-xs rounded-full px-2 py-1 flex items-center">
-              <Clock className="w-3 h-3 mr-1" />
-              {workout.duration_minutes} min
+            <div className="flex items-center mr-4">
+              <Clock className="h-4 w-4 mr-1" />
+              <span>{workout.duration_minutes} minutes</span>
             </div>
           )}
+          <div>Created: {new Date(workout.created_at).toLocaleDateString()}</div>
         </div>
         
-        <Separator className="my-2" />
-        
-        <div className="mt-3">
-          <h4 className="text-sm font-medium mb-2">Exercises:</h4>
-          <ul className="text-sm space-y-1">
-            {workout.workout_exercises?.map((exercise, idx) => (
-              <li key={idx} className="flex items-center text-muted-foreground">
-                <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center mr-2 text-xs">
-                  {idx + 1}
-                </div>
-                <span>{exercise.exercise?.name || exercise.custom_exercise_name || 'Exercise'}</span>
-                <span className="ml-auto text-xs">
-                  {exercise.sets} × {exercise.reps}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </CardContent>
-      <CardFooter className="p-4 pt-0">
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button 
-              variant="default" 
-              className="w-full mt-2 gap-2" 
-              disabled={startingWorkout}
-              onClick={handleStartWorkout}
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              {startingWorkout ? 'Starting...' : 'Start Workout'}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Start Workout</DialogTitle>
-              <DialogDescription>
-                Are you ready to begin this workout? Your progress will be tracked.
-              </DialogDescription>
-            </DialogHeader>
-            {/* Dialog content here */}
-          </DialogContent>
-        </Dialog>
-      </CardFooter>
+        {workout.description && (
+          <p className="text-muted-foreground mb-6">{workout.description}</p>
+        )}
+      </div>
+
+      <Separator />
       
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Custom Workout</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this custom workout? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Card>
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Exercises</h2>
+        
+        {exercises.length === 0 ? (
+          <p className="text-muted-foreground">No exercises found in this workout.</p>
+        ) : (
+          <div className="space-y-4">
+            {exercises.map((exercise, index) => (
+              <Card key={exercise.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-medium">
+                        {exercise.exercise?.name || exercise.custom_exercise_name || 'Unnamed Exercise'}
+                      </h3>
+                      
+                      <div className="flex flex-wrap gap-x-4 mt-2 text-sm">
+                        {exercise.sets && (
+                          <div className="text-muted-foreground">
+                            <span className="font-medium">Sets:</span> {exercise.sets}
+                          </div>
+                        )}
+                        
+                        {exercise.reps && (
+                          <div className="text-muted-foreground">
+                            <span className="font-medium">Reps:</span> {exercise.reps}
+                          </div>
+                        )}
+                        
+                        {exercise.rest_seconds && (
+                          <div className="text-muted-foreground">
+                            <span className="font-medium">Rest:</span> {exercise.rest_seconds}s
+                          </div>
+                        )}
+                      </div>
+                      
+                      {exercise.notes && (
+                        <div className="mt-2 text-sm">
+                          <div className="font-medium">Notes:</div>
+                          <p className="text-muted-foreground">{exercise.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="p-0 h-8 w-8" 
+                        onClick={() => handleMoveExerciseUp(exercise.id)}
+                        disabled={index === 0 || isReordering}
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                        <span className="sr-only">Move up</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="p-0 h-8 w-8" 
+                        onClick={() => handleMoveExerciseDown(exercise.id)}
+                        disabled={index === exercises.length - 1 || isReordering}
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                        <span className="sr-only">Move down</span>
+                      </Button>
+                      
+                      <div className="bg-muted h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground font-medium">
+                        {index + 1}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
+
+export default CustomWorkoutDetail;

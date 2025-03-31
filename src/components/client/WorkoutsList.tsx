@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -23,15 +24,11 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 
-interface WorkoutsListProps {
-  workouts: WorkoutHistoryItem[];
-}
-
-const WorkoutsList: React.FC<WorkoutsListProps> = ({ workouts: initialWorkouts }) => {
+const WorkoutsList = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>(initialWorkouts || []);
-  const [isLoading, setIsLoading] = useState(initialWorkouts ? false : true);
+  const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [weekFilter, setWeekFilter] = useState<string>("");
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
@@ -51,158 +48,102 @@ const WorkoutsList: React.FC<WorkoutsListProps> = ({ workouts: initialWorkouts }
     }));
   }, []);
 
-  // Only load workouts if none were provided as props
   useEffect(() => {
-    if (initialWorkouts && initialWorkouts.length > 0) {
-      // If workouts are provided via props, use them directly
-      setWorkouts(initialWorkouts);
-      processWorkouts(initialWorkouts);
-    } else {
-      // Otherwise load them from the API
-      loadWorkoutsAndProgram();
-    }
-  }, [initialWorkouts, user]);
-
-  // Function to process workouts (extract common logic from loadWorkoutsAndProgram)
-  const processWorkouts = (assignedWorkouts: WorkoutHistoryItem[]) => {
-    // Determine which weeks are completed by checking if all workouts for that week are completed
-    const weekCompletionStatus: Record<string, boolean> = {};
-    const weeksSet = new Set<number>();
-    
-    // Group all workouts by week
-    const workoutsByWeek: Record<number, WorkoutHistoryItem[]> = {};
-    
-    assignedWorkouts.forEach(workout => {
-      if (workout.workout?.week && workout.workout.week.week_number) {
-        const weekNum = workout.workout.week.week_number;
-        weeksSet.add(weekNum);
+    const loadWorkoutsAndProgram = async () => {
+      if (!user || !user.id) {
+        console.error("Cannot load workouts: User or user ID is missing", user);
+        setError('User not authenticated properly. Please try logging in again.');
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        console.log("Loading assigned workouts for user:", user.id);
+        setIsLoading(true);
+        setError(null);
         
-        if (!workoutsByWeek[weekNum]) {
-          workoutsByWeek[weekNum] = [];
+        const programPromise = fetchCurrentProgram(user.id);
+        const workoutsPromise = fetchAssignedWorkouts(user.id);
+        
+        const [program, assignedWorkouts] = await Promise.all([programPromise, workoutsPromise]);
+        
+        console.log("Current user email:", user.email);
+        console.log("Program data received:", program);
+        if (program && program.program) {
+          console.log("Program title:", program.program.title);
+          console.log("Program description:", program.program.description || "No description");
+          console.log("Program weeks data:", program.program.weekData);
+        } else {
+          console.log("No program assigned to this user or program data is incomplete");
         }
-        workoutsByWeek[weekNum].push(workout);
-      }
-    });
-    
-    // Check if all workouts in each week are completed
-    Object.entries(workoutsByWeek).forEach(([weekNum, weekWorkouts]) => {
-      const allCompleted = weekWorkouts.every(workout => !!workout.completed_at);
-      weekCompletionStatus[weekNum] = allCompleted;
-    });
-    
-    setCompletedWeeks(weekCompletionStatus);
-    
-    assignedWorkouts.forEach(workout => {
-      if (workout.workout?.week && workout.workout.week.week_number) {
-        weeksSet.add(workout.workout.week.week_number);
-      }
-    });
-    
-    const extractedWeeks = Array.from(weeksSet);
-    console.log("Debug - Extracted week numbers:", extractedWeeks);
-    setAvailableWeeks(extractedWeeks);
-    
-    if (extractedWeeks.length > 0) {
-      const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
-      // Set initial week filter after component is fully mounted
-      setTimeout(() => {
-        setWeekFilter(sortedWeeks[0].toString());
-      }, 0);
-    }
-  };
-
-  const loadWorkoutsAndProgram = async () => {
-    if (!user || !user.id) {
-      console.error("Cannot load workouts: User or user ID is missing", user);
-      setError('User not authenticated properly. Please try logging in again.');
-      setIsLoading(false);
-      return;
-    }
-    
-    try {
-      console.log("Loading assigned workouts for user:", user.id);
-      setIsLoading(true);
-      setError(null);
-      
-      const programPromise = fetchCurrentProgram(user.id);
-      const workoutsPromise = fetchAssignedWorkouts(user.id);
-      
-      const [program, assignedWorkouts] = await Promise.all([programPromise, workoutsPromise]);
-      
-      console.log("Current user email:", user.email);
-      console.log("Program data received:", program);
-      if (program && program.program) {
-        console.log("Program title:", program.program.title);
-        console.log("Program description:", program.program.description || "No description");
-        console.log("Program weeks data:", program.program.weekData);
-      } else {
-        console.log("No program assigned to this user or program data is incomplete");
-      }
-      
-      console.log("Assigned workouts loaded:", assignedWorkouts.length);
-      
-      // Filter out completed workouts here
-      const pendingWorkouts = assignedWorkouts.filter(workout => !workout.completed_at);
-      console.log("Pending workouts (not completed):", pendingWorkouts.length);
-      
-      setCurrentProgram(program);
-      setWorkouts(pendingWorkouts);
-      
-      // Get all workouts (including completed) for checking completed weeks
-      const allWorkouts = assignedWorkouts;
-      
-      // Determine which weeks are completed by checking if all workouts for that week are completed
-      const weekCompletionStatus: Record<string, boolean> = {};
-      const weeksSet = new Set<number>();
-      
-      // Group all workouts by week
-      const workoutsByWeek: Record<number, WorkoutHistoryItem[]> = {};
-      
-      allWorkouts.forEach(workout => {
-        if (workout.workout?.week && workout.workout.week.week_number) {
-          const weekNum = workout.workout.week.week_number;
-          weeksSet.add(weekNum);
-          
-          if (!workoutsByWeek[weekNum]) {
-            workoutsByWeek[weekNum] = [];
+        
+        console.log("Assigned workouts loaded:", assignedWorkouts.length);
+        
+        // Filter out completed workouts here
+        const pendingWorkouts = assignedWorkouts.filter(workout => !workout.completed_at);
+        console.log("Pending workouts (not completed):", pendingWorkouts.length);
+        
+        setCurrentProgram(program);
+        setWorkouts(pendingWorkouts);
+        
+        // Get all workouts (including completed) for checking completed weeks
+        const allWorkouts = assignedWorkouts;
+        
+        // Determine which weeks are completed by checking if all workouts for that week are completed
+        const weekCompletionStatus: Record<string, boolean> = {};
+        const weeksSet = new Set<number>();
+        
+        // Group all workouts by week
+        const workoutsByWeek: Record<number, WorkoutHistoryItem[]> = {};
+        
+        allWorkouts.forEach(workout => {
+          if (workout.workout?.week && workout.workout.week.week_number) {
+            const weekNum = workout.workout.week.week_number;
+            weeksSet.add(weekNum);
+            
+            if (!workoutsByWeek[weekNum]) {
+              workoutsByWeek[weekNum] = [];
+            }
+            workoutsByWeek[weekNum].push(workout);
           }
-          workoutsByWeek[weekNum].push(workout);
+        });
+        
+        // Check if all workouts in each week are completed
+        Object.entries(workoutsByWeek).forEach(([weekNum, weekWorkouts]) => {
+          const allCompleted = weekWorkouts.every(workout => !!workout.completed_at);
+          weekCompletionStatus[weekNum] = allCompleted;
+        });
+        
+        setCompletedWeeks(weekCompletionStatus);
+        
+        pendingWorkouts.forEach(workout => {
+          if (workout.workout?.week && workout.workout.week.week_number) {
+            weeksSet.add(workout.workout.week.week_number);
+          }
+        });
+        
+        const extractedWeeks = Array.from(weeksSet);
+        console.log("Debug - Extracted week numbers:", extractedWeeks);
+        setAvailableWeeks(extractedWeeks);
+        
+        if (extractedWeeks.length > 0) {
+          const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
+          // Set initial week filter after component is fully mounted
+          setTimeout(() => {
+            setWeekFilter(sortedWeeks[0].toString());
+          }, 0);
         }
-      });
-      
-      // Check if all workouts in each week are completed
-      Object.entries(workoutsByWeek).forEach(([weekNum, weekWorkouts]) => {
-        const allCompleted = weekWorkouts.every(workout => !!workout.completed_at);
-        weekCompletionStatus[weekNum] = allCompleted;
-      });
-      
-      setCompletedWeeks(weekCompletionStatus);
-      
-      pendingWorkouts.forEach(workout => {
-        if (workout.workout?.week && workout.workout.week.week_number) {
-          weeksSet.add(workout.workout.week.week_number);
-        }
-      });
-      
-      const extractedWeeks = Array.from(weeksSet);
-      console.log("Debug - Extracted week numbers:", extractedWeeks);
-      setAvailableWeeks(extractedWeeks);
-      
-      if (extractedWeeks.length > 0) {
-        const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
-        // Set initial week filter after component is fully mounted
-        setTimeout(() => {
-          setWeekFilter(sortedWeeks[0].toString());
-        }, 0);
+      } catch (error) {
+        console.error('Error loading workouts:', error);
+        setError('Failed to load your assigned workouts');
+        toast.error('There was a problem loading your workouts');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading workouts:', error);
-      setError('Failed to load your assigned workouts');
-      toast.error('There was a problem loading your workouts');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    loadWorkoutsAndProgram();
+  }, [user]);
 
   const filteredWorkouts = React.useMemo(() => {
     if (!weekFilter) {

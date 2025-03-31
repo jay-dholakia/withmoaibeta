@@ -1,182 +1,153 @@
 
-import React, { useState, useEffect } from 'react';
-import { ClientLayout } from '@/layouts/ClientLayout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import React, { useState } from 'react';
+import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
-import { WorkoutTypeIcon } from '@/components/client/WorkoutTypeIcon';
-import { WeekProgressSection } from '@/components/client/WeekProgressSection';
-import { Calendar, Plus } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { fetchAssignedWorkouts } from '@/services/assigned-workouts-service';
-import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import ActiveWorkout from '@/components/client/ActiveWorkout';
+import WorkoutComplete from '@/components/client/WorkoutComplete';
 import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
-import CustomWorkoutsList from '@/components/client/CustomWorkoutsList';
-import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
+import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
+import PassCounter from '@/components/client/PassCounter';
+import LifeHappensButton from '@/components/client/LifeHappensButton';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
-
-// Add interfaces for the component props
-interface CreateCustomWorkoutProps {
-  onCreated?: () => void;
-}
-
-interface EnterOneOffWorkoutProps {
-  onWorkoutLogged?: () => void;
-}
-
-// Declare the components with proper prop types
-const CustomCreateWorkout: React.FC<CreateCustomWorkoutProps> = CreateCustomWorkout as React.FC<CreateCustomWorkoutProps>;
-const CustomEnterOneOffWorkout: React.FC<EnterOneOffWorkoutProps> = EnterOneOffWorkout as React.FC<EnterOneOffWorkoutProps>;
+import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
+import { Button } from '@/components/ui/button';
+import { PlusCircle, Armchair, ListTodo, History } from 'lucide-react';
+import { logRestDay } from '@/services/workout-history-service';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const WorkoutsPage = () => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('weekly');
-  const [weekTab, setWeekTab] = useState('1');
-  const [isCreateCustomWorkoutOpen, setIsCreateCustomWorkoutOpen] = useState(false);
-  const [isEnterOneOffWorkoutOpen, setIsEnterOneOffWorkoutOpen] = useState(false);
-
-  const { data: assignedWorkouts, isLoading, error } = useQuery({
-    queryKey: ['assignedWorkouts', user?.id],
-    queryFn: () => fetchAssignedWorkouts(user?.id || ''),
-    enabled: !!user?.id, // Only run the query if the user is logged in
-  });
-
-  useEffect(() => {
-    if (error) {
-      toast.error('Failed to load assigned workouts');
-    }
-  }, [error]);
+  const [showRestDayDialog, setShowRestDayDialog] = useState(false);
+  const location = useLocation();
+  console.log("WorkoutsPage component rendering");
   
+  const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
+  
+  const isActiveOrCompleteWorkout = location.pathname.includes('/active/') || 
+                                   location.pathname.includes('/complete/');
+  
+  const handleLogRestDay = () => {
+    logRestDay().then(() => {
+      toast.success("Rest day logged successfully!");
+      setShowRestDayDialog(false);
+    }).catch((error) => {
+      console.error("Error logging rest day:", error);
+      toast.error("Failed to log rest day");
+      setShowRestDayDialog(false);
+    });
+  };
+
   return (
-    <ClientLayout>
-      <div className="flex flex-col px-4 pt-2 pb-16 md:pt-4">
-        <div className="flex flex-col mb-6">
-          <h1 className="text-2xl font-bold">Workouts</h1>
-          <p className="text-muted-foreground">Track your assigned and custom workouts.</p>
+    <div className="w-full">
+      {!isActiveOrCompleteWorkout && (
+        <div className="flex justify-end mb-4">
+          <PassCounter />
         </div>
-        
-        <Tabs defaultValue="weekly" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="weekly">Weekly</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            <TabsTrigger value="custom">Custom</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="weekly" className="mt-4 space-y-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-lg font-medium">Assigned Workouts</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <p>Loading workouts...</p>
-                ) : assignedWorkouts ? (
-                  <WorkoutsList workouts={assignedWorkouts} />
-                ) : (
-                  <p>No workouts assigned yet.</p>
-                )}
-              </CardContent>
-            </Card>
+      )}
+      
+      <Routes>
+        <Route index element={
+          <Tabs defaultValue="active-workouts" className="w-full">
+            <TabsList className="w-full mb-6">
+              <TabsTrigger value="active-workouts" className="flex-1 flex items-center justify-center gap-2">
+                <ListTodo className="h-4 w-4" />
+                <span>My Workouts</span>
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex-1 flex items-center justify-center gap-2">
+                <History className="h-4 w-4" />
+                <span>Workout History</span>
+              </TabsTrigger>
+            </TabsList>
             
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-lg font-medium">Week Progress</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <WeekProgressSection />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="monthly" className="mt-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-lg font-medium">Monthly Calendar</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MonthlyCalendarView workouts={assignedWorkouts || []} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="custom" className="mt-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div>
-                  <CardTitle className="text-lg font-medium">Custom Workouts</CardTitle>
-                  <CardDescription>Create and track your own workouts</CardDescription>
-                </div>
-                <Dialog open={isCreateCustomWorkoutOpen} onOpenChange={setIsCreateCustomWorkoutOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" className="h-8 gap-1">
-                      <Plus className="h-3.5 w-3.5" />
-                      Create
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader>
-                      <DialogTitle>Create Custom Workout</DialogTitle>
-                      <DialogDescription>
-                        Design your own workout with custom exercises and tracking options.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <CustomCreateWorkout 
-                      onCreated={() => {
-                        setIsCreateCustomWorkoutOpen(false);
-                      }}
-                    />
-                  </DialogContent>
-                </Dialog>
-              </CardHeader>
-              <CardContent className="pt-2">
-                <CustomWorkoutsList />
-              </CardContent>
-            </Card>
+            <TabsContent value="active-workouts">
+              <WorkoutsList />
+              
+              <div className="mt-8 border-t pt-6">
+                <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
+                  <Link to="/client-dashboard/workouts/one-off">
+                    <PlusCircle className="h-4 w-4" />
+                    Enter Custom Workout
+                  </Link>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full mb-4 flex items-center justify-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
+                  onClick={() => setShowRestDayDialog(true)}
+                >
+                  <Armchair className="h-4 w-4" />
+                  Log Rest Day
+                </Button>
+              </div>
+              <LifeHappensButton />
+            </TabsContent>
             
-            <div className="mt-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <div>
-                    <CardTitle className="text-lg font-medium">One-off Workout</CardTitle>
-                    <CardDescription>Quickly log a workout you've completed</CardDescription>
-                  </div>
-                  <Dialog open={isEnterOneOffWorkoutOpen} onOpenChange={setIsEnterOneOffWorkoutOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" className="h-8 gap-1">
-                        <Plus className="h-3.5 w-3.5" />
-                        Log Workout
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px]">
-                      <DialogHeader>
-                        <DialogTitle>Log One-off Workout</DialogTitle>
-                        <DialogDescription>
-                          Record a workout you've completed outside of your regular program.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <CustomEnterOneOffWorkout 
-                        onWorkoutLogged={() => {
-                          setIsEnterOneOffWorkoutOpen(false);
-                        }}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                </CardHeader>
-                <CardContent className="pt-2">
-                  <div className="text-sm text-muted-foreground mb-1">
-                    Use this to quickly log workouts that aren't part of your regular program.
-                  </div>
-                </CardContent>
-              </Card>
+            <TabsContent value="history">
+              <WorkoutHistoryTab />
+            </TabsContent>
+          </Tabs>
+        } />
+        <Route path="active/:workoutCompletionId" element={<ActiveWorkout />} />
+        <Route path="complete/:workoutCompletionId" element={<WorkoutComplete />} />
+        <Route path="create" element={<CreateCustomWorkout />} />
+        <Route path="custom/:workoutId" element={<CustomWorkoutDetail />} />
+        <Route path="one-off" element={<EnterOneOffWorkout />} />
+        <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
+      </Routes>
+      
+      <Dialog open={showRestDayDialog} onOpenChange={setShowRestDayDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Armchair className="h-5 w-5 text-green-600" />
+              <span>Log a Rest Day</span>
+            </DialogTitle>
+            <DialogDescription>
+              Are you taking a well-deserved rest day today?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg bg-green-50 p-4 text-sm">
+              <h4 className="font-semibold text-green-700 mb-2">The Power of Rest & Recovery</h4>
+              <p className="text-green-700 mb-3">
+                Rest days are just as important as workout days in your fitness journey! They allow your muscles to repair and grow stronger, prevent burnout, and reduce injury risk.
+              </p>
+              <h4 className="font-semibold text-green-700 mb-2">Rest Day Recommendations:</h4>
+              <ul className="list-disc pl-5 text-green-700 space-y-1">
+                <li>Gentle stretching or yoga</li>
+                <li>Short, relaxing walk</li>
+                <li>Meditation or deep breathing exercises</li>
+                <li>Adequate hydration</li>
+                <li>Quality sleep (7-9 hours)</li>
+                <li>Epsom salt bath for muscle relaxation</li>
+                <li>Foam rolling or self-massage</li>
+              </ul>
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </ClientLayout>
+          </div>
+          
+          <DialogFooter className="flex-row gap-2 sm:justify-center">
+            <Button variant="ghost" onClick={() => setShowRestDayDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleLogRestDay}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Yes, Log My Rest Day
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

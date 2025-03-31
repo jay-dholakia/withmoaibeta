@@ -1,307 +1,182 @@
-/**
- * Group service for managing groups and leaderboards
- */
 
-import { supabase } from "@/integrations/supabase/client";
-
-// Use explicit typing to avoid recursive type definitions
-export interface GroupData {
-  id: string;
-  name: string;
-  coach_id: string;
-  created_at: string;
-  created_by: string;
-  description?: string | null;
-}
-
-export interface LeaderboardEntry {
-  user_id: string;
-  email: string;
-  total_workouts: number;
-}
-
-// Raw database group type that matches actual database columns
-interface RawGroup {
-  id: string;
-  name: string;
-  created_at: string;
-  created_by: string;
-  description?: string | null;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { ensureCoachGroupAssignment } from './coach-group-service';
 
 /**
- * Fetches all groups
+ * Fetches all groups in the system
  */
-export const fetchAllGroups = async (coachId?: string): Promise<GroupData[]> => {
+export const fetchAllGroups = async () => {
   try {
-    let query = supabase.from('groups').select('*');
-
-    if (coachId) {
-      query = query.eq('coach_id', coachId);
-    }
-
-    query = query.order('created_at', { ascending: false });
-    
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Error fetching groups:", error);
-      throw error;
-    }
-
-    // Map the raw data to our GroupData interface
-    const groups: GroupData[] = (data || []).map((item: RawGroup) => ({
-      id: item.id,
-      name: item.name,
-      coach_id: coachId || item.created_by,
-      created_at: item.created_at,
-      created_by: item.created_by,
-      description: item.description,
-    }));
-
-    return groups;
-  } catch (error) {
-    console.error("Error in fetchAllGroups:", error);
-    throw error;
-  }
-};
-
-/**
- * Fetches the weekly group leaderboard
- */
-export const fetchGroupLeaderboardWeekly = async (groupId: string) => {
-  try {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
-    startOfWeek.setHours(0, 0, 0, 0);
-    
-    const { data: groupMembers, error: membersError } = await supabase
-      .from('group_members')
-      .select('user_id')
-      .eq('group_id', groupId);
-    
-    if (membersError) {
-      console.error("Error fetching group members:", membersError);
-      throw membersError;
-    }
-    
-    const memberIds = groupMembers.map(m => m.user_id);
-    
-    if (memberIds.length === 0) {
-      return [];
-    }
-    
-    // Get user emails
-    const { data: users, error: usersError } = await supabase.rpc('get_users_email', {
-      user_ids: memberIds
-    });
-    
-    if (usersError) {
-      console.error("Error fetching user emails:", usersError);
-      throw usersError;
-    }
-    
-    const emailMap = users.reduce((map: Record<string, string>, user: any) => {
-      map[user.id] = user.email;
-      return map;
-    }, {});
-    
-    // Count workouts completed this week per user
-    const { data: workouts, error: workoutsError } = await supabase
-      .from('workout_completions')
-      .select('user_id, count')
-      .in('user_id', memberIds)
-      .gte('completed_at', startOfWeek.toISOString())
-      .not('completed_at', 'is', null)
-      .order('count', { ascending: false });
-    
-    if (workoutsError) {
-      console.error("Error counting workouts:", workoutsError);
-      throw workoutsError;
-    }
-    
-    // Transform to leaderboard entries
-    const leaderboard: LeaderboardEntry[] = [];
-    
-    for (const user_id of memberIds) {
-      const workoutCount = workouts.find(w => w.user_id === user_id)?.count || 0;
-      leaderboard.push({
-        user_id,
-        email: emailMap[user_id] || 'Unknown',
-        total_workouts: Number(workoutCount)
-      });
-    }
-    
-    return leaderboard.sort((a, b) => b.total_workouts - a.total_workouts);
-  } catch (error) {
-    console.error("Error in fetchGroupLeaderboardWeekly:", error);
-    throw error;
-  }
-};
-
-/**
- * Fetches the monthly group leaderboard
- */
-export const fetchGroupLeaderboardMonthly = async (groupId: string) => {
-  try {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    
-    const { data: groupMembers, error: membersError } = await supabase
-      .from('group_members')
-      .select('user_id')
-      .eq('group_id', groupId);
-    
-    if (membersError) {
-      console.error("Error fetching group members:", membersError);
-      throw membersError;
-    }
-    
-    const memberIds = groupMembers.map(m => m.user_id);
-    
-    if (memberIds.length === 0) {
-      return [];
-    }
-    
-    // Get user emails
-    const { data: users, error: usersError } = await supabase.rpc('get_users_email', {
-      user_ids: memberIds
-    });
-    
-    if (usersError) {
-      console.error("Error fetching user emails:", usersError);
-      throw usersError;
-    }
-    
-    const emailMap = users.reduce((map: Record<string, string>, user: any) => {
-      map[user.id] = user.email;
-      return map;
-    }, {});
-    
-    // Count workouts completed this month per user
-    const { data: workouts, error: workoutsError } = await supabase
-      .from('workout_completions')
-      .select('user_id, count')
-      .in('user_id', memberIds)
-      .gte('completed_at', startOfMonth.toISOString())
-      .not('completed_at', 'is', null)
-      .order('count', { ascending: false });
-    
-    if (workoutsError) {
-      console.error("Error counting workouts:", workoutsError);
-      throw workoutsError;
-    }
-    
-    // Transform to leaderboard entries
-    const leaderboard: LeaderboardEntry[] = [];
-    
-    for (const user_id of memberIds) {
-      const workoutCount = workouts.find(w => w.user_id === user_id)?.count || 0;
-      leaderboard.push({
-        user_id,
-        email: emailMap[user_id] || 'Unknown',
-        total_workouts: Number(workoutCount)
-      });
-    }
-    
-    return leaderboard.sort((a, b) => b.total_workouts - a.total_workouts);
-  } catch (error) {
-    console.error("Error in fetchGroupLeaderboardMonthly:", error);
-    throw error;
-  }
-};
-
-/**
- * Fetches group details by IDs
- */
-export const fetchGroupDetails = async (groupIds: string[]) => {
-  try {
-    if (!groupIds.length) return [];
-    
     const { data, error } = await supabase
       .from('groups')
-      .select('*')
-      .in('id', groupIds);
+      .select('*');
+      
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching all groups:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new group for a coach
+ */
+export const createGroupForCoach = async (
+  coachId: string, 
+  groupName: string, 
+  groupDescription?: string
+) => {
+  try {
+    // 1. Create the group
+    const { data: newGroup, error: groupError } = await supabase
+      .from('groups')
+      .insert([{
+        name: groupName,
+        description: groupDescription || '',
+        created_by: coachId
+      }])
+      .select()
+      .single();
+      
+    if (groupError) {
+      console.error('Error creating group:', groupError);
+      throw groupError;
+    }
+    
+    // 2. Assign the coach to the group
+    const result = await ensureCoachGroupAssignment(coachId, newGroup.id);
+    
+    if (!result) {
+      throw new Error('Failed to assign coach to the newly created group');
+    }
+    
+    return { 
+      success: true, 
+      message: 'Group created and coach assigned successfully', 
+      data: newGroup 
+    };
+  } catch (error) {
+    console.error('Error in createGroupForCoach:', error);
+    return { 
+      success: false, 
+      message: 'Failed to create group for coach', 
+      error 
+    };
+  }
+};
+
+/**
+ * Update an existing group
+ */
+export const updateGroup = async (
+  groupId: string,
+  updates: { name?: string; description?: string }
+) => {
+  try {
+    const { data, error } = await supabase
+      .from('groups')
+      .update(updates)
+      .eq('id', groupId)
+      .select()
+      .single();
       
     if (error) {
-      console.error("Error fetching group details:", error);
+      console.error('Error updating group:', error);
       throw error;
     }
     
-    return data;
+    return { 
+      success: true, 
+      message: 'Group updated successfully', 
+      data 
+    };
   } catch (error) {
-    console.error("Error in fetchGroupDetails:", error);
-    throw error;
+    console.error('Error in updateGroup:', error);
+    return { 
+      success: false, 
+      message: 'Failed to update group', 
+      error 
+    };
   }
 };
 
-/**
- * Updates a group
- */
-export const updateGroup = async (groupId: string, updateData: { name: string, description?: string }) => {
-  try {
-    const { data, error } = await supabase
-      .from('groups')
-      .update({
-        name: updateData.name,
-        description: updateData.description
-      })
-      .eq('id', groupId)
-      .select();
+// Helper function to fetch group details by IDs
+export const fetchGroupDetails = async (groupIds: string[]) => {
+  if (!groupIds || groupIds.length === 0) return [];
+  
+  const { data: groups, error: groupsError } = await supabase
+    .from('groups')
+    .select('*')
+    .in('id', groupIds);
     
-    if (error) {
-      console.error("Error updating group:", error);
-      return { success: false, message: error.message };
-    }
-    
-    return { success: true, data };
-  } catch (error) {
-    console.error("Error in updateGroup:", error);
-    return { success: false, message: "An unexpected error occurred" };
+  if (groupsError) {
+    console.error('Error fetching groups:', groupsError);
+    throw groupsError;
   }
+  
+  console.log('Groups data:', groups);
+  return groups || [];
 };
 
 /**
- * Creates a group for a coach
+ * Create a default Moai group if none exists
  */
-export const createGroupForCoach = async (coachId: string, name: string, description?: string) => {
+export const createDefaultMoaiGroupIfNeeded = async (adminId: string) => {
   try {
-    // Create the group
-    const { data: group, error: groupError } = await supabase
+    // Check if any Moai groups exist
+    const { data: existingGroups, error: checkError } = await supabase
+      .from('groups')
+      .select('id, name')
+      .ilike('name', 'Moai%');
+      
+    if (checkError) {
+      console.error('Error checking for Moai groups:', checkError);
+      return {
+        success: false,
+        message: 'Failed to check for existing Moai groups'
+      };
+    }
+    
+    // If Moai groups already exist, we don't need to create one
+    if (existingGroups && existingGroups.length > 0) {
+      console.log('Moai groups already exist:', existingGroups);
+      return {
+        success: true,
+        message: 'Moai groups already exist',
+        groups: existingGroups
+      };
+    }
+    
+    // Create a new Moai group
+    const { data: newGroup, error: createError } = await supabase
       .from('groups')
       .insert({
-        name: name,
-        description: description || null,
-        created_by: coachId
+        name: 'Moai Fitness Group',
+        description: 'A supportive community for your fitness journey',
+        created_by: adminId
       })
       .select();
-    
-    if (groupError) {
-      console.error("Error creating group:", groupError);
-      return { success: false, message: groupError.message };
+      
+    if (createError) {
+      console.error('Error creating Moai group:', createError);
+      return {
+        success: false,
+        message: 'Failed to create Moai group'
+      };
     }
     
-    if (!group || group.length === 0) {
-      return { success: false, message: "Failed to create group" };
-    }
-    
-    // Assign the coach to the group
-    const { error: assignError } = await supabase
-      .from('group_coaches')
-      .insert({
-        group_id: group[0].id,
-        coach_id: coachId
-      });
-    
-    if (assignError) {
-      console.error("Error assigning coach to group:", assignError);
-      return { success: false, message: assignError.message };
-    }
-    
-    return { success: true, data: group[0] };
+    return {
+      success: true,
+      message: 'Successfully created default Moai group',
+      group: newGroup[0]
+    };
   } catch (error) {
-    console.error("Error in createGroupForCoach:", error);
-    return { success: false, message: "An unexpected error occurred" };
+    console.error('Unexpected error in createDefaultMoaiGroupIfNeeded:', error);
+    return {
+      success: false,
+      message: 'Unexpected error creating default Moai group'
+    };
   }
 };

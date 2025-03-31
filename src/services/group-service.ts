@@ -45,11 +45,13 @@ export const fetchAllGroups = async (coachId?: string) => {
       queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
 
-    // Execute the query with a type assertion to prevent deep type inference
-    // This completely bypasses TypeScript's attempt to infer the complex nested types
-    const response = await queryBuilder.order('created_at', { ascending: false });
-    const data = response.data as Record<string, any>[] | null;
-    const error = response.error;
+    // Execute the query
+    // Using type assertion to completely bypass TypeScript's deep type inference
+    const { data, error } = await (queryBuilder
+      .order('created_at', { ascending: false }) as unknown as Promise<{
+        data: RawGroup[] | null;
+        error: any;
+      }>);
 
     if (error) {
       console.error("Error fetching groups:", error);

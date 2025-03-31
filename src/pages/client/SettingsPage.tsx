@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Loader2, User, LogOut, Edit } from 'lucide-react';
+import BetaFeedbackCard from '@/components/client/BetaFeedbackCard';
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
@@ -113,6 +114,9 @@ const SettingsPage = () => {
           </Button>
         </CardFooter>
       </Card>
+      
+      {/* Beta Feedback Card */}
+      <BetaFeedbackCard />
       
       <Card>
         <CardHeader>

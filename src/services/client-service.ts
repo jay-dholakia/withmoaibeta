@@ -475,19 +475,19 @@ export const fetchAllGroups = async (coachId?: string) => {
     }
     
     // Execute the query with order clause
-    const response = await queryBuilder.order('created_at', { ascending: false });
+    const { data, error } = await queryBuilder
+      .order('created_at', { ascending: false }) as { 
+        data: any[] | null; 
+        error: any 
+      };
     
-    // Use any type to completely bypass TypeScript's inference
-    const responseData = response.data as any[];
-    const responseError = response.error;
-    
-    if (responseError) {
-      console.error("Error fetching groups:", responseError);
-      throw responseError;
+    if (error) {
+      console.error("Error fetching groups:", error);
+      throw error;
     }
     
     // Transform the data to our GroupData interface
-    const groups: GroupData[] = (responseData || []).map(item => ({
+    const groups: GroupData[] = (data || []).map(item => ({
       id: item.id,
       name: item.name,
       coach_id: item.coach_id || item.created_by, // Use created_by as fallback

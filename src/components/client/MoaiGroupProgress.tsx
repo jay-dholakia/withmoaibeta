@@ -8,7 +8,7 @@ import { WorkoutType } from './WorkoutTypeIcon';
 import { WorkoutProgressCard } from './WorkoutProgressCard';
 import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, WifiOff, AlertCircle } from 'lucide-react';
 
 interface MoaiGroupProgressProps {
   groupId: string;
@@ -30,8 +30,21 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
   const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
   const [workoutTypesMap, setWorkoutTypesMap] = useState<Record<string, WorkoutType>>({});
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   
-  // Query for assigned workout count
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  
   const { data: assignedWorkoutsCount } = useQuery({
     queryKey: ['assigned-workouts-count', user?.id],
     queryFn: async () => {
@@ -44,10 +57,11 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
         return 6; // Default to 6 as fallback
       }
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && isOnline,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 60 * 60 * 1000, // 1 hour
   });
   
-  // Get current user's profile data
   const { data: currentUserProfile, isLoading: isLoadingCurrentUserProfile } = useQuery({
     queryKey: ['current-user-profile', user?.id],
     queryFn: async () => {
@@ -66,14 +80,19 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
       
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && isOnline,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 60 * 60 * 1000, // 1 hour
   });
   
-  // Query for group members
-  const { data: groupMembers, isLoading: isLoadingMembers } = useQuery({
+  const { data: groupMembers, isLoading: isLoadingMembers, error: memberError } = useQuery({
     queryKey: ['moai-members', groupId],
     queryFn: async () => {
       if (!groupId) return [];
+      
+      if (!navigator.onLine) {
+        throw new Error('Offline: Cannot fetch group members');
+      }
       
       const { data: groupMembers, error: membersError } = await supabase
         .from('group_members')
@@ -111,27 +130,43 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
         })
       );
     },
-    enabled: !!groupId,
+    enabled: !!groupId && isOnline,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 60 * 60 * 1000, // 1 hour
+    retry: (failureCount, error) => {
+      if (error.message?.includes('Offline')) {
+        return false;
+      }
+      return failureCount < 3;
+    }
   });
   
-  // Map to store member workout data
   const [memberWorkouts, setMemberWorkouts] = useState<Record<string, {
     completedDates: Date[];
     lifeHappensDates: Date[];
     workoutTypesMap: Record<string, WorkoutType>;
   }>>({});
   
-  // Query client workouts for current user
   const { data: currentUserWorkouts, isLoading: isLoadingCurrentUser } = useQuery({
     queryKey: ['client-workouts-moai', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+      if (!navigator.onLine) {
+        throw new Error('Offline: Cannot fetch user workouts');
+      }
       return fetchClientWorkoutHistory(user.id);
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && isOnline,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 60 * 60 * 1000, // 1 hour
+    retry: (failureCount, error) => {
+      if (error.message?.includes('Offline')) {
+        return false;
+      }
+      return failureCount < 3;
+    }
   });
   
-  // Process current user workouts
   useEffect(() => {
     if (currentUserWorkouts && currentUserWorkouts.length > 0) {
       const newCompletedDates: Date[] = [];
@@ -153,7 +188,6 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
           
           newCompletedDates.push(completionDate);
           
-          // Determine workout type
           if (workout.workout?.workout_type) {
             const type = String(workout.workout.workout_type).toLowerCase();
             if (type.includes('strength')) newWorkoutTypesMap[dateKey] = 'strength';
@@ -173,7 +207,6 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     }
   }, [currentUserWorkouts]);
   
-  // Fetch other group members' workouts
   useEffect(() => {
     if (groupMembers && groupMembers.length > 0) {
       const fetchMemberWorkouts = async () => {
@@ -183,7 +216,6 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
           workoutTypesMap: Record<string, WorkoutType>;
         }> = {};
         
-        // Process each member (except current user)
         for (const member of groupMembers.filter(m => !m.isCurrentUser)) {
           try {
             const workouts = await fetchClientWorkoutHistory(member.userId);
@@ -207,7 +239,6 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
                 
                 completedDates.push(completionDate);
                 
-                // Determine workout type
                 if (workout.workout?.workout_type) {
                   const type = String(workout.workout.workout_type).toLowerCase();
                   if (type.includes('strength')) workoutTypesMap[dateKey] = 'strength';
@@ -238,7 +269,6 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     }
   }, [groupMembers]);
   
-  // Get formatted display name for a member
   const getDisplayName = (member: GroupMember): string => {
     if (member.profileData?.first_name) {
       return member.profileData.first_name;
@@ -246,45 +276,71 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     return member.email.split('@')[0];
   };
   
-  // Get current user's display name
   const getCurrentUserDisplayName = (): string => {
-    // First try to use the profile data from the dedicated query
     if (currentUserProfile?.first_name) {
       return currentUserProfile.first_name;
     }
     
-    // Then try to use the profile data from Auth context
     if (profile?.user_type) {
-      // This assumes there might be a first_name field in the profile
       const firstName = (profile as any).first_name;
       if (firstName) return firstName;
     }
     
-    // Fall back to email if available
     if (user?.email) {
       return user.email.split('@')[0];
     }
     
-    // Ultimate fallback
     return "You";
   };
   
-  // Count workouts completed this week
   const completedThisWeek = completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   
-  // Count life happens passes used this week
   const lifeHappensThisWeek = lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   
-  // Total completed including life happens
   const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;
   
-  const totalWorkouts = assignedWorkoutsCount || 6; // Default to 6 if undefined
+  const totalWorkouts = assignedWorkoutsCount || 6;
+  
+  if (!isOnline) {
+    return (
+      <Card>
+        <CardContent className="py-6">
+          <div className="flex flex-col items-center justify-center gap-2 py-4">
+            <WifiOff className="h-10 w-10 text-muted-foreground" />
+            <p className="text-center text-sm font-medium">You're currently offline</p>
+            <p className="text-center text-xs text-muted-foreground">
+              Moai group progress will be available when you're back online
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (memberError) {
+    return (
+      <Card>
+        <CardContent className="py-6">
+          <div className="flex flex-col items-center justify-center gap-2 py-4">
+            <AlertCircle className="h-10 w-10 text-destructive" />
+            <p className="text-center text-sm font-medium">Error loading group data</p>
+            <p className="text-center text-xs text-muted-foreground">
+              Please try again later or contact support if this persists
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   if (isLoadingCurrentUser || isLoadingMembers || isLoadingCurrentUserProfile) {
     return (
       <Card>
         <CardContent className="py-6">
-          <p className="text-center text-sm text-muted-foreground">Loading your progress...</p>
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+            <p className="text-center text-sm text-muted-foreground">Loading your progress...</p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -305,7 +361,6 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
         />
       )}
       
-      {/* Other group members progress cards */}
       {groupMembers && groupMembers.filter(m => !m.isCurrentUser).map(member => {
         const memberData = memberWorkouts[member.userId];
         

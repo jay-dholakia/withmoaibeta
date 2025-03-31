@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -47,10 +48,19 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   // Parse and set birthday from profile data
   useEffect(() => {
     if (profile.birthday) {
-      const date = new Date(profile.birthday);
-      setBirthMonth((date.getMonth() + 1).toString());
-      setBirthDay(date.getDate().toString());
-      setBirthYear(date.getFullYear().toString());
+      try {
+        const date = new Date(profile.birthday);
+        if (!isNaN(date.getTime())) { // Check if date is valid
+          setBirthMonth((date.getMonth() + 1).toString());
+          setBirthDay(date.getDate().toString());
+          setBirthYear(date.getFullYear().toString());
+          console.log('Parsed birthday:', date, 'Month:', date.getMonth() + 1, 'Day:', date.getDate(), 'Year:', date.getFullYear());
+        } else {
+          console.error('Invalid date from profile.birthday:', profile.birthday);
+        }
+      } catch (error) {
+        console.error('Error parsing birthday:', error, profile.birthday);
+      }
     }
   }, [profile.birthday]);
   
@@ -171,17 +181,24 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   const handleNext = () => {
     let birthdayString: string | null = null;
     if (isValidBirthday()) {
-      const birthDate = new Date(
-        parseInt(birthYear),
-        parseInt(birthMonth) - 1,
-        parseInt(birthDay)
-      );
+      // Ensure we're creating the date properly - months in JS Date are 0-indexed
+      const month = parseInt(birthMonth, 10) - 1;
+      const day = parseInt(birthDay, 10);
+      const year = parseInt(birthYear, 10);
+      
+      // Create date and ensure it's set to noon to avoid timezone issues
+      const birthDate = new Date(year, month, day, 12, 0, 0);
+      console.log('Creating birthday with:', year, month, day);
+      console.log('Created birthday date:', birthDate.toISOString());
       birthdayString = birthDate.toISOString();
     }
     
     const formattedHeight = feet && inches ? `${feet}'${inches}"` : '';
     const formattedWeight = weight ? `${weight} ${weightUnit}` : '';
 
+    // Log the data being updated
+    console.log('Updating profile with birthday:', birthdayString);
+    
     onUpdate({
       first_name: firstName,
       last_name: lastName,
@@ -331,7 +348,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
               <SelectTrigger className="h-14">
                 <SelectValue placeholder="Month" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white z-50">
                 {months.map(month => (
                   <SelectItem key={month.value} value={month.value}>
                     {month.label}
@@ -348,7 +365,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
               <SelectTrigger className="h-14">
                 <SelectValue placeholder="Day" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white z-50">
                 {days.map(day => (
                   <SelectItem key={day.value} value={day.value}>
                     {day.label}
@@ -365,7 +382,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
               <SelectTrigger className="h-14">
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white z-50">
                 {years.map(year => (
                   <SelectItem key={year.value} value={year.value}>
                     {year.label}
@@ -424,7 +441,7 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
             <SelectTrigger className="w-24 h-14">
               <SelectValue placeholder="Unit" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white">
               <SelectItem value="lbs">lbs</SelectItem>
               <SelectItem value="kg">kg</SelectItem>
             </SelectContent>

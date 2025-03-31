@@ -51,6 +51,13 @@ const ProfileEditor = () => {
     mutationFn: (data: Partial<ClientProfile>) => {
       if (!user?.id) throw new Error('User not authenticated');
       console.log('ProfileEditor: Updating profile with data:', data);
+      
+      // Log the birthday specifically to debug
+      if (data.birthday) {
+        console.log('Birthday to be saved:', data.birthday);
+        console.log('Birthday date object:', new Date(data.birthday));
+      }
+      
       return updateClientProfile(user.id, data);
     },
     onSuccess: () => {
@@ -68,6 +75,11 @@ const ProfileEditor = () => {
   useEffect(() => {
     if (profile) {
       console.log('Profile data loaded:', profile);
+      // Log the birthday value from the profile
+      if (profile.birthday) {
+        console.log('Profile birthday loaded:', profile.birthday);
+        console.log('As date object:', new Date(profile.birthday));
+      }
       setProfileData(profile);
     }
   }, [profile]);
@@ -88,6 +100,12 @@ const ProfileEditor = () => {
   // Handle updates to profile data
   const handleUpdateProfile = (data: Partial<ClientProfile>) => {
     console.log('handleUpdateProfile received:', data);
+    // Log the birthday if it exists in the update
+    if (data.birthday) {
+      console.log('Birthday update received:', data.birthday);
+      console.log('As date object:', new Date(data.birthday));
+    }
+    
     // Ensure we don't lose any existing profile data, especially favorite_movements
     setProfileData(prev => {
       const merged = { 
@@ -111,6 +129,11 @@ const ProfileEditor = () => {
     };
     
     console.log('Submitting final profile data:', finalData);
+    // Log the birthday in the final data
+    if (finalData.birthday) {
+      console.log('Final birthday to be saved:', finalData.birthday);
+    }
+    
     updateProfileMutation.mutate(finalData);
   };
 

@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Send } from 'lucide-react';
 import { saveCoachMessage, fetchCoachMessagesForClient, canCoachMessageClient } from '@/services/coach-client-message-service';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { SheetTitle } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
 import { isFuture } from 'date-fns';
@@ -162,7 +163,7 @@ const ClientMessageForm: React.FC<ClientMessageFormProps> = ({
       
       if (result) {
         toast.success('Message saved successfully');
-        onClose();
+        onClose(); // This will trigger the parent component to refresh the message status
       } else {
         toast.error('Failed to save message');
       }

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Users, Filter, Calendar, Clock, Award, Info, Send, CheckCircle2, Pencil } from 'lucide-react';
@@ -20,7 +20,7 @@ import { fetchCoachGroups } from '@/services/coach-group-service';
 import { ClientDetailView } from '@/components/coach/ClientDetailView';
 import ClientMessageForm from '@/components/coach/ClientMessageForm';
 import { formatDistanceToNow } from 'date-fns';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { 
   Pagination, 
   PaginationContent, 
@@ -51,6 +51,7 @@ interface MessageStatus {
 
 const ClientsPage = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedGroupId, setSelectedGroupId] = useState<string | 'all'>('all');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [selectedClientEmail, setSelectedClientEmail] = useState<string | null>(null);
@@ -99,7 +100,7 @@ const ClientsPage = () => {
     selectedGroupId === 'all' || client.group_ids.includes(selectedGroupId)
   ) || [];
 
-  useQuery({
+  const messageStatusQuery = useQuery({
     queryKey: ['client-message-status', user?.id, filteredClients, currentPage],
     queryFn: async () => {
       if (!user?.id || !filteredClients.length) return {};
@@ -181,6 +182,15 @@ const ClientsPage = () => {
     setSelectedClientEmail(null);
     setEditMessage(undefined);
     setSheetOpen(false);
+    queryClient.invalidateQueries({ queryKey: ['client-message-status'] });
+  };
+
+  const handleMessageSaved = () => {
+    queryClient.invalidateQueries({ queryKey: ['client-message-status'] });
+    setSheetOpen(false);
+    setSelectedClientId(null);
+    setSelectedClientEmail(null);
+    setEditMessage(undefined);
   };
 
   const getWorkoutStatusClass = (days: number | null) => {
@@ -407,7 +417,7 @@ const ClientsPage = () => {
                   coachId={user?.id || ''}
                   clientId={selectedClientId}
                   clientEmail={selectedClientEmail}
-                  onClose={handleCloseClientView}
+                  onClose={handleMessageSaved}
                   editMessage={editMessage}
                 />
               )}

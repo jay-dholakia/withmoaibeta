@@ -93,10 +93,14 @@ export const WorkoutProgressCard = ({
                   {(isDayCompleted || isLifeHappens) ? (
                     <WorkoutTypeIcon type={workoutType} />
                   ) : (
-                    <span className="text-xs font-medium text-slate-600">{day}</span>
+                    <span></span>
                   )}
                 </div>
                 
+                {/* Day of week label moved below the circle */}
+                <span className="text-xs font-medium text-slate-600 mt-1">{day}</span>
+                
+                {/* Current day indicator */}
                 {isToday && (
                   <div className="w-1.5 h-1.5 bg-client rounded-full mt-0.5"></div>
                 )}

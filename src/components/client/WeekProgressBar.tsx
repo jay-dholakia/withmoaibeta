@@ -138,10 +138,14 @@ export const WeekProgressBar = ({
                 {(day.isCompleted || day.isLifeHappens) ? (
                   <WorkoutTypeIcon type={day.workoutType} />
                 ) : (
-                  <span className="text-xs font-medium text-gray-600">{dayName}</span>
+                  <span></span>
                 )}
               </div>
               
+              {/* Day of week label moved below the circle */}
+              <span className="text-xs font-medium text-gray-600 mt-1">{dayName}</span>
+              
+              {/* Current day indicator */}
               {isToday && (
                 <div className="w-1.5 h-1.5 bg-gray-500 rounded-full mt-0.5"></div>
               )}

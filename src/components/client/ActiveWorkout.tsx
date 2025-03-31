@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -619,7 +620,8 @@ const ActiveWorkout = () => {
         {
           exerciseId,
           distance: distance || '',
-          location: runData.location
+          duration: runData.duration || '',
+          location: runData.location || ''
         }
       ]);
     } else {

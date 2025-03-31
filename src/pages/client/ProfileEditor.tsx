@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,10 +23,8 @@ const ProfileEditor = () => {
   const [profileData, setProfileData] = useState<Partial<ClientProfile>>({});
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Check if we came from settings page
   const fromSettings = location.state?.from === 'settings';
 
-  // Fetch client profile
   const { data: profile, isLoading } = useQuery({
     queryKey: ['client-profile-edit', user?.id],
     queryFn: async () => {
@@ -46,13 +43,11 @@ const ProfileEditor = () => {
     retry: 3,
   });
 
-  // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: (data: Partial<ClientProfile>) => {
       if (!user?.id) throw new Error('User not authenticated');
       console.log('ProfileEditor: Updating profile with data:', data);
       
-      // Log the birthday specifically to debug
       if (data.birthday) {
         console.log('Birthday to be saved:', data.birthday);
         console.log('Birthday date object:', new Date(data.birthday));
@@ -71,20 +66,23 @@ const ProfileEditor = () => {
     },
   });
 
-  // Initialize profileData from fetched profile
   useEffect(() => {
     if (profile) {
       console.log('Profile data loaded:', profile);
-      // Log the birthday value from the profile
       if (profile.birthday) {
+        const date = new Date(profile.birthday);
         console.log('Profile birthday loaded:', profile.birthday);
-        console.log('As date object:', new Date(profile.birthday));
+        console.log('As date object:', date);
+        console.log('Local date parts:', {
+          year: date.getFullYear(),
+          month: date.getMonth() + 1,
+          day: date.getDate()
+        });
       }
       setProfileData(profile);
     }
   }, [profile]);
 
-  // Handle navigation between steps
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
@@ -97,21 +95,17 @@ const ProfileEditor = () => {
     }
   };
 
-  // Handle updates to profile data
   const handleUpdateProfile = (data: Partial<ClientProfile>) => {
     console.log('handleUpdateProfile received:', data);
-    // Log the birthday if it exists in the update
     if (data.birthday) {
       console.log('Birthday update received:', data.birthday);
       console.log('As date object:', new Date(data.birthday));
     }
     
-    // Ensure we don't lose any existing profile data, especially favorite_movements
     setProfileData(prev => {
       const merged = { 
         ...prev, 
         ...data,
-        // Make sure favorite_movements is preserved from previous data if not included in update
         favorite_movements: Array.isArray(data.favorite_movements) ? data.favorite_movements : prev.favorite_movements || []
       };
       console.log('Updated profile data:', merged);
@@ -119,17 +113,13 @@ const ProfileEditor = () => {
     });
   };
 
-  // Handle completion of the profile editing
   const handleComplete = () => {
-    // Ensure favorite_movements is included in the final data
     const finalData = {
       ...profileData,
-      // Just to be extra safe, make sure favorite_movements is present and is an array
       favorite_movements: Array.isArray(profileData.favorite_movements) ? profileData.favorite_movements : []
     };
     
     console.log('Submitting final profile data:', finalData);
-    // Log the birthday in the final data
     if (finalData.birthday) {
       console.log('Final birthday to be saved:', finalData.birthday);
     }
@@ -137,7 +127,6 @@ const ProfileEditor = () => {
     updateProfileMutation.mutate(finalData);
   };
 
-  // Navigate back to settings page
   const handleReturnToSettings = () => {
     navigate('/client-dashboard/settings');
   };
@@ -162,7 +151,6 @@ const ProfileEditor = () => {
   return (
     <PageTransition>
       <div className="relative">
-        {/* Back to settings button - fixed position instead of absolute */}
         <div className="fixed left-4 top-4 z-50">
           <TooltipProvider>
             <Tooltip>

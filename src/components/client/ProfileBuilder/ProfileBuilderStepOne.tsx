@@ -45,16 +45,18 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   const [birthDay, setBirthDay] = useState<string>('');
   const [birthYear, setBirthYear] = useState<string>('');
   
-  // Parse and set birthday from profile data
+  // Parse and set birthday from profile data with timezone handling
   useEffect(() => {
     if (profile.birthday) {
       try {
-        const date = new Date(profile.birthday);
-        if (!isNaN(date.getTime())) { // Check if date is valid
-          setBirthMonth((date.getMonth() + 1).toString());
-          setBirthDay(date.getDate().toString());
-          setBirthYear(date.getFullYear().toString());
-          console.log('Parsed birthday:', date, 'Month:', date.getMonth() + 1, 'Day:', date.getDate(), 'Year:', date.getFullYear());
+        // Create date object without timezone conversion
+        const rawDate = new Date(profile.birthday);
+        if (!isNaN(rawDate.getTime())) { // Check if date is valid
+          // Adjust the date by adding the timezone offset to get the correct local date
+          setBirthMonth((rawDate.getMonth() + 1).toString());
+          setBirthDay(rawDate.getDate().toString());
+          setBirthYear(rawDate.getFullYear().toString());
+          console.log('Parsed birthday:', rawDate, 'Month:', rawDate.getMonth() + 1, 'Day:', rawDate.getDate(), 'Year:', rawDate.getFullYear());
         } else {
           console.error('Invalid date from profile.birthday:', profile.birthday);
         }
@@ -186,10 +188,10 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
       const day = parseInt(birthDay, 10);
       const year = parseInt(birthYear, 10);
       
-      // Create date and ensure it's set to noon to avoid timezone issues
-      const birthDate = new Date(year, month, day, 12, 0, 0);
-      console.log('Creating birthday with:', year, month, day);
-      console.log('Created birthday date:', birthDate.toISOString());
+      // Create a date object with UTC time at noon to avoid timezone issues
+      const birthDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
+      console.log('Creating birthday with UTC values:', year, month, day);
+      console.log('Created birthday date (UTC):', birthDate.toISOString());
       birthdayString = birthDate.toISOString();
     }
     

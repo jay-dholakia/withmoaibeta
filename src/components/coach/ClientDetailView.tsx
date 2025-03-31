@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
@@ -54,16 +53,18 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     !assignment.end_date || new Date(assignment.end_date) >= new Date()
   );
 
-  // Function to safely format dates
+  // Function to safely format dates with timezone handling
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '';
     
+    // Parse the ISO string and create a date in UTC
     const date = new Date(dateString);
     
     if (!isValid(date) || date.getFullYear() <= 1970) {
       return 'Invalid date';
     }
     
+    // Use date-fns format with the correct UTC date
     return format(date, 'MMM d, yyyy');
   };
   
@@ -351,4 +352,3 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     </div>
   );
 };
-

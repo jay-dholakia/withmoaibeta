@@ -257,33 +257,62 @@ export const trackWorkoutSet = async (
       try {
         const { data: existingCompletion, error: existingCompletionError } = await supabase
           .from('workout_completions')
-          .select('id')
+          .select('id, user_id, workout_id')
           .eq('id', workoutCompletionId)
           .maybeSingle();
           
-        if (existingCompletionError) {
+        if (existingCompletionError && existingCompletionError.code !== 'PGRST116') {
           console.error("Error checking for existing completion:", existingCompletionError);
           // Continue with the attempt to create a new record
         }
         
         if (!existingCompletion) {
           // Only create if it doesn't exist
-          const { data: newCompletion, error: newCompletionError } = await supabase
-            .from('workout_completions')
-            .insert({
-              id: workoutCompletionId,
-              user_id: userId,
-              workout_id: workoutId,
-              created_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-            
-          if (newCompletionError) {
-            console.error("Error creating workout completion:", newCompletionError);
-            
-            // If the error is a duplicate key, try to get the existing record
-            if (newCompletionError.code === '23505') {
+          try {
+            const { data: newCompletion, error: newCompletionError } = await supabase
+              .from('workout_completions')
+              .insert({
+                id: workoutCompletionId,
+                user_id: userId,
+                workout_id: workoutId,
+                created_at: new Date().toISOString()
+              })
+              .select()
+              .single();
+              
+            if (newCompletionError) {
+              // If this is a duplicate key error, it means another request created the record
+              // between our check and insert (race condition)
+              if (newCompletionError.code === '23505') {
+                console.log("Workout completion already exists (race condition), fetching existing record");
+                
+                const { data: existingData, error: fetchError } = await supabase
+                  .from('workout_completions')
+                  .select('user_id, workout_id')
+                  .eq('id', workoutCompletionId)
+                  .single();
+                  
+                if (fetchError) {
+                  console.error("Error fetching existing workout completion after duplicate key:", fetchError);
+                  throw fetchError;
+                }
+                
+                if (existingData) {
+                  userId = existingData.user_id;
+                  workoutId = existingData.workout_id;
+                } else {
+                  throw new Error("Could not retrieve existing workout completion after duplicate key error");
+                }
+              } else {
+                console.error("Error creating workout completion:", newCompletionError);
+                throw newCompletionError;
+              }
+            } else if (newCompletion) {
+              console.log("Created new workout completion:", newCompletion);
+            }
+          } catch (createError: any) {
+            if (createError.code === '23505') {
+              // Handle duplicate key error by fetching the existing record
               const { data: existingData, error: fetchError } = await supabase
                 .from('workout_completions')
                 .select('user_id, workout_id')
@@ -291,6 +320,7 @@ export const trackWorkoutSet = async (
                 .single();
                 
               if (fetchError) {
+                console.error("Error fetching existing record after duplicate key:", fetchError);
                 throw fetchError;
               }
               
@@ -298,30 +328,16 @@ export const trackWorkoutSet = async (
                 userId = existingData.user_id;
                 workoutId = existingData.workout_id;
               } else {
-                throw newCompletionError;
+                throw createError;
               }
             } else {
-              throw newCompletionError;
+              throw createError;
             }
-          } else if (newCompletion) {
-            console.log("Created new workout completion:", newCompletion);
           }
         } else {
           // Get the user_id and workout_id from the existing record
-          const { data: existingData, error: fetchError } = await supabase
-            .from('workout_completions')
-            .select('user_id, workout_id')
-            .eq('id', workoutCompletionId)
-            .single();
-            
-          if (fetchError) {
-            throw fetchError;
-          }
-          
-          if (existingData) {
-            userId = existingData.user_id;
-            workoutId = existingData.workout_id;
-          }
+          userId = existingCompletion.user_id;
+          workoutId = existingCompletion.workout_id;
         }
       } catch (error) {
         console.error("Error handling workout completion creation:", error);
@@ -601,11 +617,14 @@ export const fetchAllGroups = async (coachId?: string) => {
       queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
     
-    // Execute the query with explicit typing to avoid deep inference issues
-    const response: {
+    // Define an explicit type for the response to avoid deep type inference
+    type GroupResponse = {
       data: RawGroup[] | null;
       error: Error | null;
-    } = await queryBuilder.order('created_at', { ascending: false });
+    };
+    
+    // Execute the query with the explicit type
+    const response: GroupResponse = await queryBuilder.order('created_at', { ascending: false });
     
     const { data, error } = response;
     

@@ -156,6 +156,9 @@ const ClientsPage: React.FC = () => {
     
     setIsDeleting(true);
     try {
+      // First close any existing toast to prevent duplicates
+      toast.dismiss();
+      
       const success = await deleteUser(clientToDelete.id);
       
       if (!success) {
@@ -166,7 +169,7 @@ const ClientsPage: React.FC = () => {
       refetch(); // Refresh the client list
     } catch (err) {
       console.error('Error in delete process:', err);
-      toast.error('An error occurred while deleting the user');
+      toast.error('An error occurred while deleting the user. Please try again.');
     } finally {
       setIsDeleting(false);
       setClientToDelete(null);

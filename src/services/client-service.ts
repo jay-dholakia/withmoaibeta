@@ -6,8 +6,6 @@
 
 // Re-export from profile service
 export {
-  ClientProfile,
-  CoachProfile,
   fetchClientProfile,
   createClientProfile,
   fetchAllClientProfiles,
@@ -17,6 +15,7 @@ export {
   updateCoachProfile,
   uploadCoachAvatar
 } from './profile-service';
+export type { ClientProfile, CoachProfile } from './profile-service';
 
 // Re-export from workout tracking service
 export {
@@ -28,12 +27,11 @@ export {
 
 // Re-export from group service
 export {
-  GroupData,
-  LeaderboardEntry,
   fetchAllGroups,
   fetchGroupLeaderboardWeekly,
   fetchGroupLeaderboardMonthly
 } from './group-service';
+export type { GroupData, LeaderboardEntry } from './group-service';
 
 // Re-export from auth service
 export {

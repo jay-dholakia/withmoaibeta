@@ -53,8 +53,8 @@ export const fetchAllGroups = async (coachId?: string) => {
       throw error;
     }
     
-    // Transform the data to our GroupData interface
-    const groups: GroupData[] = (data || []).map((item: RawGroup) => ({
+    // Transform the data to our GroupData interface - fixed the infinite type instantiation
+    const groups: GroupData[] = (data || []).map((item: any) => ({
       id: item.id,
       name: item.name,
       coach_id: coachId || item.created_by, // Use created_by as fallback
@@ -216,5 +216,99 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string) => {
   } catch (error) {
     console.error("Error in fetchGroupLeaderboardMonthly:", error);
     throw error;
+  }
+};
+
+/**
+ * Fetches group details by IDs
+ */
+export const fetchGroupDetails = async (groupIds: string[]) => {
+  try {
+    if (!groupIds.length) return [];
+    
+    const { data, error } = await supabase
+      .from('groups')
+      .select('*')
+      .in('id', groupIds);
+      
+    if (error) {
+      console.error("Error fetching group details:", error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in fetchGroupDetails:", error);
+    throw error;
+  }
+};
+
+/**
+ * Updates a group
+ */
+export const updateGroup = async (groupId: string, updateData: { name: string, description?: string }) => {
+  try {
+    const { data, error } = await supabase
+      .from('groups')
+      .update({
+        name: updateData.name,
+        description: updateData.description
+      })
+      .eq('id', groupId)
+      .select();
+    
+    if (error) {
+      console.error("Error updating group:", error);
+      return { success: false, message: error.message };
+    }
+    
+    return { success: true, data };
+  } catch (error) {
+    console.error("Error in updateGroup:", error);
+    return { success: false, message: "An unexpected error occurred" };
+  }
+};
+
+/**
+ * Creates a group for a coach
+ */
+export const createGroupForCoach = async (coachId: string, name: string, description?: string) => {
+  try {
+    // Create the group
+    const { data: group, error: groupError } = await supabase
+      .from('groups')
+      .insert({
+        name: name,
+        description: description || null,
+        created_by: coachId
+      })
+      .select();
+    
+    if (groupError) {
+      console.error("Error creating group:", groupError);
+      return { success: false, message: groupError.message };
+    }
+    
+    if (!group || group.length === 0) {
+      return { success: false, message: "Failed to create group" };
+    }
+    
+    // Assign the coach to the group
+    const { error: assignError } = await supabase
+      .from('group_coaches')
+      .insert({
+        group_id: group[0].id,
+        coach_id: coachId
+      });
+    
+    if (assignError) {
+      console.error("Error assigning coach to group:", assignError);
+      return { success: false, message: assignError.message };
+    }
+    
+    return { success: true, data: group[0] };
+  } catch (error) {
+    console.error("Error in createGroupForCoach:", error);
+    return { success: false, message: "An unexpected error occurred" };
   }
 };

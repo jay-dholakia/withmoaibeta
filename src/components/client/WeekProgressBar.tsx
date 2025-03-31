@@ -116,42 +116,32 @@ export const WeekProgressBar = ({
           
           // Use lighter background colors for better emoji visibility
           let bgColor = 'bg-gray-100';
-          let textColor = 'text-gray-400';
           let border = '';
           
           if (isToday) {
             border = 'border-2 border-gray-300';
-            textColor = 'text-gray-500';
           }
           
           if (day.isLifeHappens) {
             bgColor = 'bg-yellow-100';
-            textColor = 'text-gray-600';
           }
           
           if (day.isCompleted) {
             bgColor = `${color}/10`;
-            textColor = 'text-gray-800';
           }
           
           return (
             <div key={index} className="flex flex-col items-center">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${textColor} ${border} transition-all duration-200`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${border} transition-all duration-200`}
               >
                 {(day.isCompleted || day.isLifeHappens) ? (
                   <WorkoutTypeIcon type={day.workoutType} />
                 ) : (
-                  <span className="text-xs font-medium">{dayName}</span>
+                  <span className="text-xs font-medium text-gray-600">{dayName}</span>
                 )}
               </div>
               
-              {/* Only show day letter below when no workout is completed */}
-              {!day.isCompleted && !day.isLifeHappens && (
-                <span className="text-xs font-medium text-gray-500 mt-1">{dayName}</span>
-              )}
-              
-              {/* Current day indicator */}
               {isToday && (
                 <div className="w-1.5 h-1.5 bg-gray-500 rounded-full mt-0.5"></div>
               )}

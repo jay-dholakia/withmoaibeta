@@ -782,3 +782,28 @@ export const deleteUser = async (userId: string): Promise<boolean> => {
     return false;
   }
 };
+
+/**
+ * Triggers a password reset email for the specified user
+ * @param email The email of the user to send the password reset to
+ * @returns success status
+ */
+export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
+  try {
+    console.log(`Sending password reset email to: ${email}`);
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/client-reset-password`,
+    });
+    
+    if (error) {
+      console.error("Error sending password reset:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in sendPasswordResetEmail:', error);
+    return false;
+  }
+};

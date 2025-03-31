@@ -8,8 +8,8 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
-import { deleteUser } from '@/services/client-service';
+import { Loader2, RefreshCw, Trash2, KeyRound } from 'lucide-react';
+import { deleteUser, sendPasswordResetEmail } from '@/services/client-service';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,7 +31,6 @@ interface Client {
 const fetchClients = async (): Promise<Client[]> => {
   console.log('Fetching clients for admin panel');
   
-  // Fetch client profiles
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
     .select(`
@@ -49,7 +48,6 @@ const fetchClients = async (): Promise<Client[]> => {
 
   console.log('Fetched profiles:', profiles);
 
-  // Get all group memberships
   const { data: groupMembers, error: groupMembersError } = await supabase
     .from('group_members')
     .select('user_id, group_id');
@@ -59,13 +57,11 @@ const fetchClients = async (): Promise<Client[]> => {
     throw groupMembersError;
   }
 
-  // Create a map of user_id to group_id
   const userGroupMap = groupMembers?.reduce((map, item) => {
     map[item.user_id] = item.group_id;
     return map;
   }, {} as Record<string, string>) || {};
 
-  // Get all group names
   const { data: groups, error: groupsError } = await supabase
     .from('groups')
     .select('id, name');
@@ -75,13 +71,11 @@ const fetchClients = async (): Promise<Client[]> => {
     throw groupsError;
   }
 
-  // Create a map of group_id to group_name
   const groupNameMap = groups?.reduce((map, group) => {
     map[group.id] = group.name;
     return map;
   }, {} as Record<string, string>) || {};
 
-  // Get emails for all client users
   const { data: emailsData, error: emailsError } = await supabase.rpc('get_users_email', {
     user_ids: profiles?.map(p => p.id) || []
   });
@@ -93,13 +87,11 @@ const fetchClients = async (): Promise<Client[]> => {
 
   console.log('Fetched emails:', emailsData);
 
-  // Create map of user_id to email
   const emailMap = emailsData?.reduce((map, item) => {
     map[item.id] = item.email;
     return map;
   }, {} as Record<string, string>) || {};
 
-  // Compile the client data
   const clientsData: Client[] = profiles?.map(profile => {
     return {
       id: profile.id,
@@ -119,8 +111,8 @@ const ClientsPage: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   
-  // Redirect if not admin
   useEffect(() => {
     if (userType !== 'admin') {
       navigate('/admin');
@@ -144,7 +136,6 @@ const ClientsPage: React.FC = () => {
     try {
       await refetch();
     } finally {
-      // Add a small delay to make the animation visible even for fast refreshes
       setTimeout(() => {
         setIsRefreshing(false);
       }, 500);
@@ -163,7 +154,7 @@ const ClientsPage: React.FC = () => {
       }
       
       toast.success(`User ${clientToDelete.email} was deleted successfully`);
-      refetch(); // Refresh the client list
+      refetch();
     } catch (err) {
       console.error('Error in delete process:', err);
       toast.error('An error occurred while deleting the user');
@@ -173,16 +164,31 @@ const ClientsPage: React.FC = () => {
     }
   };
 
-  // Sort clients - unassigned clients first, then alphabetically by email
+  const handleResetPassword = async (client: Client) => {
+    setIsResettingPassword(true);
+    try {
+      const success = await sendPasswordResetEmail(client.email);
+      
+      if (!success) {
+        throw new Error('Failed to send password reset email');
+      }
+      
+      toast.success(`Password reset email sent to ${client.email}`);
+    } catch (err) {
+      console.error('Error in password reset process:', err);
+      toast.error('An error occurred while sending the password reset email');
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   const sortedClients = React.useMemo(() => {
     if (!clients) return [];
     
     return [...clients].sort((a, b) => {
-      // First sort by group assignment (null groups first)
       if (!a.group_name && b.group_name) return -1;
       if (a.group_name && !b.group_name) return 1;
       
-      // Then sort by email alphabetically
       return a.email.localeCompare(b.email);
     });
   }, [clients]);
@@ -220,7 +226,7 @@ const ClientsPage: React.FC = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Group</TableHead>
                 <TableHead>Joined</TableHead>
-                <TableHead className="w-[80px]">Actions</TableHead>
+                <TableHead className="w-[120px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -244,15 +250,27 @@ const ClientsPage: React.FC = () => {
                       {new Date(client.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setClientToDelete(client)}
-                        title="Delete user"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex space-x-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => handleResetPassword(client)}
+                          disabled={isResettingPassword}
+                          title="Reset password"
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setClientToDelete(client)}
+                          title="Delete user"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

@@ -458,191 +458,6 @@ export const uploadCoachAvatar = async (coachId: string, file: File): Promise<st
   }
 };
 
-export const deleteUser = async (userId: string): Promise<boolean> => {
-  try {
-    console.log(`Attempting to delete user: ${userId}`);
-    
-    // Step 1: Delete any coach messages associated with this client
-    const { error: messagesError } = await supabase
-      .from('coach_messages')
-      .delete()
-      .eq('client_id', userId);
-    
-    if (messagesError) {
-      console.error("Error deleting coach messages:", messagesError);
-    }
-    
-    // Step 2: Delete any client notes
-    const { error: notesError } = await supabase
-      .from('client_notes')
-      .delete()
-      .eq('user_id', userId);
-    
-    if (notesError) {
-      console.error("Error deleting client notes:", notesError);
-    }
-    
-    // Step 3: Delete coach notes about this client
-    const { error: coachNotesError } = await supabase
-      .from('coach_notes')
-      .delete()
-      .eq('member_id', userId);
-    
-    if (coachNotesError) {
-      console.error("Error deleting coach notes:", coachNotesError);
-    }
-    
-    // Step 4: Delete personal records
-    const { error: prError } = await supabase
-      .from('personal_records')
-      .delete()
-      .eq('user_id', userId);
-    
-    if (prError) {
-      console.error("Error deleting personal records:", prError);
-    }
-    
-    // Step 5: Delete workout set completions
-    const { error: setCompletionsError } = await supabase
-      .from('workout_set_completions')
-      .delete()
-      .eq('user_id', userId);
-    
-    if (setCompletionsError) {
-      console.error("Error deleting workout set completions:", setCompletionsError);
-    }
-    
-    // Step 6: Get all workout completions to delete related records first
-    const { data: workoutCompletions, error: fetchCompletionsError } = await supabase
-      .from('workout_completions')
-      .select('id')
-      .eq('user_id', userId);
-    
-    if (fetchCompletionsError) {
-      console.error("Error fetching workout completions:", fetchCompletionsError);
-    } else if (workoutCompletions && workoutCompletions.length > 0) {
-      // Delete workout completion exercises for each completion
-      const completionIds = workoutCompletions.map(wc => wc.id);
-      
-      const { error: completionExercisesError } = await supabase
-        .from('workout_completion_exercises')
-        .delete()
-        .in('workout_completion_id', completionIds);
-      
-      if (completionExercisesError) {
-        console.error("Error deleting workout completion exercises:", completionExercisesError);
-      }
-    }
-    
-    // Step 7: Now delete the workout completions
-    const { error: completionsError } = await supabase
-      .from('workout_completions')
-      .delete()
-      .eq('user_id', userId);
-    
-    if (completionsError) {
-      console.error("Error deleting workout completions:", completionsError);
-    }
-    
-    // Step 8: Delete custom workouts and exercises
-    // First, get all custom workouts to delete related exercises
-    const { data: customWorkouts, error: fetchCustomWorkoutsError } = await supabase
-      .from('client_custom_workouts')
-      .select('id')
-      .eq('user_id', userId);
-    
-    if (fetchCustomWorkoutsError) {
-      console.error("Error fetching custom workouts:", fetchCustomWorkoutsError);
-    } else if (customWorkouts && customWorkouts.length > 0) {
-      // Delete custom workout exercises
-      const workoutIds = customWorkouts.map(w => w.id);
-      
-      const { error: customExercisesError } = await supabase
-        .from('client_custom_workout_exercises')
-        .delete()
-        .in('workout_id', workoutIds);
-      
-      if (customExercisesError) {
-        console.error("Error deleting custom workout exercises:", customExercisesError);
-      }
-    }
-    
-    // Now delete the custom workouts
-    const { error: customWorkoutsError } = await supabase
-      .from('client_custom_workouts')
-      .delete()
-      .eq('user_id', userId);
-    
-    if (customWorkoutsError) {
-      console.error("Error deleting custom workouts:", customWorkoutsError);
-    }
-    
-    // Step 9: Delete program assignments
-    const { error: programAssignmentsError } = await supabase
-      .from('program_assignments')
-      .delete()
-      .eq('user_id', userId);
-    
-    if (programAssignmentsError) {
-      console.error("Error deleting program assignments:", programAssignmentsError);
-    }
-    
-    // Step 10: Delete from group memberships
-    const { error: groupMembersError } = await supabase
-      .from('group_members')
-      .delete()
-      .eq('user_id', userId);
-    
-    if (groupMembersError) {
-      console.error("Error deleting group memberships:", groupMembersError);
-    }
-    
-    // Step 11: Delete beta feedback
-    const { error: feedbackError } = await supabase
-      .from('beta_feedback')
-      .delete()
-      .eq('user_id', userId);
-    
-    if (feedbackError) {
-      console.error("Error deleting beta feedback:", feedbackError);
-    }
-    
-    // Step 12: Delete client profile
-    const { error: clientProfileError } = await supabase
-      .from('client_profiles')
-      .delete()
-      .eq('id', userId);
-    
-    if (clientProfileError) {
-      console.error("Error deleting client profile:", clientProfileError);
-    }
-    
-    // Step 13: Delete profile record
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', userId);
-    
-    if (profileError) {
-      console.error("Error deleting profile:", profileError);
-    }
-    
-    // Step 14: Finally, delete the user from auth.users (requires admin privileges)
-    // This requires row-level security to be set up properly
-    const { error: authUserError } = await supabase.auth.admin.deleteUser(userId);
-    
-    if (authUserError) {
-      console.error("Error deleting auth user:", authUserError);
-      throw new Error("Failed to delete user account");
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Error deleting user:", error);
-    return false;
-  }
-};
-
 // Coach Client Functions - use imports from coach-service.ts
 // Import and re-export coach-service functions and types
 import {
@@ -947,5 +762,23 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<Lea
   } catch (error) {
     console.error("Error fetching monthly leaderboard:", error);
     return [];
+  }
+};
+
+export const deleteUser = async (userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc('admin_delete_user', {
+      user_id: userId
+    });
+    
+    if (error) {
+      console.error("Error deleting user:", error);
+      throw error;
+    }
+    
+    return data || false;
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    return false;
   }
 };

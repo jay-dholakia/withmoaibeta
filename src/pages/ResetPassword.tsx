@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,34 +13,20 @@ const ResetPassword: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const userType = searchParams.get('type') || 'client';
   
   useEffect(() => {
-    // Check for error parameters in URL
-    const urlError = searchParams.get('error');
-    const urlErrorDescription = searchParams.get('error_description');
-    
-    if (urlError) {
-      setError(urlErrorDescription ? decodeURIComponent(urlErrorDescription) : 'Invalid or expired reset link');
-      // We don't redirect immediately if there's an error, so the user can see the error message
-      console.error('Password reset error:', urlError, urlErrorDescription);
-    } else {
-      // Check hash for reset token
-      const hash = window.location.hash;
-      if (!hash || !hash.includes('type=recovery')) {
-        setError('Invalid or expired password reset link');
-        console.error('Invalid reset link, missing recovery token in hash');
-      }
+    const hash = window.location.hash;
+    if (!hash || !hash.includes('type=recovery')) {
+      toast.error('Invalid or expired password reset link');
+      setTimeout(() => {
+        navigate(`/${userType}`);
+      }, 2000);
     }
-  }, [searchParams]);
-
-  const handleRequestNewLink = () => {
-    navigate(`/${userType}`, { state: { showForgotPassword: true } });
-  };
+  }, [navigate, userType]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,15 +43,13 @@ const ResetPassword: React.FC = () => {
     
     try {
       setLoading(true);
-      setError(null);
       
-      const { error: updateError } = await supabase.auth.updateUser({ 
+      const { error } = await supabase.auth.updateUser({ 
         password: password 
       });
       
-      if (updateError) {
-        setError(updateError.message);
-        toast.error(updateError.message);
+      if (error) {
+        toast.error(error.message);
         return;
       }
       
@@ -76,9 +60,8 @@ const ResetPassword: React.FC = () => {
         navigate(`/${userType}`);
       }, 3000);
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating password:', error);
-      setError(error.message || 'An unexpected error occurred');
       toast.error('An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -134,20 +117,6 @@ const ResetPassword: React.FC = () => {
             <p className="text-muted-foreground">
               Your password has been updated successfully. Redirecting you to login...
             </p>
-          </div>
-        ) : error ? (
-          <div className="text-center space-y-4">
-            <AlertCircle size={48} className="mx-auto text-red-500" />
-            <h2 className="text-2xl font-bold">Password Reset Failed</h2>
-            <p className="text-muted-foreground">
-              {error}
-            </p>
-            <button
-              onClick={handleRequestNewLink}
-              className={`mt-4 px-4 py-2 rounded-lg font-medium transition-all ${styles.buttonClass}`}
-            >
-              Request New Reset Link
-            </button>
           </div>
         ) : (
           <>

@@ -474,12 +474,13 @@ export const fetchAllGroups = async (coachId?: string) => {
       queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
     
-    // Execute the query with order clause
-    const { data, error } = await queryBuilder
-      .order('created_at', { ascending: false }) as { 
-        data: any[] | null; 
-        error: any 
-      };
+    // Execute the query and use explicit type assertion to avoid deep type inference
+    const queryResult = await queryBuilder
+      .order('created_at', { ascending: false });
+    
+    // Extract data and error with a simple type structure
+    const data = queryResult.data as any[] | null;
+    const error = queryResult.error;
     
     if (error) {
       console.error("Error fetching groups:", error);

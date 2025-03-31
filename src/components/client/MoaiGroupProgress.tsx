@@ -59,7 +59,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     },
     enabled: !!user?.id && isOnline,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 60 * 60 * 1000, // 1 hour
+    gcTime: 60 * 60 * 1000, // 1 hour
   });
   
   const { data: currentUserProfile, isLoading: isLoadingCurrentUserProfile } = useQuery({
@@ -82,7 +82,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     },
     enabled: !!user?.id && isOnline,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 60 * 60 * 1000, // 1 hour
+    gcTime: 60 * 60 * 1000, // 1 hour
   });
   
   const { data: groupMembers, isLoading: isLoadingMembers, error: memberError } = useQuery({
@@ -132,7 +132,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     },
     enabled: !!groupId && isOnline,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 60 * 60 * 1000, // 1 hour
+    gcTime: 60 * 60 * 1000, // 1 hour
     retry: (failureCount, error) => {
       if (error.message?.includes('Offline')) {
         return false;
@@ -158,7 +158,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     },
     enabled: !!user?.id && isOnline,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 60 * 60 * 1000, // 1 hour
+    gcTime: 60 * 60 * 1000, // 1 hour
     retry: (failureCount, error) => {
       if (error.message?.includes('Offline')) {
         return false;

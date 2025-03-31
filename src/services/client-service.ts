@@ -1,3 +1,4 @@
+
 /**
  * Client service methods for workout tracking and completion
  */
@@ -31,6 +32,15 @@ export interface CoachProfile {
   bio?: string;
   avatar_url?: string;
   favorite_movements?: string[];
+}
+
+// Raw database group type that matches actual database columns
+interface RawGroup {
+  id: string;
+  name: string;
+  created_at: string;
+  created_by: string;
+  description?: string | null;
 }
 
 // Define the GroupData interface to explicitly include coach_id
@@ -479,7 +489,7 @@ export const fetchAllGroups = async (coachId?: string) => {
       queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
     
-    // Execute the query with explicit typing to avoid deep inference
+    // Execute the query with simplified typing
     const { data, error } = await queryBuilder.order('created_at', { ascending: false });
     
     if (error) {
@@ -488,10 +498,10 @@ export const fetchAllGroups = async (coachId?: string) => {
     }
     
     // Transform the data to our GroupData interface
-    const groups: GroupData[] = (data || []).map(item => ({
+    const groups: GroupData[] = (data || []).map((item: RawGroup) => ({
       id: item.id,
       name: item.name,
-      coach_id: item.coach_id || item.created_by, // Use created_by as fallback
+      coach_id: coachId || item.created_by, // Use created_by as fallback
       created_at: item.created_at,
       created_by: item.created_by,
       description: item.description

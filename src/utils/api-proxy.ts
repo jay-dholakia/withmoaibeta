@@ -9,6 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export async function proxyFetch(url: string, options: RequestInit = {}) {
   try {
+    console.log(`Sending proxy request to: ${url}`);
+    
     const { data, error } = await supabase.functions.invoke('api-proxy', {
       body: {
         url,  // Include the URL in the body instead of query
@@ -19,13 +21,13 @@ export async function proxyFetch(url: string, options: RequestInit = {}) {
     });
 
     if (error) {
-      console.error('Error using API proxy:', error);
-      throw new Error(error.message);
+      console.error('Error using Supabase API proxy:', error);
+      throw new Error(`Supabase proxy error: ${error.message}`);
     }
 
     return data;
   } catch (error) {
-    console.error('Failed to proxy request:', error);
+    console.error('Failed to proxy request through Supabase:', error);
     throw error;
   }
 }

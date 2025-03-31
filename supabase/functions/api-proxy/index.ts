@@ -21,6 +21,7 @@ serve(async (req) => {
     try {
       requestData = await req.json();
     } catch (e) {
+      console.error("Error parsing request body:", e);
       return new Response(
         JSON.stringify({ error: "Invalid JSON in request body" }),
         { 
@@ -89,7 +90,7 @@ serve(async (req) => {
       headers: responseHeaders,
     });
   } catch (error) {
-    console.error("Error in API proxy:", error);
+    console.error("Error in Supabase API proxy:", error);
     
     // Return error response with CORS headers
     return new Response(

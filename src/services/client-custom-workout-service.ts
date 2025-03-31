@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface CustomWorkout {
@@ -10,6 +9,7 @@ export interface CustomWorkout {
   created_at: string;
   updated_at: string;
   workout_type: string;
+  workout_exercises?: CustomWorkoutExercise[];
 }
 
 export interface CustomWorkoutExercise {
@@ -144,7 +144,6 @@ export const fetchCustomWorkoutExercises = async (workoutId: string): Promise<Cu
 };
 
 export const createCustomWorkoutExercise = async (params: CreateCustomWorkoutExerciseParams): Promise<CustomWorkoutExercise> => {
-  // Get the current count of exercises to set the order_index
   const { data: existingExercises } = await supabase
     .from('client_custom_workout_exercises')
     .select('id')
@@ -215,59 +214,90 @@ export const deleteCustomWorkoutExercise = async (exerciseId: string): Promise<v
 };
 
 export const moveCustomWorkoutExerciseUp = async (exerciseId: string, workoutId: string) => {
-  // Fetch all exercises to get the current order
   const exercises = await fetchCustomWorkoutExercises(workoutId);
   
-  // Find the current exercise
   const currentExercise = exercises.find(ex => ex.id === exerciseId);
   if (!currentExercise) {
     throw new Error('Exercise not found');
   }
   
-  // If it's already at the top, do nothing
   if (currentExercise.order_index === 0) {
     return exercises;
   }
   
-  // Find the exercise above it
   const previousExercise = exercises.find(ex => ex.order_index === currentExercise.order_index - 1);
   if (!previousExercise) {
     throw new Error('Previous exercise not found');
   }
   
-  // Swap their order indices
   await updateCustomWorkoutExercise(currentExercise.id, { order_index: previousExercise.order_index });
   await updateCustomWorkoutExercise(previousExercise.id, { order_index: currentExercise.order_index });
   
-  // Return the updated list
   return await fetchCustomWorkoutExercises(workoutId);
 };
 
 export const moveCustomWorkoutExerciseDown = async (exerciseId: string, workoutId: string) => {
-  // Fetch all exercises to get the current order
   const exercises = await fetchCustomWorkoutExercises(workoutId);
   
-  // Find the current exercise
   const currentExercise = exercises.find(ex => ex.id === exerciseId);
   if (!currentExercise) {
     throw new Error('Exercise not found');
   }
   
-  // If it's already at the bottom, do nothing
   if (currentExercise.order_index === exercises.length - 1) {
     return exercises;
   }
   
-  // Find the exercise below it
   const nextExercise = exercises.find(ex => ex.order_index === currentExercise.order_index + 1);
   if (!nextExercise) {
     throw new Error('Next exercise not found');
   }
   
-  // Swap their order indices
   await updateCustomWorkoutExercise(currentExercise.id, { order_index: nextExercise.order_index });
   await updateCustomWorkoutExercise(nextExercise.id, { order_index: currentExercise.order_index });
   
-  // Return the updated list
   return await fetchCustomWorkoutExercises(workoutId);
+};
+
+export const startCustomWorkout = async (workoutId: string): Promise<{ success: boolean, session_id?: string, message?: string }> => {
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) throw new Error("Not authenticated");
+
+  try {
+    const { data: workout, error: workoutError } = await supabase
+      .from('client_custom_workouts')
+      .select('*')
+      .eq('id', workoutId)
+      .eq('user_id', user.user.id)
+      .single();
+
+    if (workoutError || !workout) {
+      return { success: false, message: 'Workout not found or access denied' };
+    }
+
+    const { data: session, error: sessionError } = await supabase
+      .from('workout_sessions')
+      .insert({
+        user_id: user.user.id,
+        workout_id: workoutId,
+        is_custom: true,
+        start_time: new Date().toISOString(),
+        status: 'in_progress'
+      })
+      .select('id')
+      .single();
+
+    if (sessionError) {
+      console.error('Error creating workout session:', sessionError);
+      return { success: false, message: 'Failed to create workout session' };
+    }
+
+    return {
+      success: true,
+      session_id: session.id
+    };
+  } catch (error) {
+    console.error('Error starting custom workout:', error);
+    return { success: false, message: 'An unexpected error occurred' };
+  }
 };

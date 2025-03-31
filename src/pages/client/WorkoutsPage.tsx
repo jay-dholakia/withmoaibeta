@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { ClientLayout } from '@/layouts/ClientLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { WorkoutsList } from '@/components/client/WorkoutsList';
+import WorkoutsList from '@/components/client/WorkoutsList';
 import { WorkoutTypeIcon } from '@/components/client/WorkoutTypeIcon';
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import { Calendar, Plus } from 'lucide-react';
@@ -13,10 +14,10 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchAssignedWorkouts } from '@/services/assigned-workouts-service';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { CreateCustomWorkout } from '@/components/client/CreateCustomWorkout';
-import { CustomWorkoutsList } from '@/components/client/CustomWorkoutsList';
+import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
+import CustomWorkoutsList from '@/components/client/CustomWorkoutsList';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
-import { EnterOneOffWorkout } from '@/components/client/EnterOneOffWorkout';
+import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 
 const WorkoutsPage = () => {
   const { user } = useAuth();
@@ -25,13 +26,11 @@ const WorkoutsPage = () => {
   const [isCreateCustomWorkoutOpen, setIsCreateCustomWorkoutOpen] = useState(false);
   const [isEnterOneOffWorkoutOpen, setIsEnterOneOffWorkoutOpen] = useState(false);
 
-  const { data: assignedWorkouts, isLoading, error } = useQuery(
-    ['assignedWorkouts', user?.id],
-    () => fetchAssignedWorkouts(user?.id || ''),
-    {
-      enabled: !!user?.id, // Only run the query if the user is logged in
-    }
-  );
+  const { data: assignedWorkouts, isLoading, error } = useQuery({
+    queryKey: ['assignedWorkouts', user?.id],
+    queryFn: () => fetchAssignedWorkouts(user?.id || ''),
+    enabled: !!user?.id, // Only run the query if the user is logged in
+  });
 
   useEffect(() => {
     if (error) {
@@ -86,7 +85,7 @@ const WorkoutsPage = () => {
                 <CardTitle className="text-lg font-medium">Monthly Calendar</CardTitle>
               </CardHeader>
               <CardContent>
-                <MonthlyCalendarView />
+                <MonthlyCalendarView workouts={assignedWorkouts || []} />
               </CardContent>
             </Card>
           </TabsContent>

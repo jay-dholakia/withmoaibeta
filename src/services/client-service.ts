@@ -489,8 +489,13 @@ export const fetchAllGroups = async (coachId?: string) => {
       queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
     
-    // Execute the query with simplified typing
-    const { data, error } = await queryBuilder.order('created_at', { ascending: false });
+    // Execute the query with explicit typing to avoid deep inference issues
+    // Using any as an intermediate step to break the deep inference chain
+    const response = await queryBuilder.order('created_at', { ascending: false }) as any;
+    
+    // Now safely extract data and error
+    const data = response.data as RawGroup[] | null;
+    const error = response.error as Error | null;
     
     if (error) {
       console.error("Error fetching groups:", error);

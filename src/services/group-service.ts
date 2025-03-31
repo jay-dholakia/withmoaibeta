@@ -1,3 +1,4 @@
+
 /**
  * Group service for managing groups and leaderboards
  */
@@ -42,7 +43,7 @@ export const fetchAllGroups = async (coachId?: string) => {
       queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
 
-    // 💥 BREAK THE CHAIN HERE
+    // Break the chain to avoid excessive type instantiation
     const raw = await queryBuilder.order('created_at', { ascending: false });
 
     const { data, error } = raw as unknown as {

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { LoginForm } from '../components/LoginForm';
@@ -146,18 +145,20 @@ const AdminLogin = () => {
         </div>
       }
     >
-      <LoginForm
-        variant="admin"
-        onLoginStart={() => {
-          console.log('Login start callback triggered');
-          setLocalLoading(true);
-          setForceSafetyReset(false); // Reset safety flag on new login attempt
-        }}
-        onLoginEnd={() => {
-          console.log('Login end callback triggered');
-          setLocalLoading(false);
-        }}
-      />
+      <div className="w-full max-w-md" style={{ position: 'relative', zIndex: 20 }}>
+        <LoginForm
+          variant="admin"
+          onLoginStart={() => {
+            console.log('Login start callback triggered');
+            setLocalLoading(true);
+            setForceSafetyReset(false); // Reset safety flag on new login attempt
+          }}
+          onLoginEnd={() => {
+            console.log('Login end callback triggered');
+            setLocalLoading(false);
+          }}
+        />
+      </div>
     </AuthLayout>
   );
 };

@@ -36,7 +36,9 @@ const CoachLogin = () => {
         </div>
       }
     >
-      <LoginForm variant="coach" />
+      <div className="w-full max-w-md" style={{ position: 'relative', zIndex: 20 }}>
+        <LoginForm variant="coach" />
+      </div>
     </AuthLayout>
   );
 };

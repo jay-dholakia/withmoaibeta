@@ -273,6 +273,8 @@ export const createWorkoutExercise = async (data: {
   rest_seconds: number | null;
   notes: string | null;
   order_index: number;
+  distance?: string;
+  duration?: string;
 }) => {
   const { data: workoutExercise, error } = await supabase
     .from('workout_exercises')
@@ -312,6 +314,8 @@ export const updateWorkoutExercise = async (exerciseId: string, data: {
   rest_seconds?: number | null;
   notes?: string | null;
   order_index?: number;
+  distance?: string;
+  duration?: string;
 }) => {
   const { data: workoutExercise, error } = await supabase
     .from('workout_exercises')

@@ -16,8 +16,8 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   onSubmit,
   isSubmitting = false
 }) => {
-  const [sets, setSets] = React.useState(initialData?.sets || 4);
-  const [reps, setReps] = React.useState(initialData?.reps || '12');
+  const [sets, setSets] = React.useState(initialData?.sets || 1);
+  const [reps, setReps] = React.useState(initialData?.reps || '');
   const [restSeconds, setRestSeconds] = React.useState(initialData?.rest_seconds || 45);
   const [notes, setNotes] = React.useState(initialData?.notes || '');
   const [duration, setDuration] = React.useState(initialData?.duration || '');
@@ -27,12 +27,12 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     e.preventDefault();
     
     onSubmit({
-      sets: sets,
-      reps: reps,
+      sets,
+      reps: isRunningExercise ? '' : reps,
       rest_seconds: restSeconds,
-      notes: notes,
-      duration: duration,
-      distance: distance
+      notes,
+      duration,
+      distance
     });
   };
 

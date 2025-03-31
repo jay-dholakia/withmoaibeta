@@ -89,7 +89,10 @@ export interface WorkoutExercise {
   exercise?: Exercise;
   workout?: Workout;
   title?: string; 
-  workout_type?: string; 
+  workout_type?: string;
+  // Add running-specific fields
+  distance?: string;
+  duration?: string;
 }
 
 export interface ProgramAssignment {

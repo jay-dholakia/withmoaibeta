@@ -19,9 +19,22 @@ interface MemberItemProps {
 }
 
 const MoaiMemberItem: React.FC<MemberItemProps> = ({ member, onClick }) => {
-  const displayName = member.profileData?.first_name 
-    ? `${member.profileData.first_name} ${member.profileData.last_name || ''}` 
-    : member.email.split('@')[0];
+  // Format the display name to show first name and first initial of last name
+  const getDisplayName = () => {
+    const firstName = member.profileData?.first_name;
+    const lastName = member.profileData?.last_name;
+    
+    if (firstName) {
+      const lastInitial = lastName ? `${lastName.charAt(0)}.` : '';
+      return `${firstName} ${lastInitial}`.trim();
+    }
+    
+    // Fallback to email username if no first name is available
+    return member.email.split('@')[0];
+  };
+  
+  const displayName = getDisplayName();
+  const initials = displayName.substring(0, 2).toUpperCase();
   
   return (
     <Card 
@@ -32,7 +45,7 @@ const MoaiMemberItem: React.FC<MemberItemProps> = ({ member, onClick }) => {
         <Avatar>
           <AvatarImage src={member.profileData?.avatar_url || ''} alt={displayName} />
           <AvatarFallback className="bg-client/80 text-white">
-            {displayName.substring(0, 2).toUpperCase()}
+            {initials}
           </AvatarFallback>
         </Avatar>
         

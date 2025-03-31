@@ -53,19 +53,27 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     !assignment.end_date || new Date(assignment.end_date) >= new Date()
   );
 
-  // Function to safely format dates with timezone handling
+  // Function to safely format dates with improved timezone handling
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '';
     
-    // Parse the ISO string and create a date in UTC
+    // Parse the ISO string and create a date
     const date = new Date(dateString);
     
     if (!isValid(date) || date.getFullYear() <= 1970) {
       return 'Invalid date';
     }
     
-    // Use date-fns format with the correct UTC date
-    return format(date, 'MMM d, yyyy');
+    // Extract date components from UTC values to avoid timezone issues
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth(); // Month is 0-indexed
+    const day = date.getUTCDate();
+    
+    // Create a new date with local timezone using extracted components
+    const localDate = new Date(year, month, day);
+    
+    // Use date-fns format with the correct local date
+    return format(localDate, 'MMM d, yyyy');
   };
   
   // Function to safely format relative time

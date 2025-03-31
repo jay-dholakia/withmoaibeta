@@ -35,7 +35,17 @@ const SettingsPage = () => {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not provided';
-    return new Date(dateString).toLocaleDateString();
+    
+    // Create date from ISO string
+    const date = new Date(dateString);
+    
+    // Extract date components from UTC values to avoid timezone issues
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1; // Month is 0-indexed
+    const day = date.getUTCDate();
+    
+    // Format as MM/DD/YYYY
+    return `${month}/${day}/${year}`;
   };
 
   if (profileLoading) {

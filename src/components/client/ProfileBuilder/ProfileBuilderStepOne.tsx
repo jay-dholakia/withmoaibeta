@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -45,18 +44,25 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   const [birthDay, setBirthDay] = useState<string>('');
   const [birthYear, setBirthYear] = useState<string>('');
   
-  // Parse and set birthday from profile data with timezone handling
+  // Parse and set birthday from profile data with improved timezone handling
   useEffect(() => {
     if (profile.birthday) {
       try {
-        // Create date object without timezone conversion
-        const rawDate = new Date(profile.birthday);
-        if (!isNaN(rawDate.getTime())) { // Check if date is valid
-          // Adjust the date by adding the timezone offset to get the correct local date
-          setBirthMonth((rawDate.getMonth() + 1).toString());
-          setBirthDay(rawDate.getDate().toString());
-          setBirthYear(rawDate.getFullYear().toString());
-          console.log('Parsed birthday:', rawDate, 'Month:', rawDate.getMonth() + 1, 'Day:', rawDate.getDate(), 'Year:', rawDate.getFullYear());
+        // Parse the date string into a Date object
+        const birthDate = new Date(profile.birthday);
+        
+        if (!isNaN(birthDate.getTime())) { // Valid date check
+          // Extract date parts directly from the UTC fields to avoid timezone shifts
+          const year = birthDate.getUTCFullYear();
+          const month = birthDate.getUTCMonth() + 1; // Month is 0-indexed
+          const day = birthDate.getUTCDate();
+          
+          setBirthMonth(month.toString());
+          setBirthDay(day.toString());
+          setBirthYear(year.toString());
+          
+          console.log('Parsed birthday from UTC:', birthDate.toISOString());
+          console.log('Extracted date parts - Year:', year, 'Month:', month, 'Day:', day);
         } else {
           console.error('Invalid date from profile.birthday:', profile.birthday);
         }
@@ -183,15 +189,18 @@ export const ProfileBuilderStepOne: React.FC<ProfileBuilderStepOneProps> = ({
   const handleNext = () => {
     let birthdayString: string | null = null;
     if (isValidBirthday()) {
-      // Ensure we're creating the date properly - months in JS Date are 0-indexed
-      const month = parseInt(birthMonth, 10) - 1;
+      // Create date with UTC format to avoid timezone shifts
+      const month = parseInt(birthMonth, 10);
       const day = parseInt(birthDay, 10);
       const year = parseInt(birthYear, 10);
       
-      // Create a date object with UTC time at noon to avoid timezone issues
-      const birthDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
-      console.log('Creating birthday with UTC values:', year, month, day);
-      console.log('Created birthday date (UTC):', birthDate.toISOString());
+      // Create a date with UTC time to prevent timezone conversion issues
+      // Setting time to noon (12:00) in UTC to avoid any date shifts
+      const birthDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+      
+      console.log('Creating birthday with UTC values - Year:', year, 'Month:', month - 1, 'Day:', day);
+      console.log('Created birthday in UTC:', birthDate.toISOString());
+      
       birthdayString = birthDate.toISOString();
     }
     

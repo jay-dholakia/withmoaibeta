@@ -33,6 +33,17 @@ const ProfileEditor = () => {
       try {
         const result = await fetchClientProfile(user.id);
         console.log('ProfileEditor: Fetch result:', result);
+        
+        if (result.birthday) {
+          const date = new Date(result.birthday);
+          console.log('ProfileEditor: Birthday loaded:', result.birthday);
+          console.log('As UTC date components:', {
+            utcYear: date.getUTCFullYear(),
+            utcMonth: date.getUTCMonth() + 1,
+            utcDay: date.getUTCDate()
+          });
+        }
+        
         return result;
       } catch (error) {
         console.error('ProfileEditor: Error fetching profile:', error);
@@ -49,8 +60,13 @@ const ProfileEditor = () => {
       console.log('ProfileEditor: Updating profile with data:', data);
       
       if (data.birthday) {
+        const date = new Date(data.birthday);
         console.log('Birthday to be saved:', data.birthday);
-        console.log('Birthday date object:', new Date(data.birthday));
+        console.log('As UTC date components:', {
+          utcYear: date.getUTCFullYear(),
+          utcMonth: date.getUTCMonth() + 1,
+          utcDay: date.getUTCDate()
+        });
       }
       
       return updateClientProfile(user.id, data);

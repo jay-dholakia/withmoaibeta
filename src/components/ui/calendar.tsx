@@ -56,6 +56,16 @@ function Calendar({
         IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
       }}
+      // These props help maintain date integrity with timezone issues
+      toDate={(day) => {
+        // Ensures the day is displayed in local time
+        return new Date(day.getFullYear(), day.getMonth(), day.getDate(), 12);
+      }}
+      fromDate={(day) => {
+        // Preserves the selected date when converting from date objects
+        const date = new Date(day);
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12);
+      }}
       {...props}
     />
   );

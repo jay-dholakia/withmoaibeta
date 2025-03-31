@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -20,7 +19,7 @@ import { ClientData, fetchCoachClients } from '@/services/coach-service';
 import { fetchCoachGroups } from '@/services/coach-group-service';
 import { ClientDetailView } from '@/components/coach/ClientDetailView';
 import ClientMessageForm from '@/components/coach/ClientMessageForm';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { 
   Pagination, 
   PaginationContent, 
@@ -172,9 +171,7 @@ const ClientsPage = () => {
       setEditMessage(messageStatus[clientId].message);
       setSheetOpen(true);
     } else {
-      toast({
-        description: "No message found to edit"
-      });
+      toast("No message found to edit");
     }
   };
 
@@ -192,9 +189,7 @@ const ClientsPage = () => {
     setSelectedClientId(null);
     setSelectedClientEmail(null);
     setEditMessage(undefined);
-    toast({
-      description: "Your message has been sent to the client."
-    });
+    toast("Your message has been sent to the client.");
   };
 
   const getWorkoutStatusClass = (days: number | null) => {

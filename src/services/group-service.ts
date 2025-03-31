@@ -1,4 +1,3 @@
-
 /**
  * Group service for managing groups and leaderboards
  */
@@ -43,13 +42,12 @@ export const fetchAllGroups = async (coachId?: string) => {
       queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
 
-    // Break the chain to avoid excessive type instantiation
-    const raw = await queryBuilder.order('created_at', { ascending: false });
-
-    const { data, error } = raw as unknown as {
-      data: Record<string, any>[] | null;
-      error: any;
-    };
+    // ✅ FULLY short-circuit type inference here
+    const { data, error } = await (queryBuilder
+      .order('created_at', { ascending: false }) as unknown as Promise<{
+        data: Record<string, any>[] | null;
+        error: any;
+      }>);
 
     if (error) {
       console.error("Error fetching groups:", error);

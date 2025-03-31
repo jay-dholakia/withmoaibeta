@@ -53,6 +53,8 @@ const WorkoutHistoryTab = () => {
 
   // Map workout types to standardized types
   const getStandardizedWorkoutType = (type: string): WorkoutType => {
+    if (!type) return 'strength';
+    
     type = type.toLowerCase();
     
     if (type.includes('strength')) return 'strength';

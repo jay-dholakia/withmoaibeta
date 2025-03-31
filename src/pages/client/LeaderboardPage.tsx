@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Container } from '@/components/ui/container';
 import { CoachMessageCard } from '@/components/client/CoachMessageCard';
@@ -88,6 +89,7 @@ const LeaderboardPage = () => {
           else if (type.includes('flex') || type.includes('yoga') || type.includes('stretch')) typesMap[dateKey] = 'flexibility';
           else if (type.includes('rest')) typesMap[dateKey] = 'rest_day';
           else if (type.includes('custom')) typesMap[dateKey] = 'custom';
+          else if (type.includes('one')) typesMap[dateKey] = 'one_off';
           else typesMap[dateKey] = 'strength'; // Default
           return;
         }

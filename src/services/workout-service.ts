@@ -944,6 +944,8 @@ export const createExercise = async (data: {
 };
 
 function normalizeWorkoutType(workoutType: string): string {
+  if (!workoutType) return 'strength';
+  
   const type = workoutType.toLowerCase();
   
   if (type.includes('strength')) return 'strength';

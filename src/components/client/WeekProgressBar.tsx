@@ -114,6 +114,7 @@ export const WeekProgressBar = ({
           const dayName = format(day.date, 'E')[0];
           const isToday = isSameDay(today, day.date);
           
+          // Use lighter background colors for better emoji visibility
           let bgColor = 'bg-gray-100';
           let textColor = 'text-gray-400';
           let border = '';

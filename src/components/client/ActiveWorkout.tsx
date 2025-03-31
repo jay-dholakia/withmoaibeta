@@ -40,6 +40,7 @@ const ActiveWorkout = () => {
       };
       runData?: {
         distance: string;
+        duration: string;
         location: string;
         completed: boolean;
       };
@@ -68,6 +69,7 @@ const ActiveWorkout = () => {
   const [pendingRuns, setPendingRuns] = useState<Array<{
     exerciseId: string;
     distance: string;
+    duration: string;
     location: string;
   }>>([]);
 
@@ -328,6 +330,7 @@ const ActiveWorkout = () => {
             sets: [],
             runData: {
               distance: existingSet?.distance || '',
+              duration: existingSet?.duration || '',
               location: existingSet?.location || '',
               completed: !!existingSet?.completed
             }
@@ -449,7 +452,7 @@ const ActiveWorkout = () => {
     });
   };
 
-  const handleRunChange = (exerciseId: string, field: 'distance' | 'location', value: string) => {
+  const handleRunChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
     setExerciseStates((prev) => {
       if (!prev[exerciseId] || !prev[exerciseId].runData) {
         return prev;
@@ -801,29 +804,43 @@ const ActiveWorkout = () => {
                             <p className="text-xs text-muted-foreground mt-1 text-center">Enter distance in miles</p>
                           </div>
                           <div className="text-center">
-                            <label className="block text-sm font-medium mb-1 text-center">Location</label>
-                            <ToggleGroup 
-                              type="single" 
-                              className="justify-center"
-                              value={exerciseState.runData?.location || ''}
-                              onValueChange={(value) => {
-                                if (value) handleRunChange(exercise.id, 'location', value);
-                              }}
-                            >
-                              <ToggleGroupItem 
-                                value="indoor" 
-                                className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
-                              >
-                                <MapPin className="h-3 w-3 mr-1" /> Indoor
-                              </ToggleGroupItem>
-                              <ToggleGroupItem 
-                                value="outdoor" 
-                                className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
-                              >
-                                <MapPin className="h-3 w-3 mr-1" /> Outdoor
-                              </ToggleGroupItem>
-                            </ToggleGroup>
+                            <label className="block text-sm font-medium mb-1 text-center">Duration (hh:mm:ss)</label>
+                            <Input
+                              placeholder="00:00:00"
+                              value={exerciseState.runData?.duration || ''}
+                              onChange={(e) => handleRunChange(
+                                exercise.id, 
+                                'duration', 
+                                formatDurationInput(e.target.value)
+                              )}
+                              className="h-9 text-center border border-gray-200"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1 text-center">Format: hours:minutes:seconds</p>
                           </div>
+                        </div>
+                        <div className="text-center">
+                          <label className="block text-sm font-medium mb-1 text-center">Location</label>
+                          <ToggleGroup 
+                            type="single" 
+                            className="justify-center"
+                            value={exerciseState.runData?.location || ''}
+                            onValueChange={(value) => {
+                              if (value) handleRunChange(exercise.id, 'location', value);
+                            }}
+                          >
+                            <ToggleGroupItem 
+                              value="indoor" 
+                              className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
+                            >
+                              <MapPin className="h-3 w-3 mr-1" /> Indoor
+                            </ToggleGroupItem>
+                            <ToggleGroupItem 
+                              value="outdoor" 
+                              className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
+                            >
+                              <MapPin className="h-3 w-3 mr-1" /> Outdoor
+                            </ToggleGroupItem>
+                          </ToggleGroup>
                         </div>
                         <div className="flex justify-center items-center mt-2">
                           <span className="mr-2 text-sm">Mark as completed:</span>

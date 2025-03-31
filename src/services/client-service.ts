@@ -1,4 +1,3 @@
-
 /**
  * Client service methods for workout tracking and completion
  */
@@ -480,12 +479,8 @@ export const fetchAllGroups = async (coachId?: string) => {
       queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
     
-    // Execute the query and handle type conversion separately
-    const result = await queryBuilder.order('created_at', { ascending: false });
-    
-    // Extract data and error manually to avoid deep type inference
-    const data = result.data as any[] | null;
-    const error = result.error;
+    // Execute the query with explicit typing to avoid deep inference
+    const { data, error } = await queryBuilder.order('created_at', { ascending: false });
     
     if (error) {
       console.error("Error fetching groups:", error);

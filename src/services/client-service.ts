@@ -1,3 +1,4 @@
+
 /**
  * Client service methods for workout tracking and completion
  */
@@ -477,11 +478,13 @@ export const fetchAllGroups = async (coachId?: string) => {
       throw error;
     }
     
-    // Add missing coach_id if not present to match GroupData interface
-    return (data || []).map(group => ({
-      ...group,
-      coach_id: group.coach_id || group.created_by // Use created_by as fallback
-    }));
+    // Process the data to ensure it matches the GroupData interface
+    return (data || []).map(group => {
+      return {
+        ...group,
+        coach_id: group.coach_id || group.created_by // Use created_by as fallback if coach_id doesn't exist
+      } as GroupData;
+    });
   } catch (error) {
     console.error("Error in fetchAllGroups:", error);
     throw error;

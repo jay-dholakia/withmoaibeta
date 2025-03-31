@@ -43,28 +43,30 @@ export const fetchAllGroups = async (coachId?: string) => {
       queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
 
-    // 🔧 Fix type inference here by breaking the chain
-    const raw = await queryBuilder.order('created_at', { ascending: false });
-    const { data, error } = raw as unknown as {
-      data: Record<string, any>[] | null;
-      error: any;
-    };
-
+    // Execute the query
+    const { data, error } = await queryBuilder.order('created_at', { ascending: false });
+    
     if (error) {
       console.error("Error fetching groups:", error);
       throw error;
     }
-
-    // 💡 Manually map the response
-    const groups: GroupData[] = (data || []).map((item) => ({
-      id: item.id,
-      name: item.name,
-      coach_id: coachId || item.created_by,
-      created_at: item.created_at,
-      created_by: item.created_by,
-      description: item.description,
-    }));
-
+    
+    // Transform the data to the GroupData interface with explicit types
+    const groups: GroupData[] = [];
+    
+    if (data) {
+      for (const item of data) {
+        groups.push({
+          id: item.id,
+          name: item.name,
+          coach_id: coachId || item.created_by,
+          created_at: item.created_at,
+          created_by: item.created_by,
+          description: item.description
+        });
+      }
+    }
+    
     return groups;
   } catch (error) {
     console.error("Error in fetchAllGroups:", error);

@@ -70,7 +70,7 @@ const ClientsPage = () => {
         return clientData;
       } catch (error) {
         console.error('Error in client fetch query function:', error);
-        toast.error('Failed to load clients. Please try again later.');
+        toast('Failed to load clients. Please try again later.');
         return [];
       }
     },
@@ -87,7 +87,7 @@ const ClientsPage = () => {
         return groupData;
       } catch (error) {
         console.error('Error in group fetch query function:', error);
-        toast.error('Failed to load groups. Please try again later.');
+        toast('Failed to load groups. Please try again later.');
         return [];
       }
     },

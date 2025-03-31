@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -9,7 +10,6 @@ import PassCounter from '@/components/client/PassCounter';
 import LifeHappensButton from '@/components/client/LifeHappensButton';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
-import { VideoPlayer } from '@/components/client/VideoPlayer';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Armchair, ListTodo, History } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
@@ -68,16 +68,6 @@ const WorkoutsPage = () => {
             </TabsList>
             
             <TabsContent value="active-workouts">
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-2">Featured Workout</h3>
-                <div className="rounded-lg overflow-hidden shadow-sm border border-slate-200">
-                  <VideoPlayer 
-                    bucketName="videos" 
-                    filePath="IMG_2130.MOV" 
-                  />
-                </div>
-              </div>
-              
               <WorkoutsList />
               
               <div className="mt-8 border-t pt-6">

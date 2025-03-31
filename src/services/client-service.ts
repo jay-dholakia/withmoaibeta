@@ -253,24 +253,84 @@ export const trackWorkoutSet = async (
       
       workoutId = exerciseData.workout_id;
       
-      // Create a new workout completion record
-      const { data: newCompletion, error: newCompletionError } = await supabase
-        .from('workout_completions')
-        .insert({
-          id: workoutCompletionId,
-          user_id: userId,
-          workout_id: workoutId,
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-      
-      if (newCompletionError) {
-        console.error("Error creating workout completion:", newCompletionError);
-        throw newCompletionError;
+      // Check if workout completion with this ID already exists before creating
+      try {
+        const { data: existingCompletion, error: existingCompletionError } = await supabase
+          .from('workout_completions')
+          .select('id')
+          .eq('id', workoutCompletionId)
+          .maybeSingle();
+          
+        if (existingCompletionError) {
+          console.error("Error checking for existing completion:", existingCompletionError);
+          // Continue with the attempt to create a new record
+        }
+        
+        if (!existingCompletion) {
+          // Only create if it doesn't exist
+          const { data: newCompletion, error: newCompletionError } = await supabase
+            .from('workout_completions')
+            .insert({
+              id: workoutCompletionId,
+              user_id: userId,
+              workout_id: workoutId,
+              created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+            
+          if (newCompletionError) {
+            console.error("Error creating workout completion:", newCompletionError);
+            
+            // If the error is a duplicate key, try to get the existing record
+            if (newCompletionError.code === '23505') {
+              const { data: existingData, error: fetchError } = await supabase
+                .from('workout_completions')
+                .select('user_id, workout_id')
+                .eq('id', workoutCompletionId)
+                .single();
+                
+              if (fetchError) {
+                throw fetchError;
+              }
+              
+              if (existingData) {
+                userId = existingData.user_id;
+                workoutId = existingData.workout_id;
+              } else {
+                throw newCompletionError;
+              }
+            } else {
+              throw newCompletionError;
+            }
+          } else if (newCompletion) {
+            console.log("Created new workout completion:", newCompletion);
+          }
+        } else {
+          // Get the user_id and workout_id from the existing record
+          const { data: existingData, error: fetchError } = await supabase
+            .from('workout_completions')
+            .select('user_id, workout_id')
+            .eq('id', workoutCompletionId)
+            .single();
+            
+          if (fetchError) {
+            throw fetchError;
+          }
+          
+          if (existingData) {
+            userId = existingData.user_id;
+            workoutId = existingData.workout_id;
+          }
+        }
+      } catch (error) {
+        console.error("Error handling workout completion creation:", error);
+        
+        // If we still don't have userId or workoutId, something is wrong
+        if (!userId || !workoutId) {
+          throw new Error("Could not determine user or workout for completion");
+        }
       }
-      
-      console.log("Created new workout completion:", newCompletion);
     } else {
       userId = completionData.user_id;
       workoutId = completionData.workout_id;
@@ -542,12 +602,12 @@ export const fetchAllGroups = async (coachId?: string) => {
     }
     
     // Execute the query with explicit typing to avoid deep inference issues
-    // Using any as an intermediate step to break the deep inference chain
-    const response = await queryBuilder.order('created_at', { ascending: false }) as any;
+    const response: {
+      data: RawGroup[] | null;
+      error: Error | null;
+    } = await queryBuilder.order('created_at', { ascending: false });
     
-    // Now safely extract data and error
-    const data = response.data as RawGroup[] | null;
-    const error = response.error as Error | null;
+    const { data, error } = response;
     
     if (error) {
       console.error("Error fetching groups:", error);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,7 +7,7 @@ import { completeWorkout, fetchPersonalRecords } from '@/services/client-service
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, CheckCircle2, Share2, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, Share2, ArrowLeft, AlertCircle, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
@@ -28,6 +27,8 @@ const WorkoutComplete = () => {
   const [notes, setNotes] = useState('');
   const [rating, setRating] = useState<number | null>(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
+  const [isEditingMessage, setIsEditingMessage] = useState(false);
   
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['complete-workout', workoutCompletionId],
@@ -35,7 +36,6 @@ const WorkoutComplete = () => {
       console.log("Fetching workout completion data for ID:", workoutCompletionId);
       
       try {
-        // Query by workout_id, not id
         const { data, error } = await supabase
           .from('workout_completions')
           .select(`
@@ -61,7 +61,6 @@ const WorkoutComplete = () => {
         if (!data) {
           console.log("No workout completion found, trying to fetch workout directly");
           
-          // If no completion record, try to get just the workout data
           const { data: workoutOnly, error: workoutError } = await supabase
             .from('workouts')
             .select(`
@@ -119,6 +118,24 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
+  useEffect(() => {
+    if (workoutData && !shareMessage) {
+      let message = `I just finished my workout: ${workoutData?.workout?.title || 'Workout'}! 💪\n\n`;
+      
+      if (personalRecords && personalRecords.length > 0) {
+        message += "🏆 New personal records:\n";
+        personalRecords.forEach((pr: any) => {
+          message += `- ${pr.exercise.name}: ${pr.weight} lbs × ${pr.reps} reps\n`;
+        });
+        message += "\n";
+      }
+      
+      message += "#FitnessJourney #PersonalBest";
+      
+      setShareMessage(message);
+    }
+  }, [workoutData, personalRecords, shareMessage]);
+
   const addToJournal = async (notes: string) => {
     if (!user?.id || !notes.trim() || !workoutData) return;
     
@@ -152,7 +169,6 @@ const WorkoutComplete = () => {
         await addToJournal(notes);
       }
       
-      // Use the workout ID (workoutCompletionId) not the completion record ID
       return completeWorkout(
         workoutCompletionId,
         rating,
@@ -160,10 +176,7 @@ const WorkoutComplete = () => {
       );
     },
     onSuccess: () => {
-      // Invalidate relevant queries to refresh the workout list
       queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
-      
-      // Show share dialog instead of navigating away immediately
       setShowShareDialog(true);
     },
     onError: (error) => {
@@ -173,18 +186,7 @@ const WorkoutComplete = () => {
   });
 
   const handleShareWorkout = () => {
-    let shareText = `I just finished my workout: ${workoutData?.workout?.title || 'Workout'}! 💪\n\n`;
-    
-    if (personalRecords && personalRecords.length > 0) {
-      shareText += "🏆 New personal records:\n";
-      personalRecords.forEach((pr: any) => {
-        shareText += `- ${pr.exercise.name}: ${pr.weight} lbs × ${pr.reps} reps\n`;
-      });
-    }
-    
-    shareText += "\n#FitnessJourney #PersonalBest";
-    
-    navigator.clipboard.writeText(shareText)
+    navigator.clipboard.writeText(shareMessage)
       .then(() => {
         toast.success('Copied to clipboard! Ready to share.');
       })
@@ -195,8 +197,11 @@ const WorkoutComplete = () => {
 
   const handleCloseShareDialog = () => {
     setShowShareDialog(false);
-    // Navigate to Moai page after closing the dialog
     navigate('/client-dashboard/moai');
+  };
+
+  const toggleEditMessage = () => {
+    setIsEditingMessage(!isEditingMessage);
   };
 
   if (isLoading) {
@@ -319,7 +324,6 @@ const WorkoutComplete = () => {
         </Button>
       </div>
 
-      {/* Share Results Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -333,25 +337,31 @@ const WorkoutComplete = () => {
           </DialogHeader>
           
           <div className="bg-muted/50 rounded-lg p-4 my-4">
-            <p className="font-medium mb-2">Ready to share:</p>
-            <div className="bg-white p-3 rounded border text-sm">
-              <p className="mb-2">I just finished my workout: {workoutData?.workout?.title || 'Workout'}! 💪</p>
-              
-              {personalRecords && personalRecords.length > 0 && (
-                <>
-                  <p className="font-medium mb-1">🏆 New personal records:</p>
-                  <ul className="list-disc pl-5 mb-2">
-                    {personalRecords.map((pr: any, index: number) => (
-                      <li key={index}>
-                        {pr.exercise.name}: {pr.weight} lbs × {pr.reps} reps
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-              
-              <p className="text-muted-foreground">#FitnessJourney #PersonalBest</p>
+            <div className="flex justify-between items-center mb-2">
+              <p className="font-medium">Ready to share:</p>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={toggleEditMessage}
+                className="h-8 px-2 text-xs"
+              >
+                <Edit2 className="h-3.5 w-3.5 mr-1" />
+                {isEditingMessage ? "Preview" : "Edit"}
+              </Button>
             </div>
+            
+            {isEditingMessage ? (
+              <Textarea
+                value={shareMessage}
+                onChange={(e) => setShareMessage(e.target.value)}
+                className="min-h-[150px] text-sm"
+                placeholder="Write your custom message here..."
+              />
+            ) : (
+              <div className="bg-white p-3 rounded border text-sm whitespace-pre-line">
+                {shareMessage}
+              </div>
+            )}
           </div>
           
           <DialogFooter className="sm:justify-between flex-row gap-3">

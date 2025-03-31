@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { format, isThisWeek, startOfWeek, endOfWeek, addDays, isSameDay } from 'date-fns';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -67,7 +66,7 @@ export const WeekProgressBar = ({
       });
       
       const dateStr = format(day, 'yyyy-MM-dd');
-      const workoutType = workoutTypes[dateStr] || 'strength';
+      const workoutType = workoutTypes[dateStr] || (isLifeHappens ? 'rest_day' : 'strength');
       
       return {
         date: day,
@@ -130,8 +129,8 @@ export const WeekProgressBar = ({
           }
           
           if (day.isCompleted) {
-            bgColor = `${color}/90`;
-            textColor = 'text-white';
+            bgColor = `${color}/20`;
+            textColor = 'text-black';
           }
           
           return (
@@ -139,14 +138,14 @@ export const WeekProgressBar = ({
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${textColor} ${border} transition-all duration-200 relative`}
               >
-                {(day.isCompleted || day.isLifeHappens) ? (
-                  <WorkoutTypeIcon type={day.workoutType} size={16} />
+                {day.isCompleted || day.isLifeHappens ? (
+                  <WorkoutTypeIcon type={day.workoutType} />
                 ) : (
                   <span className="text-xs font-medium">{dayName}</span>
                 )}
               </div>
               
-              {/* Only show day letter when no workout is completed */}
+              {/* Only show day letter below when no workout is completed */}
               {!day.isCompleted && !day.isLifeHappens && (
                 <span className="text-xs font-medium text-gray-500 mt-1">{dayName}</span>
               )}

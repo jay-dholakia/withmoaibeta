@@ -91,7 +91,7 @@ export const WorkoutProgressCard = ({
               <div key={index} className="flex flex-col items-center">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} border border-slate-200`}>
                   {(isDayCompleted || isLifeHappens) ? (
-                    <WorkoutTypeIcon type={workoutType} size={16} />
+                    <WorkoutTypeIcon type={workoutType} />
                   ) : (
                     <span className="text-xs font-medium text-slate-600">{day}</span>
                   )}

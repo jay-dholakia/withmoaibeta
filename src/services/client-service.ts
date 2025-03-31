@@ -471,17 +471,10 @@ export const fetchAllGroups = async (coachId?: string) => {
       query = query.eq('coach_id', coachId);
     }
     
-    // Use a simple type assertion for the query result
-    const { data, error } = await query.order('created_at', { ascending: false }) as unknown as {
-      data: Array<{
-        id: string;
-        name: string;
-        created_at: string;
-        created_by: string;
-        description?: string | null;
-        coach_id?: string;
-      }> | null;
-      error: any;
+    // Use type assertion to avoid deep type inference
+    const { data, error } = await query.order('created_at', { ascending: false }) as { 
+      data: any[] | null; 
+      error: any 
     };
     
     if (error) {
@@ -489,7 +482,7 @@ export const fetchAllGroups = async (coachId?: string) => {
       throw error;
     }
     
-    // Map the data to our GroupData interface
+    // Transform the data to our GroupData interface
     const groups: GroupData[] = (data || []).map(item => ({
       id: item.id,
       name: item.name,

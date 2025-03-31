@@ -464,21 +464,22 @@ export const uploadCoachAvatar = async (userId: string, file: File) => {
  */
 export const fetchAllGroups = async (coachId?: string) => {
   try {
-    let query = supabase
+    // Create the base query without executing it yet
+    let queryBuilder = supabase
       .from('groups')
       .select('*');
     
+    // Add coach filter if provided
     if (coachId) {
-      query = query.eq('coach_id', coachId);
+      queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
     
-    // Using a completely explicit type assertion to avoid deep inference
-    const result = await query.order('created_at', { ascending: false });
-    // Type assertion with 'unknown' as intermediary step to simplify the type inference
-    const { data, error } = result as unknown as { 
-      data: any[] | null; 
-      error: any 
-    };
+    // Execute the query with order clause
+    const queryResult = await queryBuilder.order('created_at', { ascending: false });
+    
+    // Extract data and error using simple object destructuring to avoid type inference issues
+    const data = queryResult.data as any[] || [];
+    const error = queryResult.error;
     
     if (error) {
       console.error("Error fetching groups:", error);
@@ -486,7 +487,7 @@ export const fetchAllGroups = async (coachId?: string) => {
     }
     
     // Transform the data to our GroupData interface
-    const groups: GroupData[] = (data || []).map(item => ({
+    const groups: GroupData[] = data.map(item => ({
       id: item.id,
       name: item.name,
       coach_id: item.coach_id || item.created_by, // Use created_by as fallback

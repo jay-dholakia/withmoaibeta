@@ -104,11 +104,11 @@ export const CreateExerciseForm = ({
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      // Fix: Make sure to pass the required properties
+      // Ensure we're passing all required properties with proper types
       const result = await createExercise({
         name: data.name,
         category: data.category,
-        description: data.description,
+        description: data.description || null,
         exercise_type: data.exercise_type,
         log_type: data.log_type
       });

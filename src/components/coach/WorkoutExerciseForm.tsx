@@ -21,6 +21,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const [restSeconds, setRestSeconds] = React.useState(initialData?.rest_seconds || 45);
   const [notes, setNotes] = React.useState(initialData?.notes || '');
   const [duration, setDuration] = React.useState(initialData?.duration || '');
+  const [distance, setDistance] = React.useState(initialData?.distance || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +31,8 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       reps: reps,
       rest_seconds: restSeconds,
       notes: notes,
-      duration: duration
+      duration: duration,
+      distance: distance
     });
   };
 
@@ -103,6 +105,20 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
             <p className="text-xs text-muted-foreground mt-1 text-center">
               Format as hours:minutes:seconds (e.g., 00:30:00 for 30 minutes)
             </p>
+          </div>
+          
+          <div>
+            <Label htmlFor="distance" className="text-center block">Distance (miles)</Label>
+            <Input
+              id="distance"
+              type="number"
+              value={distance}
+              onChange={(e) => setDistance(e.target.value)}
+              placeholder="3.1"
+              step="0.1"
+              min="0"
+              className="w-full text-center"
+            />
           </div>
         </div>
       )}

@@ -1,3 +1,4 @@
+
 /**
  * Client service methods for workout tracking and completion
  */
@@ -41,6 +42,16 @@ export interface GroupData {
   created_at: string;
   created_by: string;
   description?: string | null;
+}
+
+// Define the raw data structure from Supabase to avoid deep type instantiation
+interface RawGroupData {
+  id: string;
+  name: string;
+  created_at: string;
+  created_by: string;
+  description?: string | null;
+  // Note: coach_id might not exist in raw data
 }
 
 export interface LeaderboardEntry {
@@ -482,12 +493,15 @@ export const fetchAllGroups = async (coachId?: string) => {
     const groups: GroupData[] = [];
     
     if (data) {
-      for (const item of data) {
+      // Explicitly cast to avoid deep type instantiation
+      const rawGroups = data as RawGroupData[];
+      
+      for (const item of rawGroups) {
         // Explicitly construct each group object with the expected properties
         groups.push({
           id: item.id,
           name: item.name,
-          coach_id: item.coach_id || item.created_by, // Use created_by as fallback if coach_id doesn't exist
+          coach_id: (item as any).coach_id || item.created_by, // Use created_by as fallback if coach_id doesn't exist
           created_at: item.created_at,
           created_by: item.created_by,
           description: item.description

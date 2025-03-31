@@ -28,8 +28,6 @@ export async function proxyFetch(url: string, options: RequestInit = {}) {
     return data;
   } catch (error) {
     console.error('Failed to proxy request through Supabase:', error);
-    
-    // More generic error handling without specific Firebase checks
     throw new Error(`API proxy error: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface CustomWorkout {
@@ -275,13 +276,16 @@ export const startCustomWorkout = async (workoutId: string): Promise<{ success: 
       return { success: false, message: 'Workout not found or access denied' };
     }
 
+    // Create a new workout completion record instead of trying to use a non-existent workout_sessions table
     const { data: session, error: sessionError } = await supabase
-      .from('workout_sessions')
+      .from('workout_completions')
       .insert({
         user_id: user.user.id,
         workout_id: workoutId,
-        is_custom: true,
-        start_time: new Date().toISOString(),
+        title: workout.title,
+        description: workout.description,
+        workout_type: workout.workout_type,
+        completed_at: null, // Will be filled when workout is completed
         status: 'in_progress'
       })
       .select('id')

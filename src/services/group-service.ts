@@ -4,16 +4,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-// Raw database group type that matches actual database columns
-interface RawGroup {
-  id: string;
-  name: string;
-  created_at: string;
-  created_by: string;
-  description?: string | null;
-}
-
-// Define the GroupData interface to explicitly include coach_id
+// Use explicit typing to avoid recursive type definitions
 export interface GroupData {
   id: string;
   name: string;
@@ -29,26 +20,29 @@ export interface LeaderboardEntry {
   total_workouts: number;
 }
 
+// Raw database group type that matches actual database columns
+interface RawGroup {
+  id: string;
+  name: string;
+  created_at: string;
+  created_by: string;
+  description?: string | null;
+}
+
 /**
  * Fetches all groups
  */
-export const fetchAllGroups = async (coachId?: string) => {
+export const fetchAllGroups = async (coachId?: string): Promise<GroupData[]> => {
   try {
-    // Create the base query
     let query = supabase.from('groups').select('*');
 
-    // Conditionally filter by coach_id if provided
     if (coachId) {
       query = query.eq('coach_id', coachId);
     }
 
-    // Add ordering - but break the chain for execution to avoid deep type nesting
     query = query.order('created_at', { ascending: false });
     
-    // Execute the query with minimal type information
-    const result = await query;
-    const data = result.data as RawGroup[] | null;
-    const error = result.error;
+    const { data, error } = await query;
 
     if (error) {
       console.error("Error fetching groups:", error);
@@ -56,7 +50,7 @@ export const fetchAllGroups = async (coachId?: string) => {
     }
 
     // Map the raw data to our GroupData interface
-    const groups: GroupData[] = (data || []).map((item) => ({
+    const groups: GroupData[] = (data || []).map((item: RawGroup) => ({
       id: item.id,
       name: item.name,
       coach_id: coachId || item.created_by,
@@ -77,8 +71,6 @@ export const fetchAllGroups = async (coachId?: string) => {
  */
 export const fetchGroupLeaderboardWeekly = async (groupId: string) => {
   try {
-    // This is a simplified implementation. In a real app, you would 
-    // fetch this data from a view or function in your database
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
@@ -153,7 +145,6 @@ export const fetchGroupLeaderboardWeekly = async (groupId: string) => {
  */
 export const fetchGroupLeaderboardMonthly = async (groupId: string) => {
   try {
-    // Similar to weekly, but with month timeframe
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     

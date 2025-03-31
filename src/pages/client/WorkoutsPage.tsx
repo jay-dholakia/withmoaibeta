@@ -19,6 +19,19 @@ import CustomWorkoutsList from '@/components/client/CustomWorkoutsList';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 
+// Add interfaces for the component props
+interface CreateCustomWorkoutProps {
+  onCreated?: () => void;
+}
+
+interface EnterOneOffWorkoutProps {
+  onWorkoutLogged?: () => void;
+}
+
+// Declare the components with proper prop types
+const CustomCreateWorkout: React.FC<CreateCustomWorkoutProps> = CreateCustomWorkout as React.FC<CreateCustomWorkoutProps>;
+const CustomEnterOneOffWorkout: React.FC<EnterOneOffWorkoutProps> = EnterOneOffWorkout as React.FC<EnterOneOffWorkoutProps>;
+
 const WorkoutsPage = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('weekly');
@@ -111,7 +124,7 @@ const WorkoutsPage = () => {
                         Design your own workout with custom exercises and tracking options.
                       </DialogDescription>
                     </DialogHeader>
-                    <CreateCustomWorkout 
+                    <CustomCreateWorkout 
                       onCreated={() => {
                         setIsCreateCustomWorkoutOpen(false);
                       }}
@@ -145,7 +158,7 @@ const WorkoutsPage = () => {
                           Record a workout you've completed outside of your regular program.
                         </DialogDescription>
                       </DialogHeader>
-                      <EnterOneOffWorkout 
+                      <CustomEnterOneOffWorkout 
                         onWorkoutLogged={() => {
                           setIsEnterOneOffWorkoutOpen(false);
                         }}

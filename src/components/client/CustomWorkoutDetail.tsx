@@ -25,8 +25,8 @@ import { WorkoutTypeIcon } from './WorkoutTypeIcon';
 import { Clock, CalendarDays, Edit, Trash2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { CustomWorkout } from '@/services/client-custom-workout-service';
-import { deleteCustomWorkout } from '@/services/client-custom-workout-service';
+import { CustomWorkout, deleteCustomWorkout, startCustomWorkout } from '@/services/client-custom-workout-service';
+import { WorkoutType } from '@/types/workout';
 
 interface CustomWorkoutDetailProps {
   workout: CustomWorkout;
@@ -59,18 +59,15 @@ export const CustomWorkoutDetail: React.FC<CustomWorkoutDetailProps> = ({ workou
     try {
       setStartingWorkout(true);
       
-      // Since startCustomWorkout doesn't exist yet, let's create a simple placeholder
-      // In a real implementation, this would call an actual API
-      const result = {
-        success: true,
-        session_id: workout.id
-      };
+      const result = await startCustomWorkout(workout.id);
       
       if (result.success) {
         toast.success('Workout started!');
-        navigate(`/client-dashboard/workout-session/${result.session_id}`);
+        if (result.session_id) {
+          navigate(`/client-dashboard/workout-session/${result.session_id}`);
+        }
       } else {
-        toast.error('Failed to start workout');
+        toast.error(result.message || 'Failed to start workout');
       }
       
       if (onStart) onStart();
@@ -82,11 +79,14 @@ export const CustomWorkoutDetail: React.FC<CustomWorkoutDetailProps> = ({ workou
     }
   };
 
+  // Convert string workout_type to a valid WorkoutType
+  const workoutType = (workout.workout_type as WorkoutType) || 'strength';
+
   return (
     <Card className="overflow-hidden border">
       <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
         <div className="flex items-center space-x-2">
-          <WorkoutTypeIcon type={workout.workout_type || 'strength'} />
+          <WorkoutTypeIcon type={workoutType} />
           <CardTitle className="text-lg font-medium">{workout.title}</CardTitle>
         </div>
         <div className="flex space-x-1">

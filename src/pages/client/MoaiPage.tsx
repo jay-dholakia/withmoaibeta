@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mountain, UserRound, Trophy } from 'lucide-react';
+import { Loader2, Mountain, Users, UserRound } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
@@ -159,7 +159,7 @@ const MoaiPage = () => {
             Progress
           </TabsTrigger>
           <TabsTrigger value="members" className="flex items-center justify-center">
-            <UserRound className="h-4 w-4 mr-2" />
+            <Users className="h-4 w-4 mr-2" />
             Members
           </TabsTrigger>
           <TabsTrigger value="coach" className="flex items-center justify-center">

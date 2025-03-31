@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +25,7 @@ import { Clock, CalendarDays, Edit, Trash2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { CustomWorkout, deleteCustomWorkout, startCustomWorkout } from '@/services/client-custom-workout-service';
-import { WorkoutType } from '@/types/workout';
+import { WorkoutType } from './WorkoutTypeIcon';
 
 interface CustomWorkoutDetailProps {
   workout: CustomWorkout;
@@ -79,7 +78,6 @@ export const CustomWorkoutDetail: React.FC<CustomWorkoutDetailProps> = ({ workou
     }
   };
 
-  // Convert string workout_type to a valid WorkoutType
   const workoutType = (workout.workout_type as WorkoutType) || 'strength';
 
   return (

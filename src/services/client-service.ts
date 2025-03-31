@@ -1,4 +1,3 @@
-
 /**
  * Client service methods for workout tracking and completion
  */
@@ -39,6 +38,8 @@ export interface GroupData {
   name: string;
   coach_id: string;
   created_at: string;
+  created_by: string;
+  description?: string | null;
 }
 
 export interface LeaderboardEntry {
@@ -476,7 +477,11 @@ export const fetchAllGroups = async (coachId?: string) => {
       throw error;
     }
     
-    return data || [];
+    // Add missing coach_id if not present to match GroupData interface
+    return (data || []).map(group => ({
+      ...group,
+      coach_id: group.coach_id || group.created_by // Use created_by as fallback
+    }));
   } catch (error) {
     console.error("Error in fetchAllGroups:", error);
     throw error;
@@ -672,8 +677,8 @@ export const deleteUser = async (userId: string) => {
       throw profileError;
     }
     
-    // Then delete from auth.users (this would need to be handled by a server-side function)
-    const { error: deleteError } = await supabase.rpc('delete_user', {
+    // Then delete from auth.users (using the correct RPC function name)
+    const { error: deleteError } = await supabase.rpc('admin_delete_user', {
       user_id: userId
     });
     

@@ -3,14 +3,12 @@ import React, { useMemo } from 'react';
 import { Container } from '@/components/ui/container';
 import { CoachMessageCard } from '@/components/client/CoachMessageCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import { useQuery } from '@tanstack/react-query';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { format, isThisWeek } from 'date-fns';
 import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
 import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { WorkoutProgressCard } from '@/components/client/WorkoutProgressCard';
-import { Card } from '@/components/ui/card';
 import { fetchClientProfile } from '@/services/client-service';
 
 const LeaderboardPage = () => {

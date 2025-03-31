@@ -38,7 +38,6 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
       className={`workout-type-icon ${className}`} 
       role="img" 
       aria-label={`${type} workout`}
-      style={{ fontSize: '16px', lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
     >
       {getIconForType()}
     </span>

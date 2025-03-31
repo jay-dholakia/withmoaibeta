@@ -126,18 +126,18 @@ export const WeekProgressBar = ({
           
           if (day.isLifeHappens) {
             bgColor = 'bg-yellow-100';
-            textColor = 'text-yellow-700';
+            textColor = 'text-gray-600';
           }
           
           if (day.isCompleted) {
-            bgColor = `${color}/20`;
-            textColor = 'text-gray-900';
+            bgColor = `${color}/10`;
+            textColor = 'text-gray-800';
           }
           
           return (
             <div key={index} className="flex flex-col items-center">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${textColor} ${border} transition-all duration-200 relative`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${textColor} ${border} transition-all duration-200`}
               >
                 {(day.isCompleted || day.isLifeHappens) ? (
                   <WorkoutTypeIcon type={day.workoutType} />

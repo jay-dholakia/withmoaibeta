@@ -53,7 +53,7 @@ export const WorkoutProgressCard = ({
           />
         </div>
         
-        <div className="flex justify-between items-start mt-4 px-1">
+        <div className="flex justify-between items-center mt-4 px-1">
           {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => {
             const today = new Date();
             const weekStart = new Date(today);
@@ -78,13 +78,16 @@ export const WorkoutProgressCard = ({
             
             // Use lighter background colors for better emoji visibility
             let bgColor = 'bg-slate-50';
+            let textColor = 'text-slate-600';
             
             if (isLifeHappens) {
               bgColor = 'bg-yellow-50';
+              textColor = 'text-slate-700';
             }
             
             if (isDayCompleted) {
-              bgColor = 'bg-client/20';
+              bgColor = 'bg-client/10';
+              textColor = 'text-slate-800';
             }
             
             return (
@@ -93,16 +96,14 @@ export const WorkoutProgressCard = ({
                   {(isDayCompleted || isLifeHappens) ? (
                     <WorkoutTypeIcon type={workoutType} />
                   ) : (
-                    <span className="text-xs font-medium text-slate-600">{day}</span>
+                    <span className="text-xs font-medium">{day}</span>
                   )}
                 </div>
                 
-                {/* Only show day letter when no workout is completed */}
                 {!isDayCompleted && !isLifeHappens && (
-                  <span className="text-xs font-medium text-slate-600 mt-1">{day}</span>
+                  <span className="text-xs font-medium text-slate-500 mt-1">{day}</span>
                 )}
                 
-                {/* Current day indicator dot - placed below the day letter */}
                 {isToday && (
                   <div className="w-1.5 h-1.5 bg-client rounded-full mt-0.5"></div>
                 )}

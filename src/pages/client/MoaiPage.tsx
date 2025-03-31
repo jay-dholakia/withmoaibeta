@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Mountain, Users, UserRound } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
@@ -17,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 const MoaiPage = () => {
   const { user } = useAuth();
   const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
+  const isMobile = useIsMobile();
   
   const { data: userGroups, isLoading: isLoadingGroups, refetch } = useQuery({
     queryKey: ['client-groups', user?.id],
@@ -138,6 +140,8 @@ const MoaiPage = () => {
   
   const group = userGroups[0];
   
+  const iconClass = isMobile ? "h-5 w-5" : "h-5 w-5 mr-2";
+  
   return (
     <div className="space-y-6">
       <Card className="bg-client/5 relative">
@@ -154,16 +158,19 @@ const MoaiPage = () => {
       <Tabs defaultValue="progress" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="progress" className="flex items-center justify-center">
-            <Mountain className="h-5 w-5 mr-2" />
-            Progress
+            <Mountain className={iconClass} />
+            {!isMobile && "Progress"}
+            {isMobile && <span className="mt-1">Progress</span>}
           </TabsTrigger>
           <TabsTrigger value="members" className="flex items-center justify-center">
-            <Users className="h-5 w-5 mr-2" />
-            Members
+            <Users className={iconClass} />
+            {!isMobile && "Members"}
+            {isMobile && <span className="mt-1">Members</span>}
           </TabsTrigger>
           <TabsTrigger value="coach" className="flex items-center justify-center">
-            <UserRound className="h-5 w-5 mr-2" />
-            Coach
+            <UserRound className={iconClass} />
+            {!isMobile && "Coach"}
+            {isMobile && <span className="mt-1">Coach</span>}
           </TabsTrigger>
         </TabsList>
         

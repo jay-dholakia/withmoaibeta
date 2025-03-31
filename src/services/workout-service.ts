@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Exercise, Workout } from "@/types/workout";
 
@@ -330,60 +329,48 @@ export const updateWorkoutExercise = async (exerciseId: string, data: {
 };
 
 export const moveWorkoutExerciseUp = async (exerciseId: string, workoutId: string) => {
-  // Fetch all exercises to get the current order
   const exercises = await fetchWorkoutExercises(workoutId);
   
-  // Find the current exercise
   const currentExercise = exercises.find(ex => ex.id === exerciseId);
   if (!currentExercise) {
     throw new Error('Exercise not found');
   }
   
-  // If it's already at the top, do nothing
   if (currentExercise.order_index === 0) {
     return exercises;
   }
   
-  // Find the exercise above it
   const previousExercise = exercises.find(ex => ex.order_index === currentExercise.order_index - 1);
   if (!previousExercise) {
     throw new Error('Previous exercise not found');
   }
   
-  // Swap their order indices
   await updateWorkoutExercise(currentExercise.id, { order_index: previousExercise.order_index });
   await updateWorkoutExercise(previousExercise.id, { order_index: currentExercise.order_index });
   
-  // Return the updated list
   return await fetchWorkoutExercises(workoutId);
 };
 
 export const moveWorkoutExerciseDown = async (exerciseId: string, workoutId: string) => {
-  // Fetch all exercises to get the current order
   const exercises = await fetchWorkoutExercises(workoutId);
   
-  // Find the current exercise
   const currentExercise = exercises.find(ex => ex.id === exerciseId);
   if (!currentExercise) {
     throw new Error('Exercise not found');
   }
   
-  // If it's already at the bottom, do nothing
   if (currentExercise.order_index === exercises.length - 1) {
     return exercises;
   }
   
-  // Find the exercise below it
   const nextExercise = exercises.find(ex => ex.order_index === currentExercise.order_index + 1);
   if (!nextExercise) {
     throw new Error('Next exercise not found');
   }
   
-  // Swap their order indices
   await updateWorkoutExercise(currentExercise.id, { order_index: nextExercise.order_index });
   await updateWorkoutExercise(nextExercise.id, { order_index: currentExercise.order_index });
   
-  // Return the updated list
   return await fetchWorkoutExercises(workoutId);
 };
 
@@ -589,60 +576,48 @@ export const updateStandaloneWorkoutExercise = async (exerciseId: string, data: 
 };
 
 export const moveStandaloneWorkoutExerciseUp = async (exerciseId: string, workoutId: string) => {
-  // Fetch all exercises to get the current order
   const exercises = await fetchStandaloneWorkoutExercises(workoutId);
   
-  // Find the current exercise
   const currentExercise = exercises.find(ex => ex.id === exerciseId);
   if (!currentExercise) {
     throw new Error('Exercise not found');
   }
   
-  // If it's already at the top, do nothing
   if (currentExercise.order_index === 0) {
     return exercises;
   }
   
-  // Find the exercise above it
   const previousExercise = exercises.find(ex => ex.order_index === currentExercise.order_index - 1);
   if (!previousExercise) {
     throw new Error('Previous exercise not found');
   }
   
-  // Swap their order indices
   await updateStandaloneWorkoutExercise(currentExercise.id, { order_index: previousExercise.order_index });
   await updateStandaloneWorkoutExercise(previousExercise.id, { order_index: currentExercise.order_index });
   
-  // Return the updated list
   return await fetchStandaloneWorkoutExercises(workoutId);
 };
 
 export const moveStandaloneWorkoutExerciseDown = async (exerciseId: string, workoutId: string) => {
-  // Fetch all exercises to get the current order
   const exercises = await fetchStandaloneWorkoutExercises(workoutId);
   
-  // Find the current exercise
   const currentExercise = exercises.find(ex => ex.id === exerciseId);
   if (!currentExercise) {
     throw new Error('Exercise not found');
   }
   
-  // If it's already at the bottom, do nothing
   if (currentExercise.order_index === exercises.length - 1) {
     return exercises;
   }
   
-  // Find the exercise below it
   const nextExercise = exercises.find(ex => ex.order_index === currentExercise.order_index + 1);
   if (!nextExercise) {
     throw new Error('Next exercise not found');
   }
   
-  // Swap their order indices
   await updateStandaloneWorkoutExercise(currentExercise.id, { order_index: nextExercise.order_index });
   await updateStandaloneWorkoutExercise(nextExercise.id, { order_index: currentExercise.order_index });
   
-  // Return the updated list
   return await fetchStandaloneWorkoutExercises(workoutId);
 };
 
@@ -685,7 +660,6 @@ export const fetchExercisesByCategory = async () => {
 
 export const fetchAllClients = async () => {
   try {
-    // First fetch basic profile information
     const { data: clients, error } = await supabase
       .from('profiles')
       .select('id, user_type')
@@ -696,54 +670,45 @@ export const fetchAllClients = async () => {
       throw error;
     }
 
-    // If no clients found, return empty array
     if (!clients || clients.length === 0) {
       return [];
     }
 
-    // Get emails and additional profile data
-    if (clients.length > 0) {
-      const userIds = clients.map(client => client.id);
-      
-      // Fetch emails
-      const { data: userData, error: userError } = await supabase.rpc('get_users_email', {
-        user_ids: userIds
-      });
+    const userIds = clients.map(client => client.id);
+    
+    const { data: userData, error: userError } = await supabase.rpc('get_users_email', {
+      user_ids: userIds
+    });
 
-      if (userError) {
-        console.error('Error fetching user emails:', userError);
-        throw userError;
-      }
-
-      // Fetch client profile data (first_name, last_name)
-      const { data: profileData, error: profileError } = await supabase
-        .from('client_profiles')
-        .select('id, first_name, last_name')
-        .in('id', userIds);
-
-      if (profileError) {
-        console.error('Error fetching client profiles:', profileError);
-        throw profileError;
-      }
-
-      // Combine the data
-      const clientsWithDetails = clients.map(client => {
-        const userInfo = userData?.find(u => u.id === client.id);
-        const profileInfo = profileData?.find(p => p.id === client.id);
-        
-        return {
-          id: client.id,
-          user_type: client.user_type,
-          email: userInfo?.email || 'N/A',
-          first_name: profileInfo?.first_name || null,
-          last_name: profileInfo?.last_name || null
-        };
-      });
-
-      return clientsWithDetails;
+    if (userError) {
+      console.error('Error fetching user emails:', userError);
+      throw userError;
     }
 
-    return clients;
+    const { data: profileData, error: profileError } = await supabase
+      .from('client_profiles')
+      .select('id, first_name, last_name')
+      .in('id', userIds);
+
+    if (profileError) {
+      console.error('Error fetching client profiles:', profileError);
+      throw profileError;
+    }
+
+    const clientsWithDetails = clients.map(client => {
+      const userInfo = userData?.find(u => u.id === client.id);
+      const profileInfo = profileData?.find(p => p.id === client.id);
+      
+      return {
+        id: client.id,
+        user_type: client.user_type,
+        email: userInfo?.email || 'N/A',
+        first_name: profileInfo?.first_name || null,
+        last_name: profileInfo?.last_name || null
+      };
+    });
+
+    return clientsWithDetails;
   } catch (error) {
     console.error('Error fetching all clients:', error);
     throw error;
@@ -830,7 +795,7 @@ export const addWorkoutToWeek = async (weekId: string, data: {
       day_of_week: data.day_of_week,
       workout_type: data.workout_type,
       priority: data.priority || 0
-    } as any) // Use type assertion to avoid TS error
+    } as any)
     .select('*')
     .single();
 
@@ -888,14 +853,12 @@ export const copyWorkoutToWeek = async (
   dayOfWeek?: number
 ) => {
   try {
-    // Fetch source workout details
     const sourceWorkout = await fetchWorkout(sourceWorkoutId);
     
     if (!sourceWorkout) {
       throw new Error("Source workout not found");
     }
     
-    // Create new workout in target week
     const newWorkout = await addWorkoutToWeek(targetWeekId, {
       title: sourceWorkout.title,
       description: sourceWorkout.description,
@@ -903,10 +866,8 @@ export const copyWorkoutToWeek = async (
       workout_type: sourceWorkout.workout_type || 'strength'
     });
     
-    // Fetch exercises from source workout
     const exercises = await fetchWorkoutExercises(sourceWorkoutId);
     
-    // Add exercises to new workout
     if (exercises.length > 0) {
       for (const exercise of exercises) {
         await createWorkoutExercise({
@@ -928,6 +889,60 @@ export const copyWorkoutToWeek = async (
   }
 };
 
+export const createExercise = async (data: {
+  name: string;
+  category: string;
+  description?: string | null;
+  exercise_type?: string;
+  log_type?: string;
+}): Promise<{ exercise: Exercise | null; isDuplicate: boolean; error?: any }> => {
+  try {
+    const normalizedName = data.name.trim().toLowerCase();
+    
+    const { data: existingExercises, error: searchError } = await supabase
+      .from('exercises')
+      .select('*')
+      .ilike('name', normalizedName);
+    
+    if (searchError) {
+      console.error('Error checking for duplicate exercise:', searchError);
+      return { exercise: null, isDuplicate: false, error: searchError };
+    }
+    
+    if (existingExercises && existingExercises.length > 0) {
+      return { 
+        exercise: existingExercises[0] as Exercise, 
+        isDuplicate: true 
+      };
+    }
+    
+    const { data: newExercise, error } = await supabase
+      .from('exercises')
+      .insert({
+        name: data.name.trim(),
+        category: data.category,
+        description: data.description || null,
+        exercise_type: data.exercise_type || 'strength',
+        log_type: data.log_type || 'weight_reps'
+      })
+      .select('*')
+      .single();
+      
+    if (error) {
+      console.error('Error creating new exercise:', error);
+      return { exercise: null, isDuplicate: false, error };
+    }
+    
+    return { 
+      exercise: newExercise as Exercise, 
+      isDuplicate: false 
+    };
+  } catch (error) {
+    console.error('Unexpected error creating exercise:', error);
+    return { exercise: null, isDuplicate: false, error };
+  }
+};
+
 function normalizeWorkoutType(workoutType: string): string {
   const type = workoutType.toLowerCase();
   
@@ -939,6 +954,5 @@ function normalizeWorkoutType(workoutType: string): string {
   if (type.includes('custom')) return 'custom';
   if (type.includes('one')) return 'one_off';
   
-  // Default to 'strength' if no match is found
   return 'strength';
 }

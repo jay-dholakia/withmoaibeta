@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Plus } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -15,7 +15,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fetchExercisesByCategory } from '@/services/workout-service';
 import { Exercise } from '@/types/workout';
-import { Plus } from 'lucide-react';
+import { CreateExerciseForm } from '@/components/coach/CreateExerciseForm';
+import { toast } from 'sonner';
 
 export type ExerciseSelectorProps = {
   isOpen?: boolean;
@@ -43,6 +44,7 @@ export const ExerciseSelector = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [loading, setLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
     if (propIsOpen !== undefined) {
@@ -132,6 +134,22 @@ export const ExerciseSelector = ({
   const handleOpen = () => {
     setIsOpen(true);
   };
+
+  const handleExerciseCreated = (exercise: Exercise) => {
+    // Reload exercises to include the new one
+    fetchExercisesByCategory().then(data => {
+      setExercisesByCategory(data);
+      setFilteredExercisesByCategory(data);
+      
+      // Set the category to match the new exercise
+      setSelectedCategory(exercise.category);
+      
+      // Highlight the new exercise somehow (optional)
+      toast.success(`Exercise "${exercise.name}" added to database!`);
+    });
+    
+    setShowCreateForm(false);
+  };
   
   const categories = Object.keys(filteredExercisesByCategory);
   
@@ -148,31 +166,61 @@ export const ExerciseSelector = ({
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Select Exercise</DialogTitle>
-            <DialogDescription>
-              Browse or search for exercises to add to your workout.
+            <DialogDescription className="flex justify-between items-center">
+              <span>Browse or search for exercises to add to your workout.</span>
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                size="sm"
+                variant="outline"
+                className="mt-2"
+              >
+                <Plus className="h-4 w-4 mr-1" /> Create New
+              </Button>
             </DialogDescription>
           </DialogHeader>
           
           {renderDialogContent()}
         </DialogContent>
+        
+        <CreateExerciseForm 
+          open={showCreateForm} 
+          onOpenChange={setShowCreateForm} 
+          onExerciseCreated={handleExerciseCreated} 
+        />
       </Dialog>
     );
   }
   
   // Otherwise, render just the dialog without a trigger
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Select Exercise</DialogTitle>
-          <DialogDescription>
-            Browse or search for exercises to add to your workout.
-          </DialogDescription>
-        </DialogHeader>
-        
-        {renderDialogContent()}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Select Exercise</DialogTitle>
+            <DialogDescription className="flex justify-between items-center">
+              <span>Browse or search for exercises to add to your workout.</span>
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                size="sm"
+                variant="outline"
+                className="mt-2"
+              >
+                <Plus className="h-4 w-4 mr-1" /> Create New
+              </Button>
+            </DialogDescription>
+          </DialogHeader>
+          
+          {renderDialogContent()}
+        </DialogContent>
+      </Dialog>
+      
+      <CreateExerciseForm 
+        open={showCreateForm} 
+        onOpenChange={setShowCreateForm} 
+        onExerciseCreated={handleExerciseCreated} 
+      />
+    </>
   );
   
   function renderDialogContent() {

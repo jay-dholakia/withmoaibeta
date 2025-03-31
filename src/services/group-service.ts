@@ -1,4 +1,3 @@
-
 /**
  * Group service for managing groups and leaderboards
  */
@@ -36,22 +35,20 @@ export interface LeaderboardEntry {
 export const fetchAllGroups = async (coachId?: string) => {
   try {
     // Create the base query
-    let queryBuilder = supabase
-      .from('groups')
-      .select('*');
+    let query = supabase.from('groups').select('*');
 
     // Conditionally filter by coach_id if provided
     if (coachId) {
-      queryBuilder = queryBuilder.eq('coach_id', coachId);
+      query = query.eq('coach_id', coachId);
     }
 
-    // Execute the query
-    // Using type assertion to completely bypass TypeScript's deep type inference
-    const { data, error } = await (queryBuilder
-      .order('created_at', { ascending: false }) as unknown as Promise<{
-        data: RawGroup[] | null;
-        error: any;
-      }>);
+    // Add ordering - but break the chain for execution to avoid deep type nesting
+    query = query.order('created_at', { ascending: false });
+    
+    // Execute the query with minimal type information
+    const result = await query;
+    const data = result.data as RawGroup[] | null;
+    const error = result.error;
 
     if (error) {
       console.error("Error fetching groups:", error);

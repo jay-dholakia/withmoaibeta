@@ -478,16 +478,16 @@ export const fetchAllGroups = async (coachId?: string) => {
       throw error;
     }
     
-    // Explicitly type the data and construct our return value
-    // This avoids the deep type instantiation error
+    // Define the groups array explicitly with our GroupData interface
     const groups: GroupData[] = [];
     
     if (data) {
       for (const item of data) {
+        // Explicitly construct each group object with the expected properties
         groups.push({
           id: item.id,
           name: item.name,
-          coach_id: item.coach_id || item.created_by, // Use created_by as fallback
+          coach_id: item.coach_id || item.created_by, // Use created_by as fallback if coach_id doesn't exist
           created_at: item.created_at,
           created_by: item.created_by,
           description: item.description

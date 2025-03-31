@@ -104,7 +104,14 @@ export const CreateExerciseForm = ({
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      const result = await createExercise(data);
+      // Fix: Make sure to pass the required properties
+      const result = await createExercise({
+        name: data.name,
+        category: data.category,
+        description: data.description,
+        exercise_type: data.exercise_type,
+        log_type: data.log_type
+      });
       
       if (result.error) {
         toast.error('Failed to create exercise');

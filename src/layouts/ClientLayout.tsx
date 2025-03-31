@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Dumbbell, Users, LayoutDashboard, Settings, LogOut, FileText } from 'lucide-react';
+import { Dumbbell, Mountain, LayoutDashboard, Settings, LogOut, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
 import { Toaster } from 'sonner';
@@ -89,7 +89,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   to="/client-dashboard/moai" 
                   className={`flex flex-col items-center py-3 ${isActive('/moai') ? 'text-client' : 'text-gray-500'}`}
                 >
-                  <Users className="h-5 w-5" />
+                  <Mountain className="h-5 w-5" />
                   <span className="text-xs mt-1 whitespace-nowrap">Your Moai</span>
                 </Link>
               </li>

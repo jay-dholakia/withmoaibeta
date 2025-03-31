@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, UserRound } from 'lucide-react';
+import { Loader2, Mountain, UserRound, Trophy } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
@@ -125,7 +124,7 @@ const MoaiPage = () => {
         
         <Card className="text-center py-12">
           <CardContent>
-            <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <Mountain className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <h2 className="text-xl font-medium mb-2">Moai Assignment Pending</h2>
             <p className="text-muted-foreground">
               You'll be assigned to a Moai group shortly. Moai groups help you stay motivated 
@@ -155,11 +154,11 @@ const MoaiPage = () => {
       <Tabs defaultValue="progress" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="progress">
-            <Users className="h-4 w-4 mr-2" />
+            <Mountain className="h-4 w-4 mr-2" />
             Progress
           </TabsTrigger>
           <TabsTrigger value="members">
-            <Users className="h-4 w-4 mr-2" />
+            <Mountain className="h-4 w-4 mr-2" />
             Members
           </TabsTrigger>
           <TabsTrigger value="coach">

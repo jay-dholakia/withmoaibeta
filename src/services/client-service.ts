@@ -1,4 +1,3 @@
-
 /**
  * Client service methods for workout tracking and completion
  */
@@ -49,6 +48,12 @@ export interface LeaderboardEntry {
   email: string;
   total_workouts: number;
 }
+
+// Define custom response types to avoid deep type inference
+type SupabaseResponse<T> = {
+  data: T | null;
+  error: Error | null;
+};
 
 /**
  * Fetches the client profile data
@@ -474,13 +479,12 @@ export const fetchAllGroups = async (coachId?: string) => {
       queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
     
-    // Execute the query and use explicit type assertion to avoid deep type inference
-    const queryResult = await queryBuilder
-      .order('created_at', { ascending: false });
+    // Execute the query and use type assertion with our custom type
+    const response = await queryBuilder
+      .order('created_at', { ascending: false }) as unknown as SupabaseResponse<any[]>;
     
-    // Extract data and error with a simple type structure
-    const data = queryResult.data as any[] | null;
-    const error = queryResult.error;
+    // Extract data and error from the response
+    const { data, error } = response;
     
     if (error) {
       console.error("Error fetching groups:", error);

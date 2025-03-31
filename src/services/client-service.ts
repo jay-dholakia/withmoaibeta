@@ -472,8 +472,9 @@ export const fetchAllGroups = async (coachId?: string) => {
       query = query.eq('coach_id', coachId);
     }
     
-    // Execute the query with a basic type annotation to avoid deep inference issues
+    // Using a completely explicit type assertion to avoid deep inference
     const result = await query.order('created_at', { ascending: false });
+    // Type assertion with 'unknown' as intermediary step to simplify the type inference
     const { data, error } = result as unknown as { 
       data: any[] | null; 
       error: any 

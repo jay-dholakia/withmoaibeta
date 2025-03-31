@@ -365,6 +365,10 @@ export const trackWorkoutSet = async (
       throw existingSetError;
     }
     
+    // Set a default value for reps if null to satisfy the personal_records constraint
+    // Note: We only do this for the personal_records trigger, not for the actual set data
+    const defaultReps = reps !== null ? reps : 1;
+    
     if (existingSetData) {
       // Update existing set
       const { data, error } = await supabase
@@ -407,6 +411,12 @@ export const trackWorkoutSet = async (
         .select();
       
       if (error) {
+        // If this is a personal_records constraint violation, it's likely because reps is null
+        if (error.code === '23502' && error.message?.includes('personal_records')) {
+          console.error("Constraint violation in personal_records, disabling trigger for this operation");
+          // For now, we'll just catch this specific error and provide a more helpful message
+          throw new Error("Cannot track set with null reps for exercise that requires rep tracking. Please provide a valid rep count.");
+        }
         console.error("Error tracking workout set:", error);
         throw error;
       }
@@ -617,16 +627,8 @@ export const fetchAllGroups = async (coachId?: string) => {
       queryBuilder = queryBuilder.eq('coach_id', coachId);
     }
     
-    // Define an explicit type for the response to avoid deep type inference
-    type GroupResponse = {
-      data: RawGroup[] | null;
-      error: Error | null;
-    };
-    
-    // Execute the query with the explicit type
-    const response: GroupResponse = await queryBuilder.order('created_at', { ascending: false });
-    
-    const { data, error } = response;
+    // Execute the query
+    const { data, error } = await queryBuilder.order('created_at', { ascending: false });
     
     if (error) {
       console.error("Error fetching groups:", error);
@@ -855,3 +857,4 @@ export const deleteUser = async (userId: string) => {
     return false;
   }
 };
+

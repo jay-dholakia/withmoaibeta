@@ -20,9 +20,10 @@ import {
   DialogDescription 
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Users, UserPlus } from 'lucide-react';
+import { Users, UserPlus, Edit, Trash } from 'lucide-react';
 import GroupCoachesDialog from './GroupCoachesDialog';
 import GroupMembersDialog from './GroupMembersDialog';
+import EditGroupDialog from './EditGroupDialog';
 
 interface Group {
   id: string;
@@ -83,6 +84,7 @@ const GroupList: React.FC = () => {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [isCoachDialogOpen, setIsCoachDialogOpen] = useState(false);
   const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const { data: groups, isLoading, error, refetch } = useQuery({
     queryKey: ['groups'],
@@ -104,6 +106,11 @@ const GroupList: React.FC = () => {
   const handleManageMembers = (group: Group) => {
     setSelectedGroup(group);
     setIsMemberDialogOpen(true);
+  };
+
+  const handleEditGroup = (group: Group) => {
+    setSelectedGroup(group);
+    setIsEditDialogOpen(true);
   };
 
   const handleDeleteGroup = async (groupId: string) => {
@@ -160,6 +167,14 @@ const GroupList: React.FC = () => {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleEditGroup(group)}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleManageCoaches(group)}
                         >
                           <UserPlus className="h-4 w-4 mr-1" />
@@ -178,6 +193,7 @@ const GroupList: React.FC = () => {
                           size="sm"
                           onClick={() => handleDeleteGroup(group.id)}
                         >
+                          <Trash className="h-4 w-4 mr-1" />
                           Delete
                         </Button>
                       </div>
@@ -198,6 +214,13 @@ const GroupList: React.FC = () => {
 
       {selectedGroup && (
         <>
+          <EditGroupDialog
+            group={selectedGroup}
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            onSuccess={() => refetch()}
+          />
+          
           <GroupCoachesDialog 
             group={selectedGroup}
             open={isCoachDialogOpen}

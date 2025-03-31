@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ensureCoachGroupAssignment } from './coach-group-service';
 
@@ -61,6 +62,41 @@ export const createGroupForCoach = async (
     return { 
       success: false, 
       message: 'Failed to create group for coach', 
+      error 
+    };
+  }
+};
+
+/**
+ * Update an existing group
+ */
+export const updateGroup = async (
+  groupId: string,
+  updates: { name?: string; description?: string }
+) => {
+  try {
+    const { data, error } = await supabase
+      .from('groups')
+      .update(updates)
+      .eq('id', groupId)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error updating group:', error);
+      throw error;
+    }
+    
+    return { 
+      success: true, 
+      message: 'Group updated successfully', 
+      data 
+    };
+  } catch (error) {
+    console.error('Error in updateGroup:', error);
+    return { 
+      success: false, 
+      message: 'Failed to update group', 
       error 
     };
   }

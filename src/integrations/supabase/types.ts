@@ -552,7 +552,7 @@ export type Database = {
           achieved_at: string
           exercise_id: string
           id: string
-          reps: number
+          reps: number | null
           user_id: string
           weight: number
           workout_completion_id: string | null
@@ -561,7 +561,7 @@ export type Database = {
           achieved_at?: string
           exercise_id: string
           id?: string
-          reps: number
+          reps?: number | null
           user_id: string
           weight: number
           workout_completion_id?: string | null
@@ -570,7 +570,7 @@ export type Database = {
           achieved_at?: string
           exercise_id?: string
           id?: string
-          reps?: number
+          reps?: number | null
           user_id?: string
           weight?: number
           workout_completion_id?: string | null

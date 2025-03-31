@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClientPrograms, fetchCurrentProgram } from "./program-service";
 import { fetchClientWorkoutHistory } from "./client-workout-history-service";
@@ -27,34 +28,83 @@ export const trackWorkoutSet = async (
   location: string | null = null
 ): Promise<any> => {
   try {
-    // First fetch the workout completion to get the user_id
-    const { data: workoutCompletion, error: workoutCompletionError } = await supabase
-      .from('workout_completions')
-      .select('user_id, workout_id')
-      .eq('id', workoutCompletionId)
-      .single();
-    
-    if (workoutCompletionError) {
-      console.error('Error fetching workout completion:', workoutCompletionError);
-      throw workoutCompletionError;
+    // First get the current user ID
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("User not authenticated");
     }
+
+    // Check if we already have a workout completion record
+    const { data: existingCompletion, error: queryError } = await supabase
+      .from('workout_completions')
+      .select('id, user_id, workout_id')
+      .eq('id', workoutCompletionId)
+      .maybeSingle();
     
-    if (!workoutCompletion) {
-      throw new Error(`Workout completion not found: ${workoutCompletionId}`);
+    let userId = user.id;
+    let completionId = workoutCompletionId;
+    let workoutId = workoutCompletionId; // Default assumption
+    
+    // If no completion exists with this ID, check if this is actually a workout ID
+    if (!existingCompletion) {
+      console.log(`No completion found with ID: ${workoutCompletionId}, checking if this is a workout ID`);
+      
+      // Check if a completion already exists for this user and workout
+      const { data: existingUserCompletion, error: userCompletionError } = await supabase
+        .from('workout_completions')
+        .select('id, user_id, workout_id')
+        .eq('user_id', userId)
+        .eq('workout_id', workoutId)
+        .is('completed_at', null) // Only get in-progress completions
+        .maybeSingle();
+      
+      if (userCompletionError && userCompletionError.code !== 'PGRST116') {
+        console.error('Error checking for existing user completion:', userCompletionError);
+        throw userCompletionError;
+      }
+      
+      // If a completion exists for this workout, use that
+      if (existingUserCompletion) {
+        console.log('Found existing workout completion:', existingUserCompletion);
+        completionId = existingUserCompletion.id;
+      } else {
+        // Create a new workout completion
+        console.log('Creating new workout completion for workout ID:', workoutId);
+        const { data: newCompletion, error: insertError } = await supabase
+          .from('workout_completions')
+          .insert({
+            user_id: userId,
+            workout_id: workoutId,
+            created_at: new Date().toISOString()
+          })
+          .select('id')
+          .single();
+        
+        if (insertError) {
+          console.error('Error creating workout completion:', insertError);
+          throw insertError;
+        }
+        
+        console.log('Created new workout completion:', newCompletion);
+        completionId = newCompletion.id;
+      }
+    } else {
+      userId = existingCompletion.user_id;
+      workoutId = existingCompletion.workout_id;
     }
     
     // Now check if a set completion record already exists
-    const { data: existingSet, error: queryError } = await supabase
+    const { data: existingSet, error: setQueryError } = await supabase
       .from('workout_set_completions')
       .select('*')
-      .eq('workout_completion_id', workoutCompletionId)
-      .eq('workout_exercise_id', exerciseId)  // Make sure we're using workout_exercise_id here
+      .eq('workout_completion_id', completionId)
+      .eq('workout_exercise_id', exerciseId)
       .eq('set_number', setNumber)
       .maybeSingle();
     
-    if (queryError) {
-      console.error('Error checking for existing set completion:', queryError);
-      throw queryError;
+    if (setQueryError && setQueryError.code !== 'PGRST116') {
+      console.error('Error checking for existing set completion:', setQueryError);
+      throw setQueryError;
     }
     
     console.log('Existing set check result:', existingSet);
@@ -95,13 +145,13 @@ export const trackWorkoutSet = async (
     } else {
       // Create new record
       console.log('Creating new set completion with data:', {
-        workout_completion_id: workoutCompletionId,
+        workout_completion_id: completionId,
         workout_exercise_id: exerciseId,
         set_number: setNumber,
         weight: weight,
         reps_completed: reps,
         completed: true,
-        user_id: workoutCompletion.user_id,
+        user_id: userId,
         notes: notes,
         distance: parsedDistance,
         duration: duration,
@@ -111,13 +161,13 @@ export const trackWorkoutSet = async (
       const { data, error } = await supabase
         .from('workout_set_completions')
         .insert({
-          workout_completion_id: workoutCompletionId,
-          workout_exercise_id: exerciseId, // Using workout_exercise_id consistently
+          workout_completion_id: completionId,
+          workout_exercise_id: exerciseId,
           set_number: setNumber,
           weight: weight,
           reps_completed: reps,
           completed: true,
-          user_id: workoutCompletion.user_id,
+          user_id: userId,
           notes: notes,
           distance: parsedDistance,
           duration: duration,

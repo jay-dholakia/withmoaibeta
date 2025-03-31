@@ -77,7 +77,7 @@ const ClientLogin = () => {
         title="Member Portal"
         subtitle="Sign in or sign up to access your personal dashboard"
       >
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md" style={{ position: 'relative', zIndex: 20 }}>
           <LoginForm variant="client" />
         </div>
       </AuthLayout>

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -30,6 +30,24 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [localLoading, setLocalLoading] = useState(false);
   const { signIn, signUp, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formMounted, setFormMounted] = useState(false);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Mark the form as mounted after a small delay to ensure animations complete
+    const timer = setTimeout(() => {
+      setFormMounted(true);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Focus the email input when the form has mounted
+    if (formMounted && emailInputRef.current && !authLoading && !localLoading) {
+      emailInputRef.current.focus();
+    }
+  }, [formMounted, authLoading, localLoading]);
 
   useEffect(() => {
     console.log('Auth loading state changed:', authLoading);
@@ -133,6 +151,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.1 }}
       className="w-full max-w-md mx-auto form-shine glass-card rounded-xl p-8"
+      style={{ position: 'relative', zIndex: 10 }}
     >
       {(variant === 'admin' || variant === 'coach') && isRegistering && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive flex items-start">
@@ -158,6 +177,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             required
             disabled={isDisabled}
             autoComplete="email"
+            ref={emailInputRef}
           />
         </div>
         

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -153,15 +154,15 @@ const MoaiPage = () => {
       
       <Tabs defaultValue="progress" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="progress">
+          <TabsTrigger value="progress" className="flex items-center justify-center">
             <Mountain className="h-4 w-4 mr-2" />
             Progress
           </TabsTrigger>
-          <TabsTrigger value="members">
-            <Mountain className="h-4 w-4 mr-2" />
+          <TabsTrigger value="members" className="flex items-center justify-center">
+            <UserRound className="h-4 w-4 mr-2" />
             Members
           </TabsTrigger>
-          <TabsTrigger value="coach">
+          <TabsTrigger value="coach" className="flex items-center justify-center">
             <UserRound className="h-4 w-4 mr-2" />
             Coach
           </TabsTrigger>

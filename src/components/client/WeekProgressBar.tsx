@@ -138,12 +138,11 @@ export const WeekProgressBar = ({
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${textColor} ${border} transition-all duration-200 relative`}
               >
-                {day.isCompleted && (
-                  <div className="absolute -top-1 -right-1">
-                    <WorkoutTypeIcon type={day.workoutType} size={16} />
-                  </div>
+                {(day.isCompleted || day.isLifeHappens) ? (
+                  <WorkoutTypeIcon type={day.workoutType} size={16} />
+                ) : (
+                  <span className="text-xs font-medium">{dayName}</span>
                 )}
-                <span className="text-xs font-medium">{dayName}</span>
               </div>
             </div>
           );

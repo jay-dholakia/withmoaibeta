@@ -74,8 +74,7 @@ export const WorkoutProgressCard = ({
             
             // Format date to get the correct workout type from map
             const dateStr = format(currentDay, 'yyyy-MM-dd');
-            const workoutType = isDayCompleted || isLifeHappens ? 
-              (workoutTypesMap[dateStr] || (isLifeHappens ? 'rest_day' : 'strength')) : undefined;
+            const workoutType = workoutTypesMap[dateStr] || (isLifeHappens ? 'rest_day' : 'strength');
             
             // Use lighter background colors for better emoji visibility
             let bgColor = 'bg-slate-50';
@@ -90,11 +89,13 @@ export const WorkoutProgressCard = ({
             
             return (
               <div key={index} className="flex flex-col items-center">
-                {/* Circle with workout type emoji inside */}
-                <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} border border-slate-200`}
-                >
-                  {workoutType && <WorkoutTypeIcon type={workoutType} size={16} />}
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} border border-slate-200`}>
+                  {(isDayCompleted || isLifeHappens) && (
+                    <WorkoutTypeIcon type={workoutType} size={16} />
+                  )}
+                  {!isDayCompleted && !isLifeHappens && (
+                    <span className="text-xs font-medium text-slate-600">{day}</span>
+                  )}
                 </div>
                 
                 {/* Day letter placed below the circle */}

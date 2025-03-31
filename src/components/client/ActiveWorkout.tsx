@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
@@ -38,6 +38,11 @@ const ActiveWorkout = () => {
         duration: string;
         completed: boolean;
       };
+      runData?: {
+        distance: string;
+        location: string;
+        completed: boolean;
+      };
     };
   }>({});
 
@@ -58,6 +63,12 @@ const ActiveWorkout = () => {
   const [pendingFlexibility, setPendingFlexibility] = useState<Array<{
     exerciseId: string;
     duration: string;
+  }>>([]);
+
+  const [pendingRuns, setPendingRuns] = useState<Array<{
+    exerciseId: string;
+    distance: string;
+    location: string;
   }>>([]);
 
   const { data: workoutData, isLoading } = useQuery({
@@ -257,6 +268,27 @@ const ActiveWorkout = () => {
         promises.push(...flexibilityPromises);
       }
       
+      if (pendingRuns.length > 0) {
+        const runPromises = pendingRuns.map(item => {
+          const distance = item.distance && item.distance.trim() !== '' 
+            ? item.distance
+            : null;
+            
+          return trackWorkoutSet(
+            workoutCompletionId!,
+            item.exerciseId,
+            1,
+            null,
+            null,
+            null,
+            distance,
+            null,
+            item.location || null
+          );
+        });
+        promises.push(...runPromises);
+      }
+      
       return Promise.all(promises);
     },
     onSuccess: () => {
@@ -264,6 +296,7 @@ const ActiveWorkout = () => {
       setPendingSets([]);
       setPendingCardio([]);
       setPendingFlexibility([]);
+      setPendingRuns([]);
       navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
     },
     onError: (error: any) => {
@@ -282,8 +315,24 @@ const ActiveWorkout = () => {
       
       workoutExercises.forEach((exercise: any) => {
         const exerciseType = exercise.exercise?.exercise_type || 'strength';
+        const exerciseName = (exercise.exercise?.name || '').toLowerCase();
+        const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
         
-        if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+        if (isRunExercise) {
+          const existingSet = workoutData.workout_set_completions?.find(
+            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
+          );
+          
+          initialState[exercise.id] = {
+            expanded: true,
+            sets: [],
+            runData: {
+              distance: existingSet?.distance || '',
+              location: existingSet?.location || '',
+              completed: !!existingSet?.completed
+            }
+          };
+        } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
           const sets = Array.from({ length: exercise.sets }, (_, i) => {
             const existingSet = workoutData.workout_set_completions?.find(
               (set: any) => set.workout_exercise_id === exercise.id && set.set_number === i + 1
@@ -393,6 +442,25 @@ const ActiveWorkout = () => {
           ...prev[exerciseId],
           flexibilityData: {
             ...prev[exerciseId].flexibilityData!,
+            [field]: value
+          }
+        }
+      };
+    });
+  };
+
+  const handleRunChange = (exerciseId: string, field: 'distance' | 'location', value: string) => {
+    setExerciseStates((prev) => {
+      if (!prev[exerciseId] || !prev[exerciseId].runData) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          runData: {
+            ...prev[exerciseId].runData!,
             [field]: value
           }
         }
@@ -517,6 +585,45 @@ const ActiveWorkout = () => {
     }
   };
 
+  const handleRunCompletion = (exerciseId: string, completed: boolean) => {
+    setExerciseStates((prev) => {
+      if (!prev[exerciseId] || !prev[exerciseId].runData) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          runData: {
+            ...prev[exerciseId].runData!,
+            completed
+          }
+        }
+      };
+    });
+
+    if (completed) {
+      if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].runData) {
+        console.error(`Invalid exercise ID or missing run data: ${exerciseId}`);
+        return;
+      }
+
+      const runData = exerciseStates[exerciseId].runData!;
+      const distance = runData.distance.trim() === '' ? null : runData.distance;
+      setPendingRuns(prev => [
+        ...prev.filter(r => r.exerciseId !== exerciseId),
+        {
+          exerciseId,
+          distance: distance || '',
+          location: runData.location
+        }
+      ]);
+    } else {
+      setPendingRuns(prev => prev.filter(item => item.exerciseId !== exerciseId));
+    }
+  };
+
   const toggleExerciseExpanded = (exerciseId: string) => {
     setExerciseStates((prev) => {
       if (!prev[exerciseId]) {
@@ -603,6 +710,8 @@ const ActiveWorkout = () => {
       <div className="space-y-4 w-full">
         {workoutExercises.map((exercise: any) => {
           const exerciseType = exercise.exercise?.exercise_type || 'strength';
+          const exerciseName = (exercise.exercise?.name || '').toLowerCase();
+          const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
           const exerciseState = exerciseStates[exercise.id];
           
           if (!exerciseState) {
@@ -619,7 +728,9 @@ const ActiveWorkout = () => {
                   <div className="text-center w-full">
                     <CardTitle className="text-base">{exercise.exercise.name}</CardTitle>
                     <CardDescription>
-                      {exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
+                      {isRunExercise ? (
+                        <span className="text-blue-600">Running</span>
+                      ) : exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
                         <>
                           {exercise.sets} sets • {exercise.reps} reps
                           {exercise.rest_seconds ? ` • ${exercise.rest_seconds}s rest` : ''}
@@ -637,7 +748,11 @@ const ActiveWorkout = () => {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    {exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
+                    {isRunExercise ? (
+                      exerciseState.runData?.completed && (
+                        <CheckCircle2 className="text-green-500 h-5 w-5" />
+                      )
+                    ) : exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
                       exerciseState.sets.every(set => set.completed) && (
                         <CheckCircle2 className="text-green-500 h-5 w-5" />
                       )
@@ -669,7 +784,59 @@ const ActiveWorkout = () => {
                       </div>
                     )}
                     
-                    {exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
+                    {isRunExercise ? (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="text-center">
+                            <label className="block text-sm font-medium mb-1 text-center">Distance (miles)</label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0.00"
+                              value={exerciseState.runData?.distance || ''}
+                              onChange={(e) => handleRunChange(exercise.id, 'distance', e.target.value)}
+                              className="h-9 text-center border border-gray-200"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1 text-center">Enter distance in miles</p>
+                          </div>
+                          <div className="text-center">
+                            <label className="block text-sm font-medium mb-1 text-center">Location</label>
+                            <ToggleGroup 
+                              type="single" 
+                              className="justify-center"
+                              value={exerciseState.runData?.location || ''}
+                              onValueChange={(value) => {
+                                if (value) handleRunChange(exercise.id, 'location', value);
+                              }}
+                            >
+                              <ToggleGroupItem 
+                                value="indoor" 
+                                className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
+                              >
+                                <MapPin className="h-3 w-3 mr-1" /> Indoor
+                              </ToggleGroupItem>
+                              <ToggleGroupItem 
+                                value="outdoor" 
+                                className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
+                              >
+                                <MapPin className="h-3 w-3 mr-1" /> Outdoor
+                              </ToggleGroupItem>
+                            </ToggleGroup>
+                          </div>
+                        </div>
+                        <div className="flex justify-center items-center mt-2">
+                          <span className="mr-2 text-sm">Mark as completed:</span>
+                          <Checkbox
+                            checked={exerciseState.runData?.completed || false}
+                            onCheckedChange={(checked) => 
+                              handleRunCompletion(exercise.id, checked === true)
+                            }
+                            className="h-5 w-5 data-[state=checked]:bg-client data-[state=checked]:border-client border-2"
+                          />
+                        </div>
+                      </div>
+                    ) : exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
                       <div className="space-y-4">
                         <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 text-sm font-medium border-b pb-2 text-center">
                           <div className="text-center">Set</div>
@@ -844,7 +1011,7 @@ const ActiveWorkout = () => {
             )}
             Complete Workout
           </Button>
-          {(pendingSets.length > 0 || pendingCardio.length > 0 || pendingFlexibility.length > 0) && (
+          {(pendingSets.length > 0 || pendingCardio.length > 0 || pendingFlexibility.length > 0 || pendingRuns.length > 0) && (
             <p className="text-xs text-center mt-2 text-muted-foreground">
               All tracking data will be saved when you complete the workout
             </p>

@@ -94,20 +94,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       ) : (
         <div className="space-y-3">
           <div>
-            <Label htmlFor="duration" className="text-center block">Duration (hh:mm:ss)</Label>
-            <Input
-              id="duration"
-              value={duration}
-              onChange={(e) => setDuration(formatDurationInput(e.target.value))}
-              placeholder="00:30:00"
-              className="w-full text-center"
-            />
-            <p className="text-xs text-muted-foreground mt-1 text-center">
-              Format as hours:minutes:seconds (e.g., 00:30:00 for 30 minutes)
-            </p>
-          </div>
-          
-          <div>
             <Label htmlFor="distance" className="text-center block">Distance (miles)</Label>
             <Input
               id="distance"
@@ -119,6 +105,20 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
               min="0"
               className="w-full text-center"
             />
+          </div>
+          
+          <div>
+            <Label htmlFor="duration" className="text-center block">Duration (hh:mm:ss)</Label>
+            <Input
+              id="duration"
+              value={duration}
+              onChange={(e) => setDuration(formatDurationInput(e.target.value))}
+              placeholder="00:30:00"
+              className="w-full text-center"
+            />
+            <p className="text-xs text-muted-foreground mt-1 text-center">
+              Format as hours:minutes:seconds (e.g., 00:30:00 for 30 minutes)
+            </p>
           </div>
         </div>
       )}

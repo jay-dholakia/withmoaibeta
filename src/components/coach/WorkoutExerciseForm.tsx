@@ -16,9 +16,9 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   onSubmit,
   isSubmitting = false
 }) => {
-  const [sets, setSets] = React.useState(initialData?.sets || 3);
-  const [reps, setReps] = React.useState(initialData?.reps || '10');
-  const [restSeconds, setRestSeconds] = React.useState(initialData?.rest_seconds || 60);
+  const [sets, setSets] = React.useState(initialData?.sets || 4);
+  const [reps, setReps] = React.useState(initialData?.reps || '12');
+  const [restSeconds, setRestSeconds] = React.useState(initialData?.rest_seconds || 45);
   const [notes, setNotes] = React.useState(initialData?.notes || '');
 
   const handleSubmit = (e: React.FormEvent) => {

@@ -58,9 +58,10 @@ export const countCompletedWorkoutsForWeek = async (userId: string, weekStart: D
   try {
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
     
+    // Get workout completions for the week
     const { data, error } = await supabase
       .from('workout_completions')
-      .select('completed_at')
+      .select('completed_at, id')
       .eq('user_id', userId)
       .gte('completed_at', format(weekStart, 'yyyy-MM-dd'))
       .lte('completed_at', format(weekEnd, 'yyyy-MM-dd'));
@@ -70,7 +71,7 @@ export const countCompletedWorkoutsForWeek = async (userId: string, weekStart: D
       return 0;
     }
     
-    // Count unique dates, not individual completions
+    // Count unique dates, not individual completions or sets
     const uniqueDates = new Set();
     if (data) {
       data.forEach(completion => {

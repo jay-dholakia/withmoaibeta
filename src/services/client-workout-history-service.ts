@@ -3,14 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { WorkoutBasic, WorkoutHistoryItem, WorkoutSetCompletion } from "@/types/workout";
 
 /**
- * Fetches the workout history for a specific client
+ * Fetches the workout history for a specific client, aggregating workout completions by date
  */
 export const fetchClientWorkoutHistory = async (clientId: string): Promise<WorkoutHistoryItem[]> => {
   try {
     // First, get the basic completion data - only include properly completed workouts
     const { data: completions, error: completionsError } = await supabase
       .from('workout_completions')
-      .select('id, completed_at, notes, rating, user_id, workout_id, life_happens_pass, rest_day')
+      .select('id, completed_at, notes, rating, user_id, workout_id, life_happens_pass, rest_day, title, description, workout_type, distance, duration, location')
       .eq('user_id', clientId)
       .not('completed_at', 'is', null)  // Only include workouts that have a completion date
       .order('completed_at', { ascending: false });
@@ -132,9 +132,11 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
         }
       }
     }
+
+    // Get all set completions for the given user's workout completions
+    const completionIds = completions.map(completion => completion.id);
     
     // Fetch workout set completions - we'll group these by workout completion ID
-    const completionIds = completions.map(completion => completion.id);
     const { data: setCompletions, error: setCompletionsError } = await supabase
       .from('workout_set_completions')
       .select('*')

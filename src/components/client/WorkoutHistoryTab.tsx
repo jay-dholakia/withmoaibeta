@@ -68,9 +68,10 @@ const WorkoutHistoryTab = () => {
     return 'strength'; // Default fallback
   };
 
-  // Create a map of dates to workout types
+  // Create a map of dates to workout types - only count one workout per day
   const workoutTypesMap = React.useMemo(() => {
     const typesMap: Record<string, WorkoutType> = {};
+    const processedDates = new Set<string>(); // Track dates we've already processed
     
     if (clientWorkouts) {
       clientWorkouts.forEach(item => {
@@ -78,6 +79,11 @@ const WorkoutHistoryTab = () => {
         
         const date = new Date(item.completed_at);
         const dateKey = format(date, 'yyyy-MM-dd');
+        
+        // Skip if we've already processed a workout for this date
+        if (processedDates.has(dateKey)) return;
+        
+        processedDates.add(dateKey);
         
         if (item.life_happens_pass || item.rest_day) {
           typesMap[dateKey] = 'rest_day';
@@ -136,7 +142,7 @@ const WorkoutHistoryTab = () => {
       
       {clientWorkouts && (
         <div className="mb-2 text-sm text-center text-muted-foreground">
-          {clientWorkouts.length} total workouts in your history
+          {new Set(clientWorkouts.map(w => format(new Date(w.completed_at), 'yyyy-MM-dd'))).size} total workout days in your history
         </div>
       )}
       

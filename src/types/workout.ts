@@ -73,6 +73,7 @@ export interface WorkoutBasic {
   } | null;
   workout_exercises?: WorkoutExercise[];
   workout_type: string;
+  custom_workout?: boolean; // Add this field to indicate custom workouts
 }
 
 export interface WorkoutExercise {

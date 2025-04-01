@@ -448,11 +448,12 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
               title: customWorkout.title,
               description: customWorkout.description,
               workout_type: customWorkout.workout_type || 'custom',
-              // Add any other required fields for a custom workout
+              day_of_week: 0, // Default day of week for custom workouts
+              week_id: '', // Empty string for custom workouts
               custom_workout: true
-            },
+            } as WorkoutBasic,
             workout_set_completions
-          };
+          } as WorkoutHistoryItem;
         }
         
         // If workout_id is null, return completion without workout details
@@ -462,7 +463,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
             completed_at, // Use the validated date
             workout: null,
             workout_set_completions
-          };
+          } as WorkoutHistoryItem;
         }
         
         const workoutDetails = workoutMap.get(completion.workout_id) || null;
@@ -471,7 +472,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           completed_at, // Use the validated date
           workout: workoutDetails,
           workout_set_completions
-        };
+        } as WorkoutHistoryItem;
       } catch (error) {
         console.error("Error processing workout completion:", error, completion);
         // Return a valid but empty workout history item as fallback
@@ -482,7 +483,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           completed_at: new Date().toISOString(),
           workout: null,
           workout_set_completions: []
-        };
+        } as WorkoutHistoryItem;
       }
     });
     

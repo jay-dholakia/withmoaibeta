@@ -6,13 +6,11 @@ export type WorkoutType = 'strength' | 'bodyweight' | 'cardio' | 'flexibility' |
 interface WorkoutTypeIconProps {
   type: WorkoutType;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
 }
 
 export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({ 
   type, 
-  className = '',
-  size = 'md'
+  className = ''
 }) => {
   const getIconForType = () => {
     switch (type) {
@@ -35,24 +33,12 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
     }
   };
 
-  const getFontSize = () => {
-    switch (size) {
-      case 'sm':
-        return '12px';
-      case 'lg':
-        return '18px';
-      case 'md':
-      default:
-        return '14px';
-    }
-  };
-
   return (
     <span 
       className={`workout-type-icon ${className}`} 
       role="img" 
       aria-label={`${type} workout`}
-      style={{ fontSize: getFontSize(), lineHeight: 1 }}
+      style={{ fontSize: '14px', lineHeight: 1 }}
     >
       {getIconForType()}
     </span>

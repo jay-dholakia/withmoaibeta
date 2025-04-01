@@ -96,7 +96,6 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
-          workout_date: string | null
           workout_type: string | null
         }
         Insert: {
@@ -107,7 +106,6 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
-          workout_date?: string | null
           workout_type?: string | null
         }
         Update: {
@@ -118,7 +116,6 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
-          workout_date?: string | null
           workout_type?: string | null
         }
         Relationships: []
@@ -865,7 +862,6 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string | null
-          custom_workout_id: string | null
           description: string | null
           distance: string | null
           duration: string | null
@@ -884,7 +880,6 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string | null
-          custom_workout_id?: string | null
           description?: string | null
           distance?: string | null
           duration?: string | null
@@ -903,7 +898,6 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string | null
-          custom_workout_id?: string | null
           description?: string | null
           distance?: string | null
           duration?: string | null
@@ -920,13 +914,6 @@ export type Database = {
           workout_type?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "workout_completions_custom_workout_id_fkey"
-            columns: ["custom_workout_id"]
-            isOneToOne: false
-            referencedRelation: "client_custom_workouts"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "workout_completions_standalone_workout_id_fkey"
             columns: ["standalone_workout_id"]

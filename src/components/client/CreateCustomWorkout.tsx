@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, ArrowLeft, Save, Calendar } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   createCustomWorkout,
@@ -24,9 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WORKOUT_TYPES, WorkoutType } from './WorkoutTypeIcon';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { format } from 'date-fns';
 
 interface CustomExerciseItem {
   id: string; // Temporary id for UI purposes
@@ -35,6 +32,7 @@ interface CustomExerciseItem {
   sets?: number;
   reps?: string;
   rest?: number;
+  notes?: string;
 }
 
 const isCardioExercise = (exerciseName: string): boolean => {
@@ -50,7 +48,6 @@ const CreateCustomWorkout = () => {
   const [workoutType, setWorkoutType] = useState<WorkoutType>('custom');
   const [exercises, setExercises] = useState<CustomExerciseItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [workoutDate, setWorkoutDate] = useState<Date>(new Date());
 
   const handleAddExercise = (exercise: Exercise) => {
     if (isCardioExercise(exercise.name)) {
@@ -113,8 +110,7 @@ const CreateCustomWorkout = () => {
         title,
         description: description || undefined,
         duration_minutes: duration,
-        workout_type: workoutType,
-        workout_date: workoutDate
+        workout_type: workoutType
       });
       
       // Only save exercises if there are any
@@ -133,6 +129,7 @@ const CreateCustomWorkout = () => {
             sets: isCardio ? null : ex.sets || null,
             reps: isCardio ? null : ex.reps || null,
             rest_seconds: isCardio ? null : ex.rest || null,
+            notes: ex.notes || null,
             order_index: index
           };
           
@@ -201,30 +198,6 @@ const CreateCustomWorkout = () => {
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="workoutDate">Workout Date *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                id="workoutDate"
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                {workoutDate ? format(workoutDate, 'PPP') : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <CalendarComponent
-                mode="single"
-                selected={workoutDate}
-                onSelect={(date) => date && setWorkoutDate(date)}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-        
-        <div className="space-y-2">
           <Label htmlFor="workout-type">Workout Type *</Label>
           <Select 
             value={workoutType} 
@@ -237,10 +210,7 @@ const CreateCustomWorkout = () => {
               {WORKOUT_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value}>
                   <div className="flex items-center gap-2">
-                    {typeof type.icon === 'string' ? 
-                      <span>{type.icon}</span> : 
-                      type.icon
-                    }
+                    <span>{type.icon}</span>
                     <span>{type.label}</span>
                   </div>
                 </SelectItem>
@@ -392,6 +362,19 @@ const CreateCustomWorkout = () => {
                           <p className="text-sm text-muted-foreground">No sets, reps or rest needed for cardio exercises.</p>
                         </div>
                       )}
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <Label htmlFor={`notes-${index}`}>Notes</Label>
+                      <Textarea 
+                        id={`notes-${index}`}
+                        value={exercise.notes || ''} 
+                        onChange={(e) => updateExercise(index, { notes: e.target.value })}
+                        placeholder={isCardio 
+                          ? "Enter distance, duration, or other details..." 
+                          : "Any specific instructions or notes..."} 
+                        rows={2}
+                      />
                     </div>
                   </div>
                 </Card>

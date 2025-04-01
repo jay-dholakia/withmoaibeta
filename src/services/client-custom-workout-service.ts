@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface CustomWorkout {
@@ -9,7 +10,6 @@ export interface CustomWorkout {
   created_at: string;
   updated_at: string;
   workout_type: string;
-  workout_date: string | Date | null;
 }
 
 export interface CustomWorkoutExercise {
@@ -65,12 +65,9 @@ export const createCustomWorkout = async (data: {
   description?: string | null;
   duration_minutes?: number | null;
   workout_type?: string;
-  workout_date?: Date | null;
 }): Promise<CustomWorkout> => {
   const { data: user } = await supabase.auth.getUser();
   if (!user.user) throw new Error("Not authenticated");
-
-  const workoutDateString = data.workout_date ? data.workout_date.toISOString() : null;
 
   const { data: workout, error } = await supabase
     .from('client_custom_workouts')
@@ -79,8 +76,7 @@ export const createCustomWorkout = async (data: {
       title: data.title,
       description: data.description || null,
       duration_minutes: data.duration_minutes || null,
-      workout_type: data.workout_type || 'custom',
-      workout_date: workoutDateString
+      workout_type: data.workout_type || 'custom'
     })
     .select('*')
     .single();
@@ -148,6 +144,7 @@ export const fetchCustomWorkoutExercises = async (workoutId: string): Promise<Cu
 };
 
 export const createCustomWorkoutExercise = async (params: CreateCustomWorkoutExerciseParams): Promise<CustomWorkoutExercise> => {
+  // Get the current count of exercises to set the order_index
   const { data: existingExercises } = await supabase
     .from('client_custom_workout_exercises')
     .select('id')
@@ -218,47 +215,59 @@ export const deleteCustomWorkoutExercise = async (exerciseId: string): Promise<v
 };
 
 export const moveCustomWorkoutExerciseUp = async (exerciseId: string, workoutId: string) => {
+  // Fetch all exercises to get the current order
   const exercises = await fetchCustomWorkoutExercises(workoutId);
   
+  // Find the current exercise
   const currentExercise = exercises.find(ex => ex.id === exerciseId);
   if (!currentExercise) {
     throw new Error('Exercise not found');
   }
   
+  // If it's already at the top, do nothing
   if (currentExercise.order_index === 0) {
     return exercises;
   }
   
+  // Find the exercise above it
   const previousExercise = exercises.find(ex => ex.order_index === currentExercise.order_index - 1);
   if (!previousExercise) {
     throw new Error('Previous exercise not found');
   }
   
+  // Swap their order indices
   await updateCustomWorkoutExercise(currentExercise.id, { order_index: previousExercise.order_index });
   await updateCustomWorkoutExercise(previousExercise.id, { order_index: currentExercise.order_index });
   
+  // Return the updated list
   return await fetchCustomWorkoutExercises(workoutId);
 };
 
 export const moveCustomWorkoutExerciseDown = async (exerciseId: string, workoutId: string) => {
+  // Fetch all exercises to get the current order
   const exercises = await fetchCustomWorkoutExercises(workoutId);
   
+  // Find the current exercise
   const currentExercise = exercises.find(ex => ex.id === exerciseId);
   if (!currentExercise) {
     throw new Error('Exercise not found');
   }
   
+  // If it's already at the bottom, do nothing
   if (currentExercise.order_index === exercises.length - 1) {
     return exercises;
   }
   
+  // Find the exercise below it
   const nextExercise = exercises.find(ex => ex.order_index === currentExercise.order_index + 1);
   if (!nextExercise) {
     throw new Error('Next exercise not found');
   }
   
+  // Swap their order indices
   await updateCustomWorkoutExercise(currentExercise.id, { order_index: nextExercise.order_index });
   await updateCustomWorkoutExercise(nextExercise.id, { order_index: currentExercise.order_index });
   
+  // Return the updated list
   return await fetchCustomWorkoutExercises(workoutId);
 };

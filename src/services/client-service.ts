@@ -75,7 +75,6 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile 
  */
 export const createClientProfile = async (userId: string): Promise<ClientProfile | null> => {
   try {
-    // Check if profile already exists
     const { data: existingProfile } = await supabase
       .from('client_profiles')
       .select('*')
@@ -87,7 +86,6 @@ export const createClientProfile = async (userId: string): Promise<ClientProfile
       return existingProfile;
     }
     
-    // Create new profile
     const { data, error } = await supabase
       .from('client_profiles')
       .insert({ id: userId })
@@ -289,7 +287,6 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
  */
 export const deleteUser = async (userId: string): Promise<boolean> => {
   try {
-    // Delete user from auth
     const { error } = await supabase.functions.invoke('delete-user', {
       body: { user_id: userId }
     });
@@ -334,7 +331,6 @@ export interface GroupData {
  */
 export const fetchGroupLeaderboardWeekly = async (groupId: string): Promise<GroupData | null> => {
   try {
-    // First get the group info
     const { data: groupData, error: groupError } = await supabase
       .from('groups')
       .select('*')
@@ -346,7 +342,6 @@ export const fetchGroupLeaderboardWeekly = async (groupId: string): Promise<Grou
       return null;
     }
 
-    // Then get the leaderboard data
     const { data: leaderboardData, error: leaderboardError } = await supabase.functions.invoke(
       'get-group-leaderboard',
       {
@@ -374,7 +369,6 @@ export const fetchGroupLeaderboardWeekly = async (groupId: string): Promise<Grou
  */
 export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<GroupData | null> => {
   try {
-    // First get the group info
     const { data: groupData, error: groupError } = await supabase
       .from('groups')
       .select('*')
@@ -386,7 +380,6 @@ export const fetchGroupLeaderboardMonthly = async (groupId: string): Promise<Gro
       return null;
     }
 
-    // Then get the leaderboard data
     const { data: leaderboardData, error: leaderboardError } = await supabase.functions.invoke(
       'get-group-leaderboard',
       {
@@ -491,7 +484,6 @@ export const trackWorkoutSet = async (
   location: string | null = null
 ) => {
   try {
-    // First check if this workout completion exists
     const { data: workoutCompletion, error: fetchError } = await supabase
       .from('workout_completions')
       .select('*')
@@ -506,7 +498,6 @@ export const trackWorkoutSet = async (
     if (!workoutCompletion) {
       console.error("Workout completion not found with ID:", workoutCompletionId);
       
-      // Get the user and workout_id information from workout_exercise_id
       const { data: exerciseData, error: exerciseError } = await supabase
         .from('workout_exercises')
         .select('workout_id')
@@ -518,7 +509,6 @@ export const trackWorkoutSet = async (
         throw exerciseError || new Error("Could not find workout exercise data");
       }
       
-      // Create a new workout completion record
       const { data: newCompletionData, error: insertError } = await supabase
         .from('workout_completions')
         .insert({
@@ -536,7 +526,6 @@ export const trackWorkoutSet = async (
       }
     }
     
-    // Check if a set completion already exists
     const { data: existingSet, error: existingSetError } = await supabase
       .from('workout_set_completions')
       .select('*')
@@ -549,7 +538,6 @@ export const trackWorkoutSet = async (
       console.error("Error checking for existing set completion:", existingSetError);
     }
     
-    // If set already exists, update it
     if (existingSet) {
       const { data, error } = await supabase
         .from('workout_set_completions')
@@ -573,7 +561,6 @@ export const trackWorkoutSet = async (
       
       return data;
     } else {
-      // Create a new set completion
       const { data, error } = await supabase
         .from('workout_set_completions')
         .insert({
@@ -614,7 +601,6 @@ export const completeWorkout = async (
   notes: string | null = null
 ) => {
   try {
-    // First check if this is a workout ID or a workout completion ID
     const { data: existingCompletion, error: fetchError } = await supabase
       .from('workout_completions')
       .select('*')
@@ -625,7 +611,6 @@ export const completeWorkout = async (
       console.error("Error checking workout completion:", fetchError);
     }
     
-    // If this is already a completion ID, just update it
     if (existingCompletion) {
       const { data, error } = await supabase
         .from('workout_completions')
@@ -645,8 +630,6 @@ export const completeWorkout = async (
       
       return data;
     } else {
-      // This is a workout ID, not a completion ID
-      // Create a new completion record
       const { data, error } = await supabase
         .from('workout_completions')
         .insert({

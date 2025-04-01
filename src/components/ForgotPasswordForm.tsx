@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Loader2 } from 'lucide-react';
@@ -61,7 +60,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
       setLoading(true);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/${variant}-reset-password`,
+        redirectTo: `${window.location.origin}/reset-password?type=${variant}`,
       });
       
       if (error) {

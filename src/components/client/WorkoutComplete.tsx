@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -36,7 +37,36 @@ const WorkoutComplete = () => {
       console.log("Fetching workout completion data for ID:", workoutCompletionId);
       
       try {
+        // First try to get the workout completion record directly
         const { data, error } = await supabase
+          .from('workout_completions')
+          .select(`
+            *,
+            workout:workout_id (
+              *,
+              workout_exercises (
+                *,
+                exercise:exercise_id (*)
+              )
+            ),
+            workout_set_completions (*)
+          `)
+          .eq('id', workoutCompletionId || '')
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error fetching workout completion data:", error);
+          // Continue and try other methods
+        }
+        
+        if (data) {
+          console.log("Fetched workout completion data:", data);
+          return data;
+        }
+        
+        // If no direct match on ID, see if it's a workout ID instead of a completion ID
+        console.log("No workout completion found, trying to fetch by workout_id and user_id");
+        const { data: byWorkoutData, error: byWorkoutError } = await supabase
           .from('workout_completions')
           .select(`
             *,
@@ -52,37 +82,42 @@ const WorkoutComplete = () => {
           .eq('workout_id', workoutCompletionId || '')
           .eq('user_id', user?.id)
           .maybeSingle();
-
-        if (error) {
-          console.error("Error fetching workout completion data:", error);
-          throw error;
+            
+        if (byWorkoutError) {
+          console.error("Error fetching by workout_id:", byWorkoutError);
         }
         
-        if (!data) {
-          console.log("No workout completion found, trying to fetch workout directly");
-          
-          const { data: workoutOnly, error: workoutError } = await supabase
-            .from('workouts')
-            .select(`
+        if (byWorkoutData) {
+          console.log("Found workout completion by workout_id:", byWorkoutData);
+          return byWorkoutData;
+        }
+        
+        // As a last resort, fetch the workout directly
+        console.log("No workout completion found, trying to fetch workout directly");
+        
+        const { data: workoutOnly, error: workoutError } = await supabase
+          .from('workouts')
+          .select(`
+            *,
+            workout_exercises (
               *,
-              workout_exercises (
-                *,
-                exercise:exercise_id (*)
-              )
-            `)
-            .eq('id', workoutCompletionId || '')
-            .single();
-            
-          if (workoutError) {
-            console.error("Error fetching workout data:", workoutError);
-            throw workoutError;
-          }
+              exercise:exercise_id (*)
+            )
+          `)
+          .eq('id', workoutCompletionId || '')
+          .maybeSingle();
           
+        if (workoutError) {
+          console.error("Error fetching workout data:", workoutError);
+        }
+        
+        if (workoutOnly) {
+          console.log("Fetched workout data directly:", workoutOnly);
           return {
             id: null,
             user_id: user?.id,
             workout_id: workoutCompletionId,
-            completed_at: null,
+            completed_at: new Date().toISOString(),
             notes: null,
             rating: null,
             workout: workoutOnly,
@@ -90,8 +125,41 @@ const WorkoutComplete = () => {
           };
         }
         
-        console.log("Fetched workout completion data:", data);
-        return data;
+        // Try standalone workouts as a last resort
+        const { data: standaloneWorkout, error: standaloneError } = await supabase
+          .from('standalone_workouts')
+          .select(`
+            *,
+            standalone_workout_exercises (
+              *,
+              exercise:exercise_id (*)
+            )
+          `)
+          .eq('id', workoutCompletionId || '')
+          .maybeSingle();
+          
+        if (standaloneError) {
+          console.error("Error fetching standalone workout:", standaloneError);
+        }
+        
+        if (standaloneWorkout) {
+          console.log("Fetched standalone workout:", standaloneWorkout);
+          return {
+            id: null,
+            user_id: user?.id,
+            standalone_workout_id: workoutCompletionId,
+            completed_at: new Date().toISOString(),
+            notes: null,
+            rating: null,
+            workout: {
+              ...standaloneWorkout,
+              workout_exercises: standaloneWorkout.standalone_workout_exercises
+            },
+            workout_set_completions: []
+          };
+        }
+        
+        return null;
       } catch (error) {
         console.error("Error in workout completion data query:", error);
         throw error;
@@ -169,15 +237,58 @@ const WorkoutComplete = () => {
         await addToJournal(notes);
       }
       
-      return completeWorkout(
-        workoutCompletionId,
-        rating,
-        notes
-      );
+      // Check if we're dealing with an existing completion ID or a new workout ID
+      let completionId = workoutData?.id || workoutCompletionId;
+      let isNewCompletion = !workoutData?.id;
+      
+      if (isNewCompletion) {
+        // Create a new completion for this workout
+        const { data: newCompletion, error } = await supabase
+          .from('workout_completions')
+          .insert({
+            workout_id: workoutData?.workout_id || workoutCompletionId,
+            standalone_workout_id: workoutData?.standalone_workout_id,
+            user_id: user?.id,
+            completed_at: new Date().toISOString(),
+            rating,
+            notes
+          })
+          .select('id')
+          .single();
+          
+        if (error) {
+          console.error("Error creating new workout completion:", error);
+          throw error;
+        }
+        
+        completionId = newCompletion.id;
+      } else {
+        // Update the existing completion
+        const { error } = await supabase
+          .from('workout_completions')
+          .update({
+            rating,
+            notes,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', completionId);
+          
+        if (error) {
+          console.error("Error updating workout completion:", error);
+          throw error;
+        }
+      }
+      
+      return completionId;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
-      setShowShareDialog(true);
+    onSuccess: (completionId) => {
+      if (completionId) {
+        queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
+        queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
+        setShowShareDialog(true);
+      } else {
+        toast.error('Failed to complete workout');
+      }
     },
     onError: (error) => {
       console.error('Error completing workout:', error);

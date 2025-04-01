@@ -195,6 +195,7 @@ export const countCompletedWorkoutsForWeek = async (userId: string, weekStartDat
 
 export const getUserIdByEmail = async (email: string): Promise<string | null> => {
   try {
+    // Query the auth.users table through profiles to get the user ID by email
     const { data, error } = await supabase
       .from('profiles')
       .select('id')
@@ -234,7 +235,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
     // First, get the basic completion data - only include properly completed workouts
     const { data: completions, error: completionsError } = await supabase
       .from('workout_completions')
-      .select('id, completed_at, notes, rating, user_id, workout_id, life_happens_pass, rest_day')
+      .select('id, completed_at, notes, rating, user_id, workout_id, life_happens_pass, rest_day, custom_workout_id')
       .eq('user_id', clientId)
       .not('completed_at', 'is', null)  // Only include workouts that have a completion date
       .order('completed_at', { ascending: false });
@@ -361,6 +362,38 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
       }
     }
     
+    // Create a map to store custom workouts by ID
+    const customWorkoutMap = new Map();
+    
+    // Get custom workout IDs from completions
+    const customWorkoutIds = [
+      ...new Set(
+        completions
+          .map(c => c.custom_workout_id)
+          .filter(id => id !== null && id !== undefined)
+      )
+    ];
+    
+    // Fetch custom workout details if we have any custom workout IDs
+    if (customWorkoutIds.length > 0) {
+      try {
+        const { data: customWorkouts, error: customWorkoutsError } = await supabase
+          .from('client_custom_workouts')
+          .select('*')
+          .in('id', customWorkoutIds);
+          
+        if (customWorkoutsError) {
+          console.error("Error fetching custom workouts:", customWorkoutsError);
+        } else if (customWorkouts && customWorkouts.length > 0) {
+          customWorkouts.forEach(workout => {
+            customWorkoutMap.set(workout.id, workout);
+          });
+        }
+      } catch (err) {
+        console.error("Error processing custom workout data:", err);
+      }
+    }
+    
     // Fetch workout set completions if we have completion IDs
     const completionIds = completions.map(completion => completion.id);
     const setCompletionsMap: Map<string, WorkoutSetCompletion[]> = new Map();
@@ -402,6 +435,25 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           
         // Get set completions for this workout completion
         const workout_set_completions = setCompletionsMap.get(completion.id) || [];
+        
+        // Check if this is a custom workout
+        if (completion.custom_workout_id && customWorkoutMap.has(completion.custom_workout_id)) {
+          const customWorkout = customWorkoutMap.get(completion.custom_workout_id);
+          
+          return {
+            ...completion,
+            completed_at,
+            workout: {
+              id: customWorkout.id,
+              title: customWorkout.title,
+              description: customWorkout.description,
+              workout_type: customWorkout.workout_type || 'custom',
+              // Add any other required fields for a custom workout
+              custom_workout: true
+            },
+            workout_set_completions
+          };
+        }
         
         // If workout_id is null, return completion without workout details
         if (!completion.workout_id) {

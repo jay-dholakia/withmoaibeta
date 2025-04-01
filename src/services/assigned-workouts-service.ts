@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistoryItem } from "@/types/workout";
 
@@ -38,7 +37,8 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     const programIds = [...new Set(programAssignments.map(pa => pa.program_id))];
     console.log(`Program IDs:`, programIds);
     
-    return await fetchWorkoutsFromPrograms(userId, [programIds.toString()], programAssignments);
+    // Pass program IDs as array, not as comma-separated string
+    return await fetchWorkoutsFromPrograms(userId, programIds, programAssignments);
   } catch (error) {
     console.error("Error in fetchAssignedWorkouts:", error);
     return [];
@@ -226,7 +226,7 @@ const processWorkoutsForAssignment = async (
   // Check which workouts are already completed or in progress
   const { data: completions, error: completionsError } = await supabase
     .from('workout_completions')
-    .select('id, workout_id, completed_at')
+    .select('id, workout_id, completed_at, distance, duration, location')
     .eq('user_id', userId)
     .in('workout_id', workouts.map(w => w.id));
   

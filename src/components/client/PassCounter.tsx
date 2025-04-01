@@ -5,26 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getRemainingPasses } from '@/services/life-happens-service';
 
 const PassCounter = () => {
-  const { user } = useAuth();
-  
-  const { data: remainingPasses, isLoading } = useQuery({
-    queryKey: ['life-happens-passes', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return 0;
-      return await getRemainingPasses(user.id);
-    },
-    enabled: !!user?.id,
-  });
-  
-  if (isLoading || typeof remainingPasses === 'undefined') {
-    return null;
-  }
-  
-  return (
-    <div className="flex items-center gap-1 text-sm font-medium">
-      {/* Umbrella icon removed */}
-    </div>
-  );
+  // Component is now hidden completely
+  return null;
 };
 
 export default PassCounter;

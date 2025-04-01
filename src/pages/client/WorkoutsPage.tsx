@@ -6,8 +6,6 @@ import ActiveWorkout from '@/components/client/ActiveWorkout';
 import WorkoutComplete from '@/components/client/WorkoutComplete';
 import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
 import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
-import PassCounter from '@/components/client/PassCounter';
-import LifeHappensButton from '@/components/client/LifeHappensButton';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import { Button } from '@/components/ui/button';
@@ -47,11 +45,7 @@ const WorkoutsPage = () => {
 
   return (
     <div className="w-full">
-      {!isActiveOrCompleteWorkout && (
-        <div className="flex justify-end mb-4">
-          <PassCounter />
-        </div>
-      )}
+      {/* Removed PassCounter component */}
       
       <Routes>
         <Route index element={
@@ -87,7 +81,7 @@ const WorkoutsPage = () => {
                   Log Rest Day
                 </Button>
               </div>
-              <LifeHappensButton />
+              {/* Removed LifeHappensButton component */}
             </TabsContent>
             
             <TabsContent value="history">

@@ -21,10 +21,12 @@ const WorkoutHistoryTab = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       console.log('Fetching workout history for user:', user.id);
+      
+      // Fetch workout history using the service function
       const history = await fetchClientWorkoutHistory(user.id);
       console.log(`Fetched ${history.length} workout history items`);
       
-      // Log workout types
+      // Log workout types for debugging
       const workoutTypes = history.map(item => {
         return {
           date: format(new Date(item.completed_at), 'yyyy-MM-dd'),

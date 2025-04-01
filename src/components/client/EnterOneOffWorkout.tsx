@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
   Card, CardContent, CardDescription, 
@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { ArrowLeft, Save, Loader2, Calendar } from 'lucide-react';
 import { createOneOffWorkoutCompletion } from '@/services/workout-history-service';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
   SelectContent,
@@ -27,22 +28,51 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { WORKOUT_TYPES, WorkoutType } from './WorkoutTypeIcon';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 const EnterOneOffWorkout = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialDate = searchParams.get('date') 
+    ? new Date(searchParams.get('date') as string) 
+    : new Date();
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
-  const [rating, setRating] = useState<number | undefined>(undefined);
   const [workoutType, setWorkoutType] = useState<WorkoutType>('one_off'); // Default to one_off
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [date, setDate] = useState<Date | undefined>(initialDate);
   
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
   const [location, setLocation] = useState<string>('');
+
+  // Function to add workout notes to journal
+  const addToJournal = async (workoutTitle: string, notes: string, journalDate: Date) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user || !notes.trim()) return;
+      
+      const journalContent = `🏋️‍♀️ ${workoutTitle}:\n\n${notes}`;
+      
+      const { error } = await supabase
+        .from('client_notes')
+        .insert({
+          user_id: user.id,
+          content: journalContent,
+          entry_date: journalDate.toISOString()
+        });
+        
+      if (error) throw error;
+      
+      console.log('Workout notes added to journal successfully');
+    } catch (error) {
+      console.error('Error adding workout notes to journal:', error);
+      // We'll continue with the workout submission even if journal entry fails
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +89,6 @@ const EnterOneOffWorkout = () => {
         title,
         description: description.trim() || undefined,
         notes: notes.trim() || undefined,
-        rating,
         workout_type: workoutType,
         completed_at: date ? date.toISOString() : new Date().toISOString()
       };
@@ -68,6 +97,11 @@ const EnterOneOffWorkout = () => {
         workoutData.distance = distance.trim() || undefined;
         workoutData.duration = duration.trim() || undefined;
         workoutData.location = location || undefined;
+      }
+      
+      // If there are notes, add them to the journal
+      if (notes.trim()) {
+        await addToJournal(title, notes, date || new Date());
       }
       
       await createOneOffWorkoutCompletion(workoutData);
@@ -274,31 +308,13 @@ const EnterOneOffWorkout = () => {
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="How did it go? How did you feel?"
+                placeholder="How did it go? How did you feel? These notes will be saved to your journal."
                 rows={4}
                 className="text-left border border-gray-200"
               />
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="rating" className="text-sm font-medium text-left block">
-                Rating (Optional)
-              </label>
-              <Select 
-                value={rating?.toString()} 
-                onValueChange={(value) => setRating(value ? parseInt(value) : undefined)}
-              >
-                <SelectTrigger className="text-left border border-gray-200">
-                  <SelectValue placeholder="How would you rate this workout?" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 - Very Poor</SelectItem>
-                  <SelectItem value="2">2 - Poor</SelectItem>
-                  <SelectItem value="3">3 - Average</SelectItem>
-                  <SelectItem value="4">4 - Good</SelectItem>
-                  <SelectItem value="5">5 - Excellent</SelectItem>
-                </SelectContent>
-              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Your notes will be saved to your journal with this workout's title.
+              </p>
             </div>
           </CardContent>
           

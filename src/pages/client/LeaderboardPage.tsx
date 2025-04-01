@@ -5,17 +5,19 @@ import { CoachMessageCard } from '@/components/client/CoachMessageCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
-import { format, isThisWeek } from 'date-fns';
+import { format, isThisWeek, startOfWeek, endOfWeek } from 'date-fns';
 import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
-import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
+import { getWeeklyAssignedWorkoutsCount, countCompletedWorkoutsForWeek } from '@/services/workout-history-service';
 import { WorkoutProgressCard } from '@/components/client/WorkoutProgressCard';
 import { fetchClientProfile } from '@/services/client-service';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
   
   // Fetch client profile to get the first name
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['client-profile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -29,7 +31,12 @@ const LeaderboardPage = () => {
     queryKey: ['client-workouts-leaderboard', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      return fetchClientWorkoutHistory(user.id);
+      try {
+        return await fetchClientWorkoutHistory(user.id);
+      } catch (error) {
+        console.error('Error fetching client workout history:', error);
+        return [];
+      }
     },
     enabled: !!user?.id,
   });
@@ -46,6 +53,22 @@ const LeaderboardPage = () => {
       } catch (error) {
         console.error("Error fetching workout count:", error);
         return 5; // Default fallback
+      }
+    },
+    enabled: !!user?.id,
+  });
+  
+  // Count current week's completed workouts directly from Supabase
+  const { data: completedThisWeek, isLoading: isLoadingCompleted } = useQuery({
+    queryKey: ['completed-workouts-this-week', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return 0;
+      const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+      try {
+        return await countCompletedWorkoutsForWeek(user.id, monday);
+      } catch (error) {
+        console.error("Error counting completed workouts:", error);
+        return 0;
       }
     },
     enabled: !!user?.id,
@@ -109,13 +132,6 @@ const LeaderboardPage = () => {
     return { completedDates: completed, lifeHappensDates: lifeHappens, workoutTypesMap: typesMap };
   }, [clientWorkouts]);
   
-  // Count number of completed workouts this week
-  const completedThisWeek = useMemo(() => {
-    if (!completedDates.length) return 0;
-    
-    return completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
-  }, [completedDates]);
-  
   // Count number of life happens passes used this week
   const lifeHappensThisWeek = useMemo(() => {
     if (!lifeHappensDates.length) return 0;
@@ -124,12 +140,25 @@ const LeaderboardPage = () => {
   }, [lifeHappensDates]);
   
   // Calculate the total completed including life happens passes
-  const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;
+  const totalCompletedCount = (completedThisWeek || 0) + lifeHappensThisWeek;
   
   const totalWorkouts = assignedWorkoutsCount || 5; // Default to 5 if undefined
   
   // Get user display name - prioritize first name from profile
   const userDisplayName = profile?.first_name || (user?.email ? user.email.split('@')[0] : 'You');
+  
+  const isLoading = isLoadingProfile || isLoadingWorkouts || isLoadingCount || isLoadingCompleted;
+  
+  if (isLoading) {
+    return (
+      <Container className="px-4 sm:px-4 mx-auto w-full max-w-screen-md">
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-client" />
+          <span className="ml-2">Loading your progress...</span>
+        </div>
+      </Container>
+    );
+  }
   
   return (
     <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">
@@ -141,7 +170,7 @@ const LeaderboardPage = () => {
             label="Your Workouts"
             completedDates={completedDates}
             lifeHappensDates={lifeHappensDates}
-            count={totalCompletedThisWeek}
+            count={totalCompletedCount}
             total={totalWorkouts}
             workoutTypesMap={workoutTypesMap}
             userName={userDisplayName}

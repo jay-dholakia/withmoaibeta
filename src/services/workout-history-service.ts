@@ -55,14 +55,25 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
  */
 export const countCompletedWorkoutsForWeek = async (userId: string, weekStart: Date): Promise<number> => {
   try {
+    if (!userId) {
+      console.error('Invalid userId provided to countCompletedWorkoutsForWeek');
+      return 0;
+    }
+    
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+    const startFormatted = format(weekStart, 'yyyy-MM-dd');
+    const endFormatted = format(weekEnd, 'yyyy-MM-dd');
+    
+    console.log(`Counting completed workouts for user ${userId} from ${startFormatted} to ${endFormatted}`);
     
     const { data, error } = await supabase
       .from('workout_completions')
       .select('id')
       .eq('user_id', userId)
-      .gte('completed_at', format(weekStart, 'yyyy-MM-dd'))
-      .lte('completed_at', format(weekEnd, 'yyyy-MM-dd'));
+      .gte('completed_at', startFormatted)
+      .lte('completed_at', endFormatted)
+      .is('rest_day', false)
+      .is('life_happens_pass', false);
     
     if (error) {
       console.error("Error fetching completed workouts:", error);

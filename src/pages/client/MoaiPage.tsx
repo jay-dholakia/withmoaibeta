@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 const MoaiPage = () => {
   const { user } = useAuth();
   const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const { data: userGroups, isLoading: isLoadingGroups, refetch } = useQuery({
     queryKey: ['client-groups', user?.id],
@@ -41,9 +42,10 @@ const MoaiPage = () => {
         }
         
         const groups = await fetchUserGroups(user.id);
-        return groups;
+        return groups || []; // Ensure we always return an array
       } catch (err) {
         console.error('Error fetching groups:', err);
+        setError('Failed to fetch your groups. Please try again later.');
         return [];
       }
     },
@@ -55,6 +57,8 @@ const MoaiPage = () => {
   });
   
   useEffect(() => {
+    let isMounted = true;
+    
     const checkUserAndGroups = async () => {
       if (!user?.id) return;
       
@@ -67,20 +71,34 @@ const MoaiPage = () => {
         
         const result = await diagnoseGroupAccess(user.id);
         console.log('Group access diagnosis result:', result);
-        setDiagnosticDetails(result);
         
-        if (result && result.hasGroupMemberships && (!userGroups || userGroups.length === 0)) {
-          refetch();
+        if (isMounted) {
+          setDiagnosticDetails(result);
+          
+          if (result && result.hasGroupMemberships && 
+              (!userGroups || userGroups.length === 0)) {
+            refetch();
+          }
         }
       } catch (error) {
         console.error('Error during group access diagnosis:', error);
+        if (isMounted) {
+          setError('There was an error checking your group membership. Please try again later.');
+        }
       }
     };
     
     checkUserAndGroups();
+    
+    // Cleanup function to prevent state updates on unmounted component
+    return () => {
+      isMounted = false;
+    };
   }, [user?.id, refetch, userGroups]);
   
-  const verifyUserExistsInAuth = async (userId: string) => {
+  const verifyUserExistsInAuth = async (userId: string): Promise<boolean> => {
+    if (!userId) return false;
+    
     try {
       console.log('Verifying user existence in auth for ID:', userId);
       const { data: profileData, error: profileError } = await supabase
@@ -133,6 +151,30 @@ const MoaiPage = () => {
         <div className="flex justify-center items-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-client" />
         </div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <p className="text-muted-foreground mb-4">
+          Your fitness community and accountability group
+        </p>
+        
+        <Card className="text-center py-12">
+          <CardContent>
+            <Mountain className="mx-auto h-12 w-12 text-red-400 mb-4" />
+            <h2 className="text-xl font-medium mb-2">Something Went Wrong</h2>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <button 
+              onClick={() => refetch()} 
+              className="px-4 py-2 bg-client text-white rounded-md hover:bg-client/90"
+            >
+              Try Again
+            </button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -191,15 +233,27 @@ const MoaiPage = () => {
         </TabsList>
         
         <TabsContent value="progress">
-          <MoaiGroupProgress groupId={group.id} />
+          {group.id ? (
+            <MoaiGroupProgress groupId={group.id} />
+          ) : (
+            <div className="text-center p-4">Loading group progress...</div>
+          )}
         </TabsContent>
         
         <TabsContent value="members">
-          <MoaiMembersTab groupId={group.id} />
+          {group.id ? (
+            <MoaiMembersTab groupId={group.id} />
+          ) : (
+            <div className="text-center p-4">Loading members...</div>
+          )}
         </TabsContent>
         
         <TabsContent value="coach">
-          <MoaiCoachTab groupId={group.id} />
+          {group.id ? (
+            <MoaiCoachTab groupId={group.id} />
+          ) : (
+            <div className="text-center p-4">Loading coach information...</div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

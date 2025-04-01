@@ -198,21 +198,39 @@ export const createOneOffWorkoutCompletion = async (workoutData: any): Promise<v
       throw new Error("User not authenticated");
     }
     
+    // Check if custom_workout_id field exists in the database by checking for errors
+    const { data: testData, error: testError } = await supabase
+      .from('workout_completions')
+      .select('custom_workout_id')
+      .limit(1);
+    
+    const hasCustomWorkoutId = !testError;
+    
+    // Prepare completion data
+    const completionData: Record<string, any> = {
+      user_id: user.id,
+      completed_at: new Date().toISOString(),
+      title: workoutData.title,
+      description: workoutData.description,
+      notes: workoutData.notes,
+      rating: workoutData.rating,
+      workout_type: workoutData.workout_type,
+      distance: workoutData.distance,
+      duration: workoutData.duration,
+      location: workoutData.location
+    };
+    
+    // Only add custom_workout_id if the field exists in the database
+    if (hasCustomWorkoutId) {
+      // Generate a UUID for the custom workout
+      const customWorkoutId = crypto.randomUUID();
+      completionData.custom_workout_id = customWorkoutId;
+    }
+    
     // Create a workout completion entry
     const { error } = await supabase
       .from('workout_completions')
-      .insert({
-        user_id: user.id,
-        completed_at: new Date().toISOString(),
-        title: workoutData.title,
-        description: workoutData.description,
-        notes: workoutData.notes,
-        rating: workoutData.rating,
-        workout_type: workoutData.workout_type,
-        distance: workoutData.distance,
-        duration: workoutData.duration,
-        location: workoutData.location
-      });
+      .insert(completionData);
     
     if (error) {
       console.error("Error creating one-off workout completion:", error);

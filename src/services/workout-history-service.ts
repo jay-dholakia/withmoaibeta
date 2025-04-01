@@ -209,11 +209,95 @@ export const fetchClientWorkoutHistory = async (userId: string): Promise<Workout
  */
 export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHistoryItem[]> => {
   try {
-    const { data, error } = await supabase.rpc('get_user_assigned_workouts', { user_id: userId });
+    // Query for workouts assigned to this user through program assignments
+    const { data: programAssignment, error: programError } = await supabase
+      .from('program_assignments')
+      .select('program_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
     
-    if (error) throw error;
+    if (programError) {
+      console.error('Error fetching program assignment:', programError);
+      return [];
+    }
     
-    return data as WorkoutHistoryItem[];
+    if (!programAssignment || programAssignment.length === 0) {
+      return [];
+    }
+    
+    const programId = programAssignment[0].program_id;
+    
+    // Get workouts for this program
+    const { data: workoutWeeks, error: weeksError } = await supabase
+      .from('workout_weeks')
+      .select(`
+        id,
+        week_number,
+        program_id,
+        workouts (
+          id,
+          title,
+          description,
+          day_of_week,
+          workout_type,
+          week_id,
+          workout_exercises (
+            id,
+            sets,
+            reps,
+            rest_seconds,
+            notes,
+            order_index,
+            exercise:exercise_id (
+              id,
+              name,
+              description,
+              category,
+              exercise_type
+            )
+          )
+        )
+      `)
+      .eq('program_id', programId);
+    
+    if (weeksError) {
+      console.error('Error fetching workout weeks:', weeksError);
+      return [];
+    }
+    
+    // Transform the data to match WorkoutHistoryItem structure
+    const assignedWorkouts: WorkoutHistoryItem[] = [];
+    
+    // Create workout history items from the weeks and workouts
+    workoutWeeks?.forEach(week => {
+      week.workouts?.forEach(workout => {
+        assignedWorkouts.push({
+          id: workout.id,
+          user_id: userId,
+          workout_id: workout.id,
+          completed_at: '', // Not completed yet
+          workout: {
+            id: workout.id,
+            title: workout.title,
+            description: workout.description,
+            day_of_week: workout.day_of_week,
+            week_id: workout.week_id,
+            workout_type: workout.workout_type,
+            workout_exercises: workout.workout_exercises,
+            week: {
+              week_number: week.week_number,
+              program: {
+                id: programId,
+                title: 'Current Program' // We don't have this info in the current query
+              }
+            }
+          }
+        });
+      });
+    });
+    
+    return assignedWorkouts;
   } catch (error) {
     console.error('Error fetching assigned workouts:', error);
     return [];

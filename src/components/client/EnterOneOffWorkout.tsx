@@ -9,7 +9,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Calendar } from 'lucide-react';
 import { createOneOffWorkoutCompletion } from '@/services/workout-history-service';
 import {
   Select,
@@ -18,6 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { WORKOUT_TYPES, WorkoutType } from './WorkoutTypeIcon';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -30,6 +38,7 @@ const EnterOneOffWorkout = () => {
   const [rating, setRating] = useState<number | undefined>(undefined);
   const [workoutType, setWorkoutType] = useState<WorkoutType>('one_off'); // Default to one_off
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [date, setDate] = useState<Date | undefined>(new Date());
   
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
@@ -51,7 +60,8 @@ const EnterOneOffWorkout = () => {
         description: description.trim() || undefined,
         notes: notes.trim() || undefined,
         rating,
-        workout_type: workoutType
+        workout_type: workoutType,
+        completed_at: date ? date.toISOString() : new Date().toISOString()
       };
       
       if (workoutType === 'cardio') {
@@ -120,6 +130,37 @@ const EnterOneOffWorkout = () => {
                 required
                 className="text-left border border-gray-200"
               />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="date" className="text-sm font-medium text-left block">
+                Date <span className="text-red-500">*</span>
+              </label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="date"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal border border-gray-200",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : <span>Select date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                    disabled={(date) => date > new Date()}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div className="space-y-2">

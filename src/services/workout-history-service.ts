@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCurrentProgram } from "./program-service";
 import { startOfWeek, endOfWeek, format } from "date-fns";
@@ -200,7 +201,7 @@ export const createOneOffWorkoutCompletion = async (workoutData: any): Promise<v
     // Explicitly type the completion data with the expected structure
     const completionData = {
       user_id: user.id,
-      completed_at: new Date().toISOString(),
+      completed_at: workoutData.completed_at || new Date().toISOString(),
       title: workoutData.title,
       description: workoutData.description,
       notes: workoutData.notes,

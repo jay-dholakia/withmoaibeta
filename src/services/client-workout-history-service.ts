@@ -133,7 +133,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
       }
     }
     
-    // Fetch workout set completions
+    // Fetch workout set completions - we'll group these by workout completion ID
     const completionIds = completions.map(completion => completion.id);
     const { data: setCompletions, error: setCompletionsError } = await supabase
       .from('workout_set_completions')

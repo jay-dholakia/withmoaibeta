@@ -1,6 +1,7 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCurrentProgram } from "./program-service";
-import { startOfWeek, endOfWeek, format } from "date-fns";
+import { startOfWeek, endOfWeek, format, parseISO } from "date-fns";
 import { WorkoutHistoryItem } from "@/types/workout";
 
 /**
@@ -51,6 +52,7 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
 
 /**
  * Counts the completed workouts for a user within a given week
+ * Counts by unique date - not by individual set completions
  */
 export const countCompletedWorkoutsForWeek = async (userId: string, weekStart: Date): Promise<number> => {
   try {
@@ -58,7 +60,7 @@ export const countCompletedWorkoutsForWeek = async (userId: string, weekStart: D
     
     const { data, error } = await supabase
       .from('workout_completions')
-      .select('id')
+      .select('completed_at')
       .eq('user_id', userId)
       .gte('completed_at', format(weekStart, 'yyyy-MM-dd'))
       .lte('completed_at', format(weekEnd, 'yyyy-MM-dd'));
@@ -68,7 +70,18 @@ export const countCompletedWorkoutsForWeek = async (userId: string, weekStart: D
       return 0;
     }
     
-    return data ? data.length : 0;
+    // Count unique dates, not individual completions
+    const uniqueDates = new Set();
+    if (data) {
+      data.forEach(completion => {
+        if (completion.completed_at) {
+          const dateStr = format(parseISO(completion.completed_at), 'yyyy-MM-dd');
+          uniqueDates.add(dateStr);
+        }
+      });
+    }
+    
+    return uniqueDates.size;
   } catch (error) {
     console.error("Error counting completed workouts:", error);
     return 0;

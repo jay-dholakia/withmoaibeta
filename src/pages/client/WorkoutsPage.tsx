@@ -9,7 +9,7 @@ import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Armchair, ListTodo, History } from 'lucide-react';
+import { PlusCircle, Armchair, ListTodo, History, Calendar } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
 import { toast } from 'sonner';
 import {
@@ -21,9 +21,18 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { format } from 'date-fns';
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const WorkoutsPage = () => {
   const [showRestDayDialog, setShowRestDayDialog] = useState(false);
+  const [restDayDate, setRestDayDate] = useState<Date>(new Date());
   const location = useLocation();
   console.log("WorkoutsPage component rendering");
   
@@ -33,7 +42,7 @@ const WorkoutsPage = () => {
                                    location.pathname.includes('/complete/');
   
   const handleLogRestDay = () => {
-    logRestDay().then(() => {
+    logRestDay(restDayDate).then(() => {
       toast.success("Rest day logged successfully!");
       setShowRestDayDialog(false);
     }).catch((error) => {
@@ -105,11 +114,41 @@ const WorkoutsPage = () => {
               <span>Log a Rest Day</span>
             </DialogTitle>
             <DialogDescription>
-              Are you taking a well-deserved rest day today?
+              Are you taking a well-deserved rest day? Select the date below.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
+            <div className="mb-4">
+              <div className="flex flex-col gap-2">
+                <div className="text-sm font-medium mb-1">Select Date</div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal border border-gray-200",
+                        !restDayDate && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {restDayDate ? format(restDayDate, "PPP") : <span>Select date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={restDayDate}
+                      onSelect={(date) => date && setRestDayDate(date)}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                      disabled={(date) => date > new Date()}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            
             <div className="rounded-lg bg-green-50 p-4 text-sm">
               <h4 className="font-semibold text-green-700 mb-2">The Power of Rest & Recovery</h4>
               <p className="text-green-700 mb-3">

@@ -1,6 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { WorkoutHistoryItem } from '@/types/workout';
+import { WorkoutHistoryItem, WorkoutExercise } from '@/types/workout';
 
 /**
  * Gets the user ID for a given email address
@@ -249,6 +248,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
             rest_seconds,
             notes,
             order_index,
+            exercise_id,
             exercise:exercise_id (
               id,
               name,
@@ -272,6 +272,20 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     // Create workout history items from the weeks and workouts
     workoutWeeks?.forEach(week => {
       week.workouts?.forEach(workout => {
+        // Map workout exercises to match the expected type
+        const workoutExercises: WorkoutExercise[] = workout.workout_exercises?.map(exercise => ({
+          id: exercise.id,
+          workout_id: workout.id,
+          exercise_id: exercise.exercise_id,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          rest_seconds: exercise.rest_seconds,
+          notes: exercise.notes,
+          order_index: exercise.order_index,
+          created_at: new Date().toISOString(), // Default since we don't have the actual creation date
+          exercise: exercise.exercise
+        })) || [];
+
         assignedWorkouts.push({
           id: workout.id,
           user_id: userId,
@@ -284,7 +298,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
             day_of_week: workout.day_of_week,
             week_id: workout.week_id,
             workout_type: workout.workout_type,
-            workout_exercises: workout.workout_exercises,
+            workout_exercises: workoutExercises,
             week: {
               week_number: week.week_number,
               program: {

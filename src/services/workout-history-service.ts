@@ -7,7 +7,7 @@ import { WorkoutHistoryItem, WorkoutBasic, WorkoutSetCompletion, StandardWorkout
 /**
  * Gets the weekly assigned workouts count for a user
  */
-export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<number> => {
+export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<number, Depth extends number = 100> => {
   try {
     if (!userId) {
       console.error("Invalid userId provided to getWeeklyAssignedWorkoutsCount");

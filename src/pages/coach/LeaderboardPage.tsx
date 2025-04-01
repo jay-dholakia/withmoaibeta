@@ -1,11 +1,173 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Trophy } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Define interface for leaderboard entries
+interface LeaderboardEntry {
+  user_id: string;
+  email: string;
+  total_workouts: number;
+}
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'weekly' | 'monthly'>('weekly');
+
+  // Function to get current group ID (simplified for demo)
+  const getGroupId = async (): Promise<string | null> => {
+    try {
+      // Fetch the first group the coach is associated with
+      const { data, error } = await supabase
+        .from('group_coaches')
+        .select('group_id')
+        .eq('coach_id', user?.id)
+        .limit(1);
+        
+      if (error) throw error;
+      return data && data.length > 0 ? data[0].group_id : null;
+    } catch (error) {
+      console.error('Error fetching group:', error);
+      return null;
+    }
+  };
+
+  // Calculate start date for weekly and monthly periods
+  const getStartDate = (period: 'weekly' | 'monthly'): string => {
+    const date = new Date();
+    if (period === 'weekly') {
+      // Set to beginning of current week (Monday)
+      const day = date.getDay();
+      const diff = (day === 0 ? 6 : day - 1); // adjust when day is Sunday
+      date.setDate(date.getDate() - diff);
+    } else {
+      // Set to beginning of current month
+      date.setDate(1);
+    }
+    
+    date.setHours(0, 0, 0, 0);
+    return date.toISOString();
+  };
+
+  // Fetch leaderboard data
+  const fetchLeaderboard = async (period: 'weekly' | 'monthly'): Promise<LeaderboardEntry[]> => {
+    const groupId = await getGroupId();
+    
+    if (!groupId) {
+      console.log("No group found for coach");
+      return [];
+    }
+    
+    const startDate = getStartDate(period);
+    const functionName = period === 'weekly' 
+      ? 'get_group_weekly_leaderboard' 
+      : 'get_group_monthly_leaderboard';
+    
+    try {
+      const { data, error } = await supabase.rpc(
+        functionName,
+        { group_id: groupId, start_date: startDate }
+      );
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error(`Error fetching ${period} leaderboard:`, error);
+      return [];
+    }
+  };
+
+  // Weekly leaderboard query
+  const { 
+    data: weeklyLeaderboard, 
+    isLoading: isLoadingWeekly,
+    error: weeklyError 
+  } = useQuery({
+    queryKey: ['weekly-leaderboard', user?.id],
+    queryFn: () => fetchLeaderboard('weekly'),
+    enabled: !!user?.id
+  });
+
+  // Monthly leaderboard query
+  const { 
+    data: monthlyLeaderboard, 
+    isLoading: isLoadingMonthly,
+    error: monthlyError 
+  } = useQuery({
+    queryKey: ['monthly-leaderboard', user?.id],
+    queryFn: () => fetchLeaderboard('monthly'),
+    enabled: !!user?.id
+  });
+
+  const renderLeaderboardTable = (
+    data: LeaderboardEntry[] | undefined, 
+    isLoading: boolean,
+    error: unknown
+  ) => {
+    if (isLoading) {
+      return (
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      );
+    }
+    
+    if (error) {
+      return (
+        <div className="p-4 text-center text-destructive">
+          <p>Error loading leaderboard data.</p>
+          <p className="text-sm text-muted-foreground">Please try again later.</p>
+        </div>
+      );
+    }
+    
+    if (!data || data.length === 0) {
+      return (
+        <div className="p-8 text-center">
+          <p className="text-lg mb-2">No workout data found for this period.</p>
+          <p className="text-muted-foreground">
+            Encourage your clients to complete workouts to see them on the leaderboard.
+          </p>
+        </div>
+      );
+    }
+    
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-16 text-center">Rank</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead className="text-right">Completed Workouts</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.map((entry, index) => (
+            <TableRow key={entry.user_id}>
+              <TableCell className="text-center font-medium">
+                {index === 0 ? '🏆' : index + 1}
+              </TableCell>
+              <TableCell>
+                {entry.email.split('@')[0]}
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {entry.total_workouts}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  };
 
   return (
     <CoachLayout>
@@ -15,10 +177,32 @@ const LeaderboardPage = () => {
           <h1 className="text-3xl font-bold text-coach">Leaderboards</h1>
         </div>
 
-        <div className="bg-muted/30 p-8 rounded-lg text-center">
-          <p className="text-lg mb-2">Leaderboard functionality is currently unavailable.</p>
-          <p className="text-muted-foreground">This feature will be implemented in a future update.</p>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Client Workout Leaderboard</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs 
+              defaultValue="weekly" 
+              value={activeTab}
+              onValueChange={(value) => setActiveTab(value as 'weekly' | 'monthly')}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="weekly">Weekly</TabsTrigger>
+                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="weekly">
+                {renderLeaderboardTable(weeklyLeaderboard, isLoadingWeekly, weeklyError)}
+              </TabsContent>
+              
+              <TabsContent value="monthly">
+                {renderLeaderboardTable(monthlyLeaderboard, isLoadingMonthly, monthlyError)}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
     </CoachLayout>
   );

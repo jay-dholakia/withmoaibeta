@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { WorkoutHistoryItem, WorkoutSetCompletion } from '@/types/workout';
 import { Loader2, Save } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { batchUpdateWorkoutSetCompletions } from '@/services/workout-edit-service';
 
 interface ExerciseGroup {
   name: string;
@@ -61,28 +61,27 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
     setSaving(true);
     try {
       // Prepare updates for all modified sets
-      const updates = Object.values(editedSets).map(set => ({
-        id: set.id,
-        reps_completed: set.reps_completed,
-        weight: set.weight,
-        duration: set.duration,
-        notes: set.notes
+      const updates = Object.entries(editedSets).map(([id, set]) => ({
+        id,
+        changes: {
+          reps_completed: set.reps_completed,
+          weight: set.weight,
+          duration: set.duration,
+          notes: set.notes
+        }
       }));
       
-      // Update the sets in the database
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('workout_set_completions')
-          .update(update)
-          .eq('id', update.id);
-          
-        if (error) {
-          console.error("Error updating set:", error);
-          throw new Error(`Failed to update set: ${error.message}`);
-        }
+      // Use our batch update service
+      const successCount = await batchUpdateWorkoutSetCompletions(updates);
+      
+      if (successCount === 0) {
+        toast.error("Failed to update workout data");
+      } else if (successCount < updates.length) {
+        toast.warning(`Updated ${successCount} of ${updates.length} sets`);
+      } else {
+        toast.success("Workout data updated successfully");
       }
       
-      toast.success("Workout data updated successfully");
       setSaving(false);
       onSave();
       onOpenChange(false);

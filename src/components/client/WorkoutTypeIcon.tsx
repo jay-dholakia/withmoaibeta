@@ -1,7 +1,8 @@
 
 import React from 'react';
+import { StandardWorkoutType } from '@/types/workout';
 
-export type WorkoutType = 'strength' | 'bodyweight' | 'cardio' | 'flexibility' | 'rest_day' | 'custom' | 'one_off';
+export type WorkoutType = StandardWorkoutType;
 
 interface WorkoutTypeIconProps {
   type: WorkoutType;

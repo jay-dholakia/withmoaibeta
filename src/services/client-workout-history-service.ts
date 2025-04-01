@@ -15,7 +15,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
     // First, get the basic completion data - only include properly completed workouts
     const { data: completions, error: completionsError } = await supabase
       .from('workout_completions')
-      .select('id, completed_at, notes, rating, user_id, workout_id, life_happens_pass, rest_day')
+      .select('id, completed_at, notes, rating, user_id, workout_id, life_happens_pass, rest_day, custom_workout_id, title, description, workout_type, duration, distance, location')
       .eq('user_id', clientId)
       .not('completed_at', 'is', null)  // Only include workouts that have a completion date
       .order('completed_at', { ascending: false });
@@ -59,7 +59,8 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
             workoutMap.set(workout.id, {
               ...workout,
               week: null,
-              workout_type: workout.workout_type || 'strength' // Ensure workout_type is set
+              workout_type: workout.workout_type || 'strength', // Ensure workout_type is set
+              custom_workout: false
             });
           });
           
@@ -184,23 +185,62 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
         // Get set completions for this workout completion
         const workout_set_completions = setCompletionsMap.get(completion.id) || [];
         
-        // If workout_id is null, return completion without workout details
-        if (!completion.workout_id) {
+        // Handle custom workouts (direct entries without workout_id)
+        if (!completion.workout_id && (completion.title || completion.custom_workout_id)) {
+          // Create a custom workout history item
           return {
-            ...completion,
-            completed_at, // Use the validated date
-            workout: null,
-            workout_set_completions
-          };
+            id: completion.id,
+            completed_at,
+            notes: completion.notes,
+            rating: completion.rating,
+            user_id: clientId,
+            workout_id: completion.custom_workout_id || completion.id, // Use custom_workout_id if available
+            title: completion.title,
+            description: completion.description,
+            workout_type: completion.workout_type || 'custom',
+            duration: completion.duration,
+            distance: completion.distance,
+            location: completion.location,
+            life_happens_pass: completion.life_happens_pass || false,
+            rest_day: completion.rest_day || false,
+            workout_set_completions,
+            // Also add the workout object for consistency
+            workout: {
+              id: completion.custom_workout_id || completion.id,
+              title: completion.title || 'Custom Workout',
+              description: completion.description,
+              day_of_week: 0, // Default value for custom workouts
+              week_id: '', // Default value for custom workouts
+              workout_type: completion.workout_type || 'custom',
+              custom_workout: true
+            } as WorkoutBasic
+          } as WorkoutHistoryItem;
         }
         
+        // Handle rest days (no workout_id, rest_day = true)
+        if (!completion.workout_id && completion.rest_day) {
+          return {
+            id: completion.id,
+            completed_at,
+            notes: completion.notes,
+            rating: completion.rating,
+            user_id: clientId,
+            workout_id: '',
+            rest_day: true,
+            life_happens_pass: completion.life_happens_pass || false,
+            workout_set_completions,
+            workout: null
+          } as WorkoutHistoryItem;
+        }
+        
+        // Regular workout completion
         const workoutDetails = workoutMap.get(completion.workout_id) || null;
         return {
           ...completion,
           completed_at, // Use the validated date
           workout: workoutDetails,
           workout_set_completions
-        };
+        } as WorkoutHistoryItem;
       } catch (error) {
         console.error("Error processing workout completion:", error, completion);
         // Return a valid but empty workout history item as fallback
@@ -211,7 +251,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
           completed_at: new Date().toISOString(),
           workout: null,
           workout_set_completions: []
-        };
+        } as WorkoutHistoryItem;
       }
     });
     

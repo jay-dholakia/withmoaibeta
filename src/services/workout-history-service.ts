@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCurrentProgram } from "./program-service";
 import { startOfWeek, endOfWeek, format } from "date-fns";
-import { WorkoutHistoryItem } from "@/types/workout";
+import { WorkoutHistoryItem, WorkoutBasic, WorkoutSetCompletion, StandardWorkoutType } from "@/types/workout";
 
 /**
  * Gets the weekly assigned workouts count for a user
@@ -283,7 +283,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
         // Find if this workout has a completion record
         const workoutCompletion = completedWorkoutMap.get(workout.id) || null;
         
-        programWorkouts.push({
+        const workoutHistoryItem: WorkoutHistoryItem = {
           id: workout.id,
           user_id: userId,
           workout_id: workout.id,
@@ -302,7 +302,9 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
               } : null
             }
           }
-        });
+        };
+        
+        programWorkouts.push(workoutHistoryItem);
       }
     }
     

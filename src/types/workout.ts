@@ -1,3 +1,4 @@
+
 export interface Exercise {
   id: string;
   name: string;
@@ -73,6 +74,7 @@ export interface WorkoutBasic {
   } | null;
   workout_exercises?: WorkoutExercise[];
   workout_type: string;
+  custom_workout?: boolean; // Added field to identify custom workouts
 }
 
 export interface WorkoutExercise {
@@ -134,6 +136,14 @@ export interface WorkoutHistoryItem {
   rest_day?: boolean;
   // Add the workout_set_completions property
   workout_set_completions?: WorkoutSetCompletion[];
+  // Add fields for custom workouts
+  custom_workout_id?: string;
+  title?: string;
+  description?: string;
+  workout_type?: string;
+  duration?: string;
+  distance?: string;
+  location?: string;
 }
 
 export const DAYS_OF_WEEK = [

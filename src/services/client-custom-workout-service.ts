@@ -10,6 +10,7 @@ export interface CustomWorkout {
   created_at: string;
   updated_at: string;
   workout_type: string;
+  workout_date: Date | string | null;
 }
 
 export interface CustomWorkoutExercise {
@@ -65,6 +66,7 @@ export const createCustomWorkout = async (data: {
   description?: string | null;
   duration_minutes?: number | null;
   workout_type?: string;
+  workout_date?: Date | null;
 }): Promise<CustomWorkout> => {
   const { data: user } = await supabase.auth.getUser();
   if (!user.user) throw new Error("Not authenticated");
@@ -76,7 +78,8 @@ export const createCustomWorkout = async (data: {
       title: data.title,
       description: data.description || null,
       duration_minutes: data.duration_minutes || null,
-      workout_type: data.workout_type || 'custom'
+      workout_type: data.workout_type || 'custom',
+      workout_date: data.workout_date || null
     })
     .select('*')
     .single();

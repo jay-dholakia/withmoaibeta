@@ -1,314 +1,377 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { fetchCurrentProgram } from "./program-service";
-import { startOfWeek, endOfWeek, format } from "date-fns";
-import { WorkoutHistoryItem } from "@/types/workout";
+import { WorkoutBasic, WorkoutHistoryItem, WorkoutSetCompletion } from "@/types/workout";
 
-/**
- * Gets the weekly assigned workouts count for a user
- */
-export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<number> => {
-  try {
-    if (!userId) {
-      console.error("Invalid userId provided to getWeeklyAssignedWorkoutsCount");
-      return 6; // Default to 6 workouts if no userId
-    }
-    
-    console.log("Getting weekly assigned workouts count for user:", userId);
-    
-    // Fetch the user's current program
-    const currentProgram = await fetchCurrentProgram(userId);
-    
-    if (!currentProgram || !currentProgram.program) {
-      console.error("No current program found for user");
-      return 6; // Default to 6 workouts if no program assigned
-    }
-    
-    // Calculate the current week within the program
-    const startDate = new Date(currentProgram.start_date);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - startDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const currentWeekNumber = Math.floor(diffDays / 7) + 1;
-    
-    console.log(`Current week in program: ${currentWeekNumber}`);
-    
-    // Find the corresponding week in the program
-    const weeks = currentProgram.program.weekData || [];
-    
-    if (!Array.isArray(weeks)) {
-      console.error("Program weekData is not an array:", weeks);
-      return 6;
-    }
-    
-    const currentWeek = weeks.find(week => week.week_number === currentWeekNumber);
-    
-    if (!currentWeek) {
-      console.error(`Week ${currentWeekNumber} not found in program`);
-      return 6; // Default to 6 workouts if week not found
-    }
-    
-    // Count the number of workouts in this week
-    const workoutsCount = currentWeek.workouts && Array.isArray(currentWeek.workouts) 
-      ? currentWeek.workouts.length 
-      : 0;
-    
-    console.log(`Found ${workoutsCount} workouts assigned for week ${currentWeekNumber}`);
-    
-    // If no workouts found in the week, return default of 6
-    return workoutsCount > 0 ? workoutsCount : 6;
-  } catch (error) {
-    console.error("Error getting weekly assigned workouts count:", error);
-    return 6; // Default to 6 workouts on error
+// Function to log a one-off workout (not part of a program)
+export const createOneOffWorkoutCompletion = async (data: {
+  title: string;
+  description?: string;
+  notes?: string;
+  workout_type?: string;
+  rating?: number;
+  distance?: string;
+  duration?: string;
+  location?: string;
+  completed_at?: string;
+}) => {
+  const { data: userData } = await supabase.auth.getUser();
+  
+  if (!userData.user) {
+    throw new Error("User not authenticated");
   }
-};
-
-/**
- * Counts the completed workouts for a user within a given week
- */
-export const countCompletedWorkoutsForWeek = async (userId: string, weekStart: Date): Promise<number> => {
-  try {
-    if (!userId) {
-      console.error('Invalid userId provided to countCompletedWorkoutsForWeek');
-      return 0;
-    }
-    
-    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-    const startFormatted = format(weekStart, 'yyyy-MM-dd');
-    const endFormatted = format(weekEnd, 'yyyy-MM-dd');
-    
-    console.log(`Counting completed workouts for user ${userId} from ${startFormatted} to ${endFormatted}`);
-    
-    const { data, error } = await supabase
-      .from('workout_completions')
-      .select('id')
-      .eq('user_id', userId)
-      .gte('completed_at', startFormatted)
-      .lte('completed_at', endFormatted)
-      .is('rest_day', false)
-      .is('life_happens_pass', false);
-    
-    if (error) {
-      console.error("Error fetching completed workouts:", error);
-      return 0;
-    }
-    
-    return data ? data.length : 0;
-  } catch (error) {
-    console.error("Error counting completed workouts:", error);
-    return 0;
-  }
-};
-
-/**
- * Get user ID by email - using auth directly instead of profiles
- */
-export const getUserIdByEmail = async (email: string): Promise<string | null> => {
-  try {
-    console.log(`Looking up user ID for email: ${email}`);
-    
-    // We cannot directly query auth.users with the supabase client
-    // We'll query for all users with a specific email pattern through an admin function
-    // This is a stub function that returns null - in production, this would need
-    // a server-side function or RPC call that has access to auth.users
-    console.warn("Email lookup requires a server-side function with admin rights");
-    
-    // Just return null for now since we can't implement this properly
-    // without additional backend setup
-    return null;
-  } catch (error) {
-    console.error("Error in getUserIdByEmail:", error);
-    return null;
-  }
-};
-
-/**
- * Get assigned workouts count for a specific week
- */
-export const getAssignedWorkoutsCountForWeek = async (userId: string, weekNumber: number): Promise<number> => {
-  try {
-    console.log(`Getting assigned workouts count for user ${userId} in week ${weekNumber}`);
-    
-    // Get the user's current program
-    const currentProgram = await fetchCurrentProgram(userId);
-    
-    if (!currentProgram || !currentProgram.program) {
-      console.error("No program found for user");
-      return 0;
-    }
-    
-    // Find the requested week in the program
-    const weeks = currentProgram.program.weekData || [];
-    const week = weeks.find(w => w.week_number === weekNumber);
-    
-    if (!week) {
-      console.error(`Week ${weekNumber} not found in program`);
-      return 0;
-    }
-    
-    // Count the workouts in this week
-    const workoutsCount = week.workouts ? week.workouts.length : 0;
-    
-    return workoutsCount;
-  } catch (error) {
-    console.error(`Error getting assigned workouts count for week ${weekNumber}:`, error);
-    return 0;
-  }
-};
-
-/**
- * Log a rest day for the current user
- */
-export const logRestDay = async (): Promise<void> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    const { error } = await supabase
-      .from('workout_completions')
-      .insert({
-        user_id: user.id,
-        completed_at: new Date().toISOString(),
-        rest_day: true
-      });
-    
-    if (error) {
-      console.error("Error logging rest day:", error);
-      throw error;
-    }
-    
-    console.log("Rest day logged successfully");
-  } catch (error) {
-    console.error("Error in logRestDay:", error);
+  
+  const { error } = await supabase
+    .from('workout_completions')
+    .insert({
+      user_id: userData.user.id,
+      title: data.title,
+      description: data.description,
+      notes: data.notes,
+      workout_type: data.workout_type || 'one_off',
+      rating: data.rating,
+      distance: data.distance,
+      duration: data.duration,
+      location: data.location,
+      completed_at: data.completed_at || new Date().toISOString(),
+      life_happens_pass: false,
+      rest_day: false
+    });
+  
+  if (error) {
+    console.error("Error creating one-off workout:", error);
     throw error;
   }
+  
+  return true;
 };
 
-/**
- * Create a one-off (custom) workout completion
- */
-export const createOneOffWorkoutCompletion = async (workoutData: any): Promise<void> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    // Create a workout completion entry
-    const { error } = await supabase
-      .from('workout_completions')
-      .insert({
-        user_id: user.id,
-        completed_at: new Date().toISOString(),
-        title: workoutData.title,
-        description: workoutData.description,
-        notes: workoutData.notes,
-        rating: workoutData.rating,
-        workout_type: workoutData.workout_type,
-        distance: workoutData.distance,
-        duration: workoutData.duration,
-        location: workoutData.location
-      });
-    
-    if (error) {
-      console.error("Error creating one-off workout completion:", error);
-      throw error;
-    }
-    
-    console.log("One-off workout logged successfully");
-  } catch (error) {
-    console.error("Error in createOneOffWorkoutCompletion:", error);
+// Function to log a rest day
+export const logRestDay = async (notes?: string) => {
+  const { data: userData } = await supabase.auth.getUser();
+  
+  if (!userData.user) {
+    throw new Error("User not authenticated");
+  }
+  
+  const { error } = await supabase
+    .from('workout_completions')
+    .insert({
+      user_id: userData.user.id,
+      rest_day: true,
+      notes: notes,
+      title: "Rest Day",
+      workout_type: 'rest_day',
+      completed_at: new Date().toISOString()
+    });
+  
+  if (error) {
+    console.error("Error logging rest day:", error);
     throw error;
   }
+  
+  return true;
+};
+
+// Function to log a life happens pass
+export const useLifeHappensPass = async (notes?: string) => {
+  const { data: userData } = await supabase.auth.getUser();
+  
+  if (!userData.user) {
+    throw new Error("User not authenticated");
+  }
+  
+  const { error } = await supabase
+    .from('workout_completions')
+    .insert({
+      user_id: userData.user.id,
+      life_happens_pass: true,
+      notes: notes,
+      title: "Life Happens Pass",
+      workout_type: 'rest_day',
+      completed_at: new Date().toISOString()
+    });
+  
+  if (error) {
+    console.error("Error logging life happens pass:", error);
+    throw error;
+  }
+  
+  return true;
+};
+
+// Function to complete a custom workout
+export const completeCustomWorkout = async (customWorkoutId: string, notes?: string) => {
+  const { data: userData } = await supabase.auth.getUser();
+  
+  if (!userData.user) {
+    throw new Error("User not authenticated");
+  }
+  
+  // First get the custom workout details
+  const { data: customWorkout, error: customWorkoutError } = await supabase
+    .from('client_custom_workouts')
+    .select('*')
+    .eq('id', customWorkoutId)
+    .single();
+  
+  if (customWorkoutError) {
+    console.error("Error fetching custom workout:", customWorkoutError);
+    throw customWorkoutError;
+  }
+  
+  // Then create the workout completion
+  const { error } = await supabase
+    .from('workout_completions')
+    .insert({
+      user_id: userData.user.id,
+      title: customWorkout.title,
+      description: customWorkout.description,
+      notes: notes,
+      workout_type: customWorkout.workout_type || 'custom',
+      custom_workout_id: customWorkoutId,
+      completed_at: customWorkout.workout_date || new Date().toISOString(),
+      life_happens_pass: false,
+      rest_day: false
+    });
+  
+  if (error) {
+    console.error("Error completing custom workout:", error);
+    throw error;
+  }
+  
+  return true;
+};
+
+// Function to delete a workout completion
+export const deleteWorkoutCompletion = async (id: string) => {
+  const { error } = await supabase
+    .from('workout_completions')
+    .delete()
+    .eq('id', id);
+  
+  if (error) {
+    console.error("Error deleting workout completion:", error);
+    throw error;
+  }
+  
+  return true;
 };
 
 /**
- * Fetch assigned workouts for a user
+ * Fetches the workout history for a specific client
  */
-export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHistoryItem[]> => {
+export const fetchClientWorkoutHistory = async (clientId: string): Promise<WorkoutHistoryItem[]> => {
   try {
-    console.log("Fetching assigned workouts for user:", userId);
-    
-    if (!userId) {
-      console.error("Invalid userId provided to fetchAssignedWorkouts");
+    if (!clientId) {
+      console.error("Invalid clientId provided to fetchClientWorkoutHistory");
       return [];
     }
-    
-    // Get the user's current program
-    const currentProgram = await fetchCurrentProgram(userId);
-    
-    if (!currentProgram || !currentProgram.program) {
-      console.log("No program found for user");
-      return [];
-    }
-    
-    // Get all workout completions for this user
+
+    // First, get the basic completion data - only include properly completed workouts
     const { data: completions, error: completionsError } = await supabase
       .from('workout_completions')
-      .select('*')
-      .eq('user_id', userId);
+      .select('id, completed_at, notes, rating, user_id, workout_id, life_happens_pass, rest_day')
+      .eq('user_id', clientId)
+      .not('completed_at', 'is', null)  // Only include workouts that have a completion date
+      .order('completed_at', { ascending: false });
     
     if (completionsError) {
       console.error("Error fetching workout completions:", completionsError);
       return [];
     }
     
-    // Create a map of completed workout IDs
-    const completedWorkoutMap = new Map();
-    if (completions) {
-      completions.forEach(completion => {
-        if (completion.workout_id) {
-          completedWorkoutMap.set(completion.workout_id, completion);
-        }
-      });
-    }
-    
-    // Extract all workouts from the program
-    const programWorkouts: WorkoutHistoryItem[] = [];
-    const weeks = currentProgram.program.weekData || [];
-    
-    if (!Array.isArray(weeks)) {
-      console.error("Program weekData is not an array:", weeks);
+    if (!completions || completions.length === 0) {
       return [];
     }
     
-    for (const week of weeks) {
-      if (!week.workouts || !Array.isArray(week.workouts)) continue;
-      
-      for (const workout of week.workouts) {
-        // Find if this workout has a completion record
-        const workoutCompletion = completedWorkoutMap.get(workout.id) || null;
+    // Create a set of unique workout IDs, filtering out null values
+    const workoutIds = [
+      ...new Set(
+        completions
+          .map(c => c.workout_id)
+          .filter(id => id !== null && id !== undefined)
+      )
+    ];
+    
+    // Initialize the workout map
+    const workoutMap: Map<string, WorkoutBasic> = new Map();
+    
+    // Only fetch workout details if we have valid workout IDs
+    if (workoutIds.length > 0) {
+      try {
+        // Fetch workout details separately
+        const { data: workouts, error: workoutsError } = await supabase
+          .from('workouts')
+          .select('id, title, description, day_of_week, week_id, workout_type')
+          .in('id', workoutIds);
         
-        programWorkouts.push({
-          id: workout.id,
-          user_id: userId,
-          workout_id: workout.id,
-          completed_at: workoutCompletion?.completed_at || null,
-          notes: workoutCompletion?.notes || null,
-          rating: workoutCompletion?.rating || null,
-          life_happens_pass: workoutCompletion?.life_happens_pass || false,
-          rest_day: workoutCompletion?.rest_day || false,
-          workout: {
-            ...workout,
-            week: {
-              week_number: week.week_number,
-              program: currentProgram.program ? {
-                id: currentProgram.program.id,
-                title: currentProgram.program.title
-              } : null
+        if (workoutsError) {
+          console.error("Error fetching workouts:", workoutsError);
+          // Continue execution but with empty workouts
+        } else if (workouts && workouts.length > 0) {
+          // Create workout objects with week property initialized to null
+          workouts.forEach(workout => {
+            workoutMap.set(workout.id, {
+              ...workout,
+              week: null,
+              workout_type: workout.workout_type || 'strength' // Ensure workout_type is set
+            });
+          });
+          
+          // Fetch the week data for the workouts
+          if (workouts.length > 0) {
+            const weekIds = [...new Set(workouts.map(w => w.week_id).filter(Boolean))];
+            
+            if (weekIds.length > 0) {
+              try {
+                const { data: weeks, error: weeksError } = await supabase
+                  .from('workout_weeks')
+                  .select('id, week_number, program_id')
+                  .in('id', weekIds);
+                
+                if (weeksError) {
+                  console.error("Error fetching workout weeks:", weeksError);
+                } else if (weeks && weeks.length > 0) {
+                  // Get program info
+                  const programIds = [...new Set(weeks.map(w => w.program_id).filter(Boolean))];
+                  
+                  if (programIds.length > 0) {
+                    try {
+                      // Ensure we select the title and id fields from programs
+                      const { data: programs, error: programsError } = await supabase
+                        .from('workout_programs')
+                        .select('id, title')
+                        .in('id', programIds);
+                      
+                      if (programsError) {
+                        console.error("Error fetching programs:", programsError);
+                      } else if (programs) {
+                        // Create a map of programs for quick lookup
+                        const programMap = new Map();
+                        programs.forEach(program => {
+                          programMap.set(program.id, program);
+                        });
+                        
+                        // Create a map of weeks with program data
+                        const weekMap = new Map();
+                        weeks.forEach(week => {
+                          const program = programMap.get(week.program_id);
+                          weekMap.set(week.id, {
+                            ...week,
+                            program: program || null
+                          });
+                        });
+                        
+                        // Add week data to each workout in workoutMap
+                        workoutMap.forEach((workout, workoutId) => {
+                          if (workout.week_id) {
+                            const weekData = weekMap.get(workout.week_id);
+                            if (weekData) {
+                              workoutMap.set(workoutId, {
+                                ...workout,
+                                week: {
+                                  week_number: weekData.week_number,
+                                  program: weekData.program ? {
+                                    id: weekData.program.id,
+                                    title: weekData.program.title
+                                  } : null
+                                }
+                              });
+                            }
+                          }
+                        });
+                      }
+                    } catch (err) {
+                      console.error("Error processing program data:", err);
+                    }
+                  }
+                }
+              } catch (err) {
+                console.error("Error processing week data:", err);
+              }
             }
           }
-        });
+        }
+      } catch (err) {
+        console.error("Error processing workout data:", err);
       }
     }
     
-    return programWorkouts;
+    // Fetch workout set completions if we have completion IDs
+    const completionIds = completions.map(completion => completion.id);
+    const setCompletionsMap: Map<string, WorkoutSetCompletion[]> = new Map();
+    
+    if (completionIds.length > 0) {
+      try {
+        const { data: setCompletions, error: setCompletionsError } = await supabase
+          .from('workout_set_completions')
+          .select('*')
+          .in('workout_completion_id', completionIds);
+        
+        if (setCompletionsError) {
+          console.error("Error fetching workout set completions:", setCompletionsError);
+        } else if (setCompletions && setCompletions.length > 0) {
+          // Create a map of set completions by workout completion ID  
+          setCompletions.forEach((setCompletion) => {
+            const completionId = setCompletion.workout_completion_id;
+            if (!setCompletionsMap.has(completionId)) {
+              setCompletionsMap.set(completionId, []);
+            }
+            const completionsArray = setCompletionsMap.get(completionId);
+            if (completionsArray) {
+              completionsArray.push(setCompletion as WorkoutSetCompletion);
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Error processing set completion data:", err);
+      }
+    }
+    
+    // Combine the data - ensure completed_at is a proper date string
+    const workoutHistory: WorkoutHistoryItem[] = completions.map(completion => {
+      try {
+        // Ensure completed_at is a valid date string and not null/undefined
+        const completed_at = completion.completed_at 
+          ? new Date(completion.completed_at).toISOString() 
+          : new Date().toISOString();
+          
+        // Get set completions for this workout completion
+        const workout_set_completions = setCompletionsMap.get(completion.id) || [];
+        
+        // If workout_id is null, return completion without workout details
+        if (!completion.workout_id) {
+          return {
+            ...completion,
+            completed_at, // Use the validated date
+            workout: null,
+            workout_set_completions
+          };
+        }
+        
+        const workoutDetails = workoutMap.get(completion.workout_id) || null;
+        return {
+          ...completion,
+          completed_at, // Use the validated date
+          workout: workoutDetails,
+          workout_set_completions
+        };
+      } catch (error) {
+        console.error("Error processing workout completion:", error, completion);
+        // Return a valid but empty workout history item as fallback
+        return {
+          id: completion.id,
+          user_id: clientId,
+          workout_id: completion.workout_id || '',
+          completed_at: new Date().toISOString(),
+          workout: null,
+          workout_set_completions: []
+        };
+      }
+    });
+    
+    return workoutHistory;
   } catch (error) {
-    console.error("Error in fetchAssignedWorkouts:", error);
+    console.error("Error in fetchClientWorkoutHistory:", error);
     return [];
   }
 };

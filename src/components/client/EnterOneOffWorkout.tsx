@@ -9,7 +9,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Calendar } from 'lucide-react';
 import { createOneOffWorkoutCompletion } from '@/services/workout-history-service';
 import {
   Select,
@@ -19,21 +19,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WORKOUT_TYPES, WorkoutType } from './WorkoutTypeIcon';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { format } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 const EnterOneOffWorkout = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [notes, setNotes] = useState('');
-  const [rating, setRating] = useState<number | undefined>(undefined);
   const [workoutType, setWorkoutType] = useState<WorkoutType>('one_off'); // Default to one_off
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
   const [location, setLocation] = useState<string>('');
+  const [workoutDate, setWorkoutDate] = useState<Date>(new Date());
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,9 +50,8 @@ const EnterOneOffWorkout = () => {
       const workoutData: any = {
         title,
         description: description.trim() || undefined,
-        notes: notes.trim() || undefined,
-        rating,
-        workout_type: workoutType
+        workout_type: workoutType,
+        completed_at: workoutDate.toISOString()
       };
       
       if (workoutType === 'cardio') {
@@ -120,6 +120,33 @@ const EnterOneOffWorkout = () => {
                 required
                 className="text-left border border-gray-200"
               />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="workoutDate" className="text-sm font-medium text-left block">
+                Workout Date <span className="text-red-500">*</span>
+              </label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="workoutDate"
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal border border-gray-200"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {workoutDate ? format(workoutDate, 'PPP') : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={workoutDate}
+                    onSelect={(date) => date && setWorkoutDate(date)}
+                    initialFocus
+                    disabled={(date) => date > new Date()}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div className="space-y-2">
@@ -223,41 +250,6 @@ const EnterOneOffWorkout = () => {
                 rows={3}
                 className="text-left border border-gray-200"
               />
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="notes" className="text-sm font-medium text-left block">
-                Notes (Optional)
-              </label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="How did it go? How did you feel?"
-                rows={4}
-                className="text-left border border-gray-200"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="rating" className="text-sm font-medium text-left block">
-                Rating (Optional)
-              </label>
-              <Select 
-                value={rating?.toString()} 
-                onValueChange={(value) => setRating(value ? parseInt(value) : undefined)}
-              >
-                <SelectTrigger className="text-left border border-gray-200">
-                  <SelectValue placeholder="How would you rate this workout?" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 - Very Poor</SelectItem>
-                  <SelectItem value="2">2 - Poor</SelectItem>
-                  <SelectItem value="3">3 - Average</SelectItem>
-                  <SelectItem value="4">4 - Good</SelectItem>
-                  <SelectItem value="5">5 - Excellent</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </CardContent>
           

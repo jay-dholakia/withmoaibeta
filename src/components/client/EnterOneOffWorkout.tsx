@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,7 @@ const EnterOneOffWorkout = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
-  const [workoutType, setWorkoutType] = useState<WorkoutType>('one_off'); // Default to one_off
+  const [workoutType, setWorkoutType] = useState<WorkoutType>('strength'); // Changed default from 'one_off' to 'strength'
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [date, setDate] = useState<Date | undefined>(initialDate);
   

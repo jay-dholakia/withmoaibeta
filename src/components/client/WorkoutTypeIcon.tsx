@@ -29,6 +29,16 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
         return '✨'; // Custom workout
       case 'one_off':
         return '🎯'; // One-off workout
+      case 'hiit':
+        return '⚡'; // HIIT workout
+      case 'sport':
+        return '🎾'; // Sport activity
+      case 'swimming':
+        return '🏊'; // Swimming
+      case 'cycling':
+        return '🚴'; // Cycling
+      case 'core':
+        return '🧠'; // Core workout
       default:
         return '📝'; // Default icon
     }
@@ -52,7 +62,11 @@ export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.Reac
   { value: 'bodyweight', label: 'Bodyweight', icon: '💪' },
   { value: 'cardio', label: 'Cardio', icon: '🏃' },
   { value: 'flexibility', label: 'Flexibility', icon: '🧘' },
-  { value: 'custom', label: 'Custom', icon: '✨' },
-  { value: 'one_off', label: 'One-off', icon: '🎯' },
-  { value: 'rest_day', label: 'Rest Day', icon: '😴' }
+  { value: 'hiit', label: 'HIIT', icon: '⚡' },
+  { value: 'sport', label: 'Sport', icon: '🎾' },
+  { value: 'swimming', label: 'Swimming', icon: '🏊' },
+  { value: 'cycling', label: 'Cycling', icon: '🚴' },
+  { value: 'core', label: 'Core', icon: '🧠' }
+  // Removed: custom, one_off, rest_day as requested
 ];
+

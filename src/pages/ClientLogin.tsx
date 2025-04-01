@@ -4,7 +4,7 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { LoginForm } from '../components/LoginForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { fetchClientProfile } from '@/services/client-service';
+import { fetchClientProfile, createClientProfile } from '@/services/client-service';
 import { PageTransition } from '@/components/PageTransition';
 
 const ClientLogin = () => {
@@ -23,7 +23,10 @@ const ClientLogin = () => {
         setIsRedirecting(true);
         
         try {
-          // Check if user has a complete profile
+          // First, ensure a profile exists by creating one if it doesn't
+          await createClientProfile(user.id);
+          
+          // Then check if user has a complete profile
           const profile = await fetchClientProfile(user.id);
           console.log('ClientLogin: Profile status:', profile);
           

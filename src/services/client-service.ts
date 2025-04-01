@@ -97,13 +97,21 @@ export const createClientProfile = async (userId: string): Promise<ClientProfile
     
     // If profile exists, return it
     if (existingProfile) {
+      console.log("Profile already exists:", existingProfile);
       return existingProfile;
     }
+    
+    console.log("Creating new client profile for user:", userId);
     
     // Create new profile if it doesn't exist
     const { data, error } = await supabase
       .from('client_profiles')
-      .insert({ id: userId })
+      .insert({ 
+        id: userId,
+        fitness_goals: [],
+        favorite_movements: [],
+        profile_completed: false 
+      })
       .select()
       .single();
       
@@ -112,6 +120,7 @@ export const createClientProfile = async (userId: string): Promise<ClientProfile
       throw error;
     }
     
+    console.log("Created new profile:", data);
     return data;
   } catch (error) {
     console.error("Error in createClientProfile:", error);

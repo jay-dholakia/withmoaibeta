@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -154,6 +155,13 @@ function App() {
             <Route path="/client-dashboard/*" element={
               <RequireAuth userType="client">
                 <ClientDashboard />
+              </RequireAuth>
+            } />
+            
+            {/* Add direct route to profile builder */}
+            <Route path="/client-profile-builder" element={
+              <RequireAuth userType="client">
+                <ProfileBuilder />
               </RequireAuth>
             } />
             

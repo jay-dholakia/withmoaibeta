@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { CalendarClock, ListChecks, CircleSlash, FileText, Heart, ChevronDown, ChevronUp, Edit } from 'lucide-react';
@@ -10,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { supabase } from '@/integrations/supabase/client';
 import EditWorkoutSetCompletions from './EditWorkoutSetCompletions';
 import { getExerciseInfoByWorkoutExerciseId } from '@/services/workout-edit-service';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -25,6 +27,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [exerciseGroups, setExerciseGroups] = useState<Record<string, { name: string; type: string; sets: WorkoutSetCompletion[] }>>({});
   const [exerciseNameCache, setExerciseNameCache] = useState<Record<string, { name: string; type: string }>>({});
+  const [loadingExercises, setLoadingExercises] = useState<Record<string, boolean>>({});
   
   // Helper function to convert workout type string to WorkoutType
   const getWorkoutType = (typeString: string | undefined): WorkoutType => {
@@ -78,61 +81,67 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     fetchExercises();
   }, []);
   
-  // NEW IMPROVED: Enhanced find exercise function with better exercise name lookup
+  // IMPROVED find exercise function with better exercise name lookup and loading state
   const findExerciseInfo = async (workout_exercise_id: string, workout: WorkoutHistoryItem) => {
     console.log(`Looking for exercise with workout_exercise_id: ${workout_exercise_id}`);
     
+    // Mark this exercise as loading
+    setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: true }));
+    
     // Check if we already have this exercise in our cache
     if (exerciseNameCache[workout_exercise_id]) {
+      setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
       return exerciseNameCache[workout_exercise_id];
     }
     
-    // First, try to find exercise in the workout's workout_exercises
-    if (workout.workout?.workout_exercises) {
-      const matchingWorkoutExercise = workout.workout.workout_exercises.find(
-        we => we.id === workout_exercise_id
-      );
-      
-      if (matchingWorkoutExercise) {
-        console.log(`Found matching workout_exercise with id ${matchingWorkoutExercise.id}`);
+    try {
+      // First, try to find exercise in the workout's workout_exercises
+      if (workout.workout?.workout_exercises) {
+        const matchingWorkoutExercise = workout.workout.workout_exercises.find(
+          we => we.id === workout_exercise_id
+        );
         
-        // If we have exercise data directly, use it
-        if (matchingWorkoutExercise.exercise) {
-          console.log(`Found exercise directly: ${matchingWorkoutExercise.exercise.name}`);
-          const exerciseInfo = {
-            name: matchingWorkoutExercise.exercise.name,
-            type: matchingWorkoutExercise.exercise.exercise_type || "strength"
-          };
+        if (matchingWorkoutExercise) {
+          console.log(`Found matching workout_exercise with id ${matchingWorkoutExercise.id}`);
           
-          // Add to cache
-          setExerciseNameCache(prev => ({
-            ...prev,
-            [workout_exercise_id]: exerciseInfo
-          }));
-          
-          return exerciseInfo;
-        }
-        
-        // If exercise_id is available, look it up in our exercises map
-        if (matchingWorkoutExercise.exercise_id && exercisesMap.has(matchingWorkoutExercise.exercise_id)) {
-          const exerciseInfo = exercisesMap.get(matchingWorkoutExercise.exercise_id);
-          console.log(`Found exercise in map by exercise_id: ${exerciseInfo?.name}`);
-          
-          if (exerciseInfo) {
+          // If we have exercise data directly, use it
+          if (matchingWorkoutExercise.exercise) {
+            console.log(`Found exercise directly: ${matchingWorkoutExercise.exercise.name}`);
+            const exerciseInfo = {
+              name: matchingWorkoutExercise.exercise.name,
+              type: matchingWorkoutExercise.exercise.exercise_type || "strength"
+            };
+            
             // Add to cache
             setExerciseNameCache(prev => ({
               ...prev,
               [workout_exercise_id]: exerciseInfo
             }));
             
+            setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
             return exerciseInfo;
+          }
+          
+          // If exercise_id is available, look it up in our exercises map
+          if (matchingWorkoutExercise.exercise_id && exercisesMap.has(matchingWorkoutExercise.exercise_id)) {
+            const exerciseInfo = exercisesMap.get(matchingWorkoutExercise.exercise_id);
+            console.log(`Found exercise in map by exercise_id: ${exerciseInfo?.name}`);
+            
+            if (exerciseInfo) {
+              // Add to cache
+              setExerciseNameCache(prev => ({
+                ...prev,
+                [workout_exercise_id]: exerciseInfo
+              }));
+              
+              setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
+              return exerciseInfo;
+            }
           }
         }
       }
-    }
-    
-    // Use our new service function to lookup the exercise
-    try {
+      
+      // Use our service function to lookup the exercise
       const exerciseInfo = await getExerciseInfoByWorkoutExerciseId(workout_exercise_id);
       if (exerciseInfo) {
         // Add to cache
@@ -142,39 +151,52 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
         }));
         
         console.log(`Found exercise via service lookup: ${exerciseInfo.name}`);
+        setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
         return exerciseInfo;
       }
-    } catch (error) {
-      console.error('Error finding exercise via service:', error);
-    }
-    
-    // Last resort - get index from other workouts with this ID to create a sequential name
-    if (workout.workout_set_completions) {
-      const exerciseIds = [...new Set(workout.workout_set_completions.map(set => set.workout_exercise_id))];
-      const index = exerciseIds.indexOf(workout_exercise_id);
-      if (index !== -1) {
-        const fallbackInfo = { name: `Exercise ${index + 1}`, type: "strength" };
-        
-        // Add to cache
-        setExerciseNameCache(prev => ({
-          ...prev,
-          [workout_exercise_id]: fallbackInfo
-        }));
-        
-        return fallbackInfo;
+      
+      // Last resort - get index from other workouts with this ID to create a sequential name
+      if (workout.workout_set_completions) {
+        const exerciseIds = [...new Set(workout.workout_set_completions.map(set => set.workout_exercise_id))];
+        const index = exerciseIds.indexOf(workout_exercise_id);
+        if (index !== -1) {
+          const fallbackInfo = { name: `Exercise ${index + 1}`, type: "strength" };
+          
+          // Add to cache
+          setExerciseNameCache(prev => ({
+            ...prev,
+            [workout_exercise_id]: fallbackInfo
+          }));
+          
+          setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
+          return fallbackInfo;
+        }
       }
+      
+      // Final fallback - generic name
+      const defaultInfo = { name: "Exercise", type: "strength" };
+      
+      // Add to cache
+      setExerciseNameCache(prev => ({
+        ...prev,
+        [workout_exercise_id]: defaultInfo
+      }));
+      
+      setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
+      return defaultInfo;
+    } catch (error) {
+      console.error("Error fetching exercise info:", error);
+      
+      // Add a fallback to cache in case of error
+      const errorInfo = { name: "Unknown Exercise", type: "strength" };
+      setExerciseNameCache(prev => ({
+        ...prev,
+        [workout_exercise_id]: errorInfo
+      }));
+      
+      setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
+      return errorInfo;
     }
-    
-    // Final fallback - generic name
-    const defaultInfo = { name: "Exercise", type: "strength" };
-    
-    // Add to cache
-    setExerciseNameCache(prev => ({
-      ...prev,
-      [workout_exercise_id]: defaultInfo
-    }));
-    
-    return defaultInfo;
   };
 
   // Handle opening the edit dialog for a workout
@@ -208,6 +230,25 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     setCurrentWorkout(workout);
     setEditDialogOpen(true);
   };
+  
+  // Immediately prefetch exercise information for all workouts when component mounts or workouts change
+  useEffect(() => {
+    if (!workouts || workouts.length === 0) return;
+    
+    const prefetchExerciseInfo = async () => {
+      for (const workout of workouts) {
+        if (!workout.workout_set_completions) continue;
+        
+        // Get unique exercise IDs
+        const exerciseIds = [...new Set(workout.workout_set_completions.map(set => set.workout_exercise_id))];
+        
+        // Prefetch all exercise info in parallel
+        await Promise.all(exerciseIds.map(id => findExerciseInfo(id, workout)));
+      }
+    };
+    
+    prefetchExerciseInfo();
+  }, [workouts]);
   
   // Refresh workout data after editing
   const refreshWorkoutData = async () => {
@@ -375,41 +416,40 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                       {(() => {
                         // Create a map to group sets by exercise
                         const exerciseGroups: Record<string, { name: string; type: string; sets: WorkoutSetCompletion[] }> = {};
-                        const exercisePromises: Promise<void>[] = [];
                         
                         // Get unique exercise IDs
                         const exerciseIds = [...new Set(workout.workout_set_completions.map(set => set.workout_exercise_id))];
                         
-                        // Initialize exercise groups
+                        // Initialize exercise groups and immediately use cached values if available
                         exerciseIds.forEach(id => {
+                          const cachedInfo = exerciseNameCache[id];
                           exerciseGroups[id] = {
-                            name: "Loading...",
-                            type: "strength",
+                            name: cachedInfo ? cachedInfo.name : loadingExercises[id] ? "Loading..." : "Exercise",
+                            type: cachedInfo ? cachedInfo.type : "strength",
                             sets: workout.workout_set_completions!.filter(set => set.workout_exercise_id === id)
                           };
                           
                           // Sort sets by set number
                           exerciseGroups[id].sets.sort((a, b) => a.set_number - b.set_number);
                           
-                          // Create promise to fetch exercise info
-                          const promise = findExerciseInfo(id, workout).then(info => {
-                            exerciseGroups[id].name = info.name;
-                            exerciseGroups[id].type = info.type;
-                          });
-                          
-                          exercisePromises.push(promise);
-                        });
-                        
-                        // Update state when all promises resolve
-                        Promise.all(exercisePromises).then(() => {
-                          // This is just to trigger a re-render when names are fetched
-                          setExerciseNameCache(prev => ({...prev}));
+                          // If not in cache, fetch it
+                          if (!cachedInfo && !loadingExercises[id]) {
+                            findExerciseInfo(id, workout).then(() => {
+                              // React will re-render once the cache is updated
+                            });
+                          }
                         });
                         
                         // Now render each exercise group
                         return Object.entries(exerciseGroups).map(([exerciseId, group]) => (
                           <div key={exerciseId} className="rounded border border-gray-100 p-2">
-                            <h5 className="text-sm font-medium">{group.name}</h5>
+                            {loadingExercises[exerciseId] ? (
+                              <div className="mb-2">
+                                <Skeleton className="h-5 w-24" />
+                              </div>
+                            ) : (
+                              <h5 className="text-sm font-medium">{group.name}</h5>
+                            )}
                             
                             {group.type === 'cardio' ? (
                               // Display cardio details

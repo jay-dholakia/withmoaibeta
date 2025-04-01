@@ -164,7 +164,12 @@ export const STANDARD_WORKOUT_TYPES = [
   'flexibility',
   'rest_day',
   'custom',
-  'one_off'
+  'one_off',
+  'hiit',
+  'sport',
+  'swimming',
+  'cycling',
+  'core'
 ] as const;
 
 export type StandardWorkoutType = typeof STANDARD_WORKOUT_TYPES[number];

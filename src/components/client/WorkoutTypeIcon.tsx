@@ -69,4 +69,3 @@ export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.Reac
   { value: 'core', label: 'Core', icon: '🧠' }
   // Removed: custom, one_off, rest_day as requested
 ];
-

@@ -55,21 +55,24 @@ const MoaiPage = () => {
   });
   
   useEffect(() => {
-    if (user?.id) {
-      verifyUserExistsInAuth(user.id);
-      diagnoseGroupAccess(user.id)
-        .then(result => {
+    const checkUserAndGroups = async () => {
+      if (user?.id) {
+        try {
+          await verifyUserExistsInAuth(user.id);
+          const result = await diagnoseGroupAccess(user.id);
           console.log('Group access diagnosis result:', result);
           setDiagnosticDetails(result);
           
           if (result.hasGroupMemberships && (!userGroups || userGroups.length === 0)) {
             refetch();
           }
-        })
-        .catch(error => {
-          console.error('Error diagnosing group access:', error);
-        });
-    }
+        } catch (error) {
+          console.error('Error during group access diagnosis:', error);
+        }
+      }
+    };
+    
+    checkUserAndGroups();
   }, [user?.id, refetch, userGroups]);
   
   const verifyUserExistsInAuth = async (userId: string) => {

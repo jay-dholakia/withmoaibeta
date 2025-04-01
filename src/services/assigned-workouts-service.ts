@@ -38,7 +38,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     const programIds = [...new Set(programAssignments.map(pa => pa.program_id))];
     console.log(`Program IDs:`, programIds);
     
-    return await fetchWorkoutsFromPrograms(userId, programIds, programAssignments);
+    return await fetchWorkoutsFromPrograms(userId, [programIds.toString()], programAssignments);
   } catch (error) {
     console.error("Error in fetchAssignedWorkouts:", error);
     return [];

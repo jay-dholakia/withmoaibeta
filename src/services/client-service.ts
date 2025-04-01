@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Exercise } from "@/types/workout";
 import { User } from "@supabase/supabase-js";
@@ -7,8 +6,8 @@ import { User } from "@supabase/supabase-js";
  * Helper function to get the current authenticated user
  */
 export const getUser = (): User | null => {
-  const session = supabase.auth.getSession();
-  return session ? supabase.auth.getUser().then(({ data }) => data.user) : null;
+  const { data } = supabase.auth.getSession();
+  return data?.session?.user || null;
 };
 
 /**

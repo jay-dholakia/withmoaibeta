@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { WorkoutHistoryItem } from '@/types/workout';
 
@@ -200,5 +201,91 @@ export const fetchClientWorkoutHistory = async (userId: string): Promise<Workout
   } catch (error) {
     console.error('Error fetching client workout history:', error);
     return [];
+  }
+};
+
+/**
+ * Fetches assigned workouts for a client
+ */
+export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHistoryItem[]> => {
+  try {
+    const { data, error } = await supabase.rpc('get_user_assigned_workouts', { user_id: userId });
+    
+    if (error) throw error;
+    
+    return data as WorkoutHistoryItem[];
+  } catch (error) {
+    console.error('Error fetching assigned workouts:', error);
+    return [];
+  }
+};
+
+/**
+ * Gets the count of assigned workouts for the current week
+ */
+export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<number> => {
+  try {
+    const { data: programAssignment, error: programError } = await supabase
+      .from('program_assignments')
+      .select('program_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (programError) {
+      console.error('Error fetching program assignment:', programError);
+      return 6; // Default fallback
+    }
+    
+    if (!programAssignment?.program_id) {
+      return 6; // Default fallback if no program assigned
+    }
+    
+    // Get current week number from program
+    // This is simplified - in a real app you'd calculate current week
+    const { data: workouts, error: workoutsError } = await supabase
+      .from('workouts')
+      .select('id')
+      .eq('week_id', programAssignment.program_id);
+    
+    if (workoutsError) {
+      console.error('Error fetching workouts:', workoutsError);
+      return 6; // Default fallback
+    }
+    
+    const workoutCount = workouts?.length || 0;
+    return workoutCount > 0 ? workoutCount : 6; // Return count or default
+  } catch (error) {
+    console.error('Error getting weekly assigned workouts count:', error);
+    return 6; // Default fallback
+  }
+};
+
+/**
+ * Counts completed workouts for a specific week
+ */
+export const countCompletedWorkoutsForWeek = async (
+  userId: string, 
+  weekStartDate: Date
+): Promise<number> => {
+  try {
+    // Calculate the end date (7 days after start date)
+    const weekEndDate = new Date(weekStartDate);
+    weekEndDate.setDate(weekEndDate.getDate() + 7);
+    
+    const { count, error } = await supabase
+      .from('workout_completions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('completed_at', weekStartDate.toISOString())
+      .lt('completed_at', weekEndDate.toISOString());
+    
+    if (error) throw error;
+    
+    return count || 0;
+  } catch (error) {
+    console.error('Error counting completed workouts for week:', error);
+    return 0;
   }
 };

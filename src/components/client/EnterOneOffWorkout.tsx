@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { 
+  Card, CardContent, CardDescription, 
+  CardFooter, CardHeader, CardTitle 
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -24,7 +24,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { WORKOUT_TYPES, WorkoutType } from './WorkoutTypeIcon';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -32,7 +32,6 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 const EnterOneOffWorkout = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
@@ -43,27 +42,9 @@ const EnterOneOffWorkout = () => {
   
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
-  const [location, setLocation] = useState('');
-  
-  // Parse date from URL if present
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const dateParam = searchParams.get('date');
-    
-    if (dateParam) {
-      try {
-        // Parse the date from yyyy-MM-dd format
-        const parsedDate = parse(dateParam, 'yyyy-MM-dd', new Date());
-        if (parsedDate && !isNaN(parsedDate.getTime())) {
-          setDate(parsedDate);
-        }
-      } catch (error) {
-        console.error('Error parsing date from URL:', error);
-      }
-    }
-  }, [location.search]);
-  
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const [location, setLocation] = useState<string>('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!title.trim()) {
@@ -71,11 +52,11 @@ const EnterOneOffWorkout = () => {
       return;
     }
     
+    setIsSubmitting(true);
+    
     try {
-      setIsSubmitting(true);
-      
-      const workoutData = {
-        title: title.trim(),
+      const workoutData: any = {
+        title,
         description: description.trim() || undefined,
         notes: notes.trim() || undefined,
         rating,
@@ -86,57 +67,57 @@ const EnterOneOffWorkout = () => {
       if (workoutType === 'cardio') {
         workoutData.distance = distance.trim() || undefined;
         workoutData.duration = duration.trim() || undefined;
-        workoutData.location = location.trim() || undefined;
+        workoutData.location = location || undefined;
       }
       
       await createOneOffWorkoutCompletion(workoutData);
       
       toast.success('Workout logged successfully!');
-      
-      // Refresh the workout history if we're coming from there
-      const refreshButton = document.getElementById('refresh-workout-history');
-      if (refreshButton) {
-        refreshButton.click();
-      }
-      
-      // Navigate back
       navigate('/client-dashboard/workouts');
     } catch (error) {
       console.error('Error logging workout:', error);
-      toast.error('Failed to log workout');
+      toast.error('Failed to log workout. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
-  
-  const handleCancel = () => {
-    navigate('/client-dashboard/workouts');
+
+  const formatDurationInput = (value: string): string => {
+    let cleaned = value.replace(/[^\d:]/g, '');
+    
+    const parts = cleaned.split(':');
+    
+    if (parts.length > 3) {
+      cleaned = parts.slice(0, 3).join(':');
+    }
+    
+    return cleaned;
   };
-  
-  const handleRatingChange = (newRating: string) => {
-    setRating(parseInt(newRating));
-  };
-  
+
   return (
-    <div className="max-w-xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       <div className="mb-4">
-        <Button
+        <Button 
           variant="ghost" 
-          size="sm"
-          className="text-muted-foreground"
-          onClick={handleCancel}
+          size="sm" 
+          onClick={() => navigate('/client-dashboard/workouts')}
+          className="mb-4 border border-gray-200 hover:border-gray-300"
         >
-          <ArrowLeft className="h-4 w-4 mr-1.5" />
+          <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Workouts
         </Button>
       </div>
       
-      <Card>
+      <Card className="border border-gray-200">
         <CardHeader>
-          <CardTitle>Enter Custom Workout</CardTitle>
+          <CardTitle>Log a Custom Workout</CardTitle>
+          <CardDescription>
+            Record a workout you've completed that wasn't in your assigned program
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="title" className="text-sm font-medium text-left block">
                 Workout Title <span className="text-red-500">*</span>
@@ -145,7 +126,7 @@ const EnterOneOffWorkout = () => {
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="E.g., Morning Run, Gym Session"
+                placeholder="e.g., Morning Run, Gym Session, Home Workout"
                 required
                 className="text-left border border-gray-200"
               />
@@ -183,20 +164,26 @@ const EnterOneOffWorkout = () => {
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-left block">
-                Workout Type
+              <label htmlFor="workoutType" className="text-sm font-medium text-left block">
+                Workout Type <span className="text-red-500">*</span>
               </label>
               <Select 
-                defaultValue="one_off" 
+                value={workoutType} 
                 onValueChange={(value) => setWorkoutType(value as WorkoutType)}
               >
-                <SelectTrigger className="w-full border border-gray-200">
+                <SelectTrigger className="text-left border border-gray-200">
                   <SelectValue placeholder="Select workout type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(WORKOUT_TYPES).map(([key, value]) => (
-                    <SelectItem key={key} value={key}>
-                      {value}
+                  {WORKOUT_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      <div className="flex items-center gap-2">
+                        {typeof type.icon === 'string' ? 
+                          <span>{type.icon}</span> : 
+                          type.icon
+                        }
+                        <span>{type.label}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -204,126 +191,137 @@ const EnterOneOffWorkout = () => {
             </div>
             
             {workoutType === 'cardio' && (
-              <>
+              <div className="space-y-4 border rounded-md p-3 bg-blue-50/30 border-blue-100">
                 <div className="space-y-2">
                   <label htmlFor="distance" className="text-sm font-medium text-left block">
-                    Distance
+                    Distance (miles)
                   </label>
                   <Input
                     id="distance"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
                     value={distance}
                     onChange={(e) => setDistance(e.target.value)}
-                    placeholder="E.g., 5 km, 3 miles"
                     className="text-left border border-gray-200"
                   />
+                  <p className="text-xs text-muted-foreground mt-1 text-left">Enter distance in miles</p>
                 </div>
                 
                 <div className="space-y-2">
                   <label htmlFor="duration" className="text-sm font-medium text-left block">
-                    Duration
+                    Duration (hh:mm:ss)
                   </label>
                   <Input
                     id="duration"
+                    placeholder="00:00:00"
                     value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    placeholder="E.g., 30 minutes, 1 hour"
+                    onChange={(e) => setDuration(formatDurationInput(e.target.value))}
                     className="text-left border border-gray-200"
                   />
+                  <p className="text-xs text-muted-foreground mt-1 text-left">Format: hours:minutes:seconds</p>
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="location" className="text-sm font-medium text-left block">
+                  <label className="text-sm font-medium text-left block">
                     Location
                   </label>
-                  <Input
-                    id="location"
+                  <ToggleGroup 
+                    type="single" 
+                    className="justify-start"
                     value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="E.g., City Park, Gym"
-                    className="text-left border border-gray-200"
-                  />
+                    onValueChange={(value) => {
+                      if (value) setLocation(value);
+                    }}
+                  >
+                    <ToggleGroupItem 
+                      value="indoor" 
+                      className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
+                    >
+                      Indoor
+                    </ToggleGroupItem>
+                    <ToggleGroupItem 
+                      value="outdoor" 
+                      className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
+                    >
+                      Outdoor
+                    </ToggleGroupItem>
+                  </ToggleGroup>
                 </div>
-              </>
+              </div>
             )}
             
             <div className="space-y-2">
               <label htmlFor="description" className="text-sm font-medium text-left block">
-                Description
+                Description (Optional)
               </label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description of this workout"
+                placeholder="Brief description of your workout"
+                rows={3}
                 className="text-left border border-gray-200"
-                rows={2}
               />
             </div>
             
             <div className="space-y-2">
               <label htmlFor="notes" className="text-sm font-medium text-left block">
-                Notes
+                Notes (Optional)
               </label>
               <Textarea
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="How did it go? Any achievements or struggles?"
+                placeholder="How did it go? How did you feel?"
+                rows={4}
                 className="text-left border border-gray-200"
-                rows={3}
               />
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-left block">
-                Rate Your Workout
+              <label htmlFor="rating" className="text-sm font-medium text-left block">
+                Rating (Optional)
               </label>
-              <ToggleGroup 
-                type="single" 
-                className="flex justify-start" 
+              <Select 
                 value={rating?.toString()} 
-                onValueChange={handleRatingChange}
+                onValueChange={(value) => setRating(value ? parseInt(value) : undefined)}
               >
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <ToggleGroupItem 
-                    key={value} 
-                    value={value.toString()}
-                    className={cn(
-                      "w-10 h-10 data-[state=on]:text-white",
-                      value === 1 && "data-[state=on]:bg-red-600 hover:bg-red-500/20",
-                      value === 2 && "data-[state=on]:bg-orange-600 hover:bg-orange-500/20",
-                      value === 3 && "data-[state=on]:bg-yellow-600 hover:bg-yellow-500/20",
-                      value === 4 && "data-[state=on]:bg-lime-600 hover:bg-lime-500/20",
-                      value === 5 && "data-[state=on]:bg-green-600 hover:bg-green-500/20"
-                    )}
-                  >
-                    {value}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
+                <SelectTrigger className="text-left border border-gray-200">
+                  <SelectValue placeholder="How would you rate this workout?" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 - Very Poor</SelectItem>
+                  <SelectItem value="2">2 - Poor</SelectItem>
+                  <SelectItem value="3">3 - Average</SelectItem>
+                  <SelectItem value="4">4 - Good</SelectItem>
+                  <SelectItem value="5">5 - Excellent</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            
-            <div className="pt-2">
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Workout
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
+          </CardContent>
+          
+          <CardFooter className="flex justify-end">
+            <Button 
+              type="submit" 
+              disabled={isSubmitting || !title.trim()}
+              className="w-full sm:w-auto border-2 border-client"
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="mr-2">Saving...</span>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Log Workout
+                </>
+              )}
+            </Button>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   );

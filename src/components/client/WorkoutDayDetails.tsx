@@ -1,18 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { CalendarClock, ListChecks, CircleSlash, FileText, ChevronDown, ChevronUp, Edit } from 'lucide-react';
-import { WorkoutHistoryItem, WorkoutSetCompletion } from '@/types/workout';
-import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
+import React from 'react';
+import { format, isValid } from 'date-fns';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Clipboard, XCircle, Edit, Plus } from 'lucide-react';
+import { WorkoutHistoryItem } from '@/types/workout';
+import { WorkoutTypeIcon } from './WorkoutTypeIcon';
 import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { supabase } from '@/integrations/supabase/client';
-import EditWorkoutSetCompletions from './EditWorkoutSetCompletions';
-import { getExerciseInfoByWorkoutExerciseId } from '@/services/workout-edit-service';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -20,509 +16,122 @@ interface WorkoutDayDetailsProps {
 }
 
 export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, workouts }) => {
-  // Debug output to verify what workouts are being passed
-  console.log(`WorkoutDayDetails - Receiving date: ${format(date, 'MM/dd/yyyy')}`);
-  console.log(`WorkoutDayDetails - Receiving ${workouts.length} workouts`);
+  // Format date for display and URL
+  let dateLabel = '';
+  let formattedDateForUrl = '';
   
-  const [currentWorkout, setCurrentWorkout] = useState<WorkoutHistoryItem | null>(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [exerciseGroups, setExerciseGroups] = useState<Record<string, { name: string; type: string; sets: WorkoutSetCompletion[] }>>({});
-  const [exerciseNameCache, setExerciseNameCache] = useState<Record<string, { name: string; type: string }>>({});
-  const [loadingExercises, setLoadingExercises] = useState<Record<string, boolean>>({});
-  const { user } = useAuth(); // Get the current user to check ownership
-  
-  // Helper function to convert workout type string to WorkoutType
-  const getWorkoutType = (typeString: string | undefined): WorkoutType => {
-    if (!typeString) return 'strength';
-    
-    const normalizedType = typeString.toLowerCase();
-    if (normalizedType.includes('strength')) return 'strength';
-    if (normalizedType.includes('body') || normalizedType.includes('weight')) return 'bodyweight';
-    if (normalizedType.includes('cardio') || normalizedType.includes('run') || normalizedType.includes('hiit')) return 'cardio';
-    if (normalizedType.includes('flex') || normalizedType.includes('yoga') || normalizedType.includes('stretch') || normalizedType.includes('recovery')) return 'flexibility';
-    if (normalizedType.includes('rest')) return 'rest_day';
-    if (normalizedType.includes('custom')) return 'custom';
-    if (normalizedType.includes('one')) return 'one_off';
-    
-    return 'strength';
-  };
-  
-  // Fetch all exercises to help with name display
-  const [exercisesMap, setExercisesMap] = useState<Map<string, { name: string; type: string }>>(new Map());
-  
-  useEffect(() => {
-    const fetchExercises = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('exercises')
-          .select('id, name, exercise_type')
-          .order('name');
-          
-        if (error) {
-          console.error('Error fetching exercises:', error);
-          return;
-        }
-        
-        const exerciseMap = new Map();
-        if (data) {
-          data.forEach(exercise => {
-            exerciseMap.set(exercise.id, {
-              name: exercise.name,
-              type: exercise.exercise_type || 'strength'
-            });
-          });
-        }
-        
-        setExercisesMap(exerciseMap);
-        console.log('Loaded exercise map with', exerciseMap.size, 'exercises');
-      } catch (err) {
-        console.error('Failed to fetch exercises:', err);
-      }
-    };
-    
-    fetchExercises();
-  }, []);
-  
-  // IMPROVED find exercise function with better exercise name lookup and loading state
-  const findExerciseInfo = async (workout_exercise_id: string, workout: WorkoutHistoryItem) => {
-    console.log(`Looking for exercise with workout_exercise_id: ${workout_exercise_id}`);
-    
-    // Mark this exercise as loading
-    setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: true }));
-    
-    // Check if we already have this exercise in our cache
-    if (exerciseNameCache[workout_exercise_id]) {
-      setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
-      return exerciseNameCache[workout_exercise_id];
+  try {
+    if (date && isValid(date)) {
+      dateLabel = format(date, 'MMMM d, yyyy');
+      formattedDateForUrl = format(date, 'yyyy-MM-dd');
+    } else {
+      dateLabel = 'Invalid Date';
     }
-    
-    try {
-      // First, try to find exercise in the workout's workout_exercises
-      if (workout.workout?.workout_exercises) {
-        const matchingWorkoutExercise = workout.workout.workout_exercises.find(
-          we => we.id === workout_exercise_id
-        );
-        
-        if (matchingWorkoutExercise) {
-          console.log(`Found matching workout_exercise with id ${matchingWorkoutExercise.id}`);
-          
-          // If we have exercise data directly, use it
-          if (matchingWorkoutExercise.exercise) {
-            console.log(`Found exercise directly: ${matchingWorkoutExercise.exercise.name}`);
-            const exerciseInfo = {
-              name: matchingWorkoutExercise.exercise.name,
-              type: matchingWorkoutExercise.exercise.exercise_type || "strength"
-            };
-            
-            // Add to cache
-            setExerciseNameCache(prev => ({
-              ...prev,
-              [workout_exercise_id]: exerciseInfo
-            }));
-            
-            setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
-            return exerciseInfo;
-          }
-          
-          // If exercise_id is available, look it up in our exercises map
-          if (matchingWorkoutExercise.exercise_id && exercisesMap.has(matchingWorkoutExercise.exercise_id)) {
-            const exerciseInfo = exercisesMap.get(matchingWorkoutExercise.exercise_id);
-            console.log(`Found exercise in map by exercise_id: ${exerciseInfo?.name}`);
-            
-            if (exerciseInfo) {
-              // Add to cache
-              setExerciseNameCache(prev => ({
-                ...prev,
-                [workout_exercise_id]: exerciseInfo
-              }));
-              
-              setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
-              return exerciseInfo;
-            }
-          }
-        }
-      }
-      
-      // Use our service function to lookup the exercise
-      const exerciseInfo = await getExerciseInfoByWorkoutExerciseId(workout_exercise_id);
-      if (exerciseInfo) {
-        // Add to cache
-        setExerciseNameCache(prev => ({
-          ...prev,
-          [workout_exercise_id]: exerciseInfo
-        }));
-        
-        console.log(`Found exercise via service lookup: ${exerciseInfo.name}`);
-        setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
-        return exerciseInfo;
-      }
-      
-      // Last resort - get index from other workouts with this ID to create a sequential name
-      if (workout.workout_set_completions) {
-        const exerciseIds = [...new Set(workout.workout_set_completions.map(set => set.workout_exercise_id))];
-        const index = exerciseIds.indexOf(workout_exercise_id);
-        if (index !== -1) {
-          const fallbackInfo = { name: `Exercise ${index + 1}`, type: "strength" };
-          
-          // Add to cache
-          setExerciseNameCache(prev => ({
-            ...prev,
-            [workout_exercise_id]: fallbackInfo
-          }));
-          
-          setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
-          return fallbackInfo;
-        }
-      }
-      
-      // Final fallback - generic name
-      const defaultInfo = { name: "Exercise", type: "strength" };
-      
-      // Add to cache
-      setExerciseNameCache(prev => ({
-        ...prev,
-        [workout_exercise_id]: defaultInfo
-      }));
-      
-      setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
-      return defaultInfo;
-    } catch (error) {
-      console.error("Error fetching exercise info:", error);
-      
-      // Add a fallback to cache in case of error
-      const errorInfo = { name: "Unknown Exercise", type: "strength" };
-      setExerciseNameCache(prev => ({
-        ...prev,
-        [workout_exercise_id]: errorInfo
-      }));
-      
-      setLoadingExercises(prev => ({ ...prev, [workout_exercise_id]: false }));
-      return errorInfo;
-    }
-  };
-
-  // Handle opening the edit dialog for a workout
-  const handleEditWorkout = async (workout: WorkoutHistoryItem) => {
-    // Skip if no set completions
-    if (!workout.workout_set_completions || workout.workout_set_completions.length === 0) {
-      return;
-    }
-    
-    // Create exercise groups for the edit dialog
-    const groups: Record<string, { name: string; type: string; sets: WorkoutSetCompletion[] }> = {};
-    
-    // Get unique exercise IDs
-    const exerciseIds = [...new Set(workout.workout_set_completions.map(set => set.workout_exercise_id))];
-    
-    // Fetch exercise info for each ID
-    for (const exerciseId of exerciseIds) {
-      const exerciseInfo = await findExerciseInfo(exerciseId, workout);
-      
-      groups[exerciseId] = {
-        name: exerciseInfo.name,
-        type: exerciseInfo.type,
-        sets: workout.workout_set_completions.filter(set => set.workout_exercise_id === exerciseId)
-      };
-      
-      // Sort sets in each group by set number
-      groups[exerciseId].sets.sort((a, b) => a.set_number - b.set_number);
-    }
-    
-    setExerciseGroups(groups);
-    setCurrentWorkout(workout);
-    setEditDialogOpen(true);
-  };
-  
-  // Immediately prefetch exercise information for all workouts when component mounts or workouts change
-  useEffect(() => {
-    if (!workouts || workouts.length === 0) return;
-    
-    const prefetchExerciseInfo = async () => {
-      for (const workout of workouts) {
-        if (!workout.workout_set_completions) continue;
-        
-        // Get unique exercise IDs
-        const exerciseIds = [...new Set(workout.workout_set_completions.map(set => set.workout_exercise_id))];
-        
-        // Prefetch all exercise info in parallel
-        await Promise.all(exerciseIds.map(id => findExerciseInfo(id, workout)));
-      }
-    };
-    
-    prefetchExerciseInfo();
-  }, [workouts]);
-  
-  // Refresh workout data after editing
-  const refreshWorkoutData = async () => {
-    // This function will be called after a successful edit
-    // The parent component should handle refetching the data
-    // We'll just close the dialog for now
-    setEditDialogOpen(false);
-    setCurrentWorkout(null);
-    
-    // Trigger refresh in the parent component
-    const refreshButton = document.getElementById('refresh-workout-history');
-    if (refreshButton) {
-      refreshButton.click();
-    }
-  };
-
-  // Check if current user owns the workouts
-  const isCurrentUserOwner = (workoutUserId: string) => {
-    return user?.id === workoutUserId;
-  };
-
-  if (!workouts || workouts.length === 0) {
-    return (
-      <div className="bg-white rounded-xl p-8 shadow-sm mb-8 w-full text-center">
-        <CalendarClock className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No Workouts on {format(date, 'MMMM d, yyyy')}</h3>
-        <p className="text-gray-500">No completed workouts or activities found for this day.</p>
-      </div>
-    );
-  }
-
-  // Check if it's just a rest day
-  const isRestDay = workouts.some(w => w.rest_day);
-  
-  // Check if it's just a life happens pass
-  const isLifeHappensPass = workouts.every(w => w.life_happens_pass);
-
-  if (isRestDay) {
-    return (
-      <Card className="mb-8 bg-green-50 border-green-200">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-center gap-2 text-green-800">
-            <WorkoutTypeIcon type="rest_day" />
-            <span>Rest Day - {format(date, 'MMMM d, yyyy')}</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-green-700 mb-4">
-            You took a well-deserved rest day. Recovery is an essential part of progress!
-          </p>
-          {workouts[0].notes && isCurrentUserOwner(workouts[0].user_id) && (
-            <div className="mt-4 pt-4 border-t border-green-200">
-              <p className="text-sm font-medium text-green-800 mb-2">Notes:</p>
-              <p className="text-sm text-green-700">{workouts[0].notes}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isLifeHappensPass) {
-    return (
-      <Card className="mb-8 bg-blue-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-center gap-2 text-blue-800">
-            <CircleSlash className="h-5 w-5 text-blue-600" />
-            <span>Life Happens Pass - {format(date, 'MMMM d, yyyy')}</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-blue-700">
-            You used a Life Happens Pass for this day. Sometimes life gets in the way, and that's okay!
-          </p>
-          {workouts[0].notes && isCurrentUserOwner(workouts[0].user_id) && (
-            <div className="mt-4 pt-4 border-t border-blue-200">
-              <p className="text-sm font-medium text-blue-800 mb-2">Notes:</p>
-              <p className="text-sm text-blue-700">{workouts[0].notes}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
+  } catch (err) {
+    console.error('Error formatting date:', err);
+    dateLabel = 'Date Error';
   }
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm mb-8 w-full">
-      <h3 className="text-lg font-semibold mb-3 flex items-center justify-center gap-2">
-        <ListChecks className="h-5 w-5 text-primary" />
-        <span>Workouts on {format(date, 'MMMM d, yyyy')}</span>
-      </h3>
-      
-      <div className="space-y-4">
-        {workouts.map((workout) => (
-          <Card key={workout.id} className="overflow-hidden border">
-            <CardHeader className="py-3 px-4 bg-gray-50 flex flex-row items-center justify-between">
-              <div className="flex items-center gap-2">
-                {workout.workout?.workout_type && (
-                  <WorkoutTypeIcon type={getWorkoutType(workout.workout.workout_type)} />
-                )}
-                <CardTitle className="text-base">{workout.workout?.title || "Untitled Workout"}</CardTitle>
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Rating removed as requested */}
-                {workout.workout_set_completions && 
-                 workout.workout_set_completions.length > 0 && 
-                 isCurrentUserOwner(workout.user_id) && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-8 text-blue-600 hover:text-blue-800"
-                    onClick={() => handleEditWorkout(workout)}
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    <span className="text-xs">Edit</span>
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="py-3 px-4">
-              {workout.workout?.description && (
-                <p className="text-sm text-gray-600 mb-3">{workout.workout.description}</p>
-              )}
-              
-              {workout.workout?.workout_exercises && workout.workout.workout_exercises.length > 0 && (
-                <>
-                  <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
-                    <ListChecks className="h-4 w-4 text-gray-500" />
-                    <span>Exercises</span>
-                  </h4>
-                  <ul className="text-sm space-y-1 mb-4">
-                    {workout.workout.workout_exercises.slice(0, 5).map((exercise, index) => (
-                      <li key={index} className="flex justify-between">
-                        <span>{exercise.exercise?.name || "Unknown Exercise"}</span>
-                        <span className="text-gray-500">
-                          {exercise.sets} × {exercise.reps}
-                        </span>
-                      </li>
-                    ))}
-                    {workout.workout.workout_exercises.length > 5 && (
-                      <li className="text-xs text-gray-500 italic">
-                        + {workout.workout.workout_exercises.length - 5} more exercises
-                      </li>
-                    )}
-                  </ul>
-                </>
-              )}
-              
-              {/* Display workout set details */}
-              {workout.workout_set_completions && 
-               workout.workout_set_completions.length > 0 && 
-               isCurrentUserOwner(workout.user_id) && (
-                <>
-                  <Separator className="my-3" />
-                  <Collapsible className="w-full">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <FileText className="h-4 w-4 text-gray-500" />
-                        <span>Workout Details</span>
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xl">{dateLabel}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {workouts.length === 0 ? (
+          <div className="text-center py-6 space-y-4">
+            <XCircle className="h-12 w-12 text-muted-foreground mx-auto opacity-50" />
+            <div>
+              <p className="text-muted-foreground">No workouts recorded for this day.</p>
+              <p className="text-sm text-muted-foreground">Select a different day or add a custom workout for this date.</p>
+            </div>
+          </div>
+        ) : (
+          <ScrollArea className="h-[400px] pr-4">
+            <div className="space-y-4">
+              {workouts.map((workout) => (
+                <div key={workout.id} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <WorkoutTypeIcon 
+                        type={workout.workout?.workout_type || 'strength'} 
+                        className="h-7 w-7 p-1 rounded-full bg-muted" 
+                      />
+                      <div>
+                        <h4 className="font-medium truncate max-w-[200px]">
+                          {workout.workout?.title || workout.title || 'Untitled Workout'}
+                        </h4>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {workout.rest_day && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                              Rest Day
+                            </Badge>
+                          )}
+                          {workout.life_happens_pass && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                              Life Happens Pass
+                            </Badge>
+                          )}
+                          {workout.rating && (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
+                              Rating: {workout.rating}/5
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                      <CollapsibleTrigger className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
-                        <span>View Details</span>
-                        <ChevronDown className="h-3 w-3" />
-                      </CollapsibleTrigger>
                     </div>
                     
-                    <CollapsibleContent className="mt-2 space-y-3">
-                      {/* Group exercises and their sets */}
-                      {(() => {
-                        // Create a map to group sets by exercise
-                        const exerciseGroups: Record<string, { name: string; type: string; sets: WorkoutSetCompletion[] }> = {};
-                        
-                        // Get unique exercise IDs
-                        const exerciseIds = [...new Set(workout.workout_set_completions.map(set => set.workout_exercise_id))];
-                        
-                        // Initialize exercise groups and immediately use cached values if available
-                        exerciseIds.forEach(id => {
-                          const cachedInfo = exerciseNameCache[id];
-                          exerciseGroups[id] = {
-                            name: cachedInfo ? cachedInfo.name : loadingExercises[id] ? "Loading..." : "Exercise",
-                            type: cachedInfo ? cachedInfo.type : "strength",
-                            sets: workout.workout_set_completions!.filter(set => set.workout_exercise_id === id)
-                          };
-                          
-                          // Sort sets by set number
-                          exerciseGroups[id].sets.sort((a, b) => a.set_number - b.set_number);
-                          
-                          // If not in cache, fetch it
-                          if (!cachedInfo && !loadingExercises[id]) {
-                            findExerciseInfo(id, workout).then(() => {
-                              // React will re-render once the cache is updated
-                            });
-                          }
-                        });
-                        
-                        // Now render each exercise group
-                        return Object.entries(exerciseGroups).map(([exerciseId, group]) => (
-                          <div key={exerciseId} className="rounded border border-gray-100 p-2">
-                            {loadingExercises[exerciseId] ? (
-                              <div className="mb-2">
-                                <Skeleton className="h-5 w-24" />
-                              </div>
-                            ) : (
-                              <h5 className="text-sm font-medium">{group.name}</h5>
-                            )}
-                            
-                            {group.type === 'cardio' ? (
-                              // Display cardio details
-                              <div className="mt-1 grid grid-cols-2 gap-2 text-xs">
-                                <div>
-                                  <span className="font-medium">Duration: </span>
-                                  <span>{group.sets[0]?.duration || 'N/A'}</span>
-                                </div>
-                                <div>
-                                  <span className="font-medium">Location: </span>
-                                  <span className="capitalize">{group.sets[0]?.location || 'N/A'}</span>
-                                </div>
-                              </div>
-                            ) : group.type === 'flexibility' ? (
-                              // Display flexibility details
-                              <div className="mt-1 text-xs">
-                                <span className="font-medium">Duration: </span>
-                                <span>{group.sets[0]?.duration || 'N/A'}</span>
-                              </div>
-                            ) : (
-                              // Display strength/bodyweight sets
-                              <div className="mt-1 space-y-1">
-                                {group.sets.map((set) => (
-                                  <div key={set.id} className="grid grid-cols-3 gap-2 text-xs">
-                                    <div>
-                                      <span className="font-medium">Set {set.set_number}: </span>
-                                    </div>
-                                    <div>
-                                      {set.reps_completed && (
-                                        <span>{set.reps_completed} reps</span>
-                                      )}
-                                    </div>
-                                    <div>
-                                      {set.weight && (
-                                        <span>{set.weight} lbs</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ));
-                      })()}
-                    </CollapsibleContent>
-                  </Collapsible>
-                </>
-              )}
-              
-              <div className="text-xs text-gray-400 mt-3 text-right">
-                Completed at {format(new Date(workout.completed_at), 'h:mm a')}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      
-      {/* Edit workout dialog */}
-      {currentWorkout && (
-        <EditWorkoutSetCompletions
-          open={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
-          workout={currentWorkout}
-          exerciseGroups={exerciseGroups}
-          onSave={refreshWorkoutData}
-        />
-      )}
-    </div>
+                    {workout.workout_id && !workout.rest_day && !workout.life_happens_pass && (
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" asChild>
+                        <Link to={`/client-dashboard/workouts/complete/${workout.id}`}>
+                          <Edit className="h-4 w-4" />
+                          <span className="sr-only">Edit Workout</span>
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {workout.notes && (
+                    <div className="bg-muted p-2 rounded-md text-sm">
+                      <div className="flex gap-1 items-start">
+                        <Clipboard className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                        <p className="text-muted-foreground whitespace-pre-wrap text-xs">
+                          {workout.notes}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {workout.workout?.workout_type === 'cardio' && workout.distance && (
+                    <div className="text-xs text-muted-foreground">
+                      Distance: {workout.distance}
+                    </div>
+                  )}
+                  
+                  {workout.duration && (
+                    <div className="text-xs text-muted-foreground">
+                      Duration: {workout.duration}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+        
+        {/* Add Custom Workout Button */}
+        <div className="mt-4 pt-4 border-t">
+          <Button asChild variant="outline" className="w-full flex items-center justify-center gap-2">
+            <Link 
+              to={`/client-dashboard/workouts/one-off?date=${formattedDateForUrl}`}
+              className="flex items-center"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Custom Workout for This Day
+            </Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

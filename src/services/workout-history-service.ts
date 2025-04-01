@@ -9,6 +9,11 @@ import { WorkoutHistoryItem } from "@/types/workout";
  */
 export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<number> => {
   try {
+    if (!userId) {
+      console.error("Invalid userId provided to getWeeklyAssignedWorkoutsCount");
+      return 6; // Default to 6 workouts if no userId
+    }
+    
     console.log("Getting weekly assigned workouts count for user:", userId);
     
     // Fetch the user's current program
@@ -30,6 +35,12 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     
     // Find the corresponding week in the program
     const weeks = currentProgram.program.weekData || [];
+    
+    if (!Array.isArray(weeks)) {
+      console.error("Program weekData is not an array:", weeks);
+      return 6;
+    }
+    
     const currentWeek = weeks.find(week => week.week_number === currentWeekNumber);
     
     if (!currentWeek) {
@@ -38,7 +49,9 @@ export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<nu
     }
     
     // Count the number of workouts in this week
-    const workoutsCount = currentWeek.workouts ? currentWeek.workouts.length : 0;
+    const workoutsCount = currentWeek.workouts && Array.isArray(currentWeek.workouts) 
+      ? currentWeek.workouts.length 
+      : 0;
     
     console.log(`Found ${workoutsCount} workouts assigned for week ${currentWeekNumber}`);
     
@@ -241,7 +254,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     
     if (completionsError) {
       console.error("Error fetching workout completions:", completionsError);
-      throw completionsError;
+      return [];
     }
     
     // Create a map of completed workout IDs

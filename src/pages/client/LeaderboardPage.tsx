@@ -12,22 +12,28 @@ import { WorkoutProgressCard } from '@/components/client/WorkoutProgressCard';
 import { fetchClientProfile } from '@/services/client-service';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
   
   // Fetch client profile to get the first name
-  const { data: profile, isLoading: isLoadingProfile } = useQuery({
+  const { data: profile, isLoading: isLoadingProfile, error: profileError } = useQuery({
     queryKey: ['client-profile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      return fetchClientProfile(user.id);
+      try {
+        return await fetchClientProfile(user.id);
+      } catch (error) {
+        console.error('Error fetching client profile:', error);
+        return null;
+      }
     },
     enabled: !!user?.id,
   });
   
   // Query client workouts to get workout types
-  const { data: clientWorkouts, isLoading: isLoadingWorkouts } = useQuery({
+  const { data: clientWorkouts, isLoading: isLoadingWorkouts, error: workoutsError } = useQuery({
     queryKey: ['client-workouts-leaderboard', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -42,13 +48,13 @@ const LeaderboardPage = () => {
   });
   
   // Query the assigned workouts count from the coach-assigned program
-  const { data: assignedWorkoutsCount, isLoading: isLoadingCount } = useQuery({
+  const { data: assignedWorkoutsCount, isLoading: isLoadingCount, error: countError } = useQuery({
     queryKey: ['assigned-workouts-count', user?.id],
     queryFn: async () => {
-      if (!user?.id) throw new Error('User ID not available');
+      if (!user?.id) return 5; // Default to 5 if user ID not available
       try {
         const count = await getWeeklyAssignedWorkoutsCount(user.id);
-        if (count <= 0) return 5; // Default to 5 if no assigned workouts
+        if (!count || count <= 0) return 5; // Default to 5 if no assigned workouts
         return count;
       } catch (error) {
         console.error("Error fetching workout count:", error);
@@ -59,12 +65,13 @@ const LeaderboardPage = () => {
   });
   
   // Count current week's completed workouts directly from Supabase
-  const { data: completedThisWeek, isLoading: isLoadingCompleted } = useQuery({
+  const { data: completedThisWeek, isLoading: isLoadingCompleted, error: completedError } = useQuery({
     queryKey: ['completed-workouts-this-week', user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
-      const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+      
       try {
+        const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
         return await countCompletedWorkoutsForWeek(user.id, monday);
       } catch (error) {
         console.error("Error counting completed workouts:", error);
@@ -80,7 +87,7 @@ const LeaderboardPage = () => {
     const lifeHappens: Date[] = [];
     const typesMap: Record<string, WorkoutType> = {};
     
-    if (clientWorkouts && clientWorkouts.length > 0) {
+    if (clientWorkouts && Array.isArray(clientWorkouts) && clientWorkouts.length > 0) {
       clientWorkouts.forEach(item => {
         if (!item.completed_at) return;
         
@@ -148,6 +155,24 @@ const LeaderboardPage = () => {
   const userDisplayName = profile?.first_name || (user?.email ? user.email.split('@')[0] : 'You');
   
   const isLoading = isLoadingProfile || isLoadingWorkouts || isLoadingCount || isLoadingCompleted;
+  
+  // Check for errors
+  React.useEffect(() => {
+    if (profileError) {
+      console.error('Profile error:', profileError);
+      toast.error('Failed to load profile information');
+    }
+    
+    if (workoutsError) {
+      console.error('Workouts error:', workoutsError);
+      toast.error('Failed to load workout history');
+    }
+    
+    if (countError || completedError) {
+      console.error('Count/completed error:', countError || completedError);
+      toast.error('Failed to load workout progress data');
+    }
+  }, [profileError, workoutsError, countError, completedError]);
   
   if (isLoading) {
     return (

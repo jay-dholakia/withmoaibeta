@@ -58,12 +58,17 @@ const MoaiPage = () => {
     const checkUserAndGroups = async () => {
       if (user?.id) {
         try {
-          await verifyUserExistsInAuth(user.id);
+          const userExists = await verifyUserExistsInAuth(user.id);
+          if (!userExists) {
+            console.log('User verification failed, skipping group access diagnosis');
+            return;
+          }
+          
           const result = await diagnoseGroupAccess(user.id);
           console.log('Group access diagnosis result:', result);
           setDiagnosticDetails(result);
           
-          if (result.hasGroupMemberships && (!userGroups || userGroups.length === 0)) {
+          if (result && result.hasGroupMemberships && (!userGroups || userGroups.length === 0)) {
             refetch();
           }
         } catch (error) {
@@ -89,16 +94,26 @@ const MoaiPage = () => {
         return false;
       }
       
+      if (!profileData) {
+        console.log('No profile found for user:', userId);
+        return false;
+      }
+      
       console.log('User profile exists:', profileData);
       
-      const { count, error: countError } = await supabase
-        .from('group_members')
-        .select('*', { count: 'exact', head: true });
-        
-      if (countError) {
-        console.error('ERROR counting group_members:', countError);
-      } else {
-        console.log('TOTAL group_members in database:', count);
+      // This section is optional for debugging
+      try {
+        const { count, error: countError } = await supabase
+          .from('group_members')
+          .select('*', { count: 'exact', head: true });
+          
+        if (countError) {
+          console.error('ERROR counting group_members:', countError);
+        } else {
+          console.log('TOTAL group_members in database:', count);
+        }
+      } catch (countErr) {
+        console.error('Error counting group members:', countErr);
       }
       
       return true;

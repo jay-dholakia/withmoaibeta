@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -73,8 +74,6 @@ const ActiveWorkout = () => {
     location: string;
   }>>([]);
 
-  const [trackingSet, setTrackingSet] = useState(false);
-
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['active-workout', workoutCompletionId],
     queryFn: async () => {
@@ -149,37 +148,69 @@ const ActiveWorkout = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  const trackSet = async (exerciseId: string, setNumber: number, weight: number | null, reps: number | null, notes?: string) => {
-    try {
-      setTrackingSet(true);
-      
-      // Use the workout ID directly if we don't have a completion ID
-      const idToUse = workoutCompletionId || workoutData?.workout?.id;
-      
-      if (!idToUse) {
-        throw new Error('Missing workout completion ID and workout ID');
+  const trackSetMutation = useMutation({
+    mutationFn: async ({
+      exerciseId,
+      setNumber,
+      weight,
+      reps,
+      notes,
+      distance,
+      duration,
+      location
+    }: {
+      exerciseId: string;
+      setNumber: number;
+      weight: string | null;
+      reps: string | null;
+      notes?: string | null;
+      distance?: string | null;
+      duration?: string | null;
+      location?: string | null;
+    }) => {
+      if (!workoutCompletionId) {
+        toast.error("Missing workout completion ID");
+        return null;
       }
       
-      await trackWorkoutSet(
-        idToUse,
-        exerciseId,
+      console.log("Tracking set:", {
+        workoutCompletionId,
+        exerciseId,  // This is actually workout_exercise_id
         setNumber,
-        weight, 
-        reps,
-        notes
-      );
+        weight: weight ? parseFloat(weight) : null,
+        reps: reps ? parseInt(reps, 10) : null,
+        notes,
+        distance,
+        duration,
+        location
+      });
       
-      // Re-fetch workout data to update the UI
-      await queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
-      
-      toast.success('Set recorded successfully!');
-      setTrackingSet(false);
-    } catch (error) {
+      try {
+        return await trackWorkoutSet(
+          workoutCompletionId,
+          exerciseId,  // Passing workout_exercise_id to the function
+          setNumber,
+          weight ? parseFloat(weight) : null,
+          reps ? parseInt(reps, 10) : null,
+          notes || null,
+          distance || null,
+          duration || null,
+          location || null
+        );
+      } catch (error) {
+        console.error("Error in trackSetMutation:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      console.log("Successfully tracked set:", data);
+      queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
+    },
+    onError: (error: any) => {
       console.error('Error tracking set:', error);
-      toast.error('Failed to track set. Please try again.');
-      setTrackingSet(false);
-    }
-  };
+      toast.error(`Failed to save set: ${error?.message || 'Unknown error'}`);
+    },
+  });
 
   const saveAllSetsMutation = useMutation({
     mutationFn: async () => {

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 /**
  * Tracks a workout set completion
- * @param workoutId The ID of the workout or workout completion
+ * @param workoutCompletionId The ID of the workout completion
  * @param exerciseId The ID of the workout exercise
  * @param setNumber The set number
  * @param weight The weight used (optional)
@@ -16,7 +16,7 @@ import { toast } from 'sonner';
  * @param location Location for cardio exercises (optional)
  */
 export const trackWorkoutSet = async (
-  workoutId: string,
+  workoutCompletionId: string,
   exerciseId: string,
   setNumber: number,
   weight: number | null,
@@ -27,84 +27,37 @@ export const trackWorkoutSet = async (
   location: string | null = null
 ): Promise<any> => {
   try {
-    // First get the current user ID
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error("User not authenticated");
+    // First fetch the workout completion to get the user_id
+    const { data: workoutCompletion, error: workoutCompletionError } = await supabase
+      .from('workout_completions')
+      .select('user_id, workout_id')
+      .eq('id', workoutCompletionId)
+      .single();
+    
+    if (workoutCompletionError) {
+      console.error('Error fetching workout completion:', workoutCompletionError);
+      throw workoutCompletionError;
     }
     
-    const userId = user.id;
-    
-    // Check if we're dealing with a workout_completion_id or workout_id
-    let workoutCompletionId: string | null = null;
-    let workoutActualId: string | null = null;
-    
-    // Try to fetch by treating the ID as a completion ID first
-    const { data: completionData, error: completionError } = await supabase
-      .from('workout_completions')
-      .select('id, workout_id')
-      .eq('id', workoutId)
-      .maybeSingle();
-    
-    if (completionData) {
-      // We found a completion record, use its ID
-      workoutCompletionId = completionData.id;
-      workoutActualId = completionData.workout_id;
-      console.log(`Found workout completion: ${workoutCompletionId} for workout: ${workoutActualId}`);
-    } else {
-      // No completion found with this ID, assume it's a workout_id
-      workoutActualId = workoutId;
-      console.log(`No completion found with ID: ${workoutId}, treating as workout_id: ${workoutActualId}`);
-      
-      // Check if a completion already exists for this user and workout
-      const { data: existingCompletion, error: existingCompletionError } = await supabase
-        .from('workout_completions')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('workout_id', workoutActualId)
-        .is('completed_at', null) // Only get in-progress completions
-        .maybeSingle();
-      
-      if (existingCompletion) {
-        // Use the existing workout completion
-        workoutCompletionId = existingCompletion.id;
-        console.log(`Found existing in-progress completion: ${workoutCompletionId}`);
-      } else {
-        // Create a new workout completion
-        console.log(`Creating new workout completion for workout ID: ${workoutActualId}`);
-        const { data: newCompletion, error: createError } = await supabase
-          .from('workout_completions')
-          .insert({
-            user_id: userId,
-            workout_id: workoutActualId,
-            created_at: new Date().toISOString()
-          })
-          .select()
-          .single();
-        
-        if (createError) {
-          console.error('Error creating workout completion:', createError);
-          throw createError;
-        }
-        
-        workoutCompletionId = newCompletion.id;
-        console.log(`Created new workout completion: ${workoutCompletionId}`);
-      }
+    if (!workoutCompletion) {
+      throw new Error(`Workout completion not found: ${workoutCompletionId}`);
     }
     
     // Now check if a set completion record already exists
-    const { data: existingSet, error: setQueryError } = await supabase
+    const { data: existingSet, error: queryError } = await supabase
       .from('workout_set_completions')
       .select('*')
       .eq('workout_completion_id', workoutCompletionId)
-      .eq('workout_exercise_id', exerciseId)
+      .eq('workout_exercise_id', exerciseId)  // Make sure we're using workout_exercise_id here
       .eq('set_number', setNumber)
       .maybeSingle();
     
-    if (setQueryError && setQueryError.code !== 'PGRST116') {
-      console.error('Error checking for existing set completion:', setQueryError);
-      throw setQueryError;
+    if (queryError) {
+      console.error('Error checking for existing set completion:', queryError);
+      throw queryError;
     }
+    
+    console.log('Existing set check result:', existingSet);
     
     // Ensure the distance is either a valid number string or null
     let parsedDistance = null;
@@ -148,7 +101,7 @@ export const trackWorkoutSet = async (
         weight: weight,
         reps_completed: reps,
         completed: true,
-        user_id: userId,
+        user_id: workoutCompletion.user_id,
         notes: notes,
         distance: parsedDistance,
         duration: duration,
@@ -159,12 +112,12 @@ export const trackWorkoutSet = async (
         .from('workout_set_completions')
         .insert({
           workout_completion_id: workoutCompletionId,
-          workout_exercise_id: exerciseId,
+          workout_exercise_id: exerciseId, // Using workout_exercise_id consistently
           set_number: setNumber,
           weight: weight,
           reps_completed: reps,
           completed: true,
-          user_id: userId,
+          user_id: workoutCompletion.user_id,
           notes: notes,
           distance: parsedDistance,
           duration: duration,
@@ -219,6 +172,10 @@ export interface CoachProfile {
   first_name: string | null;
   last_name: string | null;
 }
+
+// Client Data Types for Coach Views - use interface from coach service
+// Don't re-define ClientData since it's imported and re-exported in coach-service.ts
+// Instead, import it from there when needed
 
 // Group Types
 export interface GroupData {
@@ -608,101 +565,73 @@ export const completeWorkout = async (
   notes: string | null = null
 ): Promise<any> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: user } = await supabase.auth.getUser();
     
-    if (!user) {
+    if (!user.user) {
       throw new Error('User not authenticated');
     }
     
-    const userId = user.id;
-    let workoutCompletionId: string | null = null;
-    let workoutActualId: string | null = null;
-    
-    // First, check if we're dealing with a completion ID or workout ID
-    const { data: completionData, error: completionError } = await supabase
+    // Identify if we're using a completion ID or workout ID
+    const { data: existingCompletion, error: queryError } = await supabase
       .from('workout_completions')
-      .select('id, workout_id')
-      .eq('id', workoutId)
+      .select('id')
+      .eq('workout_id', workoutId)
+      .eq('user_id', user.user.id)
       .maybeSingle();
     
-    if (completionData) {
-      // Found a completion record
-      workoutCompletionId = completionData.id;
-      workoutActualId = completionData.workout_id;
-      console.log(`Found workout completion: ${workoutCompletionId} for workout: ${workoutActualId}`);
-    } else {
-      // No completion found, check if this is a workout ID
-      const { data: workoutData, error: workoutError } = await supabase
-        .from('workouts')
-        .select('id')
-        .eq('id', workoutId)
-        .maybeSingle();
+    if (queryError) {
+      console.error('Error fetching existing workout completion:', queryError);
+      throw queryError;
+    }
+    
+    let completionId = existingCompletion?.id;
+    
+    if (!completionId) {
+      // If no completion exists yet, create one
+      const { data: newCompletion, error: insertError } = await supabase
+        .from('workout_completions')
+        .insert({
+          user_id: user.user.id,
+          workout_id: workoutId,
+          completed_at: new Date().toISOString(),
+          rating,
+          notes
+        })
+        .select()
+        .single();
+        
+      if (insertError) {
+        console.error('Error creating workout completion:', insertError);
+        throw insertError;
+      }
       
-      if (workoutData) {
-        // It's a valid workout ID
-        workoutActualId = workoutId;
+      completionId = newCompletion.id;
+    } else {
+      // Update the existing workout completion record
+      const { data, error } = await supabase
+        .from('workout_completions')
+        .update({
+          completed_at: new Date().toISOString(),
+          rating,
+          notes
+        })
+        .eq('id', completionId)
+        .eq('user_id', user.user.id)
+        .select()
+        .single();
         
-        // Check if there's an in-progress completion for this workout
-        const { data: existingCompletion, error: existingError } = await supabase
-          .from('workout_completions')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('workout_id', workoutActualId)
-          .is('completed_at', null)
-          .maybeSingle();
-        
-        if (existingCompletion) {
-          workoutCompletionId = existingCompletion.id;
-          console.log(`Found existing in-progress completion: ${workoutCompletionId}`);
-        } else {
-          // Create a new completion record
-          const { data: newCompletion, error: createError } = await supabase
-            .from('workout_completions')
-            .insert({
-              user_id: userId,
-              workout_id: workoutActualId,
-              created_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-          
-          if (createError) {
-            console.error('Error creating workout completion:', createError);
-            throw createError;
-          }
-          
-          workoutCompletionId = newCompletion.id;
-          console.log(`Created new workout completion: ${workoutCompletionId}`);
-        }
-      } else {
-        console.error(`Invalid ID provided: ${workoutId}. Not a valid workout or workout completion.`);
-        throw new Error(`Invalid ID provided: ${workoutId}`);
+      if (error) {
+        console.error('Error updating workout completion:', error);
+        throw error;
       }
     }
     
-    // Now update the completion record to mark it as completed
-    const { data, error } = await supabase
-      .from('workout_completions')
-      .update({
-        completed_at: new Date().toISOString(),
-        rating,
-        notes
-      })
-      .eq('id', workoutCompletionId)
-      .eq('user_id', userId)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error completing workout:', error);
-      throw error;
-    }
-    
+    // Show a single toast notification here
     toast.success('Workout completed!', {
-      id: `workout-complete-${workoutActualId}`, // Use a unique ID to prevent duplicates
+      id: `workout-complete-${workoutId}`, // Use a unique ID to prevent duplicates
     });
     
-    return { completionId: workoutCompletionId };
+    return { completionId };
   } catch (error) {
     console.error('Error completing workout:', error);
     throw error;
@@ -863,21 +792,11 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
   try {
     console.log(`Sending password reset email to: ${email}`);
     
-    // Get the current origin (works in both production and development)
-    const origin = window.location.origin;
+    // Get the current hostname to determine if we're in development or production
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     
-    // Extract the user type if available from the current URL path
-    let userType = 'client';
-    const pathSegments = window.location.pathname.split('/');
-    
-    if (pathSegments.includes('admin-login') || pathSegments.includes('admin-dashboard')) {
-      userType = 'admin';
-    } else if (pathSegments.includes('coach-login') || pathSegments.includes('coach-dashboard')) {
-      userType = 'coach';
-    }
-    
-    // Construct the redirect URL with user type parameter
-    const redirectUrl = `${origin}/reset-password?type=${userType}`;
+    // Construct an appropriate redirect URL that will work in both environments
+    const redirectUrl = `${window.location.origin}/reset-password`;
     
     console.log(`Using redirect URL: ${redirectUrl} for password reset`);
     

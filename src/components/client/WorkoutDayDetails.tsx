@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CalendarClock, ListChecks, CircleSlash, FileText, Heart, ChevronDown, ChevronUp, Edit } from 'lucide-react';
+import { CalendarClock, ListChecks, CircleSlash, FileText, ChevronDown, ChevronUp, Edit } from 'lucide-react';
 import { WorkoutHistoryItem, WorkoutSetCompletion } from '@/types/workout';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import EditWorkoutSetCompletions from './EditWorkoutSetCompletions';
 import { getExerciseInfoByWorkoutExerciseId } from '@/services/workout-edit-service';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -28,6 +29,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   const [exerciseGroups, setExerciseGroups] = useState<Record<string, { name: string; type: string; sets: WorkoutSetCompletion[] }>>({});
   const [exerciseNameCache, setExerciseNameCache] = useState<Record<string, { name: string; type: string }>>({});
   const [loadingExercises, setLoadingExercises] = useState<Record<string, boolean>>({});
+  const { user } = useAuth(); // Get the current user to check ownership
   
   // Helper function to convert workout type string to WorkoutType
   const getWorkoutType = (typeString: string | undefined): WorkoutType => {
@@ -265,6 +267,11 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     }
   };
 
+  // Check if current user owns the workouts
+  const isCurrentUserOwner = (workoutUserId: string) => {
+    return user?.id === workoutUserId;
+  };
+
   if (!workouts || workouts.length === 0) {
     return (
       <div className="bg-white rounded-xl p-8 shadow-sm mb-8 w-full text-center">
@@ -294,7 +301,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           <p className="text-green-700 mb-4">
             You took a well-deserved rest day. Recovery is an essential part of progress!
           </p>
-          {workouts[0].notes && (
+          {workouts[0].notes && isCurrentUserOwner(workouts[0].user_id) && (
             <div className="mt-4 pt-4 border-t border-green-200">
               <p className="text-sm font-medium text-green-800 mb-2">Notes:</p>
               <p className="text-sm text-green-700">{workouts[0].notes}</p>
@@ -318,7 +325,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           <p className="text-blue-700">
             You used a Life Happens Pass for this day. Sometimes life gets in the way, and that's okay!
           </p>
-          {workouts[0].notes && (
+          {workouts[0].notes && isCurrentUserOwner(workouts[0].user_id) && (
             <div className="mt-4 pt-4 border-t border-blue-200">
               <p className="text-sm font-medium text-blue-800 mb-2">Notes:</p>
               <p className="text-sm text-blue-700">{workouts[0].notes}</p>
@@ -347,13 +354,10 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                 <CardTitle className="text-base">{workout.workout?.title || "Untitled Workout"}</CardTitle>
               </div>
               <div className="flex items-center gap-2">
-                {workout.rating && (
-                  <div className="flex items-center text-sm">
-                    <Heart className="h-4 w-4 text-red-500 mr-1" />
-                    <span>Rating: {workout.rating}/5</span>
-                  </div>
-                )}
-                {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
+                {/* Rating removed as requested */}
+                {workout.workout_set_completions && 
+                 workout.workout_set_completions.length > 0 && 
+                 isCurrentUserOwner(workout.user_id) && (
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -396,7 +400,9 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
               )}
               
               {/* Display workout set details */}
-              {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
+              {workout.workout_set_completions && 
+               workout.workout_set_completions.length > 0 && 
+               isCurrentUserOwner(workout.user_id) && (
                 <>
                   <Separator className="my-3" />
                   <Collapsible className="w-full">

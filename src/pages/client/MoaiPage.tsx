@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,9 +65,12 @@ const MoaiPage = () => {
           if (result.hasGroupMemberships && (!userGroups || userGroups.length === 0)) {
             refetch();
           }
+        })
+        .catch(error => {
+          console.error('Error diagnosing group access:', error);
         });
     }
-  }, [user?.id]);
+  }, [user?.id, refetch, userGroups]);
   
   const verifyUserExistsInAuth = async (userId: string) => {
     try {

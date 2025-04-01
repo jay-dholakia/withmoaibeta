@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -53,18 +54,23 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     queryFn: async () => {
       if (!user?.id) return null;
       
-      const { data, error } = await supabase
-        .from('client_profiles')
-        .select('first_name, last_name, avatar_url')
-        .eq('id', user.id)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from('client_profiles')
+          .select('first_name, last_name, avatar_url')
+          .eq('id', user.id)
+          .maybeSingle();
+          
+        if (error) {
+          console.error('Error fetching current user profile:', error);
+          return null;
+        }
         
-      if (error) {
-        console.error('Error fetching current user profile:', error);
+        return data;
+      } catch (error) {
+        console.error('Error in current user profile query:', error);
         return null;
       }
-      
-      return data;
     },
     enabled: !!user?.id,
   });
@@ -75,41 +81,46 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     queryFn: async () => {
       if (!groupId) return [];
       
-      const { data: groupMembers, error: membersError } = await supabase
-        .from('group_members')
-        .select('user_id')
-        .eq('group_id', groupId);
-      
-      if (membersError) {
-        console.error('Error fetching group members:', membersError);
-        throw membersError;
+      try {
+        const { data: groupMembers, error: membersError } = await supabase
+          .from('group_members')
+          .select('user_id')
+          .eq('group_id', groupId);
+        
+        if (membersError) {
+          console.error('Error fetching group members:', membersError);
+          throw membersError;
+        }
+        
+        return Promise.all(
+          groupMembers.map(async (member) => {
+            try {
+              const { data: profile } = await supabase
+                .from('client_profiles')
+                .select('first_name, last_name, avatar_url')
+                .eq('id', member.user_id)
+                .maybeSingle();
+                
+              return {
+                userId: member.user_id,
+                email: `user_${member.user_id.substring(0, 8)}@example.com`,
+                isCurrentUser: member.user_id === user?.id,
+                profileData: profile
+              } as GroupMember;
+            } catch (error) {
+              console.error('Error fetching member profile:', error);
+              return {
+                userId: member.user_id,
+                email: `user_${member.user_id.substring(0, 8)}@example.com`,
+                isCurrentUser: member.user_id === user?.id
+              } as GroupMember;
+            }
+          })
+        );
+      } catch (error) {
+        console.error('Error in group members query:', error);
+        return [];
       }
-      
-      return Promise.all(
-        groupMembers.map(async (member) => {
-          try {
-            const { data: profile } = await supabase
-              .from('client_profiles')
-              .select('first_name, last_name, avatar_url')
-              .eq('id', member.user_id)
-              .maybeSingle();
-              
-            return {
-              userId: member.user_id,
-              email: `user_${member.user_id.substring(0, 8)}@example.com`,
-              isCurrentUser: member.user_id === user?.id,
-              profileData: profile
-            } as GroupMember;
-          } catch (error) {
-            console.error('Error fetching member profile:', error);
-            return {
-              userId: member.user_id,
-              email: `user_${member.user_id.substring(0, 8)}@example.com`,
-              isCurrentUser: member.user_id === user?.id
-            } as GroupMember;
-          }
-        })
-      );
     },
     enabled: !!groupId,
   });
@@ -126,7 +137,12 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     queryKey: ['client-workouts-moai', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      return fetchClientWorkoutHistory(user.id);
+      try {
+        return await fetchClientWorkoutHistory(user.id);
+      } catch (error) {
+        console.error('Error fetching client workout history:', error);
+        return [];
+      }
     },
     enabled: !!user?.id,
   });
@@ -140,29 +156,35 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
       
       currentUserWorkouts.forEach(workout => {
         if (workout.completed_at) {
-          const completionDate = typeof workout.completed_at === 'string' 
-            ? new Date(workout.completed_at) 
-            : workout.completed_at;
-            
-          const dateKey = format(completionDate, 'yyyy-MM-dd');
-          
-          if (workout.life_happens_pass || workout.rest_day) {
-            newLifeHappensDates.push(completionDate);
-            return;
-          }
-          
-          newCompletedDates.push(completionDate);
-          
-          // Determine workout type
-          if (workout.workout?.workout_type) {
-            const type = String(workout.workout.workout_type).toLowerCase();
-            if (type.includes('strength')) newWorkoutTypesMap[dateKey] = 'strength';
-            else if (type.includes('cardio')) newWorkoutTypesMap[dateKey] = 'cardio';
-            else if (type.includes('body')) newWorkoutTypesMap[dateKey] = 'bodyweight';
-            else if (type.includes('flex')) newWorkoutTypesMap[dateKey] = 'flexibility';
-            else newWorkoutTypesMap[dateKey] = 'strength';
-          } else {
-            newWorkoutTypesMap[dateKey] = 'strength';
+          try {
+            const completionDate = typeof workout.completed_at === 'string' 
+              ? new Date(workout.completed_at) 
+              : workout.completed_at;
+              
+            if (!isNaN(completionDate.getTime())) {
+              const dateKey = format(completionDate, 'yyyy-MM-dd');
+              
+              if (workout.life_happens_pass || workout.rest_day) {
+                newLifeHappensDates.push(completionDate);
+                return;
+              }
+              
+              newCompletedDates.push(completionDate);
+              
+              // Determine workout type
+              if (workout.workout?.workout_type) {
+                const type = String(workout.workout.workout_type).toLowerCase();
+                if (type.includes('strength')) newWorkoutTypesMap[dateKey] = 'strength';
+                else if (type.includes('cardio')) newWorkoutTypesMap[dateKey] = 'cardio';
+                else if (type.includes('body')) newWorkoutTypesMap[dateKey] = 'bodyweight';
+                else if (type.includes('flex')) newWorkoutTypesMap[dateKey] = 'flexibility';
+                else newWorkoutTypesMap[dateKey] = 'strength';
+              } else {
+                newWorkoutTypesMap[dateKey] = 'strength';
+              }
+            }
+          } catch (error) {
+            console.error('Error processing workout completion date:', error);
           }
         }
       });
@@ -194,29 +216,35 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
             
             workouts.forEach(workout => {
               if (workout.completed_at) {
-                const completionDate = typeof workout.completed_at === 'string' 
-                  ? new Date(workout.completed_at) 
-                  : workout.completed_at;
-                  
-                const dateKey = format(completionDate, 'yyyy-MM-dd');
-                
-                if (workout.life_happens_pass || workout.rest_day) {
-                  lifeHappensDates.push(completionDate);
-                  return;
-                }
-                
-                completedDates.push(completionDate);
-                
-                // Determine workout type
-                if (workout.workout?.workout_type) {
-                  const type = String(workout.workout.workout_type).toLowerCase();
-                  if (type.includes('strength')) workoutTypesMap[dateKey] = 'strength';
-                  else if (type.includes('cardio')) workoutTypesMap[dateKey] = 'cardio';
-                  else if (type.includes('body')) workoutTypesMap[dateKey] = 'bodyweight';
-                  else if (type.includes('flex')) workoutTypesMap[dateKey] = 'flexibility';
-                  else workoutTypesMap[dateKey] = 'strength';
-                } else {
-                  workoutTypesMap[dateKey] = 'strength';
+                try {
+                  const completionDate = typeof workout.completed_at === 'string' 
+                    ? new Date(workout.completed_at) 
+                    : workout.completed_at;
+                    
+                  if (!isNaN(completionDate.getTime())) {
+                    const dateKey = format(completionDate, 'yyyy-MM-dd');
+                    
+                    if (workout.life_happens_pass || workout.rest_day) {
+                      lifeHappensDates.push(completionDate);
+                      return;
+                    }
+                    
+                    completedDates.push(completionDate);
+                    
+                    // Determine workout type
+                    if (workout.workout?.workout_type) {
+                      const type = String(workout.workout.workout_type).toLowerCase();
+                      if (type.includes('strength')) workoutTypesMap[dateKey] = 'strength';
+                      else if (type.includes('cardio')) workoutTypesMap[dateKey] = 'cardio';
+                      else if (type.includes('body')) workoutTypesMap[dateKey] = 'bodyweight';
+                      else if (type.includes('flex')) workoutTypesMap[dateKey] = 'flexibility';
+                      else workoutTypesMap[dateKey] = 'strength';
+                    } else {
+                      workoutTypesMap[dateKey] = 'strength';
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error processing member workout date:', error);
                 }
               }
             });
@@ -284,7 +312,10 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     return (
       <Card>
         <CardContent className="py-6">
-          <p className="text-center text-sm text-muted-foreground">Loading your progress...</p>
+          <div className="flex justify-center items-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin text-client mr-2" />
+            <p className="text-sm text-muted-foreground">Loading your progress...</p>
+          </div>
         </CardContent>
       </Card>
     );

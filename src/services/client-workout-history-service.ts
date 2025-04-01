@@ -53,7 +53,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
         if (workoutsError) {
           console.error("Error fetching workouts:", workoutsError);
           // Continue execution but with empty workouts
-        } else if (workouts) {
+        } else if (workouts && workouts.length > 0) {
           // Create workout objects with week property initialized to null
           workouts.forEach(workout => {
             workoutMap.set(workout.id, {
@@ -155,14 +155,17 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
         
         if (setCompletionsError) {
           console.error("Error fetching workout set completions:", setCompletionsError);
-        } else if (setCompletions) {
+        } else if (setCompletions && setCompletions.length > 0) {
           // Create a map of set completions by workout completion ID  
           setCompletions.forEach((setCompletion) => {
             const completionId = setCompletion.workout_completion_id;
             if (!setCompletionsMap.has(completionId)) {
               setCompletionsMap.set(completionId, []);
             }
-            setCompletionsMap.get(completionId)?.push(setCompletion as WorkoutSetCompletion);
+            const completionsArray = setCompletionsMap.get(completionId);
+            if (completionsArray) {
+              completionsArray.push(setCompletion as WorkoutSetCompletion);
+            }
           });
         }
       } catch (err) {

@@ -7,7 +7,7 @@ import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import { User, Loader2, FileX } from 'lucide-react';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
-import { format, isFuture } from 'date-fns';
+import { format, isFuture, isValid } from 'date-fns';
 import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -30,10 +30,16 @@ const WorkoutHistoryTab = () => {
         const workoutTypes = history.map(item => {
           if (!item.completed_at) return { date: 'unknown', type: 'unknown' };
           
-          return {
-            date: format(new Date(item.completed_at), 'yyyy-MM-dd'),
-            type: item.workout?.workout_type || 'unknown'
-          };
+          try {
+            const date = new Date(item.completed_at);
+            return {
+              date: isValid(date) ? format(date, 'yyyy-MM-dd') : 'invalid-date',
+              type: item.workout?.workout_type || 'unknown'
+            };
+          } catch (err) {
+            console.error('Error formatting date:', err, item.completed_at);
+            return { date: 'error', type: 'unknown' };
+          }
         });
         console.log('Workout types in history:', workoutTypes);
         
@@ -48,17 +54,27 @@ const WorkoutHistoryTab = () => {
 
   // Handle day selection in the calendar
   const handleDaySelect = (date: Date, workouts: WorkoutHistoryItem[]) => {
-    if (!date) return;
+    if (!date || !isValid(date)) {
+      console.error('Invalid date selected:', date);
+      return;
+    }
     
-    console.log(`Selected date: ${format(date, 'yyyy-MM-dd')}`);
-    console.log(`Found ${workouts.length} workouts for this date`);
-    
-    workouts.forEach((workout, i) => {
-      console.log(`Workout ${i+1}: completed at ${workout.completed_at || 'unknown'}, type: ${workout.workout?.workout_type || 'unknown'}`);
-    });
-    
-    setSelectedDate(date);
-    setSelectedWorkouts(workouts);
+    try {
+      console.log(`Selected date: ${format(date, 'yyyy-MM-dd')}`);
+      console.log(`Found ${workouts.length} workouts for this date`);
+      
+      workouts.forEach((workout, i) => {
+        console.log(`Workout ${i+1}: completed at ${workout.completed_at || 'unknown'}, type: ${workout.workout?.workout_type || 'unknown'}`);
+      });
+      
+      setSelectedDate(date);
+      setSelectedWorkouts(workouts);
+    } catch (err) {
+      console.error('Error in handleDaySelect:', err);
+      // Use a fallback instead of failing
+      setSelectedDate(date);
+      setSelectedWorkouts(workouts || []);
+    }
   };
 
   // Map workout types to standardized types
@@ -89,7 +105,7 @@ const WorkoutHistoryTab = () => {
         try {
           const date = new Date(item.completed_at);
           // Skip future dates or invalid dates
-          if (isFuture(date) || isNaN(date.getTime())) return;
+          if (!isValid(date) || isFuture(date)) return;
           
           const dateKey = format(date, 'yyyy-MM-dd');
           
@@ -125,25 +141,56 @@ const WorkoutHistoryTab = () => {
           .sort((a, b) => {
             if (!a.completed_at) return 1;
             if (!b.completed_at) return -1;
-            return new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime();
+            
+            try {
+              const dateA = new Date(a.completed_at);
+              const dateB = new Date(b.completed_at);
+              
+              if (!isValid(dateA)) return 1;
+              if (!isValid(dateB)) return -1;
+              
+              return dateB.getTime() - dateA.getTime();
+            } catch (err) {
+              console.error('Error comparing dates:', err);
+              return 0;
+            }
           });
         
         // If we have any completed workouts, select the most recent one
         if (sortedWorkouts.length > 0) {
           const mostRecentWorkout = sortedWorkouts[0];
           if (mostRecentWorkout.completed_at) {
-            const date = new Date(mostRecentWorkout.completed_at);
-            
-            // Find all workouts on this date
-            const workoutsOnDate = clientWorkouts.filter(item => {
-              if (!item.completed_at) return false;
-              const itemDate = new Date(item.completed_at);
-              return itemDate.toDateString() === date.toDateString();
-            });
-            
-            console.log(`Auto-selecting most recent workout date: ${date.toLocaleDateString()} with ${workoutsOnDate.length} workouts`);
-            setSelectedDate(date);
-            setSelectedWorkouts(workoutsOnDate);
+            try {
+              const date = new Date(mostRecentWorkout.completed_at);
+              
+              if (isValid(date)) {
+                // Find all workouts on this date
+                const workoutsOnDate = clientWorkouts.filter(item => {
+                  if (!item.completed_at) return false;
+                  
+                  try {
+                    const itemDate = new Date(item.completed_at);
+                    return isValid(itemDate) && itemDate.toDateString() === date.toDateString();
+                  } catch {
+                    return false;
+                  }
+                });
+                
+                console.log(`Auto-selecting most recent workout date: ${date.toLocaleDateString()} with ${workoutsOnDate.length} workouts`);
+                setSelectedDate(date);
+                setSelectedWorkouts(workoutsOnDate);
+              } else {
+                console.error('Invalid date from completed_at:', mostRecentWorkout.completed_at);
+                // Fallback to today
+                setSelectedDate(new Date());
+                setSelectedWorkouts([]);
+              }
+            } catch (err) {
+              console.error('Error processing most recent workout date:', err);
+              // Fallback to today
+              setSelectedDate(new Date());
+              setSelectedWorkouts([]);
+            }
           }
         }
       } catch (err) {

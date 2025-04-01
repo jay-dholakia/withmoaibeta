@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -243,25 +242,34 @@ const WorkoutComplete = () => {
       
       if (isNewCompletion) {
         // Create a new completion for this workout
-        const { data: newCompletion, error } = await supabase
-          .from('workout_completions')
-          .insert({
-            workout_id: workoutData?.workout_id || workoutCompletionId,
-            standalone_workout_id: workoutData?.standalone_workout_id,
-            user_id: user?.id,
-            completed_at: new Date().toISOString(),
-            rating,
-            notes
-          })
-          .select('id')
-          .single();
+        try {
+          const { data: newCompletion, error } = await supabase
+            .from('workout_completions')
+            .insert({
+              workout_id: workoutData?.workout_id || workoutCompletionId,
+              standalone_workout_id: workoutData?.standalone_workout_id,
+              user_id: user?.id,
+              completed_at: new Date().toISOString(),
+              rating,
+              notes
+            })
+            .select('id')
+            .maybeSingle();
           
-        if (error) {
-          console.error("Error creating new workout completion:", error);
+          if (error) {
+            console.error("Error creating new workout completion:", error);
+            throw error;
+          }
+          
+          if (!newCompletion) {
+            throw new Error("Failed to create workout completion record");
+          }
+          
+          completionId = newCompletion.id;
+        } catch (error) {
+          console.error("Error in workout completion mutation:", error);
           throw error;
         }
-        
-        completionId = newCompletion.id;
       } else {
         // Update the existing completion
         const { error } = await supabase

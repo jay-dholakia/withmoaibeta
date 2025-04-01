@@ -51,12 +51,11 @@ const LeaderboardPage = () => {
     enabled: !!user?.id,
   });
   
-  // Extract completed dates and life happens dates, ensuring we count each date only once
+  // Extract completed dates and life happens dates
   const { completedDates, lifeHappensDates, workoutTypesMap } = useMemo(() => {
     const completed: Date[] = [];
     const lifeHappens: Date[] = [];
     const typesMap: Record<string, WorkoutType> = {};
-    const processedDates = new Set<string>(); // Track dates we've already processed
     
     if (clientWorkouts && clientWorkouts.length > 0) {
       clientWorkouts.forEach(item => {
@@ -70,11 +69,6 @@ const LeaderboardPage = () => {
         if (!completionDate) return;
         
         const dateKey = format(completionDate, 'yyyy-MM-dd');
-        
-        // Skip if we've already processed a workout for this date
-        if (processedDates.has(dateKey)) return;
-        
-        processedDates.add(dateKey);
         
         if (item.life_happens_pass || item.rest_day) {
           lifeHappens.push(completionDate);
@@ -115,7 +109,7 @@ const LeaderboardPage = () => {
     return { completedDates: completed, lifeHappensDates: lifeHappens, workoutTypesMap: typesMap };
   }, [clientWorkouts]);
   
-  // Count number of completed workouts this week (counting only unique dates)
+  // Count number of completed workouts this week
   const completedThisWeek = useMemo(() => {
     if (!completedDates.length) return 0;
     

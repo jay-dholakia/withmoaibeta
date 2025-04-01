@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { useQuery } from '@tanstack/react-query';
-import { isThisWeek, format, parseISO } from 'date-fns';
+import { isThisWeek, format } from 'date-fns';
 import { WorkoutType } from './WorkoutTypeIcon';
 import { WorkoutProgressCard } from './WorkoutProgressCard';
 import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
@@ -138,21 +138,13 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
       const newLifeHappensDates: Date[] = [];
       const newWorkoutTypesMap: Record<string, WorkoutType> = {};
       
-      // Process unique workout completions by date
-      const processedDates = new Set<string>();
-      
       currentUserWorkouts.forEach(workout => {
         if (workout.completed_at) {
           const completionDate = typeof workout.completed_at === 'string' 
-            ? parseISO(workout.completed_at) 
+            ? new Date(workout.completed_at) 
             : workout.completed_at;
             
           const dateKey = format(completionDate, 'yyyy-MM-dd');
-          
-          // Skip if we've already processed a workout for this date
-          if (processedDates.has(dateKey)) return;
-          
-          processedDates.add(dateKey);
           
           if (workout.life_happens_pass || workout.rest_day) {
             newLifeHappensDates.push(completionDate);
@@ -200,21 +192,13 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
             const lifeHappensDates: Date[] = [];
             const workoutTypesMap: Record<string, WorkoutType> = {};
             
-            // Process unique workout completions by date
-            const processedDates = new Set<string>();
-            
             workouts.forEach(workout => {
               if (workout.completed_at) {
                 const completionDate = typeof workout.completed_at === 'string' 
-                  ? parseISO(workout.completed_at) 
+                  ? new Date(workout.completed_at) 
                   : workout.completed_at;
                   
                 const dateKey = format(completionDate, 'yyyy-MM-dd');
-                
-                // Skip if we've already processed a workout for this date
-                if (processedDates.has(dateKey)) return;
-                
-                processedDates.add(dateKey);
                 
                 if (workout.life_happens_pass || workout.rest_day) {
                   lifeHappensDates.push(completionDate);
@@ -285,19 +269,11 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     return "You";
   };
   
-  // Count workouts completed this week - only count unique dates
-  const completedThisWeek = [...new Set(
-    completedDates
-      .filter(date => isThisWeek(date, { weekStartsOn: 1 }))
-      .map(date => format(date, 'yyyy-MM-dd'))
-  )].length;
+  // Count workouts completed this week
+  const completedThisWeek = completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   
-  // Count life happens passes used this week - only count unique dates
-  const lifeHappensThisWeek = [...new Set(
-    lifeHappensDates
-      .filter(date => isThisWeek(date, { weekStartsOn: 1 }))
-      .map(date => format(date, 'yyyy-MM-dd'))
-  )].length;
+  // Count life happens passes used this week
+  const lifeHappensThisWeek = lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   
   // Total completed including life happens
   const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;

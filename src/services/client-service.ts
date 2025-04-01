@@ -792,11 +792,21 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
   try {
     console.log(`Sending password reset email to: ${email}`);
     
-    // Get the current hostname to determine if we're in development or production
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    // Get the current origin (works in both production and development)
+    const origin = window.location.origin;
     
-    // Construct an appropriate redirect URL that will work in both environments
-    const redirectUrl = `${window.location.origin}/reset-password`;
+    // Extract the user type if available from the current URL path
+    let userType = 'client';
+    const pathSegments = window.location.pathname.split('/');
+    
+    if (pathSegments.includes('admin-login') || pathSegments.includes('admin-dashboard')) {
+      userType = 'admin';
+    } else if (pathSegments.includes('coach-login') || pathSegments.includes('coach-dashboard')) {
+      userType = 'coach';
+    }
+    
+    // Construct the redirect URL with user type parameter
+    const redirectUrl = `${origin}/reset-password?type=${userType}`;
     
     console.log(`Using redirect URL: ${redirectUrl} for password reset`);
     

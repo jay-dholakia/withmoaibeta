@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCurrentProgram } from "./program-service";
 import { startOfWeek, endOfWeek, format } from "date-fns";
@@ -198,14 +197,6 @@ export const createOneOffWorkoutCompletion = async (workoutData: any): Promise<v
       throw new Error("User not authenticated");
     }
     
-    // Check if custom_workout_id field exists in the database by checking for errors
-    const { data: testData, error: testError } = await supabase
-      .from('workout_completions')
-      .select('custom_workout_id')
-      .limit(1);
-    
-    const hasCustomWorkoutId = !testError;
-    
     // Prepare completion data
     const completionData: Record<string, any> = {
       user_id: user.id,
@@ -220,11 +211,9 @@ export const createOneOffWorkoutCompletion = async (workoutData: any): Promise<v
       location: workoutData.location
     };
     
-    // Only add custom_workout_id if the field exists in the database
-    if (hasCustomWorkoutId) {
-      // Generate a UUID for the custom workout
-      const customWorkoutId = crypto.randomUUID();
-      completionData.custom_workout_id = customWorkoutId;
+    // Generate a UUID for the custom workout if needed
+    if (workoutData.custom_workout_id) {
+      completionData.custom_workout_id = workoutData.custom_workout_id;
     }
     
     // Create a workout completion entry

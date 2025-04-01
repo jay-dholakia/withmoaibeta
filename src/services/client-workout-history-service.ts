@@ -13,20 +13,11 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
     }
 
     // First, get the basic completion data - only include properly completed workouts
-    // Check if the custom_workout_id field exists in the database
-    const { data: dbFields, error: dbFieldsError } = await supabase
-      .from('workout_completions')
-      .select('*')
-      .limit(1);
-    
-    // Determine if the custom_workout_id field exists in the schema
-    const hasCustomWorkoutId = dbFields && dbFields.length > 0 && 'custom_workout_id' in dbFields[0];
-    
-    // Construct select statement based on available fields
-    let selectStatement = 'id, completed_at, notes, rating, user_id, workout_id, life_happens_pass, rest_day, title, description, workout_type, duration, distance, location';
-    if (hasCustomWorkoutId) {
-      selectStatement += ', custom_workout_id';
-    }
+    // We know the custom_workout_id field exists in the database now, so we can include it directly
+    const selectStatement = `
+      id, completed_at, notes, rating, user_id, workout_id, life_happens_pass, rest_day, 
+      title, description, workout_type, duration, distance, location, custom_workout_id
+    `;
     
     const { data: completions, error: completionsError } = await supabase
       .from('workout_completions')
@@ -201,16 +192,16 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
         const workout_set_completions = setCompletionsMap.get(completion.id) || [];
         
         // Handle custom workouts (direct entries without workout_id)
-        if (!completion.workout_id && (completion.title || (hasCustomWorkoutId && completion.custom_workout_id))) {
+        if (!completion.workout_id && (completion.title || completion.custom_workout_id)) {
           // Create a custom workout history item
-          const customWorkoutId = hasCustomWorkoutId ? completion.custom_workout_id : completion.id;
+          const customWorkoutId = completion.custom_workout_id || completion.id;
           return {
             id: completion.id,
             completed_at,
             notes: completion.notes,
             rating: completion.rating,
             user_id: clientId,
-            workout_id: customWorkoutId || completion.id, // Use custom_workout_id if available
+            workout_id: customWorkoutId, // Use custom_workout_id if available
             title: completion.title,
             description: completion.description,
             workout_type: completion.workout_type || 'custom',
@@ -222,7 +213,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
             workout_set_completions,
             // Also add the workout object for consistency
             workout: {
-              id: customWorkoutId || completion.id,
+              id: customWorkoutId,
               title: completion.title || 'Custom Workout',
               description: completion.description,
               day_of_week: 0, // Default value for custom workouts

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -16,13 +15,6 @@ import {
 } from "@/components/ui/accordion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { fetchCurrentProgram } from '@/services/program-service';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 
 const WorkoutsList = () => {
   const { user } = useAuth();
@@ -62,10 +54,22 @@ const WorkoutsList = () => {
         setIsLoading(true);
         setError(null);
         
-        const programPromise = fetchCurrentProgram(user.id);
-        const workoutsPromise = fetchAssignedWorkouts(user.id);
+        // Fetch program information first
+        let program = null;
+        try {
+          program = await fetchCurrentProgram(user.id);
+        } catch (programError) {
+          console.error('Error loading program:', programError);
+          // Continue even if program fails to load
+        }
         
-        const [program, assignedWorkouts] = await Promise.all([programPromise, workoutsPromise]);
+        let assignedWorkouts: WorkoutHistoryItem[] = [];
+        try {
+          assignedWorkouts = await fetchAssignedWorkouts(user.id);
+        } catch (workoutsError) {
+          console.error('Error loading assigned workouts:', workoutsError);
+          throw workoutsError; // Rethrow to be caught by outer catch
+        }
         
         console.log("Current user email:", user.email);
         console.log("Program data received:", program);

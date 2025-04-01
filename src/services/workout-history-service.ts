@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCurrentProgram } from "./program-service";
 import { startOfWeek, endOfWeek, format } from "date-fns";
@@ -208,11 +209,16 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
   try {
     console.log("Fetching assigned workouts for user:", userId);
     
+    if (!userId) {
+      console.error("Invalid userId provided to fetchAssignedWorkouts");
+      return [];
+    }
+    
     // Get the user's current program
     const currentProgram = await fetchCurrentProgram(userId);
     
     if (!currentProgram || !currentProgram.program) {
-      console.error("No program found for user");
+      console.log("No program found for user");
       return [];
     }
     
@@ -228,11 +234,11 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     }
     
     // Create a map of completed workout IDs
-    const completedWorkoutIds = new Set();
+    const completedWorkoutMap = new Map();
     if (completions) {
       completions.forEach(completion => {
         if (completion.workout_id) {
-          completedWorkoutIds.add(completion.workout_id);
+          completedWorkoutMap.set(completion.workout_id, completion);
         }
       });
     }
@@ -241,12 +247,17 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     const programWorkouts: WorkoutHistoryItem[] = [];
     const weeks = currentProgram.program.weekData || [];
     
+    if (!Array.isArray(weeks)) {
+      console.error("Program weekData is not an array:", weeks);
+      return [];
+    }
+    
     for (const week of weeks) {
-      if (!week.workouts) continue;
+      if (!week.workouts || !Array.isArray(week.workouts)) continue;
       
       for (const workout of week.workouts) {
         // Find if this workout has a completion record
-        const workoutCompletion = completions?.find(c => c.workout_id === workout.id) || null;
+        const workoutCompletion = completedWorkoutMap.get(workout.id) || null;
         
         programWorkouts.push({
           id: workout.id,
@@ -261,10 +272,10 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
             ...workout,
             week: {
               week_number: week.week_number,
-              program: {
+              program: currentProgram.program ? {
                 id: currentProgram.program.id,
                 title: currentProgram.program.title
-              }
+              } : null
             }
           }
         });

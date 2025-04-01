@@ -56,24 +56,24 @@ const MoaiPage = () => {
   
   useEffect(() => {
     const checkUserAndGroups = async () => {
-      if (user?.id) {
-        try {
-          const userExists = await verifyUserExistsInAuth(user.id);
-          if (!userExists) {
-            console.log('User verification failed, skipping group access diagnosis');
-            return;
-          }
-          
-          const result = await diagnoseGroupAccess(user.id);
-          console.log('Group access diagnosis result:', result);
-          setDiagnosticDetails(result);
-          
-          if (result && result.hasGroupMemberships && (!userGroups || userGroups.length === 0)) {
-            refetch();
-          }
-        } catch (error) {
-          console.error('Error during group access diagnosis:', error);
+      if (!user?.id) return;
+      
+      try {
+        const userExists = await verifyUserExistsInAuth(user.id);
+        if (!userExists) {
+          console.log('User verification failed, skipping group access diagnosis');
+          return;
         }
+        
+        const result = await diagnoseGroupAccess(user.id);
+        console.log('Group access diagnosis result:', result);
+        setDiagnosticDetails(result);
+        
+        if (result && result.hasGroupMemberships && (!userGroups || userGroups.length === 0)) {
+          refetch();
+        }
+      } catch (error) {
+        console.error('Error during group access diagnosis:', error);
       }
     };
     
@@ -158,7 +158,8 @@ const MoaiPage = () => {
     );
   }
   
-  const group = userGroups[0];
+  // Ensure we have a valid group object before proceeding
+  const group = userGroups[0] || { id: '', name: 'Loading...', description: '' };
   
   return (
     <div className="space-y-6">

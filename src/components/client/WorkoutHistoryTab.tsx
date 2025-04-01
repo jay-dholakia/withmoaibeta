@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
@@ -15,10 +15,16 @@ const WorkoutHistoryTab = () => {
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedWorkouts, setSelectedWorkouts] = useState<WorkoutHistoryItem[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Force a refresh of the data
+  const refreshData = useCallback(() => {
+    setRefreshKey(prev => prev + 1);
+  }, []);
   
   // Query for client workouts
-  const { data: clientWorkouts, isLoading, error } = useQuery({
-    queryKey: ['client-workouts', user?.id],
+  const { data: clientWorkouts, isLoading, error, refetch } = useQuery({
+    queryKey: ['client-workouts', user?.id, refreshKey],
     queryFn: async () => {
       if (!user?.id) return [];
       console.log('Fetching workout history for user:', user.id);
@@ -276,6 +282,16 @@ const WorkoutHistoryTab = () => {
       <WorkoutDayDetails 
         date={selectedDate}
         workouts={selectedWorkouts}
+      />
+      
+      {/* Hidden button that's triggered when we need to refresh data after edits */}
+      <button 
+        className="hidden" 
+        onClick={() => {
+          refetch(); 
+          console.log('Refreshing workout history data');
+        }}
+        id="refresh-workout-history"
       />
     </div>
   );

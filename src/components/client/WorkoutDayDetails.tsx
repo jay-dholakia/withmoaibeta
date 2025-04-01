@@ -1,11 +1,15 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { CalendarClock, ListChecks, CircleSlash, FileText, Heart, ChevronDown, ChevronUp } from 'lucide-react';
+import { CalendarClock, ListChecks, CircleSlash, FileText, Heart, ChevronDown, ChevronUp, Edit } from 'lucide-react';
 import { WorkoutHistoryItem, WorkoutSetCompletion } from '@/types/workout';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { supabase } from '@/integrations/supabase/client';
+import EditWorkoutSetCompletions from './EditWorkoutSetCompletions';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -16,6 +20,10 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   // Debug output to verify what workouts are being passed
   console.log(`WorkoutDayDetails - Receiving date: ${format(date, 'MM/dd/yyyy')}`);
   console.log(`WorkoutDayDetails - Receiving ${workouts.length} workouts`);
+  
+  const [currentWorkout, setCurrentWorkout] = useState<WorkoutHistoryItem | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [exerciseGroups, setExerciseGroups] = useState<Record<string, { name: string; type: string; sets: WorkoutSetCompletion[] }>>({});
   
   // Helper function to convert workout type string to WorkoutType
   const getWorkoutType = (typeString: string | undefined): WorkoutType => {
@@ -32,6 +40,42 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     
     return 'strength';
   };
+  
+  // Fetch all exercises to help with name display
+  const [exercisesMap, setExercisesMap] = useState<Map<string, { name: string; type: string }>>(new Map());
+  
+  React.useEffect(() => {
+    const fetchExercises = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('exercises')
+          .select('id, name, exercise_type')
+          .order('name');
+          
+        if (error) {
+          console.error('Error fetching exercises:', error);
+          return;
+        }
+        
+        const exerciseMap = new Map();
+        if (data) {
+          data.forEach(exercise => {
+            exerciseMap.set(exercise.id, {
+              name: exercise.name,
+              type: exercise.exercise_type || 'strength'
+            });
+          });
+        }
+        
+        setExercisesMap(exerciseMap);
+        console.log('Loaded exercise map with', exerciseMap.size, 'exercises');
+      } catch (err) {
+        console.error('Failed to fetch exercises:', err);
+      }
+    };
+    
+    fetchExercises();
+  }, []);
   
   if (!workouts || workouts.length === 0) {
     return (
@@ -97,49 +141,11 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     );
   }
 
-  // NEW APPROACH: First create a map of all exercise IDs from workout_exercises
-  // This will help us better identify exercises later
-  const exerciseMap: Map<string, { name: string, type: string }> = new Map();
-  
-  // Gather all exercise data available from workout.workout_exercises
-  workouts.forEach(workout => {
-    if (workout.workout?.workout_exercises) {
-      workout.workout.workout_exercises.forEach(we => {
-        if (we.exercise && we.exercise.name) {
-          // If we have the exercise data directly, store it by the workout_exercise id
-          exerciseMap.set(we.id, {
-            name: we.exercise.name,
-            type: we.exercise.exercise_type || 'strength'
-          });
-          
-          // Also store it by exercise_id if available, for workouts that have only exercise_id
-          if (we.exercise_id) {
-            exerciseMap.set(we.exercise_id, {
-              name: we.exercise.name,
-              type: we.exercise.exercise_type || 'strength'
-            });
-          }
-          
-          console.log(`Added exercise to map: ${we.id} -> ${we.exercise.name} (type: ${we.exercise.exercise_type || 'strength'})`);
-        }
-      });
-    }
-  });
-  
-  console.log(`Built exercise map with ${exerciseMap.size} exercises`);
-  
-  // Function to find exercise name and type based on workout_exercise_id
+  // NEW APPROACH: Enhanced find exercise function with improved exercise name lookup
   const findExerciseInfo = (workout_exercise_id: string, workout: WorkoutHistoryItem) => {
     console.log(`Looking for exercise with workout_exercise_id: ${workout_exercise_id}`);
     
-    // First check if we already have this workout_exercise_id in our map
-    if (exerciseMap.has(workout_exercise_id)) {
-      const exerciseInfo = exerciseMap.get(workout_exercise_id);
-      console.log(`Found exercise in map by workout_exercise_id: ${exerciseInfo?.name}`);
-      return exerciseInfo!;
-    }
-    
-    // Try to find this exercise in the workout_exercises
+    // First, try to find exercise in the workout's workout_exercises
     if (workout.workout?.workout_exercises) {
       const matchingWorkoutExercise = workout.workout.workout_exercises.find(
         we => we.id === workout_exercise_id
@@ -148,7 +154,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       if (matchingWorkoutExercise) {
         console.log(`Found matching workout_exercise with id ${matchingWorkoutExercise.id}`);
         
-        // If we have exercise data, use it
+        // If we have exercise data directly, use it
         if (matchingWorkoutExercise.exercise) {
           console.log(`Found exercise directly: ${matchingWorkoutExercise.exercise.name}`);
           return {
@@ -157,20 +163,67 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           };
         }
         
-        // If we have exercise_id, check if we have it in our map
-        if (matchingWorkoutExercise.exercise_id && exerciseMap.has(matchingWorkoutExercise.exercise_id)) {
-          const exerciseInfo = exerciseMap.get(matchingWorkoutExercise.exercise_id);
+        // If exercise_id is available, look it up in our exercises map
+        if (matchingWorkoutExercise.exercise_id && exercisesMap.has(matchingWorkoutExercise.exercise_id)) {
+          const exerciseInfo = exercisesMap.get(matchingWorkoutExercise.exercise_id);
           console.log(`Found exercise in map by exercise_id: ${exerciseInfo?.name}`);
           return exerciseInfo!;
         }
       }
     }
     
-    // Try to use the set completions data to infer exercise info
+    // If we still need to look up by workout_exercise_id in the completions
     const setCompletions = workout.workout_set_completions || [];
     const matchingCompletion = setCompletions.find(c => c.workout_exercise_id === workout_exercise_id);
     
     if (matchingCompletion) {
+      // Try to find exercise_id using exercise lookup from database
+      // First we need to get the exercise_id from the workout_exercises table
+      const findExerciseIdViaApi = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('workout_exercises')
+            .select('exercise_id')
+            .eq('id', workout_exercise_id)
+            .single();
+            
+          if (error || !data) {
+            console.log('No exercise_id found via API lookup');
+            return null;
+          }
+          
+          if (data.exercise_id && exercisesMap.has(data.exercise_id)) {
+            return exercisesMap.get(data.exercise_id);
+          }
+          
+          return null;
+        } catch (err) {
+          console.error('Error finding exercise via API:', err);
+          return null;
+        }
+      };
+      
+      // Call it immediately but return a fallback and update later if found
+      findExerciseIdViaApi().then(exercise => {
+        if (exercise) {
+          console.log(`Found exercise via API lookup: ${exercise.name}`);
+          // Update the exercise groups with the found exercise name
+          setExerciseGroups(prev => {
+            if (prev[workout_exercise_id]) {
+              return {
+                ...prev,
+                [workout_exercise_id]: {
+                  ...prev[workout_exercise_id],
+                  name: exercise.name,
+                  type: exercise.type
+                }
+              };
+            }
+            return prev;
+          });
+        }
+      });
+      
       // Check if this is a cardio or flexibility workout based on set data
       if (matchingCompletion.distance) {
         return { name: "Cardio Exercise", type: "cardio" };
@@ -197,6 +250,51 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     return { name: "Exercise", type: "strength" };
   };
 
+  // Handle opening the edit dialog for a workout
+  const handleEditWorkout = (workout: WorkoutHistoryItem) => {
+    // Skip if no set completions
+    if (!workout.workout_set_completions || workout.workout_set_completions.length === 0) {
+      return;
+    }
+    
+    // Create exercise groups for the edit dialog
+    const groups: Record<string, { name: string; type: string; sets: WorkoutSetCompletion[] }> = {};
+    
+    workout.workout_set_completions.forEach(set => {
+      const exerciseId = set.workout_exercise_id;
+      
+      if (!groups[exerciseId]) {
+        const exerciseInfo = findExerciseInfo(exerciseId, workout);
+        
+        groups[exerciseId] = {
+          name: exerciseInfo.name,
+          type: exerciseInfo.type,
+          sets: []
+        };
+      }
+      
+      groups[exerciseId].sets.push(set);
+    });
+    
+    // Sort sets in each group by set number
+    Object.values(groups).forEach(group => {
+      group.sets.sort((a, b) => a.set_number - b.set_number);
+    });
+    
+    setExerciseGroups(groups);
+    setCurrentWorkout(workout);
+    setEditDialogOpen(true);
+  };
+  
+  // Refresh workout data after editing
+  const refreshWorkoutData = async () => {
+    // This function will be called after a successful edit
+    // The parent component should handle refetching the data
+    // We'll just close the dialog for now
+    setEditDialogOpen(false);
+    setCurrentWorkout(null);
+  };
+
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm mb-8 w-full">
       <h3 className="text-lg font-semibold mb-3 flex items-center justify-center gap-2">
@@ -214,12 +312,25 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                 )}
                 <CardTitle className="text-base">{workout.workout?.title || "Untitled Workout"}</CardTitle>
               </div>
-              {workout.rating && (
-                <div className="flex items-center text-sm">
-                  <Heart className="h-4 w-4 text-red-500 mr-1" />
-                  <span>Rating: {workout.rating}/5</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {workout.rating && (
+                  <div className="flex items-center text-sm">
+                    <Heart className="h-4 w-4 text-red-500 mr-1" />
+                    <span>Rating: {workout.rating}/5</span>
+                  </div>
+                )}
+                {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 text-blue-600 hover:text-blue-800"
+                    onClick={() => handleEditWorkout(workout)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Edit</span>
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="py-3 px-4">
               {workout.workout?.description && (
@@ -304,11 +415,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                             
                             {group.type === 'cardio' ? (
                               // Display cardio details
-                              <div className="mt-1 grid grid-cols-3 gap-2 text-xs">
-                                <div>
-                                  <span className="font-medium">Distance: </span>
-                                  <span>{group.sets[0]?.distance || 'N/A'}</span>
-                                </div>
+                              <div className="mt-1 grid grid-cols-2 gap-2 text-xs">
                                 <div>
                                   <span className="font-medium">Duration: </span>
                                   <span>{group.sets[0]?.duration || 'N/A'}</span>
@@ -361,6 +468,17 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           </Card>
         ))}
       </div>
+      
+      {/* Edit workout dialog */}
+      {currentWorkout && (
+        <EditWorkoutSetCompletions
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          workout={currentWorkout}
+          exerciseGroups={exerciseGroups}
+          onSave={refreshWorkoutData}
+        />
+      )}
     </div>
   );
 };

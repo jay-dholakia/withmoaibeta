@@ -220,15 +220,18 @@ const ActiveWorkout = () => {
       
       try {
         return await trackWorkoutSet(
-          workoutCompletionId,
           exerciseId,
+          workoutCompletionId,
           setNumber,
-          weight ? parseFloat(weight) : null,
-          reps ? parseInt(reps, 10) : null,
-          notes || null,
-          distance || null,
-          duration || null,
-          location || null
+          {
+            weight: weight ? parseFloat(weight) : null,
+            reps_completed: reps ? parseInt(reps, 10) : null,
+            notes: notes || null,
+            distance: distance || null,
+            duration: duration || null,
+            location: location || null,
+            completed: true
+          }
         );
       } catch (error) {
         console.error("Error in trackSetMutation:", error);
@@ -293,11 +296,14 @@ const ActiveWorkout = () => {
         if (pendingSets.length > 0) {
           const setPromises = pendingSets.map(set => 
             trackWorkoutSet(
-              completionId!,
               set.exerciseId,
+              completionId!,
               set.setNumber,
-              set.weight ? parseFloat(set.weight) : null,
-              set.reps ? parseInt(set.reps, 10) : null
+              {
+                weight: set.weight ? parseFloat(set.weight) : null,
+                reps_completed: set.reps ? parseInt(set.reps, 10) : null,
+                completed: true
+              }
             )
           );
           promises.push(...setPromises);
@@ -310,15 +316,15 @@ const ActiveWorkout = () => {
               : null;
               
             return trackWorkoutSet(
-              completionId!,
               item.exerciseId,
+              completionId!,
               1,
-              null,
-              null,
-              null,
-              distance,
-              item.duration || null,
-              item.location || null
+              {
+                distance,
+                duration: item.duration || null,
+                location: item.location || null,
+                completed: true
+              }
             );
           });
           promises.push(...cardioPromises);
@@ -327,15 +333,13 @@ const ActiveWorkout = () => {
         if (pendingFlexibility.length > 0) {
           const flexibilityPromises = pendingFlexibility.map(item => {
             return trackWorkoutSet(
-              completionId!,
               item.exerciseId,
+              completionId!,
               1,
-              null,
-              null,
-              null,
-              null,
-              item.duration || null,
-              null
+              {
+                duration: item.duration || null,
+                completed: true
+              }
             );
           });
           promises.push(...flexibilityPromises);
@@ -348,15 +352,15 @@ const ActiveWorkout = () => {
               : null;
               
             return trackWorkoutSet(
-              completionId!,
               item.exerciseId,
+              completionId!,
               1,
-              null,
-              null,
-              null,
-              distance,
-              item.duration || null,
-              item.location || null
+              {
+                distance,
+                duration: item.duration || null,
+                location: item.location || null,
+                completed: true
+              }
             );
           });
           promises.push(...runPromises);

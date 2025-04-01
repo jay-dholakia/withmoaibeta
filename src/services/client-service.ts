@@ -316,7 +316,7 @@ export const deleteUser = async (userId: string): Promise<boolean> => {
 /**
  * Send password reset email
  */
-export const sendPasswordResetEmail = async (email: string): Promise<void> => {
+export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
@@ -326,6 +326,8 @@ export const sendPasswordResetEmail = async (email: string): Promise<void> => {
       console.error("Error sending password reset email:", error);
       throw error;
     }
+    
+    return true;
   } catch (error) {
     console.error("Error in sendPasswordResetEmail:", error);
     throw error;
@@ -340,13 +342,13 @@ export const trackWorkoutSet = async (
   workoutCompletionId: string,
   setNumber: number,
   data: {
-    weight?: number;
-    reps_completed?: number;
+    weight?: number | null;
+    reps_completed?: number | null;
     completed?: boolean;
-    notes?: string;
-    distance?: string;
-    duration?: string;
-    location?: string;
+    notes?: string | null;
+    distance?: string | null;
+    duration?: string | null;
+    location?: string | null;
   }
 ) => {
   try {
@@ -421,7 +423,7 @@ export const completeWorkout = async (
   workoutId: string,
   rating: number | null = null,
   notes: string | null = null
-) => {
+): Promise<any> => {
   try {
     const { data: existingCompletion, error: fetchError } = await supabase
       .from('workout_completions')
@@ -433,7 +435,12 @@ export const completeWorkout = async (
       console.error("Error checking workout completion:", fetchError);
     }
     
-    const userId = await getUser().then(user => user?.id);
+    const user = await getUser();
+    const userId = user?.id;
+    
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
     
     if (existingCompletion) {
       const { data, error } = await supabase

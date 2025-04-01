@@ -167,12 +167,7 @@ const ClientsPage: React.FC = () => {
   const handleResetPassword = async (client: Client) => {
     setIsResettingPassword(true);
     try {
-      const success = await sendPasswordResetEmail(client.email);
-      
-      if (!success) {
-        throw new Error('Failed to send password reset email');
-      }
-      
+      await sendPasswordResetEmail(client.email);
       toast.success(`Password reset email sent to ${client.email}`);
     } catch (err) {
       console.error('Error in password reset process:', err);

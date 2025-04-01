@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
@@ -136,16 +135,11 @@ const ResetPassword: React.FC = () => {
         return;
       }
       
-      const success = await sendPasswordResetEmail(emailToResend);
-      
-      if (success) {
-        toast.success('A new password reset link has been sent to your email');
-        setTimeout(() => {
-          navigate(`/${userType}-login`);
-        }, 3000);
-      } else {
-        toast.error('Failed to send reset email. Please try again later.');
-      }
+      await sendPasswordResetEmail(emailToResend);
+      toast.success('A new password reset link has been sent to your email');
+      setTimeout(() => {
+        navigate(`/${userType}-login`);
+      }, 3000);
     } catch (error) {
       console.error('Error resending password reset:', error);
       toast.error('Failed to send new password reset link');

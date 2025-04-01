@@ -197,8 +197,8 @@ export const createOneOffWorkoutCompletion = async (workoutData: any): Promise<v
       throw new Error("User not authenticated");
     }
     
-    // Prepare completion data
-    const completionData: Record<string, any> = {
+    // Explicitly type the completion data with the expected structure
+    const completionData = {
       user_id: user.id,
       completed_at: new Date().toISOString(),
       title: workoutData.title,
@@ -211,19 +211,33 @@ export const createOneOffWorkoutCompletion = async (workoutData: any): Promise<v
       location: workoutData.location
     };
     
-    // Generate a UUID for the custom workout if needed
+    // Add custom_workout_id if provided
     if (workoutData.custom_workout_id) {
-      completionData.custom_workout_id = workoutData.custom_workout_id;
-    }
-    
-    // Create a workout completion entry
-    const { error } = await supabase
-      .from('workout_completions')
-      .insert(completionData);
-    
-    if (error) {
-      console.error("Error creating one-off workout completion:", error);
-      throw error;
+      // Create a new object with the additional property rather than modifying the typed object
+      const dataWithCustomWorkoutId = {
+        ...completionData,
+        custom_workout_id: workoutData.custom_workout_id
+      };
+      
+      // Create a workout completion entry with custom_workout_id
+      const { error } = await supabase
+        .from('workout_completions')
+        .insert(dataWithCustomWorkoutId);
+      
+      if (error) {
+        console.error("Error creating one-off workout completion with custom_workout_id:", error);
+        throw error;
+      }
+    } else {
+      // Create a workout completion entry without custom_workout_id
+      const { error } = await supabase
+        .from('workout_completions')
+        .insert(completionData);
+      
+      if (error) {
+        console.error("Error creating one-off workout completion:", error);
+        throw error;
+      }
     }
     
     console.log("One-off workout logged successfully");

@@ -35,7 +35,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Toaster position="top-center" richColors />
       
-      <header className="bg-white shadow-sm border-b border-gray-200 py-4 z-20 relative">
+      <header className="bg-white shadow-sm border-b border-gray-200 py-4">
         <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
@@ -52,7 +52,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
         </div>
       </header>
       
-      <main className="flex-grow py-6 mb-16 w-full overflow-visible">
+      <main className="flex-grow py-6 mb-16 w-full">
         <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
           <PageTransition>
             {children}
@@ -60,7 +60,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
         </div>
       </main>
       
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md z-30">
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md">
         <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
           <nav className="flex justify-center">
             <ul className="flex justify-evenly w-full max-w-screen-xl mx-auto">

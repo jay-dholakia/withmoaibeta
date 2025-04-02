@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { WorkoutHistoryItem, WorkoutSetCompletion } from '@/types/workout';
+import { WorkoutHistoryItem } from '@/types/workout';
 import { format, isValid } from 'date-fns';
-import { FileX, Edit, Save, X, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
+import { FileX, Edit, Save, X } from 'lucide-react';
 import { WorkoutTypeIcon, WORKOUT_TYPES } from './WorkoutTypeIcon';
 import { Button } from '@/components/ui/button';
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,6 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { toast } from 'sonner';
 import { updateCustomWorkout } from '@/services/client-custom-workout-service';
 import { updateWorkoutCompletion } from '@/services/workout-edit-service';
-import EditWorkoutSetCompletions from './EditWorkoutSetCompletions';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -23,9 +22,6 @@ interface WorkoutDayDetailsProps {
 export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, workouts }) => {
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
-  const [editSetsDialogOpen, setEditSetsDialogOpen] = useState(false);
-  const [selectedWorkout, setSelectedWorkout] = useState<WorkoutHistoryItem | null>(null);
   
   // Form state for editing
   const [editTitle, setEditTitle] = useState('');
@@ -109,53 +105,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     return Boolean(workout.custom_workout_id) || // Has a custom workout ID
            Boolean(workout.title) || // Has a title (could be one-off entry)
            (workout.workout_type === 'one_off' || workout.workout_type === 'custom'); // Is a one-off or custom workout
-  };
-
-  // Function to toggle workout expansion
-  const toggleWorkoutExpansion = (workoutId: string) => {
-    if (expandedWorkoutId === workoutId) {
-      setExpandedWorkoutId(null);
-    } else {
-      setExpandedWorkoutId(workoutId);
-    }
-  };
-
-  // Group workout set completions by exercise
-  const groupSetsByExercise = (workout: WorkoutHistoryItem) => {
-    const groups: Record<string, { name: string, type: string, sets: WorkoutSetCompletion[] }> = {};
-    
-    if (!workout.workout_set_completions || workout.workout_set_completions.length === 0) {
-      return groups;
-    }
-    
-    workout.workout_set_completions.forEach(set => {
-      // Use workout_exercise_id as the key
-      const key = set.workout_exercise_id;
-      if (!groups[key]) {
-        // Try to find the exercise name from the workout
-        let exerciseName = "Unknown Exercise";
-        let exerciseType = "strength";
-        
-        // This is a placeholder - in a real app, you'd have access to the exercise details
-        // For now, we'll just use a generic name and type
-        
-        groups[key] = {
-          name: exerciseName,
-          type: exerciseType,
-          sets: []
-        };
-      }
-      
-      groups[key].sets.push(set);
-    });
-    
-    return groups;
-  };
-
-  // Open edit sets dialog
-  const openEditSetsDialog = (workout: WorkoutHistoryItem) => {
-    setSelectedWorkout(workout);
-    setEditSetsDialogOpen(true);
   };
 
   if (workouts.length === 0) {
@@ -297,35 +246,17 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    {isWorkoutEditable(workout) && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleEditWorkout(workout)}
-                        className="text-xs"
-                      >
-                        <Edit className="h-3.5 w-3.5 mr-1" />
-                        Edit
-                      </Button>
-                    )}
-                    
-                    {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleWorkoutExpansion(workout.id)}
-                        className="text-xs"
-                      >
-                        {expandedWorkoutId === workout.id ? (
-                          <ChevronUp className="h-3.5 w-3.5 mr-1" />
-                        ) : (
-                          <ChevronDown className="h-3.5 w-3.5 mr-1" />
-                        )}
-                        {expandedWorkoutId === workout.id ? 'Hide Details' : 'Show Details'}
-                      </Button>
-                    )}
-                  </div>
+                  {isWorkoutEditable(workout) && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleEditWorkout(workout)}
+                      className="text-xs"
+                    >
+                      <Edit className="h-3.5 w-3.5 mr-1" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
                 
                 {(workout.description || workout.workout?.description) && (
@@ -383,83 +314,11 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                     Life Happens Pass Used
                   </div>
                 )}
-                
-                {/* Exercise Details Section */}
-                {expandedWorkoutId === workout.id && workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
-                  <div className="mt-4 border-t pt-3">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-medium text-sm">Exercise Details</h4>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => openEditSetsDialog(workout)}
-                      >
-                        <Edit2 className="h-3.5 w-3.5 mr-1" />
-                        Edit Data
-                      </Button>
-                    </div>
-                    
-                    {Object.entries(groupSetsByExercise(workout)).map(([exerciseId, group]) => (
-                      <div key={exerciseId} className="mb-4 last:mb-0">
-                        <h5 className="text-sm font-medium mb-2">{group.name}</h5>
-                        
-                        {group.type === 'cardio' ? (
-                          <div className="bg-muted p-2 rounded-md text-xs">
-                            <div>Duration: {group.sets[0]?.duration || 'N/A'}</div>
-                            {group.sets[0]?.notes && <div>Notes: {group.sets[0]?.notes}</div>}
-                          </div>
-                        ) : (
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full text-xs">
-                              <thead>
-                                <tr className="border-b">
-                                  <th className="text-left pb-1 font-medium">Set</th>
-                                  <th className="text-right pb-1 font-medium">Reps</th>
-                                  <th className="text-right pb-1 font-medium">Weight</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {group.sets.sort((a, b) => a.set_number - b.set_number).map(set => (
-                                  <tr key={set.id} className="border-b border-gray-100 last:border-0">
-                                    <td className="py-1">{set.set_number}</td>
-                                    <td className="text-right py-1">{set.reps_completed || '-'}</td>
-                                    <td className="text-right py-1">{set.weight || '-'}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                            
-                            {group.sets[0]?.notes && (
-                              <div className="mt-1 text-xs text-muted-foreground">
-                                Notes: {group.sets[0].notes}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </>
             )}
           </CardContent>
         </Card>
       ))}
-      
-      {/* Edit Sets Dialog */}
-      {selectedWorkout && (
-        <EditWorkoutSetCompletions
-          open={editSetsDialogOpen}
-          onOpenChange={setEditSetsDialogOpen}
-          workout={selectedWorkout}
-          exerciseGroups={groupSetsByExercise(selectedWorkout)}
-          onSave={() => {
-            // Refresh data after saving
-            document.getElementById('refresh-workout-history')?.click();
-          }}
-        />
-      )}
     </div>
   );
 };

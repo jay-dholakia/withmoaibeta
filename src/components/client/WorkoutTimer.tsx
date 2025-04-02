@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -128,7 +127,7 @@ const WorkoutTimer = () => {
   // Position differently based on whether it's minimized
   const positionClasses = isMinimized
     ? "fixed top-20 right-4 z-50 max-w-[120px]" 
-    : "fixed bottom-36 left-0 right-0 z-10 mx-auto max-w-md";
+    : "fixed bottom-36 left-0 right-0 z-50 mx-auto max-w-md";
 
   if (isMinimized) {
     return (

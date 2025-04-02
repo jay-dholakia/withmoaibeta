@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -392,7 +391,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                             <div className="flex justify-between items-start">
                               <div>
                                 <h4 className="font-medium">
-                                  {workout.workout?.title || "Basketball"}
+                                  {workout.title || workout.workout?.title || "Untitled Workout"}
                                 </h4>
                                 <p className="text-sm text-muted-foreground">
                                   {new Date(workout.completed_at).toLocaleDateString(undefined, {

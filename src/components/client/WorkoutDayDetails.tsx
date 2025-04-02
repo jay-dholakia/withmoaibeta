@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { updateCustomWorkout } from '@/services/client-custom-workout-service';
+import { updateWorkoutCompletion } from '@/services/workout-edit-service';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -27,6 +28,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   const [editDescription, setEditDescription] = useState('');
   const [editDuration, setEditDuration] = useState<number | null>(null);
   const [editWorkoutType, setEditWorkoutType] = useState<string>('strength');
+  const [editNotes, setEditNotes] = useState('');
 
   if (!date || !isValid(date)) {
     return (
@@ -41,13 +43,11 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   }
 
   const handleEditWorkout = (workout: WorkoutHistoryItem) => {
-    // Only allow editing for custom workouts
-    if (!workout.custom_workout_id && !workout.title) return;
-    
     setEditTitle(workout.title || '');
     setEditDescription(workout.description || '');
     setEditDuration(workout.duration ? parseInt(workout.duration) : null);
     setEditWorkoutType(workout.workout_type || 'custom');
+    setEditNotes(workout.notes || '');
     setEditingWorkoutId(workout.id);
   };
 
@@ -56,32 +56,27 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   };
 
   const handleSaveWorkout = async (workout: WorkoutHistoryItem) => {
-    if (!workout.custom_workout_id) return;
-    
     try {
       setIsSaving(true);
       
-      await updateCustomWorkout(workout.custom_workout_id, {
-        title: editTitle,
-        description: editDescription || null,
-        duration_minutes: editDuration,
-        workout_type: editWorkoutType
-      });
-      
-      // Update the workout in the local state without requiring a refresh
-      const updatedWorkout = {
-        ...workout,
-        title: editTitle,
-        description: editDescription,
-        duration: editDuration ? editDuration.toString() : null,
-        workout_type: editWorkoutType,
-        workout: {
-          ...workout.workout,
+      if (workout.custom_workout_id) {
+        // Update existing custom workout
+        await updateCustomWorkout(workout.custom_workout_id, {
           title: editTitle,
-          description: editDescription,
+          description: editDescription || null,
+          duration_minutes: editDuration,
           workout_type: editWorkoutType
-        }
-      };
+        });
+      } else {
+        // Update workout completion entry directly
+        await updateWorkoutCompletion(workout.id, {
+          title: editTitle,
+          description: editDescription || null,
+          duration: editDuration ? editDuration.toString() : null,
+          workout_type: editWorkoutType,
+          notes: editNotes
+        });
+      }
       
       // Refresh the page to show updated data
       document.getElementById('refresh-workout-history')?.click();
@@ -105,10 +100,11 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     }
   };
 
-  // Function to determine if a workout is editable (i.e., it's a custom workout)
+  // Function to determine if a workout is editable
   const isWorkoutEditable = (workout: WorkoutHistoryItem): boolean => {
-    return Boolean(workout.custom_workout_id) || 
-          (Boolean(workout.title) && !workout.workout_id);
+    return Boolean(workout.custom_workout_id) || // Has a custom workout ID
+           Boolean(workout.title) || // Has a title (could be one-off entry)
+           (workout.workout_type === 'one_off' || workout.workout_type === 'custom'); // Is a one-off or custom workout
   };
 
   if (workouts.length === 0) {
@@ -190,6 +186,18 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                       placeholder="Enter workout description"
                       className="mt-1"
                       rows={3}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={editNotes}
+                      onChange={(e) => setEditNotes(e.target.value)}
+                      placeholder="Enter workout notes"
+                      className="mt-1"
+                      rows={2}
                     />
                   </div>
                 </div>

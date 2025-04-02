@@ -28,6 +28,39 @@ export const updateWorkoutSetCompletion = async (
 };
 
 /**
+ * Updates a workout completion entry directly
+ */
+export const updateWorkoutCompletion = async (
+  completionId: string,
+  data: {
+    title?: string;
+    description?: string | null;
+    duration?: string | null;
+    workout_type?: string;
+    notes?: string | null;
+    location?: string | null;
+    distance?: string | null;
+  }
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('workout_completions')
+      .update(data)
+      .eq('id', completionId);
+      
+    if (error) {
+      console.error("Error updating workout completion:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error in updateWorkoutCompletion:", error);
+    return false;
+  }
+};
+
+/**
  * Batch updates a list of workout set completions
  */
 export const batchUpdateWorkoutSetCompletions = async (

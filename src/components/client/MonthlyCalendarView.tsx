@@ -137,18 +137,21 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
     }
 
     for (const workout of workoutsForDay) {
+      const title = (workout.title || workout.workout?.title || '').toLowerCase();
+      
+      if (title.includes('tennis')) return 'sport';
+      if (title.includes('soccer') || title.includes('football')) return 'sport';
+      if (title.includes('basketball')) return 'sport';
+      if (title.includes('volleyball')) return 'sport';
+      if (title.includes('baseball')) return 'sport';
+      if (title.includes('golf')) return 'sport';
+      if (title.includes('game') || title.includes('match') || title.includes('play')) return 'sport';
+    }
+    
+    for (const workout of workoutsForDay) {
       if (workout.workout_type) {
         const type = workout.workout_type.toLowerCase();
-        if (type.includes('tennis') || 
-            type.includes('soccer') || 
-            type.includes('football') || 
-            type.includes('basketball') || 
-            type.includes('sport') || 
-            type.includes('game') || 
-            type.includes('match')) {
-          return 'sport';
-        }
-        
+        if (type === 'sport') return 'sport';
         if (type === 'strength') return 'strength';
         if (type === 'cardio') return 'cardio';
         if (type === 'bodyweight') return 'bodyweight';
@@ -159,6 +162,16 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
         if (type === 'dance') return 'dance';
         if (type === 'custom') return 'custom';
         if (type === 'one_off') return 'one_off';
+        
+        if (type.includes('tennis') || 
+            type.includes('soccer') || 
+            type.includes('football') || 
+            type.includes('basketball') || 
+            type.includes('sport') || 
+            type.includes('game') || 
+            type.includes('match')) {
+          return 'sport';
+        }
       }
     }
 
@@ -187,30 +200,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
     }
 
     for (const workout of workoutsForDay) {
-      const title = workout.title?.toLowerCase() || workout.workout?.title?.toLowerCase() || '';
-      
-      if (title.includes('tennis') || 
-          title.includes('soccer') || 
-          title.includes('basketball') || 
-          title.includes('sport') || 
-          title.includes('game') || 
-          title.includes('match') || 
-          title.includes('play')) {
-        return 'sport';
-      }
-      
-      if (title.includes('dance')) return 'dance';
-      if (title.includes('swim')) return 'swimming';
-      if (title.includes('cycl') || title.includes('bike')) return 'cycling';
-      if (title.includes('hiit')) return 'hiit';
-      if (title.includes('strength')) return 'strength';
-      if (title.includes('cardio') || title.includes('run')) return 'cardio';
-      if (title.includes('flex') || title.includes('stretch') || title.includes('yoga')) return 'flexibility';
-      if (title.includes('bodyweight')) return 'bodyweight';
-    }
-
-    for (const workout of workoutsForDay) {
-      const description = workout.description?.toLowerCase() || workout.workout?.description?.toLowerCase() || '';
+      const description = (workout.description || workout.workout?.description || '').toLowerCase();
       
       if (description.includes('tennis') || 
           description.includes('soccer') || 
@@ -221,6 +211,15 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
           description.includes('play')) {
         return 'sport';
       }
+      
+      if (description.includes('dance')) return 'dance';
+      if (description.includes('swim')) return 'swimming';
+      if (description.includes('cycl') || description.includes('bike')) return 'cycling';
+      if (description.includes('hiit')) return 'hiit';
+      if (description.includes('strength')) return 'strength';
+      if (description.includes('cardio') || description.includes('run')) return 'cardio';
+      if (description.includes('flex') || description.includes('stretch') || description.includes('yoga')) return 'flexibility';
+      if (description.includes('bodyweight')) return 'bodyweight';
     }
 
     return 'custom';

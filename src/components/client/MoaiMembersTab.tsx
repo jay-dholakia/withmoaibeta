@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, ArrowLeft, UserRound, Trophy, Calendar, ShieldCheck, Smile, Meh, Frown } from 'lucide-react';
+import { Loader2, ArrowLeft, UserRound, Trophy, Calendar, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -204,29 +204,16 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
 
   const isOwnProfile = selectedMember === user?.id;
 
-  const renderRatingEmoji = (rating: number | null) => {
-    if (!rating) return null;
-    
-    switch(true) {
-      case rating >= 4:
-        return <Smile className="h-5 w-5 text-green-500" />;
-      case rating >= 3:
-        return <Meh className="h-5 w-5 text-amber-500" />;
-      default:
-        return <Frown className="h-5 w-5 text-red-500" />;
-    }
-  };
-
-  const getRatingText = (rating: number | null) => {
+  const getRatingEmoji = (rating: number | null) => {
     if (!rating) return '';
     
     switch(true) {
       case rating >= 4:
-        return 'Great workout';
+        return '😀';
       case rating >= 3:
-        return 'Decent workout';
+        return '😐';
       default:
-        return 'Tough workout';
+        return '😣';
     }
   };
 
@@ -418,11 +405,8 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                               {workout.rating && (
                                 <div>
                                   {isOwnProfile ? (
-                                    <div className="flex items-center gap-1.5">
-                                      {renderRatingEmoji(workout.rating)}
-                                      <span className="text-sm text-muted-foreground">
-                                        {getRatingText(workout.rating)}
-                                      </span>
+                                    <div className="text-lg">
+                                      {getRatingEmoji(workout.rating)}
                                     </div>
                                   ) : (
                                     <Badge variant="outline">

@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { WeekProgressBar } from './WeekProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format, isThisWeek } from 'date-fns';
 import { WorkoutType } from './WorkoutTypeIcon';
 import { WorkoutProgressCard } from './WorkoutProgressCard';
+import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -30,6 +32,7 @@ export const WeekProgressSection = ({
   const { user } = useAuth();
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
   const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
+  const [typesMap, setTypesMap] = useState<Record<string, WorkoutType>>(workoutTypesMap);
   
   // Query client workouts to get completed dates
   const { data: clientWorkouts, isLoading: isLoadingWorkouts } = useQuery({
@@ -67,26 +70,72 @@ export const WeekProgressSection = ({
     if (clientWorkouts && clientWorkouts.length > 0) {
       const newCompletedDates: Date[] = [];
       const newLifeHappensDates: Date[] = [];
+      const newTypesMap: Record<string, WorkoutType> = {};
+      const titleMap: Record<string, string> = {};
       
       clientWorkouts.forEach(workout => {
         if (workout.completed_at) {
-          // Handle both string and Date objects
-          const completionDate = typeof workout.completed_at === 'string' 
-            ? new Date(workout.completed_at) 
-            : workout.completed_at;
+          try {
+            // Handle both string and Date objects
+            const completionDate = typeof workout.completed_at === 'string' 
+              ? new Date(workout.completed_at) 
+              : workout.completed_at;
+              
+            const dateKey = format(completionDate, 'yyyy-MM-dd');
             
-          if (workout.life_happens_pass || workout.rest_day) {
-            newLifeHappensDates.push(completionDate);
-          } else {
+            if (workout.life_happens_pass || workout.rest_day) {
+              newLifeHappensDates.push(completionDate);
+              newTypesMap[dateKey] = 'rest_day';
+              return;
+            }
+            
             newCompletedDates.push(completionDate);
+            
+            // Store title for better type detection
+            if (workout.title) {
+              titleMap[dateKey] = workout.title;
+            } else if (workout.workout?.title) {
+              titleMap[dateKey] = workout.workout.title;
+            }
+            
+            // Determine workout type
+            if (workout.workout_type) {
+              newTypesMap[dateKey] = workout.workout_type as WorkoutType;
+            } else if (workout.workout?.workout_type) {
+              const type = String(workout.workout.workout_type).toLowerCase();
+              if (type.includes('strength')) newTypesMap[dateKey] = 'strength';
+              else if (type.includes('cardio') || type.includes('run')) newTypesMap[dateKey] = 'cardio';
+              else if (type.includes('body') || type.includes('weight')) newTypesMap[dateKey] = 'bodyweight';
+              else if (type.includes('flex') || type.includes('yoga') || type.includes('stretch')) newTypesMap[dateKey] = 'flexibility';
+              else if (type.includes('hiit')) newTypesMap[dateKey] = 'hiit';
+              else if (type.includes('sport')) newTypesMap[dateKey] = 'sport';
+              else if (type.includes('swim')) newTypesMap[dateKey] = 'swimming';
+              else if (type.includes('cycle') || type.includes('bike')) newTypesMap[dateKey] = 'cycling';
+              else if (type.includes('dance')) newTypesMap[dateKey] = 'dance';
+              else if (titleMap[dateKey]) {
+                newTypesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
+              } else {
+                newTypesMap[dateKey] = 'strength';
+              }
+            } else if (titleMap[dateKey]) {
+              newTypesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
+            } else {
+              newTypesMap[dateKey] = 'strength';
+            }
+          } catch (error) {
+            console.error("Error processing workout completion:", error);
           }
         }
       });
       
+      // Add title map to types map for reference
+      newTypesMap._title_map = titleMap;
+      
       setCompletedDates(newCompletedDates);
       setLifeHappensDates(newLifeHappensDates);
+      setTypesMap({...workoutTypesMap, ...newTypesMap});
     }
-  }, [clientWorkouts]);
+  }, [clientWorkouts, workoutTypesMap]);
   
   // Count number of completed workouts this week
   const completedThisWeek = useMemo(() => {
@@ -120,7 +169,7 @@ export const WeekProgressSection = ({
           lifeHappensDates={lifeHappensDates}
           count={totalCompletedThisWeek}
           total={finalAssignedWorkoutsCount}
-          workoutTypesMap={workoutTypesMap}
+          workoutTypesMap={typesMap}
           userName={userDisplayName}
           isCurrentUser={true}
         />

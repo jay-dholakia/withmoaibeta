@@ -13,6 +13,7 @@ import { fetchClientProfile } from '@/services/client-service';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
@@ -86,6 +87,7 @@ const LeaderboardPage = () => {
     const completed: Date[] = [];
     const lifeHappens: Date[] = [];
     const typesMap: Record<string, WorkoutType> = {};
+    const titleMap: Record<string, string> = {}; // Store titles for better workout type detection
     
     if (clientWorkouts && Array.isArray(clientWorkouts) && clientWorkouts.length > 0) {
       clientWorkouts.forEach(item => {
@@ -108,8 +110,19 @@ const LeaderboardPage = () => {
         
         completed.push(completionDate);
         
-        if (item.workout?.workout_type) {
-          // Standardize the workout type
+        // Store title for better type detection
+        if (item.title) {
+          titleMap[dateKey] = item.title;
+        } else if (item.workout?.title) {
+          titleMap[dateKey] = item.workout.title;
+        }
+        
+        // Try to determine workout type from various sources
+        if (item.workout_type) {
+          // Already has a workout_type field
+          typesMap[dateKey] = item.workout_type as WorkoutType;
+        } else if (item.workout?.workout_type) {
+          // Get from the workout's type
           const type = String(item.workout.workout_type).toLowerCase();
           if (type.includes('strength')) typesMap[dateKey] = 'strength';
           else if (type.includes('cardio') || type.includes('run')) typesMap[dateKey] = 'cardio';
@@ -118,23 +131,30 @@ const LeaderboardPage = () => {
           else if (type.includes('rest')) typesMap[dateKey] = 'rest_day';
           else if (type.includes('custom')) typesMap[dateKey] = 'custom';
           else if (type.includes('one')) typesMap[dateKey] = 'one_off';
-          else typesMap[dateKey] = 'strength'; // Default
-          return;
-        }
-        
-        // Fallback to checking workout title
-        if (item.workout?.title) {
-          const title = item.workout.title.toLowerCase();
-          if (title.includes('strength')) typesMap[dateKey] = 'strength';
-          else if (title.includes('cardio') || title.includes('run')) typesMap[dateKey] = 'cardio';
-          else if (title.includes('body') || title.includes('weight')) typesMap[dateKey] = 'bodyweight';
-          else if (title.includes('flex') || title.includes('yoga') || title.includes('stretch')) typesMap[dateKey] = 'flexibility';
-          else typesMap[dateKey] = 'strength'; // Default
+          else if (type.includes('hiit')) typesMap[dateKey] = 'hiit';
+          else if (type.includes('sport')) typesMap[dateKey] = 'sport';
+          else if (type.includes('swim')) typesMap[dateKey] = 'swimming';
+          else if (type.includes('cycle') || type.includes('bike')) typesMap[dateKey] = 'cycling';
+          else if (type.includes('dance')) typesMap[dateKey] = 'dance';
+          else {
+            // If we have a title, try to detect from title
+            if (titleMap[dateKey]) {
+              typesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
+            } else {
+              typesMap[dateKey] = 'strength'; // Default
+            }
+          }
+        } else if (titleMap[dateKey]) {
+          // Use our helper function to detect type from title
+          typesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
         } else {
-          typesMap[dateKey] = 'strength'; // Default if no other information
+          typesMap[dateKey] = 'strength'; // Default if no information
         }
       });
     }
+    
+    // Add title map to workoutTypesMap for reference 
+    typesMap._title_map = titleMap;
     
     return { completedDates: completed, lifeHappensDates: lifeHappens, workoutTypesMap: typesMap };
   }, [clientWorkouts]);

@@ -10,6 +10,7 @@ import { WorkoutProgressCard } from './WorkoutProgressCard';
 import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 
 interface MoaiGroupProgressProps {
   groupId: string;
@@ -153,6 +154,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
       const newCompletedDates: Date[] = [];
       const newLifeHappensDates: Date[] = [];
       const newWorkoutTypesMap: Record<string, WorkoutType> = {};
+      const titleMap: Record<string, string> = {}; // Store titles for better workout type detection
       
       currentUserWorkouts.forEach(workout => {
         if (workout.completed_at) {
@@ -166,21 +168,51 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
               
               if (workout.life_happens_pass || workout.rest_day) {
                 newLifeHappensDates.push(completionDate);
+                newWorkoutTypesMap[dateKey] = 'rest_day';
                 return;
               }
               
               newCompletedDates.push(completionDate);
               
-              // Determine workout type
-              if (workout.workout?.workout_type) {
+              // Store title for better type detection
+              if (workout.title) {
+                titleMap[dateKey] = workout.title;
+              } else if (workout.workout?.title) {
+                titleMap[dateKey] = workout.workout.title;
+              }
+              
+              // Try to determine workout type
+              if (workout.workout_type) {
+                // Already has a workout_type field
+                newWorkoutTypesMap[dateKey] = workout.workout_type as WorkoutType;
+              } else if (workout.workout?.workout_type) {
+                // Get from the workout's type
                 const type = String(workout.workout.workout_type).toLowerCase();
                 if (type.includes('strength')) newWorkoutTypesMap[dateKey] = 'strength';
-                else if (type.includes('cardio')) newWorkoutTypesMap[dateKey] = 'cardio';
-                else if (type.includes('body')) newWorkoutTypesMap[dateKey] = 'bodyweight';
-                else if (type.includes('flex')) newWorkoutTypesMap[dateKey] = 'flexibility';
-                else newWorkoutTypesMap[dateKey] = 'strength';
+                else if (type.includes('cardio') || type.includes('run')) newWorkoutTypesMap[dateKey] = 'cardio';
+                else if (type.includes('body') || type.includes('weight')) newWorkoutTypesMap[dateKey] = 'bodyweight';
+                else if (type.includes('flex') || type.includes('yoga') || type.includes('stretch')) newWorkoutTypesMap[dateKey] = 'flexibility';
+                else if (type.includes('rest')) newWorkoutTypesMap[dateKey] = 'rest_day';
+                else if (type.includes('custom')) newWorkoutTypesMap[dateKey] = 'custom';
+                else if (type.includes('one')) newWorkoutTypesMap[dateKey] = 'one_off';
+                else if (type.includes('hiit')) newWorkoutTypesMap[dateKey] = 'hiit';
+                else if (type.includes('sport')) newWorkoutTypesMap[dateKey] = 'sport';
+                else if (type.includes('swim')) newWorkoutTypesMap[dateKey] = 'swimming';
+                else if (type.includes('cycle') || type.includes('bike')) newWorkoutTypesMap[dateKey] = 'cycling';
+                else if (type.includes('dance')) newWorkoutTypesMap[dateKey] = 'dance';
+                else {
+                  // If we have a title, try to detect from title
+                  if (titleMap[dateKey]) {
+                    newWorkoutTypesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
+                  } else {
+                    newWorkoutTypesMap[dateKey] = 'strength'; // Default
+                  }
+                }
+              } else if (titleMap[dateKey]) {
+                // Use our helper function to detect type from title
+                newWorkoutTypesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
               } else {
-                newWorkoutTypesMap[dateKey] = 'strength';
+                newWorkoutTypesMap[dateKey] = 'strength'; // Default
               }
             }
           } catch (error) {
@@ -188,6 +220,9 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
           }
         }
       });
+      
+      // Add title map to workoutTypesMap for reference 
+      newWorkoutTypesMap._title_map = titleMap;
       
       setCompletedDates(newCompletedDates);
       setLifeHappensDates(newLifeHappensDates);
@@ -213,6 +248,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
             const completedDates: Date[] = [];
             const lifeHappensDates: Date[] = [];
             const workoutTypesMap: Record<string, WorkoutType> = {};
+            const titleMap: Record<string, string> = {};
             
             workouts.forEach(workout => {
               if (workout.completed_at) {
@@ -226,19 +262,40 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
                     
                     if (workout.life_happens_pass || workout.rest_day) {
                       lifeHappensDates.push(completionDate);
+                      workoutTypesMap[dateKey] = 'rest_day';
                       return;
                     }
                     
                     completedDates.push(completionDate);
                     
+                    // Store title for better type detection
+                    if (workout.title) {
+                      titleMap[dateKey] = workout.title;
+                    } else if (workout.workout?.title) {
+                      titleMap[dateKey] = workout.workout.title;
+                    }
+                    
                     // Determine workout type
-                    if (workout.workout?.workout_type) {
+                    if (workout.workout_type) {
+                      workoutTypesMap[dateKey] = workout.workout_type as WorkoutType;
+                    } else if (workout.workout?.workout_type) {
                       const type = String(workout.workout.workout_type).toLowerCase();
                       if (type.includes('strength')) workoutTypesMap[dateKey] = 'strength';
-                      else if (type.includes('cardio')) workoutTypesMap[dateKey] = 'cardio';
-                      else if (type.includes('body')) workoutTypesMap[dateKey] = 'bodyweight';
-                      else if (type.includes('flex')) workoutTypesMap[dateKey] = 'flexibility';
-                      else workoutTypesMap[dateKey] = 'strength';
+                      else if (type.includes('cardio') || type.includes('run')) workoutTypesMap[dateKey] = 'cardio';
+                      else if (type.includes('body') || type.includes('weight')) workoutTypesMap[dateKey] = 'bodyweight';
+                      else if (type.includes('flex') || type.includes('yoga') || type.includes('stretch')) workoutTypesMap[dateKey] = 'flexibility';
+                      else if (type.includes('hiit')) workoutTypesMap[dateKey] = 'hiit';
+                      else if (type.includes('sport')) workoutTypesMap[dateKey] = 'sport';
+                      else if (type.includes('swim')) workoutTypesMap[dateKey] = 'swimming';
+                      else if (type.includes('cycle') || type.includes('bike')) workoutTypesMap[dateKey] = 'cycling';
+                      else if (type.includes('dance')) workoutTypesMap[dateKey] = 'dance';
+                      else if (titleMap[dateKey]) {
+                        workoutTypesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
+                      } else {
+                        workoutTypesMap[dateKey] = 'strength';
+                      }
+                    } else if (titleMap[dateKey]) {
+                      workoutTypesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
                     } else {
                       workoutTypesMap[dateKey] = 'strength';
                     }
@@ -248,6 +305,9 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
                 }
               }
             });
+            
+            // Add title map to workoutTypesMap for reference
+            workoutTypesMap._title_map = titleMap;
             
             memberWorkoutsData[member.userId] = {
               completedDates,

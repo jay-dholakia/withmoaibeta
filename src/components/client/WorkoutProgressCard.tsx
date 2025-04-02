@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { WorkoutType, WorkoutTypeIcon } from './WorkoutTypeIcon';
 import { format } from 'date-fns';
+import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 
 interface WorkoutProgressCardProps {
   label: string;
@@ -74,7 +75,19 @@ export const WorkoutProgressCard = ({
             
             // Format date to get the correct workout type from map
             const dateStr = format(currentDay, 'yyyy-MM-dd');
-            const workoutType = workoutTypesMap[dateStr] || (isLifeHappens ? 'rest_day' : 'strength');
+            let workoutType = workoutTypesMap[dateStr];
+            
+            // If we don't have a defined workout type but the day is completed,
+            // detect it from any workout title we might have
+            if (!workoutType && isDayCompleted && workoutTypesMap._title_map && workoutTypesMap._title_map[dateStr]) {
+              const title = workoutTypesMap._title_map[dateStr];
+              workoutType = detectWorkoutTypeFromText(title);
+            }
+            
+            // Fallback to defaults if still no workout type
+            if (!workoutType) {
+              workoutType = isLifeHappens ? 'rest_day' : 'strength';
+            }
             
             // Use lighter background colors for better emoji visibility
             let bgColor = 'bg-slate-50';

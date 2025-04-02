@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { WorkoutSetCompletion } from "@/types/workout";
+import { WorkoutSetCompletion, StandardWorkoutType } from "@/types/workout";
 
 /**
  * Updates a workout set completion record
@@ -141,6 +141,98 @@ export const getExerciseForWorkoutExercise = async (
     console.error("Error in getExerciseForWorkoutExercise:", error);
     return null;
   }
+};
+
+/**
+ * Detects workout type from title or description
+ * This helps ensure the correct workout type emoji is displayed
+ */
+export const detectWorkoutTypeFromText = (text: string): StandardWorkoutType => {
+  if (!text) return 'strength';
+  
+  const lowerText = text.toLowerCase();
+  
+  // Check for sport-related keywords
+  if (
+    lowerText.includes('tennis') || 
+    lowerText.includes('basketball') || 
+    lowerText.includes('soccer') || 
+    lowerText.includes('football') || 
+    lowerText.includes('baseball') || 
+    lowerText.includes('volleyball') || 
+    lowerText.includes('golf') || 
+    lowerText.includes('hockey') || 
+    lowerText.includes('badminton') || 
+    lowerText.includes('frisbee') || 
+    lowerText.includes('sport')
+  ) {
+    return 'sport';
+  }
+  
+  // Check for swimming
+  if (lowerText.includes('swim') || lowerText.includes('pool')) {
+    return 'swimming';
+  }
+  
+  // Check for cycling
+  if (
+    lowerText.includes('bike') || 
+    lowerText.includes('cycling') || 
+    lowerText.includes('cycle')
+  ) {
+    return 'cycling';
+  }
+  
+  // Check for running/cardio
+  if (
+    lowerText.includes('run') || 
+    lowerText.includes('jog') || 
+    lowerText.includes('cardio') || 
+    lowerText.includes('treadmill') || 
+    lowerText.includes('elliptical')
+  ) {
+    return 'cardio';
+  }
+  
+  // Check for HIIT
+  if (
+    lowerText.includes('hiit') || 
+    lowerText.includes('interval') || 
+    lowerText.includes('high intensity')
+  ) {
+    return 'hiit';
+  }
+  
+  // Check for flexibility/yoga
+  if (
+    lowerText.includes('yoga') || 
+    lowerText.includes('stretch') || 
+    lowerText.includes('flexibility') || 
+    lowerText.includes('mobility')
+  ) {
+    return 'flexibility';
+  }
+  
+  // Check for bodyweight
+  if (
+    lowerText.includes('bodyweight') || 
+    lowerText.includes('body weight') || 
+    lowerText.includes('calisthenics')
+  ) {
+    return 'bodyweight';
+  }
+  
+  // Check for dance
+  if (
+    lowerText.includes('dance') || 
+    lowerText.includes('zumba') || 
+    lowerText.includes('aerobics')
+  ) {
+    return 'dance';
+  }
+  
+  // Default to strength
+  return 'strength';
 };
 
 /**

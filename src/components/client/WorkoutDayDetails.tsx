@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { format, isValid } from 'date-fns';
-import { FileX, Edit, Save, X } from 'lucide-react';
+import { FileX, Edit, Save, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { WorkoutTypeIcon, WORKOUT_TYPES } from './WorkoutTypeIcon';
 import { Button } from '@/components/ui/button';
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { toast } from 'sonner';
 import { updateCustomWorkout } from '@/services/client-custom-workout-service';
 import { updateWorkoutCompletion } from '@/services/workout-edit-service';
+import EditWorkoutSetCompletions from './EditWorkoutSetCompletions';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -22,6 +24,9 @@ interface WorkoutDayDetailsProps {
 export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, workouts }) => {
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
+  const [exerciseGroups, setExerciseGroups] = useState<Record<string, any>>({});
+  const [editingExercises, setEditingExercises] = useState(false);
   
   // Form state for editing
   const [editTitle, setEditTitle] = useState('');
@@ -29,6 +34,60 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   const [editDuration, setEditDuration] = useState<number | null>(null);
   const [editWorkoutType, setEditWorkoutType] = useState<string>('strength');
   const [editNotes, setEditNotes] = useState('');
+
+  // Fetch exercise details for a workout
+  useEffect(() => {
+    const fetchWorkoutExerciseDetails = async (workout: WorkoutHistoryItem) => {
+      if (!workout.id || !workout.workout_set_completions || workout.workout_set_completions.length === 0) {
+        return;
+      }
+
+      try {
+        // Group the set completions by exercise
+        const groups: Record<string, any> = {};
+        
+        for (const setCompletion of workout.workout_set_completions) {
+          const exerciseId = setCompletion.workout_exercise_id;
+          
+          if (!groups[exerciseId]) {
+            // Get exercise information
+            const { data: exerciseInfo, error } = await supabase
+              .from('workout_exercises')
+              .select('*, exercise:exercises(name, exercise_type)')
+              .eq('id', exerciseId)
+              .single();
+
+            if (error) {
+              console.error("Error fetching exercise info:", error);
+              continue;
+            }
+
+            groups[exerciseId] = {
+              name: exerciseInfo.exercise ? exerciseInfo.exercise.name : 'Unknown Exercise',
+              type: exerciseInfo.exercise ? exerciseInfo.exercise.exercise_type : 'strength',
+              sets: []
+            };
+          }
+          
+          groups[exerciseId].sets.push(setCompletion);
+        }
+        
+        setExerciseGroups(prev => ({
+          ...prev,
+          [workout.id]: groups
+        }));
+      } catch (error) {
+        console.error("Error fetching workout exercise details:", error);
+      }
+    };
+
+    if (expandedWorkoutId) {
+      const workout = workouts.find(w => w.id === expandedWorkoutId);
+      if (workout && !exerciseGroups[expandedWorkoutId]) {
+        fetchWorkoutExerciseDetails(workout);
+      }
+    }
+  }, [expandedWorkoutId, workouts]);
 
   if (!date || !isValid(date)) {
     return (
@@ -105,6 +164,27 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     return Boolean(workout.custom_workout_id) || // Has a custom workout ID
            Boolean(workout.title) || // Has a title (could be one-off entry)
            (workout.workout_type === 'one_off' || workout.workout_type === 'custom'); // Is a one-off or custom workout
+  };
+
+  // Toggle expanded view of workout details
+  const toggleWorkoutExpand = (workoutId: string) => {
+    if (expandedWorkoutId === workoutId) {
+      setExpandedWorkoutId(null);
+    } else {
+      setExpandedWorkoutId(workoutId);
+    }
+  };
+
+  // Handle editing exercise details
+  const handleEditExercises = (workout: WorkoutHistoryItem) => {
+    setEditingExercises(true);
+  };
+
+  // Save edited exercise data callback
+  const handleExercisesSaved = () => {
+    // Refresh data after saving
+    document.getElementById('refresh-workout-history')?.click();
+    setEditingExercises(false);
   };
 
   if (workouts.length === 0) {
@@ -246,17 +326,35 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                     )}
                   </div>
                   
-                  {isWorkoutEditable(workout) && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleEditWorkout(workout)}
-                      className="text-xs"
-                    >
-                      <Edit className="h-3.5 w-3.5 mr-1" />
-                      Edit
-                    </Button>
-                  )}
+                  <div className="flex space-x-2">
+                    {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => toggleWorkoutExpand(workout.id)}
+                        className="text-xs"
+                      >
+                        {expandedWorkoutId === workout.id ? (
+                          <ChevronUp className="h-3.5 w-3.5 mr-1" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                        )}
+                        {expandedWorkoutId === workout.id ? 'Collapse' : 'Expand'}
+                      </Button>
+                    )}
+
+                    {isWorkoutEditable(workout) && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleEditWorkout(workout)}
+                        className="text-xs"
+                      >
+                        <Edit className="h-3.5 w-3.5 mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 
                 {(workout.description || workout.workout?.description) && (
@@ -286,6 +384,71 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                     </div>
                   )}
                 </div>
+                
+                {expandedWorkoutId === workout.id && workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
+                  <div className="mt-4 border-t pt-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-medium">Exercise Details</h4>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleEditExercises(workout)}
+                      >
+                        <Edit className="h-3.5 w-3.5 mr-1" />
+                        Edit Exercises
+                      </Button>
+                    </div>
+                    
+                    {exerciseGroups[workout.id] ? (
+                      <div className="space-y-3">
+                        {Object.entries(exerciseGroups[workout.id]).map(([exerciseId, group]: [string, any]) => (
+                          <div key={exerciseId} className="bg-muted/50 p-2 rounded-md">
+                            <div className="font-medium">{group.name}</div>
+                            
+                            {group.type === 'cardio' ? (
+                              <div className="text-sm mt-1">
+                                <span className="text-muted-foreground">Duration: </span>
+                                {group.sets[0]?.duration || 'Not recorded'}
+                                
+                                {group.sets[0]?.notes && (
+                                  <div className="mt-1">
+                                    <span className="text-muted-foreground">Notes: </span>
+                                    {group.sets[0].notes}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-3 text-xs font-medium text-muted-foreground mt-1">
+                                <div>Set</div>
+                                <div>Reps</div>
+                                <div>Weight</div>
+                              </div>
+                            )}
+                            
+                            {group.type !== 'cardio' && group.sets.sort((a: any, b: any) => a.set_number - b.set_number).map((set: any) => (
+                              <div key={set.id} className="grid grid-cols-3 text-sm mt-1">
+                                <div>{set.set_number}</div>
+                                <div>{set.reps_completed || '-'}</div>
+                                <div>{set.weight ? `${set.weight} lbs` : '-'}</div>
+                              </div>
+                            ))}
+                            
+                            {group.type !== 'cardio' && group.sets[0]?.notes && (
+                              <div className="text-xs mt-2">
+                                <span className="text-muted-foreground">Notes: </span>
+                                {group.sets[0].notes}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground text-center py-2">
+                        Loading exercise details...
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 {workout.notes && (
                   <div className="mt-3 text-sm">
@@ -319,6 +482,17 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           </CardContent>
         </Card>
       ))}
+
+      {/* Dialog for editing exercise sets */}
+      {editingExercises && expandedWorkoutId && (
+        <EditWorkoutSetCompletions
+          open={editingExercises}
+          onOpenChange={setEditingExercises}
+          workout={workouts.find(w => w.id === expandedWorkoutId)!}
+          exerciseGroups={exerciseGroups[expandedWorkoutId] || {}}
+          onSave={handleExercisesSaved}
+        />
+      )}
     </div>
   );
 };

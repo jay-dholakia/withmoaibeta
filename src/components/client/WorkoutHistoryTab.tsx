@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,7 +37,7 @@ const WorkoutHistoryTab = () => {
             const date = new Date(item.completed_at);
             return {
               date: isValid(date) ? format(date, 'yyyy-MM-dd') : 'invalid-date',
-              type: item.workout?.workout_type || 'unknown'
+              type: item.workout?.workout_type || item.workout_type || 'unknown'
             };
           } catch (err) {
             console.error('Error formatting date:', err, item.completed_at);
@@ -65,7 +66,7 @@ const WorkoutHistoryTab = () => {
       console.log(`Found ${workouts.length} workouts for this date`);
       
       workouts.forEach((workout, i) => {
-        console.log(`Workout ${i+1}: completed at ${workout.completed_at || 'unknown'}, type: ${workout.workout?.workout_type || 'unknown'}`);
+        console.log(`Workout ${i+1}: completed at ${workout.completed_at || 'unknown'}, type: ${workout.workout?.workout_type || workout.workout_type || 'unknown'}`);
       });
       
       setSelectedDate(date);
@@ -82,7 +83,17 @@ const WorkoutHistoryTab = () => {
     
     type = type.toLowerCase();
     
-    if (type.includes('sport') || type.includes('game') || type.includes('match')) return 'sport';
+    // Check for sport-related terms first to prioritize them
+    if (type.includes('sport') || 
+        type.includes('game') || 
+        type.includes('match') || 
+        type.includes('tennis') || 
+        type.includes('ball') || 
+        type.includes('soccer') || 
+        type.includes('football') || 
+        type.includes('basketball') || 
+        type.includes('baseball')) return 'sport';
+    
     if (type.includes('strength')) return 'strength';
     if (type.includes('body') || type.includes('weight')) return 'bodyweight';
     if (type.includes('cardio') || type.includes('run') || type.includes('hiit')) return 'cardio';
@@ -116,18 +127,43 @@ const WorkoutHistoryTab = () => {
             return;
           }
           
-          if (item.workout?.workout_type) {
-            typesMap[dateKey] = getStandardizedWorkoutType(item.workout.workout_type);
-            return;
-          }
-          
+          // Check for direct workout_type on the item
           if (item.workout_type) {
             typesMap[dateKey] = getStandardizedWorkoutType(item.workout_type);
             return;
           }
           
-          const title = item.workout?.title?.toLowerCase() || item.title?.toLowerCase() || '';
-          typesMap[dateKey] = getStandardizedWorkoutType(title);
+          // Check for workout_type inside the workout object
+          if (item.workout?.workout_type) {
+            typesMap[dateKey] = getStandardizedWorkoutType(item.workout.workout_type);
+            return;
+          }
+          
+          // Check title for clues
+          const title = item.title?.toLowerCase() || item.workout?.title?.toLowerCase() || '';
+          if (title) {
+            // Check directly for specific activities in the title
+            if (title.includes('tennis') || 
+                title.includes('soccer') || 
+                title.includes('football') || 
+                title.includes('basketball') || 
+                title.includes('baseball') || 
+                title.includes('volleyball') || 
+                title.includes('frisbee') || 
+                title.includes('golf') ||
+                title.includes('game') ||
+                title.includes('match') ||
+                title.includes('play')) {
+              typesMap[dateKey] = 'sport';
+              return;
+            }
+            
+            typesMap[dateKey] = getStandardizedWorkoutType(title);
+            return;
+          }
+          
+          // Fallback to a default
+          typesMap[dateKey] = 'custom';
         } catch (err) {
           console.error('Error processing workout date:', err, item.completed_at);
         }

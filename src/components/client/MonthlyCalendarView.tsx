@@ -146,40 +146,76 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
     // Check if there's explicitly a workout type provided from the database
     for (const workout of workoutsForDay) {
       if (workout.workout?.workout_type) {
-        return workout.workout.workout_type as WorkoutType;
+        // Directly return the workout type if it matches one of our known types
+        const workoutType = workout.workout.workout_type as WorkoutType;
+        if (workoutType === 'sport' || 
+            workoutType === 'strength' || 
+            workoutType === 'cardio' || 
+            workoutType === 'bodyweight' ||
+            workoutType === 'flexibility' ||
+            workoutType === 'rest_day' ||
+            workoutType === 'custom' ||
+            workoutType === 'one_off' ||
+            workoutType === 'hiit' ||
+            workoutType === 'swimming' ||
+            workoutType === 'cycling' ||
+            workoutType === 'dance') {
+          return workoutType;
+        }
       }
     }
 
     // Fallbacks for workouts without an explicit type
+    // Check workout titles first
+    for (const workout of workoutsForDay) {
+      const title = workout.workout?.title?.toLowerCase() || '';
+      
+      if (title.includes('sport') || title.includes('game') || title.includes('play') || title.includes('match')) {
+        return 'sport';
+      }
+      if (title.includes('dance')) {
+        return 'dance';  
+      }
+      if (title.includes('swim')) {
+        return 'swimming';
+      }
+      if (title.includes('cycl') || title.includes('bike')) {
+        return 'cycling';
+      }
+      if (title.includes('hiit')) {
+        return 'hiit';
+      }
+      if (title.includes('strength')) {
+        return 'strength';
+      }
+      if (title.includes('cardio') || title.includes('run')) {
+        return 'cardio';
+      }
+      if (title.includes('flex') || title.includes('stretch') || title.includes('yoga')) {
+        return 'flexibility';
+      }
+      if (title.includes('bodyweight')) {
+        return 'bodyweight';
+      }
+    }
+
     // Check first exercise type if available
     for (const workout of workoutsForDay) {
       if (workout.workout?.workout_exercises?.length > 0) {
         const firstExercise = workout.workout.workout_exercises[0];
         if (firstExercise.exercise?.exercise_type) {
           const type = firstExercise.exercise.exercise_type.toLowerCase();
+          if (type.includes('sport')) return 'sport';
+          if (type.includes('dance')) return 'dance';
+          if (type.includes('swim')) return 'swimming';
+          if (type.includes('cycl')) return 'cycling';
+          if (type.includes('hiit')) return 'hiit';
           if (type.includes('strength')) return 'strength';
           if (type.includes('cardio')) return 'cardio';
           if (type.includes('body')) return 'bodyweight';
           if (type.includes('flex')) return 'flexibility';
-          if (type.includes('dance')) return 'dance';
         }
       }
-    }
-
-    // Last resort: try to infer from title
-    if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('strength'))) {
-      return 'strength';
-    } else if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('cardio') || 
-                                        w.workout?.title?.toLowerCase().includes('run'))) {
-      return 'cardio';
-    } else if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('flex') || 
-                                        w.workout?.title?.toLowerCase().includes('stretch') || 
-                                        w.workout?.title?.toLowerCase().includes('yoga'))) {
-      return 'flexibility';
-    } else if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('bodyweight'))) {
-      return 'bodyweight';
-    } else if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('dance'))) {
-      return 'dance';
     }
 
     // Default for any other type of workout

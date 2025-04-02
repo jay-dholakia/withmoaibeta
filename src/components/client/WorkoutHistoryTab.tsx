@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,12 +16,10 @@ const WorkoutHistoryTab = () => {
   const [selectedWorkouts, setSelectedWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   
-  // Force a refresh of the data
   const refreshData = useCallback(() => {
     setRefreshKey(prev => prev + 1);
   }, []);
   
-  // Query for client workouts
   const { data: clientWorkouts, isLoading, error, refetch } = useQuery({
     queryKey: ['client-workouts', user?.id, refreshKey],
     queryFn: async () => {
@@ -32,7 +29,6 @@ const WorkoutHistoryTab = () => {
         const history = await fetchClientWorkoutHistory(user.id);
         console.log(`Fetched ${history.length} workout history items`);
         
-        // Log workout types
         const workoutTypes = history.map(item => {
           if (!item.completed_at) return { date: 'unknown', type: 'unknown' };
           
@@ -58,7 +54,6 @@ const WorkoutHistoryTab = () => {
     enabled: !!user?.id,
   });
 
-  // Handle day selection in the calendar
   const handleDaySelect = (date: Date, workouts: WorkoutHistoryItem[]) => {
     if (!date || !isValid(date)) {
       console.error('Invalid date selected:', date);
@@ -77,18 +72,17 @@ const WorkoutHistoryTab = () => {
       setSelectedWorkouts(workouts);
     } catch (err) {
       console.error('Error in handleDaySelect:', err);
-      // Use a fallback instead of failing
       setSelectedDate(date);
       setSelectedWorkouts(workouts || []);
     }
   };
 
-  // Map workout types to standardized types
   const getStandardizedWorkoutType = (type: string | undefined | null): WorkoutType => {
     if (!type) return 'strength';
     
     type = type.toLowerCase();
     
+    if (type.includes('sport') || type.includes('game') || type.includes('match')) return 'sport';
     if (type.includes('strength')) return 'strength';
     if (type.includes('body') || type.includes('weight')) return 'bodyweight';
     if (type.includes('cardio') || type.includes('run') || type.includes('hiit')) return 'cardio';
@@ -96,11 +90,14 @@ const WorkoutHistoryTab = () => {
     if (type.includes('rest')) return 'rest_day';
     if (type.includes('custom')) return 'custom';
     if (type.includes('one')) return 'one_off';
+    if (type.includes('dance')) return 'dance';
+    if (type.includes('swim')) return 'swimming';
+    if (type.includes('cycl') || type.includes('bike')) return 'cycling';
+    if (type.includes('hiit')) return 'hiit';
     
     return 'strength'; // Default fallback
   };
 
-  // Create a map of dates to workout types
   const workoutTypesMap = React.useMemo(() => {
     const typesMap: Record<string, WorkoutType> = {};
     
@@ -110,7 +107,6 @@ const WorkoutHistoryTab = () => {
         
         try {
           const date = new Date(item.completed_at);
-          // Skip future dates or invalid dates
           if (!isValid(date) || isFuture(date)) return;
           
           const dateKey = format(date, 'yyyy-MM-dd');
@@ -125,8 +121,12 @@ const WorkoutHistoryTab = () => {
             return;
           }
           
-          // Fallback to checking workout title
-          const title = item.workout?.title?.toLowerCase() || '';
+          if (item.workout_type) {
+            typesMap[dateKey] = getStandardizedWorkoutType(item.workout_type);
+            return;
+          }
+          
+          const title = item.workout?.title?.toLowerCase() || item.title?.toLowerCase() || '';
           typesMap[dateKey] = getStandardizedWorkoutType(title);
         } catch (err) {
           console.error('Error processing workout date:', err, item.completed_at);
@@ -137,13 +137,11 @@ const WorkoutHistoryTab = () => {
     return typesMap;
   }, [clientWorkouts]);
 
-  // Find the most recent workout date to select initially
   useEffect(() => {
     if (clientWorkouts && clientWorkouts.length > 0) {
       try {
-        // Sort by completed_at date (newest first)
         const sortedWorkouts = [...clientWorkouts]
-          .filter(item => item.completed_at) // Filter out items without completed_at
+          .filter(item => item.completed_at)
           .sort((a, b) => {
             if (!a.completed_at) return 1;
             if (!b.completed_at) return -1;
@@ -162,7 +160,6 @@ const WorkoutHistoryTab = () => {
             }
           });
         
-        // If we have any completed workouts, select the most recent one
         if (sortedWorkouts.length > 0) {
           const mostRecentWorkout = sortedWorkouts[0];
           if (mostRecentWorkout.completed_at) {
@@ -170,7 +167,6 @@ const WorkoutHistoryTab = () => {
               const date = new Date(mostRecentWorkout.completed_at);
               
               if (isValid(date)) {
-                // Find all workouts on this date
                 const workoutsOnDate = clientWorkouts.filter(item => {
                   if (!item.completed_at) return false;
                   
@@ -187,13 +183,11 @@ const WorkoutHistoryTab = () => {
                 setSelectedWorkouts(workoutsOnDate);
               } else {
                 console.error('Invalid date from completed_at:', mostRecentWorkout.completed_at);
-                // Fallback to today
                 setSelectedDate(new Date());
                 setSelectedWorkouts([]);
               }
             } catch (err) {
               console.error('Error processing most recent workout date:', err);
-              // Fallback to today
               setSelectedDate(new Date());
               setSelectedWorkouts([]);
             }
@@ -284,7 +278,6 @@ const WorkoutHistoryTab = () => {
         workouts={selectedWorkouts}
       />
       
-      {/* Hidden button that's triggered when we need to refresh data after edits */}
       <button 
         className="hidden" 
         onClick={() => {

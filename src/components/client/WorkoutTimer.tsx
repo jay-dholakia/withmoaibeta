@@ -52,12 +52,12 @@ const WorkoutTimer = () => {
 
   return (
     <Card className={cn(
-      "fixed bottom-28 left-1/2 transform -translate-x-1/2 z-20 shadow-md transition-colors duration-300",
-      "max-w-[200px] w-full border-2",
+      "fixed bottom-[calc(16px+56px)] left-0 right-0 z-10 mx-auto max-w-md transition-colors duration-300",
+      "shadow-md border-2 bg-opacity-95",
       timerColor
     )}>
-      <CardContent className="p-3 flex flex-col items-center">
-        <div className="text-2xl font-bold mb-2">{formatTime(seconds)}</div>
+      <CardContent className="p-3 flex justify-between items-center">
+        <div className="text-2xl font-bold">{formatTime(seconds)}</div>
         <div className="flex gap-2">
           {!isRunning ? (
             <Button 

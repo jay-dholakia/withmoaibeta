@@ -52,7 +52,7 @@ const WorkoutTimer = () => {
 
   return (
     <Card className={cn(
-      "fixed bottom-[calc(16px+56px)] left-0 right-0 z-10 mx-auto max-w-md transition-colors duration-300",
+      "fixed bottom-28 left-0 right-0 z-10 mx-auto max-w-md transition-colors duration-300",
       "shadow-md border-2 bg-opacity-95",
       timerColor
     )}>

@@ -223,37 +223,3 @@ export const getExerciseInfoByWorkoutExerciseId = async (
     return null;
   }
 };
-
-/**
- * Imports exercises from RapidAPI
- */
-export const importExercisesFromRapidAPI = async (
-  limit?: number, 
-  checkExisting: boolean = true
-): Promise<{ 
-  total: number; 
-  inserted: number; 
-  updated: number; 
-  skipped: number; 
-}> => {
-  try {
-    const { data, error } = await supabase.functions.invoke('import-rapidapi-exercises', {
-      body: { shouldCheckExisting: checkExisting, limit }
-    });
-    
-    if (error) {
-      console.error("RapidAPI import error:", error);
-      throw new Error(error.message);
-    }
-    
-    return {
-      total: data.total || 0,
-      inserted: data.inserted || 0,
-      updated: data.updated || 0,
-      skipped: data.skipped || 0
-    };
-  } catch (error) {
-    console.error("Error in importExercisesFromRapidAPI:", error);
-    throw error;
-  }
-};

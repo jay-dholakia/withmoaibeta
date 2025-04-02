@@ -8,6 +8,7 @@ import { PageTransition } from '@/components/PageTransition';
 import { Toaster } from 'sonner';
 import { Logo } from '@/components/Logo';
 import { toast } from '@/components/ui/use-toast';
+import WorkoutTimer from '@/components/client/WorkoutTimer';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -51,6 +52,9 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
           </div>
         </div>
       </header>
+      
+      {/* Add WorkoutTimer here so it's available across all client pages */}
+      <WorkoutTimer />
       
       <main className="flex-grow py-6 mb-16 w-full">
         <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">

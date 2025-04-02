@@ -27,14 +27,12 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   const [exerciseGroups, setExerciseGroups] = useState<Record<string, any>>({});
   const [editingExercises, setEditingExercises] = useState(false);
   
-  // Form state for editing
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editDuration, setEditDuration] = useState<number | null>(null);
   const [editWorkoutType, setEditWorkoutType] = useState<string>('strength');
   const [editNotes, setEditNotes] = useState('');
 
-  // Fetch exercise details for a workout
   useEffect(() => {
     const fetchWorkoutExerciseDetails = async (workout: WorkoutHistoryItem) => {
       if (!workout.id || !workout.workout_set_completions || workout.workout_set_completions.length === 0) {
@@ -42,14 +40,12 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       }
 
       try {
-        // Group the set completions by exercise
         const groups: Record<string, any> = {};
         
         for (const setCompletion of workout.workout_set_completions) {
           const exerciseId = setCompletion.workout_exercise_id;
           
           if (!groups[exerciseId]) {
-            // Get exercise information
             const { data: exerciseInfo, error } = await supabase
               .from('workout_exercises')
               .select('*, exercise:exercises(name, exercise_type)')
@@ -118,7 +114,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       setIsSaving(true);
       
       if (workout.custom_workout_id) {
-        // Update existing custom workout
         await updateCustomWorkout(workout.custom_workout_id, {
           title: editTitle,
           description: editDescription || null,
@@ -126,7 +121,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           workout_type: editWorkoutType
         });
       } else {
-        // Update workout completion entry directly
         await updateWorkoutCompletion(workout.id, {
           title: editTitle,
           description: editDescription || null,
@@ -136,7 +130,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
         });
       }
       
-      // Refresh the page to show updated data
       document.getElementById('refresh-workout-history')?.click();
       
       setEditingWorkoutId(null);
@@ -158,14 +151,10 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     }
   };
 
-  // Function to determine if a workout is editable
   const isWorkoutEditable = (workout: WorkoutHistoryItem): boolean => {
-    return Boolean(workout.custom_workout_id) || // Has a custom workout ID
-           Boolean(workout.title) || // Has a title (could be one-off entry)
-           (workout.workout_type === 'one_off' || workout.workout_type === 'custom'); // Is a one-off or custom workout
+    return Boolean(workout.custom_workout_id) || Boolean(workout.title) || (workout.workout_type === 'one_off' || workout.workout_type === 'custom');
   };
 
-  // Toggle expanded view of workout details
   const toggleWorkoutExpand = (workoutId: string) => {
     if (expandedWorkoutId === workoutId) {
       setExpandedWorkoutId(null);
@@ -174,14 +163,11 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     }
   };
 
-  // Handle editing exercise details
   const handleEditExercises = (workout: WorkoutHistoryItem) => {
     setEditingExercises(true);
   };
 
-  // Save edited exercise data callback
   const handleExercisesSaved = () => {
-    // Refresh data after saving
     document.getElementById('refresh-workout-history')?.click();
     setEditingExercises(false);
   };
@@ -317,12 +303,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                         {workout.title || workout.workout?.title || 'Unnamed Workout'}
                       </h3>
                     </div>
-                    
-                    {(workout.completed_at) && (
-                      <p className="text-sm text-muted-foreground">
-                        Completed at {new Date(workout.completed_at).toLocaleTimeString()}
-                      </p>
-                    )}
                   </div>
                   
                   <div className="flex space-x-2">
@@ -466,7 +446,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
         </Card>
       ))}
 
-      {/* Dialog for editing exercise sets */}
       {editingExercises && expandedWorkoutId && (
         <EditWorkoutSetCompletions
           open={editingExercises}

@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import WorkoutTimer from './WorkoutTimer';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -788,6 +789,8 @@ const ActiveWorkout = () => {
 
   return (
     <div className="space-y-6 pb-28 flex flex-col items-center max-w-md mx-auto">
+      <WorkoutTimer />
+      
       <div className="flex flex-col items-center gap-2 text-center w-full">
         <Button 
           variant="ghost" 

@@ -1,4 +1,3 @@
-
 export interface Exercise {
   id: string;
   name: string;
@@ -169,7 +168,7 @@ export const STANDARD_WORKOUT_TYPES = [
   'sport',
   'swimming',
   'cycling',
-  'core'
+  'dance'
 ] as const;
 
 export type StandardWorkoutType = typeof STANDARD_WORKOUT_TYPES[number];

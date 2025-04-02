@@ -37,6 +37,8 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
         return '🏊'; // Swimming
       case 'cycling':
         return '🚴'; // Cycling
+      case 'dance':
+        return '💃'; // Dance workout
       default:
         return '📝'; // Default icon
     }
@@ -63,6 +65,7 @@ export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.Reac
   { value: 'hiit', label: 'HIIT', icon: '⚡' },
   { value: 'sport', label: 'Sport', icon: '🎾' },
   { value: 'swimming', label: 'Swimming', icon: '🏊' },
-  { value: 'cycling', label: 'Cycling', icon: '🚴' }
+  { value: 'cycling', label: 'Cycling', icon: '🚴' },
+  { value: 'dance', label: 'Dance', icon: '💃' }
   // Removed: custom, one_off, rest_day, core as requested
 ];

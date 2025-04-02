@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -18,6 +19,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
+  const [isLegendExpanded, setIsLegendExpanded] = useState(true);
 
   const prevMonth = () => {
     setCurrentMonth(prevDate => {
@@ -159,6 +161,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
           if (type.includes('cardio')) return 'cardio';
           if (type.includes('body')) return 'bodyweight';
           if (type.includes('flex')) return 'flexibility';
+          if (type.includes('dance')) return 'dance';
         }
       }
     }
@@ -175,6 +178,8 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       return 'flexibility';
     } else if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('bodyweight'))) {
       return 'bodyweight';
+    } else if (workoutsForDay.some(w => w.workout?.title?.toLowerCase().includes('dance'))) {
+      return 'dance';
     }
 
     // Default for any other type of workout
@@ -249,25 +254,41 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
   const renderLegend = () => {
     const legendItems = [
       { type: 'strength', label: 'Strength' },
+      { type: 'bodyweight', label: 'Bodyweight' },
       { type: 'cardio', label: 'Cardio' },
       { type: 'flexibility', label: 'Flexibility' },
-      { type: 'bodyweight', label: 'Bodyweight' },
       { type: 'rest_day', label: 'Rest Day' },
       { type: 'custom', label: 'Custom' },
       { type: 'one_off', label: 'One-off' },
+      { type: 'hiit', label: 'HIIT' },
+      { type: 'sport', label: 'Sport' },
+      { type: 'swimming', label: 'Swimming' },
+      { type: 'cycling', label: 'Cycling' },
+      { type: 'dance', label: 'Dance' },
     ] as const;
 
     return (
       <div className="mt-4 pt-3 border-t">
-        <h3 className="text-xs font-medium mb-2 text-center">Workout Types</h3>
-        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
-          {legendItems.map((item) => (
-            <div key={item.type} className="flex items-center gap-1.5">
-              <WorkoutTypeIcon type={item.type} />
-              <span className="text-xs">{item.label}</span>
-            </div>
-          ))}
-        </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => setIsLegendExpanded(!isLegendExpanded)}
+          className="w-full flex items-center justify-between text-xs font-medium mb-2"
+        >
+          <span>Workout Types</span>
+          {isLegendExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        </Button>
+        
+        {isLegendExpanded && (
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+            {legendItems.map((item) => (
+              <div key={item.type} className="flex items-center gap-1.5">
+                <WorkoutTypeIcon type={item.type} />
+                <span className="text-xs">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };

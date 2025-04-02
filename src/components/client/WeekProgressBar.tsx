@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { format, isThisWeek, startOfWeek, endOfWeek, addDays, isSameDay } from 'date-fns';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -51,7 +50,6 @@ export const WeekProgressBar = ({
   const dayStatus = useMemo(() => {
     return weekDays.map(day => {
       const hasCompleted = completedDates.some(date => {
-        // Handle both Date objects and string dates
         if (typeof date === 'string') {
           return isSameDay(new Date(date), day);
         }
@@ -59,7 +57,6 @@ export const WeekProgressBar = ({
       });
       
       const hasLifeHappens = lifeHappensDates.some(date => {
-        // Handle both Date objects and string dates
         if (typeof date === 'string') {
           return isSameDay(new Date(date), day);
         }
@@ -114,7 +111,6 @@ export const WeekProgressBar = ({
           const dayName = format(day.date, 'E')[0];
           const isToday = isSameDay(today, day.date);
           
-          // Use lighter background colors for better emoji visibility
           let bgColor = 'bg-gray-100';
           let border = '';
           
@@ -142,10 +138,8 @@ export const WeekProgressBar = ({
                 )}
               </div>
               
-              {/* Day of week label moved below the circle */}
               <span className="text-xs font-medium text-gray-600 mt-1">{dayName}</span>
               
-              {/* Current day indicator */}
               {isToday && (
                 <div className="w-1.5 h-1.5 bg-gray-500 rounded-full mt-0.5"></div>
               )}

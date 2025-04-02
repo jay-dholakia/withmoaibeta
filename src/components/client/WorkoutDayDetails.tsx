@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -447,22 +446,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                         Loading exercise details...
                       </div>
                     )}
-                  </div>
-                )}
-                
-                {workout.notes && (
-                  <div className="mt-3 text-sm">
-                    <div className="font-medium">Notes:</div>
-                    <p className="text-muted-foreground">{workout.notes}</p>
-                  </div>
-                )}
-                
-                {workout.rating && (
-                  <div className="mt-3 text-sm">
-                    <div className="font-medium">Rating:</div>
-                    <div className="text-muted-foreground">
-                      {'★'.repeat(workout.rating)}{'☆'.repeat(5 - workout.rating)}
-                    </div>
                   </div>
                 )}
                 

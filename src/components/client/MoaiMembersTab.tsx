@@ -78,6 +78,7 @@ interface MemberWorkout {
   completed_at: string;
   rating: number | null;
   notes: string | null;
+  title?: string;
   workout: {
     title: string;
     description: string | null;
@@ -391,7 +392,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                             <div className="flex justify-between items-start">
                               <div>
                                 <h4 className="font-medium">
-                                  {workout.title || workout.workout?.title || "Untitled Workout"}
+                                  {workout.title || (workout.workout && workout.workout.title) || "Untitled Workout"}
                                 </h4>
                                 <p className="text-sm text-muted-foreground">
                                   {new Date(workout.completed_at).toLocaleDateString(undefined, {

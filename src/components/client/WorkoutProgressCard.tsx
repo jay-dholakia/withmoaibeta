@@ -65,20 +65,6 @@ export const WorkoutProgressCard = ({
             </CardTitle>
             <div className="flex items-center gap-2">
               <span className="text-base font-semibold text-client">{count}/{displayTotal}</span>
-              {isCurrentUser && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="ml-2 border-client text-client hover:bg-client/10"
-                  asChild
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Link to="/client-dashboard/workouts">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Log Workout
-                  </Link>
-                </Button>
-              )}
               <CollapsibleTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
                   {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -162,6 +148,24 @@ export const WorkoutProgressCard = ({
               );
             })}
           </div>
+          
+          {/* Move the Log Workout button here, below the weekdays view */}
+          {isCurrentUser && (
+            <div className="mt-4 text-center">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-client text-client hover:bg-client/10 w-full"
+                asChild
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Link to="/client-dashboard/workouts">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Log Workout
+                </Link>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
       

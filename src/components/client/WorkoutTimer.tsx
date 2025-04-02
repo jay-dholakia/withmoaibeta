@@ -4,11 +4,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, RefreshCw, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLocation } from 'react-router-dom';
 
 // Create a global state for the timer using localStorage
 let timerInterval: NodeJS.Timeout | null = null;
 
 const WorkoutTimer = () => {
+  const location = useLocation();
+  
   // Use localStorage to persist timer state across page navigations
   const [seconds, setSeconds] = useState(() => {
     const savedSeconds = localStorage.getItem('workout_timer_seconds');
@@ -25,12 +28,41 @@ const WorkoutTimer = () => {
     const savedIsMinimized = localStorage.getItem('workout_timer_minimized');
     return savedIsMinimized ? savedIsMinimized === 'true' : false;
   });
+  
+  // Store the last active workout path
+  const [lastWorkoutPath, setLastWorkoutPath] = useState(() => {
+    return localStorage.getItem('last_workout_path') || '';
+  });
 
   const formatTime = useCallback((totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
     const remainingSeconds = totalSeconds % 60;
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   }, []);
+
+  // Detect page navigation and auto-minimize when leaving workout page
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const isWorkoutPage = currentPath.includes('/workouts/active/');
+    
+    if (isWorkoutPage) {
+      // Store the current workout path
+      localStorage.setItem('last_workout_path', currentPath);
+      setLastWorkoutPath(currentPath);
+      
+      // Expand timer when on workout page
+      if (isMinimized) {
+        setIsMinimized(false);
+        localStorage.setItem('workout_timer_minimized', 'false');
+      }
+    } else if (seconds > 0) {
+      // Auto-minimize when navigating away from workout page
+      if (!isMinimized) {
+        setIsMinimized(true);
+        localStorage.setItem('workout_timer_minimized', 'true');
+      }
+    }
+  }, [location.pathname, isMinimized, seconds]);
 
   useEffect(() => {
     // Clear any existing interval when component mounts to avoid duplicates
@@ -87,6 +119,11 @@ const WorkoutTimer = () => {
   const toggleMinimized = () => {
     setIsMinimized(!isMinimized);
   };
+
+  // Don't show timer if it's at 0 seconds and not on workout page
+  if (seconds === 0 && !location.pathname.includes('/workouts/active/')) {
+    return null;
+  }
 
   // Position differently based on whether it's minimized
   const positionClasses = isMinimized

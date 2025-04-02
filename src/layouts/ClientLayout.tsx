@@ -53,7 +53,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
         </div>
       </header>
       
-      {/* Add WorkoutTimer here so it's available across all client pages */}
+      {/* WorkoutTimer is here so it's available across all client pages */}
       <WorkoutTimer />
       
       <main className="flex-grow py-6 mb-16 w-full">

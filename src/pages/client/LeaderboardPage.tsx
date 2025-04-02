@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Container } from '@/components/ui/container';
 import { CoachMessageCard } from '@/components/client/CoachMessageCard';
@@ -18,7 +17,6 @@ import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 const LeaderboardPage = () => {
   const { user } = useAuth();
   
-  // Fetch client profile to get the first name
   const { data: profile, isLoading: isLoadingProfile, error: profileError } = useQuery({
     queryKey: ['client-profile', user?.id],
     queryFn: async () => {
@@ -33,7 +31,6 @@ const LeaderboardPage = () => {
     enabled: !!user?.id,
   });
   
-  // Query client workouts to get workout types
   const { data: clientWorkouts, isLoading: isLoadingWorkouts, error: workoutsError } = useQuery({
     queryKey: ['client-workouts-leaderboard', user?.id],
     queryFn: async () => {
@@ -48,7 +45,6 @@ const LeaderboardPage = () => {
     enabled: !!user?.id,
   });
   
-  // Query the assigned workouts count from the coach-assigned program
   const { data: assignedWorkoutsCount, isLoading: isLoadingCount, error: countError } = useQuery({
     queryKey: ['assigned-workouts-count', user?.id],
     queryFn: async () => {
@@ -65,7 +61,6 @@ const LeaderboardPage = () => {
     enabled: !!user?.id,
   });
   
-  // Count current week's completed workouts directly from Supabase
   const { data: completedThisWeek, isLoading: isLoadingCompleted, error: completedError } = useQuery({
     queryKey: ['completed-workouts-this-week', user?.id],
     queryFn: async () => {
@@ -82,8 +77,7 @@ const LeaderboardPage = () => {
     enabled: !!user?.id,
   });
   
-  // Extract completed dates and life happens dates
-  const { completedDates, lifeHappensDates, workoutTypesMap } = useMemo(() => {
+  const { completedDates, lifeHappensDates, workoutTypesMap, workoutTitlesMap } = useMemo(() => {
     const completed: Date[] = [];
     const lifeHappens: Date[] = [];
     const typesMap: Record<string, WorkoutType> = {};
@@ -93,7 +87,6 @@ const LeaderboardPage = () => {
       clientWorkouts.forEach(item => {
         if (!item.completed_at) return;
         
-        // Convert the completed_at string to a Date object if it's a string
         const completionDate = typeof item.completed_at === 'string' 
           ? new Date(item.completed_at) 
           : item.completed_at;
@@ -110,19 +103,15 @@ const LeaderboardPage = () => {
         
         completed.push(completionDate);
         
-        // Store title for better type detection
         if (item.title) {
           titleMap[dateKey] = item.title;
         } else if (item.workout?.title) {
           titleMap[dateKey] = item.workout.title;
         }
         
-        // Try to determine workout type from various sources
         if (item.workout_type) {
-          // Already has a workout_type field
           typesMap[dateKey] = item.workout_type as WorkoutType;
         } else if (item.workout?.workout_type) {
-          // Get from the workout's type
           const type = String(item.workout.workout_type).toLowerCase();
           if (type.includes('strength')) typesMap[dateKey] = 'strength';
           else if (type.includes('cardio') || type.includes('run')) typesMap[dateKey] = 'cardio';
@@ -137,46 +126,42 @@ const LeaderboardPage = () => {
           else if (type.includes('cycle') || type.includes('bike')) typesMap[dateKey] = 'cycling';
           else if (type.includes('dance')) typesMap[dateKey] = 'dance';
           else {
-            // If we have a title, try to detect from title
             if (titleMap[dateKey]) {
               typesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
             } else {
-              typesMap[dateKey] = 'strength'; // Default
+              typesMap[dateKey] = 'strength';
             }
           }
         } else if (titleMap[dateKey]) {
-          // Use our helper function to detect type from title
           typesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
         } else {
-          typesMap[dateKey] = 'strength'; // Default if no information
+          typesMap[dateKey] = 'strength';
         }
       });
     }
     
-    // Add title map to workoutTypesMap for reference 
-    typesMap._title_map = titleMap;
-    
-    return { completedDates: completed, lifeHappensDates: lifeHappens, workoutTypesMap: typesMap };
+    return { 
+      completedDates: completed, 
+      lifeHappensDates: lifeHappens, 
+      workoutTypesMap: typesMap,
+      workoutTitlesMap: titleMap 
+    };
   }, [clientWorkouts]);
   
-  // Count number of life happens passes used this week
   const lifeHappensThisWeek = useMemo(() => {
     if (!lifeHappensDates.length) return 0;
     
     return lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   }, [lifeHappensDates]);
   
-  // Calculate the total completed including life happens passes
   const totalCompletedCount = (completedThisWeek || 0) + lifeHappensThisWeek;
   
-  const totalWorkouts = assignedWorkoutsCount || 5; // Default to 5 if undefined
+  const totalWorkouts = assignedWorkoutsCount || 5;
   
-  // Get user display name - prioritize first name from profile
   const userDisplayName = profile?.first_name || (user?.email ? user.email.split('@')[0] : 'You');
   
   const isLoading = isLoadingProfile || isLoadingWorkouts || isLoadingCount || isLoadingCompleted;
   
-  // Check for errors
   React.useEffect(() => {
     if (profileError) {
       console.error('Profile error:', profileError);
@@ -218,6 +203,7 @@ const LeaderboardPage = () => {
             count={totalCompletedCount}
             total={totalWorkouts}
             workoutTypesMap={workoutTypesMap}
+            workoutTitlesMap={workoutTitlesMap}
             userName={userDisplayName}
             isCurrentUser={true}
           />

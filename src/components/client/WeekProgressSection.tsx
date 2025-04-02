@@ -33,6 +33,7 @@ export const WeekProgressSection = ({
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
   const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
   const [typesMap, setTypesMap] = useState<Record<string, WorkoutType>>(workoutTypesMap);
+  const [titlesMap, setTitlesMap] = useState<Record<string, string>>({}); // New state for titles
   
   // Query client workouts to get completed dates
   const { data: clientWorkouts, isLoading: isLoadingWorkouts } = useQuery({
@@ -71,7 +72,7 @@ export const WeekProgressSection = ({
       const newCompletedDates: Date[] = [];
       const newLifeHappensDates: Date[] = [];
       const newTypesMap: Record<string, WorkoutType> = {};
-      const titleMap: Record<string, string> = {};
+      const newTitlesMap: Record<string, string> = {}; // For storing titles
       
       clientWorkouts.forEach(workout => {
         if (workout.completed_at) {
@@ -93,9 +94,9 @@ export const WeekProgressSection = ({
             
             // Store title for better type detection
             if (workout.title) {
-              titleMap[dateKey] = workout.title;
+              newTitlesMap[dateKey] = workout.title;
             } else if (workout.workout?.title) {
-              titleMap[dateKey] = workout.workout.title;
+              newTitlesMap[dateKey] = workout.workout.title;
             }
             
             // Determine workout type
@@ -112,13 +113,13 @@ export const WeekProgressSection = ({
               else if (type.includes('swim')) newTypesMap[dateKey] = 'swimming';
               else if (type.includes('cycle') || type.includes('bike')) newTypesMap[dateKey] = 'cycling';
               else if (type.includes('dance')) newTypesMap[dateKey] = 'dance';
-              else if (titleMap[dateKey]) {
-                newTypesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
+              else if (newTitlesMap[dateKey]) {
+                newTypesMap[dateKey] = detectWorkoutTypeFromText(newTitlesMap[dateKey]);
               } else {
                 newTypesMap[dateKey] = 'strength';
               }
-            } else if (titleMap[dateKey]) {
-              newTypesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
+            } else if (newTitlesMap[dateKey]) {
+              newTypesMap[dateKey] = detectWorkoutTypeFromText(newTitlesMap[dateKey]);
             } else {
               newTypesMap[dateKey] = 'strength';
             }
@@ -128,12 +129,10 @@ export const WeekProgressSection = ({
         }
       });
       
-      // Add title map to types map for reference
-      newTypesMap._title_map = titleMap;
-      
       setCompletedDates(newCompletedDates);
       setLifeHappensDates(newLifeHappensDates);
       setTypesMap({...workoutTypesMap, ...newTypesMap});
+      setTitlesMap(newTitlesMap);
     }
   }, [clientWorkouts, workoutTypesMap]);
   
@@ -170,6 +169,7 @@ export const WeekProgressSection = ({
           count={totalCompletedThisWeek}
           total={finalAssignedWorkoutsCount}
           workoutTypesMap={typesMap}
+          workoutTitlesMap={titlesMap}
           userName={userDisplayName}
           isCurrentUser={true}
         />

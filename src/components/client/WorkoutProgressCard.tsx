@@ -12,6 +12,7 @@ interface WorkoutProgressCardProps {
   count: number;
   total: number;
   workoutTypesMap?: Record<string, WorkoutType>;
+  workoutTitlesMap?: Record<string, string>; // Separate map for titles
   userName?: string;
   isCurrentUser?: boolean;
 }
@@ -23,6 +24,7 @@ export const WorkoutProgressCard = ({
   count,
   total,
   workoutTypesMap = {},
+  workoutTitlesMap = {}, // Initialize the titles map
   userName,
   isCurrentUser
 }: WorkoutProgressCardProps) => {
@@ -79,8 +81,8 @@ export const WorkoutProgressCard = ({
             
             // If we don't have a defined workout type but the day is completed,
             // detect it from any workout title we might have
-            if (!workoutType && isDayCompleted && workoutTypesMap._title_map && workoutTypesMap._title_map[dateStr]) {
-              const title = workoutTypesMap._title_map[dateStr];
+            if (!workoutType && isDayCompleted && workoutTitlesMap[dateStr]) {
+              const title = workoutTitlesMap[dateStr];
               workoutType = detectWorkoutTypeFromText(title);
             }
             

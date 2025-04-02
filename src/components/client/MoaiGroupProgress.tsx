@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,8 +31,8 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
   const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
   const [workoutTypesMap, setWorkoutTypesMap] = useState<Record<string, WorkoutType>>({});
+  const [workoutTitlesMap, setWorkoutTitlesMap] = useState<Record<string, string>>({});
   
-  // Query for assigned workout count
   const { data: assignedWorkoutsCount } = useQuery({
     queryKey: ['assigned-workouts-count', user?.id],
     queryFn: async () => {
@@ -49,7 +48,6 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     enabled: !!user?.id,
   });
   
-  // Get current user's profile data
   const { data: currentUserProfile, isLoading: isLoadingCurrentUserProfile } = useQuery({
     queryKey: ['current-user-profile', user?.id],
     queryFn: async () => {
@@ -76,7 +74,6 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     enabled: !!user?.id,
   });
   
-  // Query for group members
   const { data: groupMembers, isLoading: isLoadingMembers } = useQuery({
     queryKey: ['moai-members', groupId],
     queryFn: async () => {
@@ -126,14 +123,13 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     enabled: !!groupId,
   });
   
-  // Map to store member workout data
   const [memberWorkouts, setMemberWorkouts] = useState<Record<string, {
     completedDates: Date[];
     lifeHappensDates: Date[];
     workoutTypesMap: Record<string, WorkoutType>;
+    workoutTitlesMap: Record<string, string>;
   }>>({});
   
-  // Query client workouts for current user
   const { data: currentUserWorkouts, isLoading: isLoadingCurrentUser } = useQuery({
     queryKey: ['client-workouts-moai', user?.id],
     queryFn: async () => {
@@ -148,13 +144,12 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     enabled: !!user?.id,
   });
   
-  // Process current user workouts
   useEffect(() => {
     if (currentUserWorkouts && currentUserWorkouts.length > 0) {
       const newCompletedDates: Date[] = [];
       const newLifeHappensDates: Date[] = [];
       const newWorkoutTypesMap: Record<string, WorkoutType> = {};
-      const titleMap: Record<string, string> = {}; // Store titles for better workout type detection
+      const newTitlesMap: Record<string, string> = {};
       
       currentUserWorkouts.forEach(workout => {
         if (workout.completed_at) {
@@ -174,19 +169,15 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
               
               newCompletedDates.push(completionDate);
               
-              // Store title for better type detection
               if (workout.title) {
-                titleMap[dateKey] = workout.title;
+                newTitlesMap[dateKey] = workout.title;
               } else if (workout.workout?.title) {
-                titleMap[dateKey] = workout.workout.title;
+                newTitlesMap[dateKey] = workout.workout.title;
               }
               
-              // Try to determine workout type
               if (workout.workout_type) {
-                // Already has a workout_type field
                 newWorkoutTypesMap[dateKey] = workout.workout_type as WorkoutType;
               } else if (workout.workout?.workout_type) {
-                // Get from the workout's type
                 const type = String(workout.workout.workout_type).toLowerCase();
                 if (type.includes('strength')) newWorkoutTypesMap[dateKey] = 'strength';
                 else if (type.includes('cardio') || type.includes('run')) newWorkoutTypesMap[dateKey] = 'cardio';
@@ -200,19 +191,15 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
                 else if (type.includes('swim')) newWorkoutTypesMap[dateKey] = 'swimming';
                 else if (type.includes('cycle') || type.includes('bike')) newWorkoutTypesMap[dateKey] = 'cycling';
                 else if (type.includes('dance')) newWorkoutTypesMap[dateKey] = 'dance';
-                else {
-                  // If we have a title, try to detect from title
-                  if (titleMap[dateKey]) {
-                    newWorkoutTypesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
-                  } else {
-                    newWorkoutTypesMap[dateKey] = 'strength'; // Default
-                  }
+                else if (newTitlesMap[dateKey]) {
+                  newWorkoutTypesMap[dateKey] = detectWorkoutTypeFromText(newTitlesMap[dateKey]);
+                } else {
+                  newWorkoutTypesMap[dateKey] = 'strength';
                 }
-              } else if (titleMap[dateKey]) {
-                // Use our helper function to detect type from title
-                newWorkoutTypesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
+              } else if (newTitlesMap[dateKey]) {
+                newWorkoutTypesMap[dateKey] = detectWorkoutTypeFromText(newTitlesMap[dateKey]);
               } else {
-                newWorkoutTypesMap[dateKey] = 'strength'; // Default
+                newWorkoutTypesMap[dateKey] = 'strength';
               }
             }
           } catch (error) {
@@ -221,16 +208,13 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
         }
       });
       
-      // Add title map to workoutTypesMap for reference 
-      newWorkoutTypesMap._title_map = titleMap;
-      
       setCompletedDates(newCompletedDates);
       setLifeHappensDates(newLifeHappensDates);
       setWorkoutTypesMap(newWorkoutTypesMap);
+      setWorkoutTitlesMap(newTitlesMap);
     }
   }, [currentUserWorkouts]);
   
-  // Fetch other group members' workouts
   useEffect(() => {
     if (groupMembers && groupMembers.length > 0) {
       const fetchMemberWorkouts = async () => {
@@ -238,9 +222,9 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
           completedDates: Date[];
           lifeHappensDates: Date[];
           workoutTypesMap: Record<string, WorkoutType>;
+          workoutTitlesMap: Record<string, string>;
         }> = {};
         
-        // Process each member (except current user)
         for (const member of groupMembers.filter(m => !m.isCurrentUser)) {
           try {
             const workouts = await fetchClientWorkoutHistory(member.userId);
@@ -268,14 +252,12 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
                     
                     completedDates.push(completionDate);
                     
-                    // Store title for better type detection
                     if (workout.title) {
                       titleMap[dateKey] = workout.title;
                     } else if (workout.workout?.title) {
                       titleMap[dateKey] = workout.workout.title;
                     }
                     
-                    // Determine workout type
                     if (workout.workout_type) {
                       workoutTypesMap[dateKey] = workout.workout_type as WorkoutType;
                     } else if (workout.workout?.workout_type) {
@@ -306,13 +288,11 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
               }
             });
             
-            // Add title map to workoutTypesMap for reference
-            workoutTypesMap._title_map = titleMap;
-            
             memberWorkoutsData[member.userId] = {
               completedDates,
               lifeHappensDates,
-              workoutTypesMap
+              workoutTypesMap,
+              workoutTitlesMap: titleMap
             };
           } catch (error) {
             console.error(`Error fetching workouts for member ${member.userId}:`, error);
@@ -326,7 +306,6 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     }
   }, [groupMembers]);
   
-  // Get formatted display name for a member
   const getDisplayName = (member: GroupMember): string => {
     if (member.profileData?.first_name) {
       return member.profileData.first_name;
@@ -334,39 +313,30 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     return member.email.split('@')[0];
   };
   
-  // Get current user's display name
   const getCurrentUserDisplayName = (): string => {
-    // First try to use the profile data from the dedicated query
     if (currentUserProfile?.first_name) {
       return currentUserProfile.first_name;
     }
     
-    // Then try to use the profile data from Auth context
     if (profile?.user_type) {
-      // This assumes there might be a first_name field in the profile
       const firstName = (profile as any).first_name;
       if (firstName) return firstName;
     }
     
-    // Fall back to email if available
     if (user?.email) {
       return user.email.split('@')[0];
     }
     
-    // Ultimate fallback
     return "You";
   };
   
-  // Count workouts completed this week
   const completedThisWeek = completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   
-  // Count life happens passes used this week
   const lifeHappensThisWeek = lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   
-  // Total completed including life happens
   const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;
   
-  const totalWorkouts = assignedWorkoutsCount || 6; // Default to 6 if undefined
+  const totalWorkouts = assignedWorkoutsCount || 6;
   
   if (isLoadingCurrentUser || isLoadingMembers || isLoadingCurrentUserProfile) {
     return (
@@ -391,12 +361,12 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
           count={totalCompletedThisWeek}
           total={totalWorkouts}
           workoutTypesMap={workoutTypesMap}
+          workoutTitlesMap={workoutTitlesMap}
           userName={getCurrentUserDisplayName()}
           isCurrentUser={true}
         />
       )}
       
-      {/* Other group members progress cards */}
       {groupMembers && groupMembers.filter(m => !m.isCurrentUser).map(member => {
         const memberData = memberWorkouts[member.userId];
         
@@ -429,6 +399,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
             count={memberTotalCompletedThisWeek}
             total={totalWorkouts}
             workoutTypesMap={memberData.workoutTypesMap}
+            workoutTitlesMap={memberData.workoutTitlesMap}
             userName={getDisplayName(member)}
             isCurrentUser={false}
           />

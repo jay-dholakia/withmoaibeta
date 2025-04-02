@@ -1,10 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowLeft, Clock, Trash2, ArrowUp, ArrowDown, Save, Edit, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import {
   fetchCustomWorkouts,
@@ -12,6 +15,7 @@ import {
   deleteCustomWorkout,
   moveCustomWorkoutExerciseUp,
   moveCustomWorkoutExerciseDown,
+  updateCustomWorkout,
   CustomWorkout,
   CustomWorkoutExercise
 } from '@/services/client-custom-workout-service';
@@ -26,6 +30,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { WorkoutTypeIcon, WORKOUT_TYPES } from './WorkoutTypeIcon';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const CustomWorkoutDetail = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -35,6 +47,14 @@ const CustomWorkoutDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReordering, setIsReordering] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Edit form state
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editDuration, setEditDuration] = useState<number | null>(null);
+  const [editWorkoutType, setEditWorkoutType] = useState<string>('strength');
 
   useEffect(() => {
     const loadWorkoutDetails = async () => {
@@ -54,6 +74,12 @@ const CustomWorkoutDetail = () => {
         }
         
         setWorkout(currentWorkout);
+        
+        // Initialize edit form state
+        setEditTitle(currentWorkout.title);
+        setEditDescription(currentWorkout.description || '');
+        setEditDuration(currentWorkout.duration_minutes);
+        setEditWorkoutType(currentWorkout.workout_type || 'strength');
         
         // Fetch workout exercises
         const exercisesData = await fetchCustomWorkoutExercises(workoutId);
@@ -114,6 +140,41 @@ const CustomWorkoutDetail = () => {
     }
   };
 
+  const handleSaveWorkout = async () => {
+    if (!workoutId || !workout) return;
+    
+    try {
+      setIsSaving(true);
+      
+      const updatedWorkout = await updateCustomWorkout(workoutId, {
+        title: editTitle,
+        description: editDescription || null,
+        duration_minutes: editDuration,
+        workout_type: editWorkoutType
+      });
+      
+      setWorkout(updatedWorkout);
+      setIsEditing(false);
+      toast.success('Workout updated successfully');
+    } catch (error) {
+      console.error('Error updating workout:', error);
+      toast.error('Failed to update workout');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    // Reset form to current workout values
+    if (workout) {
+      setEditTitle(workout.title);
+      setEditDescription(workout.description || '');
+      setEditDuration(workout.duration_minutes);
+      setEditWorkoutType(workout.workout_type || 'strength');
+    }
+    setIsEditing(false);
+  };
+
   if (isLoading) {
     return (
       <div className="py-12 flex justify-center">
@@ -142,47 +203,153 @@ const CustomWorkoutDetail = () => {
           Back to Workouts
         </Button>
         
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm" disabled={isDeleting}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              {isDeleting ? 'Deleting...' : 'Delete Workout'}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete the custom workout and cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteWorkout}>
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex items-center gap-2">
+          {isEditing ? (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleSaveWorkout}
+                disabled={isSaving}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Workout
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={isDeleting}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {isDeleting ? 'Deleting...' : 'Delete Workout'}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete the custom workout and cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteWorkout}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          )}
+        </div>
       </div>
 
-      <div>
-        <h1 className="text-2xl font-bold mb-2">{workout.title}</h1>
-        
-        <div className="flex items-center text-muted-foreground mb-4">
-          {workout.duration_minutes && (
-            <div className="flex items-center mr-4">
-              <Clock className="h-4 w-4 mr-1" />
-              <span>{workout.duration_minutes} minutes</span>
+      {isEditing ? (
+        <div className="space-y-4">
+          <div className="grid gap-3">
+            <div>
+              <Label htmlFor="title">Workout Title</Label>
+              <Input
+                id="title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Enter workout title"
+                className="mt-1"
+              />
             </div>
-          )}
-          <div>Created: {new Date(workout.created_at).toLocaleDateString()}</div>
+            
+            <div>
+              <Label htmlFor="workout-type">Workout Type</Label>
+              <Select
+                value={editWorkoutType}
+                onValueChange={setEditWorkoutType}
+              >
+                <SelectTrigger id="workout-type" className="mt-1">
+                  <SelectValue placeholder="Select workout type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {WORKOUT_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      <div className="flex items-center gap-2">
+                        <span>{type.icon}</span>
+                        <span>{type.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="duration">Duration (minutes)</Label>
+              <Input
+                id="duration"
+                type="number"
+                value={editDuration || ''}
+                onChange={(e) => setEditDuration(e.target.value ? Number(e.target.value) : null)}
+                placeholder="Enter duration in minutes"
+                className="mt-1"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Enter workout description"
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+          </div>
         </div>
-        
-        {workout.description && (
-          <p className="text-muted-foreground mb-6">{workout.description}</p>
-        )}
-      </div>
+      ) : (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <h1 className="text-2xl font-bold">{workout.title}</h1>
+            {workout.workout_type && (
+              <WorkoutTypeIcon 
+                type={workout.workout_type as any} 
+                className="text-xl"
+              />
+            )}
+          </div>
+          
+          <div className="flex items-center text-muted-foreground mb-4">
+            {workout.duration_minutes && (
+              <div className="flex items-center mr-4">
+                <Clock className="h-4 w-4 mr-1" />
+                <span>{workout.duration_minutes} minutes</span>
+              </div>
+            )}
+            <div>Created: {new Date(workout.created_at).toLocaleDateString()}</div>
+          </div>
+          
+          {workout.description && (
+            <p className="text-muted-foreground mb-6">{workout.description}</p>
+          )}
+        </div>
+      )}
 
       <Separator />
       
@@ -236,7 +403,7 @@ const CustomWorkoutDetail = () => {
                         size="sm" 
                         className="p-0 h-8 w-8" 
                         onClick={() => handleMoveExerciseUp(exercise.id)}
-                        disabled={index === 0 || isReordering}
+                        disabled={index === 0 || isReordering || isEditing}
                       >
                         <ArrowUp className="h-4 w-4" />
                         <span className="sr-only">Move up</span>
@@ -247,7 +414,7 @@ const CustomWorkoutDetail = () => {
                         size="sm" 
                         className="p-0 h-8 w-8" 
                         onClick={() => handleMoveExerciseDown(exercise.id)}
-                        disabled={index === exercises.length - 1 || isReordering}
+                        disabled={index === exercises.length - 1 || isReordering || isEditing}
                       >
                         <ArrowDown className="h-4 w-4" />
                         <span className="sr-only">Move down</span>

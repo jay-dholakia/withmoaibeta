@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -48,6 +47,7 @@ import ClientSettingsPage from './pages/client/SettingsPage';
 import './App.css';
 import RequireAuth from './components/RequireAuth';
 import ExerciseImportPage from './pages/ExerciseImportPage';
+import ExerciseManagementPage from './pages/ExerciseManagementPage';
 
 const queryClient = new QueryClient();
 
@@ -95,6 +95,11 @@ function App() {
             <Route path="/admin-dashboard/invitations" element={
               <RequireAuth userType="admin">
                 <InvitationsPage />
+              </RequireAuth>
+            } />
+            <Route path="/admin-dashboard/exercises" element={
+              <RequireAuth userType="admin">
+                <ExerciseManagementPage />
               </RequireAuth>
             } />
             

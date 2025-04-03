@@ -899,6 +899,7 @@ export const createExercise = async (data: {
   description?: string | null;
   exercise_type?: string;
   log_type?: string;
+  gif_url?: string | null;
 }): Promise<{ exercise: Exercise | null; isDuplicate: boolean; error?: any }> => {
   try {
     const normalizedName = data.name.trim().toLowerCase();
@@ -927,7 +928,8 @@ export const createExercise = async (data: {
         category: data.category,
         description: data.description || null,
         exercise_type: data.exercise_type || 'strength',
-        log_type: data.log_type || 'weight_reps'
+        log_type: data.log_type || 'weight_reps',
+        gif_url: data.gif_url || null
       })
       .select('*')
       .single();

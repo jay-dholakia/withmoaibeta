@@ -14,6 +14,7 @@ import { updateCustomWorkout } from '@/services/client-custom-workout-service';
 import { updateWorkoutCompletion } from '@/services/workout-edit-service';
 import EditWorkoutSetCompletions from './EditWorkoutSetCompletions';
 import { supabase } from '@/integrations/supabase/client';
+import { ExerciseGifViewer } from './ExerciseGifViewer';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -417,6 +418,15 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                                 <span className="text-muted-foreground">Notes: </span>
                                 {group.sets[0].notes}
                               </div>
+                            )}
+                            
+                            {exercise.exercise?.gif_url && (
+                              <ExerciseGifViewer
+                                exerciseId={exercise.exercise.id}
+                                exerciseName={exercise.exercise.name}
+                                gifUrl={exercise.exercise.gif_url}
+                                className="mt-2"
+                              />
                             )}
                           </div>
                         ))}

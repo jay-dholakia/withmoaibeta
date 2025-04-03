@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, Upload, Image as ImageIcon } from 'lucide-react';
-import { createExercise } from '@/services/workout-service';
+import { Loader2, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Exercise } from '@/types/workout';
 
 import {
   Dialog,
@@ -40,34 +40,23 @@ const formSchema = z.object({
   name: z.string().min(2, { message: 'Exercise name must be at least 2 characters.' }),
   category: z.string().min(1, { message: 'Category is required.' }),
   description: z.string().optional(),
-  exercise_type: z.string().default('strength'),
-  log_type: z.string().default('weight_reps'),
+  exercise_type: z.string(),
+  log_type: z.string(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-type CreateExerciseFormProps = {
+type EditExerciseFormProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onExerciseCreated?: (exercise: any) => void;
+  exercise: Exercise;
+  onExerciseUpdated?: (exercise: Exercise) => void;
 };
 
 const EXERCISE_CATEGORIES = [
-  'Abs',
-  'Back',
-  'Biceps',
-  'Cardio',
-  'Chest',
-  'Core',
-  'Full Body',
-  'Legs',
-  'Shoulders',
-  'Triceps',
-  'Upper Body',
-  'Lower Body',
-  'Olympic',
-  'Plyometrics',
-  'Other'
+  'Abs', 'Back', 'Biceps', 'Cardio', 'Chest', 'Core', 'Full Body', 
+  'Legs', 'Shoulders', 'Triceps', 'Upper Body', 'Lower Body', 
+  'Olympic', 'Plyometrics', 'Other'
 ];
 
 const EXERCISE_TYPES = [
@@ -84,26 +73,42 @@ const LOG_TYPES = [
   { value: 'bodyweight', label: 'Bodyweight Only' }
 ];
 
-export const CreateExerciseForm = ({ 
+export const EditExerciseForm = ({ 
   open, 
   onOpenChange, 
-  onExerciseCreated 
-}: CreateExerciseFormProps) => {
+  exercise,
+  onExerciseUpdated 
+}: EditExerciseFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gifFile, setGifFile] = useState<File | null>(null);
   const [uploadingGif, setUploadingGif] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(exercise.gif_url || null);
+  const [keepExistingGif, setKeepExistingGif] = useState(!!exercise.gif_url);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: '',
-      category: '',
-      description: '',
-      exercise_type: 'strength',
-      log_type: 'weight_reps'
+      name: exercise.name,
+      category: exercise.category,
+      description: exercise.description || '',
+      exercise_type: exercise.exercise_type || 'strength',
+      log_type: exercise.log_type || 'weight_reps'
     },
   });
+
+  useEffect(() => {
+    if (open && exercise) {
+      form.reset({
+        name: exercise.name,
+        category: exercise.category,
+        description: exercise.description || '',
+        exercise_type: exercise.exercise_type || 'strength',
+        log_type: exercise.log_type || 'weight_reps'
+      });
+      setPreviewUrl(exercise.gif_url || null);
+      setKeepExistingGif(!!exercise.gif_url);
+    }
+  }, [open, exercise, form]);
 
   const handleGifChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -117,15 +122,19 @@ export const CreateExerciseForm = ({
     }
     
     setGifFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    setKeepExistingGif(false);
+    
+    // Create a local preview URL
+    const localPreviewUrl = URL.createObjectURL(file);
+    setPreviewUrl(localPreviewUrl);
   };
 
-  const uploadGif = async (exerciseId: string): Promise<string | null> => {
+  const uploadGif = async (): Promise<string | null> => {
     if (!gifFile) return null;
     
     try {
       setUploadingGif(true);
-      const filename = `${exerciseId}_${Date.now()}.gif`;
+      const filename = `${exercise.id}_${Date.now()}.gif`;
       
       const { data, error } = await supabase.storage
         .from('exercise-gifs')
@@ -158,70 +167,62 @@ export const CreateExerciseForm = ({
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      // Ensure we're passing all required properties with proper types
-      const result = await createExercise({
-        name: data.name,
-        category: data.category,
-        description: data.description || null,
-        exercise_type: data.exercise_type,
-        log_type: data.log_type
-      });
+      let gifUrl = keepExistingGif ? exercise.gif_url : null;
       
-      if (result.error) {
-        toast.error('Failed to create exercise');
-        console.error('Error creating exercise:', result.error);
+      // If we have a new GIF, upload it
+      if (gifFile) {
+        gifUrl = await uploadGif();
+      }
+      
+      // Update the exercise
+      const { data: updatedExercise, error } = await supabase
+        .from('exercises')
+        .update({
+          name: data.name,
+          category: data.category,
+          description: data.description || null,
+          exercise_type: data.exercise_type,
+          log_type: data.log_type,
+          gif_url: gifUrl
+        })
+        .eq('id', exercise.id)
+        .select('*')
+        .single();
+      
+      if (error) {
+        toast.error('Failed to update exercise');
+        console.error('Error updating exercise:', error);
         return;
       }
       
-      if (result.isDuplicate) {
-        toast.warning(`Exercise "${data.name}" already exists!`);
-        if (onExerciseCreated && result.exercise) {
-          onExerciseCreated(result.exercise);
-        }
-      } else if (result.exercise) {
-        // If we have a GIF, upload it and update the exercise
-        if (gifFile && result.exercise.id) {
-          const gifUrl = await uploadGif(result.exercise.id);
-          
-          if (gifUrl) {
-            // Update the exercise with the GIF URL
-            const { error: updateError } = await supabase
-              .from('exercises')
-              .update({ gif_url: gifUrl })
-              .eq('id', result.exercise.id);
-            
-            if (updateError) {
-              console.error('Error updating exercise with GIF URL:', updateError);
-            } else {
-              result.exercise.gif_url = gifUrl;
-            }
-          }
-        }
-        
-        toast.success(`Exercise "${data.name}" created successfully!`);
-        if (onExerciseCreated) {
-          onExerciseCreated(result.exercise);
-        }
-        form.reset();
-        setGifFile(null);
-        setPreviewUrl(null);
-        onOpenChange(false);
+      toast.success(`Exercise "${data.name}" updated successfully!`);
+      
+      if (onExerciseUpdated) {
+        onExerciseUpdated(updatedExercise as Exercise);
       }
+      
+      onOpenChange(false);
     } catch (error) {
-      console.error('Error submitting exercise:', error);
+      console.error('Error updating exercise:', error);
       toast.error('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleRemoveGif = () => {
+    setPreviewUrl(null);
+    setGifFile(null);
+    setKeepExistingGif(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create New Exercise</DialogTitle>
+          <DialogTitle>Edit Exercise</DialogTitle>
           <DialogDescription>
-            Add a new exercise to the database. All fields marked with * are required.
+            Modify exercise details and demonstration GIF
           </DialogDescription>
         </DialogHeader>
         
@@ -234,7 +235,7 @@ export const CreateExerciseForm = ({
                 <FormItem>
                   <FormLabel>Exercise Name *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Bench Press" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -250,6 +251,7 @@ export const CreateExerciseForm = ({
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -296,7 +298,7 @@ export const CreateExerciseForm = ({
                     <FormLabel>Exercise Type</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -324,7 +326,7 @@ export const CreateExerciseForm = ({
                     <FormLabel>Logging Type</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -352,7 +354,7 @@ export const CreateExerciseForm = ({
                 <Input 
                   type="file" 
                   accept=".gif" 
-                  id="gif-upload"
+                  id="gif-upload-edit"
                   className="hidden"
                   onChange={handleGifChange}
                 />
@@ -360,18 +362,29 @@ export const CreateExerciseForm = ({
                   type="button" 
                   variant="outline" 
                   asChild
-                  className="w-full"
+                  className="flex-1"
                 >
-                  <label htmlFor="gif-upload" className="flex items-center justify-center gap-2 cursor-pointer">
+                  <label htmlFor="gif-upload-edit" className="flex items-center justify-center gap-2 cursor-pointer">
                     <Upload className="h-4 w-4" />
-                    <span>{gifFile ? 'Change GIF' : 'Upload GIF'}</span>
+                    <span>{previewUrl ? 'Change GIF' : 'Upload GIF'}</span>
                   </label>
                 </Button>
+                
+                {previewUrl && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-red-500 border-red-200 hover:bg-red-50"
+                    onClick={handleRemoveGif}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
               
               {/* Preview the GIF if selected */}
               {previewUrl && (
-                <div className="mt-2 border rounded-md p-2 relative">
+                <div className="mt-2 border rounded-md p-2">
                   <div className="aspect-video flex items-center justify-center bg-muted/30 rounded">
                     <img 
                       src={previewUrl} 
@@ -379,18 +392,6 @@ export const CreateExerciseForm = ({
                       className="max-h-[200px] object-contain"
                     />
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-3 right-3 h-8 w-8 p-0 rounded-full bg-background/80"
-                    onClick={() => {
-                      setGifFile(null); 
-                      setPreviewUrl(null);
-                    }}
-                  >
-                    ×
-                  </Button>
                 </div>
               )}
               
@@ -418,10 +419,10 @@ export const CreateExerciseForm = ({
                 {(isSubmitting || uploadingGif) ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {uploadingGif ? 'Uploading GIF...' : 'Creating...'}
+                    {uploadingGif ? 'Uploading GIF...' : 'Saving...'}
                   </>
                 ) : (
-                  'Create Exercise'
+                  'Save Changes'
                 )}
               </Button>
             </DialogFooter>

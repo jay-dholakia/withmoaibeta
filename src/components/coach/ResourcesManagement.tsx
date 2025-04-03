@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -61,16 +60,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
-interface CoachResource {
-  id: string;
-  coach_id: string;
-  title: string;
-  description: string | null;
-  url: string;
-  created_at: string;
-  updated_at: string;
-}
+import { 
+  fetchCoachResources, 
+  addCoachResource, 
+  updateCoachResource, 
+  deleteCoachResource,
+  CoachResource
+} from '@/services/coach-resource-service';
 
 const resourceSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title is too long"),
@@ -114,21 +110,9 @@ const ResourcesManagement = () => {
 
   const { data: resources, isLoading, error } = useQuery({
     queryKey: ['coach-resources', user?.id],
-    queryFn: async () => {
+    queryFn: () => {
       if (!user?.id) throw new Error('Not authenticated');
-      
-      const { data, error } = await supabase
-        .from('coach_resources')
-        .select('*')
-        .eq('coach_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching resources:', error);
-        throw error;
-      }
-      
-      return data as CoachResource[];
+      return fetchCoachResources(user.id);
     },
     enabled: !!user?.id,
   });
@@ -136,24 +120,12 @@ const ResourcesManagement = () => {
   const addResourceMutation = useMutation({
     mutationFn: async (values: ResourceFormValues) => {
       if (!user?.id) throw new Error('Not authenticated');
-      
-      const { data, error } = await supabase
-        .from('coach_resources')
-        .insert({
-          coach_id: user.id,
-          title: values.title,
-          description: values.description || null,
-          url: values.url,
-        })
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error adding resource:', error);
-        throw error;
-      }
-      
-      return data;
+      return addCoachResource({
+        coach_id: user.id,
+        title: values.title,
+        description: values.description || null,
+        url: values.url,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -171,25 +143,11 @@ const ResourcesManagement = () => {
   const updateResourceMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: ResourceFormValues }) => {
       if (!user?.id) throw new Error('Not authenticated');
-      
-      const { data, error } = await supabase
-        .from('coach_resources')
-        .update({
-          title: values.title,
-          description: values.description || null,
-          url: values.url,
-        })
-        .eq('id', id)
-        .eq('coach_id', user.id)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error updating resource:', error);
-        throw error;
-      }
-      
-      return data;
+      return updateCoachResource(id, user.id, {
+        title: values.title,
+        description: values.description || null,
+        url: values.url,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -207,19 +165,7 @@ const ResourcesManagement = () => {
   const deleteResourceMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!user?.id) throw new Error('Not authenticated');
-      
-      const { error } = await supabase
-        .from('coach_resources')
-        .delete()
-        .eq('id', id)
-        .eq('coach_id', user.id);
-      
-      if (error) {
-        console.error('Error deleting resource:', error);
-        throw error;
-      }
-      
-      return true;
+      return deleteCoachResource(id, user.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

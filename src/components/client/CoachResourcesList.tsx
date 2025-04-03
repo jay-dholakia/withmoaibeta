@@ -1,21 +1,12 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Book, Calendar, Info, Link as LinkIcon } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
-
-interface CoachResource {
-  id: string;
-  coach_id: string;
-  title: string;
-  description: string | null;
-  url: string;
-  created_at: string;
-}
+import { fetchCoachResources, CoachResource } from '@/services/coach-resource-service';
 
 interface CoachResourcesListProps {
   coachId: string;
@@ -24,20 +15,7 @@ interface CoachResourcesListProps {
 const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
   const { data: resources, isLoading, error } = useQuery({
     queryKey: ['coach-resources', coachId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('coach_resources')
-        .select('*')
-        .eq('coach_id', coachId)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching coach resources:', error);
-        throw error;
-      }
-      
-      return data as CoachResource[];
-    },
+    queryFn: () => fetchCoachResources(coachId),
     enabled: !!coachId,
   });
 

@@ -992,4 +992,215 @@ const ActiveWorkout = () => {
                             </ToggleGroupItem>
                             <ToggleGroupItem 
                               value="outdoor" 
-                              className="text-sm border border-gray-300 hover:border-
+                              className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
+                            >
+                              <MapPin className="h-3 w-3 mr-1" /> Outdoor
+                            </ToggleGroupItem>
+                          </ToggleGroup>
+                        </div>
+                        
+                        <div className="flex justify-center pt-4">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`run-complete-${exercise.id}`}
+                              checked={exerciseState.runData?.completed || false}
+                              onCheckedChange={(checked) => 
+                                handleRunCompletion(exercise.id, checked === true)
+                              }
+                            />
+                            <label
+                              htmlFor={`run-complete-${exercise.id}`}
+                              className="cursor-pointer text-sm font-medium"
+                            >
+                              Mark as completed
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    ) : exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
+                      <>
+                        <div className="space-y-4">
+                          {exerciseState.sets.map((set, setIndex) => (
+                            <div key={setIndex} className="flex items-center space-x-2 border p-2 rounded-md">
+                              <div className="w-12 text-sm text-center">
+                                Set {set.setNumber}
+                              </div>
+                              <div className="flex-1 text-center">
+                                <Input
+                                  type="number"
+                                  placeholder="lbs"
+                                  value={set.weight}
+                                  onChange={(e) => handleSetChange(exercise.id, setIndex, 'weight', e.target.value)}
+                                  className="h-8 text-center"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">Weight</p>
+                              </div>
+                              <div className="flex-1 text-center">
+                                <Input
+                                  type="number"
+                                  placeholder="reps"
+                                  value={set.reps}
+                                  onChange={(e) => handleSetChange(exercise.id, setIndex, 'reps', e.target.value)}
+                                  className="h-8 text-center"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">Reps</p>
+                              </div>
+                              <div className="w-12 flex justify-center items-center">
+                                <Checkbox
+                                  checked={set.completed}
+                                  onCheckedChange={(checked) => handleSetCompletion(
+                                    exercise.id,
+                                    setIndex,
+                                    checked === true
+                                  )}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : exerciseType === 'cardio' ? (
+                      <>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="text-center">
+                              <label className="block text-sm font-medium mb-1 text-center">Distance (miles)</label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                value={exerciseState.cardioData?.distance || ''}
+                                onChange={(e) => handleCardioChange(exercise.id, 'distance', e.target.value)}
+                                className="h-9 text-center border border-gray-200"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1 text-center">Enter distance in miles</p>
+                            </div>
+                            <div className="text-center">
+                              <label className="block text-sm font-medium mb-1 text-center">Duration (hh:mm:ss)</label>
+                              <Input
+                                placeholder="00:00:00"
+                                value={exerciseState.cardioData?.duration || ''}
+                                onChange={(e) => handleCardioChange(
+                                  exercise.id, 
+                                  'duration', 
+                                  formatDurationInput(e.target.value)
+                                )}
+                                className="h-9 text-center border border-gray-200"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1 text-center">Format: hours:minutes:seconds</p>
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <label className="block text-sm font-medium mb-1 text-center">Location</label>
+                            <ToggleGroup 
+                              type="single" 
+                              className="justify-center"
+                              value={exerciseState.cardioData?.location || ''}
+                              onValueChange={(value) => {
+                                if (value) handleCardioChange(exercise.id, 'location', value);
+                              }}
+                            >
+                              <ToggleGroupItem 
+                                value="indoor" 
+                                className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
+                              >
+                                <MapPin className="h-3 w-3 mr-1" /> Indoor
+                              </ToggleGroupItem>
+                              <ToggleGroupItem 
+                                value="outdoor" 
+                                className="text-sm border border-gray-300 hover:border-client data-[state=on]:border-client"
+                              >
+                                <MapPin className="h-3 w-3 mr-1" /> Outdoor
+                              </ToggleGroupItem>
+                            </ToggleGroup>
+                          </div>
+                          
+                          <div className="flex justify-center pt-4">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`cardio-complete-${exercise.id}`}
+                                checked={exerciseState.cardioData?.completed || false}
+                                onCheckedChange={(checked) => 
+                                  handleCardioCompletion(exercise.id, checked === true)
+                                }
+                              />
+                              <label
+                                htmlFor={`cardio-complete-${exercise.id}`}
+                                className="cursor-pointer text-sm font-medium"
+                              >
+                                Mark as completed
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : exerciseType === 'flexibility' ? (
+                      <>
+                        <div className="space-y-4">
+                          <div className="text-center">
+                            <label className="block text-sm font-medium mb-1 text-center">Duration (hh:mm:ss)</label>
+                            <Input
+                              placeholder="00:00:00"
+                              value={exerciseState.flexibilityData?.duration || ''}
+                              onChange={(e) => handleFlexibilityChange(
+                                exercise.id, 
+                                'duration', 
+                                formatDurationInput(e.target.value)
+                              )}
+                              className="h-9 text-center mx-auto w-full max-w-xs border border-gray-200"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1 text-center">Format: hours:minutes:seconds</p>
+                          </div>
+                          
+                          <div className="flex justify-center pt-4">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`flex-complete-${exercise.id}`}
+                                checked={exerciseState.flexibilityData?.completed || false}
+                                onCheckedChange={(checked) => 
+                                  handleFlexibilityCompletion(exercise.id, checked === true)
+                                }
+                              />
+                              <label
+                                htmlFor={`flex-complete-${exercise.id}`}
+                                className="cursor-pointer text-sm font-medium"
+                              >
+                                Mark as completed
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
+                  </CardContent>
+                </>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+
+      {workoutExercises.length > 0 && (
+        <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-center">
+          <Button 
+            onClick={finishWorkout}
+            disabled={saveAllSetsMutation.isPending || !isWorkoutComplete()}
+            className="w-full max-w-md bg-client hover:bg-client/90"
+          >
+            {saveAllSetsMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Complete Workout'
+            )}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ActiveWorkout;

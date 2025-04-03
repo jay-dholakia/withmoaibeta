@@ -139,9 +139,9 @@ export const WorkoutProgressCard = ({
                       <span></span>
                     )}
                     
-                    {/* Add superscript for multiple workouts */}
+                    {/* Make the superscript more visible with enhanced styling */}
                     {workoutsCompletedToday > 1 && (
-                      <div className="absolute -top-1 -right-1 bg-client text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                      <div className="absolute -top-1.5 -right-1.5 bg-client text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm z-10 font-bold">
                         {workoutsCompletedToday}
                       </div>
                     )}

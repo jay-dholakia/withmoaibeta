@@ -14,7 +14,6 @@ import { updateCustomWorkout } from '@/services/client-custom-workout-service';
 import { updateWorkoutCompletion } from '@/services/workout-edit-service';
 import EditWorkoutSetCompletions from './EditWorkoutSetCompletions';
 import { supabase } from '@/integrations/supabase/client';
-import { ExerciseGifViewer } from './ExerciseGifViewer';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -49,7 +48,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           if (!groups[exerciseId]) {
             const { data: exerciseInfo, error } = await supabase
               .from('workout_exercises')
-              .select('*, exercise:exercises(name, exercise_type, gif_url)')
+              .select('*, exercise:exercises(name, exercise_type)')
               .eq('id', exerciseId)
               .single();
 
@@ -61,7 +60,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
             groups[exerciseId] = {
               name: exerciseInfo.exercise ? exerciseInfo.exercise.name : 'Unknown Exercise',
               type: exerciseInfo.exercise ? exerciseInfo.exercise.exercise_type : 'strength',
-              gif_url: exerciseInfo.exercise ? exerciseInfo.exercise.gif_url : null,
               sets: []
             };
           }
@@ -419,15 +417,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                                 <span className="text-muted-foreground">Notes: </span>
                                 {group.sets[0].notes}
                               </div>
-                            )}
-                            
-                            {group.gif_url && (
-                              <ExerciseGifViewer
-                                exerciseId={exerciseId}
-                                exerciseName={group.name}
-                                gifUrl={group.gif_url}
-                                className="mt-2"
-                              />
                             )}
                           </div>
                         ))}

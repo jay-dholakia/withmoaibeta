@@ -345,7 +345,6 @@ export type Database = {
           created_at: string
           description: string | null
           exercise_type: string
-          gif_url: string | null
           id: string
           log_type: string | null
           name: string
@@ -355,7 +354,6 @@ export type Database = {
           created_at?: string
           description?: string | null
           exercise_type?: string
-          gif_url?: string | null
           id?: string
           log_type?: string | null
           name: string
@@ -365,7 +363,6 @@ export type Database = {
           created_at?: string
           description?: string | null
           exercise_type?: string
-          gif_url?: string | null
           id?: string
           log_type?: string | null
           name?: string

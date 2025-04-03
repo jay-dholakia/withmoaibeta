@@ -5,8 +5,6 @@ export interface Exercise {
   description: string | null;
   created_at: string;
   exercise_type: string; 
-  gif_url?: string | null;
-  log_type?: string;
 }
 
 export interface WorkoutProgram {

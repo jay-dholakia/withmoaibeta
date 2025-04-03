@@ -1,11 +1,11 @@
+
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, Upload, Image as ImageIcon } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { createExercise } from '@/services/workout-service';
-import { supabase } from '@/integrations/supabase/client';
 
 import {
   Dialog,
@@ -89,9 +89,6 @@ export const CreateExerciseForm = ({
   onExerciseCreated 
 }: CreateExerciseFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [gifFile, setGifFile] = useState<File | null>(null);
-  const [uploadingGif, setUploadingGif] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -104,60 +101,10 @@ export const CreateExerciseForm = ({
     },
   });
 
-  const handleGifChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    
-    if (!file) return;
-    
-    // Only accept gif files
-    if (!file.type.includes('gif')) {
-      toast.error('Please upload a GIF file');
-      return;
-    }
-    
-    setGifFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-  };
-
-  const uploadGif = async (exerciseId: string): Promise<string | null> => {
-    if (!gifFile) return null;
-    
-    try {
-      setUploadingGif(true);
-      const filename = `${exerciseId}_${Date.now()}.gif`;
-      
-      const { data, error } = await supabase.storage
-        .from('exercise-gifs')
-        .upload(filename, gifFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (error) {
-        console.error('Error uploading GIF:', error);
-        toast.error('Failed to upload exercise demonstration GIF');
-        return null;
-      }
-      
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('exercise-gifs')
-        .getPublicUrl(filename);
-      
-      return publicUrl;
-    } catch (error) {
-      console.error('Unexpected error uploading GIF:', error);
-      toast.error('An error occurred while uploading the GIF');
-      return null;
-    } finally {
-      setUploadingGif(false);
-    }
-  };
-
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      // Create the exercise without the gif_url first
+      // Ensure we're passing all required properties with proper types
       const result = await createExercise({
         name: data.name,
         category: data.category,
@@ -178,33 +125,11 @@ export const CreateExerciseForm = ({
           onExerciseCreated(result.exercise);
         }
       } else if (result.exercise) {
-        // If we have a GIF, upload it and update the exercise
-        if (gifFile && result.exercise.id) {
-          const gifUrl = await uploadGif(result.exercise.id);
-          
-          if (gifUrl) {
-            // Update the exercise with the GIF URL using Supabase directly
-            const { error: updateError } = await supabase
-              .from('exercises')
-              .update({ gif_url: gifUrl })
-              .eq('id', result.exercise.id);
-            
-            if (updateError) {
-              console.error('Error updating exercise with GIF URL:', updateError);
-            } else {
-              // Update the local exercise object with the gif_url
-              result.exercise.gif_url = gifUrl;
-            }
-          }
-        }
-        
         toast.success(`Exercise "${data.name}" created successfully!`);
         if (onExerciseCreated) {
           onExerciseCreated(result.exercise);
         }
         form.reset();
-        setGifFile(null);
-        setPreviewUrl(null);
         onOpenChange(false);
       }
     } catch (error) {
@@ -344,69 +269,6 @@ export const CreateExerciseForm = ({
                 )}
               />
             </div>
-            
-            {/* GIF Upload Section */}
-            <div className="space-y-2">
-              <FormLabel>Exercise Demonstration GIF</FormLabel>
-              <div className="flex items-center gap-2">
-                <Input 
-                  type="file" 
-                  accept=".gif" 
-                  id="gif-upload"
-                  className="hidden"
-                  onChange={handleGifChange}
-                />
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  asChild
-                  className="w-full"
-                >
-                  <label htmlFor="gif-upload" className="flex items-center justify-center gap-2 cursor-pointer">
-                    <Upload className="h-4 w-4" />
-                    <span>{gifFile ? 'Change GIF' : 'Upload GIF'}</span>
-                  </label>
-                </Button>
-              </div>
-              
-              {/* Preview the GIF if selected */}
-              {previewUrl && (
-                <div className="mt-2 border rounded-md p-2 relative">
-                  <div className="aspect-video flex items-center justify-center bg-muted/30 rounded">
-                    <img 
-                      src={previewUrl} 
-                      alt="Exercise preview" 
-                      className="max-h-[200px] object-contain"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-3 right-3 h-8 w-8 p-0 rounded-full bg-background/80"
-                    onClick={() => {
-                      setGifFile(null); 
-                      setPreviewUrl(null);
-                    }}
-                  >
-                    ×
-                  </Button>
-                </div>
-              )}
-              
-              {!previewUrl && (
-                <div className="border border-dashed rounded-md p-8 flex flex-col items-center justify-center text-muted-foreground">
-                  <ImageIcon className="h-8 w-8 mb-2" />
-                  <p className="text-sm text-center">
-                    Upload a GIF that demonstrates proper exercise form
-                  </p>
-                </div>
-              )}
-              
-              <p className="text-xs text-muted-foreground">
-                The GIF will be shown to clients to help them understand proper form
-              </p>
-            </div>
 
             <DialogFooter className="gap-2 sm:gap-0">
               <DialogClose asChild>
@@ -414,11 +276,11 @@ export const CreateExerciseForm = ({
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting || uploadingGif}>
-                {(isSubmitting || uploadingGif) ? (
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {uploadingGif ? 'Uploading GIF...' : 'Creating...'}
+                    Creating...
                   </>
                 ) : (
                   'Create Exercise'

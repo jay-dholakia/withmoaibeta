@@ -203,9 +203,9 @@ const ExerciseManagementPage = () => {
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   {categories.map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                    <SelectItem key={category} value={category || "unknown"}>{category || "Unknown"}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -216,7 +216,7 @@ const ExerciseManagementPage = () => {
                   <SelectValue placeholder="Exercise Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   {STANDARD_WORKOUT_TYPES.map(type => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}

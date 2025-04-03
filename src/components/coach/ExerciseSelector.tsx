@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, X, Plus } from 'lucide-react';
 import { 
@@ -23,7 +22,6 @@ export type ExerciseSelectorProps = {
   onClose?: () => void;
   onSelectExercise: (exercise: Exercise) => void;
   buttonText?: string;
-  // Additional props for StandaloneWorkoutForm and WorkoutDayForm
   onSelect?: (exerciseId: string, data: any) => Promise<void>;
   onCancel?: () => void;
   isSubmitting?: boolean;
@@ -60,7 +58,6 @@ export const ExerciseSelector = ({
         setExercisesByCategory(data);
         setFilteredExercisesByCategory(data);
         
-        // Set default category to 'All' to show all exercises initially
         setSelectedCategory('All');
       } catch (error) {
         console.error("Error loading exercises:", error);
@@ -82,15 +79,13 @@ export const ExerciseSelector = ({
     
     const filtered: Record<string, Exercise[]> = {};
     
-    // Always include the "All" category with filtered results
     filtered['All'] = exercisesByCategory['All']?.filter(exercise => 
       exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       exercise.description?.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
     
-    // Filter other categories
     Object.entries(exercisesByCategory).forEach(([category, exercises]) => {
-      if (category === 'All') return; // Skip All category as we already processed it
+      if (category === 'All') return;
       
       const filteredExercises = exercises.filter(exercise => 
         exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -107,7 +102,6 @@ export const ExerciseSelector = ({
 
   const handleSelectExercise = (exercise: Exercise) => {
     if (onSelect) {
-      // If using the onSelect prop (for StandaloneWorkoutForm/WorkoutDayForm)
       onSelect(exercise.id, {
         sets: 3,
         reps: '10',
@@ -115,7 +109,6 @@ export const ExerciseSelector = ({
         notes: ''
       });
     } else {
-      // Original behavior
       onSelectExercise(exercise);
       handleClose();
     }
@@ -136,15 +129,12 @@ export const ExerciseSelector = ({
   };
 
   const handleExerciseCreated = (exercise: Exercise) => {
-    // Reload exercises to include the new one
     fetchExercisesByCategory().then(data => {
       setExercisesByCategory(data);
       setFilteredExercisesByCategory(data);
       
-      // Set the category to match the new exercise
       setSelectedCategory(exercise.category);
       
-      // Highlight the new exercise somehow (optional)
       toast.success(`Exercise "${exercise.name}" added to database!`);
     });
     
@@ -153,7 +143,6 @@ export const ExerciseSelector = ({
   
   const categories = Object.keys(filteredExercisesByCategory);
   
-  // If we don't have an explicit isOpen prop, render with a trigger button
   if (propIsOpen === undefined) {
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -191,7 +180,6 @@ export const ExerciseSelector = ({
     );
   }
   
-  // Otherwise, render just the dialog without a trigger
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -270,10 +258,10 @@ export const ExerciseSelector = ({
                     {categories.map((category) => (
                       <TabsTrigger
                         key={category}
-                        value={category}
+                        value={category || "unknown"}
                         className="px-3 py-1.5 whitespace-nowrap"
                       >
-                        {category}
+                        {category || "Unknown"}
                       </TabsTrigger>
                     ))}
                   </TabsList>
@@ -284,7 +272,7 @@ export const ExerciseSelector = ({
             {categories.map((category) => (
               <TabsContent
                 key={category}
-                value={category}
+                value={category || "unknown"}
                 className="flex-1 overflow-hidden mt-0 pt-0"
               >
                 <ScrollArea className="flex-1 h-[340px]">

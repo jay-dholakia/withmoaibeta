@@ -23,9 +23,18 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         const savedData = localStorage.getItem(storageKey);
         if (savedData) {
           setSavedValue(savedData);
+          
+          // This is the key change - we need to also call the onChange handler
+          // to ensure the parent component's state is updated with the saved value
+          if (onChange) {
+            const event = {
+              target: { value: savedData }
+            } as React.ChangeEvent<HTMLTextAreaElement>;
+            onChange(event);
+          }
         }
       }
-    }, [autoSave, storageKey]);
+    }, [autoSave, storageKey, onChange]);
     
     // Handle changes
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

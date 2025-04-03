@@ -58,25 +58,6 @@ const EnterOneOffWorkout = () => {
     return `${STORAGE_KEY_PREFIX}_${user.id}`;
   };
   
-  // Save form data to localStorage
-  const saveFormToLocalStorage = () => {
-    const storageKey = getStorageKey();
-    if (!storageKey) return;
-    
-    const formData = {
-      title,
-      description,
-      notes,
-      workoutType,
-      date: date?.toISOString(),
-      distance,
-      duration,
-      location
-    };
-    
-    localStorage.setItem(storageKey, JSON.stringify(formData));
-  };
-  
   // Load form data from localStorage
   const loadFormFromLocalStorage = () => {
     const storageKey = getStorageKey();
@@ -106,6 +87,25 @@ const EnterOneOffWorkout = () => {
     }
   };
   
+  // Save form data to localStorage
+  const saveFormToLocalStorage = () => {
+    const storageKey = getStorageKey();
+    if (!storageKey) return;
+    
+    const formData = {
+      title,
+      description,
+      notes,
+      workoutType,
+      date: date?.toISOString(),
+      distance,
+      duration,
+      location
+    };
+    
+    localStorage.setItem(storageKey, JSON.stringify(formData));
+  };
+  
   // Clear form data from localStorage
   const clearFormFromLocalStorage = () => {
     const storageKey = getStorageKey();
@@ -128,7 +128,9 @@ const EnterOneOffWorkout = () => {
   
   // Load saved data on initial render
   useEffect(() => {
-    loadFormFromLocalStorage();
+    if (user?.id) {
+      loadFormFromLocalStorage();
+    }
   }, [user?.id]);
   
   // Save data when user leaves the page

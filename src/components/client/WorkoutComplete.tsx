@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,64 +30,68 @@ const WorkoutComplete = () => {
   const [shareMessage, setShareMessage] = useState('');
   const [isEditingMessage, setIsEditingMessage] = useState(false);
   
-  // Load saved draft from localStorage
+  const getStorageKey = () => {
+    if (!workoutCompletionId || !user?.id) return null;
+    return `workout_completion_${workoutCompletionId}_${user.id}`;
+  };
+  
   useEffect(() => {
-    if (workoutCompletionId && user?.id) {
-      const localStorageKey = `workout_completion_${workoutCompletionId}_${user.id}`;
-      const savedData = localStorage.getItem(localStorageKey);
-      
-      if (savedData) {
-        try {
-          const parsedData = JSON.parse(savedData);
-          if (parsedData.notes) {
-            setNotes(parsedData.notes);
-          }
-          if (parsedData.rating) {
-            setRating(parsedData.rating);
-          }
-          toast.info("Restored your previous notes");
-        } catch (error) {
-          console.error("Error parsing saved workout completion data:", error);
-        }
+    const storageKey = getStorageKey();
+    if (!storageKey) return;
+    
+    const savedData = localStorage.getItem(storageKey);
+    if (!savedData) return;
+    
+    try {
+      const parsedData = JSON.parse(savedData);
+      if (parsedData.notes) {
+        setNotes(parsedData.notes);
       }
+      if (parsedData.rating) {
+        setRating(parsedData.rating);
+      }
+      toast.info("Restored your previous notes");
+    } catch (error) {
+      console.error("Error parsing saved workout completion data:", error);
     }
   }, [workoutCompletionId, user?.id]);
   
-  // Save draft to localStorage
-  useEffect(() => {
-    if (workoutCompletionId && user?.id) {
-      const localStorageKey = `workout_completion_${workoutCompletionId}_${user.id}`;
-      
-      // Save current state to localStorage
-      const saveState = () => {
-        localStorage.setItem(localStorageKey, JSON.stringify({
-          notes,
-          rating
-        }));
-      };
-      
-      // Save on changes with debounce
-      const debounceTimeout = setTimeout(saveState, 500);
-      
-      // Save when user leaves the page
-      const handleBeforeUnload = () => {
-        saveState();
-      };
-      
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      
-      return () => {
-        clearTimeout(debounceTimeout);
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-      };
-    }
-  }, [notes, rating, workoutCompletionId, user?.id]);
+  const saveToLocalStorage = () => {
+    const storageKey = getStorageKey();
+    if (!storageKey) return;
+    
+    localStorage.setItem(storageKey, JSON.stringify({
+      notes,
+      rating
+    }));
+  };
   
-  // Clear localStorage on successful submission
+  useEffect(() => {
+    if (!notes && !rating) return;
+    
+    const debounceTimeout = setTimeout(() => {
+      saveToLocalStorage();
+    }, 500);
+    
+    return () => clearTimeout(debounceTimeout);
+  }, [notes, rating]);
+  
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveToLocalStorage();
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [notes, rating]);
+  
   const clearSavedData = () => {
-    if (workoutCompletionId && user?.id) {
-      const localStorageKey = `workout_completion_${workoutCompletionId}_${user.id}`;
-      localStorage.removeItem(localStorageKey);
+    const storageKey = getStorageKey();
+    if (storageKey) {
+      localStorage.removeItem(storageKey);
     }
   };
 
@@ -98,7 +101,6 @@ const WorkoutComplete = () => {
       console.log("Fetching workout completion data for ID:", workoutCompletionId);
       
       try {
-        // First try to get the workout completion record directly
         const { data, error } = await supabase
           .from('workout_completions')
           .select(`
@@ -114,10 +116,10 @@ const WorkoutComplete = () => {
           `)
           .eq('id', workoutCompletionId || '')
           .maybeSingle();
-
+        
         if (error) {
           console.error("Error fetching workout completion data:", error);
-          // Continue and try other methods
+          return null;
         }
         
         if (data) {
@@ -125,7 +127,6 @@ const WorkoutComplete = () => {
           return data;
         }
         
-        // If no direct match on ID, see if it's a workout ID instead of a completion ID
         console.log("No workout completion found, trying to fetch by workout_id and user_id");
         const { data: byWorkoutData, error: byWorkoutError } = await supabase
           .from('workout_completions')
@@ -153,7 +154,6 @@ const WorkoutComplete = () => {
           return byWorkoutData;
         }
         
-        // As a last resort, fetch the workout directly
         console.log("No workout completion found, trying to fetch workout directly");
         
         const { data: workoutOnly, error: workoutError } = await supabase
@@ -186,7 +186,6 @@ const WorkoutComplete = () => {
           };
         }
         
-        // Try standalone workouts as a last resort
         const { data: standaloneWorkout, error: standaloneError } = await supabase
           .from('standalone_workouts')
           .select(`
@@ -298,12 +297,10 @@ const WorkoutComplete = () => {
         await addToJournal(notes);
       }
       
-      // Check if we're dealing with an existing completion ID or a new workout ID
       let completionId = workoutData?.id || workoutCompletionId;
       let isNewCompletion = !workoutData?.id;
       
       if (isNewCompletion) {
-        // Create a new completion for this workout
         try {
           const { data: newCompletion, error } = await supabase
             .from('workout_completions')
@@ -333,7 +330,6 @@ const WorkoutComplete = () => {
           throw error;
         }
       } else {
-        // Update the existing completion
         const { error } = await supabase
           .from('workout_completions')
           .update({
@@ -355,7 +351,7 @@ const WorkoutComplete = () => {
       if (completionId) {
         queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
         queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
-        clearSavedData(); // Clear saved data after successful submission
+        clearSavedData();
         setShowShareDialog(true);
       } else {
         toast.error('Failed to complete workout');
@@ -481,6 +477,8 @@ const WorkoutComplete = () => {
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
             className="border border-gray-200"
+            storageKey={getStorageKey() || undefined}
+            autoSave={true}
           />
           <p className="text-xs text-muted-foreground mt-1 text-center">
             Your notes will be saved to your journal with this workout's title.

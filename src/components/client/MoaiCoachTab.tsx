@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertTriangle } from 'lucide-react';
+import CoachResourcesList from './CoachResourcesList';
 
 interface CoachInfo {
   id: string;
@@ -140,47 +141,52 @@ const MoaiCoachTab: React.FC<MoaiCoachTabProps> = ({ groupId }) => {
   };
   
   return (
-    <Card className="mt-4">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Coach Profile</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-          <Avatar className="h-24 w-24">
-            <AvatarImage src={profile?.avatar_url || ''} alt="Coach" />
-            <AvatarFallback className="bg-client text-white text-xl">
-              {coachName().substring(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="space-y-3 flex-1 text-center sm:text-left">
-            <div>
-              <h3 className="font-semibold text-lg">{coachName()}</h3>
-              <p className="text-muted-foreground text-sm">Certified Fitness Coach</p>
-            </div>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Coach Profile</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+            <Avatar className="h-24 w-24">
+              <AvatarImage src={profile?.avatar_url || ''} alt="Coach" />
+              <AvatarFallback className="bg-client text-white text-xl">
+                {coachName().substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
             
-            {profile?.bio && (
+            <div className="space-y-3 flex-1 text-center sm:text-left">
               <div>
-                <p>{profile.bio}</p>
+                <h3 className="font-semibold text-lg">{coachName()}</h3>
+                <p className="text-muted-foreground text-sm">Certified Fitness Coach</p>
               </div>
-            )}
-          </div>
-        </div>
-        
-        <Separator />
-        
-        {profile?.favorite_movements && profile.favorite_movements.length > 0 && (
-          <div>
-            <h4 className="font-medium mb-2">Favorite Ways to Move</h4>
-            <div className="flex flex-wrap gap-2">
-              {profile.favorite_movements.map(movement => (
-                <Badge key={movement} variant="secondary">{movement}</Badge>
-              ))}
+              
+              {profile?.bio && (
+                <div>
+                  <p>{profile.bio}</p>
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          
+          <Separator />
+          
+          {profile?.favorite_movements && profile.favorite_movements.length > 0 && (
+            <div>
+              <h4 className="font-medium mb-2">Favorite Ways to Move</h4>
+              <div className="flex flex-wrap gap-2">
+                {profile.favorite_movements.map(movement => (
+                  <Badge key={movement} variant="secondary">{movement}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Coach's Corner section */}
+      <CoachResourcesList coachId={coachInfo.id} />
+    </div>
   );
 };
 

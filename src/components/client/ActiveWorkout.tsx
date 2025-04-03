@@ -897,11 +897,33 @@ const ActiveWorkout = () => {
           return (
             <Card key={exercise.id} className="overflow-hidden border-gray-200 w-full">
               <CardHeader 
-                className="cursor-pointer bg-client/5 text-center" 
+                className="cursor-pointer bg-client/5 text-center relative" 
                 onClick={() => toggleExerciseExpanded(exercise.id)}
               >
+                {hasDescription && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="absolute right-1 top-1 h-6 w-6 p-0 text-muted-foreground z-10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleDescriptionExpanded(exercise.id);
+                          }}
+                        >
+                          <Info className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="text-xs">View exercise description</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
                 <div className="flex justify-between items-center">
-                  <div className="text-center w-full relative">
+                  <div className="text-center w-full">
                     <CardTitle className="text-base">{exercise.exercise.name}</CardTitle>
                     <CardDescription>
                       {isRunExercise ? (
@@ -922,28 +944,6 @@ const ActiveWorkout = () => {
                         </>
                       )}
                     </CardDescription>
-                    {hasDescription && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="absolute right-0 top-0 h-6 w-6 -mt-1 -mr-2 text-muted-foreground"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleDescriptionExpanded(exercise.id);
-                              }}
-                            >
-                              <Info className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
-                            <p className="text-xs">View exercise description</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {isRunExercise ? (

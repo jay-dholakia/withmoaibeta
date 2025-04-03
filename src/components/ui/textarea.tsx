@@ -4,59 +4,10 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 export interface TextareaProps
-  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'autoSave'> {
-  autoSave?: boolean;
-  storageKey?: string;
-}
+  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, autoSave, storageKey, onChange, defaultValue, value, ...props }, ref) => {
-    const [savedValue, setSavedValue] = React.useState<string | undefined>(
-      typeof defaultValue === 'string' ? defaultValue : 
-      typeof value === 'string' ? value : 
-      ''
-    );
-    
-    // Load saved value from localStorage on mount if storageKey is provided
-    React.useEffect(() => {
-      if (autoSave && storageKey) {
-        const savedData = localStorage.getItem(storageKey);
-        if (savedData) {
-          setSavedValue(savedData);
-          
-          // This is the key change - we need to also call the onChange handler
-          // to ensure the parent component's state is updated with the saved value
-          if (onChange) {
-            const event = {
-              target: { value: savedData }
-            } as React.ChangeEvent<HTMLTextAreaElement>;
-            onChange(event);
-          }
-        }
-      }
-    }, [autoSave, storageKey, onChange]);
-    
-    // Handle changes
-    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      if (onChange) {
-        onChange(e);
-      }
-      
-      if (autoSave && storageKey) {
-        setSavedValue(e.target.value);
-        
-        // Debounced save to localStorage
-        const timeoutId = setTimeout(() => {
-          localStorage.setItem(storageKey, e.target.value);
-        }, 500);
-        
-        return () => clearTimeout(timeoutId);
-      }
-    };
-    
-    // If using autoSave, we need to control the component
-    const textareaValue = autoSave ? savedValue : value;
-    
+  ({ className, ...props }, ref) => {
     return (
       <textarea
         className={cn(
@@ -64,8 +15,6 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           className
         )}
         ref={ref}
-        value={textareaValue}
-        onChange={handleChange}
         {...props}
       />
     )

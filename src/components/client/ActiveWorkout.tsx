@@ -1020,20 +1020,23 @@ const ActiveWorkout = () => {
                     ) : exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
                       <>
                         <div className="space-y-4">
+                          <div className="flex items-center space-x-2 px-2">
+                            <div className="w-12 text-sm font-medium text-center">
+                              Set
+                            </div>
+                            <div className="flex-1 text-center text-sm font-medium">
+                              Reps
+                            </div>
+                            <div className="flex-1 text-center text-sm font-medium">
+                              Weight
+                            </div>
+                            <div className="w-12"></div>
+                          </div>
+                          
                           {exerciseState.sets.map((set, setIndex) => (
                             <div key={setIndex} className="flex items-center space-x-2 border p-2 rounded-md">
                               <div className="w-12 text-sm text-center">
                                 Set {set.setNumber}
-                              </div>
-                              <div className="flex-1 text-center">
-                                <Input
-                                  type="number"
-                                  placeholder="lbs"
-                                  value={set.weight}
-                                  onChange={(e) => handleSetChange(exercise.id, setIndex, 'weight', e.target.value)}
-                                  className="h-8 text-center"
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">Weight</p>
                               </div>
                               <div className="flex-1 text-center">
                                 <Input
@@ -1043,7 +1046,15 @@ const ActiveWorkout = () => {
                                   onChange={(e) => handleSetChange(exercise.id, setIndex, 'reps', e.target.value)}
                                   className="h-8 text-center"
                                 />
-                                <p className="text-xs text-muted-foreground mt-1">Reps</p>
+                              </div>
+                              <div className="flex-1 text-center">
+                                <Input
+                                  type="number"
+                                  placeholder="lbs"
+                                  value={set.weight}
+                                  onChange={(e) => handleSetChange(exercise.id, setIndex, 'weight', e.target.value)}
+                                  className="h-8 text-center"
+                                />
                               </div>
                               <div className="w-12 flex justify-center items-center">
                                 <Checkbox

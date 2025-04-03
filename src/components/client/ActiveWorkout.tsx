@@ -831,7 +831,7 @@ const ActiveWorkout = () => {
     : [];
 
   return (
-    <div className="space-y-6 pb-28 flex flex-col items-center max-w-md mx-auto">
+    <div className="space-y-6 pb-28 flex flex-col items-center mx-auto px-4 w-full max-w-md">
       <div className="flex flex-col items-center gap-2 text-center w-full">
         <Button 
           variant="ghost" 
@@ -1020,8 +1020,8 @@ const ActiveWorkout = () => {
                     ) : exerciseType === 'strength' || exerciseType === 'bodyweight' ? (
                       <>
                         <div className="space-y-4">
-                          <div className="flex items-center space-x-2 px-2">
-                            <div className="w-12 text-sm font-medium text-center">
+                          <div className="flex items-center px-2 mb-2">
+                            <div className="w-16 text-sm font-medium text-center">
                               Set
                             </div>
                             <div className="flex-1 text-center text-sm font-medium">
@@ -1030,33 +1030,35 @@ const ActiveWorkout = () => {
                             <div className="flex-1 text-center text-sm font-medium">
                               Weight
                             </div>
-                            <div className="w-12"></div>
+                            <div className="w-10"></div>
                           </div>
                           
                           {exerciseState.sets.map((set, setIndex) => (
-                            <div key={setIndex} className="flex items-center space-x-2 border p-2 rounded-md">
-                              <div className="w-12 text-sm text-center">
+                            <div key={setIndex} className="flex items-center border p-2 rounded-md">
+                              <div className="w-16 text-sm text-center">
                                 Set {set.setNumber}
                               </div>
-                              <div className="flex-1 text-center">
+                              <div className="flex-1 text-center px-1">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="numeric"
                                   placeholder="reps"
                                   value={set.reps}
                                   onChange={(e) => handleSetChange(exercise.id, setIndex, 'reps', e.target.value)}
-                                  className="h-8 text-center"
+                                  className="h-8 text-center min-w-0 px-1"
                                 />
                               </div>
-                              <div className="flex-1 text-center">
+                              <div className="flex-1 text-center px-1">
                                 <Input
-                                  type="number"
+                                  type="text"
+                                  inputMode="numeric"
                                   placeholder="lbs"
                                   value={set.weight}
                                   onChange={(e) => handleSetChange(exercise.id, setIndex, 'weight', e.target.value)}
-                                  className="h-8 text-center"
+                                  className="h-8 text-center min-w-0 px-1"
                                 />
                               </div>
-                              <div className="w-12 flex justify-center items-center">
+                              <div className="w-10 flex justify-center items-center">
                                 <Checkbox
                                   checked={set.completed}
                                   onCheckedChange={(checked) => handleSetCompletion(

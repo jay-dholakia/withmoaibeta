@@ -121,7 +121,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   }, [initialData]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 text-center">
+    <form onSubmit={handleSubmit} className="space-y-3 text-center px-2">
       {/* Display autosave status */}
       {saveStatus !== 'idle' && (
         <div className="text-xs text-right text-muted-foreground">
@@ -154,7 +154,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
             />
           </div>
           
-          {/* Column headers and inputs with swapped order */}
+          {/* Column headers and inputs with padding adjustments */}
           <div>
             <div className="grid grid-cols-2 gap-4 mb-1">
               <div className="text-center text-sm text-muted-foreground">Reps</div>
@@ -168,14 +168,16 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
                   value={reps}
                   onChange={(e) => setReps(e.target.value)}
                   placeholder="e.g., 10 or 30s"
-                  className="w-full text-center"
+                  className="w-full text-center min-w-0 px-2"
+                  type="text"
+                  inputMode="numeric"
                 />
               </div>
               <div>
                 <Input
                   disabled
                   placeholder="Client will enter"
-                  className="w-full text-center bg-muted/30"
+                  className="w-full text-center bg-muted/30 min-w-0 px-2"
                 />
               </div>
             </div>

@@ -9,11 +9,17 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save, HelpCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -74,6 +80,8 @@ const ActiveWorkout = () => {
     duration: string;
     location: string;
   }>>([]);
+
+  const [expandedDescriptions, setExpandedDescriptions] = useState<{[key: string]: boolean}>({});
 
   const draftData = {
     exerciseStates,
@@ -779,6 +787,13 @@ const ActiveWorkout = () => {
     });
   };
 
+  const toggleDescriptionExpanded = (exerciseId: string) => {
+    setExpandedDescriptions(prev => ({
+      ...prev,
+      [exerciseId]: !prev[exerciseId]
+    }));
+  };
+
   const isWorkoutComplete = () => {
     return true;
   };
@@ -876,6 +891,8 @@ const ActiveWorkout = () => {
           if (!exerciseState) {
             return null;
           }
+
+          const hasDescription = exercise.exercise?.description && exercise.exercise.description.trim() !== '';
           
           return (
             <Card key={exercise.id} className="overflow-hidden border-gray-200 w-full">
@@ -884,7 +901,7 @@ const ActiveWorkout = () => {
                 onClick={() => toggleExerciseExpanded(exercise.id)}
               >
                 <div className="flex justify-between items-center">
-                  <div className="text-center w-full">
+                  <div className="text-center w-full relative">
                     <CardTitle className="text-base">{exercise.exercise.name}</CardTitle>
                     <CardDescription>
                       {isRunExercise ? (
@@ -905,6 +922,28 @@ const ActiveWorkout = () => {
                         </>
                       )}
                     </CardDescription>
+                    {hasDescription && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="absolute right-0 top-0 h-6 w-6 -mt-1 -mr-2 text-muted-foreground"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleDescriptionExpanded(exercise.id);
+                              }}
+                            >
+                              <Info className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p className="text-xs">View exercise description</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {isRunExercise ? (
@@ -936,6 +975,13 @@ const ActiveWorkout = () => {
               {exerciseState.expanded && (
                 <>
                   <CardContent className="pt-4">
+                    {(expandedDescriptions[exercise.id] && exercise.exercise?.description) && (
+                      <div className="mb-4 p-3 bg-slate-50 rounded-md border border-slate-200 text-sm">
+                        <p className="font-medium mb-1">Exercise Description:</p>
+                        <p className="text-muted-foreground">{exercise.exercise.description}</p>
+                      </div>
+                    )}
+                    
                     {exercise.notes && (
                       <div className="mb-4 text-sm bg-muted p-3 rounded-md text-center">
                         <p className="font-medium mb-1">Notes:</p>

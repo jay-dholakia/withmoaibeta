@@ -9,9 +9,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, FloppyDisk } from 'lucide-react';
 import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
+import { useAutosave } from '@/hooks/useAutosave';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -72,6 +74,26 @@ const ActiveWorkout = () => {
     duration: string;
     location: string;
   }>>([]);
+
+  const draftData = {
+    exerciseStates,
+    pendingSets,
+    pendingCardio,
+    pendingFlexibility,
+    pendingRuns
+  };
+
+  const { saveStatus } = useAutosave({
+    data: draftData,
+    onSave: async (data) => {
+      return await saveWorkoutDraft(
+        workoutCompletionId || null,
+        'workout', 
+        data
+      );
+    },
+    interval: 3000
+  });
 
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['active-workout', workoutCompletionId],
@@ -180,6 +202,28 @@ const ActiveWorkout = () => {
     },
     enabled: !!workoutCompletionId && !!user?.id,
   });
+
+  useEffect(() => {
+    const loadDraftData = async () => {
+      if (!workoutCompletionId || !user?.id) return;
+      
+      const draft = await getWorkoutDraft(workoutCompletionId);
+      
+      if (draft && draft.draft_data) {
+        const { exerciseStates, pendingSets, pendingCardio, pendingFlexibility, pendingRuns } = draft.draft_data;
+        
+        if (exerciseStates) setExerciseStates(exerciseStates);
+        if (pendingSets) setPendingSets(pendingSets);
+        if (pendingCardio) setPendingCardio(pendingCardio);
+        if (pendingFlexibility) setPendingFlexibility(pendingFlexibility);
+        if (pendingRuns) setPendingRuns(pendingRuns);
+        
+        toast.success('Recovered unsaved workout progress');
+      }
+    };
+    
+    loadDraftData();
+  }, [workoutCompletionId, user?.id]);
 
   const trackSetMutation = useMutation({
     mutationFn: async ({
@@ -797,8 +841,29 @@ const ActiveWorkout = () => {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-2xl font-bold">{workoutData?.workout.title}</h1>
+        <h1 className="text-2xl font-bold">{workoutData?.workout?.title || 'Workout'}</h1>
         <p className="text-muted-foreground">Track your progress</p>
+        
+        <div className="text-xs text-muted-foreground flex items-center gap-1">
+          {saveStatus === 'saving' && (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Saving...</span>
+            </>
+          )}
+          {saveStatus === 'success' && (
+            <>
+              <FloppyDisk className="h-3 w-3" />
+              <span>Draft saved</span>
+            </>
+          )}
+          {saveStatus === 'error' && (
+            <>
+              <AlertCircle className="h-3 w-3 text-destructive" />
+              <span className="text-destructive">Save failed</span>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="space-y-4 w-full">
@@ -1105,26 +1170,22 @@ const ActiveWorkout = () => {
         })}
       </div>
       
-      <div className="fixed bottom-16 left-0 right-0 z-10 bg-white shadow-lg px-4 pt-4 pb-2">
-        <div className="container mx-auto max-w-md">
-          <Button
-            onClick={finishWorkout}
-            disabled={saveAllSetsMutation.isPending}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-6 border-2 border-green-700"
-          >
-            {saveAllSetsMutation.isPending ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <CheckCircle2 className="mr-2 h-5 w-5" />
-            )}
-            Complete Workout
-          </Button>
-          {(pendingSets.length > 0 || pendingCardio.length > 0 || pendingFlexibility.length > 0 || pendingRuns.length > 0) && (
-            <p className="text-xs text-center mt-2 text-muted-foreground">
-              All tracking data will be saved when you complete the workout
-            </p>
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border shadow-lg">
+        <Button
+          onClick={finishWorkout}
+          disabled={saveAllSetsMutation.isPending}
+          className="w-full bg-client hover:bg-client/90"
+        >
+          {saveAllSetsMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Finish Workout
+            </>
           )}
-        </div>
+        </Button>
       </div>
     </div>
   );

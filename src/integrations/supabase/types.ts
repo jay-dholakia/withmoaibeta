@@ -943,6 +943,36 @@ export type Database = {
           },
         ]
       }
+      workout_drafts: {
+        Row: {
+          created_at: string
+          draft_data: Json
+          id: string
+          updated_at: string
+          user_id: string
+          workout_id: string | null
+          workout_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          draft_data: Json
+          id?: string
+          updated_at?: string
+          user_id: string
+          workout_id?: string | null
+          workout_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          draft_data?: Json
+          id?: string
+          updated_at?: string
+          user_id?: string
+          workout_id?: string | null
+          workout_type?: string | null
+        }
+        Relationships: []
+      }
       workout_exercises: {
         Row: {
           created_at: string

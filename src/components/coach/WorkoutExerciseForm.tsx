@@ -1,9 +1,13 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label"; 
 import { Textarea } from "@/components/ui/textarea";
+import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
+import { useAutosave } from '@/hooks/useAutosave';
+import { Loader2, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export interface WorkoutExerciseFormProps {
   initialData: any;
@@ -23,8 +27,62 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const [duration, setDuration] = React.useState(initialData?.duration || '');
   const [distance, setDistance] = React.useState(initialData?.distance || '');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Create unique draft ID for this exercise form
+  const exerciseFormDraftId = initialData?.id ? `exercise-form-${initialData.id}` : null;
+
+  // Data object for autosave
+  const draftData = {
+    sets,
+    reps,
+    restSeconds,
+    notes,
+    duration,
+    distance
+  };
+
+  // Use autosave hook when we have a valid exercise ID
+  const { saveStatus } = useAutosave({
+    data: draftData,
+    onSave: async (data) => {
+      if (!exerciseFormDraftId) return false;
+      return await saveWorkoutDraft(
+        exerciseFormDraftId,
+        'exercise_form',
+        data
+      );
+    },
+    disabled: !exerciseFormDraftId
+  });
+
+  // Load draft data when component mounts
+  useEffect(() => {
+    const loadDraftData = async () => {
+      if (!exerciseFormDraftId) return;
+      
+      const draft = await getWorkoutDraft(exerciseFormDraftId);
+      
+      if (draft && draft.draft_data) {
+        const data = draft.draft_data;
+        
+        if (data.sets !== undefined) setSets(data.sets);
+        if (data.reps !== undefined) setReps(data.reps);
+        if (data.restSeconds !== undefined) setRestSeconds(data.restSeconds);
+        if (data.notes !== undefined) setNotes(data.notes);
+        if (data.duration !== undefined) setDuration(data.duration);
+        if (data.distance !== undefined) setDistance(data.distance);
+      }
+    };
+    
+    loadDraftData();
+  }, [exerciseFormDraftId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // When submitting, clean up the draft
+    if (exerciseFormDraftId) {
+      deleteWorkoutDraft(exerciseFormDraftId);
+    }
     
     onSubmit({
       sets,
@@ -64,6 +122,24 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 text-center">
+      {/* Display autosave status */}
+      {saveStatus !== 'idle' && (
+        <div className="text-xs text-right text-muted-foreground">
+          {saveStatus === 'saving' && (
+            <span className="flex items-center justify-end gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Saving...
+            </span>
+          )}
+          {saveStatus === 'success' && (
+            <span className="flex items-center justify-end gap-1">
+              <CheckCircle2 className="h-3 w-3 text-green-500" />
+              Saved
+            </span>
+          )}
+        </div>
+      )}
+      
       {!isRunningExercise ? (
         <div className="grid grid-cols-2 gap-3">
           <div>

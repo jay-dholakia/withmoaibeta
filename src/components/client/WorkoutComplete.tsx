@@ -18,6 +18,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { deleteWorkoutDraft, getWorkoutDraft, saveWorkoutDraft } from '@/services/workout-draft-service';
+import { useAutosave } from '@/hooks/useAutosave';
 
 const WorkoutComplete = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -29,6 +31,18 @@ const WorkoutComplete = () => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [isEditingMessage, setIsEditingMessage] = useState(false);
+
+  // Use autosave hook for notes and rating
+  const { saveStatus } = useAutosave({
+    data: { notes, rating },
+    onSave: async (data) => {
+      return await saveWorkoutDraft(
+        workoutCompletionId || null, 
+        'completion', 
+        data
+      );
+    }
+  });
   
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['complete-workout', workoutCompletionId],
@@ -185,6 +199,31 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
+  // Load draft data on mount
+  useEffect(() => {
+    const loadDraftData = async () => {
+      if (!workoutCompletionId || !user?.id) return;
+      
+      const draft = await getWorkoutDraft(workoutCompletionId);
+      
+      if (draft && draft.draft_data) {
+        if (draft.draft_data.notes !== undefined) {
+          setNotes(draft.draft_data.notes);
+        }
+        
+        if (draft.draft_data.rating !== undefined) {
+          setRating(draft.draft_data.rating);
+        }
+        
+        if (draft.draft_data.notes || draft.draft_data.rating) {
+          toast.success('Recovered unsaved workout notes');
+        }
+      }
+    };
+    
+    loadDraftData();
+  }, [workoutCompletionId, user?.id]);
+
   useEffect(() => {
     if (workoutData && !shareMessage) {
       let message = `I just finished my workout: ${workoutData?.workout?.title || 'Workout'}! 💪\n\n`;
@@ -291,6 +330,9 @@ const WorkoutComplete = () => {
     },
     onSuccess: (completionId) => {
       if (completionId) {
+        // Delete the draft when workout is successfully completed
+        deleteWorkoutDraft(workoutCompletionId);
+        
         queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
         queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
         setShowShareDialog(true);
@@ -412,13 +454,29 @@ const WorkoutComplete = () => {
 
         <div>
           <h3 className="text-sm font-medium mb-2">Add notes</h3>
-          <Textarea
-            placeholder="How did this workout feel? What went well? What was challenging?"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={4}
-            className="border border-gray-200"
-          />
+          <div className="relative">
+            <Textarea
+              placeholder="How did this workout feel? What went well? What was challenging?"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={4}
+              className="border border-gray-200"
+            />
+            <div className="absolute right-2 top-2 text-xs text-muted-foreground">
+              {saveStatus === 'saving' && (
+                <span className="flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Saving...
+                </span>
+              )}
+              {saveStatus === 'success' && (
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Saved
+                </span>
+              )}
+            </div>
+          </div>
           <p className="text-xs text-muted-foreground mt-1 text-center">
             Your notes will be saved to your journal with this workout's title.
           </p>

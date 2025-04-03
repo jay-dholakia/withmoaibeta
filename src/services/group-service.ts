@@ -72,7 +72,7 @@ export const createGroupForCoach = async (
  */
 export const updateGroup = async (
   groupId: string,
-  updates: { name?: string; description?: string }
+  updates: { name?: string; description?: string; spotify_playlist_url?: string | null }
 ) => {
   try {
     const { data, error } = await supabase

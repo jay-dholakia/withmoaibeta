@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const groupFormSchema = z.object({
   name: z.string().min(1, 'Group name is required').max(100, 'Group name is too long'),
   description: z.string().optional(),
+  spotify_playlist_url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
 });
 
 type GroupFormValues = z.infer<typeof groupFormSchema>;
@@ -29,6 +30,7 @@ const GroupForm: React.FC = () => {
     defaultValues: {
       name: '',
       description: '',
+      spotify_playlist_url: '',
     }
   });
   
@@ -44,6 +46,7 @@ const GroupForm: React.FC = () => {
         .insert({
           name: values.name,
           description: values.description || null,
+          spotify_playlist_url: values.spotify_playlist_url || null,
           created_by: user.id
         })
         .select();
@@ -91,6 +94,24 @@ const GroupForm: React.FC = () => {
                   <FormControl>
                     <Textarea 
                       placeholder="Enter a description for this group" 
+                      {...field} 
+                      value={field.value || ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="spotify_playlist_url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Spotify Playlist URL (Optional)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="https://open.spotify.com/playlist/..." 
                       {...field} 
                       value={field.value || ''}
                     />

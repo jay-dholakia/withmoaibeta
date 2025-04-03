@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mountain, Users, UserRound } from 'lucide-react';
+import { Loader2, Mountain, Users, UserRound, Music } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
@@ -201,7 +202,7 @@ const MoaiPage = () => {
   }
   
   // Ensure we have a valid group object before proceeding
-  const group = userGroups[0] || { id: '', name: 'Loading...', description: '' };
+  const group = userGroups[0] || { id: '', name: 'Loading...', description: '', spotify_playlist_url: null };
   
   return (
     <div className="space-y-6">
@@ -213,6 +214,20 @@ const MoaiPage = () => {
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground pt-0">
           {group.description && <p>{group.description}</p>}
+          
+          {group.spotify_playlist_url && (
+            <div className="mt-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2 text-green-600 border-green-600 hover:bg-green-50"
+                onClick={() => window.open(group.spotify_playlist_url, '_blank')}
+              >
+                <Music className="h-4 w-4" />
+                Open Playlist
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
       

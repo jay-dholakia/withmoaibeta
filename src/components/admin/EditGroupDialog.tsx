@@ -29,6 +29,7 @@ interface Group {
   id: string;
   name: string;
   description: string | null;
+  spotify_playlist_url?: string | null;
 }
 
 interface EditGroupDialogProps {
@@ -41,6 +42,7 @@ interface EditGroupDialogProps {
 const formSchema = z.object({
   name: z.string().min(1, 'Group name is required'),
   description: z.string().optional(),
+  spotify_playlist_url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -56,6 +58,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = ({
     defaultValues: {
       name: group?.name || '',
       description: group?.description || '',
+      spotify_playlist_url: group?.spotify_playlist_url || '',
     },
   });
 
@@ -65,6 +68,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = ({
       form.reset({
         name: group.name,
         description: group.description || '',
+        spotify_playlist_url: group.spotify_playlist_url || '',
       });
     }
   }, [group, form]);
@@ -76,6 +80,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = ({
       const result = await updateGroup(group.id, {
         name: values.name,
         description: values.description,
+        spotify_playlist_url: values.spotify_playlist_url || null,
       });
 
       if (result.success) {
@@ -125,6 +130,24 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = ({
                       placeholder="Enter group description"
                       className="resize-none"
                       {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="spotify_playlist_url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Spotify Playlist URL (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://open.spotify.com/playlist/..."
+                      {...field}
+                      value={field.value || ''}
                     />
                   </FormControl>
                   <FormMessage />

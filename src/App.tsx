@@ -22,6 +22,7 @@ import ClientsPage from './pages/admin/ClientsPage';
 import GroupsPage from './pages/admin/GroupsPage';
 import InvitationsPage from './pages/admin/InvitationsPage';
 import GroupDetailsPage from './pages/admin/GroupDetailsPage';
+import ExerciseManagementPage from './pages/admin/ExerciseManagementPage';
 
 // Coach pages
 import CoachDashboard from './pages/coach/CoachDashboard';
@@ -47,7 +48,6 @@ import ClientSettingsPage from './pages/client/SettingsPage';
 import './App.css';
 import RequireAuth from './components/RequireAuth';
 import ExerciseImportPage from './pages/ExerciseImportPage';
-import ExerciseManagementPage from './pages/ExerciseManagementPage';
 
 const queryClient = new QueryClient();
 

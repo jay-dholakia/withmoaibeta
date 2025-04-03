@@ -49,7 +49,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           if (!groups[exerciseId]) {
             const { data: exerciseInfo, error } = await supabase
               .from('workout_exercises')
-              .select('*, exercise:exercises(name, exercise_type)')
+              .select('*, exercise:exercises(name, exercise_type, gif_url)')
               .eq('id', exerciseId)
               .single();
 
@@ -61,6 +61,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
             groups[exerciseId] = {
               name: exerciseInfo.exercise ? exerciseInfo.exercise.name : 'Unknown Exercise',
               type: exerciseInfo.exercise ? exerciseInfo.exercise.exercise_type : 'strength',
+              gif_url: exerciseInfo.exercise ? exerciseInfo.exercise.gif_url : null,
               sets: []
             };
           }
@@ -420,11 +421,11 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                               </div>
                             )}
                             
-                            {exercise.exercise?.gif_url && (
+                            {group.gif_url && (
                               <ExerciseGifViewer
-                                exerciseId={exercise.exercise.id}
-                                exerciseName={exercise.exercise.name}
-                                gifUrl={exercise.exercise.gif_url}
+                                exerciseId={exerciseId}
+                                exerciseName={group.name}
+                                gifUrl={group.gif_url}
                                 className="mt-2"
                               />
                             )}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -158,7 +157,7 @@ export const CreateExerciseForm = ({
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      // Ensure we're passing all required properties with proper types
+      // Create the exercise without the gif_url first
       const result = await createExercise({
         name: data.name,
         category: data.category,
@@ -184,7 +183,7 @@ export const CreateExerciseForm = ({
           const gifUrl = await uploadGif(result.exercise.id);
           
           if (gifUrl) {
-            // Update the exercise with the GIF URL
+            // Update the exercise with the GIF URL using Supabase directly
             const { error: updateError } = await supabase
               .from('exercises')
               .update({ gif_url: gifUrl })
@@ -193,6 +192,7 @@ export const CreateExerciseForm = ({
             if (updateError) {
               console.error('Error updating exercise with GIF URL:', updateError);
             } else {
+              // Update the local exercise object with the gif_url
               result.exercise.gif_url = gifUrl;
             }
           }

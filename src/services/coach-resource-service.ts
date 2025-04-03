@@ -7,6 +7,7 @@ export interface CoachResource {
   title: string;
   description: string | null;
   url: string;
+  tags: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -47,7 +48,7 @@ export const addCoachResource = async (resource: Omit<CoachResource, 'id' | 'cre
 export const updateCoachResource = async (
   id: string, 
   coachId: string, 
-  updates: Pick<CoachResource, 'title' | 'description' | 'url'>
+  updates: Pick<CoachResource, 'title' | 'description' | 'url' | 'tags'>
 ) => {
   const { data, error } = await supabase
     .from('coach_resources')

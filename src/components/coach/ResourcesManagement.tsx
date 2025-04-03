@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Pencil, 
   Trash2, 
@@ -37,7 +38,8 @@ import {
   Book,
   Calendar,
   Info,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Tag
 } from 'lucide-react';
 import {
   Dialog,
@@ -68,10 +70,26 @@ import {
   CoachResource
 } from '@/services/coach-resource-service';
 
+const RESOURCE_TAGS = [
+  "Recovery",
+  "Hydration",
+  "Energy Gels",
+  "Shoes",
+  "Running Belts",
+  "Energy Chews",
+  "Electrolyte Packs",
+  "Nutrition",
+  "Strength Training",
+  "Mobility",
+  "Stretching",
+  "Race Day"
+];
+
 const resourceSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title is too long"),
   description: z.string().nullable().optional(),
   url: z.string().url("Must be a valid URL"),
+  tags: z.array(z.string()).optional().nullable(),
 });
 
 type ResourceFormValues = z.infer<typeof resourceSchema>;
@@ -89,6 +107,7 @@ const ResourcesManagement = () => {
       title: '',
       description: '',
       url: '',
+      tags: [],
     },
   });
 
@@ -98,12 +117,14 @@ const ResourcesManagement = () => {
         title: editingResource.title,
         description: editingResource.description || '',
         url: editingResource.url,
+        tags: editingResource.tags || [],
       });
     } else if (!isEditDialogOpen && !isAddDialogOpen) {
       form.reset({
         title: '',
         description: '',
         url: '',
+        tags: [],
       });
     }
   }, [editingResource, isEditDialogOpen, isAddDialogOpen, form]);
@@ -125,6 +146,7 @@ const ResourcesManagement = () => {
         title: values.title,
         description: values.description || null,
         url: values.url,
+        tags: values.tags || [],
       });
     },
     onSuccess: () => {
@@ -147,6 +169,7 @@ const ResourcesManagement = () => {
         title: values.title,
         description: values.description || null,
         url: values.url,
+        tags: values.tags || [],
       });
     },
     onSuccess: () => {
@@ -287,6 +310,55 @@ const ResourcesManagement = () => {
           )}
         />
 
+        <FormField
+          control={form.control}
+          name="tags"
+          render={() => (
+            <FormItem>
+              <div className="mb-4">
+                <FormLabel className="text-base">Tags</FormLabel>
+                <FormDescription>
+                  Select categories that apply to this resource
+                </FormDescription>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {RESOURCE_TAGS.map((tag) => (
+                  <FormField
+                    key={tag}
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => {
+                      return (
+                        <FormItem
+                          key={tag}
+                          className="flex flex-row items-start space-x-3 space-y-0"
+                        >
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(tag)}
+                              onCheckedChange={(checked) => {
+                                const currentTags = field.value || [];
+                                const updatedTags = checked
+                                  ? [...currentTags, tag]
+                                  : currentTags.filter((value) => value !== tag);
+                                field.onChange(updatedTags);
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal cursor-pointer">
+                            {tag}
+                          </FormLabel>
+                        </FormItem>
+                      );
+                    }}
+                  />
+                ))}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline">Cancel</Button>
@@ -419,6 +491,17 @@ const ResourcesManagement = () => {
                         <ExternalLink className="h-3 w-3 ml-1" />
                       </a>
                     </Button>
+                    
+                    {resource.tags && resource.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {resource.tags.map(tag => (
+                          <div key={tag} className="flex items-center bg-muted text-xs px-2 py-1 rounded-full">
+                            <Tag className="h-3 w-3 mr-1 text-muted-foreground" />
+                            <span>{tag}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 {index < resources.length - 1 && <Separator />}

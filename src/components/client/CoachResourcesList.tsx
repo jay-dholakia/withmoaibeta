@@ -3,7 +3,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Book, Calendar, Info, Link as LinkIcon } from 'lucide-react';
+import { ExternalLink, Book, Calendar, Info, Link as LinkIcon, Tag } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
 import { fetchCoachResources, CoachResource } from '@/services/coach-resource-service';
@@ -93,6 +93,17 @@ const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
                     <ExternalLink className="h-3 w-3 ml-1" />
                   </a>
                 </Button>
+                
+                {resource.tags && resource.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {resource.tags.map(tag => (
+                      <div key={tag} className="flex items-center bg-muted text-xs px-2 py-1 rounded-full">
+                        <Tag className="h-3 w-3 mr-1 text-muted-foreground" />
+                        <span>{tag}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             {index < resources.length - 1 && <Separator />}

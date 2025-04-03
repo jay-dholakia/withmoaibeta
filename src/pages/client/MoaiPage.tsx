@@ -228,11 +228,11 @@ const MoaiPage = () => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="gap-2 text-green-600 border-green-600 hover:bg-green-50"
+                className="gap-1 text-green-600 border-green-600 hover:bg-green-50"
                 onClick={() => window.open(group.spotify_playlist_url, '_blank')}
               >
                 <Music className="h-4 w-4" />
-                Open Playlist
+                Team Playlist
               </Button>
             </div>
           )}

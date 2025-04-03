@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { format, isThisWeek, startOfWeek, endOfWeek, addDays, isSameDay } from 'date-fns';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -49,12 +50,15 @@ export const WeekProgressBar = ({
   
   const dayStatus = useMemo(() => {
     return weekDays.map(day => {
-      const hasCompleted = completedDates.some(date => {
+      // Count workouts completed for this day
+      const workoutsCompletedToday = completedDates.filter(date => {
         if (typeof date === 'string') {
           return isSameDay(new Date(date), day);
         }
         return isSameDay(date, day);
-      });
+      }).length;
+      
+      const hasCompleted = workoutsCompletedToday > 0;
       
       const hasLifeHappens = lifeHappensDates.some(date => {
         if (typeof date === 'string') {
@@ -71,6 +75,7 @@ export const WeekProgressBar = ({
         isCompleted: hasCompleted,
         isLifeHappens: hasLifeHappens,
         workoutType,
+        workoutsCount: workoutsCompletedToday
       };
     });
   }, [weekDays, completedDates, lifeHappensDates, workoutTypes]);
@@ -129,12 +134,19 @@ export const WeekProgressBar = ({
           return (
             <div key={index} className="flex flex-col items-center">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${border} transition-all duration-200`}
+                className={`relative w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${border} transition-all duration-200`}
               >
                 {(day.isCompleted || day.isLifeHappens) ? (
                   <WorkoutTypeIcon type={day.workoutType} />
                 ) : (
                   <span></span>
+                )}
+                
+                {/* Add superscript for multiple workouts */}
+                {day.workoutsCount > 1 && (
+                  <div className="absolute -top-1 -right-1 bg-gray-600 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                    {day.workoutsCount}
+                  </div>
                 )}
               </div>
               

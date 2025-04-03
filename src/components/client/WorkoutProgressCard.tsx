@@ -90,9 +90,12 @@ export const WorkoutProgressCard = ({
               const currentDay = new Date(weekStart);
               currentDay.setDate(weekStart.getDate() + index);
               
-              const isDayCompleted = completedDates.some(date => 
+              // Count how many workouts were completed on this day
+              const workoutsCompletedToday = completedDates.filter(date => 
                 new Date(date).toDateString() === currentDay.toDateString()
-              );
+              ).length;
+              
+              const isDayCompleted = workoutsCompletedToday > 0;
               
               const isLifeHappens = lifeHappensDates.some(date => 
                 new Date(date).toDateString() === currentDay.toDateString()
@@ -129,11 +132,18 @@ export const WorkoutProgressCard = ({
               
               return (
                 <div key={index} className="flex flex-col items-center">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center ${bgColor} border border-slate-200`}>
+                  <div className={`relative w-7 h-7 rounded-full flex items-center justify-center ${bgColor} border border-slate-200`}>
                     {(isDayCompleted || isLifeHappens) ? (
                       <WorkoutTypeIcon type={workoutType} />
                     ) : (
                       <span></span>
+                    )}
+                    
+                    {/* Add superscript for multiple workouts */}
+                    {workoutsCompletedToday > 1 && (
+                      <div className="absolute -top-1 -right-1 bg-client text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                        {workoutsCompletedToday}
+                      </div>
                     )}
                   </div>
                   
@@ -184,7 +194,8 @@ export const WorkoutProgressCard = ({
               
               const dateStr = format(currentDay, 'yyyy-MM-dd');
               
-              const isDayCompleted = completedDates.some(date => 
+              // Find all workouts completed on this day
+              const workoutsForThisDay = completedDates.filter(date => 
                 new Date(date).toDateString() === currentDay.toDateString()
               );
               
@@ -195,7 +206,7 @@ export const WorkoutProgressCard = ({
               let workoutType = workoutTypesMap[dateStr];
               const workoutTitle = workoutTitlesMap[dateStr] || 'Workout';
               
-              if (!workoutType && isDayCompleted && workoutTitlesMap[dateStr]) {
+              if (!workoutType && workoutsForThisDay.length > 0 && workoutTitlesMap[dateStr]) {
                 workoutType = detectWorkoutTypeFromText(workoutTitlesMap[dateStr]);
               }
               
@@ -203,7 +214,7 @@ export const WorkoutProgressCard = ({
                 workoutType = isLifeHappens ? 'rest_day' : 'strength';
               }
               
-              if (!isDayCompleted && !isLifeHappens) {
+              if (workoutsForThisDay.length === 0 && !isLifeHappens) {
                 return null;
               }
               
@@ -222,7 +233,14 @@ export const WorkoutProgressCard = ({
                       <div className="bg-client/10 p-1 rounded-full mr-2">
                         <WorkoutTypeIcon type={workoutType} />
                       </div>
-                      <span className="text-sm">{workoutTitle}</span>
+                      <span className="text-sm">
+                        {workoutTitle}
+                        {workoutsForThisDay.length > 1 && (
+                          <span className="text-xs text-slate-500 ml-1">
+                            (+{workoutsForThisDay.length - 1} more)
+                          </span>
+                        )}
+                      </span>
                     </div>
                   )}
                 </div>

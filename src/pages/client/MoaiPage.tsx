@@ -8,7 +8,6 @@ import { Loader2, Mountain, Users, UserRound } from 'lucide-react';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
-import SpotifyPlaylistButton from '@/components/client/SpotifyPlaylistButton';
 import { 
   fetchUserGroups, 
   diagnoseGroupAccess, 
@@ -20,9 +19,6 @@ const MoaiPage = () => {
   const { user } = useAuth();
   const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  
-  // Hardcoded Spotify playlist URL for now - could be moved to database later
-  const spotifyPlaylistUrl = "https://open.spotify.com/playlist/37i9dQZF1DXdPec7aLTmlC";
   
   const { data: userGroups, isLoading: isLoadingGroups, refetch } = useQuery({
     queryKey: ['client-groups', user?.id],
@@ -217,14 +213,6 @@ const MoaiPage = () => {
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground pt-0">
           {group.description && <p>{group.description}</p>}
-          
-          {/* Add Spotify playlist button */}
-          <div className="flex justify-center mt-4">
-            <SpotifyPlaylistButton 
-              playlistUrl={spotifyPlaylistUrl} 
-              playlistTitle={`${group.name} Playlist`}
-            />
-          </div>
         </CardContent>
       </Card>
       

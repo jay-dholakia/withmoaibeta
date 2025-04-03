@@ -26,7 +26,8 @@ export const fetchAllGroups = async () => {
 export const createGroupForCoach = async (
   coachId: string, 
   groupName: string, 
-  groupDescription?: string
+  groupDescription?: string,
+  spotifyPlaylistUrl?: string
 ) => {
   try {
     // 1. Create the group
@@ -35,7 +36,8 @@ export const createGroupForCoach = async (
       .insert([{
         name: groupName,
         description: groupDescription || '',
-        created_by: coachId
+        created_by: coachId,
+        spotify_playlist_url: spotifyPlaylistUrl || null
       }])
       .select()
       .single();

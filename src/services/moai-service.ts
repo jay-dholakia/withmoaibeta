@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -50,7 +51,8 @@ export const fetchUserGroups = async (userId: string) => {
         groups:group_id (
           id, 
           name, 
-          description
+          description,
+          spotify_playlist_url
         )
       `)
       .eq('user_id', userId);

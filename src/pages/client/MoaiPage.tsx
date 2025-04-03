@@ -16,6 +16,14 @@ import {
 } from '@/services/moai-service';
 import { supabase } from '@/integrations/supabase/client';
 
+// Define a type for the group to avoid TypeScript errors
+interface Group {
+  id: string;
+  name: string;
+  description: string | null;
+  spotify_playlist_url?: string | null;
+}
+
 const MoaiPage = () => {
   const { user } = useAuth();
   const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
@@ -43,7 +51,7 @@ const MoaiPage = () => {
         }
         
         const groups = await fetchUserGroups(user.id);
-        return groups || []; // Ensure we always return an array
+        return groups as Group[] || []; // Cast to Group[] to ensure TypeScript knows the shape
       } catch (err) {
         console.error('Error fetching groups:', err);
         setError('Failed to fetch your groups. Please try again later.');
@@ -202,7 +210,7 @@ const MoaiPage = () => {
   }
   
   // Ensure we have a valid group object before proceeding
-  const group = userGroups[0] || { id: '', name: 'Loading...', description: '', spotify_playlist_url: null };
+  const group: Group = userGroups?.[0] || { id: '', name: 'Loading...', description: '', spotify_playlist_url: null };
   
   return (
     <div className="space-y-6">

@@ -1038,7 +1038,7 @@ const ActiveWorkout = () => {
                               <div className="w-12 text-sm text-center">
                                 Set {set.setNumber}
                               </div>
-                              <div className="flex-1 text-center">
+                              <div className="flex-1 text-center px-1">
                                 <Input
                                   type="number"
                                   placeholder="reps"
@@ -1047,7 +1047,7 @@ const ActiveWorkout = () => {
                                   className="h-8 text-center"
                                 />
                               </div>
-                              <div className="flex-1 text-center">
+                              <div className="flex-1 text-center px-1">
                                 <Input
                                   type="number"
                                   placeholder="lbs"

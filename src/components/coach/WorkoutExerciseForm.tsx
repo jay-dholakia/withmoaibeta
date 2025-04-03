@@ -156,13 +156,13 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
           
           {/* Column headers and inputs with swapped order */}
           <div>
-            <div className="grid grid-cols-2 gap-4 mb-1">
+            <div className="grid grid-cols-2 gap-4 mb-2">
               <div className="text-center text-sm text-muted-foreground">Reps</div>
               <div className="text-center text-sm text-muted-foreground">Weight</div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="px-1">
                 <Input
                   id="reps"
                   value={reps}
@@ -171,7 +171,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
                   className="w-full text-center"
                 />
               </div>
-              <div>
+              <div className="px-1">
                 <Input
                   disabled
                   placeholder="Client will enter"

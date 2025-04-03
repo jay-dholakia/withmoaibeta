@@ -142,20 +142,21 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       
       {!isRunningExercise ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="sets" className="text-center block">Sets</Label>
-              <Input
-                id="sets"
-                type="number"
-                value={sets}
-                onChange={(e) => setSets(Number(e.target.value))}
-                min={1}
-                className="w-full text-center"
-              />
-            </div>
-            <div>
-              <Label htmlFor="reps" className="text-center block">Reps/Duration</Label>
+          <div>
+            <Label htmlFor="sets" className="text-center block mb-2">Sets</Label>
+            <Input
+              id="sets"
+              type="number"
+              value={sets}
+              onChange={(e) => setSets(Number(e.target.value))}
+              min={1}
+              className="w-full text-center"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col">
+              <div className="text-center text-sm text-muted-foreground mb-1">Reps</div>
               <Input
                 id="reps"
                 value={reps}
@@ -164,7 +165,16 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
                 className="w-full text-center"
               />
             </div>
+            <div className="flex flex-col">
+              <div className="text-center text-sm text-muted-foreground mb-1">Weight</div>
+              <Input
+                disabled
+                placeholder="Client will enter"
+                className="w-full text-center bg-muted/30"
+              />
+            </div>
           </div>
+          
           <p className="text-xs text-muted-foreground text-center">
             For strength exercises, use just numbers (e.g., "10") to auto-populate client tracking
           </p>

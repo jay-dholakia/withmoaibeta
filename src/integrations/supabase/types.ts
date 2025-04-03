@@ -348,6 +348,7 @@ export type Database = {
           id: string
           log_type: string | null
           name: string
+          youtube_link: string | null
         }
         Insert: {
           category: string
@@ -357,6 +358,7 @@ export type Database = {
           id?: string
           log_type?: string | null
           name: string
+          youtube_link?: string | null
         }
         Update: {
           category?: string
@@ -366,6 +368,7 @@ export type Database = {
           id?: string
           log_type?: string | null
           name?: string
+          youtube_link?: string | null
         }
         Relationships: []
       }

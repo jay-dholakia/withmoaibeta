@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save, HelpCircle, Info } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save, HelpCircle, Info, Youtube } from 'lucide-react';
 import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
@@ -794,6 +794,12 @@ const ActiveWorkout = () => {
     }));
   };
 
+  const openYoutubeLink = (url: string | undefined) => {
+    if (url) {
+      window.open(url, '_blank');
+    }
+  };
+
   const isWorkoutComplete = () => {
     return true;
   };
@@ -893,6 +899,7 @@ const ActiveWorkout = () => {
           }
 
           const hasDescription = exercise.exercise?.description && exercise.exercise.description.trim() !== '';
+          const hasYoutubeLink = exercise.exercise?.youtube_link && exercise.exercise.youtube_link.trim() !== '';
           
           return (
             <Card key={exercise.id} className="overflow-hidden border-gray-200 w-full">
@@ -900,28 +907,54 @@ const ActiveWorkout = () => {
                 className="cursor-pointer bg-client/5 text-center relative" 
                 onClick={() => toggleExerciseExpanded(exercise.id)}
               >
-                {hasDescription && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="absolute right-1 top-1 h-6 w-6 p-0 text-muted-foreground z-10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleDescriptionExpanded(exercise.id);
-                          }}
-                        >
-                          <Info className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">
-                        <p className="text-xs">View exercise description</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
+                <div className="absolute right-1 top-1 flex gap-1">
+                  {hasYoutubeLink && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 p-0 text-red-500 z-10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openYoutubeLink(exercise.exercise.youtube_link);
+                            }}
+                          >
+                            <Youtube className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p className="text-xs">Watch video demonstration</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                  
+                  {hasDescription && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 p-0 text-muted-foreground z-10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDescriptionExpanded(exercise.id);
+                            }}
+                          >
+                            <Info className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p className="text-xs">View exercise description</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+                
                 <div className="flex justify-between items-center">
                   <div className="text-center w-full">
                     <CardTitle className="text-base">{exercise.exercise.name}</CardTitle>

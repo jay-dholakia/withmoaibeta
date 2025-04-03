@@ -5,6 +5,7 @@ export interface Exercise {
   description: string | null;
   created_at: string;
   exercise_type: string; 
+  youtube_link?: string;
 }
 
 export interface WorkoutProgram {

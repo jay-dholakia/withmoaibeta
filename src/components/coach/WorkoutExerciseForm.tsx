@@ -141,31 +141,33 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       )}
       
       {!isRunningExercise ? (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="sets" className="text-center block">Sets</Label>
-            <Input
-              id="sets"
-              type="number"
-              value={sets}
-              onChange={(e) => setSets(Number(e.target.value))}
-              min={1}
-              className="w-full text-center"
-            />
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="sets" className="text-center block">Sets</Label>
+              <Input
+                id="sets"
+                type="number"
+                value={sets}
+                onChange={(e) => setSets(Number(e.target.value))}
+                min={1}
+                className="w-full text-center"
+              />
+            </div>
+            <div>
+              <Label htmlFor="reps" className="text-center block">Reps/Duration</Label>
+              <Input
+                id="reps"
+                value={reps}
+                onChange={(e) => setReps(e.target.value)}
+                placeholder="e.g., 10 or 30s"
+                className="w-full text-center"
+              />
+            </div>
           </div>
-          <div>
-            <Label htmlFor="reps" className="text-center block">Reps/Duration</Label>
-            <Input
-              id="reps"
-              value={reps}
-              onChange={(e) => setReps(e.target.value)}
-              placeholder="e.g., 10 or 30s"
-              className="w-full text-center"
-            />
-            <p className="text-xs text-muted-foreground mt-1 text-center">
-              For strength exercises, use just numbers (e.g., "10") to auto-populate client tracking
-            </p>
-          </div>
+          <p className="text-xs text-muted-foreground text-center">
+            For strength exercises, use just numbers (e.g., "10") to auto-populate client tracking
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

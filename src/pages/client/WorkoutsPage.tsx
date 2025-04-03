@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -81,7 +80,6 @@ const WorkoutsPage = () => {
                   Log Rest Day
                 </Button>
               </div>
-              {/* Removed LifeHappensButton component */}
             </TabsContent>
             
             <TabsContent value="history">

@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { WeekProgressBar } from './WeekProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,9 +32,8 @@ export const WeekProgressSection = ({
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
   const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
   const [typesMap, setTypesMap] = useState<Record<string, WorkoutType>>(workoutTypesMap);
-  const [titlesMap, setTitlesMap] = useState<Record<string, string>>({}); // New state for titles
+  const [titlesMap, setTitlesMap] = useState<Record<string, string>>({});
   
-  // Query client workouts to get completed dates
   const { data: clientWorkouts, isLoading: isLoadingWorkouts } = useQuery({
     queryKey: ['client-workouts-week-progress', user?.id],
     queryFn: async () => {
@@ -45,7 +43,6 @@ export const WeekProgressSection = ({
     enabled: !!user?.id,
   });
   
-  // Query the total number of workouts assigned for the current week
   const { data: totalAssignedWorkouts, isError: isWorkoutsCountError } = useQuery({
     queryKey: ['weekly-assigned-workouts-count', user?.id],
     queryFn: async () => {
@@ -55,29 +52,26 @@ export const WeekProgressSection = ({
         return count;
       } catch (error) {
         console.error("Error fetching workout count:", error);
-        return 6; // Default fallback
+        return 6;
       }
     },
     enabled: !!user?.id && assignedWorkoutsCount === undefined,
   });
   
-  // Use either the passed in count or the fetched count
   const finalAssignedWorkoutsCount = assignedWorkoutsCount !== undefined ? 
     assignedWorkoutsCount : 
-    totalAssignedWorkouts || 6; // Change default value to 6
+    totalAssignedWorkouts || 6;
   
-  // Extract completed dates and life happens dates
   useEffect(() => {
     if (clientWorkouts && clientWorkouts.length > 0) {
       const newCompletedDates: Date[] = [];
       const newLifeHappensDates: Date[] = [];
       const newTypesMap: Record<string, WorkoutType> = {};
-      const newTitlesMap: Record<string, string> = {}; // For storing titles
+      const newTitlesMap: Record<string, string> = {};
       
       clientWorkouts.forEach(workout => {
         if (workout.completed_at) {
           try {
-            // Handle both string and Date objects
             const completionDate = typeof workout.completed_at === 'string' 
               ? new Date(workout.completed_at) 
               : workout.completed_at;
@@ -92,14 +86,12 @@ export const WeekProgressSection = ({
             
             newCompletedDates.push(completionDate);
             
-            // Store title for better type detection
             if (workout.title) {
               newTitlesMap[dateKey] = workout.title;
             } else if (workout.workout?.title) {
               newTitlesMap[dateKey] = workout.workout.title;
             }
             
-            // Determine workout type
             if (workout.workout_type) {
               newTypesMap[dateKey] = workout.workout_type as WorkoutType;
             } else if (workout.workout?.workout_type) {
@@ -136,27 +128,23 @@ export const WeekProgressSection = ({
     }
   }, [clientWorkouts, workoutTypesMap]);
   
-  // Count number of completed workouts this week
   const completedThisWeek = useMemo(() => {
     if (!completedDates.length) return 0;
     
     return completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   }, [completedDates]);
   
-  // Count number of life happens passes used this week
   const lifeHappensThisWeek = useMemo(() => {
     if (!lifeHappensDates.length) return 0;
     
     return lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   }, [lifeHappensDates]);
   
-  // Calculate the total completed including life happens passes
-  const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;
+  const totalCompletedThisWeek = completedThisWeek;
   
   const hasAssignedWorkouts = finalAssignedWorkoutsCount > 0;
   const hasError = isWorkoutsCountError && assignedWorkoutsCount === undefined;
   
-  // Get user display name
   const userDisplayName = user?.email ? user.email.split('@')[0] : 'You';
   
   return (
@@ -175,10 +163,8 @@ export const WeekProgressSection = ({
         />
       )}
       
-      {/* Group members will be rendered here if showGroupMembers is true */}
       {showGroupMembers && (
         <div className="mt-4">
-          {/* This is just a placeholder. The actual implementation would need to be added later */}
           <p className="text-center text-sm text-slate-500">Group members progress would appear here</p>
         </div>
       )}

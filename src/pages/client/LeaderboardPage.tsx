@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Container } from '@/components/ui/container';
 import { CoachMessageCard } from '@/components/client/CoachMessageCard';
@@ -81,7 +82,7 @@ const LeaderboardPage = () => {
     const completed: Date[] = [];
     const lifeHappens: Date[] = [];
     const typesMap: Record<string, WorkoutType> = {};
-    const titleMap: Record<string, string> = {}; // Store titles for better workout type detection
+    const titleMap: Record<string, string> = {};
     
     if (clientWorkouts && Array.isArray(clientWorkouts) && clientWorkouts.length > 0) {
       clientWorkouts.forEach(item => {
@@ -154,7 +155,8 @@ const LeaderboardPage = () => {
     return lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   }, [lifeHappensDates]);
   
-  const totalCompletedCount = (completedThisWeek || 0) + lifeHappensThisWeek;
+  // Changed: Don't add lifeHappensThisWeek to total count
+  const totalCompletedCount = completedThisWeek || 0;
   
   const totalWorkouts = assignedWorkoutsCount || 5;
   

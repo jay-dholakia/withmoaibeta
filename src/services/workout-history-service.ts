@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCurrentProgram } from "./program-service";
 import { startOfWeek, endOfWeek, format } from "date-fns";
@@ -84,7 +85,7 @@ export const countCompletedWorkoutsForWeek = async (userId: string, weekStart: D
       .eq('user_id', userId)
       .gte('completed_at', startFormatted)
       .lte('completed_at', endFormatted)
-      .is('rest_day', false)
+      .is('rest_day', false) // This filter was already present
       .is('life_happens_pass', false);
     
     if (error) {

@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save, HelpCircle, Info, Youtube } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save, HelpCircle, Info, Youtube, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
@@ -20,6 +20,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose
+} from "@/components/ui/dialog";
+import { VideoPlayer } from '@/components/client/VideoPlayer';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -82,6 +90,10 @@ const ActiveWorkout = () => {
   }>>([]);
 
   const [expandedDescriptions, setExpandedDescriptions] = useState<{[key: string]: boolean}>({});
+  
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
+  const [currentExerciseName, setCurrentExerciseName] = useState<string>('');
 
   const draftData = {
     exerciseStates,
@@ -794,9 +806,13 @@ const ActiveWorkout = () => {
     }));
   };
 
-  const openYoutubeLink = (url: string | undefined) => {
+  const openVideoDialog = (url: string | undefined, exerciseName: string) => {
     if (url) {
-      window.open(url, '_blank');
+      setCurrentVideoUrl(url);
+      setCurrentExerciseName(exerciseName);
+      setVideoDialogOpen(true);
+    } else {
+      toast.error('No video available for this exercise');
     }
   };
 
@@ -918,7 +934,7 @@ const ActiveWorkout = () => {
                             className="h-6 w-6 p-0 text-red-500 z-10"
                             onClick={(e) => {
                               e.stopPropagation();
-                              openYoutubeLink(exercise.exercise.youtube_link);
+                              openVideoDialog(exercise.exercise.youtube_link, exercise.exercise.name);
                             }}
                           >
                             <Youtube className="h-4 w-4" />
@@ -1272,6 +1288,27 @@ const ActiveWorkout = () => {
           );
         })}
       </div>
+
+      <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
+        <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>{currentExerciseName}</DialogTitle>
+            <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
+          </DialogHeader>
+          <div className="p-4 pt-0">
+            {currentVideoUrl && (
+              <VideoPlayer 
+                youtubeUrl={currentVideoUrl} 
+                className="aspect-video"
+                controls={true}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {workoutExercises.length > 0 && (
         <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-center">

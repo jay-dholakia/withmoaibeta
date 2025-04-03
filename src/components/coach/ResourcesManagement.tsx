@@ -77,7 +77,7 @@ const RESOURCE_TAGS = [
   "Shoes",
   "Running Belts",
   "Energy Chews",
-  "Electrolyte Packs",
+  "Electrolytes",
   "Nutrition",
   "Strength Training",
   "Mobility",

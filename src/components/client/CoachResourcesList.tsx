@@ -99,7 +99,7 @@ const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
                     {resource.tags.map(tag => (
                       <div key={tag} className="flex items-center bg-muted text-xs px-2 py-1 rounded-full">
                         <Tag className="h-3 w-3 mr-1 text-muted-foreground" />
-                        <span>{tag}</span>
+                        <span>{tag === "Electrolyte Packs" ? "Electrolytes" : tag}</span>
                       </div>
                     ))}
                   </div>

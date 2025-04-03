@@ -156,6 +156,14 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
           
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col">
+              <div className="text-center text-sm text-muted-foreground mb-1">Weight</div>
+              <Input
+                disabled
+                placeholder="Client will enter"
+                className="w-full text-center bg-muted/30"
+              />
+            </div>
+            <div className="flex flex-col">
               <div className="text-center text-sm text-muted-foreground mb-1">Reps</div>
               <Input
                 id="reps"
@@ -163,14 +171,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
                 onChange={(e) => setReps(e.target.value)}
                 placeholder="e.g., 10 or 30s"
                 className="w-full text-center"
-              />
-            </div>
-            <div className="flex flex-col">
-              <div className="text-center text-sm text-muted-foreground mb-1">Weight</div>
-              <Input
-                disabled
-                placeholder="Client will enter"
-                className="w-full text-center bg-muted/30"
               />
             </div>
           </div>

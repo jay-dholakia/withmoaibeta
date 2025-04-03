@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
@@ -28,10 +29,14 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { WORKOUT_TYPES, WorkoutType } from './WorkoutTypeIcon';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useAuth } from '@/contexts/AuthContext';
+
+const STORAGE_KEY_PREFIX = 'one_off_workout_draft';
 
 const EnterOneOffWorkout = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const initialDate = searchParams.get('date') 
     ? new Date(searchParams.get('date') as string) 
     : new Date();
@@ -39,13 +44,107 @@ const EnterOneOffWorkout = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
-  const [workoutType, setWorkoutType] = useState<WorkoutType>('strength'); // Changed default from 'one_off' to 'strength'
+  const [workoutType, setWorkoutType] = useState<WorkoutType>('strength');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [date, setDate] = useState<Date | undefined>(initialDate);
   
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
   const [location, setLocation] = useState<string>('');
+  
+  // Generate a unique storage key based on user ID
+  const getStorageKey = () => {
+    if (!user?.id) return null;
+    return `${STORAGE_KEY_PREFIX}_${user.id}`;
+  };
+  
+  // Save form data to localStorage
+  const saveFormToLocalStorage = () => {
+    const storageKey = getStorageKey();
+    if (!storageKey) return;
+    
+    const formData = {
+      title,
+      description,
+      notes,
+      workoutType,
+      date: date?.toISOString(),
+      distance,
+      duration,
+      location
+    };
+    
+    localStorage.setItem(storageKey, JSON.stringify(formData));
+  };
+  
+  // Load form data from localStorage
+  const loadFormFromLocalStorage = () => {
+    const storageKey = getStorageKey();
+    if (!storageKey) return;
+    
+    const savedData = localStorage.getItem(storageKey);
+    if (!savedData) return;
+    
+    try {
+      const formData = JSON.parse(savedData);
+      
+      // Only restore if there's actual content
+      if (formData.title || formData.notes || formData.description) {
+        if (formData.title) setTitle(formData.title);
+        if (formData.description) setDescription(formData.description);
+        if (formData.notes) setNotes(formData.notes);
+        if (formData.workoutType) setWorkoutType(formData.workoutType);
+        if (formData.date) setDate(new Date(formData.date));
+        if (formData.distance) setDistance(formData.distance);
+        if (formData.duration) setDuration(formData.duration);
+        if (formData.location) setLocation(formData.location);
+        
+        toast.info("Restored your previous workout draft");
+      }
+    } catch (error) {
+      console.error("Error parsing saved form data:", error);
+    }
+  };
+  
+  // Clear form data from localStorage
+  const clearFormFromLocalStorage = () => {
+    const storageKey = getStorageKey();
+    if (storageKey) {
+      localStorage.removeItem(storageKey);
+    }
+  };
+  
+  // Auto-save form data when values change
+  useEffect(() => {
+    // Only save if we have some content
+    if (title || notes || description) {
+      const debounceTimeout = setTimeout(() => {
+        saveFormToLocalStorage();
+      }, 500);
+      
+      return () => clearTimeout(debounceTimeout);
+    }
+  }, [title, description, notes, workoutType, date, distance, duration, location]);
+  
+  // Load saved data on initial render
+  useEffect(() => {
+    loadFormFromLocalStorage();
+  }, [user?.id]);
+  
+  // Save data when user leaves the page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (title || notes || description) {
+        saveFormToLocalStorage();
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [title, description, notes, workoutType, date, distance, duration, location]);
 
   // Function to add workout notes to journal
   const addToJournal = async (workoutTitle: string, notes: string, journalDate: Date) => {
@@ -104,6 +203,9 @@ const EnterOneOffWorkout = () => {
       }
       
       await createOneOffWorkoutCompletion(workoutData);
+      
+      // Clear saved draft after successful submission
+      clearFormFromLocalStorage();
       
       toast.success('Workout logged successfully!');
       navigate('/client-dashboard/workouts');

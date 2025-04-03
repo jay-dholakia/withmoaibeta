@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -30,6 +31,67 @@ const WorkoutComplete = () => {
   const [shareMessage, setShareMessage] = useState('');
   const [isEditingMessage, setIsEditingMessage] = useState(false);
   
+  // Load saved draft from localStorage
+  useEffect(() => {
+    if (workoutCompletionId && user?.id) {
+      const localStorageKey = `workout_completion_${workoutCompletionId}_${user.id}`;
+      const savedData = localStorage.getItem(localStorageKey);
+      
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData);
+          if (parsedData.notes) {
+            setNotes(parsedData.notes);
+          }
+          if (parsedData.rating) {
+            setRating(parsedData.rating);
+          }
+          toast.info("Restored your previous notes");
+        } catch (error) {
+          console.error("Error parsing saved workout completion data:", error);
+        }
+      }
+    }
+  }, [workoutCompletionId, user?.id]);
+  
+  // Save draft to localStorage
+  useEffect(() => {
+    if (workoutCompletionId && user?.id) {
+      const localStorageKey = `workout_completion_${workoutCompletionId}_${user.id}`;
+      
+      // Save current state to localStorage
+      const saveState = () => {
+        localStorage.setItem(localStorageKey, JSON.stringify({
+          notes,
+          rating
+        }));
+      };
+      
+      // Save on changes with debounce
+      const debounceTimeout = setTimeout(saveState, 500);
+      
+      // Save when user leaves the page
+      const handleBeforeUnload = () => {
+        saveState();
+      };
+      
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      
+      return () => {
+        clearTimeout(debounceTimeout);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
+  }, [notes, rating, workoutCompletionId, user?.id]);
+  
+  // Clear localStorage on successful submission
+  const clearSavedData = () => {
+    if (workoutCompletionId && user?.id) {
+      const localStorageKey = `workout_completion_${workoutCompletionId}_${user.id}`;
+      localStorage.removeItem(localStorageKey);
+    }
+  };
+
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['complete-workout', workoutCompletionId],
     queryFn: async () => {
@@ -293,6 +355,7 @@ const WorkoutComplete = () => {
       if (completionId) {
         queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
         queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
+        clearSavedData(); // Clear saved data after successful submission
         setShowShareDialog(true);
       } else {
         toast.error('Failed to complete workout');

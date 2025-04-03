@@ -9,9 +9,62 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+
+interface LocalStorageWorkoutData {
+  exerciseStates: {
+    [key: string]: {
+      expanded: boolean;
+      sets: Array<{
+        setNumber: number;
+        weight: string;
+        reps: string;
+        completed: boolean;
+      }>;
+      cardioData?: {
+        distance: string;
+        duration: string;
+        location: string;
+        completed: boolean;
+      };
+      flexibilityData?: {
+        duration: string;
+        completed: boolean;
+      };
+      runData?: {
+        distance: string;
+        duration: string;
+        location: string;
+        completed: boolean;
+      };
+    };
+  };
+  pendingSets: Array<{
+    exerciseId: string;
+    setNumber: number;
+    weight: string;
+    reps: string;
+  }>;
+  pendingCardio: Array<{
+    exerciseId: string;
+    distance: string;
+    duration: string;
+    location: string;
+  }>;
+  pendingFlexibility: Array<{
+    exerciseId: string;
+    duration: string;
+  }>;
+  pendingRuns: Array<{
+    exerciseId: string;
+    distance: string;
+    duration: string;
+    location: string;
+  }>;
+  lastSaved: string;
+}
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -72,6 +125,97 @@ const ActiveWorkout = () => {
     duration: string;
     location: string;
   }>>([]);
+
+  const [lastSaved, setLastSaved] = useState<string>("");
+  const [hasRestoredData, setHasRestoredData] = useState<boolean>(false);
+
+  const saveWorkoutStateToLocalStorage = () => {
+    if (!workoutCompletionId || !user?.id) return;
+    
+    const localStorageKey = `workout_${workoutCompletionId}_${user.id}`;
+    const now = new Date().toLocaleTimeString();
+    
+    const dataToSave: LocalStorageWorkoutData = {
+      exerciseStates,
+      pendingSets,
+      pendingCardio,
+      pendingFlexibility,
+      pendingRuns,
+      lastSaved: now
+    };
+    
+    try {
+      localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
+      setLastSaved(now);
+    } catch (error) {
+      console.error("Error saving workout data to localStorage:", error);
+    }
+  };
+
+  const restoreWorkoutStateFromLocalStorage = () => {
+    if (!workoutCompletionId || !user?.id || hasRestoredData) return;
+    
+    try {
+      const localStorageKey = `workout_${workoutCompletionId}_${user.id}`;
+      const savedData = localStorage.getItem(localStorageKey);
+      
+      if (savedData) {
+        const parsedData: LocalStorageWorkoutData = JSON.parse(savedData);
+        
+        if (
+          parsedData && 
+          Object.keys(parsedData.exerciseStates).length > 0 && 
+          Object.keys(exerciseStates).length === 0
+        ) {
+          setExerciseStates(parsedData.exerciseStates);
+          setPendingSets(parsedData.pendingSets || []);
+          setPendingCardio(parsedData.pendingCardio || []);
+          setPendingFlexibility(parsedData.pendingFlexibility || []);
+          setPendingRuns(parsedData.pendingRuns || []);
+          setLastSaved(parsedData.lastSaved || "");
+          toast.info("Restored your workout progress", {
+            description: `Last saved at ${parsedData.lastSaved}`
+          });
+        }
+      }
+      setHasRestoredData(true);
+    } catch (error) {
+      console.error("Error restoring workout data from localStorage:", error);
+      setHasRestoredData(true);
+    }
+  };
+
+  const clearWorkoutStateFromLocalStorage = () => {
+    if (!workoutCompletionId || !user?.id) return;
+    
+    try {
+      const localStorageKey = `workout_${workoutCompletionId}_${user.id}`;
+      localStorage.removeItem(localStorageKey);
+    } catch (error) {
+      console.error("Error clearing workout data from localStorage:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (!workoutCompletionId || !user?.id) return;
+    
+    restoreWorkoutStateFromLocalStorage();
+    
+    const autosaveInterval = setInterval(() => {
+      saveWorkoutStateToLocalStorage();
+    }, 30000);
+    
+    const handleBeforeUnload = () => {
+      saveWorkoutStateToLocalStorage();
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      clearInterval(autosaveInterval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [workoutCompletionId, user?.id, exerciseStates, pendingSets, pendingCardio, pendingFlexibility, pendingRuns]);
 
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['active-workout', workoutCompletionId],
@@ -241,6 +385,7 @@ const ActiveWorkout = () => {
     onSuccess: (data) => {
       console.log("Successfully tracked set:", data);
       queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
+      saveWorkoutStateToLocalStorage();
     },
     onError: (error: any) => {
       console.error('Error tracking set:', error);
@@ -386,6 +531,7 @@ const ActiveWorkout = () => {
         setPendingCardio([]);
         setPendingFlexibility([]);
         setPendingRuns([]);
+        clearWorkoutStateFromLocalStorage();
         navigate(`/client-dashboard/workouts/complete/${completionId}`);
       } else {
         toast.error("Failed to save workout");
@@ -502,6 +648,8 @@ const ActiveWorkout = () => {
         },
       };
     });
+    
+    setTimeout(saveWorkoutStateToLocalStorage, 500);
   };
 
   const handleCardioChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
@@ -521,6 +669,8 @@ const ActiveWorkout = () => {
         }
       };
     });
+    
+    setTimeout(saveWorkoutStateToLocalStorage, 500);
   };
 
   const handleFlexibilityChange = (exerciseId: string, field: 'duration', value: string) => {
@@ -540,6 +690,8 @@ const ActiveWorkout = () => {
         }
       };
     });
+    
+    setTimeout(saveWorkoutStateToLocalStorage, 500);
   };
 
   const handleRunChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
@@ -559,6 +711,8 @@ const ActiveWorkout = () => {
         }
       };
     });
+    
+    setTimeout(saveWorkoutStateToLocalStorage, 500);
   };
 
   const handleSetCompletion = (exerciseId: string, setIndex: number, completed: boolean) => {
@@ -599,6 +753,8 @@ const ActiveWorkout = () => {
         prev.filter(set => !(set.exerciseId === exerciseId && set.setNumber === setIndex + 1))
       );
     }
+    
+    setTimeout(saveWorkoutStateToLocalStorage, 300);
   };
 
   const handleCardioCompletion = (exerciseId: string, completed: boolean) => {
@@ -639,6 +795,8 @@ const ActiveWorkout = () => {
     } else {
       setPendingCardio(prev => prev.filter(item => item.exerciseId !== exerciseId));
     }
+    
+    setTimeout(saveWorkoutStateToLocalStorage, 300);
   };
 
   const handleFlexibilityCompletion = (exerciseId: string, completed: boolean) => {
@@ -676,6 +834,8 @@ const ActiveWorkout = () => {
     } else {
       setPendingFlexibility(prev => prev.filter(item => item.exerciseId !== exerciseId));
     }
+    
+    setTimeout(saveWorkoutStateToLocalStorage, 300);
   };
 
   const handleRunCompletion = (exerciseId: string, completed: boolean) => {
@@ -716,6 +876,8 @@ const ActiveWorkout = () => {
     } else {
       setPendingRuns(prev => prev.filter(item => item.exerciseId !== exerciseId));
     }
+    
+    setTimeout(saveWorkoutStateToLocalStorage, 300);
   };
 
   const toggleExerciseExpanded = (exerciseId: string) => {
@@ -733,6 +895,8 @@ const ActiveWorkout = () => {
         },
       };
     });
+    
+    setTimeout(saveWorkoutStateToLocalStorage, 300);
   };
 
   const isWorkoutComplete = () => {
@@ -745,6 +909,13 @@ const ActiveWorkout = () => {
     } catch (error) {
       console.error("Error saving workout data:", error);
     }
+  };
+
+  const manualSave = () => {
+    saveWorkoutStateToLocalStorage();
+    toast.success("Workout progress saved", {
+      description: `Last saved at ${new Date().toLocaleTimeString()}`
+    });
   };
 
   const formatDurationInput = (value: string): string => {
@@ -789,16 +960,35 @@ const ActiveWorkout = () => {
   return (
     <div className="space-y-6 pb-28 flex flex-col items-center max-w-md mx-auto">
       <div className="flex flex-col items-center gap-2 text-center w-full">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigate('/client-dashboard/workouts')}
-          className="border border-gray-200 hover:border-gray-300 self-start mb-2"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
+        <div className="flex justify-between items-center w-full">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate('/client-dashboard/workouts')}
+            className="border border-gray-200 hover:border-gray-300 self-start mb-2"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={manualSave}
+            className="self-end mb-2 text-xs"
+          >
+            <Save className="h-3.5 w-3.5 mr-1" />
+            Save Progress
+          </Button>
+        </div>
         <h1 className="text-2xl font-bold">{workoutData?.workout.title}</h1>
-        <p className="text-muted-foreground">Track your progress</p>
+        <div className="flex items-center">
+          <p className="text-muted-foreground">Track your progress</p>
+          {lastSaved && (
+            <p className="text-xs text-muted-foreground ml-2">
+              (Autosaved at {lastSaved})
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="space-y-4 w-full">

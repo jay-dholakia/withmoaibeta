@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,10 +7,9 @@ import { User, Loader2, FileX, CalendarDays } from 'lucide-react';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { format, isFuture, isValid, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
-import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
+import { WorkoutType, WorkoutTypeIcon } from '@/components/client/WorkoutTypeIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import WorkoutTypeIcon from '@/components/client/WorkoutTypeIcon';
 
 const WorkoutHistoryTab = () => {
   const { user } = useAuth();

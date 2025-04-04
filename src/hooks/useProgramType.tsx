@@ -17,7 +17,7 @@ export const useProgramType = (userId?: string) => {
   } = useQuery({
     queryKey: ['user-program-type', targetUserId],
     queryFn: async () => {
-      if (!targetUserId) return { success: false, programType: 'strength' };
+      if (!targetUserId) return { success: false, programType: 'strength', multipleGroups: false };
       return await getUserProgramType(targetUserId);
     },
     enabled: !!targetUserId,

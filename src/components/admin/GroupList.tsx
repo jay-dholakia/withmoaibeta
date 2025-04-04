@@ -79,7 +79,7 @@ const fetchGroups = async (): Promise<Group[]> => {
     })
   );
 
-  return enhancedGroups;
+  return enhancedGroups as Group[];
 };
 
 const GroupList: React.FC = () => {

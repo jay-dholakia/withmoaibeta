@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -7,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
 import { Toaster } from 'sonner';
 import { Logo } from '@/components/Logo';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { useProgramType } from '@/hooks/useProgramType';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -23,12 +22,10 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   
   useEffect(() => {
     if (multipleGroupsError) {
-      toast({
-        title: "Warning: Program Type Conflict",
-        description: "You are assigned to multiple groups with different program types. Please contact your coach to resolve this issue.",
-        variant: "destructive",
-        duration: 6000,
-      });
+      toast.error(
+        "You are assigned to multiple groups with different program types. Please contact your coach to resolve this issue.",
+        { duration: 6000 }
+      );
     }
   }, [multipleGroupsError]);
   

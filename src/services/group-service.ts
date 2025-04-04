@@ -217,7 +217,12 @@ export const getUserProgramType = async (userId: string) => {
     if (membershipError) throw membershipError;
     
     if (!memberships || memberships.length === 0) {
-      return { success: false, message: 'User is not a member of any group', programType: null };
+      return { 
+        success: false, 
+        message: 'User is not a member of any group', 
+        programType: 'strength',
+        multipleGroups: false 
+      };
     }
     
     const groupIds = memberships.map(m => m.group_id);
@@ -231,7 +236,12 @@ export const getUserProgramType = async (userId: string) => {
     if (groupsError) throw groupsError;
     
     if (!groups || groups.length === 0) {
-      return { success: false, message: 'No groups found for user', programType: null };
+      return { 
+        success: false, 
+        message: 'No groups found for user', 
+        programType: 'strength',
+        multipleGroups: false 
+      };
     }
     
     // Check if user belongs to multiple groups with different program types
@@ -241,15 +251,26 @@ export const getUserProgramType = async (userId: string) => {
       return { 
         success: false, 
         message: 'User belongs to multiple groups with different program types', 
-        programType: null,
+        programType: programTypes[0],
         multipleGroups: true,
         groups 
       };
     }
     
-    return { success: true, programType: programTypes[0], groups };
+    return { 
+      success: true, 
+      programType: programTypes[0] || 'strength', 
+      multipleGroups: false,
+      groups 
+    };
   } catch (error) {
     console.error('Error in getUserProgramType:', error);
-    return { success: false, message: 'Failed to get user program type', programType: null, error };
+    return { 
+      success: false, 
+      message: 'Failed to get user program type', 
+      programType: 'strength', 
+      multipleGroups: false,
+      error 
+    };
   }
 };

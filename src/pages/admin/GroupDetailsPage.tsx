@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
@@ -69,7 +68,7 @@ const GroupDetailsPage = () => {
       });
     }
   }, [data]);
-  
+
   // Handle form changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

@@ -1,9 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Loader2, Users, Filter, Calendar, Clock, Award, Info, Send, CheckCircle2, Pencil, Settings } from 'lucide-react';
+import { Loader2, Users, Filter, Calendar, Clock, Award, Info, Send, CheckCircle2, Pencil } from 'lucide-react';
 import { 
   Table, 
   TableHeader, 
@@ -50,7 +50,6 @@ interface MessageStatus {
 
 const ClientsPage = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedGroupId, setSelectedGroupId] = useState<string | 'all'>('all');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -61,10 +60,6 @@ const ClientsPage = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editMessage, setEditMessage] = useState<{id: string; message: string; weekOf: string} | undefined>(undefined);
   const itemsPerPage = 10;
-
-  const handleSettingsClick = () => {
-    navigate('/coach-dashboard/client-settings');
-  };
 
   const { data: clients, isLoading: isLoadingClients, error: clientsError } = useQuery({
     queryKey: ['coach-clients', user?.id],
@@ -257,14 +252,6 @@ const ClientsPage = () => {
             <Users className="h-8 w-8" /> Clients
           </h1>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleSettingsClick}
-              className="flex items-center gap-2"
-            >
-              <Settings className="h-4 w-4" />
-              Client Settings
-            </Button>
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground mr-2">Filter by group:</span>

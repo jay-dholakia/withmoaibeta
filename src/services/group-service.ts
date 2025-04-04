@@ -27,8 +27,7 @@ export const createGroupForCoach = async (
   coachId: string, 
   groupName: string, 
   groupDescription?: string,
-  spotifyPlaylistUrl?: string,
-  programType: string = 'strength'
+  spotifyPlaylistUrl?: string
 ) => {
   try {
     // 1. Create the group
@@ -38,8 +37,7 @@ export const createGroupForCoach = async (
         name: groupName,
         description: groupDescription || '',
         created_by: coachId,
-        spotify_playlist_url: spotifyPlaylistUrl || null,
-        program_type: programType
+        spotify_playlist_url: spotifyPlaylistUrl || null
       }])
       .select()
       .single();
@@ -76,33 +74,33 @@ export const createGroupForCoach = async (
  */
 export const updateGroup = async (
   groupId: string,
-  data: { 
-    name: string; 
-    description?: string | null;
-    program_type?: string;
-    spotify_playlist_url?: string | null;
-  }
+  updates: { name?: string; description?: string; spotify_playlist_url?: string | null }
 ) => {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('groups')
-      .update({
-        name: data.name,
-        description: data.description || null,
-        program_type: data.program_type || 'strength',
-        spotify_playlist_url: data.spotify_playlist_url || null
-      })
-      .eq('id', groupId);
-
+      .update(updates)
+      .eq('id', groupId)
+      .select()
+      .single();
+      
     if (error) {
       console.error('Error updating group:', error);
-      return { success: false, message: error.message };
+      throw error;
     }
-
-    return { success: true };
-  } catch (err) {
-    console.error('Unexpected error in updateGroup:', err);
-    return { success: false, message: 'An unexpected error occurred' };
+    
+    return { 
+      success: true, 
+      message: 'Group updated successfully', 
+      data 
+    };
+  } catch (error) {
+    console.error('Error in updateGroup:', error);
+    return { 
+      success: false, 
+      message: 'Failed to update group', 
+      error 
+    };
   }
 };
 
@@ -132,7 +130,7 @@ export const createDefaultMoaiGroupIfNeeded = async (adminId: string) => {
     // Check if any Moai groups exist
     const { data: existingGroups, error: checkError } = await supabase
       .from('groups')
-      .select('id, name, program_type')
+      .select('id, name')
       .ilike('name', 'Moai%');
       
     if (checkError) {
@@ -153,54 +151,34 @@ export const createDefaultMoaiGroupIfNeeded = async (adminId: string) => {
       };
     }
     
-    // Create a Moai Strength group
-    const { data: strengthGroup, error: strengthError } = await supabase
+    // Create a new Moai group
+    const { data: newGroup, error: createError } = await supabase
       .from('groups')
       .insert({
-        name: 'Moai Strength',
-        description: 'Default Moai Strength group for workouts',
-        program_type: 'strength',
+        name: 'Moai Fitness Group',
+        description: 'A supportive community for your fitness journey',
         created_by: adminId
       })
       .select();
       
-    if (strengthError) {
-      console.error('Error creating Moai Strength group:', strengthError);
+    if (createError) {
+      console.error('Error creating Moai group:', createError);
       return {
         success: false,
-        message: 'Failed to create Moai Strength group'
-      };
-    }
-    
-    // Create a Moai Run group
-    const { data: runGroup, error: runError } = await supabase
-      .from('groups')
-      .insert({
-        name: 'Moai Run',
-        description: 'Default Moai Run group for running programs',
-        program_type: 'run',
-        created_by: adminId
-      })
-      .select();
-      
-    if (runError) {
-      console.error('Error creating Moai Run group:', runError);
-      return {
-        success: false,
-        message: 'Failed to create Moai Run group'
+        message: 'Failed to create Moai group'
       };
     }
     
     return {
       success: true,
-      message: 'Successfully created default Moai Strength and Run groups',
-      groups: [...strengthGroup || [], ...runGroup || []]
+      message: 'Successfully created default Moai group',
+      group: newGroup[0]
     };
   } catch (error) {
     console.error('Unexpected error in createDefaultMoaiGroupIfNeeded:', error);
     return {
       success: false,
-      message: 'Unexpected error creating default Moai groups'
+      message: 'Unexpected error creating default Moai group'
     };
   }
 };

@@ -1,15 +1,28 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWorkoutProgram } from '@/services/workout-service';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
+import { CalendarIcon, ArrowLeft, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { assignProgramToUser } from '@/services/workout-service';
 import { useAuth } from '@/contexts/AuthContext';
+import { fetchAllClients } from '@/services/workout-service';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
 import { ProgramAssignmentForm } from '@/components/coach/ProgramAssignmentForm';
 
 const ProgramAssignmentPage = () => {
@@ -20,7 +33,7 @@ const ProgramAssignmentPage = () => {
 
   const { data: program, isLoading } = useQuery({
     queryKey: ['program', programId],
-    queryFn: () => programId ? fetchWorkoutProgram(programId) : null,
+    queryFn: () => fetchWorkoutProgram(programId!),
     enabled: !!programId,
   });
 
@@ -41,6 +54,7 @@ const ProgramAssignmentPage = () => {
       });
       
       toast.success(`Program assigned successfully`);
+      // Fix the redirect URL to use /workouts/ instead of /programs/
       navigate(`/coach-dashboard/workouts/${programId}`);
     } catch (error) {
       console.error('Error assigning program:', error);
@@ -92,6 +106,7 @@ const ProgramAssignmentPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Use the ProgramAssignmentForm component */}
           <ProgramAssignmentForm 
             programId={programId!}
             onAssign={handleAssignProgram}

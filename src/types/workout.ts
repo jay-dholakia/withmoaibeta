@@ -192,42 +192,4 @@ export interface ClientProfile {
   event_type?: string | null;
   event_date?: string | null; 
   event_name?: string | null;
-  program_type?: 'strength' | 'run';
-}
-
-export interface RunGoals {
-  id: string;
-  user_id: string;
-  miles_goal: number;
-  exercises_goal: number;
-  cardio_minutes_goal: number;
-  created_at: string;
-  updated_at: string;
-  created_by?: string;
-}
-
-export interface RunActivity {
-  id?: string;
-  user_id: string;
-  distance: number;
-  run_type: 'steady' | 'tempo' | 'long' | 'speed' | 'hill';
-  notes?: string;
-  completed_at: string;
-  created_at?: string;
-}
-
-export interface CardioActivity {
-  id?: string;
-  user_id: string;
-  minutes: number;
-  activity_type: string;
-  notes?: string;
-  completed_at: string;
-  created_at?: string;
-}
-
-export interface WeeklyRunProgress {
-  miles_completed: number;
-  exercises_completed: number;
-  cardio_minutes_completed: number;
 }

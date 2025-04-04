@@ -6,7 +6,6 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -17,7 +16,6 @@ import { useAuth } from '@/contexts/AuthContext';
 const groupFormSchema = z.object({
   name: z.string().min(1, 'Group name is required').max(100, 'Group name is too long'),
   description: z.string().optional(),
-  program_type: z.enum(['strength', 'run']).default('strength'),
   spotify_playlist_url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
 });
 
@@ -32,7 +30,6 @@ const GroupForm: React.FC = () => {
     defaultValues: {
       name: '',
       description: '',
-      program_type: 'strength',
       spotify_playlist_url: '',
     }
   });
@@ -49,7 +46,6 @@ const GroupForm: React.FC = () => {
         .insert({
           name: values.name,
           description: values.description || null,
-          program_type: values.program_type,
           spotify_playlist_url: values.spotify_playlist_url || null,
           created_by: user.id
         })
@@ -102,31 +98,6 @@ const GroupForm: React.FC = () => {
                       value={field.value || ''}
                     />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="program_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Program Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select program type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="strength">Moai Strength</SelectItem>
-                      <SelectItem value="run">Moai Run</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

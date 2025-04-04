@@ -2,235 +2,116 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserPlus, Users, ArrowLeft, Edit } from 'lucide-react';
-import GroupCoachesDialog from '@/components/admin/GroupCoachesDialog';
-import GroupMembersDialog from '@/components/admin/GroupMembersDialog';
-import EditGroupDialog from '@/components/admin/EditGroupDialog';
-import { useAuth } from '@/contexts/AuthContext';
-import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Save, Users, UserPlus } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { updateGroup } from '@/services/group-service';
+import { Label as LabelComponent } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Group {
   id: string;
   name: string;
   description: string | null;
+  spotify_playlist_url: string | null;
   created_at: string;
   created_by: string;
   program_type: string;
-  spotify_playlist_url?: string | null;
 }
 
-interface Coach {
-  id: string;
-  email: string;
-}
-
-interface Client {
-  id: string;
-  email: string;
-}
-
-const GroupDetailsPage: React.FC = () => {
+const GroupDetailsPage = () => {
   const { groupId } = useParams<{ groupId: string }>();
-  const [group, setGroup] = useState<Group | null>(null);
-  const [coaches, setCoaches] = useState<Coach[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [isCoachDialogOpen, setIsCoachDialogOpen] = useState(false);
-  const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const { userType } = useAuth();
-
-  // Redirect if not admin
-  useEffect(() => {
-    if (userType !== 'admin') {
-      navigate('/admin');
-    }
-  }, [userType, navigate]);
-
-  useEffect(() => {
-    if (groupId) {
-      fetchGroupDetails();
-    }
-  }, [groupId]);
-
-  const fetchGroupDetails = async () => {
-    setIsLoading(true);
-    try {
-      // Fetch group details
-      const { data: groupData, error: groupError } = await supabase
+  const queryClient = useQueryClient();
+  const [group, setGroup] = useState<Group | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  
+  const [formValues, setFormValues] = useState({
+    name: '',
+    description: '',
+    spotify_playlist_url: '',
+    program_type: 'strength'
+  });
+  
+  // Fetch group details
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['group-details', groupId],
+    queryFn: async () => {
+      if (!groupId) return null;
+      
+      const { data, error } = await supabase
         .from('groups')
         .select('*')
         .eq('id', groupId)
         .single();
-
-      if (groupError) {
-        throw groupError;
-      }
-
-      setGroup(groupData);
-
-      // Fetch coaches for this group
-      await fetchGroupCoaches();
-
-      // Fetch clients for this group
-      await fetchGroupClients();
-    } catch (error) {
-      console.error('Error fetching group details:', error);
-      toast.error('Failed to load group details');
-      navigate('/admin-dashboard/groups');
-    } finally {
-      setIsLoading(false);
+        
+      if (error) throw error;
+      return data as Group;
+    },
+    enabled: !!groupId,
+  });
+  
+  // Update the state when data is loaded
+  useEffect(() => {
+    if (data) {
+      setGroup(data);
+      setFormValues({
+        name: data.name || '',
+        description: data.description || '',
+        spotify_playlist_url: data.spotify_playlist_url || '',
+        program_type: data.program_type || 'strength'
+      });
     }
+  }, [data]);
+  
+  // Handle form changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormValues(prev => ({ ...prev, [name]: value }));
   };
-
-  const fetchGroupCoaches = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('group_coaches')
-        .select('coach_id')
-        .eq('group_id', groupId);
-
-      if (error) {
-        throw error;
+  
+  const handleProgramTypeChange = (value: string) => {
+    setFormValues(prev => ({ ...prev, program_type: value }));
+  };
+  
+  // Mutation for updating the group
+  const updateMutation = useMutation({
+    mutationFn: async (values: typeof formValues) => {
+      if (!groupId) throw new Error('Group ID is required');
+      
+      return await updateGroup(groupId, {
+        name: values.name,
+        description: values.description,
+        spotify_playlist_url: values.spotify_playlist_url || null,
+        program_type: values.program_type
+      });
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success('Group updated successfully');
+        queryClient.invalidateQueries({ queryKey: ['group-details', groupId] });
+        setIsEditing(false);
+      } else {
+        toast.error(data.message || 'Failed to update group');
       }
-
-      const coachIds = data.map(item => item.coach_id);
-      
-      if (coachIds.length === 0) {
-        setCoaches([]);
-        return;
-      }
-      
-      // Try to get coach emails from RPC function
-      try {
-        const { data: coachEmails, error: rpcError } = await supabase
-          .rpc('get_users_email', { user_ids: coachIds });
-        
-        if (rpcError) {
-          throw rpcError;
-        }
-        
-        const coachesData: Coach[] = Array.isArray(coachEmails) ? coachEmails.map((coach: any) => ({
-          id: coach.id,
-          email: coach.email || `${coach.id.split('-')[0]}@coach.com`
-        })) : [];
-        
-        setCoaches(coachesData);
-        return;
-      } catch (rpcError) {
-        console.error('Error fetching coach emails:', rpcError);
-        // Fall back to profile lookup
-      }
-      
-      // Fetch coach profiles from the profiles table
-      const { data: coachProfiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, user_type')
-        .in('id', coachIds)
-        .eq('user_type', 'coach');
-        
-      if (profilesError) {
-        throw profilesError;
-      }
-      
-      // Create coach data with formatted emails since we couldn't get real emails
-      const coachesData: Coach[] = coachProfiles.map(coach => ({
-        id: coach.id,
-        email: `${coach.id.split('-')[0]}@coach.com` // Simplified display for coaches
-      }));
-      
-      setCoaches(coachesData);
-    } catch (error) {
-      console.error('Error fetching group coaches:', error);
-      toast.error('Failed to load coaches');
+    },
+    onError: (error) => {
+      console.error('Error updating group:', error);
+      toast.error('An error occurred while updating the group');
     }
+  });
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateMutation.mutate(formValues);
   };
-
-  const fetchGroupClients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('group_members')
-        .select('user_id')
-        .eq('group_id', groupId);
-
-      if (error) {
-        throw error;
-      }
-
-      const clientIds = data.map(item => item.user_id);
-      
-      if (clientIds.length === 0) {
-        setClients([]);
-        return;
-      }
-      
-      // Try to get client emails from RPC function
-      try {
-        const { data: clientEmails, error: rpcError } = await supabase
-          .rpc('get_users_email', { user_ids: clientIds });
-        
-        if (rpcError) {
-          throw rpcError;
-        }
-        
-        const clientsData: Client[] = Array.isArray(clientEmails) ? clientEmails.map((client: any) => ({
-          id: client.id,
-          email: client.email || `${client.id.split('-')[0]}@client.com`
-        })) : [];
-        
-        setClients(clientsData);
-        return;
-      } catch (rpcError) {
-        console.error('Error fetching client emails:', rpcError);
-        // Fall back to profile lookup
-      }
-      
-      // Fetch client profiles from the profiles table
-      const { data: clientProfiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, user_type')
-        .in('id', clientIds)
-        .eq('user_type', 'client');
-        
-      if (profilesError) {
-        throw profilesError;
-      }
-      
-      // Create client data with formatted emails since we couldn't get real emails
-      const clientsData: Client[] = clientProfiles.map(client => ({
-        id: client.id,
-        email: `${client.id.split('-')[0]}@client.com` // Simplified display for clients
-      }));
-      
-      setClients(clientsData);
-    } catch (error) {
-      console.error('Error fetching group clients:', error);
-      toast.error('Failed to load clients');
-    }
-  };
-
-  const handleRefresh = () => {
-    fetchGroupDetails();
-  };
-
-  const getProgramTypeBadge = (programType: string) => {
-    if (programType === 'run') {
-      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Moai Run</Badge>;
-    }
-    return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Moai Strength</Badge>;
-  };
-
-  if (userType !== 'admin') {
-    return null;
-  }
-
+  
   if (isLoading) {
     return (
       <AdminDashboardLayout title="Group Details">
@@ -238,180 +119,156 @@ const GroupDetailsPage: React.FC = () => {
       </AdminDashboardLayout>
     );
   }
-
-  if (!group) {
+  
+  if (error || !group) {
     return (
       <AdminDashboardLayout title="Group Details">
-        <div className="flex flex-col items-center p-8">
-          <p className="text-lg mb-4">Group not found</p>
-          <Button onClick={() => navigate('/admin-dashboard/groups')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Groups
-          </Button>
+        <div className="bg-red-50 p-4 rounded-md text-red-700 mb-4">
+          Failed to load group details. Please try again.
         </div>
+        <Button onClick={() => navigate('/admin-dashboard/groups')} variant="outline">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Groups
+        </Button>
       </AdminDashboardLayout>
     );
   }
-
+  
   return (
     <AdminDashboardLayout title={`Group: ${group.name}`}>
-      <div className="mb-6 flex justify-between items-center">
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/admin-dashboard/groups')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Groups
+      <div className="mb-6">
+        <Button onClick={() => navigate('/admin-dashboard/groups')} variant="outline">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Groups
         </Button>
-        
-        <div className="flex gap-2">
-          <Button onClick={() => setIsEditDialogOpen(true)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Edit Group
-          </Button>
-          <Button onClick={() => setIsCoachDialogOpen(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Manage Coaches
-          </Button>
-          <Button onClick={() => setIsMemberDialogOpen(true)}>
-            <Users className="mr-2 h-4 w-4" />
-            Manage Members
-          </Button>
-        </div>
       </div>
       
-      <Card className="mb-8">
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Group Information</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>Group Information</CardTitle>
+            <Button 
+              onClick={() => setIsEditing(!isEditing)} 
+              variant={isEditing ? "outline" : "default"}
+            >
+              {isEditing ? 'Cancel' : 'Edit Group'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Name</h3>
-              <p>{group.name}</p>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Program Type</h3>
-              <p>{getProgramTypeBadge(group.program_type || 'strength')}</p>
-            </div>
-            
-            <div className="md:col-span-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Description</h3>
-              <p>{group.description || 'No description'}</p>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Created</h3>
-              <p>{new Date(group.created_at).toLocaleDateString()}</p>
-            </div>
-            
-            {group.spotify_playlist_url && (
-              <div className="md:col-span-2">
-                <h3 className="text-sm font-medium text-muted-foreground">Spotify Playlist</h3>
-                <a 
-                  href={group.spotify_playlist_url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  {group.spotify_playlist_url}
-                </a>
+          {isEditing ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Group Name</Label>
+                <Input 
+                  id="name" 
+                  name="name" 
+                  value={formValues.name} 
+                  onChange={handleChange} 
+                  required 
+                />
               </div>
-            )}
-          </div>
+              
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea 
+                  id="description" 
+                  name="description" 
+                  value={formValues.description || ''} 
+                  onChange={handleChange} 
+                  rows={3}
+                />
+              </div>
+              
+              <div className="mb-4">
+                <LabelComponent>Program Type</LabelComponent>
+                <Select
+                  value={formValues.program_type || 'strength'}
+                  onValueChange={handleProgramTypeChange}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select program type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="strength">Moai Strength</SelectItem>
+                    <SelectItem value="run">Moai Run</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="spotify_playlist_url">Spotify Playlist URL (Optional)</Label>
+                <Input 
+                  id="spotify_playlist_url" 
+                  name="spotify_playlist_url" 
+                  value={formValues.spotify_playlist_url || ''} 
+                  onChange={handleChange} 
+                  placeholder="https://open.spotify.com/playlist/..." 
+                />
+              </div>
+              
+              <Button type="submit" disabled={updateMutation.isPending}>
+                <Save className="w-4 h-4 mr-2" /> Save Changes
+              </Button>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Group Name</h3>
+                <p>{group.name}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Description</h3>
+                <p>{group.description || 'No description'}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Program Type</h3>
+                <p>{group.program_type === 'run' ? 'Moai Run' : 'Moai Strength'}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Spotify Playlist</h3>
+                {group.spotify_playlist_url ? (
+                  <a 
+                    href={group.spotify_playlist_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Open Playlist
+                  </a>
+                ) : (
+                  <p>No playlist set</p>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
       
-      <Tabs defaultValue="coaches">
-        <TabsList>
-          <TabsTrigger value="coaches">Coaches ({coaches.length})</TabsTrigger>
-          <TabsTrigger value="members">Members ({clients.length})</TabsTrigger>
-        </TabsList>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Group Members</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate(`/admin-dashboard/groups/${groupId}/members`)}>
+              <Users className="w-4 h-4 mr-2" /> Manage Members
+            </Button>
+          </CardContent>
+        </Card>
         
-        <TabsContent value="coaches" className="mt-6">
-          <Card>
-            <CardContent className="p-6">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {coaches.length > 0 ? (
-                    coaches.map(coach => (
-                      <TableRow key={coach.id}>
-                        <TableCell>{coach.email}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell className="text-center py-8">
-                        No coaches assigned to this group yet.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="members" className="mt-6">
-          <Card>
-            <CardContent className="p-6">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clients.length > 0 ? (
-                    clients.map(client => (
-                      <TableRow key={client.id}>
-                        <TableCell>{client.email}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell className="text-center py-8">
-                        No clients in this group yet.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-      
-      {group && (
-        <>
-          <EditGroupDialog 
-            group={group}
-            open={isEditDialogOpen}
-            onOpenChange={setIsEditDialogOpen}
-            onSuccess={handleRefresh}
-          />
-          
-          <GroupCoachesDialog 
-            group={group}
-            open={isCoachDialogOpen}
-            onOpenChange={setIsCoachDialogOpen}
-            onSuccess={handleRefresh}
-          />
-          
-          <GroupMembersDialog
-            group={group}
-            open={isMemberDialogOpen}
-            onOpenChange={setIsMemberDialogOpen}
-            onSuccess={handleRefresh}
-          />
-        </>
-      )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Group Coaches</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate(`/admin-dashboard/groups/${groupId}/coaches`)}>
+              <UserPlus className="w-4 h-4 mr-2" /> Manage Coaches
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </AdminDashboardLayout>
   );
 };

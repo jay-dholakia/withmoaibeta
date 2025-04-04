@@ -201,3 +201,55 @@ export const createDefaultMoaiGroupIfNeeded = async (adminId: string, programTyp
     };
   }
 };
+
+/**
+ * Get user's program type based on their group membership
+ * This will throw an error if user belongs to multiple groups with different program types
+ */
+export const getUserProgramType = async (userId: string) => {
+  try {
+    // Get the user's groups
+    const { data: memberships, error: membershipError } = await supabase
+      .from('group_members')
+      .select('group_id')
+      .eq('user_id', userId);
+      
+    if (membershipError) throw membershipError;
+    
+    if (!memberships || memberships.length === 0) {
+      return { success: false, message: 'User is not a member of any group', programType: null };
+    }
+    
+    const groupIds = memberships.map(m => m.group_id);
+    
+    // Get the groups' program types
+    const { data: groups, error: groupsError } = await supabase
+      .from('groups')
+      .select('id, program_type')
+      .in('id', groupIds);
+      
+    if (groupsError) throw groupsError;
+    
+    if (!groups || groups.length === 0) {
+      return { success: false, message: 'No groups found for user', programType: null };
+    }
+    
+    // Check if user belongs to multiple groups with different program types
+    const programTypes = [...new Set(groups.map(g => g.program_type))];
+    
+    if (programTypes.length > 1) {
+      return { 
+        success: false, 
+        message: 'User belongs to multiple groups with different program types', 
+        programType: null,
+        multipleGroups: true,
+        groups 
+      };
+    }
+    
+    return { success: true, programType: programTypes[0], groups };
+  } catch (error) {
+    console.error('Error in getUserProgramType:', error);
+    return { success: false, message: 'Failed to get user program type', programType: null, error };
+  }
+};

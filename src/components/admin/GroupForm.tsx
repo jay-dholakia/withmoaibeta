@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { createGroupForCoach } from '@/services/group-service';
 
 const groupFormSchema = z.object({
   name: z.string().min(1, 'Group name is required').max(100, 'Group name is too long'),
@@ -44,23 +45,20 @@ const GroupForm: React.FC = () => {
     }
     
     try {
-      const { data, error } = await supabase
-        .from('groups')
-        .insert({
-          name: values.name,
-          description: values.description || null,
-          spotify_playlist_url: values.spotify_playlist_url || null,
-          created_by: user.id,
-          program_type: values.program_type
-        })
-        .select();
-        
-      if (error) {
-        throw error;
-      }
+      const result = await createGroupForCoach(
+        user.id,
+        values.name,
+        values.description,
+        values.spotify_playlist_url,
+        values.program_type
+      );
       
-      toast.success('Group created successfully');
-      navigate('/admin-dashboard/groups', { replace: true });
+      if (result.success) {
+        toast.success('Group created successfully');
+        navigate('/admin-dashboard/groups', { replace: true });
+      } else {
+        toast.error(result.message || 'Failed to create group');
+      }
     } catch (error) {
       console.error('Error creating group:', error);
       toast.error('Failed to create group');

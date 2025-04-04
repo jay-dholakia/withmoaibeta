@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Container } from '@/components/ui/container';
 import { CoachMessageCard } from '@/components/client/CoachMessageCard';
@@ -11,12 +10,15 @@ import { getWeeklyAssignedWorkoutsCount, countCompletedWorkoutsForWeek } from '@
 import { WorkoutProgressCard } from '@/components/client/WorkoutProgressCard';
 import { fetchClientProfile } from '@/services/client-service';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
+import { useProgramType } from '@/hooks/useProgramType';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
+  const { programType, multipleGroupsError } = useProgramType();
   
   const { data: profile, isLoading: isLoadingProfile, error: profileError } = useQuery({
     queryKey: ['client-profile', user?.id],
@@ -155,7 +157,6 @@ const LeaderboardPage = () => {
     return lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   }, [lifeHappensDates]);
   
-  // Changed: Don't add lifeHappensThisWeek to total count
   const totalCompletedCount = completedThisWeek || 0;
   
   const totalWorkouts = assignedWorkoutsCount || 5;
@@ -195,6 +196,17 @@ const LeaderboardPage = () => {
   return (
     <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">
       <div className="w-full">
+        {multipleGroupsError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Program Type Conflict</AlertTitle>
+            <AlertDescription>
+              You're assigned to multiple groups with different program types. 
+              Please contact your coach to resolve this issue.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {user && <CoachMessageCard userId={user.id} />}
         
         <div className="mt-6">
@@ -208,6 +220,7 @@ const LeaderboardPage = () => {
             workoutTitlesMap={workoutTitlesMap}
             userName={userDisplayName}
             isCurrentUser={true}
+            programType={programType}
           />
         </div>
       </div>

@@ -5,6 +5,9 @@ import { PageTransition } from '@/components/PageTransition';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogOut, User, Home, Dumbbell, Users, BarChart3, Award, Heart, FileText, LayoutTemplate } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useProgramType } from '@/hooks/useProgramType';
+import { toast } from 'sonner';
 
 interface CoachLayoutProps {
   children: React.ReactNode;
@@ -14,6 +17,16 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { programType, multipleGroupsError } = useProgramType();
+
+  React.useEffect(() => {
+    if (multipleGroupsError) {
+      toast.error(
+        'You are assigned to multiple groups with different program types. Please contact an admin to resolve this issue.',
+        { duration: 6000 }
+      );
+    }
+  }, [multipleGroupsError]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -44,6 +57,11 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
             <div className="flex h-16 items-center justify-between">
               <Link to="/coach-dashboard" className="font-bold text-xl text-coach hover:opacity-80 transition-opacity">
                 Coach Portal
+                {programType === 'run' ? (
+                  <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200">Run</Badge>
+                ) : (
+                  <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Strength</Badge>
+                )}
               </Link>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">

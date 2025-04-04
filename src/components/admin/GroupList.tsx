@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,6 +32,7 @@ interface Group {
   created_at: string;
   created_by: string;
   program_type: string;
+  spotify_playlist_url: string | null;
   _count?: {
     members: number;
     coaches: number;

@@ -16,8 +16,9 @@ export interface RunGoals {
  */
 export const getUserRunGoals = async (userId: string): Promise<RunGoals | null> => {
   try {
+    // Use type assertion to handle the table type issue
     const { data, error } = await supabase
-      .from('run_goals')
+      .from('run_goals' as any)
       .select('*')
       .eq('user_id', userId)
       .single();
@@ -48,7 +49,7 @@ export const setUserRunGoals = async (
   try {
     // Check if user already has goals
     const { data: existingGoals } = await supabase
-      .from('run_goals')
+      .from('run_goals' as any)
       .select('id')
       .eq('user_id', userId)
       .single();
@@ -58,19 +59,19 @@ export const setUserRunGoals = async (
     if (existingGoals) {
       // Update existing goals
       result = await supabase
-        .from('run_goals')
-        .update(goals)
+        .from('run_goals' as any)
+        .update(goals as any)
         .eq('user_id', userId)
         .select()
         .single();
     } else {
       // Create new goals
       result = await supabase
-        .from('run_goals')
+        .from('run_goals' as any)
         .insert({
           user_id: userId,
           ...goals
-        })
+        } as any)
         .select()
         .single();
     }
@@ -102,7 +103,7 @@ export const setUserRunGoals = async (
 export const getMultipleUserRunGoals = async (userIds: string[]): Promise<Record<string, RunGoals>> => {
   try {
     const { data, error } = await supabase
-      .from('run_goals')
+      .from('run_goals' as any)
       .select('*')
       .in('user_id', userIds);
     
@@ -115,7 +116,7 @@ export const getMultipleUserRunGoals = async (userIds: string[]): Promise<Record
     const goalsByUser: Record<string, RunGoals> = {};
     if (data) {
       data.forEach(goals => {
-        goalsByUser[goals.user_id] = goals as RunGoals;
+        goalsByUser[(goals as any).user_id] = goals as RunGoals;
       });
     }
     

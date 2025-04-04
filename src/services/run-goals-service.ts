@@ -43,8 +43,16 @@ export const getUserRunGoals = async (userId: string): Promise<RunGoals | null> 
         'miles_goal' in data && 
         'exercises_goal' in data && 
         'cardio_minutes_goal' in data) {
-      // @ts-ignore - We've checked that all required properties exist
-      return data;
+      // Create a new object with the required properties to satisfy TypeScript
+      return {
+        id: data.id as string,
+        user_id: data.user_id as string,
+        miles_goal: data.miles_goal as number,
+        exercises_goal: data.exercises_goal as number,
+        cardio_minutes_goal: data.cardio_minutes_goal as number,
+        created_at: data.created_at as string,
+        updated_at: data.updated_at as string
+      };
     }
     
     return null;
@@ -110,8 +118,15 @@ export const setUserRunGoals = async (
         'user_id' in result.data) {
       return { 
         success: true, 
-        // @ts-ignore - We've checked that the required properties exist
-        data: result.data
+        data: {
+          id: result.data.id as string,
+          user_id: result.data.user_id as string,
+          miles_goal: result.data.miles_goal as number,
+          exercises_goal: result.data.exercises_goal as number,
+          cardio_minutes_goal: result.data.cardio_minutes_goal as number,
+          created_at: result.data.created_at as string,
+          updated_at: result.data.updated_at as string
+        } 
       };
     }
     
@@ -155,8 +170,15 @@ export const getMultipleUserRunGoals = async (userIds: string[]): Promise<Record
             'exercises_goal' in goalItem && 
             'cardio_minutes_goal' in goalItem) {
           const userId = goalItem.user_id as string;
-          // @ts-ignore - We've checked that required properties exist
-          goalsByUser[userId] = goalItem;
+          goalsByUser[userId] = {
+            id: goalItem.id as string,
+            user_id: goalItem.user_id as string,
+            miles_goal: goalItem.miles_goal as number,
+            exercises_goal: goalItem.exercises_goal as number,
+            cardio_minutes_goal: goalItem.cardio_minutes_goal as number,
+            created_at: goalItem.created_at as string,
+            updated_at: goalItem.updated_at as string
+          };
         }
       });
     }

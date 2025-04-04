@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ensureCoachGroupAssignment } from './coach-group-service';
 
@@ -74,33 +73,33 @@ export const createGroupForCoach = async (
  */
 export const updateGroup = async (
   groupId: string,
-  updates: { name?: string; description?: string; spotify_playlist_url?: string | null }
+  data: { 
+    name: string; 
+    description?: string | null;
+    program_type?: string;
+    spotify_playlist_url?: string | null;
+  }
 ) => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('groups')
-      .update(updates)
-      .eq('id', groupId)
-      .select()
-      .single();
-      
+      .update({
+        name: data.name,
+        description: data.description || null,
+        program_type: data.program_type || 'strength',
+        spotify_playlist_url: data.spotify_playlist_url || null
+      })
+      .eq('id', groupId);
+
     if (error) {
       console.error('Error updating group:', error);
-      throw error;
+      return { success: false, message: error.message };
     }
-    
-    return { 
-      success: true, 
-      message: 'Group updated successfully', 
-      data 
-    };
-  } catch (error) {
-    console.error('Error in updateGroup:', error);
-    return { 
-      success: false, 
-      message: 'Failed to update group', 
-      error 
-    };
+
+    return { success: true };
+  } catch (err) {
+    console.error('Unexpected error in updateGroup:', err);
+    return { success: false, message: 'An unexpected error occurred' };
   }
 };
 

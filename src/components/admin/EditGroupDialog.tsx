@@ -23,12 +23,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateGroup } from '@/services/group-service';
 
 interface Group {
   id: string;
   name: string;
   description: string | null;
+  program_type?: string;
   spotify_playlist_url?: string | null;
 }
 
@@ -42,6 +44,7 @@ interface EditGroupDialogProps {
 const formSchema = z.object({
   name: z.string().min(1, 'Group name is required'),
   description: z.string().optional(),
+  program_type: z.enum(['strength', 'run']).default('strength'),
   spotify_playlist_url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
 });
 
@@ -58,6 +61,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = ({
     defaultValues: {
       name: group?.name || '',
       description: group?.description || '',
+      program_type: (group?.program_type as 'strength' | 'run') || 'strength',
       spotify_playlist_url: group?.spotify_playlist_url || '',
     },
   });
@@ -68,6 +72,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = ({
       form.reset({
         name: group.name,
         description: group.description || '',
+        program_type: (group.program_type as 'strength' | 'run') || 'strength',
         spotify_playlist_url: group.spotify_playlist_url || '',
       });
     }
@@ -80,6 +85,7 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = ({
       const result = await updateGroup(group.id, {
         name: values.name,
         description: values.description,
+        program_type: values.program_type,
         spotify_playlist_url: values.spotify_playlist_url || null,
       });
 
@@ -132,6 +138,32 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = ({
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="program_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Program Type</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select program type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="strength">Moai Strength</SelectItem>
+                      <SelectItem value="run">Moai Run</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

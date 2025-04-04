@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Dumbbell, Running } from 'lucide-react';
 
 const GroupsPage: React.FC = () => {
   const { userType, user } = useAuth();
@@ -20,7 +21,7 @@ const GroupsPage: React.FC = () => {
         // Check if any Moai group exists
         const { data: existingGroups, error: checkError } = await supabase
           .from('groups')
-          .select('id, name')
+          .select('id, name, program_type')
           .ilike('name', 'Moai%');
           
         if (checkError) {
@@ -42,6 +43,7 @@ const GroupsPage: React.FC = () => {
             .insert({
               name: 'Moai - 1',
               description: 'Default Moai group for testing',
+              program_type: 'strength',
               created_by: user.id
             })
             .select();
@@ -78,8 +80,14 @@ const GroupsPage: React.FC = () => {
   }
 
   return (
-    <AdminDashboardLayout title="Groups Management">
+    <AdminDashboardLayout title="Groups Management - Moai Strength & Run">
       <div className="w-full">
+        <div className="mb-4 flex gap-2 items-center">
+          <Dumbbell className="h-5 w-5 text-amber-600" />
+          <Running className="h-5 w-5 text-blue-600" />
+          <span className="text-lg font-medium">Manage groups for both Moai Strength and Moai Run programs</span>
+        </div>
+        
         <Tabs defaultValue="list" className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="list">All Groups</TabsTrigger>

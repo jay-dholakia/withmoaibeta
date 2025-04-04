@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutProgramList } from '@/components/coach/WorkoutProgramList';
-import { PlusCircle, Dumbbell, Running } from 'lucide-react';
+import { PlusCircle, Dumbbell } from 'lucide-react';
 import { fetchWorkoutPrograms, deleteWorkoutProgram } from '@/services/workout-service';
 import { WorkoutProgram } from '@/types/workout';
 import { toast } from 'sonner';
@@ -99,7 +99,7 @@ const WorkoutProgramsPage = () => {
               Moai Strength
             </TabsTrigger>
             <TabsTrigger value="run" className="flex items-center gap-1">
-              <Running className="h-4 w-4" />
+              <span className="text-lg" role="img" aria-label="Running">🏃</span>
               Moai Run
             </TabsTrigger>
           </TabsList>

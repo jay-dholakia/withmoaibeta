@@ -142,6 +142,11 @@ function App() {
                 <CoachClientsPage />
               </RequireAuth>
             } />
+            <Route path="/coach-dashboard/client-settings" element={
+              <RequireAuth userType="coach">
+                <ClientSettingsPage />
+              </RequireAuth>
+            } />
             <Route path="/coach-dashboard/leaderboards" element={
               <RequireAuth userType="coach">
                 <LeaderboardPage />

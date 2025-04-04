@@ -1,24 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
-import { fetchClientPrograms } from '@/services/program-service';
-import { fetchClientProfile } from '@/services/client-service';
-import { Loader2, Calendar, Dumbbell, Clock, Award, User, FileX, UserCircle, BadgeInfo } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { X, User, Calendar, MapPin, Dumbbell, Award, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { format, formatDistanceToNow, isValid } from 'date-fns';
-import { 
-  Table, 
-  TableHeader, 
-  TableRow, 
-  TableHead, 
-  TableBody, 
-  TableCell 
-} from '@/components/ui/table';
-import { DAYS_OF_WEEK } from '@/types/workout';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ClientProfile } from '@/types/workout';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface ClientDetailViewProps {
   clientId: string;
@@ -31,332 +21,246 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   clientEmail,
   onClose 
 }) => {
-  const { data: workoutHistory, isLoading: isLoadingHistory } = useQuery({
-    queryKey: ['client-workout-history', clientId],
-    queryFn: () => fetchClientWorkoutHistory(clientId),
-    enabled: !!clientId,
-  });
-
-  const { data: clientPrograms, isLoading: isLoadingPrograms } = useQuery({
-    queryKey: ['client-programs', clientId],
-    queryFn: () => fetchClientPrograms(clientId),
-    enabled: !!clientId,
-  });
-
-  const { data: clientProfile, isLoading: isLoadingProfile } = useQuery({
-    queryKey: ['client-profile', clientId],
-    queryFn: () => fetchClientProfile(clientId),
-    enabled: !!clientId,
-  });
-
-  const currentProgram = clientPrograms?.find(assignment => 
-    !assignment.end_date || new Date(assignment.end_date) >= new Date()
-  );
-
-  // Function to safely format dates with improved timezone handling
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return '';
-    
-    // Parse the ISO string and create a date
-    const date = new Date(dateString);
-    
-    if (!isValid(date) || date.getFullYear() <= 1970) {
-      return 'Invalid date';
-    }
-    
-    // Extract date components from UTC values to avoid timezone issues
-    const year = date.getUTCFullYear();
-    const month = date.getUTCMonth(); // Month is 0-indexed
-    const day = date.getUTCDate();
-    
-    // Create a new date with local timezone using extracted components
-    const localDate = new Date(year, month, day);
-    
-    // Use date-fns format with the correct local date
-    return format(localDate, 'MMM d, yyyy');
-  };
+  const navigate = useNavigate();
+  const [programType, setProgramType] = useState<string | null>(null);
   
-  // Function to safely format relative time
-  const formatRelativeTime = (dateString: string | null | undefined) => {
-    if (!dateString) return '';
-    
-    const date = new Date(dateString);
-    
-    if (!isValid(date) || date.getFullYear() <= 1970) {
-      return '';
+  const { data: profile, isLoading, error } = useQuery({
+    queryKey: ['client-profile', clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('client_profiles')
+        .select('*')
+        .eq('id', clientId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching client profile:', error);
+        throw error;
+      }
+      
+      return data as ClientProfile;
     }
+  });
+  
+  // Fetch program type
+  useEffect(() => {
+    const fetchProgramType = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('client_profiles')
+          .select('program_type')
+          .eq('id', clientId)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching program type:', error);
+          return;
+        }
+        
+        setProgramType(data?.program_type || 'strength');
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
     
-    return formatDistanceToNow(date, { addSuffix: true });
+    fetchProgramType();
+  }, [clientId]);
+
+  const handleEditSettings = () => {
+    onClose();
+    navigate('/coach-dashboard/client-settings');
   };
+
+  if (isLoading) {
+    return (
+      <div className="h-full space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Client Details</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <Separator />
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <div className="py-4">
+            <Skeleton className="h-20 w-full" />
+          </div>
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Client Details</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <Separator className="my-4" />
+        <div className="flex flex-col items-center justify-center h-[300px] text-center">
+          <div className="text-destructive mb-2">Error loading client details</div>
+          <p className="text-muted-foreground text-sm">Please try again later</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <SheetHeader>
-        <SheetTitle className="flex items-center gap-2">
-          <User className="h-5 w-5 text-coach" />
-          Client Details
-        </SheetTitle>
-        <SheetDescription>
-          {clientEmail}
-        </SheetDescription>
-      </SheetHeader>
+    <div className="h-full">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Client Details</h2>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
 
-      <Tabs defaultValue="workouts">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="workouts">Workout History</TabsTrigger>
-          <TabsTrigger value="programs">Assigned Programs</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="profile" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <UserCircle className="h-5 w-5 text-coach" /> Client Profile
-              </CardTitle>
-              <CardDescription>
-                Personal details and fitness goals
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingProfile ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-coach" />
-                </div>
-              ) : !clientProfile ? (
-                <div className="text-center py-6 bg-muted/30 rounded-lg">
-                  <BadgeInfo className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-muted-foreground">No profile information available for this client.</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage src={clientProfile.avatar_url || ''} alt="Profile" />
-                      <AvatarFallback className="bg-coach/20 text-coach text-lg">
-                        {clientProfile.first_name ? clientProfile.first_name.charAt(0) : ''}
-                        {clientProfile.last_name ? clientProfile.last_name.charAt(0) : ''}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className="space-y-3 text-center md:text-left flex-1">
-                      <div>
-                        <h3 className="text-xl font-semibold">
-                          {clientProfile.first_name || ''} {clientProfile.last_name || ''}
-                        </h3>
-                        {(clientProfile.city || clientProfile.state) && (
-                          <p className="text-muted-foreground">
-                            {clientProfile.city}{clientProfile.city && clientProfile.state ? ', ' : ''}{clientProfile.state}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-6 justify-center md:justify-start">
-                        {clientProfile.height && (
-                          <div>
-                            <p className="text-sm text-muted-foreground">Height</p>
-                            <p className="font-medium">{clientProfile.height}</p>
-                          </div>
-                        )}
-                        
-                        {clientProfile.weight && (
-                          <div>
-                            <p className="text-sm text-muted-foreground">Weight</p>
-                            <p className="font-medium">{clientProfile.weight}</p>
-                          </div>
-                        )}
-                        
-                        {clientProfile.birthday && (
-                          <div>
-                            <p className="text-sm text-muted-foreground">Birthday</p>
-                            <p className="font-medium">{formatDate(clientProfile.birthday)}</p>
-                          </div>
-                        )}
-                      </div>
+      <Separator className="my-4" />
+      
+      <ScrollArea className="pr-4 h-[calc(100vh-10rem)]">
+        <div className="space-y-6">
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-semibold flex items-center">
+                <User className="mr-2 h-4 w-4" />
+                Contact Information
+              </h3>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+                onClick={handleEditSettings}
+              >
+                <Settings className="h-3.5 w-3.5" />
+                <span>Edit Settings</span>
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              <div>
+                <div className="text-sm font-medium">Email</div>
+                <div>{clientEmail}</div>
+              </div>
+              
+              {profile && (
+                <>
+                  <div>
+                    <div className="text-sm font-medium">Name</div>
+                    <div>
+                      {profile.first_name && profile.last_name 
+                        ? `${profile.first_name} ${profile.last_name}`
+                        : "Not provided"}
                     </div>
                   </div>
                   
-                  {clientProfile.fitness_goals && clientProfile.fitness_goals.length > 0 && (
+                  {(profile.city || profile.state) && (
                     <div>
-                      <h4 className="font-medium mb-2">Fitness Goals</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {clientProfile.fitness_goals.map(goal => (
-                          <Badge key={goal} variant="secondary">{goal}</Badge>
-                        ))}
+                      <div className="text-sm font-medium flex items-center">
+                        <MapPin className="mr-1 h-3 w-3" /> Location
                       </div>
+                      <div>{[profile.city, profile.state].filter(Boolean).join(', ')}</div>
                     </div>
                   )}
-                  
-                  {clientProfile.favorite_movements && clientProfile.favorite_movements.length > 0 && (
-                    <div>
-                      <h4 className="font-medium mb-2">Favorite Movements</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {clientProfile.favorite_movements.map(movement => (
-                          <Badge key={movement} variant="outline">{movement}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                </>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="workouts" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Dumbbell className="h-5 w-5 text-coach" /> Workout History
-              </CardTitle>
-              <CardDescription>
-                Client's completed workouts
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingHistory ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-coach" />
+              
+              <div>
+                <div className="text-sm font-medium">Program Type</div>
+                <Badge variant="secondary" className="mt-1 font-normal">
+                  {programType === 'run' ? 'Moai Run' : 'Moai Strength'}
+                </Badge>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-semibold flex items-center">
+              <Calendar className="mr-2 h-4 w-4" />
+              Profile Details
+            </h3>
+            
+            {profile && (
+              <div className="space-y-2 mt-2">
+                <div>
+                  <div className="text-sm font-medium">Birthday</div>
+                  <div>{profile.birthday || "Not provided"}</div>
                 </div>
-              ) : !workoutHistory || workoutHistory.length === 0 ? (
-                <div className="text-center py-6 bg-muted/30 rounded-lg">
-                  <FileX className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-muted-foreground">No completed workouts found for this client.</p>
+                
+                <div>
+                  <div className="text-sm font-medium">Height</div>
+                  <div>{profile.height || "Not provided"}</div>
                 </div>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Workout</TableHead>
-                        <TableHead>Program</TableHead>
-                        <TableHead>Rating</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {workoutHistory.map((entry) => (
-                        <TableRow key={entry.id}>
-                          <TableCell>
-                            {formatDate(entry.completed_at)}
-                            <div className="text-xs text-muted-foreground">
-                              {formatRelativeTime(entry.completed_at)}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {entry.workout?.title || (entry.rest_day ? 'Rest Day' : 'One-off Workout')}
-                            <div className="text-xs text-muted-foreground">
-                              {entry.workout?.day_of_week !== undefined ? DAYS_OF_WEEK[entry.workout.day_of_week] : ''}
-                              {entry.workout?.week?.week_number ? `, Week ${entry.workout.week.week_number}` : ''}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {entry.workout?.week?.program?.title || 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            {entry.rating ? `${entry.rating}/5` : 'Not rated'}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                
+                <div>
+                  <div className="text-sm font-medium">Weight</div>
+                  <div>{profile.weight || "Not provided"}</div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="programs" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Award className="h-5 w-5 text-coach" /> Assigned Programs
-              </CardTitle>
-              <CardDescription>
-                Workout programs assigned to this client
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingPrograms ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-coach" />
+              </div>
+            )}
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-semibold flex items-center">
+              <Award className="mr-2 h-4 w-4" />
+              Event Information
+            </h3>
+            
+            {profile && (
+              <div className="space-y-2 mt-2">
+                <div>
+                  <div className="text-sm font-medium">Event Type</div>
+                  <div>{profile.event_type || "No event specified"}</div>
                 </div>
-              ) : !clientPrograms || clientPrograms.length === 0 ? (
-                <div className="text-center py-6 bg-muted/30 rounded-lg">
-                  <p>No programs have been assigned to this client.</p>
+                
+                <div>
+                  <div className="text-sm font-medium">Event Date</div>
+                  <div>{profile.event_date || "No date specified"}</div>
                 </div>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Program</TableHead>
-                        <TableHead>Start Date</TableHead>
-                        <TableHead>End Date</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {clientPrograms.map((assignment) => {
-                        const isActive = 
-                          !assignment.end_date || 
-                          new Date(assignment.end_date) >= new Date();
-                        
-                        return (
-                          <TableRow key={assignment.id}>
-                            <TableCell className="font-medium">
-                              {assignment.program?.title}
-                              <div className="text-xs text-muted-foreground">
-                                {assignment.program?.weeks} weeks
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {formatDate(assignment.start_date)}
-                            </TableCell>
-                            <TableCell>
-                              {assignment.end_date 
-                                ? formatDate(assignment.end_date)
-                                : 'Ongoing'}
-                            </TableCell>
-                            <TableCell>
-                              <span className={`px-2 py-1 rounded-full text-xs 
-                                ${isActive 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-gray-100 text-gray-800'}`}>
-                                {isActive ? 'Active' : 'Completed'}
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                
+                <div>
+                  <div className="text-sm font-medium">Event Name</div>
+                  <div>{profile.event_name || "No name specified"}</div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {currentProgram && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-coach" /> Current Program
-                </CardTitle>
-                <CardDescription>
-                  {currentProgram.program?.title}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm">
-                  <p><strong>Started:</strong> {formatDate(currentProgram.start_date)}</p>
-                  <p><strong>Duration:</strong> {currentProgram.program?.weeks} weeks</p>
-                  <p className="mt-2">{currentProgram.program?.description}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+              </div>
+            )}
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-semibold">Fitness Goals</h3>
+            
+            {profile && profile.fitness_goals && profile.fitness_goals.length > 0 ? (
+              <ul className="list-disc pl-5 mt-2">
+                {profile.fitness_goals.map((goal, index) => (
+                  <li key={index}>{goal}</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-muted-foreground mt-2">No fitness goals specified.</div>
+            )}
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-semibold">Favorite Movements</h3>
+            
+            {profile && profile.favorite_movements && profile.favorite_movements.length > 0 ? (
+              <ul className="list-disc pl-5 mt-2">
+                {profile.favorite_movements.map((movement, index) => (
+                  <li key={index}>{movement}</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-muted-foreground mt-2">No favorite movements specified.</div>
+            )}
+          </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 };

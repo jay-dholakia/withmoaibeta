@@ -26,7 +26,7 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
       case 'flexibility':
         return '🧘'; // Yoga/flexibility emoji
       case 'rest_day':
-        return '😴'; // Rest day emoji
+        return '😌'; // Updated Rest day emoji
       case 'custom':
         return '✨'; // Custom workout
       case 'one_off':

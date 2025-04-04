@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { WorkoutProgram } from '@/types/workout';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar, Users, Trash2 } from 'lucide-react';
+import { PlusCircle, Calendar, Users, Trash2, Dumbbell, Running } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getWorkoutProgramAssignmentCount } from '@/services/workout-service';
 
@@ -73,7 +73,28 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
     <div className="space-y-4">
       {programs.map((program) => (
         <div key={program.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-          <h3 className="font-medium text-lg text-left">{program.title}</h3>
+          <h3 className="font-medium text-lg text-left">
+            {program.title}
+            <span 
+              className={`ml-2 inline-flex items-center px-2 py-1 text-xs rounded-full ${
+                (program as any).program_type === 'run' 
+                  ? 'bg-blue-100 text-blue-800' 
+                  : 'bg-purple-100 text-purple-800'
+              }`}
+            >
+              {(program as any).program_type === 'run' ? (
+                <>
+                  <Running className="h-3 w-3 mr-1" />
+                  Moai Run
+                </>
+              ) : (
+                <>
+                  <Dumbbell className="h-3 w-3 mr-1" />
+                  Moai Strength
+                </>
+              )}
+            </span>
+          </h3>
           {/* Description is now hidden */}
           <div className="flex flex-wrap gap-2 mb-4">
             <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">

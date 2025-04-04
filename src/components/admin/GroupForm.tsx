@@ -105,8 +105,8 @@ const GroupForm: React.FC = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="strength">Strength</SelectItem>
-                      <SelectItem value="run">Run</SelectItem>
+                      <SelectItem value="strength">Moai Strength</SelectItem>
+                      <SelectItem value="run">Moai Run</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

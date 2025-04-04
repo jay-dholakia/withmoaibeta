@@ -27,7 +27,8 @@ import { WorkoutProgram } from '@/types/workout';
 const formSchema = z.object({
   title: z.string().min(3, 'Program title must be at least 3 characters'),
   description: z.string().optional(),
-  weeks: z.coerce.number().min(1, 'Program must have at least 1 week').max(52, 'Program cannot exceed 52 weeks')
+  weeks: z.coerce.number().min(1, 'Program must have at least 1 week').max(52, 'Program cannot exceed 52 weeks'),
+  programType: z.enum(['strength', 'run']).default('strength')
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -52,7 +53,8 @@ export const WorkoutProgramForm: React.FC<WorkoutProgramFormProps> = ({
     defaultValues: {
       title: initialData?.title || '',
       description: initialData?.description || '',
-      weeks: initialData?.weeks || 4
+      weeks: initialData?.weeks || 4,
+      programType: (initialData as any)?.programType || 'strength'
     }
   });
 
@@ -68,6 +70,31 @@ export const WorkoutProgramForm: React.FC<WorkoutProgramFormProps> = ({
               <FormControl>
                 <Input placeholder="e.g., 12-Week Strength Program" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="programType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Program Type</FormLabel>
+              <Select 
+                value={field.value}
+                onValueChange={(value) => field.onChange(value as "strength" | "run")}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select program type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="strength">Moai Strength</SelectItem>
+                  <SelectItem value="run">Moai Run</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

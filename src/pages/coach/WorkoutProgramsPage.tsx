@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutProgramList } from '@/components/coach/WorkoutProgramList';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Dumbbell, Running } from 'lucide-react';
 import { fetchWorkoutPrograms, deleteWorkoutProgram } from '@/services/workout-service';
 import { WorkoutProgram } from '@/types/workout';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const WorkoutProgramsPage = () => {
   const { user } = useAuth();
@@ -27,6 +28,7 @@ const WorkoutProgramsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteProgramId, setDeleteProgramId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("all");
 
   useEffect(() => {
     const loadPrograms = async () => {
@@ -69,6 +71,13 @@ const WorkoutProgramsPage = () => {
     }
   };
 
+  const filteredPrograms = programs.filter(program => {
+    if (activeTab === "all") return true;
+    if (activeTab === "strength") return (program as any).program_type === "strength";
+    if (activeTab === "run") return (program as any).program_type === "run";
+    return true;
+  });
+
   return (
     <CoachLayout>
       <div className="w-full px-4">
@@ -82,8 +91,22 @@ const WorkoutProgramsPage = () => {
           </div>
         </div>
 
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <TabsList>
+            <TabsTrigger value="all">All Programs</TabsTrigger>
+            <TabsTrigger value="strength" className="flex items-center gap-1">
+              <Dumbbell className="h-4 w-4" />
+              Moai Strength
+            </TabsTrigger>
+            <TabsTrigger value="run" className="flex items-center gap-1">
+              <Running className="h-4 w-4" />
+              Moai Run
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <WorkoutProgramList 
-          programs={programs} 
+          programs={filteredPrograms} 
           isLoading={isLoading} 
           onDeleteProgram={setDeleteProgramId} 
         />

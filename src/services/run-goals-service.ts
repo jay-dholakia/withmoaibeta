@@ -23,12 +23,11 @@ export const defaultRunGoals = {
  */
 export const getUserRunGoals = async (userId: string): Promise<RunGoals> => {
   try {
-    // Use type assertion to work around type checking
     const { data, error } = await supabase
-      .from('run_goals' as any)
+      .from('run_goals')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       console.warn('Run goals not found, returning default');
@@ -41,14 +40,25 @@ export const getUserRunGoals = async (userId: string): Promise<RunGoals> => {
       };
     }
 
+    // Type assertion to ensure TypeScript recognizes the properties
+    const typedData = data as unknown as {
+      id: string;
+      user_id: string;
+      miles_goal: number;
+      exercises_goal: number;
+      cardio_minutes_goal: number;
+      created_at: string;
+      updated_at: string;
+    };
+
     return {
-      id: data.id || '',
-      user_id: data.user_id || userId,
-      miles_goal: data.miles_goal || 0,
-      exercises_goal: data.exercises_goal || 0,
-      cardio_minutes_goal: data.cardio_minutes_goal || 0,
-      created_at: data.created_at || '',
-      updated_at: data.updated_at || ''
+      id: typedData.id || '',
+      user_id: typedData.user_id || userId,
+      miles_goal: typedData.miles_goal || 0,
+      exercises_goal: typedData.exercises_goal || 0,
+      cardio_minutes_goal: typedData.cardio_minutes_goal || 0,
+      created_at: typedData.created_at || '',
+      updated_at: typedData.updated_at || ''
     };
   } catch (error) {
     console.error('Unexpected error fetching run goals:', error);
@@ -75,28 +85,28 @@ export const setUserRunGoals = async (
 ): Promise<{ success: boolean; data?: RunGoals; error?: any }> => {
   try {
     const { data: existingGoals } = await supabase
-      .from('run_goals' as any)
+      .from('run_goals')
       .select('id')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     let result;
 
     if (existingGoals) {
       // Update existing goals
       result = await supabase
-        .from('run_goals' as any)
-        .update(goals as any)
+        .from('run_goals')
+        .update(goals)
         .eq('user_id', userId)
         .select();
     } else {
       // Insert new goals
       result = await supabase
-        .from('run_goals' as any)
+        .from('run_goals')
         .insert({
           user_id: userId,
           ...goals
-        } as any)
+        })
         .select();
     }
 
@@ -108,7 +118,7 @@ export const setUserRunGoals = async (
       };
     }
 
-    const resultData = result.data[0];
+    const resultData = result.data[0] as unknown as RunGoals;
     
     return { 
       success: true, 
@@ -137,7 +147,7 @@ export const setUserRunGoals = async (
 export const getMultipleUserRunGoals = async (userIds: string[]): Promise<Record<string, RunGoals>> => {
   try {
     const { data, error } = await supabase
-      .from('run_goals' as any)
+      .from('run_goals')
       .select('*')
       .in('user_id', userIds);
 
@@ -150,17 +160,27 @@ export const getMultipleUserRunGoals = async (userIds: string[]): Promise<Record
 
     data.forEach(goalItem => {
       if (goalItem && typeof goalItem === 'object') {
-        const userId = goalItem.user_id || '';
+        const typedGoalItem = goalItem as unknown as {
+          id?: string;
+          user_id?: string;
+          miles_goal?: number;
+          exercises_goal?: number;
+          cardio_minutes_goal?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        
+        const userId = typedGoalItem.user_id || '';
         
         if (userId) {
           goalsByUser[userId] = {
-            id: goalItem.id || '',
+            id: typedGoalItem.id || '',
             user_id: userId,
-            miles_goal: goalItem.miles_goal || 0,
-            exercises_goal: goalItem.exercises_goal || 0,
-            cardio_minutes_goal: goalItem.cardio_minutes_goal || 0,
-            created_at: goalItem.created_at || '',
-            updated_at: goalItem.updated_at || ''
+            miles_goal: typedGoalItem.miles_goal || 0,
+            exercises_goal: typedGoalItem.exercises_goal || 0,
+            cardio_minutes_goal: typedGoalItem.cardio_minutes_goal || 0,
+            created_at: typedGoalItem.created_at || '',
+            updated_at: typedGoalItem.updated_at || ''
           };
         }
       }
@@ -184,14 +204,14 @@ export const logRunActivity = async (
 ): Promise<{ success: boolean; error?: any }> => {
   try {
     const { error } = await supabase
-      .from('run_activities' as any)
+      .from('run_activities')
       .insert({
         user_id: userId,
         distance,
         run_type: runType,
         notes,
         completed_at: new Date().toISOString()
-      } as any);
+      });
 
     if (error) {
       console.error('Error logging run activity:', error);
@@ -216,14 +236,14 @@ export const logCardioActivity = async (
 ): Promise<{ success: boolean; error?: any }> => {
   try {
     const { error } = await supabase
-      .from('cardio_activities' as any)
+      .from('cardio_activities')
       .insert({
         user_id: userId,
         minutes,
         activity_type: activityType,
         notes,
         completed_at: new Date().toISOString()
-      } as any);
+      });
 
     if (error) {
       console.error('Error logging cardio activity:', error);

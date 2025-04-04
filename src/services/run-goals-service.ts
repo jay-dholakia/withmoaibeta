@@ -28,7 +28,18 @@ export const getUserRunGoals = async (userId: string): Promise<RunGoals | null> 
       return null;
     }
     
-    return data as RunGoals;
+    // Make sure we have a valid data object before returning it
+    if (data && 
+        typeof data === 'object' && 
+        'id' in data && 
+        'user_id' in data && 
+        'miles_goal' in data && 
+        'exercises_goal' in data && 
+        'cardio_minutes_goal' in data) {
+      return data as RunGoals;
+    }
+    
+    return null;
   } catch (error) {
     console.error('Unexpected error fetching run goals:', error);
     return null;
@@ -84,9 +95,20 @@ export const setUserRunGoals = async (
       };
     }
     
-    return { 
-      success: true, 
-      data: result.data as RunGoals 
+    // Validate that result.data conforms to RunGoals structure
+    if (result.data && 
+        typeof result.data === 'object' && 
+        'id' in result.data && 
+        'user_id' in result.data) {
+      return { 
+        success: true, 
+        data: result.data as RunGoals 
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'Invalid data structure returned'
     };
   } catch (error) {
     console.error('Unexpected error setting run goals:', error);
@@ -114,9 +136,16 @@ export const getMultipleUserRunGoals = async (userIds: string[]): Promise<Record
     
     // Create a map of user_id to run goals
     const goalsByUser: Record<string, RunGoals> = {};
-    if (data) {
-      data.forEach(goals => {
-        goalsByUser[(goals as any).user_id] = goals as RunGoals;
+    if (data && Array.isArray(data)) {
+      data.forEach(goalItem => {
+        if (goalItem && 
+            typeof goalItem === 'object' && 
+            'user_id' in goalItem && 
+            'miles_goal' in goalItem && 
+            'exercises_goal' in goalItem && 
+            'cardio_minutes_goal' in goalItem) {
+          goalsByUser[(goalItem as any).user_id] = goalItem as RunGoals;
+        }
       });
     }
     

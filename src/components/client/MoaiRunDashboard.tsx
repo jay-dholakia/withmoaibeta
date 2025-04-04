@@ -7,7 +7,7 @@ import {
 } from '@/services/run-service';
 import { RunGoals, WeeklyRunProgress } from '@/types/workout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Running, Dumbbell, Heart } from 'lucide-react';
+import { Loader2, Run, Dumbbell, Heart } from 'lucide-react';
 import GoalProgressCard from './GoalProgressCard';
 import RunActivityForm from './RunActivityForm';
 import CardioActivityForm from './CardioActivityForm';
@@ -69,7 +69,7 @@ const MoaiRunDashboard: React.FC = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="run" className="flex items-center gap-2">
-            <Running className="h-4 w-4" />
+            <Run className="h-4 w-4" />
             <span>Log Run</span>
           </TabsTrigger>
           <TabsTrigger value="workout" className="flex items-center gap-2">

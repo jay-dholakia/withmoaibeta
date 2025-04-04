@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Loader2, Users, Filter, Calendar, Clock, Award, Info, Send, CheckCircle2, Pencil, Settings } from 'lucide-react';
 import { 
   Table, 
@@ -49,6 +50,7 @@ interface MessageStatus {
 
 const ClientsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedGroupId, setSelectedGroupId] = useState<string | 'all'>('all');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -30,6 +30,7 @@ const WorkoutsPage = () => {
   const [programType, setProgramType] = useState<'strength' | 'run'>('strength');
   const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   
   const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
@@ -53,8 +54,8 @@ const WorkoutsPage = () => {
           return;
         }
         
-        if (data && data.program_type) {
-          setProgramType(data.program_type as 'strength' | 'run');
+        if (data) {
+          setProgramType(data.program_type as 'strength' | 'run' || 'strength');
         }
       } catch (error) {
         console.error('Exception fetching program type:', error);

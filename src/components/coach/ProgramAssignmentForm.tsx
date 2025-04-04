@@ -116,8 +116,8 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
           return;
         }
         
-        if (data && data.program_type) {
-          setProgramType(data.program_type as 'strength' | 'run');
+        if (data) {
+          setProgramType(data.program_type as 'strength' | 'run' || 'strength');
         }
       } catch (error) {
         console.error('Error:', error);
@@ -144,7 +144,9 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
       // First update the client's program type
       const { error: profileUpdateError } = await supabase
         .from('client_profiles')
-        .update({ program_type: programType })
+        .update({ 
+          program_type: programType 
+        })
         .eq('id', selectedClientId);
         
       if (profileUpdateError) {

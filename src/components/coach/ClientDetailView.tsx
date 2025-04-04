@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { X, User, Calendar, MapPin, Dumbbell, Award, Settings } from 'lucide-react';
@@ -57,7 +58,9 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
           return;
         }
         
-        setProgramType(data?.program_type || 'strength');
+        if (data) {
+          setProgramType(data.program_type || 'strength');
+        }
       } catch (error) {
         console.error('Error:', error);
       }

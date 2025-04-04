@@ -61,7 +61,13 @@ export const logRunActivity = async (activity: Omit<RunActivity, 'id' | 'created
   try {
     const { data, error } = await supabase
       .from('run_activities')
-      .insert(activity)
+      .insert({
+        user_id: activity.user_id,
+        distance: activity.distance,
+        run_type: activity.run_type,
+        notes: activity.notes,
+        completed_at: activity.completed_at
+      })
       .select('id')
       .single();
     
@@ -82,7 +88,13 @@ export const logCardioActivity = async (activity: Omit<CardioActivity, 'id' | 'c
   try {
     const { data, error } = await supabase
       .from('cardio_activities')
-      .insert(activity)
+      .insert({
+        user_id: activity.user_id,
+        minutes: activity.minutes,
+        activity_type: activity.activity_type,
+        notes: activity.notes,
+        completed_at: activity.completed_at
+      })
       .select('id')
       .single();
     
@@ -109,7 +121,7 @@ export const fetchWeeklyRunProgress = async (userId: string): Promise<WeeklyRunP
       return null;
     }
     
-    if (!data || data.length === 0) {
+    if (!data || !Array.isArray(data) || data.length === 0) {
       return {
         miles_completed: 0,
         exercises_completed: 0,

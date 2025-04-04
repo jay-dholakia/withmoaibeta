@@ -6,6 +6,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +18,7 @@ const groupFormSchema = z.object({
   name: z.string().min(1, 'Group name is required').max(100, 'Group name is too long'),
   description: z.string().optional(),
   spotify_playlist_url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  program_type: z.string().min(1, 'Program type is required'),
 });
 
 type GroupFormValues = z.infer<typeof groupFormSchema>;
@@ -31,6 +33,7 @@ const GroupForm: React.FC = () => {
       name: '',
       description: '',
       spotify_playlist_url: '',
+      program_type: 'strength',
     }
   });
   
@@ -47,7 +50,8 @@ const GroupForm: React.FC = () => {
           name: values.name,
           description: values.description || null,
           spotify_playlist_url: values.spotify_playlist_url || null,
-          created_by: user.id
+          created_by: user.id,
+          program_type: values.program_type
         })
         .select();
         
@@ -80,6 +84,31 @@ const GroupForm: React.FC = () => {
                   <FormControl>
                     <Input placeholder="Enter group name" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="program_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Group Type</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a group type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="strength">Strength</SelectItem>
+                      <SelectItem value="run">Run</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

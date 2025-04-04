@@ -21,16 +21,16 @@ const GroupsPage: React.FC = () => {
         const { data: existingGroups, error: checkError } = await supabase
           .from('groups')
           .select('id, name')
-          .ilike('name', 'Moai%');
+          .eq('program_type', 'run');
           
         if (checkError) {
-          console.error('Error checking for Moai groups:', checkError);
+          console.error('Error checking for run groups:', checkError);
           return;
         }
         
-        // If no Moai group exists, create one
+        // If no run group exists, create one
         if (!existingGroups || existingGroups.length === 0) {
-          console.log('No Moai group found, creating one...');
+          console.log('No run group found, creating one...');
           
           if (!user?.id) {
             console.error('User ID is required to create a group');
@@ -42,7 +42,8 @@ const GroupsPage: React.FC = () => {
             .insert({
               name: 'Moai - 1',
               description: 'Default Moai group for testing',
-              created_by: user.id
+              created_by: user.id,
+              program_type: 'run'
             })
             .select();
             
@@ -53,7 +54,7 @@ const GroupsPage: React.FC = () => {
             toast.success('Created default Moai group for testing');
           }
         } else {
-          console.log('Existing Moai groups:', existingGroups);
+          console.log('Existing run groups:', existingGroups);
         }
       } catch (error) {
         console.error('Unexpected error in checkAndCreateMoaiGroup:', error);

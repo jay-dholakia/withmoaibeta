@@ -6,7 +6,7 @@ import GroupList from '@/components/admin/GroupList';
 import GroupForm from '@/components/admin/GroupForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { createDefaultMoaiGroupIfNeeded } from '@/services/group-service';
 import { toast } from 'sonner';
 import { Dumbbell, Running } from 'lucide-react';
 
@@ -14,57 +14,25 @@ const GroupsPage: React.FC = () => {
   const { userType, user } = useAuth();
   const navigate = useNavigate();
   
-  // Check if we need to create a default Moai group for testing
+  // Check if we need to create default Moai groups for testing
   useEffect(() => {
-    const checkAndCreateMoaiGroup = async () => {
+    const setupDefaultGroups = async () => {
       try {
-        // Check if any Moai group exists
-        const { data: existingGroups, error: checkError } = await supabase
-          .from('groups')
-          .select('id, name, program_type')
-          .ilike('name', 'Moai%');
-          
-        if (checkError) {
-          console.error('Error checking for Moai groups:', checkError);
-          return;
-        }
+        if (!user?.id) return;
         
-        // If no Moai group exists, create one
-        if (!existingGroups || existingGroups.length === 0) {
-          console.log('No Moai group found, creating one...');
-          
-          if (!user?.id) {
-            console.error('User ID is required to create a group');
-            return;
-          }
-          
-          const { data: newGroup, error: createError } = await supabase
-            .from('groups')
-            .insert({
-              name: 'Moai - 1',
-              description: 'Default Moai group for testing',
-              program_type: 'strength',
-              created_by: user.id
-            })
-            .select();
-            
-          if (createError) {
-            console.error('Error creating Moai group:', createError);
-          } else {
-            console.log('Successfully created Moai group:', newGroup);
-            toast.success('Created default Moai group for testing');
-          }
-        } else {
-          console.log('Existing Moai groups:', existingGroups);
+        const result = await createDefaultMoaiGroupIfNeeded(user.id);
+        
+        if (result.success && result.message.includes('created')) {
+          toast.success(result.message);
         }
       } catch (error) {
-        console.error('Unexpected error in checkAndCreateMoaiGroup:', error);
+        console.error('Error setting up default groups:', error);
       }
     };
     
     // Only run this for admin users
     if (userType === 'admin') {
-      checkAndCreateMoaiGroup();
+      setupDefaultGroups();
     }
   }, [userType, user]);
   

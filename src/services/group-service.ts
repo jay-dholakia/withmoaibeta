@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ensureCoachGroupAssignment } from './coach-group-service';
 
@@ -26,7 +27,8 @@ export const createGroupForCoach = async (
   coachId: string, 
   groupName: string, 
   groupDescription?: string,
-  spotifyPlaylistUrl?: string
+  spotifyPlaylistUrl?: string,
+  programType: string = 'strength'
 ) => {
   try {
     // 1. Create the group
@@ -36,7 +38,8 @@ export const createGroupForCoach = async (
         name: groupName,
         description: groupDescription || '',
         created_by: coachId,
-        spotify_playlist_url: spotifyPlaylistUrl || null
+        spotify_playlist_url: spotifyPlaylistUrl || null,
+        program_type: programType
       }])
       .select()
       .single();
@@ -129,7 +132,7 @@ export const createDefaultMoaiGroupIfNeeded = async (adminId: string) => {
     // Check if any Moai groups exist
     const { data: existingGroups, error: checkError } = await supabase
       .from('groups')
-      .select('id, name')
+      .select('id, name, program_type')
       .ilike('name', 'Moai%');
       
     if (checkError) {
@@ -150,34 +153,54 @@ export const createDefaultMoaiGroupIfNeeded = async (adminId: string) => {
       };
     }
     
-    // Create a new Moai group
-    const { data: newGroup, error: createError } = await supabase
+    // Create a Moai Strength group
+    const { data: strengthGroup, error: strengthError } = await supabase
       .from('groups')
       .insert({
-        name: 'Moai Fitness Group',
-        description: 'A supportive community for your fitness journey',
+        name: 'Moai Strength',
+        description: 'Default Moai Strength group for workouts',
+        program_type: 'strength',
         created_by: adminId
       })
       .select();
       
-    if (createError) {
-      console.error('Error creating Moai group:', createError);
+    if (strengthError) {
+      console.error('Error creating Moai Strength group:', strengthError);
       return {
         success: false,
-        message: 'Failed to create Moai group'
+        message: 'Failed to create Moai Strength group'
+      };
+    }
+    
+    // Create a Moai Run group
+    const { data: runGroup, error: runError } = await supabase
+      .from('groups')
+      .insert({
+        name: 'Moai Run',
+        description: 'Default Moai Run group for running programs',
+        program_type: 'run',
+        created_by: adminId
+      })
+      .select();
+      
+    if (runError) {
+      console.error('Error creating Moai Run group:', runError);
+      return {
+        success: false,
+        message: 'Failed to create Moai Run group'
       };
     }
     
     return {
       success: true,
-      message: 'Successfully created default Moai group',
-      group: newGroup[0]
+      message: 'Successfully created default Moai Strength and Run groups',
+      groups: [...strengthGroup || [], ...runGroup || []]
     };
   } catch (error) {
     console.error('Unexpected error in createDefaultMoaiGroupIfNeeded:', error);
     return {
       success: false,
-      message: 'Unexpected error creating default Moai group'
+      message: 'Unexpected error creating default Moai groups'
     };
   }
 };

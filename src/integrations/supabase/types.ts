@@ -524,6 +524,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          program_type: string | null
           spotify_playlist_url: string | null
         }
         Insert: {
@@ -532,6 +533,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          program_type?: string | null
           spotify_playlist_url?: string | null
         }
         Update: {
@@ -540,6 +542,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          program_type?: string | null
           spotify_playlist_url?: string | null
         }
         Relationships: []

@@ -41,33 +41,15 @@ export const getUserRunGoals = async (userId: string): Promise<RunGoals> => {
       };
     }
     
-    // Make sure we have a valid data object before returning it
-    if (data && 
-        typeof data === 'object' && 
-        'id' in data && 
-        'user_id' in data && 
-        'miles_goal' in data && 
-        'exercises_goal' in data && 
-        'cardio_minutes_goal' in data) {
-      // Create a new object with the required properties to satisfy TypeScript
-      return {
-        id: data.id as string,
-        user_id: data.user_id as string,
-        miles_goal: data.miles_goal as number,
-        exercises_goal: data.exercises_goal as number,
-        cardio_minutes_goal: data.cardio_minutes_goal as number,
-        created_at: data.created_at as string || '',
-        updated_at: data.updated_at as string || ''
-      };
-    }
-    
-    // Return default if data structure is not as expected
+    // Create a new object with nullish coalescing for all properties
     return {
-      ...defaultRunGoals,
-      id: '',
-      user_id: userId,
-      created_at: '',
-      updated_at: ''
+      id: data.id ?? '',
+      user_id: data.user_id ?? userId,
+      miles_goal: data.miles_goal ?? 0,
+      exercises_goal: data.exercises_goal ?? 0,
+      cardio_minutes_goal: data.cardio_minutes_goal ?? 0,
+      created_at: data.created_at ?? '',
+      updated_at: data.updated_at ?? ''
     };
   } catch (error) {
     console.error('Unexpected error fetching run goals:', error);
@@ -122,7 +104,7 @@ export const setUserRunGoals = async (
         .single();
     }
     
-    if (result.error) {
+    if (result.error || !result.data) {
       console.error('Error setting run goals:', result.error);
       return { 
         success: false, 
@@ -130,28 +112,18 @@ export const setUserRunGoals = async (
       };
     }
     
-    // Validate that result.data conforms to RunGoals structure
-    if (result.data && 
-        typeof result.data === 'object' && 
-        'id' in result.data && 
-        'user_id' in result.data) {
-      return { 
-        success: true, 
-        data: {
-          id: result.data.id as string,
-          user_id: result.data.user_id as string,
-          miles_goal: result.data.miles_goal as number,
-          exercises_goal: result.data.exercises_goal as number,
-          cardio_minutes_goal: result.data.cardio_minutes_goal as number,
-          created_at: result.data.created_at as string || '',
-          updated_at: result.data.updated_at as string || ''
-        } 
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'Invalid data structure returned'
+    // Create a new object with nullish coalescing for each property
+    return { 
+      success: true, 
+      data: {
+        id: result.data.id ?? '',
+        user_id: result.data.user_id ?? userId,
+        miles_goal: result.data.miles_goal ?? 0,
+        exercises_goal: result.data.exercises_goal ?? 0,
+        cardio_minutes_goal: result.data.cardio_minutes_goal ?? 0,
+        created_at: result.data.created_at ?? '',
+        updated_at: result.data.updated_at ?? ''
+      } 
     };
   } catch (error) {
     console.error('Unexpected error setting run goals:', error);
@@ -172,32 +144,31 @@ export const getMultipleUserRunGoals = async (userIds: string[]): Promise<Record
       .select('*')
       .in('user_id', userIds);
     
-    if (error) {
+    if (error || !data) {
       console.error('Error fetching run goals for multiple users:', error);
       return {};
     }
     
     // Create a map of user_id to run goals
     const goalsByUser: Record<string, RunGoals> = {};
-    if (data && Array.isArray(data)) {
+    if (Array.isArray(data)) {
       data.forEach(goalItem => {
-        // Skip null or non-object items
-        if (!goalItem || typeof goalItem !== 'object') return;
+        // Skip if goalItem is null/undefined
+        if (!goalItem) return;
         
-        // Check if goalItem exists and has required properties
-        if ('user_id' in goalItem && 
-            'miles_goal' in goalItem && 
-            'exercises_goal' in goalItem && 
-            'cardio_minutes_goal' in goalItem) {
-          const userId = goalItem.user_id as string;
+        // Make sure all properties are accessed safely
+        const userId = goalItem.user_id ?? '';
+        
+        // Only add to results if we have a valid user_id
+        if (userId) {
           goalsByUser[userId] = {
-            id: goalItem.id as string,
+            id: goalItem.id ?? '',
             user_id: userId,
-            miles_goal: goalItem.miles_goal as number || 0,
-            exercises_goal: goalItem.exercises_goal as number || 0,
-            cardio_minutes_goal: goalItem.cardio_minutes_goal as number || 0,
-            created_at: goalItem.created_at as string || '',
-            updated_at: goalItem.updated_at as string || ''
+            miles_goal: goalItem.miles_goal ?? 0,
+            exercises_goal: goalItem.exercises_goal ?? 0,
+            cardio_minutes_goal: goalItem.cardio_minutes_goal ?? 0,
+            created_at: goalItem.created_at ?? '',
+            updated_at: goalItem.updated_at ?? ''
           };
         }
       });

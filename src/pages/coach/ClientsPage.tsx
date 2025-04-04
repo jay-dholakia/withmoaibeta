@@ -413,8 +413,6 @@ const ClientsPage = () => {
                   clientId={selectedClientId} 
                   clientEmail={selectedClientEmail}
                   onClose={handleCloseClientView} 
-                  activeTab={activeTab === 'details' ? 'history' : 'programs'}
-                  setActiveTab={(tab) => console.log(`Tab switched to ${tab}`)} 
                 />
               )}
               {activeTab === 'message' && (

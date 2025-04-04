@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +24,6 @@ import { Users, UserPlus, Edit, Trash } from 'lucide-react';
 import GroupCoachesDialog from './GroupCoachesDialog';
 import GroupMembersDialog from './GroupMembersDialog';
 import EditGroupDialog from './EditGroupDialog';
-import { Badge } from '@/components/ui/badge';
 
 interface Group {
   id: string;
@@ -31,8 +31,6 @@ interface Group {
   description: string | null;
   created_at: string;
   created_by: string;
-  program_type: string;
-  spotify_playlist_url: string | null;
   _count?: {
     members: number;
     coaches: number;
@@ -79,7 +77,7 @@ const fetchGroups = async (): Promise<Group[]> => {
     })
   );
 
-  return enhancedGroups as Group[];
+  return enhancedGroups;
 };
 
 const GroupList: React.FC = () => {
@@ -138,13 +136,6 @@ const GroupList: React.FC = () => {
     }
   };
 
-  const getProgramTypeBadge = (programType: string) => {
-    if (programType === 'run') {
-      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Moai Run</Badge>;
-    }
-    return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Moai Strength</Badge>;
-  };
-
   if (isLoading) {
     return <div className="flex justify-center p-8">Loading groups...</div>;
   }
@@ -157,7 +148,6 @@ const GroupList: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Group Name</TableHead>
-                <TableHead>Program Type</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-center">Coaches</TableHead>
                 <TableHead className="text-center">Members</TableHead>
@@ -169,7 +159,6 @@ const GroupList: React.FC = () => {
                 groups.map((group) => (
                   <TableRow key={group.id}>
                     <TableCell className="font-medium">{group.name}</TableCell>
-                    <TableCell>{getProgramTypeBadge(group.program_type || 'strength')}</TableCell>
                     <TableCell>{group.description || 'No description'}</TableCell>
                     <TableCell className="text-center">{group._count?.coaches || 0}</TableCell>
                     <TableCell className="text-center">{group._count?.members || 0}</TableCell>
@@ -213,7 +202,7 @@ const GroupList: React.FC = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     No groups found. Create a new group to get started.
                   </TableCell>
                 </TableRow>

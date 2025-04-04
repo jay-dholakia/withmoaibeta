@@ -1,15 +1,13 @@
-import React, { useEffect } from 'react';
+
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Dumbbell, Mountain, LayoutDashboard, Settings, LogOut, FileText, AlertCircle } from 'lucide-react';
+import { Dumbbell, Mountain, LayoutDashboard, Settings, LogOut, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
 import { Toaster } from 'sonner';
 import { Logo } from '@/components/Logo';
-import { toast } from 'sonner';
-import { useProgramType } from '@/hooks/useProgramType';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { toast } from '@/components/ui/use-toast';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -18,16 +16,6 @@ interface ClientLayoutProps {
 export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   const { signOut } = useAuth();
   const location = useLocation();
-  const { programType, multipleGroupsError } = useProgramType();
-  
-  useEffect(() => {
-    if (multipleGroupsError) {
-      toast.error(
-        "You are assigned to multiple groups with different program types. Please contact your coach to resolve this issue.",
-        { duration: 6000 }
-      );
-    }
-  }, [multipleGroupsError]);
   
   const handleSignOut = async () => {
     try {
@@ -52,11 +40,6 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <Logo variant="client" size="md" />
-              {programType === 'run' ? (
-                <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200">Run</Badge>
-              ) : (
-                <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Strength</Badge>
-              )}
             </div>
             <button 
               onClick={handleSignOut}
@@ -71,16 +54,6 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
       
       <main className="flex-grow py-6 mb-16 w-full">
         <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
-          {multipleGroupsError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Program Type Conflict</AlertTitle>
-              <AlertDescription>
-                You're assigned to multiple groups with different program types. 
-                Please contact your coach to resolve this issue.
-              </AlertDescription>
-            </Alert>
-          )}
           <PageTransition>
             {children}
           </PageTransition>

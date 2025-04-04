@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { StandardWorkoutType } from '@/types/workout';
 
 interface WorkoutProgressCardProps {
   label: string;
@@ -21,7 +20,6 @@ interface WorkoutProgressCardProps {
   userName?: string;
   isCurrentUser?: boolean;
   workoutDetailsMap?: Record<string, { title: string; type: WorkoutType }>;
-  programType?: StandardWorkoutType; // Changed type to StandardWorkoutType
 }
 
 export const WorkoutProgressCard = ({
@@ -34,8 +32,7 @@ export const WorkoutProgressCard = ({
   workoutTitlesMap = {}, // Initialize the titles map
   userName,
   isCurrentUser,
-  workoutDetailsMap = {},
-  programType = 'strength' as StandardWorkoutType // Cast as StandardWorkoutType
+  workoutDetailsMap = {}
 }: WorkoutProgressCardProps) => {
   // Default to 6 if total is 0 or undefined
   const displayTotal = total <= 0 ? 6 : total;
@@ -93,6 +90,7 @@ export const WorkoutProgressCard = ({
               const currentDay = new Date(weekStart);
               currentDay.setDate(weekStart.getDate() + index);
               
+              // Count how many workouts were completed on this day
               const workoutsCompletedToday = completedDates.filter(date => 
                 new Date(date).toDateString() === currentDay.toDateString()
               ).length;
@@ -105,19 +103,23 @@ export const WorkoutProgressCard = ({
               
               const isToday = today.toDateString() === currentDay.toDateString();
               
+              // Format date to get the correct workout type from map
               const dateStr = format(currentDay, 'yyyy-MM-dd');
               let workoutType = workoutTypesMap[dateStr];
               
+              // If we don't have a defined workout type but the day is completed,
+              // detect it from any workout title we might have
               if (!workoutType && isDayCompleted && workoutTitlesMap[dateStr]) {
                 const title = workoutTitlesMap[dateStr];
                 workoutType = detectWorkoutTypeFromText(title);
               }
               
+              // Fallback to defaults if still no workout type
               if (!workoutType) {
-                workoutType = isLifeHappens ? 'rest_day' as WorkoutType : 
-                  (programType as WorkoutType || 'strength' as WorkoutType);
+                workoutType = isLifeHappens ? 'rest_day' : 'strength';
               }
               
+              // Use lighter background colors for better emoji visibility
               let bgColor = 'bg-slate-50';
               
               if (isLifeHappens) {
@@ -137,6 +139,7 @@ export const WorkoutProgressCard = ({
                       <span></span>
                     )}
                     
+                    {/* Make the superscript more visible with enhanced styling */}
                     {workoutsCompletedToday > 1 && (
                       <div className="absolute -top-1.5 -right-1.5 bg-client text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm z-10 font-bold">
                         {workoutsCompletedToday}
@@ -144,8 +147,10 @@ export const WorkoutProgressCard = ({
                     )}
                   </div>
                   
+                  {/* Day of week label moved below the circle */}
                   <span className="text-xs font-medium text-slate-600 mt-1">{day.shortName}</span>
                   
+                  {/* Current day indicator */}
                   {isToday && (
                     <div className="w-1.5 h-1.5 bg-client rounded-full mt-0.5"></div>
                   )}
@@ -154,6 +159,7 @@ export const WorkoutProgressCard = ({
             })}
           </div>
           
+          {/* Move the Log Workout button here, below the weekdays view */}
           {isCurrentUser && (
             <div className="mt-4 text-center">
               <Button 
@@ -188,6 +194,7 @@ export const WorkoutProgressCard = ({
               
               const dateStr = format(currentDay, 'yyyy-MM-dd');
               
+              // Find all workouts completed on this day
               const workoutsForThisDay = completedDates.filter(date => 
                 new Date(date).toDateString() === currentDay.toDateString()
               );
@@ -204,8 +211,7 @@ export const WorkoutProgressCard = ({
               }
               
               if (!workoutType) {
-                workoutType = isLifeHappens ? 'rest_day' as WorkoutType : 
-                  (programType as WorkoutType || 'strength' as WorkoutType);
+                workoutType = isLifeHappens ? 'rest_day' : 'strength';
               }
               
               if (workoutsForThisDay.length === 0 && !isLifeHappens) {

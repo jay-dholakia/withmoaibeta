@@ -12,14 +12,11 @@ import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createGroupForCoach } from '@/services/group-service';
 
 const groupFormSchema = z.object({
   name: z.string().min(1, 'Group name is required').max(100, 'Group name is too long'),
   description: z.string().optional(),
   spotify_playlist_url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
-  program_type: z.enum(['strength', 'run']),
 });
 
 type GroupFormValues = z.infer<typeof groupFormSchema>;
@@ -34,7 +31,6 @@ const GroupForm: React.FC = () => {
       name: '',
       description: '',
       spotify_playlist_url: '',
-      program_type: 'strength',
     }
   });
   
@@ -45,20 +41,22 @@ const GroupForm: React.FC = () => {
     }
     
     try {
-      const result = await createGroupForCoach(
-        user.id,
-        values.name,
-        values.description,
-        values.spotify_playlist_url,
-        values.program_type
-      );
-      
-      if (result.success) {
-        toast.success('Group created successfully');
-        navigate('/admin-dashboard/groups', { replace: true });
-      } else {
-        toast.error(result.message || 'Failed to create group');
+      const { data, error } = await supabase
+        .from('groups')
+        .insert({
+          name: values.name,
+          description: values.description || null,
+          spotify_playlist_url: values.spotify_playlist_url || null,
+          created_by: user.id
+        })
+        .select();
+        
+      if (error) {
+        throw error;
       }
+      
+      toast.success('Group created successfully');
+      navigate('/admin-dashboard/groups', { replace: true });
     } catch (error) {
       console.error('Error creating group:', error);
       toast.error('Failed to create group');
@@ -100,31 +98,6 @@ const GroupForm: React.FC = () => {
                       value={field.value || ''}
                     />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="program_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Program Type</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select program type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="strength">Moai Strength</SelectItem>
-                      <SelectItem value="run">Moai Run</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

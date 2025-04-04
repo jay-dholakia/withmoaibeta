@@ -11,6 +11,13 @@ export interface RunGoals {
   updated_at: string;
 }
 
+// Default values when no run goals are found
+export const defaultRunGoals = {
+  miles_goal: 0,
+  exercises_goal: 0,
+  cardio_minutes_goal: 0,
+};
+
 /**
  * Get run goals for a specific user
  */
@@ -138,13 +145,15 @@ export const getMultipleUserRunGoals = async (userIds: string[]): Promise<Record
     const goalsByUser: Record<string, RunGoals> = {};
     if (data && Array.isArray(data)) {
       data.forEach(goalItem => {
+        // Check if goalItem exists and has required properties
         if (goalItem && 
             typeof goalItem === 'object' && 
             'user_id' in goalItem && 
             'miles_goal' in goalItem && 
             'exercises_goal' in goalItem && 
             'cardio_minutes_goal' in goalItem) {
-          goalsByUser[(goalItem as any).user_id] = goalItem as RunGoals;
+          const userId = goalItem.user_id as string;
+          goalsByUser[userId] = goalItem as RunGoals;
         }
       });
     }

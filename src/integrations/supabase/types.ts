@@ -696,6 +696,36 @@ export type Database = {
           },
         ]
       }
+      run_goals: {
+        Row: {
+          cardio_minutes_goal: number | null
+          created_at: string | null
+          exercises_goal: number | null
+          id: string
+          miles_goal: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cardio_minutes_goal?: number | null
+          created_at?: string | null
+          exercises_goal?: number | null
+          id?: string
+          miles_goal?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cardio_minutes_goal?: number | null
+          created_at?: string | null
+          exercises_goal?: number | null
+          id?: string
+          miles_goal?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       standalone_superset_groups: {
         Row: {
           created_at: string

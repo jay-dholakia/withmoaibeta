@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { createDefaultMoaiGroupIfNeeded } from '@/services/group-service';
 import { toast } from 'sonner';
-import { Dumbbell, Running } from 'lucide-react';
+import { Dumbbell } from 'lucide-react';
 
 const GroupsPage: React.FC = () => {
   const { userType, user } = useAuth();
@@ -52,7 +52,7 @@ const GroupsPage: React.FC = () => {
       <div className="w-full">
         <div className="mb-4 flex gap-2 items-center">
           <Dumbbell className="h-5 w-5 text-amber-600" />
-          <Running className="h-5 w-5 text-blue-600" />
+          <span className="inline-block text-blue-600" role="img" aria-label="running" style={{ fontSize: '1.25rem' }}>🏃</span>
           <span className="text-lg font-medium">Manage groups for both Moai Strength and Moai Run programs</span>
         </div>
         

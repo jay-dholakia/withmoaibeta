@@ -20,7 +20,7 @@ import {
   DialogDescription 
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Users, UserPlus, Edit, Trash, Dumbbell, Running } from 'lucide-react';
+import { Users, UserPlus, Edit, Trash, Dumbbell } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import GroupCoachesDialog from './GroupCoachesDialog';
 import GroupMembersDialog from './GroupMembersDialog';
@@ -165,7 +165,7 @@ const GroupList: React.FC = () => {
                     <TableCell>
                       {group.program_type === 'run' ? (
                         <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-                          <Running className="h-3 w-3 mr-1" />
+                          <span role="img" aria-label="running" className="mr-1 inline-block" style={{ fontSize: '0.75rem' }}>🏃</span>
                           Moai Run
                         </Badge>
                       ) : (

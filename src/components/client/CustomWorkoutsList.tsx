@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { fetchCustomWorkouts, CustomWorkout } from '@/services/client-custom-workout-service';
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { format } from 'date-fns';
 
 const CustomWorkoutsList = () => {
   const [customWorkouts, setCustomWorkouts] = useState<CustomWorkout[]>([]);
@@ -24,7 +25,13 @@ const CustomWorkoutsList = () => {
     const loadCustomWorkouts = async () => {
       try {
         const data = await fetchCustomWorkouts();
-        setCustomWorkouts(data);
+        // Sort workouts by workout_date (if available) or created_at date
+        const sortedWorkouts = data.sort((a, b) => {
+          const dateA = a.workout_date ? new Date(a.workout_date) : new Date(a.created_at);
+          const dateB = b.workout_date ? new Date(b.workout_date) : new Date(b.created_at);
+          return dateB.getTime() - dateA.getTime(); // Most recent first
+        });
+        setCustomWorkouts(sortedWorkouts);
       } catch (error) {
         console.error('Error loading custom workouts:', error);
         toast.error('Failed to load your custom workouts');
@@ -35,6 +42,21 @@ const CustomWorkoutsList = () => {
 
     loadCustomWorkouts();
   }, []);
+
+  // Function to get day of week label from date
+  const getDayOfWeek = (dateString: string | null) => {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      
+      return format(date, 'EEE'); // Returns 3-letter day name (Mon, Tue, etc.)
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -75,7 +97,17 @@ const CustomWorkoutsList = () => {
           {customWorkouts.map((workout) => (
             <Card key={workout.id}>
               <CardHeader className="px-4 py-3 pb-2">
-                <CardTitle className="text-lg">{workout.title}</CardTitle>
+                {workout.workout_date && (
+                  <div className="flex items-center mb-1">
+                    <div className="bg-muted w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium mr-2">
+                      {getDayOfWeek(workout.workout_date)}
+                    </div>
+                    <CardTitle className="text-lg">{workout.title}</CardTitle>
+                  </div>
+                )}
+                {!workout.workout_date && (
+                  <CardTitle className="text-lg">{workout.title}</CardTitle>
+                )}
                 {workout.duration_minutes && (
                   <CardDescription className="text-xs">
                     Duration: {workout.duration_minutes} minutes

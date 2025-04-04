@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -20,6 +21,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import CustomWorkoutsList from '@/components/client/CustomWorkoutsList';
 
 const WorkoutsPage = () => {
   const [showRestDayDialog, setShowRestDayDialog] = useState(false);
@@ -44,8 +46,6 @@ const WorkoutsPage = () => {
 
   return (
     <div className="w-full">
-      {/* Removed PassCounter component */}
-      
       <Routes>
         <Route index element={
           <Tabs defaultValue="active-workouts" className="w-full">
@@ -62,6 +62,11 @@ const WorkoutsPage = () => {
             
             <TabsContent value="active-workouts">
               <WorkoutsList />
+              
+              <div className="mt-8">
+                <h2 className="text-lg font-semibold mb-3">Custom Workouts</h2>
+                <CustomWorkoutsList />
+              </div>
               
               <div className="mt-8 border-t pt-6">
                 <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">

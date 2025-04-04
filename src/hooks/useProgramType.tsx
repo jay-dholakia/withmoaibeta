@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getUserProgramType } from '@/services/group-service';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
+import { StandardWorkoutType } from '@/types/workout';
 
 export const useProgramType = (userId?: string) => {
   const { user } = useAuth();
@@ -17,7 +18,7 @@ export const useProgramType = (userId?: string) => {
   } = useQuery({
     queryKey: ['user-program-type', targetUserId],
     queryFn: async () => {
-      if (!targetUserId) return { success: false, programType: 'strength', multipleGroups: false };
+      if (!targetUserId) return { success: false, programType: 'strength' as StandardWorkoutType, multipleGroups: false };
       return await getUserProgramType(targetUserId);
     },
     enabled: !!targetUserId,
@@ -38,7 +39,7 @@ export const useProgramType = (userId?: string) => {
   }, [programTypeData, error]);
 
   // Default to 'strength' if we don't have a valid program type
-  const programType = programTypeData?.success ? programTypeData.programType : 'strength';
+  const programType = programTypeData?.success ? (programTypeData.programType as StandardWorkoutType) : ('strength' as StandardWorkoutType);
 
   return {
     programType,

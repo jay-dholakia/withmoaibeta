@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 import { useProgramType } from '@/hooks/useProgramType';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { StandardWorkoutType } from '@/types/workout';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
@@ -117,7 +118,7 @@ const LeaderboardPage = () => {
         } else if (item.workout?.workout_type) {
           const type = String(item.workout.workout_type).toLowerCase();
           if (type.includes('strength')) typesMap[dateKey] = 'strength';
-          else if (type.includes('cardio') || type.includes('run')) typesMap[dateKey] = 'cardio';
+          else if (type.includes('cardio') || type.includes('run')) typesMap[dateKey] = type.includes('run') ? 'run' : 'cardio';
           else if (type.includes('body') || type.includes('weight')) typesMap[dateKey] = 'bodyweight';
           else if (type.includes('flex') || type.includes('yoga') || type.includes('stretch')) typesMap[dateKey] = 'flexibility';
           else if (type.includes('rest')) typesMap[dateKey] = 'rest_day';

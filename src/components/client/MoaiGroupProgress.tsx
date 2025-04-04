@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 import { useProgramType } from '@/hooks/useProgramType';
+import { StandardWorkoutType } from '@/types/workout';
 
 interface MoaiGroupProgressProps {
   groupId: string;
@@ -183,7 +183,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
               } else if (workout.workout?.workout_type) {
                 const type = String(workout.workout.workout_type).toLowerCase();
                 if (type.includes('strength')) newWorkoutTypesMap[dateKey] = 'strength';
-                else if (type.includes('cardio') || type.includes('run')) newWorkoutTypesMap[dateKey] = 'cardio';
+                else if (type.includes('cardio') || type.includes('run')) newWorkoutTypesMap[dateKey] = type.includes('run') ? 'run' : 'cardio';
                 else if (type.includes('body') || type.includes('weight')) newWorkoutTypesMap[dateKey] = 'bodyweight';
                 else if (type.includes('flex') || type.includes('yoga') || type.includes('stretch')) newWorkoutTypesMap[dateKey] = 'flexibility';
                 else if (type.includes('rest')) newWorkoutTypesMap[dateKey] = 'rest_day';
@@ -266,7 +266,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
                     } else if (workout.workout?.workout_type) {
                       const type = String(workout.workout.workout_type).toLowerCase();
                       if (type.includes('strength')) workoutTypesMap[dateKey] = 'strength';
-                      else if (type.includes('cardio') || type.includes('run')) workoutTypesMap[dateKey] = 'cardio';
+                      else if (type.includes('cardio') || type.includes('run')) workoutTypesMap[dateKey] = type.includes('run') ? 'run' : 'cardio';
                       else if (type.includes('body') || type.includes('weight')) workoutTypesMap[dateKey] = 'bodyweight';
                       else if (type.includes('flex') || type.includes('yoga') || type.includes('stretch')) workoutTypesMap[dateKey] = 'flexibility';
                       else if (type.includes('hiit')) workoutTypesMap[dateKey] = 'hiit';

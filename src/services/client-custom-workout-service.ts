@@ -10,6 +10,7 @@ export interface CustomWorkout {
   created_at: string;
   updated_at: string;
   workout_type: string;
+  workout_date: string | null;
 }
 
 export interface CustomWorkoutExercise {

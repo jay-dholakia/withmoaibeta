@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { WorkoutProgram } from '@/types/workout';
-import { Dumbbell, MoreVertical, Trash } from 'lucide-react';
+import { Dumbbell, MoreVertical, Trash, PlusCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {

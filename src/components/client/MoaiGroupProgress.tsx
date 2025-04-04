@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-servi
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
+import { useProgramType } from '@/hooks/useProgramType';
 
 interface MoaiGroupProgressProps {
   groupId: string;
@@ -28,6 +30,7 @@ interface GroupMember {
 
 const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
   const { user, profile } = useAuth();
+  const { programType } = useProgramType();
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
   const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
   const [workoutTypesMap, setWorkoutTypesMap] = useState<Record<string, WorkoutType>>({});
@@ -364,6 +367,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
           workoutTitlesMap={workoutTitlesMap}
           userName={getCurrentUserDisplayName()}
           isCurrentUser={true}
+          programType={programType}
         />
       )}
       
@@ -402,6 +406,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
             workoutTitlesMap={memberData.workoutTitlesMap}
             userName={getDisplayName(member)}
             isCurrentUser={false}
+            programType={programType}
           />
         );
       })}

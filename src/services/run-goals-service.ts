@@ -43,7 +43,15 @@ export const getUserRunGoals = async (userId: string): Promise<RunGoals | null> 
         'miles_goal' in data && 
         'exercises_goal' in data && 
         'cardio_minutes_goal' in data) {
-      return data as RunGoals;
+      return {
+        id: data.id,
+        user_id: data.user_id,
+        miles_goal: data.miles_goal,
+        exercises_goal: data.exercises_goal,
+        cardio_minutes_goal: data.cardio_minutes_goal,
+        created_at: data.created_at,
+        updated_at: data.updated_at
+      } as RunGoals;
     }
     
     return null;
@@ -153,7 +161,15 @@ export const getMultipleUserRunGoals = async (userIds: string[]): Promise<Record
             'exercises_goal' in goalItem && 
             'cardio_minutes_goal' in goalItem) {
           const userId = goalItem.user_id as string;
-          goalsByUser[userId] = goalItem as RunGoals;
+          goalsByUser[userId] = {
+            id: goalItem.id,
+            user_id: goalItem.user_id,
+            miles_goal: goalItem.miles_goal,
+            exercises_goal: goalItem.exercises_goal,
+            cardio_minutes_goal: goalItem.cardio_minutes_goal,
+            created_at: goalItem.created_at,
+            updated_at: goalItem.updated_at
+          } as RunGoals;
         }
       });
     }

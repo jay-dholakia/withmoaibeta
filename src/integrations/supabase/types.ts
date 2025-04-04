@@ -33,6 +33,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cardio_activities: {
+        Row: {
+          activity_type: string | null
+          completed_at: string | null
+          id: string
+          minutes: number | null
+          notes: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_type?: string | null
+          completed_at?: string | null
+          id?: string
+          minutes?: number | null
+          notes?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string | null
+          completed_at?: string | null
+          id?: string
+          minutes?: number | null
+          notes?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       client_custom_workout_exercises: {
         Row: {
           created_at: string
@@ -695,6 +722,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      run_activities: {
+        Row: {
+          completed_at: string | null
+          distance: number | null
+          id: string
+          notes: string | null
+          run_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          distance?: number | null
+          id?: string
+          notes?: string | null
+          run_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          distance?: number | null
+          id?: string
+          notes?: string | null
+          run_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      run_goals: {
+        Row: {
+          cardio_minutes_goal: number | null
+          created_at: string | null
+          exercises_goal: number | null
+          id: string
+          miles_goal: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cardio_minutes_goal?: number | null
+          created_at?: string | null
+          exercises_goal?: number | null
+          id?: string
+          miles_goal?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cardio_minutes_goal?: number | null
+          created_at?: string | null
+          exercises_goal?: number | null
+          id?: string
+          miles_goal?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       standalone_superset_groups: {
         Row: {

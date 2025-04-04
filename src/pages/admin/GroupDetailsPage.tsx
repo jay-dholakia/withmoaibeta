@@ -8,10 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserPlus, Users, ArrowLeft } from 'lucide-react';
+import { UserPlus, Users, ArrowLeft, Edit } from 'lucide-react';
 import GroupCoachesDialog from '@/components/admin/GroupCoachesDialog';
 import GroupMembersDialog from '@/components/admin/GroupMembersDialog';
+import EditGroupDialog from '@/components/admin/EditGroupDialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { Badge } from '@/components/ui/badge';
 
 interface Group {
   id: string;
@@ -19,6 +21,8 @@ interface Group {
   description: string | null;
   created_at: string;
   created_by: string;
+  program_type: string;
+  spotify_playlist_url?: string | null;
 }
 
 interface Coach {
@@ -38,6 +42,7 @@ const GroupDetailsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [isCoachDialogOpen, setIsCoachDialogOpen] = useState(false);
   const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { userType } = useAuth();
@@ -215,6 +220,13 @@ const GroupDetailsPage: React.FC = () => {
     fetchGroupDetails();
   };
 
+  const getProgramTypeBadge = (programType: string) => {
+    if (programType === 'run') {
+      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Moai Run</Badge>;
+    }
+    return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Moai Strength</Badge>;
+  };
+
   if (userType !== 'admin') {
     return null;
   }
@@ -253,6 +265,10 @@ const GroupDetailsPage: React.FC = () => {
         </Button>
         
         <div className="flex gap-2">
+          <Button onClick={() => setIsEditDialogOpen(true)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Group
+          </Button>
           <Button onClick={() => setIsCoachDialogOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
             Manage Coaches
@@ -269,13 +285,18 @@ const GroupDetailsPage: React.FC = () => {
           <CardTitle>Group Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">Name</h3>
               <p>{group.name}</p>
             </div>
             
             <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Program Type</h3>
+              <p>{getProgramTypeBadge(group.program_type || 'strength')}</p>
+            </div>
+            
+            <div className="md:col-span-2">
               <h3 className="text-sm font-medium text-muted-foreground">Description</h3>
               <p>{group.description || 'No description'}</p>
             </div>
@@ -284,6 +305,20 @@ const GroupDetailsPage: React.FC = () => {
               <h3 className="text-sm font-medium text-muted-foreground">Created</h3>
               <p>{new Date(group.created_at).toLocaleDateString()}</p>
             </div>
+            
+            {group.spotify_playlist_url && (
+              <div className="md:col-span-2">
+                <h3 className="text-sm font-medium text-muted-foreground">Spotify Playlist</h3>
+                <a 
+                  href={group.spotify_playlist_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  {group.spotify_playlist_url}
+                </a>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -355,6 +390,13 @@ const GroupDetailsPage: React.FC = () => {
       
       {group && (
         <>
+          <EditGroupDialog 
+            group={group}
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            onSuccess={handleRefresh}
+          />
+          
           <GroupCoachesDialog 
             group={group}
             open={isCoachDialogOpen}

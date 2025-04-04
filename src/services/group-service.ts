@@ -27,7 +27,8 @@ export const createGroupForCoach = async (
   coachId: string, 
   groupName: string, 
   groupDescription?: string,
-  spotifyPlaylistUrl?: string
+  spotifyPlaylistUrl?: string,
+  programType: string = 'strength'
 ) => {
   try {
     // 1. Create the group
@@ -37,7 +38,8 @@ export const createGroupForCoach = async (
         name: groupName,
         description: groupDescription || '',
         created_by: coachId,
-        spotify_playlist_url: spotifyPlaylistUrl || null
+        spotify_playlist_url: spotifyPlaylistUrl || null,
+        program_type: programType
       }])
       .select()
       .single();
@@ -74,7 +76,12 @@ export const createGroupForCoach = async (
  */
 export const updateGroup = async (
   groupId: string,
-  updates: { name?: string; description?: string; spotify_playlist_url?: string | null }
+  updates: { 
+    name?: string; 
+    description?: string; 
+    spotify_playlist_url?: string | null;
+    program_type?: string;
+  }
 ) => {
   try {
     const { data, error } = await supabase
@@ -125,29 +132,37 @@ export const fetchGroupDetails = async (groupIds: string[]) => {
 /**
  * Create a default Moai group if none exists
  */
-export const createDefaultMoaiGroupIfNeeded = async (adminId: string) => {
+export const createDefaultMoaiGroupIfNeeded = async (adminId: string, programType: string = 'strength') => {
   try {
-    // Check if any Moai groups exist
+    const groupName = programType === 'run' ? 'Moai Run Group' : 'Moai Strength Group';
+    const description = programType === 'run' 
+      ? 'A supportive community for your running journey' 
+      : 'A supportive community for your strength training journey';
+    
+    // Check if any similar Moai groups exist
     const { data: existingGroups, error: checkError } = await supabase
       .from('groups')
-      .select('id, name')
-      .ilike('name', 'Moai%');
+      .select('id, name, program_type')
+      .ilike('name', `Moai%`)
+      .eq('program_type', programType);
       
     if (checkError) {
-      console.error('Error checking for Moai groups:', checkError);
+      console.error(`Error checking for Moai ${programType} groups:`, checkError);
       return {
         success: false,
-        message: 'Failed to check for existing Moai groups'
+        message: `Failed to check for existing Moai ${programType} groups`,
+        created: false
       };
     }
     
-    // If Moai groups already exist, we don't need to create one
+    // If Moai groups of this type already exist, we don't need to create one
     if (existingGroups && existingGroups.length > 0) {
-      console.log('Moai groups already exist:', existingGroups);
+      console.log(`Moai ${programType} groups already exist:`, existingGroups);
       return {
         success: true,
-        message: 'Moai groups already exist',
-        groups: existingGroups
+        message: `Moai ${programType} groups already exist`,
+        groups: existingGroups,
+        created: false
       };
     }
     
@@ -155,30 +170,34 @@ export const createDefaultMoaiGroupIfNeeded = async (adminId: string) => {
     const { data: newGroup, error: createError } = await supabase
       .from('groups')
       .insert({
-        name: 'Moai Fitness Group',
-        description: 'A supportive community for your fitness journey',
-        created_by: adminId
+        name: groupName,
+        description: description,
+        created_by: adminId,
+        program_type: programType
       })
       .select();
       
     if (createError) {
-      console.error('Error creating Moai group:', createError);
+      console.error(`Error creating Moai ${programType} group:`, createError);
       return {
         success: false,
-        message: 'Failed to create Moai group'
+        message: `Failed to create Moai ${programType} group`,
+        created: false
       };
     }
     
     return {
       success: true,
-      message: 'Successfully created default Moai group',
-      group: newGroup[0]
+      message: `Successfully created default Moai ${programType} group`,
+      group: newGroup[0],
+      created: true
     };
   } catch (error) {
-    console.error('Unexpected error in createDefaultMoaiGroupIfNeeded:', error);
+    console.error(`Unexpected error in createDefaultMoaiGroupIfNeeded for ${programType}:`, error);
     return {
       success: false,
-      message: 'Unexpected error creating default Moai group'
+      message: `Unexpected error creating default Moai ${programType} group`,
+      created: false
     };
   }
 };

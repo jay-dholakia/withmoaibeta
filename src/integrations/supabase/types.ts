@@ -166,6 +166,7 @@ export type Database = {
           id: string
           last_name: string | null
           profile_completed: boolean | null
+          program_type: string | null
           state: string | null
           updated_at: string | null
           weight: string | null
@@ -185,6 +186,7 @@ export type Database = {
           id: string
           last_name?: string | null
           profile_completed?: boolean | null
+          program_type?: string | null
           state?: string | null
           updated_at?: string | null
           weight?: string | null
@@ -204,6 +206,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           profile_completed?: boolean | null
+          program_type?: string | null
           state?: string | null
           updated_at?: string | null
           weight?: string | null
@@ -491,6 +494,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          program_type: string | null
           spotify_playlist_url: string | null
         }
         Insert: {
@@ -499,6 +503,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          program_type?: string | null
           spotify_playlist_url?: string | null
         }
         Update: {
@@ -507,6 +512,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          program_type?: string | null
           spotify_playlist_url?: string | null
         }
         Relationships: []
@@ -1378,6 +1384,17 @@ export type Database = {
         Returns: {
           id: string
           email: string
+        }[]
+      }
+      get_weekly_run_progress: {
+        Args: {
+          user_id_param: string
+          start_date?: string
+        }
+        Returns: {
+          miles_completed: number
+          exercises_completed: number
+          cardio_minutes_completed: number
         }[]
       }
       is_coach_for_client: {

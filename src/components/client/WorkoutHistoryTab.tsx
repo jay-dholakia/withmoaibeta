@@ -4,12 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
-import { User, Loader2, FileX } from 'lucide-react';
+import { User, Loader2, FileX, CalendarDays } from 'lucide-react';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
-import { format, isFuture, isValid } from 'date-fns';
+import { format, isFuture, isValid, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
 import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import WorkoutTypeIcon from '@/components/client/WorkoutTypeIcon';
 
 const WorkoutHistoryTab = () => {
   const { user } = useAuth();
@@ -235,6 +237,38 @@ const WorkoutHistoryTab = () => {
     }
   }, [clientWorkouts]);
   
+  // Get current week workouts
+  const currentWeekWorkouts = React.useMemo(() => {
+    if (!clientWorkouts || clientWorkouts.length === 0) return [];
+    
+    const today = new Date();
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+    const weekEnd = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
+    
+    return clientWorkouts.filter(workout => {
+      if (!workout.completed_at) return false;
+      
+      try {
+        const completedDate = parseISO(workout.completed_at);
+        return isWithinInterval(completedDate, { start: weekStart, end: weekEnd });
+      } catch {
+        return false;
+      }
+    }).sort((a, b) => {
+      // Sort by date first
+      const dateA = parseISO(a.completed_at);
+      const dateB = parseISO(b.completed_at);
+      const dateDiff = dateB.getTime() - dateA.getTime();
+      
+      if (dateDiff !== 0) return dateDiff;
+      
+      // If same date, sort by title
+      const titleA = a.title || a.workout?.title || '';
+      const titleB = b.title || b.workout?.title || '';
+      return titleA.localeCompare(titleB);
+    });
+  }, [clientWorkouts]);
+  
   if (isLoading) {
     return (
       <div className="flex justify-center py-6">
@@ -287,6 +321,63 @@ const WorkoutHistoryTab = () => {
 
   return (
     <div>
+      {/* Weekly Summary */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-4 flex items-center justify-center gap-2">
+          <CalendarDays className="h-5 w-5 text-client" />
+          This Week's Workouts
+        </h2>
+        
+        {currentWeekWorkouts.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="py-6 text-center">
+              <p className="text-muted-foreground">No workouts completed this week yet.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {currentWeekWorkouts.map((workout) => {
+              const completedDate = parseISO(workout.completed_at);
+              const dayOfWeek = format(completedDate, 'EEE');
+              const workoutType = workout.workout_type || 
+                                  workout.workout?.workout_type || 
+                                  (workout.rest_day ? 'rest_day' : 'strength');
+              const workoutTitle = workout.title || 
+                                  workout.workout?.title || 
+                                  (workout.rest_day ? 'Rest Day' : 'Custom Workout');
+              
+              return (
+                <Card key={workout.id} className="overflow-hidden">
+                  <CardHeader className="px-4 py-3 pb-2 flex flex-row items-center space-y-0">
+                    <div className="flex items-center space-x-2">
+                      <div className="bg-muted w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium">
+                        {dayOfWeek}
+                      </div>
+                      <CardTitle className="text-lg line-clamp-1">{workoutTitle}</CardTitle>
+                    </div>
+                    <div className="ml-auto">
+                      <WorkoutTypeIcon type={workoutType as WorkoutType} size="sm" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 py-2">
+                    <div className="flex justify-between items-center">
+                      <div className="text-xs text-muted-foreground">
+                        {format(completedDate, 'MMM d, yyyy')}
+                      </div>
+                      {workout.duration && (
+                        <Badge variant="outline" className="text-xs">
+                          {workout.duration} min
+                        </Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      
       <h2 className="text-xl font-bold mb-4 flex items-center justify-center gap-2">
         <User className="h-5 w-5 text-client" />
         Monthly Progress

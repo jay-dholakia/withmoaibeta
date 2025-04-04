@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { WorkoutType, WorkoutTypeIcon } from './WorkoutTypeIcon';
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { StandardWorkoutType } from '@/types/workout';
 
 interface WorkoutProgressCardProps {
   label: string;
@@ -19,7 +21,7 @@ interface WorkoutProgressCardProps {
   userName?: string;
   isCurrentUser?: boolean;
   workoutDetailsMap?: Record<string, { title: string; type: WorkoutType }>;
-  programType?: string; // Add the programType prop
+  programType?: StandardWorkoutType; // Changed type to StandardWorkoutType
 }
 
 export const WorkoutProgressCard = ({
@@ -33,7 +35,7 @@ export const WorkoutProgressCard = ({
   userName,
   isCurrentUser,
   workoutDetailsMap = {},
-  programType = 'strength' // Default to 'strength' if not provided
+  programType = 'strength' as StandardWorkoutType // Cast as StandardWorkoutType
 }: WorkoutProgressCardProps) => {
   // Default to 6 if total is 0 or undefined
   const displayTotal = total <= 0 ? 6 : total;
@@ -112,7 +114,8 @@ export const WorkoutProgressCard = ({
               }
               
               if (!workoutType) {
-                workoutType = isLifeHappens ? 'rest_day' : programType;
+                workoutType = isLifeHappens ? 'rest_day' as WorkoutType : 
+                  (programType as WorkoutType || 'strength' as WorkoutType);
               }
               
               let bgColor = 'bg-slate-50';
@@ -201,7 +204,8 @@ export const WorkoutProgressCard = ({
               }
               
               if (!workoutType) {
-                workoutType = isLifeHappens ? 'rest_day' : programType;
+                workoutType = isLifeHappens ? 'rest_day' as WorkoutType : 
+                  (programType as WorkoutType || 'strength' as WorkoutType);
               }
               
               if (workoutsForThisDay.length === 0 && !isLifeHappens) {

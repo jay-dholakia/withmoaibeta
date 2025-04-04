@@ -56,6 +56,9 @@ export const WorkoutProgramForm: React.FC<WorkoutProgramFormProps> = ({
     }
   });
 
+  // Define week options safely
+  const weekOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 20, 24, 52];
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -113,15 +116,11 @@ export const WorkoutProgramForm: React.FC<WorkoutProgramFormProps> = ({
                     <SelectValue placeholder="Select the program duration" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((week) => (
+                    {weekOptions.map((week) => (
                       <SelectItem key={week} value={week.toString()}>
                         {week} {week === 1 ? 'week' : 'weeks'}
                       </SelectItem>
                     ))}
-                    <SelectItem value="16">16 weeks</SelectItem>
-                    <SelectItem value="20">20 weeks</SelectItem>
-                    <SelectItem value="24">24 weeks</SelectItem>
-                    <SelectItem value="52">52 weeks</SelectItem>
                   </SelectContent>
                 </Select>
               </FormControl>

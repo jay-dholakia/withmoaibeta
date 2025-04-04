@@ -14,7 +14,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -35,7 +34,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ProgramAssignmentFormProps {
   programId?: string;
@@ -76,15 +74,21 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
       try {
         const clientsData = await fetchAllClients();
         
-        const formattedClients = clientsData.map(client => ({
-          label: client.email || `Client ${client.id.slice(0, 6)}`,
-          value: client.id
-        }));
-        
-        setClients(formattedClients);
+        if (clientsData && Array.isArray(clientsData)) {
+          const formattedClients = clientsData.map(client => ({
+            label: client.email || `Client ${client.id.slice(0, 6)}`,
+            value: client.id
+          }));
+          
+          setClients(formattedClients);
+        } else {
+          console.error('Clients data is not an array:', clientsData);
+          setClients([]);
+        }
       } catch (error) {
         console.error('Error loading clients:', error);
         toast.error('Failed to load clients');
+        setClients([]);
       } finally {
         setIsLoadingClients(false);
       }
@@ -93,11 +97,11 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
     loadClients();
   }, [user]);
 
-  const filteredClients = searchQuery 
+  const filteredClients = searchQuery && clients 
     ? clients.filter(client => 
         client.label.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : clients;
+    : clients || [];
 
   const handleClientSelect = (clientId: string) => {
     setSelectedClientId(clientId);
@@ -201,24 +205,30 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
               />
               <CommandEmpty>No clients found.</CommandEmpty>
               <CommandGroup className="max-h-60 overflow-y-auto">
-                {filteredClients.map(client => (
-                  <CommandItem
-                    key={client.value}
-                    value={client.value}
-                    onSelect={() => handleClientSelect(client.value)}
-                    className={cn(
-                      "flex items-center justify-between cursor-pointer",
-                      selectedClientId === client.value && "bg-accent"
-                    )}
-                  >
-                    <span>{client.label}</span>
-                    {selectedClientId === client.value && (
-                      <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                        Selected
-                      </span>
-                    )}
-                  </CommandItem>
-                ))}
+                {filteredClients && filteredClients.length > 0 ? (
+                  filteredClients.map(client => (
+                    <CommandItem
+                      key={client.value}
+                      value={client.value}
+                      onSelect={() => handleClientSelect(client.value)}
+                      className={cn(
+                        "flex items-center justify-between cursor-pointer",
+                        selectedClientId === client.value && "bg-accent"
+                      )}
+                    >
+                      <span>{client.label}</span>
+                      {selectedClientId === client.value && (
+                        <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                          Selected
+                        </span>
+                      )}
+                    </CommandItem>
+                  ))
+                ) : (
+                  <div className="p-2 text-center text-muted-foreground">
+                    No clients available
+                  </div>
+                )}
               </CommandGroup>
             </Command>
           )}

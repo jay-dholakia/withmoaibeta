@@ -125,11 +125,11 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                 // Sets, reps, weight for strength exercises
                 <div className="space-y-3">
                   {group.sets.sort((a, b) => a.set_number - b.set_number).map(set => (
-                    <div key={set.id} className="grid grid-cols-3 gap-4">
+                    <div key={set.id} className="grid grid-cols-3 gap-5">
                       <div>
                         <label className="text-xs text-muted-foreground">Set {set.set_number}</label>
                       </div>
-                      <div className="px-1">
+                      <div>
                         <Input
                           type="text"
                           inputMode="numeric"
@@ -144,7 +144,7 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                           className="w-full h-8 text-sm px-2"
                         />
                       </div>
-                      <div className="px-1">
+                      <div>
                         <Input
                           type="text"
                           inputMode="decimal"
@@ -156,7 +156,7 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                             parseFloat(e.target.value) || 0
                           )}
                           placeholder="lbs"
-                          className="w-full h-8 text-sm px-2 min-w-[70px]"
+                          className="w-full h-8 text-sm px-2 min-w-[80px]"
                           step="0.5"
                         />
                       </div>

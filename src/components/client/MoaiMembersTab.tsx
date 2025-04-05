@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import MoaiMemberItem from './MoaiMemberItem';
+import RunGoalsProgressCard from './RunGoalsProgressCard';
 import { format } from 'date-fns';
 
 interface MemberProfile {
@@ -375,7 +376,9 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
             </TabsContent>
             
             <TabsContent value="workouts">
-              <Card>
+              <RunGoalsProgressCard userId={selectedMember} />
+              
+              <Card className="mt-4">
                 <CardHeader>
                   <CardTitle className="text-lg">Recent Workouts</CardTitle>
                 </CardHeader>

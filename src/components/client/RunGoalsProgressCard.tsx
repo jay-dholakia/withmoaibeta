@@ -18,21 +18,28 @@ const DEFAULT_GOALS = {
   cardio: 60
 };
 
-const RunGoalsProgressCard = () => {
+interface RunGoalsProgressCardProps {
+  userId?: string; // Optional userId prop - if not provided, uses the current logged-in user
+}
+
+const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({ userId }) => {
   const { user } = useAuth();
   const [progress, setProgress] = useState<RunProgressData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  
+  // Use provided userId or fall back to the current logged-in user
+  const targetUserId = userId || user?.id;
 
   useEffect(() => {
     const loadProgress = async () => {
-      if (!user?.id) return;
+      if (!targetUserId) return;
       
       try {
-        console.log('Loading run goals progress for user:', user.id);
+        console.log('Loading run goals progress for user:', targetUserId);
         setIsLoading(true);
         setHasError(false);
-        const data = await getWeeklyRunProgress(user.id);
+        const data = await getWeeklyRunProgress(targetUserId);
         console.log('Run goals progress loaded:', data);
         setProgress(data);
       } catch (error) {
@@ -44,7 +51,7 @@ const RunGoalsProgressCard = () => {
     };
 
     loadProgress();
-  }, [user?.id]);
+  }, [targetUserId]);
 
   // Log component render state
   console.log('RunGoalsProgressCard render state:', { isLoading, hasError, progress });
@@ -52,7 +59,8 @@ const RunGoalsProgressCard = () => {
   // Set up goals if none exist
   useEffect(() => {
     const setupDefaultGoals = async () => {
-      if (!user?.id || isLoading || hasError) return;
+      if (!targetUserId || isLoading || hasError || userId) return;
+      // Skip setting up default goals if this is not the current user's card
       
       if (progress && 
           !progress.miles.goal && 
@@ -60,7 +68,7 @@ const RunGoalsProgressCard = () => {
           !progress.cardio.goal) {
         console.log('No goals found, setting up default goals');
         try {
-          await setUserRunGoals(user.id, {
+          await setUserRunGoals(targetUserId, {
             miles_goal: DEFAULT_GOALS.miles,
             exercises_goal: DEFAULT_GOALS.exercises,
             cardio_minutes_goal: DEFAULT_GOALS.cardio
@@ -82,7 +90,7 @@ const RunGoalsProgressCard = () => {
     };
     
     setupDefaultGoals();
-  }, [user?.id, progress, isLoading, hasError]);
+  }, [targetUserId, progress, isLoading, hasError, userId]);
 
   if (isLoading) {
     return (

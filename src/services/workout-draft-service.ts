@@ -22,15 +22,20 @@ export const saveWorkoutDraft = async (
       return false;
     }
     
-    console.log("Saving workout draft for ID:", workoutId, "Type:", workoutType);
+    console.log(`Saving workout draft for ID: ${workoutId}, Type: ${workoutType}, Data:`, JSON.stringify(draftData).substring(0, 100) + "...");
     
     // Check if a draft already exists for this workout
-    const { data: existingDraft } = await supabase
+    const { data: existingDraft, error: queryError } = await supabase
       .from('workout_drafts')
       .select('id')
       .eq('user_id', user.id)
       .eq('workout_id', workoutId)
       .maybeSingle();
+      
+    if (queryError) {
+      console.error("Error checking for existing draft:", queryError);
+      return false;
+    }
       
     if (existingDraft) {
       // Update existing draft
@@ -48,7 +53,8 @@ export const saveWorkoutDraft = async (
         return false;
       }
       
-      console.log("Updated existing workout draft");
+      console.log("Updated existing workout draft successfully");
+      return true;
     } else {
       // Create new draft
       const { error } = await supabase
@@ -67,10 +73,9 @@ export const saveWorkoutDraft = async (
         return false;
       }
       
-      console.log("Created new workout draft");
+      console.log("Created new workout draft successfully");
+      return true;
     }
-    
-    return true;
   } catch (error) {
     console.error("Error in saveWorkoutDraft:", error);
     return false;
@@ -110,13 +115,13 @@ export const getWorkoutDraft = async (
       return null;
     }
     
-    if (data) {
-      console.log("Found workout draft:", data);
+    if (data && data.draft_data) {
+      console.log("Found workout draft with data:", JSON.stringify(data.draft_data).substring(0, 100) + "...");
+      return data;
     } else {
       console.log("No workout draft found for ID:", workoutId);
+      return null;
     }
-    
-    return data;
   } catch (error) {
     console.error("Error in getWorkoutDraft:", error);
     return null;

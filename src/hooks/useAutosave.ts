@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { debounce } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface UseAutosaveProps<T> {
   data: T;
@@ -20,7 +21,7 @@ export function useAutosave<T>({
   const previousDataRef = useRef<T | null>(null);
   const dataRef = useRef<T>(data);
   const saveAttempts = useRef<number>(0);
-  const maxSaveAttempts = 3;
+  const maxSaveAttempts = 5;
   
   // Keep the latest data in ref for visibility change handlers
   useEffect(() => {
@@ -29,7 +30,7 @@ export function useAutosave<T>({
   
   // Function to save data immediately (not debounced)
   const saveImmediately = useCallback(async (dataToSave: T) => {
-    if (disabled) return;
+    if (disabled) return false;
     
     try {
       setIsSaving(true);
@@ -42,7 +43,8 @@ export function useAutosave<T>({
         saveAttempts.current = 0;
         setSaveStatus('success');
         setLastSaved(new Date());
-        console.log('Autosave successful');
+        console.log('Autosave successful at:', new Date().toISOString());
+        return true;
       } else {
         saveAttempts.current += 1;
         setSaveStatus('error');
@@ -52,7 +54,13 @@ export function useAutosave<T>({
         if (saveAttempts.current < maxSaveAttempts) {
           console.log(`Retrying autosave in ${interval}ms...`);
           setTimeout(() => saveImmediately(dataToSave), interval);
+        } else {
+          toast.error("Failed to save your progress. Please check your connection.", {
+            id: "autosave-error",
+            duration: 3000
+          });
         }
+        return false;
       }
     } catch (error) {
       console.error('Error during autosave:', error);
@@ -63,7 +71,13 @@ export function useAutosave<T>({
       if (saveAttempts.current < maxSaveAttempts) {
         console.log(`Retrying autosave after error in ${interval}ms...`);
         setTimeout(() => saveImmediately(dataToSave), interval);
+      } else {
+        toast.error("Failed to save your progress after multiple attempts", {
+          id: "autosave-error",
+          duration: 3000
+        });
       }
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -80,7 +94,7 @@ export function useAutosave<T>({
     if (document.visibilityState === 'hidden') {
       console.log('Page visibility changed to hidden, saving data immediately');
       // Cancel debounced save and save immediately
-      debouncedSave.cancel();
+      if (debouncedSave.cancel) debouncedSave.cancel();
       saveImmediately(dataRef.current);
     } else if (document.visibilityState === 'visible') {
       console.log('Page visibility changed to visible');
@@ -90,7 +104,7 @@ export function useAutosave<T>({
   // Trigger the save when data changes
   useEffect(() => {
     try {
-      // Check if the data has actually changed before saving
+      // Deep equal comparison to determine if data has changed
       const dataAsString = JSON.stringify(data);
       const previousDataAsString = previousDataRef.current ? JSON.stringify(previousDataRef.current) : null;
       
@@ -100,7 +114,7 @@ export function useAutosave<T>({
         debouncedSave(data);
       }
     } catch (error) {
-      console.error('Error in useAutosave data compare:', error);
+      console.error('Error in useAutosave data comparison:', error);
     }
   }, [data, debouncedSave]);
   
@@ -114,19 +128,14 @@ export function useAutosave<T>({
     // Save when page is about to unload (user closes tab or navigates away)
     const handleBeforeUnload = () => {
       console.log('Page about to unload, saving data immediately');
-      debouncedSave.cancel();
+      if (debouncedSave.cancel) debouncedSave.cancel();
       
-      // We need to use a synchronous approach here since beforeunload is immediate
-      // Using the async saveImmediately directly won't complete before the page unloads
-      try {
-        // We still try to trigger the save, even though it might not complete
-        saveImmediately(dataRef.current);
-        
-        // Note: Modern browsers ignore custom messages in the beforeunload event
-        // So we're not setting a return value
-      } catch (error) {
-        console.error('Error in beforeunload handler:', error);
-      }
+      // Synchronously save - this might not complete, but worth trying
+      saveImmediately(dataRef.current);
+      
+      // For older browsers, return a string to prompt confirmation dialog
+      // Note: Modern browsers ignore custom messages
+      return "You have unsaved changes. Are you sure you want to leave?";
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -137,19 +146,19 @@ export function useAutosave<T>({
       window.removeEventListener('beforeunload', handleBeforeUnload);
       
       console.log('Cleaning up autosave, saving final data');
-      debouncedSave.cancel();
+      if (debouncedSave.cancel) debouncedSave.cancel();
       saveImmediately(dataRef.current);
     };
   }, [debouncedSave, handleVisibilityChange, saveImmediately]);
   
-  // Force a save every interval * 5 as a failsafe
+  // Force a save every interval * 2 as a failsafe (more frequent than before)
   useEffect(() => {
     if (disabled) return;
     
     const forceSaveInterval = setInterval(() => {
       console.log('Performing scheduled autosave');
       saveImmediately(dataRef.current);
-    }, interval * 5);
+    }, interval * 2);
     
     return () => clearInterval(forceSaveInterval);
   }, [interval, disabled, saveImmediately]);

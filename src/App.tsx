@@ -3,7 +3,6 @@ import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ClientDashboard from './pages/client/ClientDashboard';
-import WorkoutsPage from './pages/client/WorkoutsPage';
 import LogCardioPage from './pages/client/LogCardioPage';
 import { Toaster } from 'sonner';
 
@@ -28,17 +27,13 @@ function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Navigate to="/client-login" />} />
+        <Route path="/" element={<Navigate to="/client-dashboard" />} />
         
-        <Route path="/client-dashboard" element={
+        <Route path="/client-dashboard/*" element={
           <RequireAuth userType="client" redirectTo="/client-login">
-            <Outlet />
+            <ClientDashboard />
           </RequireAuth>
-        }>
-          <Route index element={<ClientDashboard />} />
-          <Route path="workouts/*" element={<WorkoutsPage />} />
-          <Route path="log-cardio" element={<LogCardioPage />} />
-        </Route>
+        } />
       </Routes>
       <Toaster />
     </>

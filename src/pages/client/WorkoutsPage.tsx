@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
 import ActiveWorkout from '@/components/client/ActiveWorkout';
@@ -31,7 +30,6 @@ const WorkoutsPage = () => {
   const [showRunDialog, setShowRunDialog] = useState(false);
   const [showCardioDialog, setShowCardioDialog] = useState(false);
   const [showStrengthDialog, setShowStrengthDialog] = useState(false);
-  // Key to trigger refetching of the RunGoalsProgressCard
   const [refreshKey, setRefreshKey] = useState(Date.now());
   const location = useLocation();
   console.log("WorkoutsPage component rendering, path:", location.pathname);
@@ -44,8 +42,11 @@ const WorkoutsPage = () => {
     logRestDay().then(() => {
       toast.success("Rest day logged successfully!");
       setShowRestDayDialog(false);
-      // Trigger refresh on successful log
       setRefreshKey(Date.now());
+      const refreshButton = document.getElementById('refresh-workout-history');
+      if (refreshButton) {
+        refreshButton.click();
+      }
     }).catch((error) => {
       console.error("Error logging rest day:", error);
       toast.error("Failed to log rest day");
@@ -54,8 +55,11 @@ const WorkoutsPage = () => {
   };
 
   const handleActivityComplete = () => {
-    // Trigger refresh of goals data
     setRefreshKey(Date.now());
+    const refreshButton = document.getElementById('refresh-workout-history');
+    if (refreshButton) {
+      refreshButton.click();
+    }
   };
 
   return (
@@ -86,7 +90,6 @@ const WorkoutsPage = () => {
                   </Link>
                 </Button>
                 
-                {/* Run Button with Emoji */}
                 <Button 
                   variant="outline" 
                   className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
@@ -96,7 +99,6 @@ const WorkoutsPage = () => {
                   Add Run
                 </Button>
                 
-                {/* Strength/Mobility Button */}
                 <Button 
                   variant="outline" 
                   className="w-full mb-4 flex items-center justify-center gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
@@ -106,7 +108,6 @@ const WorkoutsPage = () => {
                   🏋️ Add Strength/Mobility Workout
                 </Button>
                 
-                {/* Cardio Button */}
                 <Button 
                   variant="outline" 
                   className="w-full mb-4 flex items-center justify-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
@@ -140,7 +141,6 @@ const WorkoutsPage = () => {
         <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
       
-      {/* Rest Day Dialog */}
       <Dialog open={showRestDayDialog} onOpenChange={setShowRestDayDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -186,7 +186,6 @@ const WorkoutsPage = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Run Dialog */}
       <Dialog open={showRunDialog} onOpenChange={setShowRunDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -206,7 +205,6 @@ const WorkoutsPage = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Cardio Dialog */}
       <Dialog open={showCardioDialog} onOpenChange={setShowCardioDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -226,7 +224,6 @@ const WorkoutsPage = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Strength/Mobility Dialog */}
       <Dialog open={showStrengthDialog} onOpenChange={setShowStrengthDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

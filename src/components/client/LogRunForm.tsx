@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { logRunActivity } from '@/services/run-goals-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
+import { createOneOffWorkoutCompletion } from '@/services/workout-history-service';
 
 const formSchema = z.object({
   distance: z.coerce.number()
@@ -48,6 +49,7 @@ const LogRunForm: React.FC<LogRunFormProps> = ({ onComplete }) => {
     }
 
     try {
+      // 1. Log the run to run_activities
       const result = await logRunActivity(
         user.id,
         values.distance,
@@ -55,11 +57,24 @@ const LogRunForm: React.FC<LogRunFormProps> = ({ onComplete }) => {
         values.notes
       );
 
+      // 2. Also log as a workout completion to show in workout history
+      await createOneOffWorkoutCompletion({
+        title: `${values.distance} mile ${values.runType} run`,
+        workout_type: 'cardio',
+        description: `Run: ${values.distance} miles (${values.runType})`,
+        notes: values.notes,
+        distance: values.distance,
+        completed_at: new Date().toISOString(),
+      });
+
       if (result.success) {
         toast.success("Run logged successfully!");
         
         // Invalidate related queries to trigger refetch
         queryClient.invalidateQueries({ queryKey: ['weekly-run-progress'] });
+        queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
+        queryClient.invalidateQueries({ queryKey: ['client-workouts-week-progress'] });
+        queryClient.invalidateQueries({ queryKey: ['client-workouts-leaderboard'] });
         
         onComplete();
       } else {

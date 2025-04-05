@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, SubscriptionManager } from '@/integrations/supabase/client';
@@ -10,24 +11,94 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { debounce } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface WorkoutSetCompletionsProps {
-  workoutCompletionId: string;
+  workoutId: string;
   workoutExercises: any[];
   readOnly?: boolean;
 }
 
 const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({ 
-  workoutCompletionId, 
+  workoutId, 
   workoutExercises,
   readOnly = false
 }) => {
+  const { user } = useAuth();
   const [completions, setCompletions] = useState<Record<string, WorkoutSetCompletion[]>>({});
   const [updatingSetId, setUpdatingSetId] = useState<string | null>(null);
+  const [workoutCompletionId, setWorkoutCompletionId] = useState<string | null>(null);
+  
+  // First, check if we already have a workout_completion record for this workout
+  const { data: existingCompletion, isLoading: isLoadingCompletion } = useQuery({
+    queryKey: ['current-workout-completion', workoutId],
+    queryFn: async () => {
+      if (!workoutId || !user?.id) return null;
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data, error } = await supabase
+        .from('workout_completions')
+        .select('id')
+        .eq('workout_id', workoutId)
+        .eq('user_id', user.id)
+        .gte('created_at', today.toISOString())
+        .is('completed_at', null) // Only get incomplete workouts
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error checking for existing workout completion:', error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!workoutId && !!user?.id
+  });
+  
+  // Create a workout completion record if we don't have one
+  useEffect(() => {
+    const createWorkoutCompletion = async () => {
+      if (!workoutId || !user?.id || isLoadingCompletion || existingCompletion) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('workout_completions')
+          .insert({
+            workout_id: workoutId,
+            user_id: user.id,
+            created_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+        
+        if (error) {
+          console.error('Error creating workout completion:', error);
+          return;
+        }
+        
+        setWorkoutCompletionId(data.id);
+      } catch (err) {
+        console.error('Error in createWorkoutCompletion:', err);
+      }
+    };
+    
+    if (!isLoadingCompletion) {
+      if (existingCompletion) {
+        setWorkoutCompletionId(existingCompletion.id);
+      } else {
+        createWorkoutCompletion();
+      }
+    }
+  }, [workoutId, user?.id, isLoadingCompletion, existingCompletion]);
   
   const { data: workoutSetCompletions, isLoading, error } = useQuery({
     queryKey: ['workout-set-completions', workoutCompletionId],
     queryFn: async () => {
+      if (!workoutCompletionId) return [];
+      
       const { data, error } = await supabase
         .from('workout_set_completions')
         .select('*')
@@ -80,7 +151,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
   }, 500);
   
   const createWorkoutSets = async (exerciseId: string, sets: number) => {
-    if (readOnly) return;
+    if (readOnly || !workoutCompletionId) return;
     
     try {
       if (completions[exerciseId] && completions[exerciseId].length > 0) {
@@ -92,6 +163,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
         workout_exercise_id: exerciseId,
         set_number: i + 1,
         completed: false,
+        user_id: user?.id,
         created_at: new Date().toISOString()
       }));
       
@@ -137,39 +209,50 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
       initializeMissingSets();
     }
     
-    const channel = SubscriptionManager.getSubscription(
-      `workout-sets-${workoutCompletionId}`, 
-      () => {
-        const channel = supabase.channel(`workout-sets-${workoutCompletionId}`)
-          .on('postgres_changes', {
-            event: '*',
-            schema: 'public',
-            table: 'workout_set_completions',
-            filter: `workout_completion_id=eq.${workoutCompletionId}`
-          }, (payload) => {
-            console.log('Workout set update received:', payload);
-            window.dispatchEvent(new CustomEvent('refresh-workout-sets'));
-          })
-          .subscribe((status) => {
-            console.log(`Workout sets subscription status: ${status}`);
-          });
-        
-        return channel;
-      }
-    );
-    
-    const handleRefresh = () => {
-      window.dispatchEvent(new CustomEvent('refetch-workout-sets'));
-    };
-    
-    window.addEventListener('refresh-workout-sets', handleRefresh);
-    
-    return () => {
-      window.removeEventListener('refresh-workout-sets', handleRefresh);
-      SubscriptionManager.releaseSubscription(`workout-sets-${workoutCompletionId}`);
-      handleUpdateSet.cancel();
-    };
+    if (workoutCompletionId) {
+      const channel = SubscriptionManager.getSubscription(
+        `workout-sets-${workoutCompletionId}`, 
+        () => {
+          const channel = supabase.channel(`workout-sets-${workoutCompletionId}`)
+            .on('postgres_changes', {
+              event: '*',
+              schema: 'public',
+              table: 'workout_set_completions',
+              filter: `workout_completion_id=eq.${workoutCompletionId}`
+            }, (payload) => {
+              console.log('Workout set update received:', payload);
+              window.dispatchEvent(new CustomEvent('refresh-workout-sets'));
+            })
+            .subscribe((status) => {
+              console.log(`Workout sets subscription status: ${status}`);
+            });
+          
+          return channel;
+        }
+      );
+      
+      const handleRefresh = () => {
+        window.dispatchEvent(new CustomEvent('refetch-workout-sets'));
+      };
+      
+      window.addEventListener('refresh-workout-sets', handleRefresh);
+      
+      return () => {
+        window.removeEventListener('refresh-workout-sets', handleRefresh);
+        SubscriptionManager.releaseSubscription(`workout-sets-${workoutCompletionId}`);
+        handleUpdateSet.cancel();
+      };
+    }
   }, [workoutCompletionId, workoutExercises, workoutSetCompletions, completions]);
+  
+  if (isLoadingCompletion || !workoutCompletionId) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+        <span>Setting up workout session...</span>
+      </div>
+    );
+  }
   
   if (isLoading) {
     return (

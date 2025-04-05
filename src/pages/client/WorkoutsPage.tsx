@@ -1,388 +1,46 @@
 
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
-import WorkoutsList from '@/components/client/WorkoutsList';
-import ActiveWorkout from '@/components/client/ActiveWorkout';
-import WorkoutComplete from '@/components/client/WorkoutComplete';
-import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
-import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
-import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
-import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
-import RunGoalsProgressCard from '@/components/client/RunGoalsProgressCard';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, ListTodo, History, Calendar as CalendarIcon } from 'lucide-react';
-import { logRestDay } from '@/services/workout-history-service';
-import { toast } from 'sonner';
+import React, { useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import LogRunForm from '@/components/client/LogRunForm';
-import LogCardioForm from '@/components/client/LogCardioForm';
-import SelectStrengthWorkoutForm from '@/components/client/SelectStrengthWorkoutForm';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import PageTransition from '@/components/PageTransition';
+import WorkoutsList from '@/components/client/WorkoutsList';
+import MonthlyCalendarView from '@/components/client/MonthlyCalendarView';
+import WorkoutDayDetails from '@/components/client/WorkoutDayDetails';
+import WorkoutComplete from '@/components/client/WorkoutComplete';
+import ActiveWorkout from '@/components/client/ActiveWorkout';
+import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
+import CustomWorkoutsList from '@/components/client/CustomWorkoutsList';
+import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 
 const WorkoutsPage = () => {
-  const [showRestDayDialog, setShowRestDayDialog] = useState(false);
-  const [showRunDialog, setShowRunDialog] = useState(false);
-  const [showCardioDialog, setShowCardioDialog] = useState(false);
-  const [showStrengthDialog, setShowStrengthDialog] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(Date.now());
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const location = useLocation();
+  const [calendarView, setCalendarView] = useState(false);
   const { user } = useAuth();
-  console.log("WorkoutsPage component rendering, path:", location.pathname);
-  
-  const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
-  const isActiveOrCompleteWorkout = location.pathname.includes('/active/') || 
-                                   location.pathname.includes('/complete/');
-  
-  // Check if user is in a Moai Run group
-  const { data: userGroups, isLoading: isLoadingGroups } = useQuery({
-    queryKey: ['user-groups', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      // Get the groups the user is a member of
-      const { data: membershipData, error: membershipError } = await supabase
-        .from('group_members')
-        .select('group_id')
-        .eq('user_id', user.id);
-      
-      if (membershipError) {
-        console.error('Error fetching user group memberships:', membershipError);
-        return [];
-      }
-      
-      if (!membershipData || membershipData.length === 0) return [];
-      
-      // Get the details of those groups
-      const { data: groupsData, error: groupsError } = await supabase
-        .from('groups')
-        .select('id, name, program_type')
-        .in('id', membershipData.map(m => m.group_id));
-      
-      if (groupsError) {
-        console.error('Error fetching group details:', groupsError);
-        return [];
-      }
-      
-      return groupsData || [];
-    },
-    enabled: !!user?.id
-  });
-  
-  // Check if any of the user's groups is a run group
-  const isInRunGroup = userGroups?.some(group => 
-    group.program_type === 'run' || 
-    (group.name && group.name.toLowerCase().includes('run'))
-  );
-  
-  const handleLogRestDay = () => {
-    logRestDay(selectedDate).then(() => {
-      toast.success("Rest day logged successfully!");
-      setShowRestDayDialog(false);
-      setRefreshKey(Date.now());
-      const refreshButton = document.getElementById('refresh-workout-history');
-      if (refreshButton) {
-        refreshButton.click();
-      }
-    }).catch((error) => {
-      console.error("Error logging rest day:", error);
-      toast.error("Failed to log rest day");
-      setShowRestDayDialog(false);
-    });
-  };
 
-  const handleActivityComplete = () => {
-    setRefreshKey(Date.now());
-    const refreshButton = document.getElementById('refresh-workout-history');
-    if (refreshButton) {
-      refreshButton.click();
-    }
-  };
+  if (!user) {
+    return <Navigate to="/client-login" />;
+  }
 
   return (
-    <div className="w-full">
+    <PageTransition>
       <Routes>
-        <Route index element={
-          <Tabs defaultValue="active-workouts" className="w-full">
-            <TabsList className="w-full mb-6">
-              <TabsTrigger value="active-workouts" className="flex-1 flex items-center justify-center gap-2">
-                <ListTodo className="h-4 w-4" />
-                <span>My Workouts</span>
-              </TabsTrigger>
-              <TabsTrigger value="history" className="flex-1 flex items-center justify-center gap-2">
-                <History className="h-4 w-4" />
-                <span>Workout History</span>
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="active-workouts">
-              {/* Only show RunGoalsProgressCard for users in run groups */}
-              {isInRunGroup && (
-                <RunGoalsProgressCard className="mb-6" refetchKey={refreshKey} />
-              )}
-              <WorkoutsList />
-              
-              <div className="mt-8 border-t pt-6">
-                <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-between text-blue-600 border-blue-200 hover:bg-blue-50">
-                  <Link to="/client-dashboard/workouts/one-off">
-                    <div className="flex items-center">
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      <span>Custom Workout</span>
-                    </div>
-                    <span className="text-lg">⚙️</span>
-                  </Link>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full mb-4 flex items-center justify-between text-blue-600 border-blue-200 hover:bg-blue-50"
-                  onClick={() => setShowRunDialog(true)}
-                >
-                  <div className="flex items-center">
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    <span>Run</span>
-                  </div>
-                  <span role="img" aria-label="Running" className="text-lg">🏃</span>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full mb-4 flex items-center justify-between text-purple-600 border-purple-200 hover:bg-purple-50"
-                  onClick={() => setShowStrengthDialog(true)}
-                >
-                  <div className="flex items-center">
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    <span>Strength/Mobility Workout</span>
-                  </div>
-                  <span className="text-lg">🏋️</span>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full mb-4 flex items-center justify-between text-red-600 border-red-200 hover:bg-red-50"
-                  onClick={() => setShowCardioDialog(true)}
-                >
-                  <div className="flex items-center">
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    <span>Cross Training Cardio</span>
-                  </div>
-                  <span className="text-lg">🚴</span>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full mb-4 flex items-center justify-between text-green-600 border-green-200 hover:bg-green-50"
-                  onClick={() => setShowRestDayDialog(true)}
-                >
-                  <div className="flex items-center">
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    <span>Rest Day</span>
-                  </div>
-                  <span className="text-lg">😌</span>
-                </Button>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="history">
-              <WorkoutHistoryTab />
-            </TabsContent>
-          </Tabs>
-        } />
-        <Route path="active/:workoutCompletionId" element={<ActiveWorkout />} />
+        <Route 
+          index 
+          element={
+            calendarView ? (
+              <MonthlyCalendarView onViewToggle={() => setCalendarView(false)} />
+            ) : (
+              <WorkoutsList onViewToggle={() => setCalendarView(true)} />
+            )
+          } 
+        />
+        <Route path="day/:date" element={<WorkoutDayDetails />} />
+        <Route path="active/:workoutId" element={<ActiveWorkout />} />
         <Route path="complete/:workoutCompletionId" element={<WorkoutComplete />} />
-        <Route path="create" element={<CreateCustomWorkout />} />
-        <Route path="custom/:workoutId" element={<CustomWorkoutDetail />} />
-        <Route path="one-off" element={<EnterOneOffWorkout />} />
-        <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
+        <Route path="custom/new" element={<CreateCustomWorkout />} />
+        <Route path="custom" element={<CustomWorkoutsList />} />
+        <Route path="custom/:customWorkoutId" element={<CustomWorkoutDetail />} />
       </Routes>
-      
-      <Dialog open={showRestDayDialog} onOpenChange={setShowRestDayDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span role="img" aria-label="Rest" className="text-lg">😌</span>
-              <span>Log a Rest Day</span>
-            </DialogTitle>
-            <DialogDescription>
-              Are you taking a well-deserved rest day?
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium">Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => date && setSelectedDate(date)}
-                    disabled={(date) => date > new Date()}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div className="rounded-lg bg-green-50 p-4 text-sm">
-              <h4 className="font-semibold text-green-700 mb-2">The Power of Rest & Recovery</h4>
-              <p className="text-green-700 mb-3">
-                Rest days are just as important as workout days in your fitness journey! They allow your muscles to repair and grow stronger, prevent burnout, and reduce injury risk.
-              </p>
-              <h4 className="font-semibold text-green-700 mb-2">Rest Day Recommendations:</h4>
-              <ul className="list-disc pl-5 text-green-700 space-y-1">
-                <li>Gentle stretching or yoga</li>
-                <li>Short, relaxing walk</li>
-                <li>Meditation or deep breathing exercises</li>
-                <li>Adequate hydration</li>
-                <li>Quality sleep (7-9 hours)</li>
-                <li>Epsom salt bath for muscle relaxation</li>
-                <li>Foam rolling or self-massage</li>
-              </ul>
-            </div>
-          </div>
-          
-          <DialogFooter className="flex-row gap-2 sm:justify-center">
-            <Button variant="ghost" onClick={() => setShowRestDayDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleLogRestDay}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Yes, Log My Rest Day
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={showRunDialog} onOpenChange={setShowRunDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span role="img" aria-label="Running" className="text-lg">🏃</span>
-              <span>Log a Run</span>
-            </DialogTitle>
-            <DialogDescription>
-              Record your run details to track your progress
-            </DialogDescription>
-          </DialogHeader>
-          
-          <LogRunForm 
-            onComplete={() => {
-              setShowRunDialog(false);
-              handleActivityComplete();
-            }} 
-            defaultDate={selectedDate}
-          />
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={showCardioDialog} onOpenChange={setShowCardioDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span role="img" aria-label="Cycling" className="text-lg">🚴</span>
-              <span>Log a Cross Training Cardio Session</span>
-            </DialogTitle>
-            <DialogDescription>
-              Record your cardio activity to track your progress
-            </DialogDescription>
-          </DialogHeader>
-          
-          <LogCardioForm 
-            onComplete={() => {
-              setShowCardioDialog(false);
-              handleActivityComplete();
-            }}
-            defaultDate={selectedDate}
-          />
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={showStrengthDialog} onOpenChange={setShowStrengthDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span role="img" aria-label="Strength" className="text-lg">🏋️</span>
-              <span>Log a Strength/Mobility Workout</span>
-            </DialogTitle>
-            <DialogDescription>
-              Select a workout to complete
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-2 mb-4">
-            <div className="flex flex-col space-y-2">
-              <label className="text-sm font-medium">Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => date && setSelectedDate(date)}
-                    disabled={(date) => date > new Date()}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-              <p className="text-xs text-muted-foreground mt-1">
-                Select the date when you completed this workout
-              </p>
-            </div>
-          </div>
-          
-          <SelectStrengthWorkoutForm 
-            onComplete={() => {
-              setShowStrengthDialog(false);
-              handleActivityComplete();
-            }} 
-            selectedDate={selectedDate}
-          />
-        </DialogContent>
-      </Dialog>
-    </div>
+    </PageTransition>
   );
 };
 

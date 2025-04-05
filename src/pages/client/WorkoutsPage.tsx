@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -35,10 +35,29 @@ const WorkoutsPage = () => {
   const [calendarView, setCalendarView] = useState(false);
   const [activeTab, setActiveTab] = useState("assigned");
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   if (!user) {
     return <Navigate to="/client-login" />;
   }
+
+  const handleLogRunClick = () => {
+    navigate('/client-dashboard/log-run');
+  };
+
+  const handleLogStrengthClick = () => {
+    // For strength/mobility, we'll use the one-off workout form
+    navigate('/client-dashboard/workouts/custom/new?type=strength');
+  };
+
+  const handleLogCrossTrainingClick = () => {
+    navigate('/client-dashboard/log-cardio');
+  };
+
+  const handleLogRestDayClick = () => {
+    // Navigate to one-off workout form with rest day preset
+    navigate('/client-dashboard/workouts/custom/new?type=rest_day');
+  };
 
   return (
     <PageTransition>
@@ -77,6 +96,7 @@ const WorkoutsPage = () => {
                 <Button 
                   variant="outline" 
                   className="flex items-center justify-between w-full rounded-full border py-3 px-4 text-blue-500"
+                  onClick={handleLogRunClick}
                 >
                   <div className="flex items-center">
                     <Plus className="h-5 w-5 mr-2" />
@@ -88,6 +108,7 @@ const WorkoutsPage = () => {
                 <Button 
                   variant="outline" 
                   className="flex items-center justify-between w-full rounded-full border py-3 px-4 text-purple-500"
+                  onClick={handleLogStrengthClick}
                 >
                   <div className="flex items-center">
                     <Plus className="h-5 w-5 mr-2" />
@@ -99,6 +120,7 @@ const WorkoutsPage = () => {
                 <Button 
                   variant="outline" 
                   className="flex items-center justify-between w-full rounded-full border py-3 px-4 text-red-500"
+                  onClick={handleLogCrossTrainingClick}
                 >
                   <div className="flex items-center">
                     <Plus className="h-5 w-5 mr-2" />
@@ -110,6 +132,7 @@ const WorkoutsPage = () => {
                 <Button 
                   variant="outline" 
                   className="flex items-center justify-between w-full rounded-full border py-3 px-4 text-green-500"
+                  onClick={handleLogRestDayClick}
                 >
                   <div className="flex items-center">
                     <Plus className="h-5 w-5 mr-2" />

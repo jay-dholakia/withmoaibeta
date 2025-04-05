@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import RunGoalsProgressCard from './RunGoalsProgressCard';
-import { WorkoutProgressCard } from './WorkoutProgressCard';
+import { Card } from '@/components/ui/card';
+import { getWeeklyRunProgress } from '@/services/run-goals-service';
+import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 
 interface MoaiGroupProgressProps {
@@ -157,6 +157,33 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
     },
     enabled: !!groupMembers && groupMembers.length > 0
   });
+
+  // Fetch run progress for each member
+  const { data: memberProgress } = useQuery({
+    queryKey: ['moai-member-progress', groupId, groupMembers],
+    queryFn: async () => {
+      if (!groupMembers || groupMembers.length === 0) return {};
+      
+      const progressMap: Record<string, any> = {};
+      
+      for (const member of groupMembers) {
+        try {
+          const progress = await getWeeklyRunProgress(member.userId);
+          progressMap[member.userId] = progress;
+        } catch (error) {
+          console.error(`Error fetching progress for member ${member.userId}:`, error);
+          progressMap[member.userId] = {
+            miles: { completed: 0, goal: 0 },
+            exercises: { completed: 0, goal: 0 },
+            cardio: { completed: 0, goal: 0 }
+          };
+        }
+      }
+      
+      return progressMap;
+    },
+    enabled: !!groupMembers && groupMembers.length > 0
+  });
   
   const toggleMemberCard = (userId: string) => {
     setExpandedCards(prev => ({
@@ -176,18 +203,255 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
   if (!groupMembers || groupMembers.length === 0) {
     return (
       <Card className="text-center py-8">
-        <CardContent>
+        <div className="p-4">
           <p className="text-muted-foreground">No member data available.</p>
-        </CardContent>
+        </div>
       </Card>
     );
   }
+  
+  // Function to render progress bars
+  const renderProgressBars = (userId: string) => {
+    const progress = memberProgress?.[userId];
+    if (!progress) return null;
+    
+    const metrics = [
+      { 
+        label: "Weekly Miles", 
+        completed: progress.miles.completed, 
+        goal: progress.miles.goal,
+        color: "bg-blue-400" 
+      },
+      { 
+        label: "Weekly Exercises", 
+        completed: progress.exercises.completed, 
+        goal: progress.exercises.goal,
+        color: "bg-green-400" 
+      },
+      { 
+        label: "Weekly Cardio Minutes", 
+        completed: progress.cardio.completed, 
+        goal: progress.cardio.goal,
+        color: "bg-purple-400" 
+      }
+    ];
+    
+    return (
+      <div className="space-y-4 mt-4">
+        {metrics.map((metric, index) => (
+          <div key={index} className="space-y-1">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{metric.label}</span>
+              <span>{metric.completed}/{metric.goal}</span>
+            </div>
+            <Progress 
+              value={metric.goal > 0 ? (metric.completed / metric.goal) * 100 : 0} 
+              className="h-2" 
+              indicatorColor={metric.color} 
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
+  const renderWeeklyWorkouts = (userId: string) => {
+    const weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const workouts = memberWorkouts?.[userId];
+    
+    if (!workouts) return null;
+    
+    const today = new Date();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay() + 1); // Start from Monday
+    
+    return (
+      <div className="mt-4">
+        <h4 className="font-medium text-sm mb-2">Weekly Workouts</h4>
+        
+        <div className="space-y-2">
+          {weekDays.map((day, index) => {
+            const currentDay = new Date(weekStart);
+            currentDay.setDate(weekStart.getDate() + index);
+            
+            const dateStr = format(currentDay, 'yyyy-MM-dd');
+            
+            // Find all workouts completed on this day
+            const workoutsForThisDay = workouts.completedDates.filter(date => 
+              new Date(date).toDateString() === currentDay.toDateString()
+            );
+            
+            const isLifeHappens = workouts.lifeHappensDates.some(date => 
+              new Date(date).toDateString() === currentDay.toDateString()
+            );
+            
+            if (workoutsForThisDay.length === 0 && !isLifeHappens) {
+              return null;
+            }
+            
+            const workoutType = workouts.workoutTypesMap[dateStr] || 'strength';
+            const workoutTitle = workouts.workoutTitlesMap[dateStr] || 'Workout';
+            
+            return (
+              <div key={`detail-${index}`} className="flex items-center p-2 bg-slate-50 rounded-md">
+                <div className="w-8 text-xs font-medium text-slate-500">{day}</div>
+                {isLifeHappens ? (
+                  <div className="flex items-center">
+                    <div className="bg-yellow-50 p-1 rounded-full mr-2">
+                      <span role="img" aria-label="Rest Day">💤</span>
+                    </div>
+                    <span className="text-sm">Rest Day</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <div className="bg-client/10 p-1 rounded-full mr-2">
+                      {renderWorkoutTypeIcon(workoutType)}
+                    </div>
+                    <span className="text-sm">
+                      {workoutTitle}
+                      {workoutsForThisDay.length > 1 && (
+                        <span className="text-xs text-slate-500 ml-1">
+                          (+{workoutsForThisDay.length - 1} more)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          }).filter(Boolean)}
+          
+          {!workouts.completedDates.length && !workouts.lifeHappensDates.length && (
+            <div className="text-center text-sm text-slate-500 py-2">
+              No workouts completed this week
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
+  // Helper function to render workout type icons
+  const renderWorkoutTypeIcon = (type: string) => {
+    switch (type?.toLowerCase()) {
+      case 'strength':
+        return <span role="img" aria-label="Strength">💪</span>;
+      case 'cardio':
+        return <span role="img" aria-label="Cardio">🏃</span>;
+      case 'run':
+        return <span role="img" aria-label="Run">🏃‍♂️</span>;
+      case 'rest_day':
+        return <span role="img" aria-label="Rest Day">💤</span>;
+      default:
+        return <span role="img" aria-label="Workout">⚡</span>;
+    }
+  };
+  
+  // Render weekly progress bubbles
+  const renderWeeklyBubbles = (userId: string) => {
+    const workouts = memberWorkouts?.[userId];
+    if (!workouts) return null;
+    
+    const weekDays = [
+      { shortName: 'M', fullName: 'Monday' },
+      { shortName: 'T', fullName: 'Tuesday' },
+      { shortName: 'W', fullName: 'Wednesday' },
+      { shortName: 'T', fullName: 'Thursday' },
+      { shortName: 'F', fullName: 'Friday' },
+      { shortName: 'S', fullName: 'Saturday' },
+      { shortName: 'S', fullName: 'Sunday' }
+    ];
+    
+    const displayTotal = 6;
+    
+    return (
+      <div className="mt-3">
+        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+          <div 
+            className="bg-client h-full rounded-full"
+            style={{ width: `${Math.min(100, (workouts.count / displayTotal) * 100)}%` }}
+          />
+        </div>
+        
+        <div className="flex justify-between items-center mt-4 px-1">
+          {weekDays.map((day, index) => {
+            const today = new Date();
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay() + 1); // Start from Monday
+            
+            const currentDay = new Date(weekStart);
+            currentDay.setDate(weekStart.getDate() + index);
+            
+            // Count how many workouts were completed on this day
+            const workoutsCompletedToday = workouts.completedDates.filter(date => 
+              new Date(date).toDateString() === currentDay.toDateString()
+            ).length;
+            
+            const isDayCompleted = workoutsCompletedToday > 0;
+            
+            const isLifeHappens = workouts.lifeHappensDates.some(date => 
+              new Date(date).toDateString() === currentDay.toDateString()
+            );
+            
+            const isToday = today.toDateString() === currentDay.toDateString();
+            
+            // Format date to get the correct workout type from map
+            const dateStr = format(currentDay, 'yyyy-MM-dd');
+            let workoutType = workouts.workoutTypesMap[dateStr];
+            
+            // Fallback to defaults if no workout type
+            if (!workoutType) {
+              workoutType = isLifeHappens ? 'rest_day' : 'strength';
+            }
+            
+            // Use lighter background colors for better emoji visibility
+            let bgColor = 'bg-slate-50';
+            
+            if (isLifeHappens) {
+              bgColor = 'bg-yellow-50';
+            }
+            
+            if (isDayCompleted) {
+              bgColor = 'bg-client/10';
+            }
+            
+            return (
+              <div key={index} className="flex flex-col items-center">
+                <div className={`relative w-7 h-7 rounded-full flex items-center justify-center ${bgColor} border border-slate-200`}>
+                  {(isDayCompleted || isLifeHappens) ? (
+                    renderWorkoutTypeIcon(workoutType)
+                  ) : (
+                    <span></span>
+                  )}
+                  
+                  {/* Make the superscript more visible with enhanced styling */}
+                  {workoutsCompletedToday > 1 && (
+                    <div className="absolute -top-1.5 -right-1.5 bg-client text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm z-10 font-bold">
+                      {workoutsCompletedToday}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Day of week label moved below the circle */}
+                <span className="text-xs font-medium text-slate-600 mt-1">{day.shortName}</span>
+                
+                {/* Current day indicator */}
+                {isToday && (
+                  <div className="w-1.5 h-1.5 bg-client rounded-full mt-0.5"></div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
   
   return (
     <div className="space-y-4">
       {groupMembers.map(member => (
         <Card key={member.userId} className={member.isCurrentUser ? "border-client/30" : ""}>
-          <CardHeader className="pb-2 cursor-pointer" onClick={() => toggleMemberCard(member.userId)}>
+          <div className={`p-4 ${expandedCards[member.userId] ? "pb-2" : "pb-4"} cursor-pointer`} onClick={() => toggleMemberCard(member.userId)}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Avatar className="h-10 w-10">
@@ -197,52 +461,30 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <CardTitle className="text-base">
+                  <h3 className="text-base font-semibold">
                     {member.firstName} {member.lastName.charAt(0)}.
                     {member.isCurrentUser && <span className="text-xs text-muted-foreground ml-2">(You)</span>}
-                  </CardTitle>
+                  </h3>
                 </div>
               </div>
               <div className="text-2xl">
                 {expandedCards[member.userId] ? '−' : '+'}
               </div>
             </div>
-          </CardHeader>
+
+            {/* Always show weekly bubbles */}
+            {memberWorkouts && memberWorkouts[member.userId] && renderWeeklyBubbles(member.userId)}
+          </div>
           
-          {!expandedCards[member.userId] && memberWorkouts && memberWorkouts[member.userId] && (
-            <CardContent className="pt-0 pb-4">
-              <WorkoutProgressCard
-                label=""
-                count={memberWorkouts[member.userId].count}
-                total={6}
-                completedDates={memberWorkouts[member.userId].completedDates || []}
-                lifeHappensDates={memberWorkouts[member.userId].lifeHappensDates || []}
-                workoutTypesMap={memberWorkouts[member.userId].workoutTypesMap || {}}
-                workoutTitlesMap={memberWorkouts[member.userId].workoutTitlesMap || {}}
-                userName=""
-                isCurrentUser={member.isCurrentUser}
-              />
-            </CardContent>
-          )}
-          
+          {/* Show expanded content when card is expanded */}
           {expandedCards[member.userId] && (
-            <CardContent>
-              <RunGoalsProgressCard userId={member.userId} showTitle={false} />
+            <div className="px-4 pb-4">
+              {/* Progress Metrics */}
+              {renderProgressBars(member.userId)}
               
-              <div className="mt-4">
-                <WorkoutProgressCard
-                  label=""
-                  count={memberWorkouts?.[member.userId]?.count || 0}
-                  total={6}
-                  completedDates={memberWorkouts?.[member.userId]?.completedDates || []}
-                  lifeHappensDates={memberWorkouts?.[member.userId]?.lifeHappensDates || []}
-                  workoutTypesMap={memberWorkouts?.[member.userId]?.workoutTypesMap || {}}
-                  workoutTitlesMap={memberWorkouts?.[member.userId]?.workoutTitlesMap || {}}
-                  userName=""
-                  isCurrentUser={member.isCurrentUser}
-                />
-              </div>
-            </CardContent>
+              {/* Weekly Workouts */}
+              {renderWeeklyWorkouts(member.userId)}
+            </div>
           )}
         </Card>
       ))}

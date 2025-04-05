@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ClientDashboard from './pages/client/ClientDashboard';
 import WorkoutsPage from './pages/client/WorkoutsPage';
@@ -26,7 +26,7 @@ function RequireAuth({ children, userType, redirectTo }: {
 
 function App() {
   return (
-    <Router>
+    <>
       <Routes>
         <Route path="/" element={<Navigate to="/client-login" />} />
         
@@ -41,7 +41,7 @@ function App() {
         </Route>
       </Routes>
       <Toaster />
-    </Router>
+    </>
   );
 }
 

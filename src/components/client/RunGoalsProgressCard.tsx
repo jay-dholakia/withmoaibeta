@@ -20,9 +20,10 @@ const DEFAULT_GOALS = {
 
 interface RunGoalsProgressCardProps {
   userId?: string; // Optional userId prop - if not provided, uses the current logged-in user
+  showTitle?: boolean; // Whether to show the title
 }
 
-const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({ userId }) => {
+const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({ userId, showTitle = true }) => {
   const { user } = useAuth();
   const [progress, setProgress] = useState<RunProgressData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -129,11 +130,13 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({ userId }) =
     : 0;
 
   return (
-    <Card className="p-4 mb-4">
-      <h3 className="text-lg font-bold mb-4 text-center flex items-center justify-center gap-2">
-        <span className="text-xl" role="img" aria-label="Trophy">🏆</span>
-        Weekly Goals Progress
-      </h3>
+    <Card className="p-4">
+      {showTitle && (
+        <h3 className="text-lg font-bold mb-4 text-center flex items-center justify-center gap-2">
+          <span className="text-xl" role="img" aria-label="Trophy">🏆</span>
+          Weekly Goals Progress
+        </h3>
+      )}
 
       <div className="space-y-4">
         <div className="space-y-1">

@@ -1,97 +1,42 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent } from '@/components/ui/card';
-import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
+
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { isThisWeek, format } from 'date-fns';
-import { WorkoutType } from './WorkoutTypeIcon';
-import { WorkoutProgressCard } from './WorkoutProgressCard';
-import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
-import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Loader2, Plus } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import RunGoalsProgressCard from './RunGoalsProgressCard';
 
 interface MoaiGroupProgressProps {
   groupId: string;
 }
 
-interface GroupMember {
-  userId: string;
-  email: string;
-  isCurrentUser: boolean;
-  profileData?: {
-    first_name?: string | null;
-    last_name?: string | null;
-    avatar_url?: string | null;
-  };
-}
-
-const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
-  const { user, profile } = useAuth();
-  const [completedDates, setCompletedDates] = useState<Date[]>([]);
-  const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
-  const [workoutTypesMap, setWorkoutTypesMap] = useState<Record<string, WorkoutType>>({});
-  const [workoutTitlesMap, setWorkoutTitlesMap] = useState<Record<string, string>>({});
+const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
+  const { user } = useAuth();
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   
-  const { data: assignedWorkoutsCount } = useQuery({
-    queryKey: ['assigned-workouts-count', user?.id],
+  const { data: groupMembers, isLoading } = useQuery({
+    queryKey: ['moai-group-members', groupId],
     queryFn: async () => {
-      if (!user?.id) throw new Error('User ID not available');
       try {
-        const count = await getWeeklyAssignedWorkoutsCount(user.id);
-        return count;
-      } catch (error) {
-        console.error("Error fetching workout count:", error);
-        return 6; // Default to 6 as fallback
-      }
-    },
-    enabled: !!user?.id,
-  });
-  
-  const { data: currentUserProfile, isLoading: isLoadingCurrentUserProfile } = useQuery({
-    queryKey: ['current-user-profile', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      
-      try {
-        const { data, error } = await supabase
-          .from('client_profiles')
-          .select('first_name, last_name, avatar_url')
-          .eq('id', user.id)
-          .maybeSingle();
-          
-        if (error) {
-          console.error('Error fetching current user profile:', error);
-          return null;
-        }
-        
-        return data;
-      } catch (error) {
-        console.error('Error in current user profile query:', error);
-        return null;
-      }
-    },
-    enabled: !!user?.id,
-  });
-  
-  const { data: groupMembers, isLoading: isLoadingMembers } = useQuery({
-    queryKey: ['moai-members', groupId],
-    queryFn: async () => {
-      if (!groupId) return [];
-      
-      try {
-        const { data: groupMembers, error: membersError } = await supabase
+        // Get members of the group
+        const { data: memberData, error: memberError } = await supabase
           .from('group_members')
           .select('user_id')
           .eq('group_id', groupId);
+          
+        if (memberError) throw memberError;
         
-        if (membersError) {
-          console.error('Error fetching group members:', membersError);
-          throw membersError;
+        if (!memberData || memberData.length === 0) {
+          return [];
         }
         
-        return Promise.all(
-          groupMembers.map(async (member) => {
+        // Get profile information for each member
+        const membersWithProfiles = await Promise.all(
+          memberData.map(async (member) => {
             try {
               const { data: profile } = await supabase
                 .from('client_profiles')
@@ -99,253 +44,110 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
                 .eq('id', member.user_id)
                 .maybeSingle();
                 
+              // Get this week's completed workouts
+              const { data: workouts } = await supabase
+                .from('workout_completions')
+                .select('*')
+                .eq('user_id', member.user_id)
+                .gte('completed_at', new Date(new Date().setDate(new Date().getDate() - 7)).toISOString());
+              
               return {
                 userId: member.user_id,
-                email: `user_${member.user_id.substring(0, 8)}@example.com`,
                 isCurrentUser: member.user_id === user?.id,
-                profileData: profile
-              } as GroupMember;
+                firstName: profile?.first_name || 'Unknown',
+                lastName: profile?.last_name || 'User',
+                avatarUrl: profile?.avatar_url,
+                workoutsCompleted: workouts?.length || 0
+              };
             } catch (error) {
-              console.error('Error fetching member profile:', error);
+              console.error('Error fetching member details:', error);
               return {
                 userId: member.user_id,
-                email: `user_${member.user_id.substring(0, 8)}@example.com`,
-                isCurrentUser: member.user_id === user?.id
-              } as GroupMember;
+                isCurrentUser: member.user_id === user?.id,
+                firstName: 'Unknown',
+                lastName: 'User',
+                workoutsCompleted: 0
+              };
             }
           })
         );
+        
+        // Sort members with current user first, then by name
+        return membersWithProfiles.sort((a, b) => {
+          if (a.isCurrentUser) return -1;
+          if (b.isCurrentUser) return 1;
+          
+          const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+          const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+          
+          return nameA.localeCompare(nameB);
+        });
       } catch (error) {
-        console.error('Error in group members query:', error);
-        return [];
+        console.error('Error fetching group progress data:', error);
+        throw error;
       }
-    },
-    enabled: !!groupId,
+    }
   });
   
-  const [memberWorkouts, setMemberWorkouts] = useState<Record<string, {
-    completedDates: Date[];
-    lifeHappensDates: Date[];
-    workoutTypesMap: Record<string, WorkoutType>;
-    workoutTitlesMap: Record<string, string>;
-  }>>({});
-  
-  const { data: currentUserWorkouts, isLoading: isLoadingCurrentUser } = useQuery({
-    queryKey: ['client-workouts-moai', user?.id],
+  const { data: workoutHistory } = useQuery({
+    queryKey: ['moai-workout-history', groupId, expandedCards],
     queryFn: async () => {
-      if (!user?.id) return [];
+      const history: Record<string, any[]> = {};
+      
+      // Only fetch workout history for expanded cards
+      const userIdsToFetch = Object.entries(expandedCards)
+        .filter(([, isExpanded]) => isExpanded)
+        .map(([userId]) => userId);
+        
+      if (userIdsToFetch.length === 0) return history;
+      
       try {
-        return await fetchClientWorkoutHistory(user.id);
+        for (const userId of userIdsToFetch) {
+          const { data: workouts } = await supabase
+            .from('workout_completions')
+            .select(`
+              *,
+              workout:workout_id (
+                title,
+                description
+              )
+            `)
+            .eq('user_id', userId)
+            .order('completed_at', { ascending: false })
+            .limit(5);
+            
+          history[userId] = workouts || [];
+        }
+        
+        return history;
       } catch (error) {
-        console.error('Error fetching client workout history:', error);
-        return [];
+        console.error('Error fetching workout history:', error);
+        return history;
       }
     },
-    enabled: !!user?.id,
+    enabled: Object.values(expandedCards).some(isExpanded => isExpanded)
   });
   
-  useEffect(() => {
-    if (currentUserWorkouts && currentUserWorkouts.length > 0) {
-      const newCompletedDates: Date[] = [];
-      const newLifeHappensDates: Date[] = [];
-      const newWorkoutTypesMap: Record<string, WorkoutType> = {};
-      const newTitlesMap: Record<string, string> = {};
-      
-      currentUserWorkouts.forEach(workout => {
-        if (workout.completed_at) {
-          try {
-            const completionDate = typeof workout.completed_at === 'string' 
-              ? new Date(workout.completed_at) 
-              : workout.completed_at;
-              
-            if (!isNaN(completionDate.getTime())) {
-              const dateKey = format(completionDate, 'yyyy-MM-dd');
-              
-              if (workout.life_happens_pass || workout.rest_day) {
-                newLifeHappensDates.push(completionDate);
-                newWorkoutTypesMap[dateKey] = 'rest_day';
-                return;
-              }
-              
-              newCompletedDates.push(completionDate);
-              
-              if (workout.title) {
-                newTitlesMap[dateKey] = workout.title;
-              } else if (workout.workout?.title) {
-                newTitlesMap[dateKey] = workout.workout.title;
-              }
-              
-              if (workout.workout_type) {
-                newWorkoutTypesMap[dateKey] = workout.workout_type as WorkoutType;
-              } else if (workout.workout?.workout_type) {
-                const type = String(workout.workout.workout_type).toLowerCase();
-                if (type.includes('strength')) newWorkoutTypesMap[dateKey] = 'strength';
-                else if (type.includes('cardio') || type.includes('run')) newWorkoutTypesMap[dateKey] = 'cardio';
-                else if (type.includes('body') || type.includes('weight')) newWorkoutTypesMap[dateKey] = 'bodyweight';
-                else if (type.includes('flex') || type.includes('yoga') || type.includes('stretch')) newWorkoutTypesMap[dateKey] = 'flexibility';
-                else if (type.includes('rest')) newWorkoutTypesMap[dateKey] = 'rest_day';
-                else if (type.includes('custom')) newWorkoutTypesMap[dateKey] = 'custom';
-                else if (type.includes('one')) newWorkoutTypesMap[dateKey] = 'one_off';
-                else if (type.includes('hiit')) newWorkoutTypesMap[dateKey] = 'hiit';
-                else if (type.includes('sport')) newWorkoutTypesMap[dateKey] = 'sport';
-                else if (type.includes('swim')) newWorkoutTypesMap[dateKey] = 'swimming';
-                else if (type.includes('cycle') || type.includes('bike')) newWorkoutTypesMap[dateKey] = 'cycling';
-                else if (type.includes('dance')) newWorkoutTypesMap[dateKey] = 'dance';
-                else if (newTitlesMap[dateKey]) {
-                  newWorkoutTypesMap[dateKey] = detectWorkoutTypeFromText(newTitlesMap[dateKey]);
-                } else {
-                  newWorkoutTypesMap[dateKey] = 'strength';
-                }
-              } else if (newTitlesMap[dateKey]) {
-                newWorkoutTypesMap[dateKey] = detectWorkoutTypeFromText(newTitlesMap[dateKey]);
-              } else {
-                newWorkoutTypesMap[dateKey] = 'strength';
-              }
-            }
-          } catch (error) {
-            console.error('Error processing workout completion date:', error);
-          }
-        }
-      });
-      
-      setCompletedDates(newCompletedDates);
-      setLifeHappensDates(newLifeHappensDates);
-      setWorkoutTypesMap(newWorkoutTypesMap);
-      setWorkoutTitlesMap(newTitlesMap);
-    }
-  }, [currentUserWorkouts]);
-  
-  useEffect(() => {
-    if (groupMembers && groupMembers.length > 0) {
-      const fetchMemberWorkouts = async () => {
-        const memberWorkoutsData: Record<string, {
-          completedDates: Date[];
-          lifeHappensDates: Date[];
-          workoutTypesMap: Record<string, WorkoutType>;
-          workoutTitlesMap: Record<string, string>;
-        }> = {};
-        
-        for (const member of groupMembers.filter(m => !m.isCurrentUser)) {
-          try {
-            const workouts = await fetchClientWorkoutHistory(member.userId);
-            
-            const completedDates: Date[] = [];
-            const lifeHappensDates: Date[] = [];
-            const workoutTypesMap: Record<string, WorkoutType> = {};
-            const titleMap: Record<string, string> = {};
-            
-            workouts.forEach(workout => {
-              if (workout.completed_at) {
-                try {
-                  const completionDate = typeof workout.completed_at === 'string' 
-                    ? new Date(workout.completed_at) 
-                    : workout.completed_at;
-                    
-                  if (!isNaN(completionDate.getTime())) {
-                    const dateKey = format(completionDate, 'yyyy-MM-dd');
-                    
-                    if (workout.life_happens_pass || workout.rest_day) {
-                      lifeHappensDates.push(completionDate);
-                      workoutTypesMap[dateKey] = 'rest_day';
-                      return;
-                    }
-                    
-                    completedDates.push(completionDate);
-                    
-                    if (workout.title) {
-                      titleMap[dateKey] = workout.title;
-                    } else if (workout.workout?.title) {
-                      titleMap[dateKey] = workout.workout.title;
-                    }
-                    
-                    if (workout.workout_type) {
-                      workoutTypesMap[dateKey] = workout.workout_type as WorkoutType;
-                    } else if (workout.workout?.workout_type) {
-                      const type = String(workout.workout.workout_type).toLowerCase();
-                      if (type.includes('strength')) workoutTypesMap[dateKey] = 'strength';
-                      else if (type.includes('cardio') || type.includes('run')) workoutTypesMap[dateKey] = 'cardio';
-                      else if (type.includes('body') || type.includes('weight')) workoutTypesMap[dateKey] = 'bodyweight';
-                      else if (type.includes('flex') || type.includes('yoga') || type.includes('stretch')) workoutTypesMap[dateKey] = 'flexibility';
-                      else if (type.includes('hiit')) workoutTypesMap[dateKey] = 'hiit';
-                      else if (type.includes('sport')) workoutTypesMap[dateKey] = 'sport';
-                      else if (type.includes('swim')) workoutTypesMap[dateKey] = 'swimming';
-                      else if (type.includes('cycle') || type.includes('bike')) workoutTypesMap[dateKey] = 'cycling';
-                      else if (type.includes('dance')) workoutTypesMap[dateKey] = 'dance';
-                      else if (titleMap[dateKey]) {
-                        workoutTypesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
-                      } else {
-                        workoutTypesMap[dateKey] = 'strength';
-                      }
-                    } else if (titleMap[dateKey]) {
-                      workoutTypesMap[dateKey] = detectWorkoutTypeFromText(titleMap[dateKey]);
-                    } else {
-                      workoutTypesMap[dateKey] = 'strength';
-                    }
-                  }
-                } catch (error) {
-                  console.error('Error processing member workout date:', error);
-                }
-              }
-            });
-            
-            memberWorkoutsData[member.userId] = {
-              completedDates,
-              lifeHappensDates,
-              workoutTypesMap,
-              workoutTitlesMap: titleMap
-            };
-          } catch (error) {
-            console.error(`Error fetching workouts for member ${member.userId}:`, error);
-          }
-        }
-        
-        setMemberWorkouts(memberWorkoutsData);
-      };
-      
-      fetchMemberWorkouts();
-    }
-  }, [groupMembers]);
-  
-  const getDisplayName = (member: GroupMember): string => {
-    if (member.profileData?.first_name) {
-      return member.profileData.first_name;
-    }
-    return member.email.split('@')[0];
+  const toggleMemberCard = (userId: string) => {
+    setExpandedCards(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
   };
   
-  const getCurrentUserDisplayName = (): string => {
-    if (currentUserProfile?.first_name) {
-      return currentUserProfile.first_name;
-    }
-    
-    if (profile?.user_type) {
-      const firstName = (profile as any).first_name;
-      if (firstName) return firstName;
-    }
-    
-    if (user?.email) {
-      return user.email.split('@')[0];
-    }
-    
-    return "You";
-  };
-  
-  const completedThisWeek = completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
-  
-  const lifeHappensThisWeek = lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
-  
-  const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;
-  
-  const totalWorkouts = assignedWorkoutsCount || 6;
-  
-  if (isLoadingCurrentUser || isLoadingMembers || isLoadingCurrentUserProfile) {
+  if (isLoading) {
     return (
-      <Card>
-        <CardContent className="py-6">
-          <div className="flex justify-center items-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin text-client mr-2" />
-            <p className="text-sm text-muted-foreground">Loading your progress...</p>
-          </div>
+      <div className="flex justify-center items-center h-40">
+        <Loader2 className="w-8 h-8 animate-spin text-client" />
+      </div>
+    );
+  }
+  
+  if (!groupMembers || groupMembers.length === 0) {
+    return (
+      <Card className="text-center py-8">
+        <CardContent>
+          <p className="text-muted-foreground">No member data available.</p>
         </CardContent>
       </Card>
     );
@@ -353,64 +155,86 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
   
   return (
     <div className="space-y-4">
-      {user && (
-        <WorkoutProgressCard 
-          label="Your Workouts"
-          completedDates={completedDates}
-          lifeHappensDates={lifeHappensDates}
-          count={totalCompletedThisWeek}
-          total={totalWorkouts}
-          workoutTypesMap={workoutTypesMap}
-          workoutTitlesMap={workoutTitlesMap}
-          userName={getCurrentUserDisplayName()}
-          isCurrentUser={true}
-        />
-      )}
-      
-      {groupMembers && groupMembers.filter(m => !m.isCurrentUser).map(member => {
-        const memberData = memberWorkouts[member.userId];
-        
-        if (!memberData) {
-          return (
-            <Card key={member.userId} className="p-4 animate-pulse">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 bg-slate-200 rounded-full"></div>
-                <div className="h-4 w-36 bg-slate-200 rounded"></div>
+      {groupMembers.map(member => (
+        <Card key={member.userId} className={member.isCurrentUser ? "border-client/30" : ""}>
+          <CardHeader className="pb-2 cursor-pointer" onClick={() => toggleMemberCard(member.userId)}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={member.avatarUrl || ''} alt={`${member.firstName} ${member.lastName}`} />
+                  <AvatarFallback className="bg-client/80 text-white">
+                    {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <CardTitle className="text-base">
+                    {member.firstName} {member.lastName.charAt(0)}.
+                    {member.isCurrentUser && <span className="text-xs text-muted-foreground ml-2">(You)</span>}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {member.workoutsCompleted} workout{member.workoutsCompleted !== 1 ? 's' : ''} this week
+                  </p>
+                </div>
               </div>
-              <div className="mt-3 h-2 bg-slate-200 rounded-full"></div>
-            </Card>
-          );
-        }
-        
-        const memberCompletedThisWeek = memberData.completedDates
-          .filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
-        
-        const memberLifeHappensThisWeek = memberData.lifeHappensDates
-          .filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
-        
-        const memberTotalCompletedThisWeek = memberCompletedThisWeek + memberLifeHappensThisWeek;
-        
-        return (
-          <WorkoutProgressCard 
-            key={member.userId}
-            label=""
-            completedDates={memberData.completedDates}
-            lifeHappensDates={memberData.lifeHappensDates}
-            count={memberTotalCompletedThisWeek}
-            total={totalWorkouts}
-            workoutTypesMap={memberData.workoutTypesMap}
-            workoutTitlesMap={memberData.workoutTitlesMap}
-            userName={getDisplayName(member)}
-            isCurrentUser={false}
-          />
-        );
-      })}
-      
-      {(!groupMembers || groupMembers.filter(m => !m.isCurrentUser).length === 0) && (
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          Other group members' progress will appear here soon.
-        </p>
-      )}
+              <div className="text-2xl">
+                {expandedCards[member.userId] ? '−' : '+'}
+              </div>
+            </div>
+          </CardHeader>
+          
+          {expandedCards[member.userId] && (
+            <CardContent>
+              <RunGoalsProgressCard userId={member.userId} />
+              
+              <div className="mt-4 pt-2 border-t">
+                <h4 className="text-sm font-medium mb-2">Recent Workouts</h4>
+                
+                {workoutHistory?.[member.userId]?.length ? (
+                  <div className="space-y-3">
+                    {workoutHistory[member.userId].map(workout => (
+                      <div key={workout.id} className="bg-muted/40 p-3 rounded-md">
+                        <div className="flex justify-between">
+                          <div>
+                            <p className="font-medium text-sm">
+                              {workout.workout?.title || "Custom Workout"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(workout.completed_at).toLocaleDateString(undefined, { 
+                                weekday: 'short',
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        {workout.notes && (
+                          <p className="text-xs italic mt-1 text-muted-foreground">{workout.notes}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-center py-4 text-muted-foreground">
+                    No recent workout history
+                  </p>
+                )}
+                
+                {member.isCurrentUser && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full mt-3 flex items-center justify-center"
+                    onClick={() => window.location.href = '/client-dashboard/workouts'}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Log Workout
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      ))}
     </div>
   );
 };

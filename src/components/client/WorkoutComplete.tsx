@@ -165,7 +165,7 @@ const WorkoutComplete = () => {
             <h3 className="text-lg font-medium mb-4">Your Workout Results</h3>
             
             <WorkoutSetCompletions 
-              workoutCompletionId={workoutCompletionId!}
+              workoutId={workoutCompletion.workout_id}
               workoutExercises={workoutExercises || []}
               readOnly={true}
             />

@@ -2,10 +2,10 @@
 import React, { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import PageTransition from '@/components/PageTransition';
+import { PageTransition } from '@/components/PageTransition';
 import WorkoutsList from '@/components/client/WorkoutsList';
-import MonthlyCalendarView from '@/components/client/MonthlyCalendarView';
-import WorkoutDayDetails from '@/components/client/WorkoutDayDetails';
+import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
+import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import WorkoutComplete from '@/components/client/WorkoutComplete';
 import ActiveWorkout from '@/components/client/ActiveWorkout';
 import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
@@ -27,7 +27,10 @@ const WorkoutsPage = () => {
           index 
           element={
             calendarView ? (
-              <MonthlyCalendarView onViewToggle={() => setCalendarView(false)} />
+              <MonthlyCalendarView 
+                workouts={[]} // Pass empty array as we're not using it directly here
+                onViewToggle={() => setCalendarView(false)} 
+              />
             ) : (
               <WorkoutsList onViewToggle={() => setCalendarView(true)} />
             )

@@ -12,6 +12,7 @@ import { debounce } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import ExerciseVideoDialog from './ExerciseVideoDialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface WorkoutSetCompletionsProps {
   workoutId: string;
@@ -23,6 +24,7 @@ interface TempSet {
   setNumber: number;
   reps: string;
   weight: string;
+  completed: boolean;
 }
 
 const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({ 
@@ -123,7 +125,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
       if (!completions[exercise.id] || completions[exercise.id].length === 0) {
         initialTempSets[exercise.id] = Array.from(
           { length: exercise.sets }, 
-          (_, i) => ({ setNumber: i + 1, reps: "", weight: "" })
+          (_, i) => ({ setNumber: i + 1, reps: "", weight: "", completed: false })
         );
       }
     });
@@ -139,7 +141,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
       
       const { error } = await supabase
         .from('workout_set_completions')
-        .update({ [field]: value, completed: true })
+        .update({ [field]: value })
         .eq('id', setId);
       
       if (error) {
@@ -153,6 +155,33 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
       setUpdatingSetId(null);
     }
   }, 500);
+
+  const handleToggleCompleted = async (setId: string, isCompleted: boolean) => {
+    if (readOnly) return;
+    
+    try {
+      setUpdatingSetId(setId);
+      
+      const { error } = await supabase
+        .from('workout_set_completions')
+        .update({ completed: isCompleted })
+        .eq('id', setId);
+      
+      if (error) {
+        console.error('Error updating set completion status:', error);
+        toast.error('Failed to update set completion status');
+      }
+    } catch (err) {
+      console.error('Error in handleToggleCompleted:', err);
+      toast.error('Failed to update set completion status');
+    } finally {
+      setUpdatingSetId(null);
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['workout-set-completions', workoutCompletionId] 
+      });
+    }
+  };
 
   const handleUpdateTempSet = (exerciseId: string, setNumber: number, field: string, value: any) => {
     setTempSets(prev => {
@@ -183,7 +212,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
         set_number: tempSet.setNumber,
         reps_completed: tempSet.reps ? parseInt(tempSet.reps) : null,
         weight: tempSet.weight ? parseFloat(tempSet.weight) : null,
-        completed: !!(tempSet.reps || tempSet.weight),
+        completed: tempSet.completed,
         user_id: user?.id,
         created_at: new Date().toISOString()
       }));
@@ -230,7 +259,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
           set_number: i + 1,
           reps_completed: tempSet?.reps ? parseInt(tempSet.reps) : null,
           weight: tempSet?.weight ? parseFloat(tempSet.weight) : null,
-          completed: !!(tempSet?.reps || tempSet?.weight),
+          completed: tempSet?.completed || false,
           user_id: user?.id,
           created_at: new Date().toISOString()
         };
@@ -409,10 +438,11 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     } else {
       return (
         <div className="space-y-2">
-          <div className="grid grid-cols-12 gap-2 mb-2 text-sm font-medium text-gray-500">
+          <div className="grid grid-cols-16 gap-2 mb-2 text-sm font-medium text-gray-500">
             <div className="col-span-3">Set</div>
             <div className="col-span-4">Reps</div>
             <div className="col-span-5">Weight</div>
+            <div className="col-span-4">Done</div>
           </div>
           
           {Array.from({ length: exercise.sets }, (_, i) => {
@@ -420,11 +450,12 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
             const tempSet = exerciseSets.find(set => set.setNumber === setNumber) || {
               setNumber,
               reps: "",
-              weight: ""
+              weight: "",
+              completed: false
             };
             
             return (
-              <div key={`temp-${exercise.id}-${setNumber}`} className="grid grid-cols-12 gap-2 items-center">
+              <div key={`temp-${exercise.id}-${setNumber}`} className="grid grid-cols-16 gap-2 items-center">
                 <div className="col-span-3 text-sm font-medium">{setNumber}</div>
                 <div className="col-span-4">
                   <Input 
@@ -443,6 +474,14 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                     placeholder="Weight"
                     className="h-8 text-sm"
                     step="0.5"
+                  />
+                </div>
+                <div className="col-span-4 flex items-center justify-center">
+                  <Checkbox
+                    checked={tempSet.completed}
+                    onCheckedChange={(checked) => {
+                      handleUpdateTempSet(exercise.id, setNumber, 'completed', !!checked);
+                    }}
                   />
                 </div>
               </div>
@@ -474,14 +513,15 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
       } else {
         return (
           <div className="space-y-2">
-            <div className="grid grid-cols-12 gap-2 mb-2 text-sm font-medium text-gray-500">
+            <div className="grid grid-cols-16 gap-2 mb-2 text-sm font-medium text-gray-500">
               <div className="col-span-3">Set</div>
               <div className="col-span-4">Reps</div>
               <div className="col-span-5">Weight</div>
+              <div className="col-span-4">Done</div>
             </div>
             
             {exerciseSets.map((set) => (
-              <div key={set.id} className="grid grid-cols-12 gap-2 items-center">
+              <div key={set.id} className="grid grid-cols-16 gap-2 items-center">
                 <div className="col-span-3 text-sm font-medium">
                   {set.set_number}
                   {updatingSetId === set.id && (
@@ -506,6 +546,13 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                     placeholder="Weight"
                     className="h-8 text-sm"
                     step="0.5"
+                    disabled={readOnly}
+                  />
+                </div>
+                <div className="col-span-4 flex items-center justify-center">
+                  <Checkbox 
+                    checked={set.completed}
+                    onCheckedChange={(checked) => handleToggleCompleted(set.id, !!checked)}
                     disabled={readOnly}
                   />
                 </div>

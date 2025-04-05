@@ -248,7 +248,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                               type="number"
                               value={set.reps_completed || ''}
                               onChange={(e) => handleUpdateSet(set.id, 'reps_completed', parseInt(e.target.value) || 0)}
-                              placeholder={exercise.reps}
+                              placeholder={String(exercise.reps)}
                               className="h-8 text-sm"
                               disabled={readOnly}
                             />

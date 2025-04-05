@@ -158,7 +158,7 @@ export const getAssignedWorkoutsCountForWeek = async (userId: string, weekNumber
 /**
  * Log a rest day for the current user
  */
-export const logRestDay = async (): Promise<void> => {
+export const logRestDay = async (date: Date = new Date()): Promise<void> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -170,7 +170,7 @@ export const logRestDay = async (): Promise<void> => {
       .from('workout_completions')
       .insert({
         user_id: user.id,
-        completed_at: new Date().toISOString(),
+        completed_at: date.toISOString(),
         rest_day: true
       });
     

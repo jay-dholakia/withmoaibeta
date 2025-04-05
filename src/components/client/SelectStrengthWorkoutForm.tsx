@@ -1,158 +1,160 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchAssignedWorkouts } from '@/services/workout-history-service';
-import { Link, useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Loader2, ArrowRight } from 'lucide-react';
-import { WorkoutHistoryItem, StandardWorkoutType } from '@/types/workout';
-import { createWorkoutCompletion } from '@/services/workout-history-service';
+import { createWorkoutCompletion, createOneOffWorkoutCompletion } from '@/services/workout-history-service';
+
+interface StandaloneWorkout {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  workout_type?: string;
+}
 
 interface SelectStrengthWorkoutFormProps {
   onComplete: () => void;
+  selectedDate?: Date;
 }
 
-const SelectStrengthWorkoutForm: React.FC<SelectStrengthWorkoutFormProps> = ({ onComplete }) => {
+const SelectStrengthWorkoutForm: React.FC<SelectStrengthWorkoutFormProps> = ({ 
+  onComplete,
+  selectedDate = new Date()
+}) => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: assignedWorkouts, isLoading, error } = useQuery({
-    queryKey: ['assigned-workouts', user?.id],
-    queryFn: () => {
-      if (!user?.id) throw new Error('User not authenticated');
-      return fetchAssignedWorkouts(user.id);
-    },
-    enabled: !!user?.id,
+  const { data: workouts, isLoading, error } = useQuery({
+    queryKey: ['standalone-workouts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('standalone_workouts')
+        .select('*')
+        .order('title');
+
+      if (error) throw error;
+      return data as StandaloneWorkout[];
+    }
   });
 
-  // Filter for only strength/mobility workouts that haven't been completed yet
-  const availableWorkouts = assignedWorkouts?.filter(workout => 
-    !workout.completed_at && 
-    workout.workout?.workout_type && 
-    ['strength', 'bodyweight', 'flexibility', 'mobility'].includes(workout.workout.workout_type)
-  ) || [];
+  const handleWorkoutSelection = (workoutId: string) => {
+    setSelectedWorkoutId(workoutId);
+  };
 
-  const startWorkout = async (workout: WorkoutHistoryItem) => {
-    if (!user?.id || !workout.workout_id) {
-      toast.error('Missing required information to start workout');
+  const handleSubmit = async () => {
+    if (!selectedWorkoutId || !user?.id) {
+      toast.error('Please select a workout');
       return;
     }
-    
+
+    setIsSubmitting(true);
+
     try {
-      setLoading(prev => ({ ...prev, [workout.workout_id]: true }));
-      
-      const workoutType = workout.workout?.workout_type as StandardWorkoutType || 'strength';
-      
-      const completion = await createWorkoutCompletion(
-        user.id,
-        workout.workout_id,
-        workoutType
-      );
-      
-      if (completion) {
-        // Invalidate related queries to trigger refetch
-        queryClient.invalidateQueries({ queryKey: ['weekly-run-progress'] });
-        queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
-        queryClient.invalidateQueries({ queryKey: ['client-workouts-week-progress'] });
-        queryClient.invalidateQueries({ queryKey: ['client-workouts-leaderboard'] });
-        
-        toast.success('Workout started');
-        navigate(`/client-dashboard/workouts/active/${completion.id}`);
-        onComplete();
-      } else {
-        toast.error('Failed to start workout');
-        setLoading(prev => ({ ...prev, [workout.workout_id]: false }));
+      const selectedWorkout = workouts?.find(w => w.id === selectedWorkoutId);
+      if (!selectedWorkout) {
+        throw new Error('Selected workout not found');
       }
+      
+      // Create a workout completion with the selected date
+      await createOneOffWorkoutCompletion({
+        standalone_workout_id: selectedWorkoutId,
+        title: selectedWorkout.title,
+        description: selectedWorkout.description,
+        workout_type: selectedWorkout.workout_type || 'strength',
+        completed_at: selectedDate.toISOString()
+      });
+
+      toast.success('Workout logged successfully!');
+      onComplete();
     } catch (error) {
-      console.error('Error starting workout:', error);
-      toast.error('Failed to start workout');
-      setLoading(prev => ({ ...prev, [workout.workout_id]: false }));
+      console.error('Error logging workout:', error);
+      toast.error('Failed to log workout');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="text-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-        <p className="mt-2 text-muted-foreground">Loading available workouts...</p>
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-8 text-red-500">
-        <p>Failed to load workouts</p>
-        <Button onClick={onComplete} className="mt-4">Close</Button>
+      <div className="text-center py-8">
+        <p className="text-red-500">Error loading workouts</p>
       </div>
     );
   }
 
-  if (availableWorkouts.length === 0) {
+  if (!workouts || workouts.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">No strength/mobility workouts available.</p>
-        <p className="text-muted-foreground mb-4">Would you like to create a custom workout instead?</p>
-        <div className="flex justify-center gap-2">
-          <Button variant="outline" onClick={onComplete}>
-            Cancel
-          </Button>
-          <Button asChild className="bg-purple-600 hover:bg-purple-700">
-            <Link to="/client-dashboard/workouts/create" onClick={onComplete}>
-              Create Workout
-            </Link>
-          </Button>
-        </div>
+        <p>No workouts available</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 py-4">
-      <p className="text-sm text-center mb-4">Select a strength/mobility workout to complete:</p>
-      
-      <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-        {availableWorkouts.map((workout) => (
-          <Card key={workout.workout_id} className="hover:border-purple-200">
-            <CardContent className="p-3">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h4 className="font-medium">{workout.workout?.title || 'Untitled Workout'}</h4>
-                  {workout.workout?.week?.week_number && (
-                    <p className="text-xs text-muted-foreground">
-                      Week {workout.workout.week.week_number}
-                      {workout.workout.week.program?.title && ` - ${workout.workout.week.program.title}`}
-                    </p>
-                  )}
-                </div>
-                <Button 
-                  size="sm"
-                  className="bg-purple-600 hover:bg-purple-700"
-                  disabled={loading[workout.workout_id]}
-                  onClick={() => startWorkout(workout)}
-                >
-                  {loading[workout.workout_id] ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      Start <ArrowRight className="h-4 w-4 ml-1" />
-                    </>
-                  )}
-                </Button>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-1">
+        {workouts.map((workout) => (
+          <div
+            key={workout.id}
+            className={`p-3 border rounded-md cursor-pointer transition-colors ${
+              selectedWorkoutId === workout.id
+                ? 'border-primary bg-primary/10'
+                : 'hover:border-gray-400'
+            }`}
+            onClick={() => handleWorkoutSelection(workout.id)}
+          >
+            <h3 className="font-medium">{workout.title}</h3>
+            {workout.description && (
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                {workout.description}
+              </p>
+            )}
+            {workout.category && (
+              <div className="mt-2">
+                <span className="inline-block text-xs bg-gray-100 px-2 py-0.5 rounded">
+                  {workout.category}
+                </span>
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </div>
         ))}
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button variant="outline" onClick={onComplete}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onComplete}
+        >
           Cancel
+        </Button>
+        <Button
+          type="button"
+          disabled={!selectedWorkoutId || isSubmitting}
+          onClick={handleSubmit}
+          className="bg-purple-600 hover:bg-purple-700"
+        >
+          {isSubmitting ? (
+            <>
+              <span className="mr-2">Saving...</span>
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </>
+          ) : (
+            'Log Workout'
+          )}
         </Button>
       </div>
     </div>

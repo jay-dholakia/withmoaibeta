@@ -8,11 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import { logRunActivity } from '@/services/run-goals-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { createOneOffWorkoutCompletion } from '@/services/workout-history-service';
+import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
 
 const formSchema = z.object({
   distance: z.coerce.number()
@@ -22,15 +27,19 @@ const formSchema = z.object({
     required_error: "Please select a run type",
   }),
   notes: z.string().optional(),
+  date: z.date({
+    required_error: "Please select a date",
+  }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 interface LogRunFormProps {
   onComplete: () => void;
+  defaultDate?: Date;
 }
 
-const LogRunForm: React.FC<LogRunFormProps> = ({ onComplete }) => {
+const LogRunForm: React.FC<LogRunFormProps> = ({ onComplete, defaultDate = new Date() }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const form = useForm<FormValues>({
@@ -39,6 +48,7 @@ const LogRunForm: React.FC<LogRunFormProps> = ({ onComplete }) => {
       distance: 0,
       runType: "steady",
       notes: "",
+      date: defaultDate,
     },
   });
 
@@ -54,7 +64,8 @@ const LogRunForm: React.FC<LogRunFormProps> = ({ onComplete }) => {
         user.id,
         values.distance,
         values.runType as 'steady' | 'tempo' | 'long' | 'speed' | 'hill',
-        values.notes
+        values.notes,
+        values.date
       );
 
       // 2. Also log as a workout completion to show in workout history
@@ -64,7 +75,7 @@ const LogRunForm: React.FC<LogRunFormProps> = ({ onComplete }) => {
         description: `Run: ${values.distance} miles (${values.runType})`,
         notes: values.notes,
         distance: values.distance,
-        completed_at: new Date().toISOString(),
+        completed_at: values.date.toISOString(),
       });
 
       if (result.success) {
@@ -136,6 +147,50 @@ const LogRunForm: React.FC<LogRunFormProps> = ({ onComplete }) => {
               </Select>
               <FormDescription>
                 Select the type of run you completed
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="date"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Date</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormDescription>
+                Select the date when you completed this run
               </FormDescription>
               <FormMessage />
             </FormItem>

@@ -10,12 +10,15 @@ import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import RunGoalsProgressCard from '@/components/client/RunGoalsProgressCard';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ListTodo, History } from 'lucide-react';
+import { PlusCircle, ListTodo, History, Calendar as CalendarIcon } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 import {
   Dialog,
@@ -29,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LogRunForm from '@/components/client/LogRunForm';
 import LogCardioForm from '@/components/client/LogCardioForm';
 import SelectStrengthWorkoutForm from '@/components/client/SelectStrengthWorkoutForm';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const WorkoutsPage = () => {
   const [showRestDayDialog, setShowRestDayDialog] = useState(false);
@@ -36,6 +40,7 @@ const WorkoutsPage = () => {
   const [showCardioDialog, setShowCardioDialog] = useState(false);
   const [showStrengthDialog, setShowStrengthDialog] = useState(false);
   const [refreshKey, setRefreshKey] = useState(Date.now());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const location = useLocation();
   const { user } = useAuth();
   console.log("WorkoutsPage component rendering, path:", location.pathname);
@@ -86,7 +91,7 @@ const WorkoutsPage = () => {
   );
   
   const handleLogRestDay = () => {
-    logRestDay().then(() => {
+    logRestDay(selectedDate).then(() => {
       toast.success("Rest day logged successfully!");
       setShowRestDayDialog(false);
       setRefreshKey(Date.now());
@@ -214,11 +219,39 @@ const WorkoutsPage = () => {
               <span>Log a Rest Day</span>
             </DialogTitle>
             <DialogDescription>
-              Are you taking a well-deserved rest day today?
+              Are you taking a well-deserved rest day?
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm font-medium">Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
             <div className="rounded-lg bg-green-50 p-4 text-sm">
               <h4 className="font-semibold text-green-700 mb-2">The Power of Rest & Recovery</h4>
               <p className="text-green-700 mb-3">
@@ -263,10 +296,13 @@ const WorkoutsPage = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <LogRunForm onComplete={() => {
-            setShowRunDialog(false);
-            handleActivityComplete();
-          }} />
+          <LogRunForm 
+            onComplete={() => {
+              setShowRunDialog(false);
+              handleActivityComplete();
+            }} 
+            defaultDate={selectedDate}
+          />
         </DialogContent>
       </Dialog>
       
@@ -282,10 +318,13 @@ const WorkoutsPage = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <LogCardioForm onComplete={() => {
-            setShowCardioDialog(false);
-            handleActivityComplete();
-          }} />
+          <LogCardioForm 
+            onComplete={() => {
+              setShowCardioDialog(false);
+              handleActivityComplete();
+            }}
+            defaultDate={selectedDate}
+          />
         </DialogContent>
       </Dialog>
       
@@ -301,10 +340,46 @@ const WorkoutsPage = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <SelectStrengthWorkoutForm onComplete={() => {
-            setShowStrengthDialog(false);
-            handleActivityComplete();
-          }} />
+          <div className="space-y-4 py-2 mb-4">
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm font-medium">Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              <p className="text-xs text-muted-foreground mt-1">
+                Select the date when you completed this workout
+              </p>
+            </div>
+          </div>
+          
+          <SelectStrengthWorkoutForm 
+            onComplete={() => {
+              setShowStrengthDialog(false);
+              handleActivityComplete();
+            }} 
+            selectedDate={selectedDate}
+          />
         </DialogContent>
       </Dialog>
     </div>

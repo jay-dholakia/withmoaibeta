@@ -8,11 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import { logCardioActivity } from '@/services/run-goals-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { createOneOffWorkoutCompletion } from '@/services/workout-history-service';
+import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
 
 const formSchema = z.object({
   minutes: z.coerce.number()
@@ -20,12 +25,16 @@ const formSchema = z.object({
     .max(600, "Duration cannot exceed 600 minutes"),
   activityType: z.string().min(1, "Please select an activity type"),
   notes: z.string().optional(),
+  date: z.date({
+    required_error: "Please select a date",
+  }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 interface LogCardioFormProps {
   onComplete: () => void;
+  defaultDate?: Date;
 }
 
 const CARDIO_ACTIVITY_TYPES = [
@@ -33,7 +42,7 @@ const CARDIO_ACTIVITY_TYPES = [
   "swimming", "stair_climbing", "jump_rope", "aerobics", "other"
 ];
 
-const LogCardioForm: React.FC<LogCardioFormProps> = ({ onComplete }) => {
+const LogCardioForm: React.FC<LogCardioFormProps> = ({ onComplete, defaultDate = new Date() }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const form = useForm<FormValues>({
@@ -42,6 +51,7 @@ const LogCardioForm: React.FC<LogCardioFormProps> = ({ onComplete }) => {
       minutes: 30,
       activityType: "cycling",
       notes: "",
+      date: defaultDate,
     },
   });
 
@@ -57,7 +67,8 @@ const LogCardioForm: React.FC<LogCardioFormProps> = ({ onComplete }) => {
         user.id,
         values.minutes,
         values.activityType,
-        values.notes
+        values.notes,
+        values.date
       );
 
       // 2. Also log as a workout completion to show in workout history
@@ -67,7 +78,7 @@ const LogCardioForm: React.FC<LogCardioFormProps> = ({ onComplete }) => {
         description: `Cardio: ${values.activityType} for ${values.minutes} minutes`,
         notes: values.notes,
         duration: `${values.minutes} minutes`,
-        completed_at: new Date().toISOString(),
+        completed_at: values.date.toISOString(),
       });
 
       if (result.success) {
@@ -138,6 +149,50 @@ const LogCardioForm: React.FC<LogCardioFormProps> = ({ onComplete }) => {
               </Select>
               <FormDescription>
                 What type of cardio activity did you do?
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="date"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Date</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormDescription>
+                Select the date when you completed this activity
               </FormDescription>
               <FormMessage />
             </FormItem>

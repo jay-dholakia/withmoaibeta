@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import PassCounter from '@/components/client/PassCounter';
 import { Button } from '@/components/ui/button';
-import { Dumbbell, Calendar, History, Running, Bike, PlusCircle } from 'lucide-react';
+import { Dumbbell, Calendar, History, Bike, PlusCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 // Create a wrapper component for WorkoutDayDetails to provide required props
@@ -80,7 +80,7 @@ const WorkoutsPage = () => {
                 </Button>
                 
                 <Button variant="outline" size="sm" className="flex flex-col h-auto py-2 px-1">
-                  <Running className="h-4 w-4 mb-1" />
+                  <span className="text-xl mb-1">🏃</span>
                   <span className="text-xs">Log Run</span>
                 </Button>
                 

@@ -723,6 +723,44 @@ export type Database = {
           },
         ]
       }
+      program_week_goals: {
+        Row: {
+          cardio_minutes_goal: number | null
+          created_at: string | null
+          exercises_goal: number | null
+          id: string
+          miles_goal: number | null
+          program_id: string
+          week_number: number
+        }
+        Insert: {
+          cardio_minutes_goal?: number | null
+          created_at?: string | null
+          exercises_goal?: number | null
+          id?: string
+          miles_goal?: number | null
+          program_id: string
+          week_number: number
+        }
+        Update: {
+          cardio_minutes_goal?: number | null
+          created_at?: string | null
+          exercises_goal?: number | null
+          id?: string
+          miles_goal?: number | null
+          program_id?: string
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_week_goals_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "workout_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       run_activities: {
         Row: {
           completed_at: string | null

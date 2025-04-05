@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface RunGoals {
@@ -205,7 +204,9 @@ export const getMultipleUserRunGoals = async (userIds: string[]): Promise<Record
  */
 export const getProgramWeekGoals = async (programId: string): Promise<ProgramWeekGoals[]> => {
   try {
-    const { data, error } = await supabase
+    // We need to use a type assertion to access the program_week_goals table
+    // since it might not be in the TypeScript types yet
+    const { data, error } = await (supabase as any)
       .from('program_week_goals')
       .select('*')
       .eq('program_id', programId)
@@ -216,7 +217,7 @@ export const getProgramWeekGoals = async (programId: string): Promise<ProgramWee
       return [];
     }
 
-    return data.map(weekGoal => ({
+    return data.map((weekGoal: any) => ({
       week_number: weekGoal.week_number,
       miles_goal: weekGoal.miles_goal || 0,
       exercises_goal: weekGoal.exercises_goal || 0,
@@ -236,8 +237,8 @@ export const setProgramWeekGoals = async (
   weekGoals: ProgramWeekGoals[]
 ): Promise<{ success: boolean; error?: any }> => {
   try {
-    // Delete existing goals for this program
-    await supabase
+    // Delete existing goals for this program using type assertion for the table name
+    await (supabase as any)
       .from('program_week_goals')
       .delete()
       .eq('program_id', programId);
@@ -252,7 +253,7 @@ export const setProgramWeekGoals = async (
         cardio_minutes_goal: goal.cardio_minutes_goal
       }));
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('program_week_goals')
         .insert(goalsToInsert);
 

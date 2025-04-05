@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
@@ -10,12 +9,14 @@ interface MonthlyCalendarViewProps {
   workouts: WorkoutHistoryItem[];
   onDaySelect?: (date: Date, workouts: WorkoutHistoryItem[]) => void;
   workoutTypesMap?: Record<string, WorkoutType>;
+  onViewToggle?: () => void;
 }
 
 export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ 
   workouts, 
   onDaySelect,
-  workoutTypesMap = {} 
+  workoutTypesMap = {},
+  onViewToggle 
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
@@ -87,20 +88,13 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const startWeekday = getDay(monthStart);
 
-  const renderHeader = () => {
-    const dateFormat = "MMMM yyyy";
+  const renderViewToggleButton = () => {
+    if (!onViewToggle) return null;
+    
     return (
-      <div className="flex items-center justify-between mb-4">
-        <Button variant="outline" size="icon" onClick={prevMonth} className="h-8 w-8">
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <div className="text-lg font-semibold">
-          {format(currentMonth, dateFormat)}
-        </div>
-        <Button variant="outline" size="icon" onClick={nextMonth} className="h-8 w-8">
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+      <Button variant="outline" size="sm" onClick={onViewToggle} className="ml-auto">
+        List View
+      </Button>
     );
   };
 
@@ -330,6 +324,26 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
             ))}
           </div>
         )}
+      </div>
+    );
+  };
+
+  const renderHeader = () => {
+    const dateFormat = "MMMM yyyy";
+    return (
+      <div className="flex items-center justify-between mb-4">
+        <Button variant="outline" size="icon" onClick={prevMonth} className="h-8 w-8">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="text-lg font-semibold">
+          {format(currentMonth, dateFormat)}
+        </div>
+        <div className="flex items-center gap-2">
+          {renderViewToggleButton()}
+          <Button variant="outline" size="icon" onClick={nextMonth} className="h-8 w-8">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     );
   };

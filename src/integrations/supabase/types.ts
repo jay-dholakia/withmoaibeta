@@ -1172,6 +1172,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          program_type: string | null
           title: string
           updated_at: string
           weeks: number
@@ -1181,6 +1182,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          program_type?: string | null
           title: string
           updated_at?: string
           weeks: number
@@ -1190,6 +1192,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          program_type?: string | null
           title?: string
           updated_at?: string
           weeks?: number

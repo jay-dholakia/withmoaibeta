@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Exercise, Workout } from "@/types/workout";
 
@@ -64,10 +65,17 @@ export const createWorkoutProgram = async (data: {
   description: string | null;
   weeks: number;
   coach_id: string;
+  program_type?: string; // Add program_type parameter
 }) => {
   const { data: program, error } = await supabase
     .from('workout_programs')
-    .insert(data)
+    .insert({
+      title: data.title,
+      description: data.description,
+      weeks: data.weeks,
+      coach_id: data.coach_id,
+      program_type: data.program_type || 'strength' // Use program_type or default to 'strength'
+    })
     .select('*')
     .single();
 

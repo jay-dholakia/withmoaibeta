@@ -52,6 +52,10 @@ const WorkoutTimer: React.FC = () => {
 
   return (
     <div className="flex items-center justify-between w-full mb-3 px-1">
+      <div className={`font-mono text-lg font-semibold ${getTimerColor()}`}>
+        {formatTime(seconds)}
+      </div>
+      
       <div className="flex items-center">
         <Button 
           variant="outline" 
@@ -73,10 +77,6 @@ const WorkoutTimer: React.FC = () => {
         >
           <RefreshCcw className="h-4 w-4" />
         </Button>
-      </div>
-      
-      <div className={`font-mono text-lg font-semibold ${getTimerColor()}`}>
-        {formatTime(seconds)}
       </div>
     </div>
   );

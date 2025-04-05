@@ -27,8 +27,7 @@ export const createGroupForCoach = async (
   coachId: string, 
   groupName: string, 
   groupDescription?: string,
-  spotifyPlaylistUrl?: string,
-  programType: string = 'strength'
+  spotifyPlaylistUrl?: string
 ) => {
   try {
     // 1. Create the group
@@ -38,8 +37,7 @@ export const createGroupForCoach = async (
         name: groupName,
         description: groupDescription || '',
         created_by: coachId,
-        spotify_playlist_url: spotifyPlaylistUrl || null,
-        program_type: programType
+        spotify_playlist_url: spotifyPlaylistUrl || null
       }])
       .select()
       .single();
@@ -76,12 +74,7 @@ export const createGroupForCoach = async (
  */
 export const updateGroup = async (
   groupId: string,
-  updates: { 
-    name?: string; 
-    description?: string; 
-    spotify_playlist_url?: string | null;
-    program_type?: string;
-  }
+  updates: { name?: string; description?: string; spotify_playlist_url?: string | null }
 ) => {
   try {
     const { data, error } = await supabase
@@ -134,38 +127,37 @@ export const fetchGroupDetails = async (groupIds: string[]) => {
  */
 export const createDefaultMoaiGroupIfNeeded = async (adminId: string) => {
   try {
-    // Check if any run groups exist
+    // Check if any Moai groups exist
     const { data: existingGroups, error: checkError } = await supabase
       .from('groups')
       .select('id, name')
-      .eq('program_type', 'run');
+      .ilike('name', 'Moai%');
       
     if (checkError) {
-      console.error('Error checking for run groups:', checkError);
+      console.error('Error checking for Moai groups:', checkError);
       return {
         success: false,
-        message: 'Failed to check for existing run groups'
+        message: 'Failed to check for existing Moai groups'
       };
     }
     
-    // If run groups already exist, we don't need to create one
+    // If Moai groups already exist, we don't need to create one
     if (existingGroups && existingGroups.length > 0) {
-      console.log('Run groups already exist:', existingGroups);
+      console.log('Moai groups already exist:', existingGroups);
       return {
         success: true,
-        message: 'Run groups already exist',
+        message: 'Moai groups already exist',
         groups: existingGroups
       };
     }
     
-    // Create a new run group
+    // Create a new Moai group
     const { data: newGroup, error: createError } = await supabase
       .from('groups')
       .insert({
         name: 'Moai Fitness Group',
         description: 'A supportive community for your fitness journey',
-        created_by: adminId,
-        program_type: 'run'
+        created_by: adminId
       })
       .select();
       

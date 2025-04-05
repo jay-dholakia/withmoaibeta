@@ -2,7 +2,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
 
 interface RequireAuthProps {
   children: React.ReactNode;
@@ -10,23 +9,14 @@ interface RequireAuthProps {
 }
 
 const RequireAuth: React.FC<RequireAuthProps> = ({ children, userType }) => {
-  const { user, userType: currentUserType, loading, session } = useAuth();
+  const { user, userType: currentUserType, loading } = useAuth();
   const location = useLocation();
 
-  // Show a more user-friendly loading indicator
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-lg text-muted-foreground">Loading authentication state...</p>
-        </div>
-      </div>
-    );
+    return <div>Loading...</div>;
   }
 
-  // If there's no user or session, redirect to login
-  if (!user || !session) {
+  if (!user) {
     // Redirect to the appropriate login page based on userType
     const loginRoutes = {
       admin: '/admin-login',

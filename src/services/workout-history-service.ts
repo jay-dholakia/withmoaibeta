@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCurrentProgram } from "./program-service";
 import { startOfWeek, endOfWeek, format } from "date-fns";
@@ -84,7 +85,7 @@ export const countCompletedWorkoutsForWeek = async (userId: string, weekStart: D
       .eq('user_id', userId)
       .gte('completed_at', startFormatted)
       .lte('completed_at', endFormatted)
-      .is('rest_day', false)
+      .is('rest_day', false) // This filter was already present
       .is('life_happens_pass', false);
     
     if (error) {
@@ -158,7 +159,7 @@ export const getAssignedWorkoutsCountForWeek = async (userId: string, weekNumber
 /**
  * Log a rest day for the current user
  */
-export const logRestDay = async (date: Date = new Date()): Promise<void> => {
+export const logRestDay = async (): Promise<void> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -170,7 +171,7 @@ export const logRestDay = async (date: Date = new Date()): Promise<void> => {
       .from('workout_completions')
       .insert({
         user_id: user.id,
-        completed_at: date.toISOString(),
+        completed_at: new Date().toISOString(),
         rest_day: true
       });
     
@@ -333,33 +334,5 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
   } catch (error) {
     console.error("Error in fetchAssignedWorkouts:", error);
     return [];
-  }
-};
-
-/**
- * Create a workout completion
- */
-export const createWorkoutCompletion = async (userId: string, workoutId: string, workoutType: StandardWorkoutType = 'strength') => {
-  try {
-    const { data, error } = await supabase
-      .from('workout_completions')
-      .insert({
-        user_id: userId,
-        workout_id: workoutId,
-        started_at: new Date().toISOString(),
-        workout_type: workoutType,
-      })
-      .select('*')
-      .single();
-
-    if (error) {
-      console.error('Error creating workout completion:', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error in createWorkoutCompletion:', error);
-    throw error;
   }
 };

@@ -125,15 +125,13 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                 // Sets, reps, weight for strength exercises
                 <div className="space-y-3">
                   {group.sets.sort((a, b) => a.set_number - b.set_number).map(set => (
-                    <div key={set.id} className="grid grid-cols-12 gap-3 items-center">
-                      <div className="col-span-3">
+                    <div key={set.id} className="grid grid-cols-3 gap-2">
+                      <div>
                         <label className="text-xs text-muted-foreground">Set {set.set_number}</label>
                       </div>
-                      <div className="col-span-3">
+                      <div>
                         <Input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
+                          type="number"
                           value={editedSets[set.id]?.reps_completed || 0}
                           onChange={(e) => handleSetChange(
                             set.id, 
@@ -141,38 +139,22 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                             parseInt(e.target.value) || 0
                           )}
                           placeholder="Reps"
-                          className="w-full h-8 text-sm px-2"
+                          className="w-full h-8 text-sm"
                         />
                       </div>
-                      <div className="col-span-4">
+                      <div>
                         <Input
-                          type="text"
-                          inputMode="decimal"
-                          pattern="[0-9]*\.?[0-9]*"
+                          type="number"
                           value={editedSets[set.id]?.weight || 0}
                           onChange={(e) => handleSetChange(
                             set.id, 
                             'weight', 
                             parseFloat(e.target.value) || 0
                           )}
-                          placeholder="lbs"
-                          className="w-full h-8 text-sm px-2 max-w-[70px]"
+                          placeholder="Weight"
+                          className="w-full h-8 text-sm"
                           step="0.5"
                         />
-                      </div>
-                      <div className="col-span-2 flex justify-center">
-                        <div className="flex items-center justify-center">
-                          <input
-                            type="checkbox"
-                            checked={editedSets[set.id]?.completed || false}
-                            onChange={(e) => handleSetChange(
-                              set.id,
-                              'completed',
-                              e.target.checked
-                            )}
-                            className="rounded border-gray-300 text-primary focus:ring-primary"
-                          />
-                        </div>
                       </div>
                     </div>
                   ))}

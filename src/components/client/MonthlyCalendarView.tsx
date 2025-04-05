@@ -9,14 +9,12 @@ interface MonthlyCalendarViewProps {
   workouts: WorkoutHistoryItem[];
   onDaySelect?: (date: Date, workouts: WorkoutHistoryItem[]) => void;
   workoutTypesMap?: Record<string, WorkoutType>;
-  onViewToggle?: () => void;
 }
 
 export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ 
   workouts, 
   onDaySelect,
-  workoutTypesMap = {},
-  onViewToggle 
+  workoutTypesMap = {} 
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
@@ -88,13 +86,20 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const startWeekday = getDay(monthStart);
 
-  const renderViewToggleButton = () => {
-    if (!onViewToggle) return null;
-    
+  const renderHeader = () => {
+    const dateFormat = "MMMM yyyy";
     return (
-      <Button variant="outline" size="sm" onClick={onViewToggle} className="ml-auto">
-        List View
-      </Button>
+      <div className="flex items-center justify-between mb-4">
+        <Button variant="outline" size="icon" onClick={prevMonth} className="h-8 w-8">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="text-lg font-semibold">
+          {format(currentMonth, dateFormat)}
+        </div>
+        <Button variant="outline" size="icon" onClick={nextMonth} className="h-8 w-8">
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
     );
   };
 
@@ -131,27 +136,18 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       return 'rest_day';
     }
 
-    // First check workout titles for specific activities
     for (const workout of workoutsForDay) {
       const title = (workout.title || workout.workout?.title || '').toLowerCase();
       
-      if (title.includes('tennis') || title.includes('soccer') || 
-          title.includes('football') || title.includes('basketball') || 
-          title.includes('volleyball') || title.includes('baseball') || 
-          title.includes('golf') || title.includes('game') || 
-          title.includes('match') || title.includes('play')) return 'sport';
-        
-      if (title.includes('run') || title.includes('jog')) return 'cardio';
-      if (title.includes('swim')) return 'swimming';
-      if (title.includes('cycl') || title.includes('bike')) return 'cycling';
-      if (title.includes('dance')) return 'dance';
-      if (title.includes('yoga') || title.includes('stretch')) return 'flexibility';
-      if (title.includes('hiit')) return 'hiit';
-      if (title.includes('strength') || title.includes('weight')) return 'strength';
-      if (title.includes('bodyweight')) return 'bodyweight';
+      if (title.includes('tennis')) return 'sport';
+      if (title.includes('soccer') || title.includes('football')) return 'sport';
+      if (title.includes('basketball')) return 'sport';
+      if (title.includes('volleyball')) return 'sport';
+      if (title.includes('baseball')) return 'sport';
+      if (title.includes('golf')) return 'sport';
+      if (title.includes('game') || title.includes('match') || title.includes('play')) return 'sport';
     }
     
-    // Then check explicit workout types
     for (const workout of workoutsForDay) {
       if (workout.workout_type) {
         const type = workout.workout_type.toLowerCase();
@@ -166,10 +162,19 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
         if (type === 'dance') return 'dance';
         if (type === 'custom') return 'custom';
         if (type === 'one_off') return 'one_off';
+        
+        if (type.includes('tennis') || 
+            type.includes('soccer') || 
+            type.includes('football') || 
+            type.includes('basketball') || 
+            type.includes('sport') || 
+            type.includes('game') || 
+            type.includes('match')) {
+          return 'sport';
+        }
       }
     }
 
-    // Then check workout types from the workout object
     for (const workout of workoutsForDay) {
       if (workout.workout?.workout_type) {
         const workoutType = workout.workout.workout_type.toLowerCase();
@@ -194,7 +199,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       }
     }
 
-    // Lastly check workout descriptions for keywords
     for (const workout of workoutsForDay) {
       const description = (workout.description || workout.workout?.description || '').toLowerCase();
       
@@ -324,26 +328,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
             ))}
           </div>
         )}
-      </div>
-    );
-  };
-
-  const renderHeader = () => {
-    const dateFormat = "MMMM yyyy";
-    return (
-      <div className="flex items-center justify-between mb-4">
-        <Button variant="outline" size="icon" onClick={prevMonth} className="h-8 w-8">
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <div className="text-lg font-semibold">
-          {format(currentMonth, dateFormat)}
-        </div>
-        <div className="flex items-center gap-2">
-          {renderViewToggleButton()}
-          <Button variant="outline" size="icon" onClick={nextMonth} className="h-8 w-8">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
       </div>
     );
   };

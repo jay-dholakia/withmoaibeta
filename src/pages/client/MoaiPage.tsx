@@ -22,7 +22,6 @@ interface Group {
   name: string;
   description: string | null;
   spotify_playlist_url?: string | null;
-  program_type?: string | null;
 }
 
 const MoaiPage = () => {

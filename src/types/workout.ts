@@ -1,4 +1,3 @@
-
 export interface Exercise {
   id: string;
   name: string;
@@ -17,11 +16,8 @@ export interface WorkoutProgram {
   coach_id: string;
   created_at: string;
   updated_at: string;
-  program_type?: string; // Added program_type field
   // Add a field to store the actual weeks data when needed
   weekData?: WorkoutWeek[];
-  // Add field for run program weekly goals
-  weeklyGoals?: ProgramWeekGoal[];
 }
 
 export interface WorkoutWeek {
@@ -166,7 +162,6 @@ export const STANDARD_WORKOUT_TYPES = [
   'bodyweight',
   'cardio',
   'flexibility',
-  'mobility', // Added mobility here as a valid workout type
   'rest_day',
   'custom',
   'one_off',
@@ -197,11 +192,4 @@ export interface ClientProfile {
   event_type?: string | null;
   event_date?: string | null; 
   event_name?: string | null;
-}
-
-export interface ProgramWeekGoal {
-  week_number: number;
-  miles_goal: number;
-  exercises_goal: number;
-  cardio_minutes_goal: number;
 }

@@ -23,7 +23,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateGroup } from '@/services/group-service';
 
 interface Group {
@@ -31,7 +30,6 @@ interface Group {
   name: string;
   description: string | null;
   spotify_playlist_url?: string | null;
-  program_type?: string | null;
 }
 
 interface EditGroupDialogProps {
@@ -45,7 +43,6 @@ const formSchema = z.object({
   name: z.string().min(1, 'Group name is required'),
   description: z.string().optional(),
   spotify_playlist_url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
-  program_type: z.string().min(1, 'Program type is required'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -62,7 +59,6 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = ({
       name: group?.name || '',
       description: group?.description || '',
       spotify_playlist_url: group?.spotify_playlist_url || '',
-      program_type: group?.program_type || 'strength',
     },
   });
 
@@ -73,7 +69,6 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = ({
         name: group.name,
         description: group.description || '',
         spotify_playlist_url: group.spotify_playlist_url || '',
-        program_type: group.program_type || 'strength',
       });
     }
   }, [group, form]);
@@ -86,7 +81,6 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = ({
         name: values.name,
         description: values.description,
         spotify_playlist_url: values.spotify_playlist_url || null,
-        program_type: values.program_type,
       });
 
       if (result.success) {
@@ -120,32 +114,6 @@ const EditGroupDialog: React.FC<EditGroupDialogProps> = ({
                   <FormControl>
                     <Input placeholder="Enter group name" {...field} />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="program_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Group Type</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a group type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="strength">Strength</SelectItem>
-                      <SelectItem value="run">Run</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

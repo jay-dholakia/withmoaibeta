@@ -21,7 +21,6 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Users, UserPlus, Edit, Trash } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import GroupCoachesDialog from './GroupCoachesDialog';
 import GroupMembersDialog from './GroupMembersDialog';
 import EditGroupDialog from './EditGroupDialog';
@@ -30,7 +29,6 @@ interface Group {
   id: string;
   name: string;
   description: string | null;
-  program_type: string;
   created_at: string;
   created_by: string;
   _count?: {
@@ -138,14 +136,6 @@ const GroupList: React.FC = () => {
     }
   };
 
-  const getProgramTypeBadge = (type: string) => {
-    if (type === 'run') {
-      return <Badge className="bg-blue-500">Run</Badge>;
-    } else {
-      return <Badge className="bg-green-500">Strength</Badge>;
-    }
-  };
-
   if (isLoading) {
     return <div className="flex justify-center p-8">Loading groups...</div>;
   }
@@ -158,7 +148,6 @@ const GroupList: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Group Name</TableHead>
-                <TableHead>Type</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-center">Coaches</TableHead>
                 <TableHead className="text-center">Members</TableHead>
@@ -170,7 +159,6 @@ const GroupList: React.FC = () => {
                 groups.map((group) => (
                   <TableRow key={group.id}>
                     <TableCell className="font-medium">{group.name}</TableCell>
-                    <TableCell>{getProgramTypeBadge(group.program_type)}</TableCell>
                     <TableCell>{group.description || 'No description'}</TableCell>
                     <TableCell className="text-center">{group._count?.coaches || 0}</TableCell>
                     <TableCell className="text-center">{group._count?.members || 0}</TableCell>
@@ -214,7 +202,7 @@ const GroupList: React.FC = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     No groups found. Create a new group to get started.
                   </TableCell>
                 </TableRow>

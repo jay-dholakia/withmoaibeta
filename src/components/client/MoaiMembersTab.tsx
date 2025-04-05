@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import MoaiMemberItem from './MoaiMemberItem';
-import RunGoalsProgressCard from './RunGoalsProgressCard';
 import { format } from 'date-fns';
 
 interface MemberProfile {
@@ -219,23 +218,6 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
     }
   };
 
-  const { data: groupData } = useQuery({
-    queryKey: ['moai-group-details', groupId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('groups')
-        .select('name, program_type')
-        .eq('id', groupId)
-        .single();
-        
-      if (error) throw error;
-      return data;
-    }
-  });
-  
-  const isRunGroup = groupData?.program_type === 'run' || 
-                    (groupData?.name && groupData?.name.toLowerCase().includes('run'));
-  
   if (isLoadingMembers) {
     return (
       <div className="flex justify-center items-center h-40">
@@ -393,9 +375,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
             </TabsContent>
             
             <TabsContent value="workouts">
-              {isRunGroup && <RunGoalsProgressCard userId={selectedMember} />}
-              
-              <Card className="mt-4">
+              <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Recent Workouts</CardTitle>
                 </CardHeader>

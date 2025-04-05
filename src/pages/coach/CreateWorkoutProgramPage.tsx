@@ -27,8 +27,7 @@ const CreateWorkoutProgramPage = () => {
         title: values.title,
         description: values.description || null,
         weeks: values.weeks,
-        coach_id: user.id,
-        program_type: values.programType || 'strength'  // Add program type
+        coach_id: user.id
       };
       
       const createdProgram = await createWorkoutProgram(programData);

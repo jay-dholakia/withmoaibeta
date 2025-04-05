@@ -16,11 +16,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { fetchCurrentProgram } from '@/services/program-service';
 
-interface WorkoutsListProps {
-  onViewToggle?: () => void;
-}
-
-const WorkoutsList = ({ onViewToggle }: WorkoutsListProps) => {
+const WorkoutsList = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
@@ -34,6 +30,7 @@ const WorkoutsList = ({ onViewToggle }: WorkoutsListProps) => {
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
 
+  // Safely toggle workout details 
   const toggleWorkoutDetails = useCallback((e: React.MouseEvent, workoutId: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -57,11 +54,13 @@ const WorkoutsList = ({ onViewToggle }: WorkoutsListProps) => {
         setIsLoading(true);
         setError(null);
         
+        // Fetch program information first
         let program = null;
         try {
           program = await fetchCurrentProgram(user.id);
         } catch (programError) {
           console.error('Error loading program:', programError);
+          // Continue even if program fails to load
         }
         
         let assignedWorkouts: WorkoutHistoryItem[] = [];
@@ -69,7 +68,7 @@ const WorkoutsList = ({ onViewToggle }: WorkoutsListProps) => {
           assignedWorkouts = await fetchAssignedWorkouts(user.id);
         } catch (workoutsError) {
           console.error('Error loading assigned workouts:', workoutsError);
-          throw workoutsError;
+          throw workoutsError; // Rethrow to be caught by outer catch
         }
         
         console.log("Current user email:", user.email);
@@ -84,17 +83,21 @@ const WorkoutsList = ({ onViewToggle }: WorkoutsListProps) => {
         
         console.log("Assigned workouts loaded:", assignedWorkouts.length);
         
+        // Filter out completed workouts here
         const pendingWorkouts = assignedWorkouts.filter(workout => !workout.completed_at);
         console.log("Pending workouts (not completed):", pendingWorkouts.length);
         
         setCurrentProgram(program);
         setWorkouts(pendingWorkouts);
         
+        // Get all workouts (including completed) for checking completed weeks
         const allWorkouts = assignedWorkouts;
         
+        // Determine which weeks are completed by checking if all workouts for that week are completed
         const weekCompletionStatus: Record<string, boolean> = {};
         const weeksSet = new Set<number>();
         
+        // Group all workouts by week
         const workoutsByWeek: Record<number, WorkoutHistoryItem[]> = {};
         
         allWorkouts.forEach(workout => {
@@ -109,6 +112,7 @@ const WorkoutsList = ({ onViewToggle }: WorkoutsListProps) => {
           }
         });
         
+        // Check if all workouts in each week are completed
         Object.entries(workoutsByWeek).forEach(([weekNum, weekWorkouts]) => {
           const allCompleted = weekWorkouts.every(workout => !!workout.completed_at);
           weekCompletionStatus[weekNum] = allCompleted;
@@ -128,6 +132,7 @@ const WorkoutsList = ({ onViewToggle }: WorkoutsListProps) => {
         
         if (extractedWeeks.length > 0) {
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
+          // Set initial week filter after component is fully mounted
           setTimeout(() => {
             setWeekFilter(sortedWeeks[0].toString());
           }, 0);
@@ -167,7 +172,9 @@ const WorkoutsList = ({ onViewToggle }: WorkoutsListProps) => {
       return weekMatches;
     });
     
+    // Sort workouts by priority first, then by day_of_week as a backup
     return filtered.sort((a, b) => {
+      // First by priority (lower number = higher priority)
       const priorityA = a.workout?.priority ?? Number.MAX_SAFE_INTEGER;
       const priorityB = b.workout?.priority ?? Number.MAX_SAFE_INTEGER;
       
@@ -175,38 +182,45 @@ const WorkoutsList = ({ onViewToggle }: WorkoutsListProps) => {
         return priorityA - priorityB;
       }
       
+      // If priority is the same, sort by day_of_week
       return (a.workout?.day_of_week ?? 0) - (b.workout?.day_of_week ?? 0);
     });
   }, [workouts, weekFilter]);
 
+  // Handle week filter change - completely rewritten
   const handleWeekFilterChange = useCallback((value: string) => {
     console.log(`Setting week filter to: ${value}`);
     setWeekFilter(value);
     setIsSelectOpen(false);
   }, []);
 
+  // Toggle select dropdown visibility
   const toggleSelectDropdown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsSelectOpen(prev => !prev);
   }, []);
 
+  // Close select dropdown
   const closeSelectDropdown = useCallback(() => {
     setIsSelectOpen(false);
   }, []);
 
+  // Handle week selection
   const handleWeekSelect = useCallback((e: React.MouseEvent, weekNumber: string) => {
     e.preventDefault();
     e.stopPropagation();
     handleWeekFilterChange(weekNumber);
   }, [handleWeekFilterChange]);
 
+  // Navigate to active workout
   const handleStartWorkout = useCallback((e: React.MouseEvent, workoutId: string) => {
     e.preventDefault();
     e.stopPropagation();
     navigate(`/client-dashboard/workouts/active/${workoutId}`);
   }, [navigate]);
 
+  // Close select dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
@@ -240,16 +254,11 @@ const WorkoutsList = ({ onViewToggle }: WorkoutsListProps) => {
     );
   }
 
+  // Check if the selected week is completed
   const isSelectedWeekCompleted = weekFilter ? completedWeeks[weekFilter] : false;
 
   return (
-    <div>
-      {onViewToggle && (
-        <button onClick={onViewToggle}>
-          {/* Your button content */}
-        </button>
-      )}
-      
+    <div className="space-y-4">
       <div className="space-y-4">
         {currentProgram && currentProgram.program && (
           <div className="text-center space-y-1 flex-1">
@@ -264,6 +273,7 @@ const WorkoutsList = ({ onViewToggle }: WorkoutsListProps) => {
         
         {availableWeeks.length > 0 && (
           <div className="flex justify-center mb-2">
+            {/* Custom dropdown implementation */}
             <div className="relative" ref={selectRef}>
               <button
                 className="flex w-[200px] h-8 text-sm items-center justify-between rounded-md border border-input bg-background px-3 py-2 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"

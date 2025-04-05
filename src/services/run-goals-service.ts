@@ -347,37 +347,55 @@ export const getWeeklyRunProgress = async (userId: string): Promise<{
     // Get weekly goals
     const runGoals = await getUserRunGoals(userId);
     
-    // Get current progress using DB function
-    const { data, error } = await supabase.rpc(
-      'get_weekly_run_progress', 
-      { user_id_param: userId }
-    );
+    // Get current progress using direct queries instead of the DB function
+    // since there seems to be a type mismatch with the DB function
     
-    if (error || !data) {
-      console.error('Error fetching weekly run progress:', error);
-      return {
-        miles: { completed: 0, goal: runGoals.miles_goal },
-        exercises: { completed: 0, goal: runGoals.exercises_goal },
-        cardio: { completed: 0, goal: runGoals.cardio_minutes_goal }
-      };
-    }
+    // 1. Query run activities to get total miles
+    const { data: runData, error: runError } = await supabase
+      .from('run_activities')
+      .select('distance')
+      .eq('user_id', userId)
+      .gte('completed_at', new Date(new Date().setDate(new Date().getDate() - 7)).toISOString());
     
-    // ✅ FIX: Ensure we're always working with a single object
-    const progress = Array.isArray(data)
-      ? data[0] ?? { miles_completed: 0, exercises_completed: 0, cardio_minutes_completed: 0 }
-      : data;
+    // 2. Query workout completions exercises to count exercises
+    const { count: exercisesCount, error: exercisesError } = await supabase
+      .from('workout_set_completions')
+      .select('*', { count: 'exact', head: false })
+      .eq('user_id', userId)
+      .gte('created_at', new Date(new Date().setDate(new Date().getDate() - 7)).toISOString());
+    
+    // 3. Query cardio activities to get total minutes
+    const { data: cardioData, error: cardioError } = await supabase
+      .from('cardio_activities')
+      .select('minutes')
+      .eq('user_id', userId)
+      .gte('completed_at', new Date(new Date().setDate(new Date().getDate() - 7)).toISOString());
+    
+    if (runError) console.error('Error fetching run activities:', runError);
+    if (exercisesError) console.error('Error counting exercises:', exercisesError);
+    if (cardioError) console.error('Error fetching cardio activities:', cardioError);
+    
+    // Calculate the total miles completed
+    const milesCompleted = runData?.reduce((total, activity) => {
+      return total + (parseFloat(activity.distance) || 0);
+    }, 0) || 0;
+    
+    // Calculate the total cardio minutes completed
+    const cardioMinutesCompleted = cardioData?.reduce((total, activity) => {
+      return total + (activity.minutes || 0);
+    }, 0) || 0;
     
     return {
       miles: { 
-        completed: Number(progress.miles_completed) || 0,
+        completed: milesCompleted,
         goal: runGoals.miles_goal 
       },
       exercises: { 
-        completed: Number(progress.exercises_completed) || 0,
+        completed: exercisesCount || 0,
         goal: runGoals.exercises_goal 
       },
       cardio: { 
-        completed: Number(progress.cardio_minutes_completed) || 0,
+        completed: cardioMinutesCompleted,
         goal: runGoals.cardio_minutes_goal 
       }
     };

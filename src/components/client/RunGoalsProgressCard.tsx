@@ -127,9 +127,11 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
 
       <div className="space-y-6 pb-4">
         <div className="space-y-3">
-          <div className="flex items-center gap-1">
-            <span className="text-lg" role="img" aria-label="Running">🏃‍♂️</span>
-            <span className="font-medium">Miles</span>
+          <div className="flex items-center">
+            <div className="flex items-center gap-1">
+              <span className="text-lg" role="img" aria-label="Running">🏃‍♂️</span>
+              <span className="font-medium">Miles</span>
+            </div>
             <span className="ml-auto font-medium text-blue-600">
               {milesPercentage.toFixed(0)}%
             </span>
@@ -141,9 +143,11 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
         </div>
         
         <div className="space-y-3">
-          <div className="flex items-center gap-1">
-            <span className="text-lg" role="img" aria-label="Exercise">🏋️</span>
-            <span className="font-medium">Strength/Mobility Workouts</span>
+          <div className="flex items-center">
+            <div className="flex items-center gap-1">
+              <span className="text-lg" role="img" aria-label="Exercise">🏋️</span>
+              <span className="font-medium">Strength/Mobility Workouts</span>
+            </div>
             <span className="ml-auto font-medium text-amber-600">
               {exercisesPercentage.toFixed(0)}%
             </span>
@@ -155,9 +159,11 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
         </div>
         
         <div className="space-y-3">
-          <div className="flex items-center gap-1">
-            <span className="text-lg" role="img" aria-label="Cardio">❤️</span>
-            <span className="font-medium">Cross Training Cardio</span>
+          <div className="flex items-center">
+            <div className="flex items-center gap-1">
+              <span className="text-lg" role="img" aria-label="Cardio">❤️</span>
+              <span className="font-medium">Cross Training Cardio</span>
+            </div>
             <span className="ml-auto font-medium text-red-600">
               {cardioPercentage.toFixed(0)}%
             </span>

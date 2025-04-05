@@ -126,7 +126,7 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
           
           const { data: workouts } = await supabase
             .from('workout_completions')
-            .select('*')
+            .select('*, workout:workouts(*)')
             .eq('user_id', member.userId)
             .gte('completed_at', startDate.toISOString());
             
@@ -150,7 +150,12 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
               if (!workout.rest_day && !workout.life_happens_pass) {
                 const workoutType = determineWorkoutType(workout);
                 workoutTypesMap[dateStr] = workoutType;
-                workoutTitlesMap[dateStr] = workout.title || 'Workout';
+                
+                // Use the actual title from the workout or the completion record
+                const title = workout.title || 
+                              (workout.workout && workout.workout.title) || 
+                              'Workout';
+                workoutTitlesMap[dateStr] = title;
               }
             });
             

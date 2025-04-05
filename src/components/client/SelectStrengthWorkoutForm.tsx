@@ -8,7 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Loader2, ArrowRight } from 'lucide-react';
-import { WorkoutHistoryItem } from '@/types/workout';
+import { WorkoutHistoryItem, StandardWorkoutType } from '@/types/workout';
 import { createWorkoutCompletion } from '@/services/workout-history-service';
 
 interface SelectStrengthWorkoutFormProps {
@@ -46,10 +46,12 @@ const SelectStrengthWorkoutForm: React.FC<SelectStrengthWorkoutFormProps> = ({ o
     try {
       setLoading(prev => ({ ...prev, [workout.workout_id]: true }));
       
+      const workoutType = workout.workout?.workout_type as StandardWorkoutType || 'strength';
+      
       const completion = await createWorkoutCompletion(
         user.id,
         workout.workout_id,
-        workout.workout?.workout_type || 'strength' // Pass workout type to ensure it's logged correctly
+        workoutType
       );
       
       if (completion) {

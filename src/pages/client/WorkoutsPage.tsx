@@ -10,7 +10,7 @@ import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import RunGoalsProgressCard from '@/components/client/RunGoalsProgressCard';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Armchair, ListTodo, History, Heart, Dumbbell, Running } from 'lucide-react';
+import { PlusCircle, Armchair, ListTodo, History, Heart, Dumbbell } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
 import { toast } from 'sonner';
 import {
@@ -77,17 +77,17 @@ const WorkoutsPage = () => {
                   </Link>
                 </Button>
                 
-                {/* New Run Button */}
+                {/* Run Button with Emoji */}
                 <Button 
                   variant="outline" 
                   className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
                   onClick={() => setShowRunDialog(true)}
                 >
-                  <Running className="h-4 w-4" />
-                  🏃 Add Run
+                  <span role="img" aria-label="Running" className="text-lg">🏃</span>
+                  Add Run
                 </Button>
                 
-                {/* New Strength/Mobility Button */}
+                {/* Strength/Mobility Button */}
                 <Button 
                   variant="outline" 
                   className="w-full mb-4 flex items-center justify-center gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
@@ -97,7 +97,7 @@ const WorkoutsPage = () => {
                   🏋️ Add Strength/Mobility Workout
                 </Button>
                 
-                {/* New Cardio Button */}
+                {/* Cardio Button */}
                 <Button 
                   variant="outline" 
                   className="w-full mb-4 flex items-center justify-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
@@ -182,7 +182,7 @@ const WorkoutsPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Running className="h-5 w-5 text-blue-600" />
+              <span role="img" aria-label="Running" className="text-lg">🏃</span>
               <span>Log a Run</span>
             </DialogTitle>
             <DialogDescription>

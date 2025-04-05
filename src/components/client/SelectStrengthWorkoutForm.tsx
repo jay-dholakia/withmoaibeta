@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { WorkoutHistoryItem } from '@/types/workout';
-import { createEmptyWorkoutCompletion } from '@/services/client-custom-workout-service';
+import { createWorkoutCompletion } from '@/services/workout-history-service';
 
 interface SelectStrengthWorkoutFormProps {
   onComplete: () => void;
@@ -45,7 +45,7 @@ const SelectStrengthWorkoutForm: React.FC<SelectStrengthWorkoutFormProps> = ({ o
     try {
       setLoading(prev => ({ ...prev, [workout.workout_id]: true }));
       
-      const completion = await createEmptyWorkoutCompletion(
+      const completion = await createWorkoutCompletion(
         user.id,
         workout.workout_id
       );

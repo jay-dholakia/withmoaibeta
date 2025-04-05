@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCurrentProgram } from "./program-service";
 import { startOfWeek, endOfWeek, format } from "date-fns";
@@ -334,5 +333,33 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
   } catch (error) {
     console.error("Error in fetchAssignedWorkouts:", error);
     return [];
+  }
+};
+
+/**
+ * Create a workout completion
+ */
+export const createWorkoutCompletion = async (userId: string, workoutId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_completions')
+      .insert({
+        user_id: userId,
+        workout_id: workoutId,
+        source: 'strength_mobility',
+        started_at: new Date().toISOString(),
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('Error creating workout completion:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in createWorkoutCompletion:', error);
+    throw error;
   }
 };

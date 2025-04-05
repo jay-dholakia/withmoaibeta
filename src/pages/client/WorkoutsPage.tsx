@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -60,8 +59,7 @@ const WorkoutsPage = () => {
             </TabsList>
             
             <TabsContent value="active-workouts">
-              {/* Always render the RunGoalsProgressCard at the top of the active workouts tab */}
-              <RunGoalsProgressCard />
+              <RunGoalsProgressCard className="mb-6" />
               <WorkoutsList />
               
               <div className="mt-8 border-t pt-6">

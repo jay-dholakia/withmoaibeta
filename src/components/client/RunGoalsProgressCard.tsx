@@ -21,9 +21,14 @@ const DEFAULT_GOALS = {
 interface RunGoalsProgressCardProps {
   userId?: string; // Optional userId prop - if not provided, uses the current logged-in user
   showTitle?: boolean; // Whether to show the title
+  className?: string; // Additional CSS classes to apply
 }
 
-const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({ userId, showTitle = true }) => {
+const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({ 
+  userId, 
+  showTitle = true, 
+  className = '' 
+}) => {
   const { user } = useAuth();
   const [progress, setProgress] = useState<RunProgressData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,7 +100,7 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({ userId, sho
 
   if (isLoading) {
     return (
-      <Card className="p-4 text-center">
+      <Card className={`p-4 text-center ${className}`}>
         <p className="text-sm text-muted-foreground">Loading weekly goals...</p>
       </Card>
     );
@@ -103,7 +108,7 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({ userId, sho
 
   if (hasError) {
     return (
-      <Card className="p-4 text-center">
+      <Card className={`p-4 text-center ${className}`}>
         <p className="text-sm text-red-500">Failed to load weekly goals</p>
       </Card>
     );
@@ -130,7 +135,7 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({ userId, sho
     : 0;
 
   return (
-    <Card className="p-4">
+    <Card className={`p-4 mb-6 ${className}`}>
       {showTitle && (
         <h3 className="text-lg font-bold mb-4 text-center flex items-center justify-center gap-2">
           <span className="text-xl" role="img" aria-label="Trophy">🏆</span>
@@ -138,7 +143,7 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({ userId, sho
         </h3>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-4 pb-4">
         <div className="space-y-1">
           <div className="flex justify-between text-sm">
             <div className="flex items-center gap-1">

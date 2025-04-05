@@ -6,6 +6,7 @@ import ClientDashboard from './pages/client/ClientDashboard';
 import LogCardioPage from './pages/client/LogCardioPage';
 import { Toaster } from 'sonner';
 import Index from './pages/Index';
+import ClientLogin from './pages/ClientLogin';
 
 // Protected route component
 function RequireAuth({ children, userType, redirectTo }: {
@@ -30,13 +31,17 @@ function App() {
       <Routes>
         <Route path="/" element={<Index />} />
         
+        {/* Add route for /client to redirect to client login */}
+        <Route path="/client" element={<Navigate to="/client-login" />} />
+        
+        {/* Client login route */}
+        <Route path="/client-login" element={<ClientLogin />} />
+        
         <Route path="/client-dashboard/*" element={
           <RequireAuth userType="client" redirectTo="/client-login">
             <ClientDashboard />
           </RequireAuth>
         } />
-
-        <Route path="/client-login" element={<Navigate to="/client-dashboard" />} />
       </Routes>
       <Toaster />
     </>

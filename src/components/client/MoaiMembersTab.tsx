@@ -219,6 +219,23 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
     }
   };
 
+  const { data: groupData } = useQuery({
+    queryKey: ['moai-group-details', groupId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('groups')
+        .select('name, program_type')
+        .eq('id', groupId)
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+  });
+  
+  const isRunGroup = groupData?.program_type === 'run' || 
+                    (groupData?.name && groupData?.name.toLowerCase().includes('run'));
+  
   if (isLoadingMembers) {
     return (
       <div className="flex justify-center items-center h-40">
@@ -376,7 +393,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
             </TabsContent>
             
             <TabsContent value="workouts">
-              <RunGoalsProgressCard userId={selectedMember} />
+              {isRunGroup && <RunGoalsProgressCard userId={selectedMember} />}
               
               <Card className="mt-4">
                 <CardHeader>

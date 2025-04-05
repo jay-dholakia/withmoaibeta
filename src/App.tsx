@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ClientDashboard from './pages/client/ClientDashboard';
 import LogCardioPage from './pages/client/LogCardioPage';
 import { Toaster } from 'sonner';
+import Index from './pages/Index';
 
 // Protected route component
 function RequireAuth({ children, userType, redirectTo }: {
@@ -27,13 +28,15 @@ function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Navigate to="/client-dashboard" />} />
+        <Route path="/" element={<Index />} />
         
         <Route path="/client-dashboard/*" element={
           <RequireAuth userType="client" redirectTo="/client-login">
             <ClientDashboard />
           </RequireAuth>
         } />
+
+        <Route path="/client-login" element={<Navigate to="/client-dashboard" />} />
       </Routes>
       <Toaster />
     </>

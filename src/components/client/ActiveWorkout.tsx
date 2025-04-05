@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, ArrowLeft, CheckCircle2, AlertTriangle, Play } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
 import WorkoutSetCompletions from './WorkoutSetCompletions';
 import { createWorkoutCompletion } from '@/services/workout-history-service';
 
@@ -16,7 +17,6 @@ const ActiveWorkout = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const [startingWorkout, setStartingWorkout] = useState(false);
 
   const { data: workout, isLoading: isLoadingWorkout, error: workoutError } = useQuery({
     queryKey: ['workout-details', workoutId],
@@ -94,7 +94,6 @@ const ActiveWorkout = () => {
         .eq('workout_id', workoutId)
         .eq('user_id', user.id)
         .gte('created_at', today.toISOString())
-        .is('completed_at', null)
         .order('created_at', { ascending: false })
         .maybeSingle();
       
@@ -112,59 +111,55 @@ const ActiveWorkout = () => {
     navigate('/client-dashboard/workouts');
   };
 
-  const handleStartWorkout = async () => {
-    if (!workoutId || !user?.id) return;
-    
-    try {
-      setStartingWorkout(true);
-      
-      const workoutType = workout?.workout_type || 'strength';
-      
-      const data = await createWorkoutCompletion(
-        user.id, 
-        workoutId, 
-        workoutType 
-      );
-      
-      if (!data) {
-        toast.error('Failed to start workout');
-        setStartingWorkout(false);
-        return;
-      }
-      
-      if (window && (window as any).saveTempSetsToWorkoutCompletion) {
-        await (window as any).saveTempSetsToWorkoutCompletion(data.id);
-      }
-      
-      toast.success('Workout started!');
-      queryClient.invalidateQueries({ queryKey: ['current-workout-completion', workoutId] });
-      setStartingWorkout(false);
-    } catch (err) {
-      console.error('Unexpected error in handleStartWorkout:', err);
-      toast.error('Something went wrong');
-      setStartingWorkout(false);
-    }
-  };
-
   const handleCompleteWorkout = async () => {
-    if (!workoutId || !user?.id || !existingCompletion?.id) return;
+    if (!workoutId || !user?.id) return;
 
     try {
       setLoading(true);
 
-      const { error } = await supabase
-        .from('workout_completions')
-        .update({
-          completed_at: new Date().toISOString(),
-          workout_type: workout?.workout_type || 'strength'
-        })
-        .eq('id', existingCompletion.id);
+      // If we already have a workout completion, mark it as completed
+      if (existingCompletion?.id) {
+        const { error } = await supabase
+          .from('workout_completions')
+          .update({
+            completed_at: new Date().toISOString(),
+            workout_type: workout?.workout_type || 'strength'
+          })
+          .eq('id', existingCompletion.id);
 
-      if (error) {
-        console.error('Error logging workout:', error);
-        toast.error('Failed to log workout');
-        setLoading(false);
-        return;
+        if (error) {
+          console.error('Error completing workout:', error);
+          toast.error('Failed to complete workout');
+          setLoading(false);
+          return;
+        }
+      } else {
+        // If no existing completion, create a new one that's immediately completed
+        const workoutType = workout?.workout_type || 'strength';
+        
+        // Create a new workout completion that's already marked as completed
+        const { data, error } = await supabase
+          .from('workout_completions')
+          .insert({
+            user_id: user.id,
+            workout_id: workoutId,
+            completed_at: new Date().toISOString(),
+            workout_type: workoutType,
+          })
+          .select('*')
+          .single();
+          
+        if (error) {
+          console.error('Error creating workout completion:', error);
+          toast.error('Failed to complete workout');
+          setLoading(false);
+          return;
+        }
+        
+        // Save any temporary sets if needed
+        if (window && (window as any).saveTempSetsToWorkoutCompletion && data) {
+          await (window as any).saveTempSetsToWorkoutCompletion(data.id);
+        }
       }
 
       queryClient.invalidateQueries({ queryKey: ['weekly-run-progress'] });
@@ -271,35 +266,19 @@ const ActiveWorkout = () => {
         </CardContent>
 
         <CardFooter className="flex justify-center">
-          {existingCompletion ? (
-            <Button 
-              onClick={handleCompleteWorkout} 
-              disabled={loading}
-              size="lg"
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {loading ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              ) : (
-                <CheckCircle2 className="mr-2 h-5 w-5" />
-              )}
-              Complete Workout
-            </Button>
-          ) : (
-            <Button 
-              onClick={handleStartWorkout} 
-              disabled={startingWorkout}
-              size="lg"
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {startingWorkout ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              ) : (
-                <Play className="mr-2 h-5 w-5" />
-              )}
-              Start Workout
-            </Button>
-          )}
+          <Button 
+            onClick={handleCompleteWorkout} 
+            disabled={loading}
+            size="lg"
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {loading ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="mr-2 h-5 w-5" />
+            )}
+            Complete Workout
+          </Button>
         </CardFooter>
       </Card>
     </div>

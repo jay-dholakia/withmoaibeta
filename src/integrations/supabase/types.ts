@@ -1031,7 +1031,6 @@ export type Database = {
       workout_completions: {
         Row: {
           completed_at: string | null
-          created_at: string | null
           custom_workout_id: string | null
           description: string | null
           distance: string | null
@@ -1043,6 +1042,7 @@ export type Database = {
           rating: number | null
           rest_day: boolean | null
           standalone_workout_id: string | null
+          started_at: string | null
           title: string | null
           user_id: string
           workout_id: string | null
@@ -1050,7 +1050,6 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
-          created_at?: string | null
           custom_workout_id?: string | null
           description?: string | null
           distance?: string | null
@@ -1062,6 +1061,7 @@ export type Database = {
           rating?: number | null
           rest_day?: boolean | null
           standalone_workout_id?: string | null
+          started_at?: string | null
           title?: string | null
           user_id: string
           workout_id?: string | null
@@ -1069,7 +1069,6 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
-          created_at?: string | null
           custom_workout_id?: string | null
           description?: string | null
           distance?: string | null
@@ -1081,6 +1080,7 @@ export type Database = {
           rating?: number | null
           rest_day?: boolean | null
           standalone_workout_id?: string | null
+          started_at?: string | null
           title?: string | null
           user_id?: string
           workout_id?: string | null

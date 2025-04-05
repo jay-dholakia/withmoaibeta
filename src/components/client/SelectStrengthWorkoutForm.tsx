@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,6 +17,7 @@ interface SelectStrengthWorkoutFormProps {
 
 const SelectStrengthWorkoutForm: React.FC<SelectStrengthWorkoutFormProps> = ({ onComplete }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
@@ -51,6 +52,9 @@ const SelectStrengthWorkoutForm: React.FC<SelectStrengthWorkoutFormProps> = ({ o
       );
       
       if (completion) {
+        // Invalidate related queries to trigger refetch
+        queryClient.invalidateQueries({ queryKey: ['weekly-run-progress'] });
+        
         toast.success('Workout started');
         navigate(`/client-dashboard/workouts/active/${completion.id}`);
         onComplete();

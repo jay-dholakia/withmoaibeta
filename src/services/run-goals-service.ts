@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface RunGoals {
@@ -347,57 +346,82 @@ export const getWeeklyRunProgress = async (userId: string): Promise<{
     // Get weekly goals
     const runGoals = await getUserRunGoals(userId);
     
-    // Get current progress using direct queries instead of the DB function
+    // Calculate the date range for the current week (Sunday to Saturday)
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // First day is Sunday
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Last day is Saturday
+    endOfWeek.setHours(23, 59, 59, 999);
+    
+    // Format dates for Supabase query
+    const weekStart = startOfWeek.toISOString();
+    const weekEnd = endOfWeek.toISOString();
+    
+    console.log('Fetching run progress for date range:', { weekStart, weekEnd });
     
     // 1. Query run activities to get total miles
     const { data: runData, error: runError } = await supabase
       .from('run_activities')
       .select('distance')
       .eq('user_id', userId)
-      .gte('completed_at', new Date(new Date().setDate(new Date().getDate() - 7)).toISOString());
+      .gte('completed_at', weekStart)
+      .lte('completed_at', weekEnd);
     
-    // 2. Query workout completions exercises to count exercises
-    const { count: exercisesCount, error: exercisesError } = await supabase
-      .from('workout_set_completions')
+    if (runError) {
+      console.error('Error fetching run activities:', runError);
+    }
+    
+    // 2. Count completed strength/mobility workouts (not individual exercises)
+    const { count: workoutsCount, error: workoutsError } = await supabase
+      .from('workout_completions')
       .select('*', { count: 'exact', head: false })
       .eq('user_id', userId)
-      .gte('created_at', new Date(new Date().setDate(new Date().getDate() - 7)).toISOString());
+      .gte('completed_at', weekStart)
+      .lte('completed_at', weekEnd)
+      .match({ rest_day: false, life_happens_pass: false }); // Exclude rest days and passes
+    
+    if (workoutsError) {
+      console.error('Error counting workouts:', workoutsError);
+    }
     
     // 3. Query cardio activities to get total minutes
     const { data: cardioData, error: cardioError } = await supabase
       .from('cardio_activities')
       .select('minutes')
       .eq('user_id', userId)
-      .gte('completed_at', new Date(new Date().setDate(new Date().getDate() - 7)).toISOString());
+      .gte('completed_at', weekStart)
+      .lte('completed_at', weekEnd);
     
-    if (runError) console.error('Error fetching run activities:', runError);
-    if (exercisesError) console.error('Error counting exercises:', exercisesError);
-    if (cardioError) console.error('Error fetching cardio activities:', cardioError);
+    if (cardioError) {
+      console.error('Error fetching cardio activities:', cardioError);
+    }
     
     // Calculate the total miles completed
     const milesCompleted = runData?.reduce((total, activity) => {
-      // Fix: Ensure both values are treated as numbers
-      return total + (typeof activity.distance === 'string' 
+      const distance = typeof activity.distance === 'string' 
         ? parseFloat(activity.distance) || 0 
-        : (activity.distance || 0));
+        : (activity.distance || 0);
+      return total + distance;
     }, 0) || 0;
     
     // Calculate the total cardio minutes completed
     const cardioMinutesCompleted = cardioData?.reduce((total, activity) => {
-      // Ensure we're dealing with numbers
       const minutes = typeof activity.minutes === 'number' 
         ? activity.minutes 
         : parseInt(activity.minutes || '0', 10);
       return total + (minutes || 0);
     }, 0) || 0;
     
-    return {
+    const result = {
       miles: { 
         completed: milesCompleted,
         goal: runGoals.miles_goal 
       },
       exercises: { 
-        completed: exercisesCount || 0,
+        completed: workoutsCount || 0,
         goal: runGoals.exercises_goal 
       },
       cardio: { 
@@ -405,6 +429,10 @@ export const getWeeklyRunProgress = async (userId: string): Promise<{
         goal: runGoals.cardio_minutes_goal 
       }
     };
+    
+    console.log('Weekly run progress result:', result);
+    return result;
+    
   } catch (error) {
     console.error('Unexpected error fetching weekly run progress:', error);
     return {

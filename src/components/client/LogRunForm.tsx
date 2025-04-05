@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { logRunActivity } from '@/services/run-goals-service';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 const formSchema = z.object({
   distance: z.coerce.number()
@@ -30,6 +31,7 @@ interface LogRunFormProps {
 
 const LogRunForm: React.FC<LogRunFormProps> = ({ onComplete }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -55,6 +57,10 @@ const LogRunForm: React.FC<LogRunFormProps> = ({ onComplete }) => {
 
       if (result.success) {
         toast.success("Run logged successfully!");
+        
+        // Invalidate related queries to trigger refetch
+        queryClient.invalidateQueries({ queryKey: ['weekly-run-progress'] });
+        
         onComplete();
       } else {
         toast.error("Failed to log run");

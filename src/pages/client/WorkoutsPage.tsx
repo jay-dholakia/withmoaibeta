@@ -31,6 +31,8 @@ const WorkoutsPage = () => {
   const [showRunDialog, setShowRunDialog] = useState(false);
   const [showCardioDialog, setShowCardioDialog] = useState(false);
   const [showStrengthDialog, setShowStrengthDialog] = useState(false);
+  // Key to trigger refetching of the RunGoalsProgressCard
+  const [refreshKey, setRefreshKey] = useState(Date.now());
   const location = useLocation();
   console.log("WorkoutsPage component rendering, path:", location.pathname);
   
@@ -42,11 +44,18 @@ const WorkoutsPage = () => {
     logRestDay().then(() => {
       toast.success("Rest day logged successfully!");
       setShowRestDayDialog(false);
+      // Trigger refresh on successful log
+      setRefreshKey(Date.now());
     }).catch((error) => {
       console.error("Error logging rest day:", error);
       toast.error("Failed to log rest day");
       setShowRestDayDialog(false);
     });
+  };
+
+  const handleActivityComplete = () => {
+    // Trigger refresh of goals data
+    setRefreshKey(Date.now());
   };
 
   return (
@@ -66,7 +75,7 @@ const WorkoutsPage = () => {
             </TabsList>
             
             <TabsContent value="active-workouts">
-              <RunGoalsProgressCard className="mb-6" />
+              <RunGoalsProgressCard className="mb-6" refetchKey={refreshKey} />
               <WorkoutsList />
               
               <div className="mt-8 border-t pt-6">
@@ -190,7 +199,10 @@ const WorkoutsPage = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <LogRunForm onComplete={() => setShowRunDialog(false)} />
+          <LogRunForm onComplete={() => {
+            setShowRunDialog(false);
+            handleActivityComplete();
+          }} />
         </DialogContent>
       </Dialog>
       
@@ -207,7 +219,10 @@ const WorkoutsPage = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <LogCardioForm onComplete={() => setShowCardioDialog(false)} />
+          <LogCardioForm onComplete={() => {
+            setShowCardioDialog(false);
+            handleActivityComplete();
+          }} />
         </DialogContent>
       </Dialog>
       
@@ -224,7 +239,10 @@ const WorkoutsPage = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <SelectStrengthWorkoutForm onComplete={() => setShowStrengthDialog(false)} />
+          <SelectStrengthWorkoutForm onComplete={() => {
+            setShowStrengthDialog(false);
+            handleActivityComplete();
+          }} />
         </DialogContent>
       </Dialog>
     </div>

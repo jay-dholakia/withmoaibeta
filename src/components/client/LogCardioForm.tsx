@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { logCardioActivity } from '@/services/run-goals-service';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 const formSchema = z.object({
   minutes: z.coerce.number()
@@ -33,6 +34,7 @@ const CARDIO_ACTIVITY_TYPES = [
 
 const LogCardioForm: React.FC<LogCardioFormProps> = ({ onComplete }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -58,6 +60,10 @@ const LogCardioForm: React.FC<LogCardioFormProps> = ({ onComplete }) => {
 
       if (result.success) {
         toast.success("Cardio activity logged successfully!");
+        
+        // Invalidate related queries to trigger refetch
+        queryClient.invalidateQueries({ queryKey: ['weekly-run-progress'] });
+        
         onComplete();
       } else {
         toast.error("Failed to log cardio activity");

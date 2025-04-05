@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { getWeeklyRunProgress, setUserRunGoals } from '@/services/run-goals-service';
+import { useQuery } from '@tanstack/react-query';
 
 export interface RunProgressData {
   miles: { completed: number; goal: number };
@@ -14,7 +15,7 @@ export interface RunProgressData {
 // Default goals to show when no goals are set
 const DEFAULT_GOALS = {
   miles: 10,
-  exercises: 2, // Updated from 20 to 2 as the goal is typically 2 workouts per week
+  exercises: 2, // This is 2 workouts per week
   cardio: 60
 };
 
@@ -22,50 +23,38 @@ interface RunGoalsProgressCardProps {
   userId?: string; // Optional userId prop - if not provided, uses the current logged-in user
   showTitle?: boolean; // Whether to show the title
   className?: string; // Additional CSS classes to apply
+  refetchKey?: any; // Additional dependency to trigger refetches
 }
 
 const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({ 
   userId, 
   showTitle = true, 
-  className = '' 
+  className = '',
+  refetchKey
 }) => {
   const { user } = useAuth();
-  const [progress, setProgress] = useState<RunProgressData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
   
   // Use provided userId or fall back to the current logged-in user
   const targetUserId = userId || user?.id;
 
-  useEffect(() => {
-    const loadProgress = async () => {
-      if (!targetUserId) return;
-      
-      try {
-        console.log('Loading run goals progress for user:', targetUserId);
-        setIsLoading(true);
-        setHasError(false);
-        const data = await getWeeklyRunProgress(targetUserId);
-        console.log('Run goals progress loaded:', data);
-        setProgress(data);
-      } catch (error) {
-        console.error('Error loading run goals progress:', error);
-        setHasError(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadProgress();
-  }, [targetUserId]);
+  // Use react-query for better cache management and auto refetching
+  const { data: progress, isLoading, isError, refetch } = useQuery({
+    queryKey: ['weekly-run-progress', targetUserId, refetchKey],
+    queryFn: () => {
+      if (!targetUserId) throw new Error('No user ID provided');
+      console.log('Fetching weekly run progress for user:', targetUserId);
+      return getWeeklyRunProgress(targetUserId);
+    },
+    enabled: !!targetUserId
+  });
 
   // Log component render state
-  console.log('RunGoalsProgressCard render state:', { isLoading, hasError, progress });
+  console.log('RunGoalsProgressCard render state:', { isLoading, isError, progress });
 
   // Set up goals if none exist
   useEffect(() => {
     const setupDefaultGoals = async () => {
-      if (!targetUserId || isLoading || hasError || userId) return;
+      if (!targetUserId || isLoading || isError || userId) return;
       // Skip setting up default goals if this is not the current user's card
       
       if (progress && 
@@ -80,15 +69,8 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
             cardio_minutes_goal: DEFAULT_GOALS.cardio
           });
           
-          // Update local state with default goals
-          setProgress(prev => {
-            if (!prev) return null;
-            return {
-              miles: { completed: prev.miles.completed, goal: DEFAULT_GOALS.miles },
-              exercises: { completed: prev.exercises.completed, goal: DEFAULT_GOALS.exercises },
-              cardio: { completed: prev.cardio.completed, goal: DEFAULT_GOALS.cardio }
-            };
-          });
+          // Trigger refetch to get updated goals
+          refetch();
         } catch (error) {
           console.error('Error setting default goals:', error);
         }
@@ -96,7 +78,7 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
     };
     
     setupDefaultGoals();
-  }, [targetUserId, progress, isLoading, hasError, userId]);
+  }, [targetUserId, progress, isLoading, isError, userId, refetch]);
 
   if (isLoading) {
     return (
@@ -106,7 +88,7 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
     );
   }
 
-  if (hasError) {
+  if (isError) {
     return (
       <Card className={`p-4 text-center ${className}`}>
         <p className="text-sm text-red-500">Failed to load weekly goals</p>

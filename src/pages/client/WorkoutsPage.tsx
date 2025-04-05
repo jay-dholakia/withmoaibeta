@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -7,6 +8,7 @@ import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
 import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
+import RunGoalsProgressCard from '@/components/client/RunGoalsProgressCard';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Armchair, ListTodo, History } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
@@ -59,6 +61,7 @@ const WorkoutsPage = () => {
             </TabsList>
             
             <TabsContent value="active-workouts">
+              <RunGoalsProgressCard />
               <WorkoutsList />
               
               <div className="mt-8 border-t pt-6">

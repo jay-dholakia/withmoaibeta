@@ -333,3 +333,60 @@ export const logCardioActivity = async (
     return { success: false, error };
   }
 };
+
+/**
+ * Get weekly progress for run goals
+ */
+export const getWeeklyRunProgress = async (userId: string): Promise<{
+  miles: { completed: number; goal: number };
+  exercises: { completed: number; goal: number };
+  cardio: { completed: number; goal: number };
+}> => {
+  try {
+    // Get weekly goals
+    const runGoals = await getUserRunGoals(userId);
+    
+    // Get current progress using DB function
+    const { data, error } = await supabase.rpc(
+      'get_weekly_run_progress', 
+      { user_id_param: userId }
+    );
+    
+    if (error) {
+      console.error('Error fetching weekly run progress:', error);
+      return {
+        miles: { completed: 0, goal: runGoals.miles_goal },
+        exercises: { completed: 0, goal: runGoals.exercises_goal },
+        cardio: { completed: 0, goal: runGoals.cardio_minutes_goal }
+      };
+    }
+    
+    const progress = data || { 
+      miles_completed: 0, 
+      exercises_completed: 0, 
+      cardio_minutes_completed: 0 
+    };
+    
+    return {
+      miles: { 
+        completed: Number(progress.miles_completed) || 0, 
+        goal: runGoals.miles_goal 
+      },
+      exercises: { 
+        completed: Number(progress.exercises_completed) || 0, 
+        goal: runGoals.exercises_goal 
+      },
+      cardio: { 
+        completed: Number(progress.cardio_minutes_completed) || 0, 
+        goal: runGoals.cardio_minutes_goal 
+      }
+    };
+  } catch (error) {
+    console.error('Unexpected error fetching weekly run progress:', error);
+    return {
+      miles: { completed: 0, goal: 0 },
+      exercises: { completed: 0, goal: 0 },
+      cardio: { completed: 0, goal: 0 }
+    };
+  }
+};

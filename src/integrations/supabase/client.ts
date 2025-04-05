@@ -32,24 +32,24 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     fetch: (url, options) => {
       // Custom fetch with timeout and retry logic
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), 15000); // Extended timeout to 15 seconds
+        setTimeout(() => reject(new Error('Request timeout')), 20000); // Extended timeout to 20 seconds
       });
       
       const fetchWithRetries = async () => {
         let lastError;
         
-        for (let attempt = 0; attempt < 3; attempt++) {
+        for (let attempt = 0; attempt < 5; attempt++) { // Increased max retries
           try {
             // Add small delay between retries, but not on first attempt
             if (attempt > 0) {
-              await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+              await new Promise(resolve => setTimeout(resolve, Math.min(attempt * 1000, 3000)));
             }
             
             const response = await fetch(url, options);
             
             // Log detailed info about failing responses
             if (!response.ok) {
-              console.warn(`Supabase request failed (attempt ${attempt+1}/3):`, {
+              console.warn(`Supabase request failed (attempt ${attempt+1}/5):`, {
                 url,
                 status: response.status,
                 statusText: response.statusText
@@ -61,15 +61,20 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
                   response.status === 403) {
                 return response;
               }
+              
+              // For server errors with 5xx, retry again
+              if (response.status >= 500) {
+                throw new Error(`Server error: ${response.status}`);
+              }
             }
             
             return response;
           } catch (error: any) {
             lastError = error;
-            console.warn(`Supabase request error (attempt ${attempt+1}/3):`, error?.message);
+            console.warn(`Supabase request error (attempt ${attempt+1}/5):`, error?.message);
             
-            // Only retry on network errors, not on other types of errors
-            if (!isRetriableNetworkError(error)) {
+            // Only retry on network errors and server errors
+            if (!isRetriableNetworkError(error) && !error.message?.includes('Server error')) {
               throw error;
             }
           }
@@ -117,5 +122,10 @@ export class SubscriptionManager {
       this.subscriptions.delete(channelName);
       console.log(`Released subscription: ${channelName}`);
     }
+  }
+  
+  // Add a method to check active subscriptions (useful for debugging)
+  static getActiveSubscriptions(): string[] {
+    return Array.from(this.subscriptions.keys());
   }
 }

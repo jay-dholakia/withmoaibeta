@@ -17,7 +17,7 @@ const ActiveWorkout = () => {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   
-  // Improved query with better error handling and network resilience
+  // First fetch the workout completion to get basic info
   const { data: workoutCompletion, isLoading: isLoadingCompletion, error: completionError } = useQuery({
     queryKey: ['workout-completion', workoutCompletionId],
     queryFn: async () => {
@@ -25,53 +25,141 @@ const ActiveWorkout = () => {
       
       console.log(`Fetching workout completion: ${workoutCompletionId}`);
       
-      // Use a timeout promise to prevent hanging requests
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), 8000);
-      });
-      
-      const fetchPromise = supabase
+      const { data, error } = await supabase
         .from('workout_completions')
-        .select(`
-          *,
-          workout:workout_id (
-            id,
-            title,
-            description,
-            workout_type
-          )
-        `)
-        .eq('id', workoutCompletionId);
-      
-      // Race the fetch against the timeout
-      const { data, error } = await Promise.race([
-        fetchPromise,
-        timeoutPromise
-      ]) as any;
+        .select('*')
+        .eq('id', workoutCompletionId)
+        .maybeSingle();
       
       if (error) {
         console.error('Supabase error fetching workout completion:', error);
         throw error;
       }
       
-      // Check if any data was returned
-      if (!data || data.length === 0) {
+      if (!data) {
         console.error(`Workout completion ${workoutCompletionId} not found`);
         throw new Error(`Workout completion ${workoutCompletionId} not found`);
       }
       
-      // Since we queried by ID, we should only have one result
-      return data[0];
+      return data;
     },
     enabled: !!workoutCompletionId,
     retry: (count, error) => {
-      // Only retry network errors, not 404s or other client errors
       if (count >= 2) return false;
       return error.message?.includes('timeout') || 
              error.message?.includes('network') ||
              error.message?.includes('connection');
+    }
+  });
+  
+  // Then fetch the actual workout details through program assignments, workout weeks, and workouts
+  const { data: workoutDetails, isLoading: isLoadingWorkout, error: workoutError } = useQuery({
+    queryKey: ['workout-details', workoutCompletion?.workout_id],
+    queryFn: async () => {
+      if (!workoutCompletion?.workout_id) return null;
+      
+      console.log(`Fetching workout details: ${workoutCompletion.workout_id}`);
+      
+      // Approach 1: Try direct workout query first (fastest path)
+      const { data: directWorkout, error: directError } = await supabase
+        .from('workouts')
+        .select(`
+          *,
+          week:week_id (
+            id,
+            week_number,
+            program:program_id (
+              id,
+              title,
+              description
+            )
+          )
+        `)
+        .eq('id', workoutCompletion.workout_id)
+        .maybeSingle();
+      
+      if (!directError && directWorkout) {
+        console.log('Found workout directly:', directWorkout);
+        return directWorkout;
+      }
+      
+      console.log('Direct workout fetch failed, trying through program assignments path');
+      
+      // Approach 2: Try through program assignments if direct query fails
+      if (!user?.id) throw new Error('User not authenticated');
+      
+      // Find program assignments for this user
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from('program_assignments')
+        .select('program_id')
+        .eq('user_id', user.id);
+      
+      if (assignmentsError) {
+        console.error('Error fetching program assignments:', assignmentsError);
+        throw assignmentsError;
+      }
+      
+      if (!assignments || assignments.length === 0) {
+        console.error('No program assignments found for user');
+        throw new Error('No assigned programs found');
+      }
+      
+      const programIds = assignments.map(a => a.program_id);
+      console.log('Found program IDs:', programIds);
+      
+      // Find workout weeks in these programs
+      const { data: weeks, error: weeksError } = await supabase
+        .from('workout_weeks')
+        .select('id')
+        .in('program_id', programIds);
+      
+      if (weeksError) {
+        console.error('Error fetching workout weeks:', weeksError);
+        throw weeksError;
+      }
+      
+      if (!weeks || weeks.length === 0) {
+        console.error('No workout weeks found in assigned programs');
+        throw new Error('No workout weeks found');
+      }
+      
+      const weekIds = weeks.map(w => w.id);
+      console.log('Found week IDs:', weekIds);
+      
+      // Find the workout in these weeks
+      const { data: workout, error: workoutError } = await supabase
+        .from('workouts')
+        .select(`
+          *,
+          week:week_id (
+            id,
+            week_number,
+            program:program_id (
+              id,
+              title,
+              description
+            )
+          )
+        `)
+        .eq('id', workoutCompletion.workout_id)
+        .in('week_id', weekIds)
+        .maybeSingle();
+      
+      if (workoutError) {
+        console.error('Error fetching workout:', workoutError);
+        throw workoutError;
+      }
+      
+      if (!workout) {
+        console.error(`Workout ${workoutCompletion.workout_id} not found in assigned programs`);
+        throw new Error('Workout not found in your assigned programs');
+      }
+      
+      console.log('Found workout through program assignments:', workout);
+      return workout;
     },
-    staleTime: 60000, // Cache for 1 minute
+    enabled: !!workoutCompletion?.workout_id,
+    retry: 2
   });
   
   // More efficient exercise query with batching and optimizations
@@ -141,7 +229,7 @@ const ActiveWorkout = () => {
         .from('workout_completions')
         .update({
           completed_at: new Date().toISOString(),
-          workout_type: workoutCompletion?.workout?.workout_type || workoutCompletion?.workout_type || 'strength'
+          workout_type: workoutDetails?.workout_type || workoutCompletion?.workout_type || 'strength'
         })
         .eq('id', workoutCompletionId)
         .eq('user_id', user.id);
@@ -175,7 +263,9 @@ const ActiveWorkout = () => {
     }
   };
   
-  if (isLoadingCompletion || isLoadingExercises) {
+  const isLoading = isLoadingCompletion || isLoadingWorkout || isLoadingExercises;
+  
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
@@ -214,6 +304,38 @@ const ActiveWorkout = () => {
     );
   }
   
+  if (workoutError || !workoutDetails) {
+    return (
+      <div className="p-8">
+        <Button variant="outline" size="sm" onClick={handleBackClick} className="mb-4">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Workouts
+        </Button>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">{workoutCompletion.title || 'Workout'}</CardTitle>
+          </CardHeader>
+          
+          <CardContent>
+            <div className="text-center py-6">
+              <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+              <p className="text-red-500 mb-2">Error loading workout details.</p>
+              <p className="text-sm text-muted-foreground">
+                {workoutError?.message || 'Could not find this workout in your assigned programs. Please refresh or contact your coach.'}
+              </p>
+            </div>
+          </CardContent>
+          
+          <CardFooter className="flex justify-center">
+            <Button onClick={handleBackClick} className="w-full md:w-auto">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Return to Workouts
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+  
   if (exercisesError) {
     return (
       <div className="p-8">
@@ -223,9 +345,9 @@ const ActiveWorkout = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">{workoutCompletion.workout?.title || workoutCompletion.title || 'Workout'}</CardTitle>
-            {workoutCompletion.workout?.description && (
-              <p className="text-muted-foreground">{workoutCompletion.workout.description}</p>
+            <CardTitle className="text-xl">{workoutDetails.title || 'Workout'}</CardTitle>
+            {workoutDetails.description && (
+              <p className="text-muted-foreground">{workoutDetails.description}</p>
             )}
           </CardHeader>
           
@@ -243,8 +365,8 @@ const ActiveWorkout = () => {
     );
   }
   
-  const workoutTitle = workoutCompletion.workout?.title || workoutCompletion.title || 'Untitled Workout';
-  const workoutDescription = workoutCompletion.workout?.description || workoutCompletion.description || '';
+  const workoutTitle = workoutDetails.title || workoutCompletion.title || 'Untitled Workout';
+  const workoutDescription = workoutDetails.description || workoutCompletion.description || '';
   
   return (
     <div className="space-y-6">
@@ -257,6 +379,13 @@ const ActiveWorkout = () => {
           <CardTitle className="text-xl">{workoutTitle}</CardTitle>
           {workoutDescription && (
             <p className="text-muted-foreground">{workoutDescription}</p>
+          )}
+          {workoutDetails.week?.week_number && workoutDetails.week?.program?.title && (
+            <div className="mt-2">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium">Program:</span> {workoutDetails.week.program.title} - Week {workoutDetails.week.week_number}
+              </p>
+            </div>
           )}
         </CardHeader>
         

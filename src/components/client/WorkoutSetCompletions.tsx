@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, SubscriptionManager } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -20,13 +20,21 @@ interface WorkoutSetCompletionsProps {
   readOnly?: boolean;
 }
 
+interface TempSet {
+  setNumber: number;
+  reps: string;
+  weight: string;
+}
+
 const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({ 
   workoutId, 
   workoutExercises,
   readOnly = false
 }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [completions, setCompletions] = useState<Record<string, WorkoutSetCompletion[]>>({});
+  const [tempSets, setTempSets] = useState<Record<string, TempSet[]>>({});
   const [updatingSetId, setUpdatingSetId] = useState<string | null>(null);
   const [workoutCompletionId, setWorkoutCompletionId] = useState<string | null>(null);
   const [showVideoId, setShowVideoId] = useState<string | null>(null);
@@ -99,6 +107,25 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     }
   }, [workoutSetCompletions]);
   
+  useEffect(() => {
+    // Initialize temp sets for exercises that don't have real sets yet
+    const initialTempSets: Record<string, TempSet[]> = {};
+    workoutExercises.forEach(exercise => {
+      // Skip if it's not a strength exercise
+      if (exercise.exercise?.exercise_type === 'cardio') return;
+      
+      // Only create temp sets if we don't have real ones and it's a strength exercise
+      if (!completions[exercise.id] || completions[exercise.id].length === 0) {
+        initialTempSets[exercise.id] = Array.from(
+          { length: exercise.sets }, 
+          (_, i) => ({ setNumber: i + 1, reps: "", weight: "" })
+        );
+      }
+    });
+    
+    setTempSets(prev => ({...prev, ...initialTempSets}));
+  }, [workoutExercises, completions]);
+  
   const handleUpdateSet = debounce(async (setId: string, field: string, value: any) => {
     if (readOnly) return;
     
@@ -121,6 +148,67 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
       setUpdatingSetId(null);
     }
   }, 500);
+
+  const handleUpdateTempSet = (exerciseId: string, setNumber: number, field: string, value: any) => {
+    setTempSets(prev => {
+      const updatedSets = [...(prev[exerciseId] || [])];
+      const setIndex = updatedSets.findIndex(set => set.setNumber === setNumber);
+      
+      if (setIndex >= 0) {
+        updatedSets[setIndex] = { 
+          ...updatedSets[setIndex],
+          [field]: value 
+        };
+      }
+      
+      return {
+        ...prev,
+        [exerciseId]: updatedSets
+      };
+    });
+  };
+  
+  // Modified function to save temp sets when workout is started
+  const saveTempSetsToWorkoutCompletion = async (exerciseId: string, newWorkoutCompletionId: string) => {
+    if (!tempSets[exerciseId] || tempSets[exerciseId].length === 0) return;
+    
+    try {
+      const setsToCreate = tempSets[exerciseId].map(tempSet => ({
+        workout_completion_id: newWorkoutCompletionId,
+        workout_exercise_id: exerciseId,
+        set_number: tempSet.setNumber,
+        reps_completed: tempSet.reps ? parseInt(tempSet.reps) : null,
+        weight: tempSet.weight ? parseFloat(tempSet.weight) : null,
+        completed: !!(tempSet.reps || tempSet.weight),
+        user_id: user?.id,
+        created_at: new Date().toISOString()
+      }));
+      
+      const { data, error } = await supabase
+        .from('workout_set_completions')
+        .insert(setsToCreate)
+        .select();
+      
+      if (error) {
+        console.error('Error saving temp sets:', error);
+        return;
+      }
+      
+      // Clear temp sets for this exercise
+      setTempSets(prev => {
+        const updated = {...prev};
+        delete updated[exerciseId];
+        return updated;
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['workout-set-completions', newWorkoutCompletionId] 
+      });
+      
+    } catch (err) {
+      console.error('Error in saveTempSetsToWorkoutCompletion:', err);
+    }
+  };
   
   // This function will now require a completion ID to create sets
   const createWorkoutSets = async (exerciseId: string, sets: number) => {
@@ -131,14 +219,21 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
         return;
       }
       
-      const setsToCreate = Array.from({ length: sets }, (_, i) => ({
-        workout_completion_id: workoutCompletionId,
-        workout_exercise_id: exerciseId,
-        set_number: i + 1,
-        completed: false,
-        user_id: user?.id,
-        created_at: new Date().toISOString()
-      }));
+      // Include any temp sets data if available
+      const setsToCreate = Array.from({ length: sets }, (_, i) => {
+        const tempSet = tempSets[exerciseId]?.find(ts => ts.setNumber === i + 1);
+        
+        return {
+          workout_completion_id: workoutCompletionId,
+          workout_exercise_id: exerciseId,
+          set_number: i + 1,
+          reps_completed: tempSet?.reps ? parseInt(tempSet.reps) : null,
+          weight: tempSet?.weight ? parseFloat(tempSet.weight) : null,
+          completed: !!(tempSet?.reps || tempSet?.weight),
+          user_id: user?.id,
+          created_at: new Date().toISOString()
+        };
+      });
       
       const { data, error } = await supabase
         .from('workout_set_completions')
@@ -156,11 +251,36 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
         [exerciseId]: data
       }));
       
+      // Clear temp sets for this exercise as they're now saved
+      setTempSets(prev => {
+        const updated = {...prev};
+        delete updated[exerciseId];
+        return updated;
+      });
+      
     } catch (err) {
       console.error('Error in createWorkoutSets:', err);
       toast.error('Failed to create workout sets');
     }
   };
+  
+  // Added to parent component's API
+  React.useEffect(() => {
+    // Expose method to parent component
+    if (window) {
+      (window as any).saveTempSetsToWorkoutCompletion = async (newWorkoutCompletionId: string) => {
+        for (const exerciseId of Object.keys(tempSets)) {
+          await saveTempSetsToWorkoutCompletion(exerciseId, newWorkoutCompletionId);
+        }
+      };
+    }
+    
+    return () => {
+      if (window && (window as any).saveTempSetsToWorkoutCompletion) {
+        delete (window as any).saveTempSetsToWorkoutCompletion;
+      }
+    };
+  }, [tempSets]);
   
   useEffect(() => {
     if (!workoutCompletionId) return;
@@ -252,42 +372,21 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     );
   }
   
-  // New component to conditionally render exercise sets or a button to start tracking
-  const renderExerciseSets = (exercise: any) => {
-    const exerciseSets = completions[exercise.id] || [];
+  // Render input for temp sets that will be saved when workout is started
+  const renderTempSets = (exercise: any) => {
+    const exerciseSets = tempSets[exercise.id] || [];
     const isCardio = exercise.exercise?.exercise_type === 'cardio';
-    
-    if (!workoutCompletionId) {
-      return (
-        <div className="text-center py-4 text-gray-500">
-          Start the workout to begin tracking exercises.
-        </div>
-      );
-    }
     
     if (isCardio) {
       return (
         <div className="mb-3">
           <label className="text-sm font-medium block mb-1">Duration</label>
-          {exerciseSets.length > 0 ? (
-            <Input
-              value={exerciseSets[0]?.duration || ''}
-              onChange={(e) => handleUpdateSet(exerciseSets[0].id, 'duration', e.target.value)}
-              placeholder="hh:mm:ss"
-              className="w-full"
-              disabled={readOnly}
-            />
-          ) : (
-            <div className="flex justify-center my-3">
-              <Button 
-                size="sm" 
-                onClick={() => createWorkoutSets(exercise.id, 1)}
-                disabled={readOnly}
-              >
-                Add Duration
-              </Button>
-            </div>
-          )}
+          <Input
+            value={exerciseSets[0]?.reps || ''}
+            onChange={(e) => handleUpdateTempSet(exercise.id, 1, 'reps', e.target.value)}
+            placeholder="hh:mm:ss"
+            className="w-full"
+          />
         </div>
       );
     } else {
@@ -299,8 +398,74 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
             <div className="col-span-5">Weight</div>
           </div>
           
-          {exerciseSets.length > 0 ? (
-            exerciseSets.map((set) => (
+          {Array.from({ length: exercise.sets }, (_, i) => {
+            const setNumber = i + 1;
+            const tempSet = exerciseSets.find(set => set.setNumber === setNumber) || {
+              setNumber,
+              reps: "",
+              weight: ""
+            };
+            
+            return (
+              <div key={`temp-${exercise.id}-${setNumber}`} className="grid grid-cols-12 gap-2 items-center">
+                <div className="col-span-3 text-sm font-medium">{setNumber}</div>
+                <div className="col-span-4">
+                  <Input 
+                    type="number"
+                    value={tempSet.reps}
+                    onChange={(e) => handleUpdateTempSet(exercise.id, setNumber, 'reps', e.target.value)}
+                    placeholder={String(exercise.reps)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="col-span-5">
+                  <Input 
+                    type="number"
+                    value={tempSet.weight}
+                    onChange={(e) => handleUpdateTempSet(exercise.id, setNumber, 'weight', e.target.value)}
+                    placeholder="Weight"
+                    className="h-8 text-sm"
+                    step="0.5"
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+  };
+  
+  // New component to conditionally render exercise sets or a button to start tracking
+  const renderExerciseSets = (exercise: any) => {
+    const exerciseSets = completions[exercise.id] || [];
+    const isCardio = exercise.exercise?.exercise_type === 'cardio';
+    
+    // If we have a workout completion and sets, show them
+    if (workoutCompletionId && exerciseSets.length > 0) {
+      if (isCardio) {
+        return (
+          <div className="mb-3">
+            <label className="text-sm font-medium block mb-1">Duration</label>
+            <Input
+              value={exerciseSets[0]?.duration || ''}
+              onChange={(e) => handleUpdateSet(exerciseSets[0].id, 'duration', e.target.value)}
+              placeholder="hh:mm:ss"
+              className="w-full"
+              disabled={readOnly}
+            />
+          </div>
+        );
+      } else {
+        return (
+          <div className="space-y-2">
+            <div className="grid grid-cols-12 gap-2 mb-2 text-sm font-medium text-gray-500">
+              <div className="col-span-3">Set</div>
+              <div className="col-span-4">Reps</div>
+              <div className="col-span-5">Weight</div>
+            </div>
+            
+            {exerciseSets.map((set) => (
               <div key={set.id} className="grid grid-cols-12 gap-2 items-center">
                 <div className="col-span-3 text-sm font-medium">
                   {set.set_number}
@@ -330,20 +495,28 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                   />
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="flex justify-center my-3">
-              <Button 
-                size="sm" 
-                onClick={() => createWorkoutSets(exercise.id, exercise.sets)}
-                disabled={readOnly}
-              >
-                Add Sets
-              </Button>
-            </div>
-          )}
+            ))}
+          </div>
+        );
+      }
+    }
+    // If we have workout completion ID but no sets, show button to add sets
+    else if (workoutCompletionId) {
+      return (
+        <div className="flex justify-center my-3">
+          <Button 
+            size="sm" 
+            onClick={() => createWorkoutSets(exercise.id, isCardio ? 1 : exercise.sets)}
+            disabled={readOnly}
+          >
+            Add {isCardio ? 'Duration' : 'Sets'}
+          </Button>
         </div>
       );
+    }
+    // If no workout completion yet, show temp sets that can be filled in
+    else {
+      return renderTempSets(exercise);
     }
   };
   

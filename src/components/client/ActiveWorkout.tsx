@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -80,7 +79,6 @@ const ActiveWorkout = () => {
     staleTime: 300000,
   });
 
-  // Query to check if a workout completion exists already (but isn't completed yet)
   const { data: existingCompletion, isLoading: isLoadingCompletion } = useQuery({
     queryKey: ['current-workout-completion', workoutId],
     queryFn: async () => {
@@ -113,7 +111,6 @@ const ActiveWorkout = () => {
     navigate('/client-dashboard/workouts');
   };
 
-  // New function to start a workout - creates a workout_completion record
   const handleStartWorkout = async () => {
     if (!workoutId || !user?.id) return;
     
@@ -135,6 +132,10 @@ const ActiveWorkout = () => {
         toast.error('Failed to start workout');
         setStartingWorkout(false);
         return;
+      }
+      
+      if (window && (window as any).saveTempSetsToWorkoutCompletion) {
+        await (window as any).saveTempSetsToWorkoutCompletion(data.id);
       }
       
       toast.success('Workout started!');

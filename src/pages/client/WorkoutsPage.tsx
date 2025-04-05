@@ -10,9 +10,13 @@ import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import RunGoalsProgressCard from '@/components/client/RunGoalsProgressCard';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Armchair, ListTodo, History, Dumbbell } from 'lucide-react';
+import { PlusCircle, ListTodo, History } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+
 import {
   Dialog,
   DialogContent,
@@ -33,11 +37,53 @@ const WorkoutsPage = () => {
   const [showStrengthDialog, setShowStrengthDialog] = useState(false);
   const [refreshKey, setRefreshKey] = useState(Date.now());
   const location = useLocation();
+  const { user } = useAuth();
   console.log("WorkoutsPage component rendering, path:", location.pathname);
   
   const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
   const isActiveOrCompleteWorkout = location.pathname.includes('/active/') || 
                                    location.pathname.includes('/complete/');
+  
+  // Check if user is in a Moai Run group
+  const { data: userGroups, isLoading: isLoadingGroups } = useQuery({
+    queryKey: ['user-groups', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      // Get the groups the user is a member of
+      const { data: membershipData, error: membershipError } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', user.id);
+      
+      if (membershipError) {
+        console.error('Error fetching user group memberships:', membershipError);
+        return [];
+      }
+      
+      if (!membershipData || membershipData.length === 0) return [];
+      
+      // Get the details of those groups
+      const { data: groupsData, error: groupsError } = await supabase
+        .from('groups')
+        .select('id, name, program_type')
+        .in('id', membershipData.map(m => m.group_id));
+      
+      if (groupsError) {
+        console.error('Error fetching group details:', groupsError);
+        return [];
+      }
+      
+      return groupsData || [];
+    },
+    enabled: !!user?.id
+  });
+  
+  // Check if any of the user's groups is a run group
+  const isInRunGroup = userGroups?.some(group => 
+    group.program_type === 'run' || 
+    (group.name && group.name.toLowerCase().includes('run'))
+  );
   
   const handleLogRestDay = () => {
     logRestDay().then(() => {
@@ -80,7 +126,10 @@ const WorkoutsPage = () => {
             </TabsList>
             
             <TabsContent value="active-workouts">
-              <RunGoalsProgressCard className="mb-6" refetchKey={refreshKey} />
+              {/* Only show RunGoalsProgressCard for users in run groups */}
+              {isInRunGroup && (
+                <RunGoalsProgressCard className="mb-6" refetchKey={refreshKey} />
+              )}
               <WorkoutsList />
               
               <div className="mt-8 border-t pt-6">

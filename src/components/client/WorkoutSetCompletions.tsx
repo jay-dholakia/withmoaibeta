@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase, SubscriptionManager } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Loader2, Check, Dumbbell, Clock } from 'lucide-react';
+import { Loader2, Check, Dumbbell, Clock, Video, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { WorkoutExercise, WorkoutSetCompletion } from '@/types/workout';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { debounce } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { VideoPlayer } from '@/components/client/VideoPlayer';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface WorkoutSetCompletionsProps {
   workoutId: string;
@@ -27,6 +29,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
   const [completions, setCompletions] = useState<Record<string, WorkoutSetCompletion[]>>({});
   const [updatingSetId, setUpdatingSetId] = useState<string | null>(null);
   const [workoutCompletionId, setWorkoutCompletionId] = useState<string | null>(null);
+  const [showVideoId, setShowVideoId] = useState<string | null>(null);
   
   const { data: existingCompletion, isLoading: isLoadingCompletion } = useQuery({
     queryKey: ['current-workout-completion', workoutId],
@@ -277,131 +280,182 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
   }
   
   return (
-    <div className="space-y-4">
-      <Accordion type="single" collapsible className="w-full">
-        {workoutExercises.map((exercise) => {
-          const exerciseSets = completions[exercise.id] || [];
-          const isCardio = exercise.exercise?.exercise_type === 'cardio';
-          
-          return (
-            <AccordionItem key={exercise.id} value={exercise.id} className="border rounded-md mb-3">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center">
-                    {isCardio ? (
-                      <Clock className="w-5 h-5 mr-2 text-blue-500" />
-                    ) : (
-                      <Dumbbell className="w-5 h-5 mr-2 text-purple-500" />
-                    )}
-                    <div className="text-left">
-                      <h4 className="font-medium">{exercise.exercise?.name}</h4>
-                      <div className="flex gap-2 mt-1">
-                        {!isCardio && (
-                          <Badge variant="outline" className="text-xs">
-                            {exercise.sets} sets × {exercise.reps}
-                          </Badge>
-                        )}
+    <TooltipProvider>
+      <div className="space-y-4">
+        <Accordion type="single" collapsible className="w-full">
+          {workoutExercises.map((exercise) => {
+            const exerciseSets = completions[exercise.id] || [];
+            const isCardio = exercise.exercise?.exercise_type === 'cardio';
+            const hasVideo = !!exercise.exercise?.youtube_link;
+            
+            return (
+              <AccordionItem key={exercise.id} value={exercise.id} className="border rounded-md mb-3">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center">
+                      {isCardio ? (
+                        <Clock className="w-5 h-5 mr-2 text-blue-500" />
+                      ) : (
+                        <Dumbbell className="w-5 h-5 mr-2 text-purple-500" />
+                      )}
+                      <div className="text-left">
+                        <h4 className="font-medium">{exercise.exercise?.name}</h4>
+                        <div className="flex gap-2 mt-1">
+                          {!isCardio && (
+                            <Badge variant="outline" className="text-xs">
+                              {exercise.sets} sets × {exercise.reps}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    {exerciseSets.length > 0 && exerciseSets.every(set => set.completed) && (
-                      <Check className="w-5 h-5 text-green-500 mr-2" />
-                    )}
-                  </div>
-                </div>
-              </AccordionTrigger>
-              
-              <AccordionContent className="px-4 py-2">
-                {exercise.notes && (
-                  <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
-                    <strong>Instructions:</strong> {exercise.notes}
-                  </div>
-                )}
-                
-                {isCardio ? (
-                  <div className="mb-3">
-                    <label className="text-sm font-medium block mb-1">Duration</label>
-                    {exerciseSets.length > 0 ? (
-                      <Input
-                        value={exerciseSets[0]?.duration || ''}
-                        onChange={(e) => handleUpdateSet(exerciseSets[0].id, 'duration', e.target.value)}
-                        placeholder="hh:mm:ss"
-                        className="w-full"
-                        disabled={readOnly}
-                      />
-                    ) : (
-                      <div className="flex justify-center my-3">
-                        <Button 
-                          size="sm" 
-                          onClick={() => createWorkoutSets(exercise.id, 1)}
-                          disabled={readOnly}
-                        >
-                          Add Duration
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-12 gap-2 mb-2 text-sm font-medium text-gray-500">
-                      <div className="col-span-3">Set</div>
-                      <div className="col-span-4">Reps</div>
-                      <div className="col-span-5">Weight</div>
                     </div>
                     
-                    {exerciseSets.length > 0 ? (
-                      exerciseSets.map((set) => (
-                        <div key={set.id} className="grid grid-cols-12 gap-2 items-center">
-                          <div className="col-span-3 text-sm font-medium">
-                            {set.set_number}
-                            {updatingSetId === set.id && (
-                              <Loader2 className="inline w-3 h-3 ml-2 animate-spin" />
-                            )}
-                          </div>
-                          <div className="col-span-4">
-                            <Input 
-                              type="number"
-                              value={set.reps_completed || ''}
-                              onChange={(e) => handleUpdateSet(set.id, 'reps_completed', parseInt(e.target.value) || 0)}
-                              placeholder={String(exercise.reps)}
-                              className="h-8 text-sm"
-                              disabled={readOnly}
-                            />
-                          </div>
-                          <div className="col-span-5">
-                            <Input 
-                              type="number"
-                              value={set.weight || ''}
-                              onChange={(e) => handleUpdateSet(set.id, 'weight', parseFloat(e.target.value) || 0)}
-                              placeholder="Weight"
-                              className="h-8 text-sm"
-                              step="0.5"
-                              disabled={readOnly}
-                            />
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="flex justify-center my-3">
-                        <Button 
-                          size="sm" 
-                          onClick={() => createWorkoutSets(exercise.id, exercise.sets)}
-                          disabled={readOnly}
-                        >
-                          Add Sets
-                        </Button>
+                    <div className="flex items-center">
+                      <div className="flex items-center mr-3 gap-2">
+                        {hasVideo && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7 text-blue-500 p-1"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowVideoId(showVideoId === exercise.id ? null : exercise.id);
+                                }}
+                              >
+                                <Video className="h-5 w-5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Watch demo</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7 text-slate-500 p-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Info className="h-5 w-5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{exercise.exercise?.description || 'No additional information available.'}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
-                    )}
+                      
+                      {exerciseSets.length > 0 && exerciseSets.every(set => set.completed) && (
+                        <Check className="w-5 h-5 text-green-500" />
+                      )}
+                    </div>
                   </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-          );
-        })}
-      </Accordion>
-    </div>
+                </AccordionTrigger>
+                
+                <AccordionContent className="px-4 py-2">
+                  {showVideoId === exercise.id && exercise.exercise?.youtube_link && (
+                    <div className="mb-4">
+                      <VideoPlayer 
+                        youtubeUrl={exercise.exercise.youtube_link}
+                        className="w-full aspect-video rounded-md"
+                      />
+                    </div>
+                  )}
+                  
+                  {exercise.notes && (
+                    <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
+                      <strong>Instructions:</strong> {exercise.notes}
+                    </div>
+                  )}
+                  
+                  {isCardio ? (
+                    <div className="mb-3">
+                      <label className="text-sm font-medium block mb-1">Duration</label>
+                      {exerciseSets.length > 0 ? (
+                        <Input
+                          value={exerciseSets[0]?.duration || ''}
+                          onChange={(e) => handleUpdateSet(exerciseSets[0].id, 'duration', e.target.value)}
+                          placeholder="hh:mm:ss"
+                          className="w-full"
+                          disabled={readOnly}
+                        />
+                      ) : (
+                        <div className="flex justify-center my-3">
+                          <Button 
+                            size="sm" 
+                            onClick={() => createWorkoutSets(exercise.id, 1)}
+                            disabled={readOnly}
+                          >
+                            Add Duration
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-12 gap-2 mb-2 text-sm font-medium text-gray-500">
+                        <div className="col-span-3">Set</div>
+                        <div className="col-span-4">Reps</div>
+                        <div className="col-span-5">Weight</div>
+                      </div>
+                      
+                      {exerciseSets.length > 0 ? (
+                        exerciseSets.map((set) => (
+                          <div key={set.id} className="grid grid-cols-12 gap-2 items-center">
+                            <div className="col-span-3 text-sm font-medium">
+                              {set.set_number}
+                              {updatingSetId === set.id && (
+                                <Loader2 className="inline w-3 h-3 ml-2 animate-spin" />
+                              )}
+                            </div>
+                            <div className="col-span-4">
+                              <Input 
+                                type="number"
+                                value={set.reps_completed || ''}
+                                onChange={(e) => handleUpdateSet(set.id, 'reps_completed', parseInt(e.target.value) || 0)}
+                                placeholder={String(exercise.reps)}
+                                className="h-8 text-sm"
+                                disabled={readOnly}
+                              />
+                            </div>
+                            <div className="col-span-5">
+                              <Input 
+                                type="number"
+                                value={set.weight || ''}
+                                onChange={(e) => handleUpdateSet(set.id, 'weight', parseFloat(e.target.value) || 0)}
+                                placeholder="Weight"
+                                className="h-8 text-sm"
+                                step="0.5"
+                                disabled={readOnly}
+                              />
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex justify-center my-3">
+                          <Button 
+                            size="sm" 
+                            onClick={() => createWorkoutSets(exercise.id, exercise.sets)}
+                            disabled={readOnly}
+                          >
+                            Add Sets
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+      </div>
+    </TooltipProvider>
   );
 };
 

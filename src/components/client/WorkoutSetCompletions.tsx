@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, SubscriptionManager } from '@/integrations/supabase/client';
@@ -29,7 +28,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
   const [updatingSetId, setUpdatingSetId] = useState<string | null>(null);
   const [workoutCompletionId, setWorkoutCompletionId] = useState<string | null>(null);
   
-  // First, check if we already have a workout_completion record for this workout
   const { data: existingCompletion, isLoading: isLoadingCompletion } = useQuery({
     queryKey: ['current-workout-completion', workoutId],
     queryFn: async () => {
@@ -44,7 +42,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
         .eq('workout_id', workoutId)
         .eq('user_id', user.id)
         .gte('created_at', today.toISOString())
-        .is('completed_at', null) // Only get incomplete workouts
+        .is('completed_at', null)
         .order('created_at', { ascending: false })
         .maybeSingle();
       
@@ -58,7 +56,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     enabled: !!workoutId && !!user?.id
   });
   
-  // Create a workout completion record if we don't have one
   useEffect(() => {
     const createWorkoutCompletion = async () => {
       if (!workoutId || !user?.id || isLoadingCompletion || existingCompletion) return;
@@ -304,9 +301,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                             {exercise.sets} sets × {exercise.reps}
                           </Badge>
                         )}
-                        <Badge variant="outline" className="text-xs bg-gray-50">
-                          {exercise.exercise?.category || 'Uncategorized'}
-                        </Badge>
                       </div>
                     </div>
                   </div>

@@ -131,7 +131,9 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                       </div>
                       <div className="px-1">
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={editedSets[set.id]?.reps_completed || 0}
                           onChange={(e) => handleSetChange(
                             set.id, 
@@ -144,7 +146,9 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                       </div>
                       <div className="px-1">
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
+                          pattern="[0-9]*\.?[0-9]*"
                           value={editedSets[set.id]?.weight || 0}
                           onChange={(e) => handleSetChange(
                             set.id, 

@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, ArrowLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
 import WorkoutSetCompletions from './WorkoutSetCompletions';
 import { createWorkoutCompletion } from '@/services/workout-history-service';
+import WorkoutTimer from './WorkoutTimer';
 
 const ActiveWorkout = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -268,6 +269,7 @@ const ActiveWorkout = () => {
 
       <div className="fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-gray-200 z-10">
         <div className="w-full max-w-screen-xl mx-auto">
+          <WorkoutTimer />
           <Button 
             onClick={handleCompleteWorkout} 
             disabled={loading}

@@ -348,7 +348,6 @@ export const getWeeklyRunProgress = async (userId: string): Promise<{
     const runGoals = await getUserRunGoals(userId);
     
     // Get current progress using direct queries instead of the DB function
-    // since there seems to be a type mismatch with the DB function
     
     // 1. Query run activities to get total miles
     const { data: runData, error: runError } = await supabase
@@ -377,12 +376,19 @@ export const getWeeklyRunProgress = async (userId: string): Promise<{
     
     // Calculate the total miles completed
     const milesCompleted = runData?.reduce((total, activity) => {
-      return total + (parseFloat(activity.distance) || 0);
+      // Fix: Ensure both values are treated as numbers
+      return total + (typeof activity.distance === 'string' 
+        ? parseFloat(activity.distance) || 0 
+        : (activity.distance || 0));
     }, 0) || 0;
     
     // Calculate the total cardio minutes completed
     const cardioMinutesCompleted = cardioData?.reduce((total, activity) => {
-      return total + (activity.minutes || 0);
+      // Ensure we're dealing with numbers
+      const minutes = typeof activity.minutes === 'number' 
+        ? activity.minutes 
+        : parseInt(activity.minutes || '0', 10);
+      return total + (minutes || 0);
     }, 0) || 0;
     
     return {

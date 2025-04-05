@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface RunGoals {
@@ -352,7 +353,7 @@ export const getWeeklyRunProgress = async (userId: string): Promise<{
       { user_id_param: userId }
     );
     
-    if (error) {
+    if (error || !data) {
       console.error('Error fetching weekly run progress:', error);
       return {
         miles: { completed: 0, goal: runGoals.miles_goal },
@@ -361,22 +362,22 @@ export const getWeeklyRunProgress = async (userId: string): Promise<{
       };
     }
     
-    // Handle both single object and array responses
-    const progress = Array.isArray(data) && data.length > 0 
-      ? data[0] 
-      : (data || { miles_completed: 0, exercises_completed: 0, cardio_minutes_completed: 0 });
+    // ✅ FIX: Ensure we're always working with a single object
+    const progress = Array.isArray(data)
+      ? data[0] ?? { miles_completed: 0, exercises_completed: 0, cardio_minutes_completed: 0 }
+      : data;
     
     return {
       miles: { 
-        completed: Number(progress.miles_completed) || 0, 
+        completed: Number(progress.miles_completed) || 0,
         goal: runGoals.miles_goal 
       },
       exercises: { 
-        completed: Number(progress.exercises_completed) || 0, 
+        completed: Number(progress.exercises_completed) || 0,
         goal: runGoals.exercises_goal 
       },
       cardio: { 
-        completed: Number(progress.cardio_minutes_completed) || 0, 
+        completed: Number(progress.cardio_minutes_completed) || 0,
         goal: runGoals.cardio_minutes_goal 
       }
     };

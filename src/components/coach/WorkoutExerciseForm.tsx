@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label"; 
@@ -8,7 +8,6 @@ import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/service
 import { useAutosave } from '@/hooks/useAutosave';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 export interface WorkoutExerciseFormProps {
   initialData: any;
@@ -27,7 +26,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const [notes, setNotes] = React.useState(initialData?.notes || '');
   const [duration, setDuration] = React.useState(initialData?.duration || '');
   const [distance, setDistance] = React.useState(initialData?.distance || '');
-  const [draftLoaded, setDraftLoaded] = useState(false);
 
   // Create unique draft ID for this exercise form
   const exerciseFormDraftId = initialData?.id ? `exercise-form-${initialData.id}` : null;
@@ -56,190 +54,204 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     disabled: !exerciseFormDraftId
   });
 
-  // Enhanced draft loading logic
+  // Load draft data when component mounts
   useEffect(() => {
     const loadDraftData = async () => {
-      if (!exerciseFormDraftId || draftLoaded) return;
+      if (!exerciseFormDraftId) return;
       
-      try {
-        // Check for user session
-        const { data: { user } } = await supabase.auth.getUser();
+      const draft = await getWorkoutDraft(exerciseFormDraftId);
+      
+      if (draft && draft.draft_data) {
+        const data = draft.draft_data;
         
-        if (!user) {
-          console.log("No authenticated user found for exercise form draft");
-          return;
-        }
-        
-        const draft = await getWorkoutDraft(exerciseFormDraftId);
-        
-        if (draft && draft.draft_data) {
-          const data = draft.draft_data;
-          
-          if (data.sets !== undefined) setSets(data.sets);
-          if (data.reps !== undefined) setReps(data.reps);
-          if (data.restSeconds !== undefined) setRestSeconds(data.restSeconds);
-          if (data.notes !== undefined) setNotes(data.notes);
-          if (data.duration !== undefined) setDuration(data.duration);
-          if (data.distance !== undefined) setDistance(data.distance);
-          
-          console.log("Successfully loaded exercise form draft data");
-        }
-        
-        // Mark draft as loaded
-        setDraftLoaded(true);
-      } catch (error) {
-        console.error("Error loading exercise form draft:", error);
+        if (data.sets !== undefined) setSets(data.sets);
+        if (data.reps !== undefined) setReps(data.reps);
+        if (data.restSeconds !== undefined) setRestSeconds(data.restSeconds);
+        if (data.notes !== undefined) setNotes(data.notes);
+        if (data.duration !== undefined) setDuration(data.duration);
+        if (data.distance !== undefined) setDistance(data.distance);
       }
     };
     
     loadDraftData();
-  }, [exerciseFormDraftId, draftLoaded]);
+  }, [exerciseFormDraftId]);
 
-  // Fix the getWorkoutDraft service to handle auth issues better
-  <lov-write file_path="src/services/workout-draft-service.ts">
-import { supabase } from "@/integrations/supabase/client";
-
-/**
- * Saves a workout draft to the server
- */
-export const saveWorkoutDraft = async (
-  workoutId: string | null,
-  workoutType: string | null,
-  draftData: any
-): Promise<boolean> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    if (!user) {
-      console.error("No authenticated user found");
-      return false;
+    // When submitting, clean up the draft
+    if (exerciseFormDraftId) {
+      deleteWorkoutDraft(exerciseFormDraftId);
     }
     
-    // Check if a draft already exists for this workout
-    const { data: existingDraft } = await supabase
-      .from('workout_drafts')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('workout_id', workoutId || '')
-      .maybeSingle();
+    onSubmit({
+      sets,
+      reps: isRunningExercise ? '' : reps,
+      rest_seconds: restSeconds,
+      notes,
+      duration,
+      distance
+    });
+  };
+
+  // Helper function to format duration input
+  const formatDurationInput = (value: string): string => {
+    let cleaned = value.replace(/[^\d:]/g, '');
+    
+    // Limit to maximum of 3 parts (hours:minutes:seconds)
+    const parts = cleaned.split(':');
+    if (parts.length > 3) {
+      cleaned = parts.slice(0, 3).join(':');
+    }
+    
+    return cleaned;
+  };
+
+  // Determine if this is a running exercise based on the exercise type or name
+  const isRunningExercise = React.useMemo(() => {
+    if (!initialData?.exercise) return false;
+    
+    const exerciseName = initialData.exercise.name?.toLowerCase() || '';
+    const exerciseType = initialData.exercise.exercise_type?.toLowerCase() || '';
+    
+    return exerciseName.includes('run') || 
+           exerciseName.includes('jog') || 
+           exerciseType.includes('run') ||
+           exerciseType.includes('cardio');
+  }, [initialData]);
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 text-center px-2">
+      {/* Display autosave status */}
+      {saveStatus !== 'idle' && (
+        <div className="text-xs text-right text-muted-foreground">
+          {saveStatus === 'saving' && (
+            <span className="flex items-center justify-end gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Saving...
+            </span>
+          )}
+          {saveStatus === 'success' && (
+            <span className="flex items-center justify-end gap-1">
+              <CheckCircle2 className="h-3 w-3 text-green-500" />
+              Saved
+            </span>
+          )}
+        </div>
+      )}
       
-    if (existingDraft) {
-      // Update existing draft
-      const { error } = await supabase
-        .from('workout_drafts')
-        .update({ 
-          draft_data: draftData,
-          workout_type: workoutType
-        })
-        .eq('id', existingDraft.id);
-        
-      if (error) {
-        console.error("Error updating workout draft:", error);
-        return false;
-      }
-    } else {
-      // Create new draft
-      const { error } = await supabase
-        .from('workout_drafts')
-        .insert({
-          user_id: user.id,
-          workout_id: workoutId,
-          workout_type: workoutType,
-          draft_data: draftData
-        });
-        
-      if (error) {
-        console.error("Error creating workout draft:", error);
-        return false;
-      }
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Error in saveWorkoutDraft:", error);
-    return false;
-  }
-};
-
-/**
- * Retrieves a workout draft from the server
- * This version includes better handling for auth state
- */
-export const getWorkoutDraft = async (
-  workoutId: string | null
-): Promise<any | null> => {
-  if (!workoutId) {
-    console.log("No workoutId provided to getWorkoutDraft");
-    return null;
-  }
-  
-  try {
-    // Check if we have a session
-    const { data, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !data.session) {
-      console.log("No active session found:", sessionError);
-      return null;
-    }
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.log("No authenticated user found");
-      return null;
-    }
-    
-    const { data: draftData, error } = await supabase
-      .from('workout_drafts')
-      .select('draft_data, workout_type')
-      .eq('user_id', user.id)
-      .eq('workout_id', workoutId)
-      .maybeSingle();
+      {!isRunningExercise ? (
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="sets" className="text-center block mb-2">Sets</Label>
+            <Input
+              id="sets"
+              type="number"
+              value={sets}
+              onChange={(e) => setSets(Number(e.target.value))}
+              min={1}
+              className="w-full text-center"
+            />
+          </div>
+          
+          {/* Column headers and inputs with padding adjustments */}
+          <div>
+            <div className="grid grid-cols-2 gap-4 mb-1">
+              <div className="text-center text-sm text-muted-foreground">Reps</div>
+              <div className="text-center text-sm text-muted-foreground">Weight</div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Input
+                  id="reps"
+                  value={reps}
+                  onChange={(e) => setReps(e.target.value)}
+                  placeholder="e.g., 10 or 30s"
+                  className="w-full text-center min-w-0 px-2"
+                  type="text"
+                  inputMode="numeric"
+                />
+              </div>
+              <div>
+                <Input
+                  disabled
+                  placeholder="Client will enter"
+                  className="w-full text-center bg-muted/30 min-w-0 px-2"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <p className="text-xs text-muted-foreground text-center">
+            For strength exercises, use just numbers (e.g., "10") to auto-populate client tracking
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="distance" className="text-center block">Distance (miles)</Label>
+            <Input
+              id="distance"
+              type="number"
+              value={distance}
+              onChange={(e) => setDistance(e.target.value)}
+              placeholder="3.1"
+              step="0.1"
+              min="0"
+              className="w-full text-center"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="duration" className="text-center block">Duration (hh:mm:ss)</Label>
+            <Input
+              id="duration"
+              value={duration}
+              onChange={(e) => setDuration(formatDurationInput(e.target.value))}
+              placeholder="00:30:00"
+              className="w-full text-center"
+            />
+            <p className="text-xs text-muted-foreground mt-1 text-center">
+              Format as hours:minutes:seconds (e.g., 00:30:00 for 30 minutes)
+            </p>
+          </div>
+        </div>
+      )}
       
-    if (error) {
-      console.error("Error retrieving workout draft:", error);
-      return null;
-    }
-    
-    return draftData;
-  } catch (error) {
-    console.error("Error in getWorkoutDraft:", error);
-    return null;
-  }
-};
-
-/**
- * Deletes a workout draft from the server
- */
-export const deleteWorkoutDraft = async (
-  workoutId: string | null
-): Promise<boolean> => {
-  if (!workoutId) {
-    return false;
-  }
-  
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.error("No authenticated user found");
-      return false;
-    }
-    
-    const { error } = await supabase
-      .from('workout_drafts')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('workout_id', workoutId);
+      {!isRunningExercise && (
+        <div>
+          <Label htmlFor="rest" className="text-center block">Rest (seconds)</Label>
+          <Input
+            id="rest"
+            type="number"
+            value={restSeconds}
+            onChange={(e) => setRestSeconds(Number(e.target.value))}
+            min={0}
+            className="w-full text-center"
+          />
+        </div>
+      )}
       
-    if (error) {
-      console.error("Error deleting workout draft:", error);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Error in deleteWorkoutDraft:", error);
-    return false;
-  }
+      <div>
+        <Label htmlFor="notes" className="text-center block">Notes (Optional)</Label>
+        <Textarea
+          id="notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Add special instructions or cues"
+          rows={2}
+          className="min-h-[60px] text-center"
+        />
+      </div>
+      
+      <Button 
+        type="submit" 
+        disabled={isSubmitting}
+        className="w-full"
+      >
+        {isSubmitting ? 'Saving...' : 'Save'}
+      </Button>
+    </form>
+  );
 };

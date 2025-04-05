@@ -761,6 +761,63 @@ export type Database = {
           },
         ]
       }
+      run_activities: {
+        Row: {
+          completed_at: string | null
+          distance: number | null
+          id: string
+          notes: string | null
+          run_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          distance?: number | null
+          id?: string
+          notes?: string | null
+          run_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          distance?: number | null
+          id?: string
+          notes?: string | null
+          run_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      run_goals: {
+        Row: {
+          cardio_minutes_goal: number | null
+          created_at: string | null
+          exercises_goal: number | null
+          id: string
+          miles_goal: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cardio_minutes_goal?: number | null
+          created_at?: string | null
+          exercises_goal?: number | null
+          id?: string
+          miles_goal?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cardio_minutes_goal?: number | null
+          created_at?: string | null
+          exercises_goal?: number | null
+          id?: string
+          miles_goal?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       standalone_superset_groups: {
         Row: {
           created_at: string
@@ -1153,6 +1210,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          program_type: string | null
           title: string
           updated_at: string
           weeks: number
@@ -1162,6 +1220,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          program_type?: string | null
           title: string
           updated_at?: string
           weeks: number
@@ -1171,6 +1230,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          program_type?: string | null
           title?: string
           updated_at?: string
           weeks?: number

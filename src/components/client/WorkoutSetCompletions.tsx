@@ -10,8 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { debounce } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { VideoPlayer } from '@/components/client/VideoPlayer';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import ExerciseVideoDialog from './ExerciseVideoDialog';
 
 interface WorkoutSetCompletionsProps {
   workoutId: string;
@@ -36,7 +36,17 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
   const [tempSets, setTempSets] = useState<Record<string, TempSet[]>>({});
   const [updatingSetId, setUpdatingSetId] = useState<string | null>(null);
   const [workoutCompletionId, setWorkoutCompletionId] = useState<string | null>(null);
-  const [showVideoId, setShowVideoId] = useState<string | null>(null);
+  const [videoDialog, setVideoDialog] = useState<{
+    isOpen: boolean;
+    exerciseId: string | null;
+    exerciseName: string;
+    youtubeUrl?: string;
+  }>({
+    isOpen: false,
+    exerciseId: null,
+    exerciseName: '',
+    youtubeUrl: undefined
+  });
   
   const { data: existingCompletion, isLoading: isLoadingCompletion } = useQuery({
     queryKey: ['current-workout-completion', workoutId],
@@ -326,6 +336,26 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     }
   }, [workoutCompletionId, workoutExercises, workoutSetCompletions, completions]);
   
+  const handleOpenVideoDialog = (exerciseId: string, exerciseName: string, youtubeUrl?: string) => {
+    if (!youtubeUrl) return;
+    
+    setVideoDialog({
+      isOpen: true,
+      exerciseId,
+      exerciseName,
+      youtubeUrl
+    });
+  };
+  
+  const handleCloseVideoDialog = () => {
+    setVideoDialog({
+      isOpen: false,
+      exerciseId: null,
+      exerciseName: '',
+      youtubeUrl: undefined
+    });
+  };
+  
   if (isLoadingCompletion) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -541,7 +571,11 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                                 className="h-7 w-7 text-blue-500 p-1 flex items-center justify-center cursor-pointer hover:bg-slate-100 rounded-md"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setShowVideoId(showVideoId === exercise.id ? null : exercise.id);
+                                  handleOpenVideoDialog(
+                                    exercise.id, 
+                                    exercise.exercise?.name || 'Exercise', 
+                                    exercise.exercise?.youtube_link
+                                  );
                                 }}
                               >
                                 <Video className="h-5 w-5" />
@@ -555,12 +589,11 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                         
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div 
+                            <span 
                               className="h-7 w-7 text-slate-500 p-1 flex items-center justify-center cursor-pointer hover:bg-slate-100 rounded-md"
-                              onClick={(e) => e.stopPropagation()}
                             >
                               <Info className="h-5 w-5" />
-                            </div>
+                            </span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>{exercise.exercise?.description || 'No additional information available.'}</p>
@@ -576,15 +609,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                 </AccordionTrigger>
                 
                 <AccordionContent className="px-4 py-2">
-                  {showVideoId === exercise.id && exercise.exercise?.youtube_link && (
-                    <div className="mb-4">
-                      <VideoPlayer 
-                        youtubeUrl={exercise.exercise.youtube_link}
-                        className="w-full aspect-video rounded-md"
-                      />
-                    </div>
-                  )}
-                  
                   {exercise.notes && (
                     <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
                       <strong>Instructions:</strong> {exercise.notes}
@@ -597,6 +621,13 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
             );
           })}
         </Accordion>
+        
+        <ExerciseVideoDialog
+          isOpen={videoDialog.isOpen}
+          onClose={handleCloseVideoDialog}
+          exerciseName={videoDialog.exerciseName}
+          youtubeUrl={videoDialog.youtubeUrl}
+        />
       </div>
     </TooltipProvider>
   );

@@ -45,12 +45,14 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     data: draftData,
     onSave: async (data) => {
       if (!exerciseFormDraftId) return false;
+      console.log("Autosaving exercise form data:", data);
       return await saveWorkoutDraft(
         exerciseFormDraftId,
         'exercise_form',
         data
       );
     },
+    interval: 1000, // Reduced interval for more frequent saves
     disabled: !exerciseFormDraftId
   });
 
@@ -62,6 +64,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       const draft = await getWorkoutDraft(exerciseFormDraftId);
       
       if (draft && draft.draft_data) {
+        console.log("Loaded draft data:", draft.draft_data);
         const data = draft.draft_data;
         
         if (data.sets !== undefined) setSets(data.sets);
@@ -75,6 +78,13 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     
     loadDraftData();
   }, [exerciseFormDraftId]);
+
+  // Add cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Nothing specific to clean up here, the useAutosave hook handles its cleanup internally
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

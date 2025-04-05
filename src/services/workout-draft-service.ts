@@ -31,7 +31,8 @@ export const saveWorkoutDraft = async (
         .from('workout_drafts')
         .update({ 
           draft_data: draftData,
-          workout_type: workoutType
+          workout_type: workoutType,
+          updated_at: new Date().toISOString()
         })
         .eq('id', existingDraft.id);
         
@@ -47,7 +48,9 @@ export const saveWorkoutDraft = async (
           user_id: user.id,
           workout_id: workoutId,
           workout_type: workoutType,
-          draft_data: draftData
+          draft_data: draftData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
         
       if (error) {

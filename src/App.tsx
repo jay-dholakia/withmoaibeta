@@ -1,200 +1,84 @@
-
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from './components/ui/toaster';
-import { Toaster as SonnerToaster } from 'sonner';
-
-// Main pages
-import Index from './pages/Index';
-import NotFound from './pages/NotFound';
-import ClientLogin from './pages/ClientLogin';
-import CoachLogin from './pages/CoachLogin';
-import AdminLogin from './pages/AdminLogin';
-import Register from './pages/Register';
-import ResetPassword from './pages/ResetPassword';
-import AdminSetup from './pages/AdminSetup';
-
-// Admin pages
-import AdminDashboard from './pages/admin/AdminDashboard';
-import CoachesPage from './pages/admin/CoachesPage';
-import ClientsPage from './pages/admin/ClientsPage';
-import GroupsPage from './pages/admin/GroupsPage';
-import InvitationsPage from './pages/admin/InvitationsPage';
-import GroupDetailsPage from './pages/admin/GroupDetailsPage';
-import ExerciseManagementPage from './pages/admin/ExerciseManagementPage';
-
-// Coach pages
-import CoachDashboard from './pages/coach/CoachDashboard';
-import WorkoutProgramsPage from './pages/coach/WorkoutProgramsPage';
-import CreateWorkoutProgramPage from './pages/coach/CreateWorkoutProgramPage';
-import WorkoutProgramDetailPage from './pages/coach/WorkoutProgramDetailPage';
-import ProgramAssignmentPage from './pages/coach/ProgramAssignmentPage';
-import StandaloneWorkoutsPage from './pages/coach/StandaloneWorkoutsPage';
-import LeaderboardPage from './pages/coach/LeaderboardPage';
-import ProfilePage from './pages/coach/ProfilePage';
-import CoachClientsPage from './pages/coach/ClientsPage';
-
-// Client pages
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import LoginPage from './pages/LoginPage';
 import ClientDashboard from './pages/client/ClientDashboard';
-import ProfileBuilder from './pages/client/ProfileBuilder';
-import ClientWorkoutsPage from './pages/client/WorkoutsPage';
-import ClientMoaiPage from './pages/client/MoaiPage';
-import ClientLeaderboardPage from './pages/client/LeaderboardPage';
-import ClientNotesPage from './pages/client/NotesPage';
-import ProfileEditor from './pages/client/ProfileEditor';
-import ClientSettingsPage from './pages/client/SettingsPage';
+import TrainerDashboard from './pages/trainer/TrainerDashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import ClientLayout from './components/ClientLayout';
+import TrainerLayout from './components/TrainerLayout';
+import AdminLayout from './components/AdminLayout';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import UpdatePasswordPage from './pages/UpdatePasswordPage';
+import ClientSignupPage from './pages/ClientSignupPage';
+import TrainerSignupPage from './pages/TrainerSignupPage';
+import { Toaster } from 'sonner';
+import WorkoutsPage from './pages/client/WorkoutsPage';
+import LogCardioPage from './pages/client/LogCardioPage';
+import LogRunPage from './pages/client/LogRunPage';
 
-import './App.css';
-import RequireAuth from './components/RequireAuth';
-import ExerciseImportPage from './pages/ExerciseImportPage';
+// Protected route component
+function RequireAuth({ children, userType, redirectTo }: {
+  children: React.ReactNode;
+  userType: 'client' | 'trainer' | 'admin';
+  redirectTo: string;
+}) {
+  const { user, userRole } = useAuth();
 
-const queryClient = new QueryClient();
+  if (!user) {
+    return <Navigate to={redirectTo} />;
+  }
+
+  if (userRole !== userType) {
+    // Redirect to unauthorized page or appropriate dashboard
+    return <Navigate to="/unauthorized" />;
+  }
+
+  return children;
+}
 
 function App() {
+  const { authLoading } = useAuth();
+
+  if (authLoading) {
+    return <div>Loading...</div>; // Replace with a proper loading indicator
+  }
+
   return (
-    <QueryClientProvider client={queryClient}>
+    <Router>
       <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Index />} />
-        <Route path="/client-login" element={<ClientLogin />} />
-        <Route path="/coach-login" element={<CoachLogin />} />
-        <Route path="/admin-login" element={<AdminLogin />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/admin-setup" element={<AdminSetup />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        
-        {/* Admin routes */}
-        <Route path="/admin-dashboard" element={
-          <RequireAuth userType="admin">
-            <AdminDashboard />
-          </RequireAuth>
-        } />
-        <Route path="/admin-dashboard/coaches" element={
-          <RequireAuth userType="admin">
-            <CoachesPage />
-          </RequireAuth>
-        } />
-        <Route path="/admin-dashboard/clients" element={
-          <RequireAuth userType="admin">
-            <ClientsPage />
-          </RequireAuth>
-        } />
-        <Route path="/admin-dashboard/groups" element={
-          <RequireAuth userType="admin">
-            <GroupsPage />
-          </RequireAuth>
-        } />
-        <Route path="/admin-dashboard/groups/:groupId" element={
-          <RequireAuth userType="admin">
-            <GroupDetailsPage />
-          </RequireAuth>
-        } />
-        <Route path="/admin-dashboard/invitations" element={
-          <RequireAuth userType="admin">
-            <InvitationsPage />
-          </RequireAuth>
-        } />
-        <Route path="/admin-dashboard/exercise-management" element={
-          <RequireAuth userType="admin">
-            <ExerciseManagementPage />
-          </RequireAuth>
-        } />
-        
-        {/* Add redirect for /admin */}
-        <Route path="/admin" element={<Navigate to="/admin-login" replace />} />
-        
-        {/* Coach routes */}
-        <Route path="/coach-dashboard" element={
-          <RequireAuth userType="coach">
-            <CoachDashboard />
-          </RequireAuth>
-        } />
-        <Route path="/coach-dashboard/workouts" element={
-          <RequireAuth userType="coach">
-            <WorkoutProgramsPage />
-          </RequireAuth>
-        } />
-        <Route path="/coach-dashboard/workout-templates" element={
-          <RequireAuth userType="coach">
-            <StandaloneWorkoutsPage />
-          </RequireAuth>
-        } />
-        <Route path="/coach-dashboard/workouts/create" element={
-          <RequireAuth userType="coach">
-            <CreateWorkoutProgramPage />
-          </RequireAuth>
-        } />
-        <Route path="/coach-dashboard/workouts/:programId" element={
-          <RequireAuth userType="coach">
-            <WorkoutProgramDetailPage />
-          </RequireAuth>
-        } />
-        <Route path="/coach-dashboard/workouts/:programId/assign" element={
-          <RequireAuth userType="coach">
-            <ProgramAssignmentPage />
-          </RequireAuth>
-        } />
-        <Route path="/coach-dashboard/clients" element={
-          <RequireAuth userType="coach">
-            <CoachClientsPage />
-          </RequireAuth>
-        } />
-        <Route path="/coach-dashboard/leaderboards" element={
-          <RequireAuth userType="coach">
-            <LeaderboardPage />
-          </RequireAuth>
-        } />
-        <Route path="/coach-dashboard/profile" element={
-          <RequireAuth userType="coach">
-            <ProfilePage />
-          </RequireAuth>
-        } />
-        
-        {/* Add redirect for /coach */}
-        <Route path="/coach" element={<Navigate to="/coach-login" replace />} />
-        
-        {/* Client routes */}
-        <Route path="/client-dashboard/*" element={
-          <RequireAuth userType="client">
-            <ClientDashboard />
-          </RequireAuth>
-        } />
-        
-        {/* Add direct route to profile builder */}
-        <Route path="/client-profile-builder" element={
-          <RequireAuth userType="client">
-            <ProfileBuilder />
-          </RequireAuth>
-        } />
-        
-        {/* Add direct route to profile editor */}
-        <Route path="/client-profile-editor" element={
-          <RequireAuth userType="client">
-            <ProfileEditor />
-          </RequireAuth>
-        } />
-        
-        {/* Add redirect for /client */}
-        <Route path="/client" element={<Navigate to="/client-login" replace />} />
-        
-        {/* Redirects */}
-        <Route path="/login" element={<Navigate to="/client-login" />} />
-        
-        {/* Exercise Import Page - Make it accessible directly */}
-        <Route path="/exercise-import" element={
-          <RequireAuth userType="admin">
-            <ExerciseImportPage />
-          </RequireAuth>
-        } />
-        
-        {/* 404 */}
-        <Route path="*" element={<NotFound />} />
+        <Route path="/" element={<Navigate to="/client-login" />} />
+        <Route path="/client-login" element={<LoginPage userType="client" />} />
+        <Route path="/trainer-login" element={<LoginPage userType="trainer" />} />
+        <Route path="/admin-login" element={<LoginPage userType="admin" />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/update-password/:token" element={<UpdatePasswordPage />} />
+        <Route path="/client-signup" element={<ClientSignupPage />} />
+        <Route path="/trainer-signup" element={<TrainerSignupPage />} />
+
+        <Route path="/client-dashboard" element={<RequireAuth userType="client" redirectTo="/client-login" />}>
+          <Route element={<ClientLayout />}>
+            <Route index element={<ClientDashboard />} />
+            <Route path="workouts/*" element={<WorkoutsPage />} />
+            <Route path="log-run" element={<LogRunPage />} />
+            <Route path="log-cardio" element={<LogCardioPage />} />
+          </Route>
+        </Route>
+
+        <Route path="/trainer-dashboard" element={<RequireAuth userType="trainer" redirectTo="/trainer-login" />}>
+          <Route element={<TrainerLayout />}>
+            <Route index element={<TrainerDashboard />} />
+          </Route>
+        </Route>
+
+        <Route path="/admin-dashboard" element={<RequireAuth userType="admin" redirectTo="/admin-login" />}>
+          <Route element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+          </Route>
+        </Route>
       </Routes>
-      
       <Toaster />
-      <SonnerToaster position="top-right" />
-    </QueryClientProvider>
+    </Router>
   );
 }
 

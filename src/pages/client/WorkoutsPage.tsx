@@ -9,7 +9,7 @@ import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Armchair, ListTodo, History, Calendar } from 'lucide-react';
+import { PlusCircle, Armchair, ListTodo, History, Calendar as CalendarIcon } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
 import { toast } from 'sonner';
 import {
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from "@/components/ui/calendar";
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -125,7 +126,7 @@ const WorkoutsPage = () => {
                       !restDate && "text-muted-foreground"
                     )}
                   >
-                    <Calendar className="mr-2 h-4 w-4" />
+                    <CalendarIcon className="mr-2 h-4 w-4" />
                     {restDate ? format(restDate, "PPP") : <span>Select date</span>}
                   </Button>
                 </PopoverTrigger>

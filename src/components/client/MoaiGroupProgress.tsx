@@ -18,6 +18,25 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
   const { user } = useAuth();
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   
+  // Get the group details first to check if it's a run group
+  const { data: groupData } = useQuery({
+    queryKey: ['moai-group-data', groupId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('groups')
+        .select('name, description, program_type')
+        .eq('id', groupId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+  
+  // Determine if this is a run group by name pattern
+  const isRunGroup = groupData?.name?.toLowerCase().includes('run') || 
+                    groupData?.program_type === 'run';
+  
   const { data: groupMembers, isLoading } = useQuery({
     queryKey: ['moai-group-members', groupId],
     queryFn: async () => {
@@ -158,7 +177,7 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
     enabled: !!groupMembers && groupMembers.length > 0
   });
 
-  // Fetch run progress for each member
+  // Fetch run progress for each member (only used for run groups)
   const { data: memberProgress } = useQuery({
     queryKey: ['moai-member-progress', groupId, groupMembers],
     queryFn: async () => {
@@ -182,7 +201,7 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
       
       return progressMap;
     },
-    enabled: !!groupMembers && groupMembers.length > 0
+    enabled: !!groupMembers && groupMembers.length > 0 && isRunGroup
   });
   
   const toggleMemberCard = (userId: string) => {
@@ -210,8 +229,10 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
     );
   }
   
-  // Function to render progress bars
+  // Function to render progress bars (for run groups)
   const renderProgressBars = (userId: string) => {
+    if (!isRunGroup) return null;
+    
     const progress = memberProgress?.[userId];
     if (!progress) return null;
     
@@ -479,10 +500,10 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
           {/* Show expanded content when card is expanded */}
           {expandedCards[member.userId] && (
             <div className="px-4 pb-4">
-              {/* Progress Metrics */}
-              {renderProgressBars(member.userId)}
+              {/* Progress Metrics - only show for Run groups */}
+              {isRunGroup && renderProgressBars(member.userId)}
               
-              {/* Weekly Workouts */}
+              {/* Weekly Workouts - show for all groups */}
               {renderWeeklyWorkouts(member.userId)}
             </div>
           )}

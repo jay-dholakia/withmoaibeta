@@ -136,8 +136,8 @@ const WorkoutsPage = () => {
                   onClick={() => setShowRestDayDialog(true)}
                 >
                   <div className="flex items-center">
-                    <Armchair className="h-4 w-4 mr-2" />
-                    <span>Log Rest Day</span>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    <span>Rest Day</span>
                   </div>
                   <span className="text-lg">😌</span>
                 </Button>
@@ -161,7 +161,7 @@ const WorkoutsPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Armchair className="h-5 w-5 text-green-600" />
+              <span role="img" aria-label="Rest" className="text-lg">😌</span>
               <span>Log a Rest Day</span>
             </DialogTitle>
             <DialogDescription>
@@ -244,7 +244,7 @@ const WorkoutsPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Dumbbell className="h-5 w-5 text-purple-600" />
+              <span role="img" aria-label="Strength" className="text-lg">🏋️</span>
               <span>Log a Strength/Mobility Workout</span>
             </DialogTitle>
             <DialogDescription>

@@ -1,3 +1,4 @@
+
 export interface Exercise {
   id: string;
   name: string;
@@ -165,6 +166,7 @@ export const STANDARD_WORKOUT_TYPES = [
   'bodyweight',
   'cardio',
   'flexibility',
+  'mobility', // Added mobility here as a valid workout type
   'rest_day',
   'custom',
   'one_off',

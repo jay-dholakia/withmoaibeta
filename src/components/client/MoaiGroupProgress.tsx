@@ -9,6 +9,8 @@ import { Loader2, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import RunGoalsProgressCard from './RunGoalsProgressCard';
+import { WorkoutProgressCard } from './WorkoutProgressCard';
+import { format } from 'date-fns';
 
 interface MoaiGroupProgressProps {
   groupId: string;
@@ -87,6 +89,75 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
         throw error;
       }
     }
+  });
+  
+  // Fetch completed workouts for each member
+  const { data: memberWorkouts } = useQuery({
+    queryKey: ['moai-member-workouts', groupId, groupMembers],
+    queryFn: async () => {
+      if (!groupMembers || groupMembers.length === 0) return {};
+      
+      const workoutsMap: Record<string, any> = {};
+      
+      for (const member of groupMembers) {
+        try {
+          // Get workouts completed in the last 7 days
+          const startDate = new Date();
+          startDate.setDate(startDate.getDate() - 7);
+          startDate.setHours(0, 0, 0, 0);
+          
+          const { data: workouts } = await supabase
+            .from('workout_completions')
+            .select('*')
+            .eq('user_id', member.userId)
+            .gte('completed_at', startDate.toISOString());
+            
+          if (workouts) {
+            // Process workouts for WorkoutProgressCard component
+            const completedDates = workouts
+              .filter(w => !w.rest_day && !w.life_happens_pass)
+              .map(w => new Date(w.completed_at));
+              
+            const lifeHappensDates = workouts
+              .filter(w => w.rest_day || w.life_happens_pass)
+              .map(w => new Date(w.completed_at));
+            
+            // Create a map of workout types for each day
+            const workoutTypesMap: Record<string, string> = {};
+            const workoutTitlesMap: Record<string, string> = {};
+            
+            workouts.forEach(workout => {
+              const dateStr = format(new Date(workout.completed_at), 'yyyy-MM-dd');
+              
+              if (!workout.rest_day && !workout.life_happens_pass) {
+                workoutTypesMap[dateStr] = workout.workout_type || 'custom';
+                workoutTitlesMap[dateStr] = workout.title || 'Workout';
+              }
+            });
+            
+            workoutsMap[member.userId] = {
+              completedDates,
+              lifeHappensDates,
+              count: completedDates.length,
+              workoutTypesMap,
+              workoutTitlesMap
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching workouts for member ${member.userId}:`, error);
+          workoutsMap[member.userId] = {
+            completedDates: [],
+            lifeHappensDates: [],
+            count: 0,
+            workoutTypesMap: {},
+            workoutTitlesMap: {}
+          };
+        }
+      }
+      
+      return workoutsMap;
+    },
+    enabled: !!groupMembers && groupMembers.length > 0
   });
   
   const { data: workoutHistory } = useQuery({
@@ -182,9 +253,39 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
             </div>
           </CardHeader>
           
+          {!expandedCards[member.userId] && memberWorkouts && memberWorkouts[member.userId] && (
+            <CardContent className="pt-0 pb-4">
+              <WorkoutProgressCard
+                label={`${member.firstName}'s Progress`}
+                count={memberWorkouts[member.userId].count}
+                total={6}
+                completedDates={memberWorkouts[member.userId].completedDates || []}
+                lifeHappensDates={memberWorkouts[member.userId].lifeHappensDates || []}
+                workoutTypesMap={memberWorkouts[member.userId].workoutTypesMap || {}}
+                workoutTitlesMap={memberWorkouts[member.userId].workoutTitlesMap || {}}
+                userName={`${member.firstName} ${member.lastName.charAt(0)}.`}
+                isCurrentUser={member.isCurrentUser}
+              />
+            </CardContent>
+          )}
+          
           {expandedCards[member.userId] && (
             <CardContent>
-              <RunGoalsProgressCard userId={member.userId} />
+              <RunGoalsProgressCard userId={member.userId} showTitle={false} />
+              
+              <div className="mt-4">
+                <WorkoutProgressCard
+                  label={`${member.firstName}'s Progress`}
+                  count={memberWorkouts?.[member.userId]?.count || 0}
+                  total={6}
+                  completedDates={memberWorkouts?.[member.userId]?.completedDates || []}
+                  lifeHappensDates={memberWorkouts?.[member.userId]?.lifeHappensDates || []}
+                  workoutTypesMap={memberWorkouts?.[member.userId]?.workoutTypesMap || {}}
+                  workoutTitlesMap={memberWorkouts?.[member.userId]?.workoutTitlesMap || {}}
+                  userName={`${member.firstName} ${member.lastName.charAt(0)}.`}
+                  isCurrentUser={member.isCurrentUser}
+                />
+              </div>
               
               <div className="mt-4 pt-2 border-t">
                 <h4 className="text-sm font-medium mb-2">Recent Workouts</h4>

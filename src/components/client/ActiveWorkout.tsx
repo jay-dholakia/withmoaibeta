@@ -238,7 +238,7 @@ const ActiveWorkout = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <Button variant="outline" size="sm" onClick={handleBackClick}>
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Workouts
       </Button>
@@ -264,13 +264,15 @@ const ActiveWorkout = () => {
             workoutExercises={workoutExercises || []}
           />
         </CardContent>
+      </Card>
 
-        <CardFooter className="flex justify-center">
+      <div className="fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-gray-200 z-10">
+        <div className="w-full max-w-screen-xl mx-auto">
           <Button 
             onClick={handleCompleteWorkout} 
             disabled={loading}
             size="lg"
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-green-600 hover:bg-green-700 w-full"
           >
             {loading ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -279,8 +281,8 @@ const ActiveWorkout = () => {
             )}
             Complete Workout
           </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

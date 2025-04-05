@@ -11,6 +11,13 @@ export interface RunGoals {
   updated_at: string;
 }
 
+export interface ProgramWeekGoals {
+  week_number: number;
+  miles_goal: number;
+  exercises_goal: number;
+  cardio_minutes_goal: number;
+}
+
 // Default values when no run goals are found
 export const defaultRunGoals = {
   miles_goal: 0,
@@ -190,6 +197,75 @@ export const getMultipleUserRunGoals = async (userIds: string[]): Promise<Record
   } catch (error) {
     console.error('Unexpected error fetching multiple run goals:', error);
     return {};
+  }
+};
+
+/**
+ * Get program week goals for a specific program
+ */
+export const getProgramWeekGoals = async (programId: string): Promise<ProgramWeekGoals[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('program_week_goals')
+      .select('*')
+      .eq('program_id', programId)
+      .order('week_number', { ascending: true });
+
+    if (error || !data) {
+      console.warn('Program week goals not found, returning empty array');
+      return [];
+    }
+
+    return data.map(weekGoal => ({
+      week_number: weekGoal.week_number,
+      miles_goal: weekGoal.miles_goal || 0,
+      exercises_goal: weekGoal.exercises_goal || 0,
+      cardio_minutes_goal: weekGoal.cardio_minutes_goal || 0
+    }));
+  } catch (error) {
+    console.error('Unexpected error fetching program week goals:', error);
+    return [];
+  }
+};
+
+/**
+ * Set program week goals
+ */
+export const setProgramWeekGoals = async (
+  programId: string,
+  weekGoals: ProgramWeekGoals[]
+): Promise<{ success: boolean; error?: any }> => {
+  try {
+    // Delete existing goals for this program
+    await supabase
+      .from('program_week_goals')
+      .delete()
+      .eq('program_id', programId);
+    
+    // Insert new goals
+    if (weekGoals.length > 0) {
+      const goalsToInsert = weekGoals.map(goal => ({
+        program_id: programId,
+        week_number: goal.week_number,
+        miles_goal: goal.miles_goal,
+        exercises_goal: goal.exercises_goal,
+        cardio_minutes_goal: goal.cardio_minutes_goal
+      }));
+
+      const { error } = await supabase
+        .from('program_week_goals')
+        .insert(goalsToInsert);
+
+      if (error) {
+        console.error('Error setting program week goals:', error);
+        return { success: false, error };
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Unexpected error setting program week goals:', error);
+    return { success: false, error };
   }
 };
 

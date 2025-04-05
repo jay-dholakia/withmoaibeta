@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Exercise, Workout } from "@/types/workout";
 
@@ -66,6 +65,11 @@ export const createWorkoutProgram = async (data: {
   weeks: number;
   coach_id: string;
   program_type?: string; // Add program_type parameter
+  weeklyGoals?: Array<{
+    milesGoal: number;
+    exercisesGoal: number;
+    cardioMinutesGoal: number;
+  }>;
 }) => {
   const { data: program, error } = await supabase
     .from('workout_programs')
@@ -82,6 +86,30 @@ export const createWorkoutProgram = async (data: {
   if (error) {
     console.error('Error creating workout program:', error);
     throw error;
+  }
+
+  // If this is a run program and we have weekly goals, save them
+  if (data.program_type === 'run' && data.weeklyGoals && data.weeklyGoals.length > 0) {
+    try {
+      // Format goals for the program_week_goals table
+      const goalsToInsert = data.weeklyGoals.map((goal, index) => ({
+        program_id: program.id,
+        week_number: index + 1,
+        miles_goal: goal.milesGoal,
+        exercises_goal: goal.exercisesGoal,
+        cardio_minutes_goal: goal.cardioMinutesGoal
+      }));
+
+      const { error: goalsError } = await supabase
+        .from('program_week_goals')
+        .insert(goalsToInsert);
+
+      if (goalsError) {
+        console.error('Error saving weekly goals:', goalsError);
+      }
+    } catch (goalsError) {
+      console.error('Error processing weekly goals:', goalsError);
+    }
   }
 
   return program;
@@ -121,10 +149,19 @@ export const updateWorkoutProgram = async (programId: string, data: {
   title?: string;
   description?: string | null;
   weeks?: number;
+  program_type?: string;
+  weeklyGoals?: Array<{
+    milesGoal: number;
+    exercisesGoal: number;
+    cardioMinutesGoal: number;
+  }>;
 }) => {
+  // Extract weekly goals from the data if present
+  const { weeklyGoals, ...programData } = data;
+  
   const { data: program, error } = await supabase
     .from('workout_programs')
-    .update(data)
+    .update(programData)
     .eq('id', programId)
     .select('*')
     .single();
@@ -132,6 +169,36 @@ export const updateWorkoutProgram = async (programId: string, data: {
   if (error) {
     console.error('Error updating workout program:', error);
     throw error;
+  }
+
+  // If we have weekly goals for a run program, update them as well
+  if (program.program_type === 'run' && weeklyGoals && weeklyGoals.length > 0) {
+    try {
+      // First delete existing goals
+      await supabase
+        .from('program_week_goals')
+        .delete()
+        .eq('program_id', programId);
+      
+      // Then insert new goals
+      const goalsToInsert = weeklyGoals.map((goal, index) => ({
+        program_id: programId,
+        week_number: index + 1,
+        miles_goal: goal.milesGoal,
+        exercises_goal: goal.exercisesGoal,
+        cardio_minutes_goal: goal.cardioMinutesGoal
+      }));
+
+      const { error: goalsError } = await supabase
+        .from('program_week_goals')
+        .insert(goalsToInsert);
+
+      if (goalsError) {
+        console.error('Error updating weekly goals:', goalsError);
+      }
+    } catch (goalsError) {
+      console.error('Error processing weekly goals update:', goalsError);
+    }
   }
 
   return program;

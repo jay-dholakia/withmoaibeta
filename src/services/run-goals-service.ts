@@ -111,7 +111,7 @@ export const getWeeklyRunProgress = async (userId: string) => {
     
     // Get user's goals
     const { data: userGoals, error: goalsError } = await supabase
-      .from('user_run_goals')
+      .from('run_goals')
       .select('miles_goal, exercises_goal, cardio_minutes_goal')
       .eq('user_id', userId)
       .maybeSingle();
@@ -166,7 +166,7 @@ export const setUserRunGoals = async (
   try {
     // Check if the user already has goals set
     const { data: existingGoals, error: checkError } = await supabase
-      .from('user_run_goals')
+      .from('run_goals')
       .select('id')
       .eq('user_id', userId)
       .maybeSingle();
@@ -179,7 +179,7 @@ export const setUserRunGoals = async (
     // If goals exist, update them; otherwise, insert new goals
     if (existingGoals) {
       const { error: updateError } = await supabase
-        .from('user_run_goals')
+        .from('run_goals')
         .update(goals)
         .eq('user_id', userId);
       
@@ -189,7 +189,7 @@ export const setUserRunGoals = async (
       }
     } else {
       const { error: insertError } = await supabase
-        .from('user_run_goals')
+        .from('run_goals')
         .insert({
           user_id: userId,
           ...goals

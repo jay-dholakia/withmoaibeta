@@ -438,11 +438,11 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     } else {
       return (
         <div className="space-y-2">
-          <div className="grid grid-cols-4 gap-5 mb-2 text-xs font-medium text-gray-500">
-            <div className="col-span-1 text-center">Set</div>
-            <div className="col-span-1 text-center">Reps</div>
-            <div className="col-span-1 text-center">Weight</div>
-            <div className="col-span-1 text-center">Done</div>
+          <div className="grid grid-cols-12 gap-3 mb-2 text-xs font-medium text-gray-500">
+            <div className="col-span-3 text-center">Set</div>
+            <div className="col-span-3 text-center">Reps</div>
+            <div className="col-span-4 text-center">Weight</div>
+            <div className="col-span-2 text-center">Done</div>
           </div>
           
           {Array.from({ length: exercise.sets }, (_, i) => {
@@ -455,9 +455,9 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
             };
             
             return (
-              <div key={`temp-${exercise.id}-${setNumber}`} className="grid grid-cols-4 gap-5 items-center">
-                <div className="col-span-1 text-center font-medium">{setNumber}</div>
-                <div className="col-span-1">
+              <div key={`temp-${exercise.id}-${setNumber}`} className="grid grid-cols-12 gap-3 items-center">
+                <div className="col-span-3 text-center font-medium">{setNumber}</div>
+                <div className="col-span-3">
                   <Input 
                     type="text"
                     inputMode="numeric"
@@ -468,7 +468,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                     className="h-8 text-sm w-full"
                   />
                 </div>
-                <div className="col-span-1">
+                <div className="col-span-4">
                   <Input 
                     type="text"
                     inputMode="decimal"
@@ -476,11 +476,11 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                     value={tempSet.weight}
                     onChange={(e) => handleUpdateTempSet(exercise.id, setNumber, 'weight', e.target.value)}
                     placeholder="lbs"
-                    className="h-8 text-sm w-full min-w-[80px]"
+                    className="h-8 text-sm w-full min-w-[95px]"
                     step="0.5"
                   />
                 </div>
-                <div className="col-span-1 flex items-center justify-center">
+                <div className="col-span-2 flex items-center justify-center">
                   <Checkbox
                     checked={tempSet.completed}
                     onCheckedChange={(checked) => {
@@ -517,22 +517,22 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
       } else {
         return (
           <div className="space-y-2">
-            <div className="grid grid-cols-4 gap-5 mb-2 text-xs font-medium text-gray-500">
-              <div className="col-span-1 text-center">Set</div>
-              <div className="col-span-1 text-center">Reps</div>
-              <div className="col-span-1 text-center">Weight</div>
-              <div className="col-span-1 text-center">Done</div>
+            <div className="grid grid-cols-12 gap-3 mb-2 text-xs font-medium text-gray-500">
+              <div className="col-span-3 text-center">Set</div>
+              <div className="col-span-3 text-center">Reps</div>
+              <div className="col-span-4 text-center">Weight</div>
+              <div className="col-span-2 text-center">Done</div>
             </div>
             
             {exerciseSets.map((set) => (
-              <div key={set.id} className="grid grid-cols-4 gap-5 items-center">
-                <div className="col-span-1 text-center font-medium">
+              <div key={set.id} className="grid grid-cols-12 gap-3 items-center">
+                <div className="col-span-3 text-center font-medium">
                   {set.set_number}
                   {updatingSetId === set.id && (
                     <Loader2 className="inline w-3 h-3 ml-1 animate-spin" />
                   )}
                 </div>
-                <div className="col-span-1">
+                <div className="col-span-3">
                   <Input 
                     type="text"
                     inputMode="numeric"
@@ -544,7 +544,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                     disabled={readOnly}
                   />
                 </div>
-                <div className="col-span-1">
+                <div className="col-span-4">
                   <Input 
                     type="text"
                     inputMode="decimal"
@@ -552,12 +552,12 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                     value={set.weight || ''}
                     onChange={(e) => handleUpdateSet(set.id, 'weight', parseFloat(e.target.value) || 0)}
                     placeholder="lbs"
-                    className="h-8 text-sm w-full px-2 min-w-[80px]"
+                    className="h-8 text-sm w-full px-2 min-w-[95px]"
                     step="0.5"
                     disabled={readOnly}
                   />
                 </div>
-                <div className="col-span-1 flex items-center justify-center">
+                <div className="col-span-2 flex items-center justify-center">
                   <Checkbox 
                     checked={set.completed}
                     onCheckedChange={(checked) => handleToggleCompleted(set.id, !!checked)}

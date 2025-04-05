@@ -125,11 +125,11 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                 // Sets, reps, weight for strength exercises
                 <div className="space-y-3">
                   {group.sets.sort((a, b) => a.set_number - b.set_number).map(set => (
-                    <div key={set.id} className="grid grid-cols-3 gap-5">
-                      <div>
+                    <div key={set.id} className="grid grid-cols-12 gap-3 items-center">
+                      <div className="col-span-3">
                         <label className="text-xs text-muted-foreground">Set {set.set_number}</label>
                       </div>
-                      <div>
+                      <div className="col-span-3">
                         <Input
                           type="text"
                           inputMode="numeric"
@@ -144,7 +144,7 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                           className="w-full h-8 text-sm px-2"
                         />
                       </div>
-                      <div>
+                      <div className="col-span-4">
                         <Input
                           type="text"
                           inputMode="decimal"
@@ -156,9 +156,23 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                             parseFloat(e.target.value) || 0
                           )}
                           placeholder="lbs"
-                          className="w-full h-8 text-sm px-2 min-w-[80px]"
+                          className="w-full h-8 text-sm px-2 min-w-[95px]"
                           step="0.5"
                         />
+                      </div>
+                      <div className="col-span-2 flex justify-center">
+                        <div className="flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={editedSets[set.id]?.completed || false}
+                            onChange={(e) => handleSetChange(
+                              set.id,
+                              'completed',
+                              e.target.checked
+                            )}
+                            className="rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                        </div>
                       </div>
                     </div>
                   ))}

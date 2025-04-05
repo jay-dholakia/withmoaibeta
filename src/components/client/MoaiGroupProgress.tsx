@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { getWeeklyRunProgress } from '@/services/run-goals-service';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
+import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
 
 interface MoaiGroupProgressProps {
   groupId: string;
@@ -140,14 +141,15 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
               .map(w => new Date(w.completed_at));
             
             // Create a map of workout types for each day
-            const workoutTypesMap: Record<string, string> = {};
+            const workoutTypesMap: Record<string, WorkoutType> = {};
             const workoutTitlesMap: Record<string, string> = {};
             
             workouts.forEach(workout => {
               const dateStr = format(new Date(workout.completed_at), 'yyyy-MM-dd');
               
               if (!workout.rest_day && !workout.life_happens_pass) {
-                workoutTypesMap[dateStr] = workout.workout_type || 'custom';
+                const workoutType = determineWorkoutType(workout);
+                workoutTypesMap[dateStr] = workoutType;
                 workoutTitlesMap[dateStr] = workout.title || 'Workout';
               }
             });
@@ -177,6 +179,94 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
     enabled: !!groupMembers && groupMembers.length > 0
   });
 
+  // Helper function to determine the workout type based on the workout data
+  const determineWorkoutType = (workout: any): WorkoutType => {
+    if (workout.rest_day || workout.life_happens_pass) {
+      return 'rest_day';
+    }
+    
+    // First check workout titles for specific activities
+    const title = (workout.title || workout.workout?.title || '').toLowerCase();
+    
+    if (title.includes('tennis') || title.includes('soccer') || 
+        title.includes('football') || title.includes('basketball') || 
+        title.includes('volleyball') || title.includes('baseball') || 
+        title.includes('golf') || title.includes('game') || 
+        title.includes('match') || title.includes('play')) return 'sport';
+      
+    if (title.includes('run') || title.includes('jog')) return 'cardio';
+    if (title.includes('swim')) return 'swimming';
+    if (title.includes('cycl') || title.includes('bike')) return 'cycling';
+    if (title.includes('dance')) return 'dance';
+    if (title.includes('yoga') || title.includes('stretch')) return 'flexibility';
+    if (title.includes('hiit')) return 'hiit';
+    if (title.includes('strength') || title.includes('weight')) return 'strength';
+    if (title.includes('bodyweight')) return 'bodyweight';
+    
+    // Then check explicit workout types
+    if (workout.workout_type) {
+      const type = workout.workout_type.toLowerCase();
+      if (type === 'sport') return 'sport';
+      if (type === 'strength') return 'strength';
+      if (type === 'cardio') return 'cardio';
+      if (type === 'bodyweight') return 'bodyweight';
+      if (type === 'flexibility') return 'flexibility';
+      if (type === 'hiit') return 'hiit';
+      if (type === 'swimming') return 'swimming';
+      if (type === 'cycling') return 'cycling';
+      if (type === 'dance') return 'dance';
+      if (type === 'custom') return 'custom';
+      if (type === 'one_off') return 'one_off';
+    }
+    
+    // Then check workout types from the workout object
+    if (workout.workout?.workout_type) {
+      const workoutType = workout.workout.workout_type.toLowerCase();
+      if (workoutType.includes('sport') || 
+          workoutType.includes('tennis') || 
+          workoutType.includes('soccer') || 
+          workoutType.includes('game') || 
+          workoutType.includes('match')) {
+        return 'sport';
+      }
+      
+      if (workoutType === 'strength') return 'strength';
+      if (workoutType === 'cardio') return 'cardio';
+      if (workoutType === 'bodyweight') return 'bodyweight';
+      if (workoutType === 'flexibility') return 'flexibility';
+      if (workoutType === 'hiit') return 'hiit';
+      if (workoutType === 'swimming') return 'swimming';
+      if (workoutType === 'cycling') return 'cycling';
+      if (workoutType === 'dance') return 'dance';
+      if (workoutType === 'custom') return 'custom';
+      if (workoutType === 'one_off') return 'one_off';
+    }
+    
+    // Lastly check workout descriptions for keywords
+    const description = (workout.description || workout.workout?.description || '').toLowerCase();
+    
+    if (description.includes('tennis') || 
+        description.includes('soccer') || 
+        description.includes('basketball') || 
+        description.includes('sport') || 
+        description.includes('game') || 
+        description.includes('match') || 
+        description.includes('play')) {
+      return 'sport';
+    }
+    
+    if (description.includes('dance')) return 'dance';
+    if (description.includes('swim')) return 'swimming';
+    if (description.includes('cycl') || description.includes('bike')) return 'cycling';
+    if (description.includes('hiit')) return 'hiit';
+    if (description.includes('strength')) return 'strength';
+    if (description.includes('cardio') || description.includes('run')) return 'cardio';
+    if (description.includes('flex') || description.includes('stretch') || description.includes('yoga')) return 'flexibility';
+    if (description.includes('bodyweight')) return 'bodyweight';
+    
+    return 'custom';
+  };
+  
   // Fetch run progress for each member (only used for run groups)
   const { data: memberProgress } = useQuery({
     queryKey: ['moai-member-progress', groupId, groupMembers],
@@ -319,14 +409,14 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
                 {isLifeHappens ? (
                   <div className="flex items-center">
                     <div className="bg-yellow-50 p-1 rounded-full mr-2">
-                      <span role="img" aria-label="Rest Day">💤</span>
+                      <WorkoutTypeIcon type="rest_day" />
                     </div>
                     <span className="text-sm">Rest Day</span>
                   </div>
                 ) : (
                   <div className="flex items-center">
                     <div className="bg-client/10 p-1 rounded-full mr-2">
-                      {renderWorkoutTypeIcon(workoutType)}
+                      <WorkoutTypeIcon type={workoutType} />
                     </div>
                     <span className="text-sm">
                       {workoutTitle}
@@ -350,22 +440,6 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
         </div>
       </div>
     );
-  };
-  
-  // Helper function to render workout type icons
-  const renderWorkoutTypeIcon = (type: string) => {
-    switch (type?.toLowerCase()) {
-      case 'strength':
-        return <span role="img" aria-label="Strength">💪</span>;
-      case 'cardio':
-        return <span role="img" aria-label="Cardio">🏃</span>;
-      case 'run':
-        return <span role="img" aria-label="Run">🏃‍♂️</span>;
-      case 'rest_day':
-        return <span role="img" aria-label="Rest Day">💤</span>;
-      default:
-        return <span role="img" aria-label="Workout">⚡</span>;
-    }
   };
   
   // Render weekly progress bubbles
@@ -418,7 +492,7 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
             
             // Format date to get the correct workout type from map
             const dateStr = format(currentDay, 'yyyy-MM-dd');
-            let workoutType = workouts.workoutTypesMap[dateStr];
+            let workoutType: WorkoutType = workouts.workoutTypesMap[dateStr];
             
             // Fallback to defaults if no workout type
             if (!workoutType) {
@@ -440,7 +514,7 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
               <div key={index} className="flex flex-col items-center">
                 <div className={`relative w-7 h-7 rounded-full flex items-center justify-center ${bgColor} border border-slate-200`}>
                   {(isDayCompleted || isLifeHappens) ? (
-                    renderWorkoutTypeIcon(workoutType)
+                    <WorkoutTypeIcon type={workoutType} size="sm" />
                   ) : (
                     <span></span>
                   )}

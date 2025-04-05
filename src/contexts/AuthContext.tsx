@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -62,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Clear the timeout since we received an auth event
         clearTimeout(loadingTimeout);
         
+        // Check for signed out event - note the string comparison instead of type comparison
         if (event === 'SIGNED_OUT') {
           console.log('User signed out, clearing auth state');
           safeSetState(setSession, null);

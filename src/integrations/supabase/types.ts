@@ -33,6 +33,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cardio_activities: {
+        Row: {
+          activity_type: string | null
+          completed_at: string | null
+          id: string
+          minutes: number | null
+          notes: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_type?: string | null
+          completed_at?: string | null
+          id?: string
+          minutes?: number | null
+          notes?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string | null
+          completed_at?: string | null
+          id?: string
+          minutes?: number | null
+          notes?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       client_custom_workout_exercises: {
         Row: {
           created_at: string
@@ -166,6 +193,7 @@ export type Database = {
           id: string
           last_name: string | null
           profile_completed: boolean | null
+          program_type: string | null
           state: string | null
           updated_at: string | null
           weight: string | null
@@ -185,6 +213,7 @@ export type Database = {
           id: string
           last_name?: string | null
           profile_completed?: boolean | null
+          program_type?: string | null
           state?: string | null
           updated_at?: string | null
           weight?: string | null
@@ -204,6 +233,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           profile_completed?: boolean | null
+          program_type?: string | null
           state?: string | null
           updated_at?: string | null
           weight?: string | null
@@ -491,6 +521,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          program_type: string | null
           spotify_playlist_url: string | null
         }
         Insert: {
@@ -499,6 +530,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          program_type?: string | null
           spotify_playlist_url?: string | null
         }
         Update: {
@@ -507,6 +539,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          program_type?: string | null
           spotify_playlist_url?: string | null
         }
         Relationships: []
@@ -689,6 +722,101 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      program_week_goals: {
+        Row: {
+          cardio_minutes_goal: number | null
+          created_at: string | null
+          exercises_goal: number | null
+          id: string
+          miles_goal: number | null
+          program_id: string
+          week_number: number
+        }
+        Insert: {
+          cardio_minutes_goal?: number | null
+          created_at?: string | null
+          exercises_goal?: number | null
+          id?: string
+          miles_goal?: number | null
+          program_id: string
+          week_number: number
+        }
+        Update: {
+          cardio_minutes_goal?: number | null
+          created_at?: string | null
+          exercises_goal?: number | null
+          id?: string
+          miles_goal?: number | null
+          program_id?: string
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_week_goals_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "workout_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      run_activities: {
+        Row: {
+          completed_at: string | null
+          distance: number | null
+          id: string
+          notes: string | null
+          run_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          distance?: number | null
+          id?: string
+          notes?: string | null
+          run_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          distance?: number | null
+          id?: string
+          notes?: string | null
+          run_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      run_goals: {
+        Row: {
+          cardio_minutes_goal: number | null
+          created_at: string | null
+          exercises_goal: number | null
+          id: string
+          miles_goal: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cardio_minutes_goal?: number | null
+          created_at?: string | null
+          exercises_goal?: number | null
+          id?: string
+          miles_goal?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cardio_minutes_goal?: number | null
+          created_at?: string | null
+          exercises_goal?: number | null
+          id?: string
+          miles_goal?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       standalone_superset_groups: {
         Row: {
@@ -903,7 +1031,6 @@ export type Database = {
       workout_completions: {
         Row: {
           completed_at: string | null
-          created_at: string | null
           custom_workout_id: string | null
           description: string | null
           distance: string | null
@@ -915,6 +1042,7 @@ export type Database = {
           rating: number | null
           rest_day: boolean | null
           standalone_workout_id: string | null
+          started_at: string | null
           title: string | null
           user_id: string
           workout_id: string | null
@@ -922,7 +1050,6 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
-          created_at?: string | null
           custom_workout_id?: string | null
           description?: string | null
           distance?: string | null
@@ -934,6 +1061,7 @@ export type Database = {
           rating?: number | null
           rest_day?: boolean | null
           standalone_workout_id?: string | null
+          started_at?: string | null
           title?: string | null
           user_id: string
           workout_id?: string | null
@@ -941,7 +1069,6 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
-          created_at?: string | null
           custom_workout_id?: string | null
           description?: string | null
           distance?: string | null
@@ -953,6 +1080,7 @@ export type Database = {
           rating?: number | null
           rest_day?: boolean | null
           standalone_workout_id?: string | null
+          started_at?: string | null
           title?: string | null
           user_id?: string
           workout_id?: string | null
@@ -1082,6 +1210,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          program_type: string | null
           title: string
           updated_at: string
           weeks: number
@@ -1091,6 +1220,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          program_type?: string | null
           title: string
           updated_at?: string
           weeks: number
@@ -1100,6 +1230,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          program_type?: string | null
           title?: string
           updated_at?: string
           weeks?: number
@@ -1378,6 +1509,17 @@ export type Database = {
         Returns: {
           id: string
           email: string
+        }[]
+      }
+      get_weekly_run_progress: {
+        Args: {
+          user_id_param: string
+          start_date?: string
+        }
+        Returns: {
+          miles_completed: number
+          exercises_completed: number
+          cardio_minutes_completed: number
         }[]
       }
       is_coach_for_client: {

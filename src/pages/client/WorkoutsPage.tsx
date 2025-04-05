@@ -17,8 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WeekProgressSection } from '@/components/client/WeekProgressSection';
 import PassCounter from '@/components/client/PassCounter';
 import { Button } from '@/components/ui/button';
-import { Dumbbell, Calendar, History, Bike, PlusCircle } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import WorkoutTimer from '@/components/client/WorkoutTimer';
 
 // Create a wrapper component for WorkoutDayDetails to provide required props
 const WorkoutDayDetailsWrapper = () => {
@@ -72,31 +73,53 @@ const WorkoutsPage = () => {
                 </TabsContent>
               </Tabs>
               
+              {/* Workout Timer */}
+              <WorkoutTimer />
+              
               {/* Workout Action Buttons */}
-              <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 p-3 grid grid-cols-5 gap-2 z-10">
-                <Button variant="outline" size="sm" className="flex flex-col h-auto py-2 px-1">
-                  <PlusCircle className="h-4 w-4 mb-1" />
-                  <span className="text-xs">Rest Day</span>
+              <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 p-3 space-y-3 z-10">
+                <Button 
+                  variant="outline" 
+                  className="flex items-center justify-between w-full rounded-full border py-3 px-4 text-blue-500"
+                >
+                  <div className="flex items-center">
+                    <Plus className="h-5 w-5 mr-2" />
+                    <span className="text-base font-medium">Run</span>
+                  </div>
+                  <span className="text-xl">🏃</span>
                 </Button>
                 
-                <Button variant="outline" size="sm" className="flex flex-col h-auto py-2 px-1">
-                  <span className="text-xl mb-1">🏃</span>
-                  <span className="text-xs">Log Run</span>
+                <Button 
+                  variant="outline" 
+                  className="flex items-center justify-between w-full rounded-full border py-3 px-4 text-purple-500"
+                >
+                  <div className="flex items-center">
+                    <Plus className="h-5 w-5 mr-2" />
+                    <span className="text-base font-medium">Strength/Mobility Workout</span>
+                  </div>
+                  <span className="text-xl">🏋️</span>
                 </Button>
                 
-                <Button variant="outline" size="sm" className="flex flex-col h-auto py-2 px-1">
-                  <Dumbbell className="h-4 w-4 mb-1" />
-                  <span className="text-xs">Strength</span>
+                <Button 
+                  variant="outline" 
+                  className="flex items-center justify-between w-full rounded-full border py-3 px-4 text-red-500"
+                >
+                  <div className="flex items-center">
+                    <Plus className="h-5 w-5 mr-2" />
+                    <span className="text-base font-medium">Cross Training Cardio</span>
+                  </div>
+                  <span className="text-xl">🚴</span>
                 </Button>
                 
-                <Button variant="outline" size="sm" className="flex flex-col h-auto py-2 px-1">
-                  <Bike className="h-4 w-4 mb-1" />
-                  <span className="text-xs">Cardio</span>
-                </Button>
-                
-                <Button variant="outline" size="sm" className="flex flex-col h-auto py-2 px-1">
-                  <Calendar className="h-4 w-4 mb-1" />
-                  <span className="text-xs">Custom</span>
+                <Button 
+                  variant="outline" 
+                  className="flex items-center justify-between w-full rounded-full border py-3 px-4 text-green-500"
+                >
+                  <div className="flex items-center">
+                    <Plus className="h-5 w-5 mr-2" />
+                    <span className="text-base font-medium">Rest Day</span>
+                  </div>
+                  <span className="text-xl">😌</span>
                 </Button>
               </div>
             </div>

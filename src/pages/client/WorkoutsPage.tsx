@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -9,7 +10,7 @@ import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import RunGoalsProgressCard from '@/components/client/RunGoalsProgressCard';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Armchair, ListTodo, History } from 'lucide-react';
+import { PlusCircle, Armchair, ListTodo, History, Dumbbell, Heart } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
 import { toast } from 'sonner';
 import {
@@ -63,21 +64,46 @@ const WorkoutsPage = () => {
               <WorkoutsList />
               
               <div className="mt-8 border-t pt-6">
-                <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
-                  <Link to="/client-dashboard/workouts/one-off">
-                    <PlusCircle className="h-4 w-4" />
-                    Enter Custom Workout
-                  </Link>
-                </Button>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <Button asChild variant="outline" className="flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
+                    <Link to="/client-dashboard/workouts/one-off">
+                      <PlusCircle className="h-4 w-4" />
+                      Custom Workout
+                    </Link>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center justify-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
+                    onClick={() => setShowRestDayDialog(true)}
+                  >
+                    <Armchair className="h-4 w-4" />
+                    Log Rest Day
+                  </Button>
+                </div>
                 
-                <Button 
-                  variant="outline" 
-                  className="w-full mb-4 flex items-center justify-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
-                  onClick={() => setShowRestDayDialog(true)}
-                >
-                  <Armchair className="h-4 w-4" />
-                  Log Rest Day
-                </Button>
+                <div className="grid grid-cols-1 gap-3">
+                  <Button asChild variant="outline" className="flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
+                    <Link to="/client-dashboard/workouts/one-off?type=run">
+                      <span className="text-lg mr-1" role="img" aria-label="Running">🏃‍♂️</span>
+                      Add Run
+                    </Link>
+                  </Button>
+                  
+                  <Button asChild variant="outline" className="flex items-center justify-center gap-2 text-amber-600 border-amber-200 hover:bg-amber-50">
+                    <Link to="/client-dashboard/workouts/one-off?type=strength">
+                      <span className="text-lg mr-1" role="img" aria-label="Strength">💪</span>
+                      Add Strength/Mobility
+                    </Link>
+                  </Button>
+                  
+                  <Button asChild variant="outline" className="flex items-center justify-center gap-2 text-red-600 border-red-200 hover:bg-red-50">
+                    <Link to="/client-dashboard/workouts/one-off?type=cardio">
+                      <span className="text-lg mr-1" role="img" aria-label="Cardio">❤️</span>
+                      Add Cardio
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </TabsContent>
             

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -9,7 +10,7 @@ import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import RunGoalsProgressCard from '@/components/client/RunGoalsProgressCard';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Armchair, ListTodo, History } from 'lucide-react';
+import { PlusCircle, Armchair, ListTodo, History, Heart, Dumbbell, Running } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
 import { toast } from 'sonner';
 import {
@@ -21,9 +22,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import LogRunForm from '@/components/client/LogRunForm';
+import LogCardioForm from '@/components/client/LogCardioForm';
+import SelectStrengthWorkoutForm from '@/components/client/SelectStrengthWorkoutForm';
 
 const WorkoutsPage = () => {
   const [showRestDayDialog, setShowRestDayDialog] = useState(false);
+  const [showRunDialog, setShowRunDialog] = useState(false);
+  const [showCardioDialog, setShowCardioDialog] = useState(false);
+  const [showStrengthDialog, setShowStrengthDialog] = useState(false);
   const location = useLocation();
   console.log("WorkoutsPage component rendering, path:", location.pathname);
   
@@ -70,6 +77,36 @@ const WorkoutsPage = () => {
                   </Link>
                 </Button>
                 
+                {/* New Run Button */}
+                <Button 
+                  variant="outline" 
+                  className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                  onClick={() => setShowRunDialog(true)}
+                >
+                  <Running className="h-4 w-4" />
+                  🏃 Add Run
+                </Button>
+                
+                {/* New Strength/Mobility Button */}
+                <Button 
+                  variant="outline" 
+                  className="w-full mb-4 flex items-center justify-center gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
+                  onClick={() => setShowStrengthDialog(true)}
+                >
+                  <Dumbbell className="h-4 w-4" />
+                  🏋️ Add Strength/Mobility Workout
+                </Button>
+                
+                {/* New Cardio Button */}
+                <Button 
+                  variant="outline" 
+                  className="w-full mb-4 flex items-center justify-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={() => setShowCardioDialog(true)}
+                >
+                  <Heart className="h-4 w-4" />
+                  ❤️ Add Cardio
+                </Button>
+                
                 <Button 
                   variant="outline" 
                   className="w-full mb-4 flex items-center justify-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
@@ -94,6 +131,7 @@ const WorkoutsPage = () => {
         <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
       
+      {/* Rest Day Dialog */}
       <Dialog open={showRestDayDialog} onOpenChange={setShowRestDayDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -136,6 +174,57 @@ const WorkoutsPage = () => {
               Yes, Log My Rest Day
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Run Dialog */}
+      <Dialog open={showRunDialog} onOpenChange={setShowRunDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Running className="h-5 w-5 text-blue-600" />
+              <span>Log a Run</span>
+            </DialogTitle>
+            <DialogDescription>
+              Record your run details to track your progress
+            </DialogDescription>
+          </DialogHeader>
+          
+          <LogRunForm onComplete={() => setShowRunDialog(false)} />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Cardio Dialog */}
+      <Dialog open={showCardioDialog} onOpenChange={setShowCardioDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Heart className="h-5 w-5 text-red-600" />
+              <span>Log a Cardio Session</span>
+            </DialogTitle>
+            <DialogDescription>
+              Record your cardio activity to track your progress
+            </DialogDescription>
+          </DialogHeader>
+          
+          <LogCardioForm onComplete={() => setShowCardioDialog(false)} />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Strength/Mobility Dialog */}
+      <Dialog open={showStrengthDialog} onOpenChange={setShowStrengthDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Dumbbell className="h-5 w-5 text-purple-600" />
+              <span>Log a Strength/Mobility Workout</span>
+            </DialogTitle>
+            <DialogDescription>
+              Select a workout to complete
+            </DialogDescription>
+          </DialogHeader>
+          
+          <SelectStrengthWorkoutForm onComplete={() => setShowStrengthDialog(false)} />
         </DialogContent>
       </Dialog>
     </div>

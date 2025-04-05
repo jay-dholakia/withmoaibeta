@@ -14,7 +14,7 @@ export interface RunProgressData {
 // Default goals to show when no goals are set
 const DEFAULT_GOALS = {
   miles: 10,
-  exercises: 20,
+  exercises: 2, // Updated from 20 to 2 as the goal is typically 2 workouts per week
   cardio: 60
 };
 
@@ -137,7 +137,7 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
   return (
     <Card className={`p-4 mb-6 ${className}`}>
       {showTitle && (
-        <h3 className="text-lg font-bold mb-4 text-center flex items-center justify-center gap-2">
+        <h3 className="text-lg font-bold mb-4 text-center flex items-center justify-center gap-2 pb-2">
           <span className="text-xl" role="img" aria-label="Trophy">🏆</span>
           Weekly Goals Progress
         </h3>
@@ -165,8 +165,8 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
         <div className="space-y-1">
           <div className="flex justify-between text-sm">
             <div className="flex items-center gap-1">
-              <span className="text-lg" role="img" aria-label="Exercise">💪</span>
-              <span className="font-medium">Exercises</span>
+              <span className="text-lg" role="img" aria-label="Exercise">🏋️</span>
+              <span className="font-medium">Strength/Mobility Workouts</span>
             </div>
             <div className="flex items-center">
               <span>

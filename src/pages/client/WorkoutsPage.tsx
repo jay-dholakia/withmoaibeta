@@ -26,10 +26,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 const WorkoutsPage = () => {
   const [showRestDayDialog, setShowRestDayDialog] = useState(false);
   const location = useLocation();
-  console.log("WorkoutsPage component rendering");
+  console.log("WorkoutsPage component rendering, path:", location.pathname);
   
   const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
-  
   const isActiveOrCompleteWorkout = location.pathname.includes('/active/') || 
                                    location.pathname.includes('/complete/');
   
@@ -61,6 +60,7 @@ const WorkoutsPage = () => {
             </TabsList>
             
             <TabsContent value="active-workouts">
+              {/* Always render the RunGoalsProgressCard at the top of the active workouts tab */}
               <RunGoalsProgressCard />
               <WorkoutsList />
               

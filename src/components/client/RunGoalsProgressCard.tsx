@@ -22,9 +22,11 @@ const RunGoalsProgressCard = () => {
       if (!user?.id) return;
       
       try {
+        console.log('Loading run goals progress for user:', user.id);
         setIsLoading(true);
         setHasError(false);
         const data = await getWeeklyRunProgress(user.id);
+        console.log('Run goals progress loaded:', data);
         setProgress(data);
       } catch (error) {
         console.error('Error loading run goals progress:', error);
@@ -36,6 +38,9 @@ const RunGoalsProgressCard = () => {
 
     loadProgress();
   }, [user?.id]);
+
+  // Log component render state
+  console.log('RunGoalsProgressCard render state:', { isLoading, hasError, progress });
 
   if (isLoading) {
     return (
@@ -54,6 +59,7 @@ const RunGoalsProgressCard = () => {
   }
 
   if (!progress || (!progress.miles.goal && !progress.exercises.goal && !progress.cardio.goal)) {
+    console.log('No goals set, not rendering card');
     return null; // Don't show card if no goals are set
   }
 

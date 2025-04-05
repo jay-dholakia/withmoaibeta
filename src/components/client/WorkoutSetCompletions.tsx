@@ -459,7 +459,9 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                 <div className="col-span-1 text-center font-medium">{setNumber}</div>
                 <div className="col-span-1">
                   <Input 
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={tempSet.reps}
                     onChange={(e) => handleUpdateTempSet(exercise.id, setNumber, 'reps', e.target.value)}
                     placeholder={String(exercise.reps)}
@@ -468,11 +470,13 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                 </div>
                 <div className="col-span-1">
                   <Input 
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*\.?[0-9]*"
                     value={tempSet.weight}
                     onChange={(e) => handleUpdateTempSet(exercise.id, setNumber, 'weight', e.target.value)}
-                    placeholder="Weight"
-                    className="h-8 text-sm w-full"
+                    placeholder="lbs"
+                    className="h-8 text-sm w-full min-w-[70px]"
                     step="0.5"
                   />
                 </div>
@@ -530,7 +534,9 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                 </div>
                 <div className="col-span-1 px-1">
                   <Input 
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={set.reps_completed || ''}
                     onChange={(e) => handleUpdateSet(set.id, 'reps_completed', parseInt(e.target.value) || 0)}
                     placeholder={String(exercise.reps)}
@@ -540,11 +546,13 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                 </div>
                 <div className="col-span-1 px-1">
                   <Input 
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*\.?[0-9]*"
                     value={set.weight || ''}
                     onChange={(e) => handleUpdateSet(set.id, 'weight', parseFloat(e.target.value) || 0)}
-                    placeholder="Weight"
-                    className="h-8 text-sm w-full px-2"
+                    placeholder="lbs"
+                    className="h-8 text-sm w-full px-2 min-w-[70px]"
                     step="0.5"
                     disabled={readOnly}
                   />

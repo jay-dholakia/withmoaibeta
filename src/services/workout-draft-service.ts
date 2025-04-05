@@ -167,3 +167,39 @@ export const deleteWorkoutDraft = async (
     return false;
   }
 };
+
+/**
+ * Checks if a workout draft exists for a specific workout ID
+ */
+export const hasWorkoutDraft = async (
+  workoutId: string | null
+): Promise<boolean> => {
+  try {
+    if (!workoutId) {
+      return false;
+    }
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return false;
+    }
+    
+    const { data, error } = await supabase
+      .from('workout_drafts')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('workout_id', workoutId)
+      .maybeSingle();
+      
+    if (error) {
+      console.error("Error checking for workout draft:", error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error("Error in hasWorkoutDraft:", error);
+    return false;
+  }
+};

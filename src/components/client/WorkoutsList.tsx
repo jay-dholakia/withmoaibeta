@@ -29,6 +29,7 @@ const WorkoutsList = () => {
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
+  const [workoutsWithDrafts, setWorkoutsWithDrafts] = useState<{[key: string]: boolean}>({});
 
   // Safely toggle workout details 
   const toggleWorkoutDetails = useCallback((e: React.MouseEvent, workoutId: string) => {
@@ -148,6 +149,24 @@ const WorkoutsList = () => {
 
     loadWorkoutsAndProgram();
   }, [user]);
+
+  useEffect(() => {
+    const checkForDrafts = async () => {
+      if (!workouts) return;
+      
+      const draftsMap: {[key: string]: boolean} = {};
+      
+      for (const workout of workouts) {
+        const workoutId = workout.id;
+        const hasDraft = await hasWorkoutDraft(workoutId);
+        draftsMap[workoutId] = hasDraft;
+      }
+      
+      setWorkoutsWithDrafts(draftsMap);
+    };
+    
+    checkForDrafts();
+  }, [workouts]);
 
   const filteredWorkouts = React.useMemo(() => {
     if (!weekFilter) {
@@ -415,12 +434,11 @@ const WorkoutsList = () => {
                 
                 <CardFooter className="p-3">
                   <Button 
-                    className="w-full h-9 py-1" 
-                    size="sm"
-                    onClick={(e) => handleStartWorkout(e, workout.id)}
+                    className={`w-full mt-3 ${workoutsWithDrafts[workout.id] ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                    onClick={(e) => handleStartWorkout(workout.id)}
                   >
-                    <Play className="h-4 w-4 mr-2" />
-                    Start Workout
+                    <Play className="mr-1 h-4 w-4" />
+                    {workoutsWithDrafts[workout.id] ? 'Resume Workout' : 'Start Workout'}
                   </Button>
                 </CardFooter>
               </Card>

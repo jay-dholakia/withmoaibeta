@@ -25,6 +25,7 @@ const WorkoutComplete = () => {
     queryFn: async () => {
       if (!workoutCompletionId) throw new Error('No workout completion ID provided');
       
+      // Use .select() instead of .single() to get an array of results
       const { data, error } = await supabase
         .from('workout_completions')
         .select(`
@@ -36,13 +37,20 @@ const WorkoutComplete = () => {
             workout_type
           )
         `)
-        .eq('id', workoutCompletionId)
-        .single();
+        .eq('id', workoutCompletionId);
       
       if (error) throw error;
-      setNotes(data.notes || '');
-      setRating(data.rating || 0);
-      return data;
+      
+      // Check if any data was returned
+      if (!data || data.length === 0) {
+        throw new Error(`Workout completion ${workoutCompletionId} not found`);
+      }
+      
+      // Since we queried by ID, we should only have one result
+      const completion = data[0];
+      setNotes(completion.notes || '');
+      setRating(completion.rating || 0);
+      return completion;
     },
     enabled: !!workoutCompletionId,
   });

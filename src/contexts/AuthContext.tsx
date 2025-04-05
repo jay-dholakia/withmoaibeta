@@ -62,8 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Clear the timeout since we received an auth event
         clearTimeout(loadingTimeout);
         
-        // Check for signed out event - note the string comparison instead of type comparison
-        if (event === 'SIGNED_OUT') {
+        // Check for signed out event - use type assertion for TypeScript compatibility
+        if (event === 'SIGNED_OUT' as AuthChangeEvent) {
           console.log('User signed out, clearing auth state');
           safeSetState(setSession, null);
           safeSetState(setUser, null);

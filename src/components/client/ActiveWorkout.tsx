@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, ArrowLeft, CheckCircle2, AlertTriangle, Play } from 'lucide-react';
 import WorkoutSetCompletions from './WorkoutSetCompletions';
+import { createWorkoutCompletion } from '@/services/workout-history-service';
 
 const ActiveWorkout = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -117,18 +118,13 @@ const ActiveWorkout = () => {
     try {
       setStartingWorkout(true);
       
-      const { data, error } = await supabase
-        .from('workout_completions')
-        .insert({
-          workout_id: workoutId,
-          user_id: user.id,
-          created_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
+      const data = await createWorkoutCompletion(
+        user.id, 
+        workoutId, 
+        workout?.workout_type || 'strength'
+      );
       
-      if (error) {
-        console.error('Error starting workout:', error);
+      if (!data) {
         toast.error('Failed to start workout');
         setStartingWorkout(false);
         return;

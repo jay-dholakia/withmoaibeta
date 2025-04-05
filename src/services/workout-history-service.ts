@@ -339,7 +339,7 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
 /**
  * Create a workout completion
  */
-export const createWorkoutCompletion = async (userId: string, workoutId: string) => {
+export const createWorkoutCompletion = async (userId: string, workoutId: string, workoutType: StandardWorkoutType = 'strength') => {
   try {
     const { data, error } = await supabase
       .from('workout_completions')
@@ -348,6 +348,7 @@ export const createWorkoutCompletion = async (userId: string, workoutId: string)
         workout_id: workoutId,
         source: 'strength_mobility',
         started_at: new Date().toISOString(),
+        workout_type: workoutType,
       })
       .select('*')
       .single();

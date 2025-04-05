@@ -1,286 +1,15 @@
-import { supabase } from '@/integrations/supabase/client';
 
-export interface RunGoals {
-  id: string;
-  user_id: string;
-  miles_goal: number;
-  exercises_goal: number; 
-  cardio_minutes_goal: number;
-  created_at: string;
-  updated_at: string;
-}
+import { supabase } from "@/integrations/supabase/client";
+import { RunProgressData } from '@/components/client/RunGoalsProgressCard';
 
-export interface ProgramWeekGoals {
-  week_number: number;
-  miles_goal: number;
-  exercises_goal: number;
-  cardio_minutes_goal: number;
-}
-
-// Default values when no run goals are found
-export const defaultRunGoals = {
-  miles_goal: 0,
-  exercises_goal: 0,
-  cardio_minutes_goal: 0,
-};
-
-/**
- * Get run goals for a specific user
- */
-export const getUserRunGoals = async (userId: string): Promise<RunGoals> => {
-  try {
-    const { data, error } = await supabase
-      .from('run_goals')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error || !data) {
-      console.warn('Run goals not found, returning default');
-      return {
-        id: '',
-        user_id: userId,
-        ...defaultRunGoals,
-        created_at: '',
-        updated_at: ''
-      };
-    }
-
-    // Type assertion to ensure TypeScript recognizes the properties
-    const typedData = data as unknown as {
-      id: string;
-      user_id: string;
-      miles_goal: number;
-      exercises_goal: number;
-      cardio_minutes_goal: number;
-      created_at: string;
-      updated_at: string;
-    };
-
-    return {
-      id: typedData.id || '',
-      user_id: typedData.user_id || userId,
-      miles_goal: typedData.miles_goal || 0,
-      exercises_goal: typedData.exercises_goal || 0,
-      cardio_minutes_goal: typedData.cardio_minutes_goal || 0,
-      created_at: typedData.created_at || '',
-      updated_at: typedData.updated_at || ''
-    };
-  } catch (error) {
-    console.error('Unexpected error fetching run goals:', error);
-    return {
-      id: '',
-      user_id: userId,
-      ...defaultRunGoals,
-      created_at: '',
-      updated_at: ''
-    };
-  }
-};
-
-/**
- * Set run goals for a specific user
- */
-export const setUserRunGoals = async (
-  userId: string, 
-  goals: { 
-    miles_goal?: number; 
-    exercises_goal?: number; 
-    cardio_minutes_goal?: number;
-  }
-): Promise<{ success: boolean; data?: RunGoals; error?: any }> => {
-  try {
-    const { data: existingGoals } = await supabase
-      .from('run_goals')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    let result;
-
-    if (existingGoals) {
-      // Update existing goals
-      result = await supabase
-        .from('run_goals')
-        .update(goals)
-        .eq('user_id', userId)
-        .select();
-    } else {
-      // Insert new goals
-      result = await supabase
-        .from('run_goals')
-        .insert({
-          user_id: userId,
-          ...goals
-        })
-        .select();
-    }
-
-    if (result.error || !result.data || result.data.length === 0) {
-      console.error('Error setting run goals:', result.error);
-      return { 
-        success: false, 
-        error: result.error ?? 'Unknown error' 
-      };
-    }
-
-    const resultData = result.data[0] as unknown as RunGoals;
-    
-    return { 
-      success: true, 
-      data: {
-        id: resultData.id ?? '',
-        user_id: resultData.user_id ?? userId,
-        miles_goal: resultData.miles_goal ?? 0,
-        exercises_goal: resultData.exercises_goal ?? 0,
-        cardio_minutes_goal: resultData.cardio_minutes_goal ?? 0,
-        created_at: resultData.created_at ?? '',
-        updated_at: resultData.updated_at ?? ''
-      }
-    };
-  } catch (error) {
-    console.error('Unexpected error setting run goals:', error);
-    return { 
-      success: false, 
-      error 
-    };
-  }
-};
-
-/**
- * Get run goals for multiple users
- */
-export const getMultipleUserRunGoals = async (userIds: string[]): Promise<Record<string, RunGoals>> => {
-  try {
-    const { data, error } = await supabase
-      .from('run_goals')
-      .select('*')
-      .in('user_id', userIds);
-
-    if (error || !data) {
-      console.error('Error fetching run goals for multiple users:', error);
-      return {};
-    }
-
-    const goalsByUser: Record<string, RunGoals> = {};
-
-    data.forEach(goalItem => {
-      if (goalItem && typeof goalItem === 'object') {
-        const typedGoalItem = goalItem as unknown as {
-          id?: string;
-          user_id?: string;
-          miles_goal?: number;
-          exercises_goal?: number;
-          cardio_minutes_goal?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        
-        const userId = typedGoalItem.user_id || '';
-        
-        if (userId) {
-          goalsByUser[userId] = {
-            id: typedGoalItem.id || '',
-            user_id: userId,
-            miles_goal: typedGoalItem.miles_goal || 0,
-            exercises_goal: typedGoalItem.exercises_goal || 0,
-            cardio_minutes_goal: typedGoalItem.cardio_minutes_goal || 0,
-            created_at: typedGoalItem.created_at || '',
-            updated_at: typedGoalItem.updated_at || ''
-          };
-        }
-      }
-    });
-
-    return goalsByUser;
-  } catch (error) {
-    console.error('Unexpected error fetching multiple run goals:', error);
-    return {};
-  }
-};
-
-/**
- * Get program week goals for a specific program
- */
-export const getProgramWeekGoals = async (programId: string): Promise<ProgramWeekGoals[]> => {
-  try {
-    // We need to use a type assertion to access the program_week_goals table
-    // since it might not be in the TypeScript types yet
-    const { data, error } = await (supabase as any)
-      .from('program_week_goals')
-      .select('*')
-      .eq('program_id', programId)
-      .order('week_number', { ascending: true });
-
-    if (error || !data) {
-      console.warn('Program week goals not found, returning empty array');
-      return [];
-    }
-
-    return data.map((weekGoal: any) => ({
-      week_number: weekGoal.week_number,
-      miles_goal: weekGoal.miles_goal || 0,
-      exercises_goal: weekGoal.exercises_goal || 0,
-      cardio_minutes_goal: weekGoal.cardio_minutes_goal || 0
-    }));
-  } catch (error) {
-    console.error('Unexpected error fetching program week goals:', error);
-    return [];
-  }
-};
-
-/**
- * Set program week goals
- */
-export const setProgramWeekGoals = async (
-  programId: string,
-  weekGoals: ProgramWeekGoals[]
-): Promise<{ success: boolean; error?: any }> => {
-  try {
-    // Delete existing goals for this program using type assertion for the table name
-    await (supabase as any)
-      .from('program_week_goals')
-      .delete()
-      .eq('program_id', programId);
-    
-    // Insert new goals
-    if (weekGoals.length > 0) {
-      const goalsToInsert = weekGoals.map(goal => ({
-        program_id: programId,
-        week_number: goal.week_number,
-        miles_goal: goal.miles_goal,
-        exercises_goal: goal.exercises_goal,
-        cardio_minutes_goal: goal.cardio_minutes_goal
-      }));
-
-      const { error } = await (supabase as any)
-        .from('program_week_goals')
-        .insert(goalsToInsert);
-
-      if (error) {
-        console.error('Error setting program week goals:', error);
-        return { success: false, error };
-      }
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Unexpected error setting program week goals:', error);
-    return { success: false, error };
-  }
-};
-
-/**
- * Log a run activity for a user
- */
 export const logRunActivity = async (
-  userId: string,
-  distance: number,
+  userId: string, 
+  distance: number, 
   runType: 'steady' | 'tempo' | 'long' | 'speed' | 'hill',
   notes?: string
-): Promise<{ success: boolean; error?: any }> => {
+) => {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('run_activities')
       .insert({
         user_id: userId,
@@ -295,24 +24,21 @@ export const logRunActivity = async (
       return { success: false, error };
     }
 
-    return { success: true };
-  } catch (error) {
-    console.error('Unexpected error logging run activity:', error);
-    return { success: false, error };
+    return { success: true, data };
+  } catch (err) {
+    console.error('Error in logRunActivity:', err);
+    return { success: false, error: err };
   }
 };
 
-/**
- * Log a cardio activity for a user
- */
 export const logCardioActivity = async (
-  userId: string,
-  minutes: number,
+  userId: string, 
+  minutes: number, 
   activityType: string,
   notes?: string
-): Promise<{ success: boolean; error?: any }> => {
+) => {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('cardio_activities')
       .insert({
         user_id: userId,
@@ -327,118 +53,150 @@ export const logCardioActivity = async (
       return { success: false, error };
     }
 
-    return { success: true };
-  } catch (error) {
-    console.error('Unexpected error logging cardio activity:', error);
-    return { success: false, error };
+    return { success: true, data };
+  } catch (err) {
+    console.error('Error in logCardioActivity:', err);
+    return { success: false, error: err };
   }
 };
 
-/**
- * Get weekly progress for run goals
- */
-export const getWeeklyRunProgress = async (userId: string): Promise<{
-  miles: { completed: number; goal: number };
-  exercises: { completed: number; goal: number };
-  cardio: { completed: number; goal: number };
-}> => {
+export const getWeeklyRunProgress = async (userId: string): Promise<RunProgressData> => {
   try {
-    // Get weekly goals
-    const runGoals = await getUserRunGoals(userId);
+    console.log('Getting weekly run progress for user:', userId);
     
-    // Calculate the date range for the current week (Sunday to Saturday)
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay()); // First day is Sunday
+    // First, try to get the user's goals
+    const { data: goalsData, error: goalsError } = await supabase
+      .from('run_goals')
+      .select('miles_goal, exercises_goal, cardio_minutes_goal')
+      .eq('user_id', userId)
+      .single();
+    
+    if (goalsError && goalsError.code !== 'PGRST116') {
+      console.error('Error fetching run goals:', goalsError);
+    }
+    
+    // Get the start of the current week
+    const now = new Date();
+    const startOfWeek = new Date(now);
     startOfWeek.setHours(0, 0, 0, 0);
+    startOfWeek.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
     
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6); // Last day is Saturday
-    endOfWeek.setHours(23, 59, 59, 999);
+    // Format the dates for database query
+    const startISO = startOfWeek.toISOString();
+    const endISO = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7, 23, 59, 59).toISOString();
     
-    // Format dates for Supabase query
-    const weekStart = startOfWeek.toISOString();
-    const weekEnd = endOfWeek.toISOString();
+    console.log(`Fetching progress for week: ${startISO} to ${endISO}`);
     
-    console.log('Fetching run progress for date range:', { weekStart, weekEnd });
-    
-    // 1. Query run activities to get total miles
+    // Get the total miles run this week
     const { data: runData, error: runError } = await supabase
       .from('run_activities')
       .select('distance')
       .eq('user_id', userId)
-      .gte('completed_at', weekStart)
-      .lte('completed_at', weekEnd);
+      .gte('completed_at', startISO)
+      .lte('completed_at', endISO);
     
     if (runError) {
       console.error('Error fetching run activities:', runError);
     }
     
-    // 2. Count completed strength/mobility workouts (not individual exercises)
-    const { count: workoutsCount, error: workoutsError } = await supabase
-      .from('workout_completions')
-      .select('*', { count: 'exact', head: false })
-      .eq('user_id', userId)
-      .gte('completed_at', weekStart)
-      .lte('completed_at', weekEnd)
-      .match({ rest_day: false, life_happens_pass: false }); // Exclude rest days and passes
+    // Calculate total miles
+    const totalMiles = runData?.reduce((sum, run) => sum + (run.distance || 0), 0) || 0;
+    console.log(`Total miles: ${totalMiles}`);
     
-    if (workoutsError) {
-      console.error('Error counting workouts:', workoutsError);
-    }
-    
-    // 3. Query cardio activities to get total minutes
+    // Get the total cardio minutes this week
     const { data: cardioData, error: cardioError } = await supabase
       .from('cardio_activities')
       .select('minutes')
       .eq('user_id', userId)
-      .gte('completed_at', weekStart)
-      .lte('completed_at', weekEnd);
+      .gte('completed_at', startISO)
+      .lte('completed_at', endISO);
     
     if (cardioError) {
       console.error('Error fetching cardio activities:', cardioError);
     }
     
-    // Calculate the total miles completed
-    const milesCompleted = runData?.reduce((total, activity) => {
-      const distance = typeof activity.distance === 'string' 
-        ? parseFloat(activity.distance) || 0 
-        : (activity.distance || 0);
-      return total + distance;
-    }, 0) || 0;
+    // Calculate total cardio minutes
+    const totalCardioMinutes = cardioData?.reduce((sum, cardio) => sum + (cardio.minutes || 0), 0) || 0;
+    console.log(`Total cardio minutes: ${totalCardioMinutes}`);
     
-    // Calculate the total cardio minutes completed
-    const cardioMinutesCompleted = cardioData?.reduce((total, activity) => {
-      const minutes = typeof activity.minutes === 'number' 
-        ? activity.minutes 
-        : parseInt(activity.minutes || '0', 10);
-      return total + (minutes || 0);
-    }, 0) || 0;
+    // Get completed workout count for strength/mobility exercises
+    const { data: workoutCompletions, error: workoutError } = await supabase
+      .from('workout_completions')
+      .select('id, workout_type')
+      .eq('user_id', userId)
+      .gte('completed_at', startISO)
+      .lte('completed_at', endISO)
+      .not('completed_at', 'is', null);
     
-    const result = {
-      miles: { 
-        completed: milesCompleted,
-        goal: runGoals.miles_goal 
+    if (workoutError) {
+      console.error('Error fetching workout completions:', workoutError);
+    }
+    
+    // Count the number of strength/mobility workouts
+    const strengthMobilityWorkouts = workoutCompletions?.filter(wc => 
+      wc.workout_type === 'strength' || 
+      wc.workout_type === 'bodyweight' || 
+      wc.workout_type === 'flexibility' || 
+      wc.workout_type === 'mobility'
+    ).length || 0;
+    
+    console.log(`Total strength/mobility workouts: ${strengthMobilityWorkouts}`);
+
+    // Use default goals if none are set for the user
+    const milesGoal = goalsData?.miles_goal || 10;
+    const exercisesGoal = goalsData?.exercises_goal || 2;
+    const cardioGoal = goalsData?.cardio_minutes_goal || 60;
+    
+    return {
+      miles: {
+        completed: totalMiles,
+        goal: milesGoal
       },
-      exercises: { 
-        completed: workoutsCount || 0,
-        goal: runGoals.exercises_goal 
+      exercises: {
+        completed: strengthMobilityWorkouts,
+        goal: exercisesGoal
       },
-      cardio: { 
-        completed: cardioMinutesCompleted,
-        goal: runGoals.cardio_minutes_goal 
+      cardio: {
+        completed: totalCardioMinutes,
+        goal: cardioGoal
       }
     };
-    
-    console.log('Weekly run progress result:', result);
-    return result;
-    
-  } catch (error) {
-    console.error('Unexpected error fetching weekly run progress:', error);
+  } catch (err) {
+    console.error('Error in getWeeklyRunProgress:', err);
+    // Return default empty data
     return {
-      miles: { completed: 0, goal: 0 },
-      exercises: { completed: 0, goal: 0 },
-      cardio: { completed: 0, goal: 0 }
+      miles: { completed: 0, goal: 10 },
+      exercises: { completed: 0, goal: 2 },
+      cardio: { completed: 0, goal: 60 }
     };
+  }
+};
+
+export const setUserRunGoals = async (userId: string, goals: {
+  miles_goal?: number;
+  exercises_goal?: number;
+  cardio_minutes_goal?: number;
+}) => {
+  try {
+    const { data, error } = await supabase
+      .from('run_goals')
+      .upsert({
+        user_id: userId,
+        miles_goal: goals.miles_goal,
+        exercises_goal: goals.exercises_goal,
+        cardio_minutes_goal: goals.cardio_minutes_goal,
+        updated_at: new Date().toISOString()
+      })
+      .select();
+    
+    if (error) {
+      console.error('Error setting run goals:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (err) {
+    console.error('Error in setUserRunGoals:', err);
+    throw err;
   }
 };

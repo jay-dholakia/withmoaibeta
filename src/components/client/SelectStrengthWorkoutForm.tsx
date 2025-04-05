@@ -48,12 +48,16 @@ const SelectStrengthWorkoutForm: React.FC<SelectStrengthWorkoutFormProps> = ({ o
       
       const completion = await createWorkoutCompletion(
         user.id,
-        workout.workout_id
+        workout.workout_id,
+        workout.workout?.workout_type || 'strength' // Pass workout type to ensure it's logged correctly
       );
       
       if (completion) {
         // Invalidate related queries to trigger refetch
         queryClient.invalidateQueries({ queryKey: ['weekly-run-progress'] });
+        queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
+        queryClient.invalidateQueries({ queryKey: ['client-workouts-week-progress'] });
+        queryClient.invalidateQueries({ queryKey: ['client-workouts-leaderboard'] });
         
         toast.success('Workout started');
         navigate(`/client-dashboard/workouts/active/${completion.id}`);

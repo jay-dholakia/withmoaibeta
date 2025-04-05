@@ -31,6 +31,7 @@ const WorkoutComplete = () => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [isEditingMessage, setIsEditingMessage] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   // Use autosave hook for notes and rating
   const { saveStatus } = useAutosave({
@@ -199,30 +200,46 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Load draft data on mount
+  // Improved draft loading with session check
   useEffect(() => {
     const loadDraftData = async () => {
-      if (!workoutCompletionId || !user?.id) return;
+      // Skip if no ID or already loaded
+      if (!workoutCompletionId || draftLoaded) return;
       
-      const draft = await getWorkoutDraft(workoutCompletionId);
-      
-      if (draft && draft.draft_data) {
-        if (draft.draft_data.notes !== undefined) {
-          setNotes(draft.draft_data.notes);
+      try {
+        // Check for user session
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user?.id) {
+          console.log("No authenticated user found, cannot load draft");
+          return;
         }
         
-        if (draft.draft_data.rating !== undefined) {
-          setRating(draft.draft_data.rating);
+        const draft = await getWorkoutDraft(workoutCompletionId);
+        
+        if (draft && draft.draft_data) {
+          if (draft.draft_data.notes !== undefined) {
+            setNotes(draft.draft_data.notes);
+          }
+          
+          if (draft.draft_data.rating !== undefined) {
+            setRating(draft.draft_data.rating);
+          }
+          
+          if (draft.draft_data.notes || draft.draft_data.rating !== undefined) {
+            toast.success('Recovered unsaved workout notes');
+          }
         }
         
-        if (draft.draft_data.notes || draft.draft_data.rating) {
-          toast.success('Recovered unsaved workout notes');
-        }
+        // Mark draft as loaded
+        setDraftLoaded(true);
+      } catch (error) {
+        console.error('Error loading draft data:', error);
       }
     };
     
     loadDraftData();
-  }, [workoutCompletionId, user?.id]);
+  }, [workoutCompletionId, draftLoaded]);
 
   useEffect(() => {
     if (workoutData && !shareMessage) {

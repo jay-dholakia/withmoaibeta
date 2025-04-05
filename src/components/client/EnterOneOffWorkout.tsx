@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -49,6 +48,7 @@ const EnterOneOffWorkout = () => {
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
   const [location, setLocation] = useState<string>('');
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   // Create data object for autosave
   const draftData = {
@@ -80,26 +80,46 @@ const EnterOneOffWorkout = () => {
   // Load draft data when component mounts
   useEffect(() => {
     const loadDraftData = async () => {
-      const draft = await getWorkoutDraft(ONE_OFF_DRAFT_ID);
-      
-      if (draft && draft.draft_data) {
-        const data = draft.draft_data;
+      // Prevent re-loading if we've already loaded the draft
+      if (draftLoaded) {
+        return;
+      }
+
+      try {
+        // First check if we have a user session
+        const { data: { user } } = await supabase.auth.getUser();
         
-        if (data.title) setTitle(data.title);
-        if (data.description) setDescription(data.description);
-        if (data.notes) setNotes(data.notes);
-        if (data.workoutType) setWorkoutType(data.workoutType);
-        if (data.date) setDate(new Date(data.date));
-        if (data.distance) setDistance(data.distance);
-        if (data.duration) setDuration(data.duration);
-        if (data.location) setLocation(data.location);
+        if (!user) {
+          console.log("No authenticated user found, cannot load draft");
+          return;
+        }
         
-        toast.success('Recovered unsaved workout data');
+        const draft = await getWorkoutDraft(ONE_OFF_DRAFT_ID);
+        
+        if (draft && draft.draft_data) {
+          const data = draft.draft_data;
+          
+          if (data.title) setTitle(data.title);
+          if (data.description) setDescription(data.description);
+          if (data.notes) setNotes(data.notes);
+          if (data.workoutType) setWorkoutType(data.workoutType);
+          if (data.date) setDate(new Date(data.date));
+          if (data.distance) setDistance(data.distance);
+          if (data.duration) setDuration(data.duration);
+          if (data.location) setLocation(data.location);
+          
+          toast.success('Recovered unsaved workout data');
+        }
+        
+        // Mark draft as loaded to prevent re-loading
+        setDraftLoaded(true);
+      } catch (error) {
+        console.error("Error loading draft data:", error);
       }
     };
     
     loadDraftData();
-  }, []);
+  }, [draftLoaded]);
 
   // Function to add workout notes to journal
   const addToJournal = async (workoutTitle: string, notes: string, journalDate: Date) => {

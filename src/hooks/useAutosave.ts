@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { debounce } from '@/lib/utils';
 
@@ -19,37 +18,60 @@ export function useAutosave<T>({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const previousDataRef = useRef<T | null>(null);
+  const dataRef = useRef<T>(data);
   
-  // Create a memoized, debounced save function
-  const debouncedSave = useCallback(
-    debounce(async (dataToSave: T) => {
-      if (disabled) return;
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+  
+  const save = useCallback(async (dataToSave: T) => {
+    if (disabled) return;
+    
+    try {
+      setIsSaving(true);
+      setSaveStatus('saving');
       
-      try {
-        setIsSaving(true);
-        setSaveStatus('saving');
-        
-        const success = await onSave(dataToSave);
-        
-        if (success) {
-          setSaveStatus('success');
-          setLastSaved(new Date());
-        } else {
-          setSaveStatus('error');
-        }
-      } catch (error) {
-        console.error('Error during autosave:', error);
+      const success = await onSave(dataToSave);
+      
+      if (success) {
+        setSaveStatus('success');
+        setLastSaved(new Date());
+      } else {
         setSaveStatus('error');
-      } finally {
-        setIsSaving(false);
       }
-    }, interval),
-    [onSave, interval, disabled]
+    } catch (error) {
+      console.error('Error during autosave:', error);
+      setSaveStatus('error');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [onSave, disabled]);
+  
+  const debouncedSave = useCallback(
+    debounce(save, interval),
+    [save, interval]
   );
   
-  // Trigger the save when data changes
+  const handleVisibilityChange = useCallback(() => {
+    if (document.visibilityState === 'hidden') {
+      debouncedSave.cancel();
+      
+      if (!disabled && dataRef.current) {
+        console.log("Page hidden, forcing immediate save");
+        save(dataRef.current);
+      }
+    }
+  }, [debouncedSave, save, disabled]);
+  
   useEffect(() => {
-    // Check if the data has actually changed before saving
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [handleVisibilityChange]);
+  
+  useEffect(() => {
     const dataAsString = JSON.stringify(data);
     const previousDataAsString = previousDataRef.current ? JSON.stringify(previousDataRef.current) : null;
     
@@ -59,12 +81,33 @@ export function useAutosave<T>({
     }
   }, [data, debouncedSave]);
   
-  // Clean up debounce on unmount
   useEffect(() => {
     return () => {
       debouncedSave.cancel();
+      
+      if (!disabled && dataRef.current) {
+        console.log("Component unmounting, triggering final save");
+        save(dataRef.current);
+      }
     };
-  }, [debouncedSave]);
+  }, [disabled, save, debouncedSave]);
+  
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!disabled && dataRef.current) {
+        debouncedSave.cancel();
+        
+        console.log("Page unloading, triggering final save");
+        save(dataRef.current);
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [disabled, save, debouncedSave]);
   
   return {
     isSaving,

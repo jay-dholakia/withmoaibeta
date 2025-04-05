@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -12,18 +11,17 @@ export interface RunProgressData {
   cardio: { completed: number; goal: number };
 }
 
-// Default goals to show when no goals are set
 const DEFAULT_GOALS = {
   miles: 10,
-  exercises: 2, // This is 2 workouts per week
+  exercises: 2,
   cardio: 60
 };
 
 interface RunGoalsProgressCardProps {
-  userId?: string; // Optional userId prop - if not provided, uses the current logged-in user
-  showTitle?: boolean; // Whether to show the title
-  className?: string; // Additional CSS classes to apply
-  refetchKey?: any; // Additional dependency to trigger refetches
+  userId?: string;
+  showTitle?: boolean;
+  className?: string;
+  refetchKey?: any;
 }
 
 const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({ 
@@ -34,10 +32,8 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
 }) => {
   const { user } = useAuth();
   
-  // Use provided userId or fall back to the current logged-in user
   const targetUserId = userId || user?.id;
 
-  // Use react-query for better cache management and auto refetching
   const { data: progress, isLoading, isError, refetch } = useQuery({
     queryKey: ['weekly-run-progress', targetUserId, refetchKey],
     queryFn: () => {
@@ -48,15 +44,11 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
     enabled: !!targetUserId
   });
 
-  // Log component render state
   console.log('RunGoalsProgressCard render state:', { isLoading, isError, progress });
 
-  // Set up goals if none exist
   useEffect(() => {
     const setupDefaultGoals = async () => {
       if (!targetUserId || isLoading || isError || userId) return;
-      // Skip setting up default goals if this is not the current user's card
-      
       if (progress && 
           !progress.miles.goal && 
           !progress.exercises.goal && 
@@ -68,8 +60,6 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
             exercises_goal: DEFAULT_GOALS.exercises,
             cardio_minutes_goal: DEFAULT_GOALS.cardio
           });
-          
-          // Trigger refetch to get updated goals
           refetch();
         } catch (error) {
           console.error('Error setting default goals:', error);
@@ -96,14 +86,12 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
     );
   }
 
-  // Always show the component, using either actual goals or default values
   const displayData = progress || {
     miles: { completed: 0, goal: DEFAULT_GOALS.miles },
     exercises: { completed: 0, goal: DEFAULT_GOALS.exercises },
     cardio: { completed: 0, goal: DEFAULT_GOALS.cardio }
   };
 
-  // Calculate percentages capped at 100%
   const milesPercentage = displayData.miles.goal > 0 
     ? Math.min(100, (displayData.miles.completed / displayData.miles.goal) * 100) 
     : 0;
@@ -161,7 +149,7 @@ const RunGoalsProgressCard: React.FC<RunGoalsProgressCardProps> = ({
         <div className="space-y-3">
           <div className="flex items-center">
             <div className="flex items-center gap-1">
-              <span className="text-lg" role="img" aria-label="Cardio">❤️</span>
+              <span className="text-lg" role="img" aria-label="Cycling">🚴</span>
               <span className="font-medium">Cross Training Cardio</span>
             </div>
             <span className="ml-auto font-medium text-red-600">

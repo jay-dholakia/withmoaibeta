@@ -9,7 +9,7 @@ import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import RunGoalsProgressCard from '@/components/client/RunGoalsProgressCard';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Armchair, ListTodo, History, Heart, Dumbbell } from 'lucide-react';
+import { PlusCircle, Armchair, ListTodo, History } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
 import { toast } from 'sonner';
 import {
@@ -83,50 +83,62 @@ const WorkoutsPage = () => {
               <WorkoutsList />
               
               <div className="mt-8 border-t pt-6">
-                <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
+                <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-between text-blue-600 border-blue-200 hover:bg-blue-50">
                   <Link to="/client-dashboard/workouts/one-off">
-                    <PlusCircle className="h-4 w-4" />
-                    Custom Workout
+                    <div className="flex items-center">
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      <span>Custom Workout</span>
+                    </div>
+                    <span className="text-lg">⚙️</span>
                   </Link>
                 </Button>
                 
                 <Button 
                   variant="outline" 
-                  className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                  className="w-full mb-4 flex items-center justify-between text-blue-600 border-blue-200 hover:bg-blue-50"
                   onClick={() => setShowRunDialog(true)}
                 >
-                  <PlusCircle className="h-4 w-4" />
+                  <div className="flex items-center">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    <span>Run</span>
+                  </div>
                   <span role="img" aria-label="Running" className="text-lg">🏃</span>
-                  Run
                 </Button>
                 
                 <Button 
                   variant="outline" 
-                  className="w-full mb-4 flex items-center justify-center gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
+                  className="w-full mb-4 flex items-center justify-between text-purple-600 border-purple-200 hover:bg-purple-50"
                   onClick={() => setShowStrengthDialog(true)}
                 >
-                  <PlusCircle className="h-4 w-4" />
-                  <Dumbbell className="h-4 w-4" />
-                  🏋️ Strength/Mobility Workout
+                  <div className="flex items-center">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    <span>Strength/Mobility Workout</span>
+                  </div>
+                  <span className="text-lg">🏋️</span>
                 </Button>
                 
                 <Button 
                   variant="outline" 
-                  className="w-full mb-4 flex items-center justify-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                  className="w-full mb-4 flex items-center justify-between text-red-600 border-red-200 hover:bg-red-50"
                   onClick={() => setShowCardioDialog(true)}
                 >
-                  <PlusCircle className="h-4 w-4" />
-                  <Heart className="h-4 w-4" />
-                  ❤️ Cross Training Cardio
+                  <div className="flex items-center">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    <span>Cross Training Cardio</span>
+                  </div>
+                  <span className="text-lg">🚴</span>
                 </Button>
                 
                 <Button 
                   variant="outline" 
-                  className="w-full mb-4 flex items-center justify-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
+                  className="w-full mb-4 flex items-center justify-between text-green-600 border-green-200 hover:bg-green-50"
                   onClick={() => setShowRestDayDialog(true)}
                 >
-                  <Armchair className="h-4 w-4" />
-                  Log Rest Day
+                  <div className="flex items-center">
+                    <Armchair className="h-4 w-4 mr-2" />
+                    <span>Log Rest Day</span>
+                  </div>
+                  <span className="text-lg">😌</span>
                 </Button>
               </div>
             </TabsContent>
@@ -212,8 +224,8 @@ const WorkoutsPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Heart className="h-5 w-5 text-red-600" />
-              <span>Log a Cardio Session</span>
+              <span role="img" aria-label="Cycling" className="text-lg">🚴</span>
+              <span>Log a Cross Training Cardio Session</span>
             </DialogTitle>
             <DialogDescription>
               Record your cardio activity to track your progress

@@ -32,7 +32,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     fetch: (url, options) => {
       // Custom fetch with timeout and retry logic
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), 20000); // Extended timeout to 20 seconds
+        setTimeout(() => reject(new Error('Request timeout')), 30000); // Extended timeout to 30 seconds
       });
       
       const fetchWithRetries = async () => {

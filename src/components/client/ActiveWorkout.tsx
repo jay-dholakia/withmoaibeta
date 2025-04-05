@@ -52,16 +52,16 @@ const ActiveWorkout = () => {
     }
   });
   
-  // Then fetch the actual workout details through program assignments, workout weeks, and workouts
+  // Directly get the full workout details from the workouts table
   const { data: workoutDetails, isLoading: isLoadingWorkout, error: workoutError } = useQuery({
     queryKey: ['workout-details', workoutCompletion?.workout_id],
     queryFn: async () => {
       if (!workoutCompletion?.workout_id) return null;
       
-      console.log(`Fetching workout details: ${workoutCompletion.workout_id}`);
+      console.log(`Fetching workout details directly from workouts table: ${workoutCompletion.workout_id}`);
       
-      // Approach 1: Try direct workout query first (fastest path)
-      const { data: directWorkout, error: directError } = await supabase
+      // Direct query to the workouts table with full relationship info
+      const { data, error } = await supabase
         .from('workouts')
         .select(`
           *,
@@ -78,91 +78,24 @@ const ActiveWorkout = () => {
         .eq('id', workoutCompletion.workout_id)
         .maybeSingle();
       
-      if (!directError && directWorkout) {
-        console.log('Found workout directly:', directWorkout);
-        return directWorkout;
+      if (error) {
+        console.error('Error fetching workout details:', error);
+        throw error;
       }
       
-      console.log('Direct workout fetch failed, trying through program assignments path');
-      
-      // Approach 2: Try through program assignments if direct query fails
-      if (!user?.id) throw new Error('User not authenticated');
-      
-      // Find program assignments for this user
-      const { data: assignments, error: assignmentsError } = await supabase
-        .from('program_assignments')
-        .select('program_id')
-        .eq('user_id', user.id);
-      
-      if (assignmentsError) {
-        console.error('Error fetching program assignments:', assignmentsError);
-        throw assignmentsError;
+      if (!data) {
+        console.error(`Workout ${workoutCompletion.workout_id} not found`);
+        throw new Error(`Workout not found`);
       }
       
-      if (!assignments || assignments.length === 0) {
-        console.error('No program assignments found for user');
-        throw new Error('No assigned programs found');
-      }
-      
-      const programIds = assignments.map(a => a.program_id);
-      console.log('Found program IDs:', programIds);
-      
-      // Find workout weeks in these programs
-      const { data: weeks, error: weeksError } = await supabase
-        .from('workout_weeks')
-        .select('id')
-        .in('program_id', programIds);
-      
-      if (weeksError) {
-        console.error('Error fetching workout weeks:', weeksError);
-        throw weeksError;
-      }
-      
-      if (!weeks || weeks.length === 0) {
-        console.error('No workout weeks found in assigned programs');
-        throw new Error('No workout weeks found');
-      }
-      
-      const weekIds = weeks.map(w => w.id);
-      console.log('Found week IDs:', weekIds);
-      
-      // Find the workout in these weeks
-      const { data: workout, error: workoutError } = await supabase
-        .from('workouts')
-        .select(`
-          *,
-          week:week_id (
-            id,
-            week_number,
-            program:program_id (
-              id,
-              title,
-              description
-            )
-          )
-        `)
-        .eq('id', workoutCompletion.workout_id)
-        .in('week_id', weekIds)
-        .maybeSingle();
-      
-      if (workoutError) {
-        console.error('Error fetching workout:', workoutError);
-        throw workoutError;
-      }
-      
-      if (!workout) {
-        console.error(`Workout ${workoutCompletion.workout_id} not found in assigned programs`);
-        throw new Error('Workout not found in your assigned programs');
-      }
-      
-      console.log('Found workout through program assignments:', workout);
-      return workout;
+      console.log('Found workout details:', data);
+      return data;
     },
     enabled: !!workoutCompletion?.workout_id,
     retry: 2
   });
   
-  // More efficient exercise query with batching and optimizations
+  // Fetch workout exercises directly from the workout_exercises table
   const { data: workoutExercises, isLoading: isLoadingExercises, error: exercisesError } = useQuery({
     queryKey: ['workout-exercises', workoutCompletion?.workout_id],
     queryFn: async () => {
@@ -321,7 +254,7 @@ const ActiveWorkout = () => {
               <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
               <p className="text-red-500 mb-2">Error loading workout details.</p>
               <p className="text-sm text-muted-foreground">
-                {workoutError?.message || 'Could not find this workout in your assigned programs. Please refresh or contact your coach.'}
+                {workoutError?.message || 'Could not find this workout in the workouts table. Please refresh or contact your coach.'}
               </p>
             </div>
           </CardContent>

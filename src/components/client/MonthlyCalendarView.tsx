@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
@@ -136,18 +137,27 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       return 'rest_day';
     }
 
+    // First check workout titles for specific activities
     for (const workout of workoutsForDay) {
       const title = (workout.title || workout.workout?.title || '').toLowerCase();
       
-      if (title.includes('tennis')) return 'sport';
-      if (title.includes('soccer') || title.includes('football')) return 'sport';
-      if (title.includes('basketball')) return 'sport';
-      if (title.includes('volleyball')) return 'sport';
-      if (title.includes('baseball')) return 'sport';
-      if (title.includes('golf')) return 'sport';
-      if (title.includes('game') || title.includes('match') || title.includes('play')) return 'sport';
+      if (title.includes('tennis') || title.includes('soccer') || 
+          title.includes('football') || title.includes('basketball') || 
+          title.includes('volleyball') || title.includes('baseball') || 
+          title.includes('golf') || title.includes('game') || 
+          title.includes('match') || title.includes('play')) return 'sport';
+        
+      if (title.includes('run') || title.includes('jog')) return 'cardio';
+      if (title.includes('swim')) return 'swimming';
+      if (title.includes('cycl') || title.includes('bike')) return 'cycling';
+      if (title.includes('dance')) return 'dance';
+      if (title.includes('yoga') || title.includes('stretch')) return 'flexibility';
+      if (title.includes('hiit')) return 'hiit';
+      if (title.includes('strength') || title.includes('weight')) return 'strength';
+      if (title.includes('bodyweight')) return 'bodyweight';
     }
     
+    // Then check explicit workout types
     for (const workout of workoutsForDay) {
       if (workout.workout_type) {
         const type = workout.workout_type.toLowerCase();
@@ -162,19 +172,10 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
         if (type === 'dance') return 'dance';
         if (type === 'custom') return 'custom';
         if (type === 'one_off') return 'one_off';
-        
-        if (type.includes('tennis') || 
-            type.includes('soccer') || 
-            type.includes('football') || 
-            type.includes('basketball') || 
-            type.includes('sport') || 
-            type.includes('game') || 
-            type.includes('match')) {
-          return 'sport';
-        }
       }
     }
 
+    // Then check workout types from the workout object
     for (const workout of workoutsForDay) {
       if (workout.workout?.workout_type) {
         const workoutType = workout.workout.workout_type.toLowerCase();
@@ -199,6 +200,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       }
     }
 
+    // Lastly check workout descriptions for keywords
     for (const workout of workoutsForDay) {
       const description = (workout.description || workout.workout?.description || '').toLowerCase();
       

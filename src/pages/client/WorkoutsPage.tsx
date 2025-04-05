@@ -19,7 +19,6 @@ import PassCounter from '@/components/client/PassCounter';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import WorkoutTimer from '@/components/client/WorkoutTimer';
 
 // Create a wrapper component for WorkoutDayDetails to provide required props
 const WorkoutDayDetailsWrapper = () => {
@@ -48,9 +47,6 @@ const WorkoutsPage = () => {
           index 
           element={
             <div className="space-y-6 pb-20">
-              {/* Weekly Progress Card */}
-              <RunGoalsProgressCard />
-              
               <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid grid-cols-2 mb-4">
                   <TabsTrigger value="assigned">Assigned Workouts</TabsTrigger>
@@ -58,6 +54,9 @@ const WorkoutsPage = () => {
                 </TabsList>
                 
                 <TabsContent value="assigned" className="mt-0">
+                  {/* Weekly Progress Card - moved inside the assigned tab */}
+                  <RunGoalsProgressCard />
+                  
                   {calendarView ? (
                     <MonthlyCalendarView 
                       workouts={[]} 
@@ -72,9 +71,6 @@ const WorkoutsPage = () => {
                   <WorkoutHistoryTab />
                 </TabsContent>
               </Tabs>
-              
-              {/* Workout Timer */}
-              <WorkoutTimer />
               
               {/* Workout Action Buttons */}
               <div className="space-y-3 mt-6">

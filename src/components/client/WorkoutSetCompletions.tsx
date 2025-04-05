@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, SubscriptionManager } from '@/integrations/supabase/client';
@@ -476,7 +477,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                     value={tempSet.weight}
                     onChange={(e) => handleUpdateTempSet(exercise.id, setNumber, 'weight', e.target.value)}
                     placeholder="lbs"
-                    className="h-8 text-sm w-full min-w-[95px]"
+                    className="h-8 text-sm w-full max-w-[70px]"
                     step="0.5"
                   />
                 </div>
@@ -552,7 +553,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                     value={set.weight || ''}
                     onChange={(e) => handleUpdateSet(set.id, 'weight', parseFloat(e.target.value) || 0)}
                     placeholder="lbs"
-                    className="h-8 text-sm w-full px-2 min-w-[95px]"
+                    className="h-8 text-sm w-full px-2 max-w-[70px]"
                     step="0.5"
                     disabled={readOnly}
                   />

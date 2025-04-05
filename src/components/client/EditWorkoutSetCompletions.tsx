@@ -156,7 +156,7 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                             parseFloat(e.target.value) || 0
                           )}
                           placeholder="lbs"
-                          className="w-full h-8 text-sm px-2 min-w-[95px]"
+                          className="w-full h-8 text-sm px-2 max-w-[70px]"
                           step="0.5"
                         />
                       </div>

@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { getWeeklyRunProgress } from '@/services/run-goals-service';
-import { ArrowUp, Running, Dumbbell, Heart } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 
 export interface RunProgressData {
   miles: { completed: number; goal: number };
@@ -83,14 +83,14 @@ const RunGoalsProgressCard = () => {
           <div className="space-y-1">
             <div className="flex justify-between text-sm">
               <div className="flex items-center gap-1">
-                <Running className="w-4 h-4 text-blue-500" />
+                <span className="text-lg" role="img" aria-label="Running">🏃‍♂️</span>
                 <span className="font-medium">Miles</span>
               </div>
               <span>
                 {progress.miles.completed.toFixed(1)} / {progress.miles.goal} miles
               </span>
             </div>
-            <Progress value={milesPercentage} className="h-2" />
+            <Progress value={milesPercentage} className="h-2" indicatorColor="bg-blue-500" />
           </div>
         )}
         
@@ -98,14 +98,14 @@ const RunGoalsProgressCard = () => {
           <div className="space-y-1">
             <div className="flex justify-between text-sm">
               <div className="flex items-center gap-1">
-                <Dumbbell className="w-4 h-4 text-amber-500" />
+                <span className="text-lg" role="img" aria-label="Exercise">💪</span>
                 <span className="font-medium">Exercises</span>
               </div>
               <span>
                 {progress.exercises.completed} / {progress.exercises.goal}
               </span>
             </div>
-            <Progress value={exercisesPercentage} className="h-2" />
+            <Progress value={exercisesPercentage} className="h-2" indicatorColor="bg-amber-500" />
           </div>
         )}
         
@@ -113,14 +113,14 @@ const RunGoalsProgressCard = () => {
           <div className="space-y-1">
             <div className="flex justify-between text-sm">
               <div className="flex items-center gap-1">
-                <Heart className="w-4 h-4 text-red-500" />
+                <span className="text-lg" role="img" aria-label="Cardio">❤️</span>
                 <span className="font-medium">Cardio Minutes</span>
               </div>
               <span>
                 {progress.cardio.completed} / {progress.cardio.goal} min
               </span>
             </div>
-            <Progress value={cardioPercentage} className="h-2" />
+            <Progress value={cardioPercentage} className="h-2" indicatorColor="bg-red-500" />
           </div>
         )}
       </div>

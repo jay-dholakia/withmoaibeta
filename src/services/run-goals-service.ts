@@ -361,11 +361,10 @@ export const getWeeklyRunProgress = async (userId: string): Promise<{
       };
     }
     
-    const progress = data || { 
-      miles_completed: 0, 
-      exercises_completed: 0, 
-      cardio_minutes_completed: 0 
-    };
+    // Handle both single object and array responses
+    const progress = Array.isArray(data) && data.length > 0 
+      ? data[0] 
+      : (data || { miles_completed: 0, exercises_completed: 0, cardio_minutes_completed: 0 });
     
     return {
       miles: { 

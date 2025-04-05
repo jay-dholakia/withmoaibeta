@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SubscriptionManager } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Loader2, Check, Dumbbell, Clock } from 'lucide-react';
@@ -10,6 +9,7 @@ import { WorkoutExercise, WorkoutSetCompletion } from '@/types/workout';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { debounce } from '@/lib/utils';
 
 interface WorkoutSetCompletionsProps {
   workoutCompletionId: string;
@@ -37,10 +37,12 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
       if (error) throw error;
       return data || [];
     },
-    enabled: !!workoutCompletionId
+    enabled: !!workoutCompletionId,
+    retry: 2,
+    staleTime: 30000,
+    retryDelay: attempt => Math.min(attempt > 1 ? 2000 : 1000, 8000),
   });
   
-  // Group completions by workout_exercise_id
   useEffect(() => {
     if (workoutSetCompletions) {
       const grouped: Record<string, WorkoutSetCompletion[]> = {};
@@ -54,7 +56,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     }
   }, [workoutSetCompletions]);
   
-  const handleUpdateSet = async (setId: string, field: string, value: any) => {
+  const handleUpdateSet = debounce(async (setId: string, field: string, value: any) => {
     if (readOnly) return;
     
     try {
@@ -75,18 +77,16 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     } finally {
       setUpdatingSetId(null);
     }
-  };
+  }, 500);
   
   const createWorkoutSets = async (exerciseId: string, sets: number) => {
     if (readOnly) return;
     
     try {
-      // Check if sets already exist for this exercise
       if (completions[exerciseId] && completions[exerciseId].length > 0) {
         return;
       }
       
-      // Create sets for this exercise
       const setsToCreate = Array.from({ length: sets }, (_, i) => ({
         workout_completion_id: workoutCompletionId,
         workout_exercise_id: exerciseId,
@@ -106,7 +106,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
         return;
       }
       
-      // Update the local state with the new sets
       setCompletions(prev => ({
         ...prev,
         [exerciseId]: data
@@ -119,15 +118,58 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
   };
   
   useEffect(() => {
-    // Auto-create workout sets for each exercise if they don't exist
-    if (workoutExercises && workoutExercises.length > 0) {
-      workoutExercises.forEach((exercise) => {
-        if (exercise.sets && (!completions[exercise.id] || completions[exercise.id].length === 0)) {
-          createWorkoutSets(exercise.id, exercise.sets);
+    if (!workoutCompletionId) return;
+    
+    const initializeMissingSets = async () => {
+      if (workoutExercises && workoutExercises.length > 0) {
+        const exercisesNeedingSets = workoutExercises.filter(exercise => 
+          exercise.sets && (!completions[exercise.id] || completions[exercise.id].length === 0)
+        );
+        
+        for (let i = 0; i < Math.min(exercisesNeedingSets.length, 3); i++) {
+          const exercise = exercisesNeedingSets[i];
+          await createWorkoutSets(exercise.id, exercise.sets);
         }
-      });
+      }
+    };
+    
+    if (workoutSetCompletions && workoutExercises.length > 0) {
+      initializeMissingSets();
     }
-  }, [workoutExercises, completions, workoutCompletionId]);
+    
+    const channel = SubscriptionManager.getSubscription(
+      `workout-sets-${workoutCompletionId}`, 
+      () => {
+        const channel = supabase.channel(`workout-sets-${workoutCompletionId}`)
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'workout_set_completions',
+            filter: `workout_completion_id=eq.${workoutCompletionId}`
+          }, (payload) => {
+            console.log('Workout set update received:', payload);
+            window.dispatchEvent(new CustomEvent('refresh-workout-sets'));
+          })
+          .subscribe((status) => {
+            console.log(`Workout sets subscription status: ${status}`);
+          });
+        
+        return channel;
+      }
+    );
+    
+    const handleRefresh = () => {
+      window.dispatchEvent(new CustomEvent('refetch-workout-sets'));
+    };
+    
+    window.addEventListener('refresh-workout-sets', handleRefresh);
+    
+    return () => {
+      window.removeEventListener('refresh-workout-sets', handleRefresh);
+      SubscriptionManager.releaseSubscription(`workout-sets-${workoutCompletionId}`);
+      handleUpdateSet.cancel();
+    };
+  }, [workoutCompletionId, workoutExercises, workoutSetCompletions, completions]);
   
   if (isLoading) {
     return (
@@ -202,7 +244,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                 )}
                 
                 {isCardio ? (
-                  // Cardio exercise (duration based)
                   <div className="mb-3">
                     <label className="text-sm font-medium block mb-1">Duration</label>
                     {exerciseSets.length > 0 ? (
@@ -226,7 +267,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                     )}
                   </div>
                 ) : (
-                  // Weight training exercise (sets and reps)
                   <div className="space-y-2">
                     <div className="grid grid-cols-12 gap-2 mb-2 text-sm font-medium text-gray-500">
                       <div className="col-span-3">Set</div>

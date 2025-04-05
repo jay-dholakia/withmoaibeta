@@ -1,9 +1,9 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { debounce } from '@/lib/utils';
 
 type UserType = 'admin' | 'coach' | 'client';
 
@@ -26,6 +26,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const showToastError = debounce((message: string) => {
+  toast.error(message);
+}, 2000);
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -35,7 +39,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [unmounted, setUnmounted] = useState(false);
   const navigate = useNavigate();
 
-  // Helper function to safely update state only if component is still mounted
   const safeSetState = <T,>(setter: React.Dispatch<React.SetStateAction<T>>, value: T) => {
     if (!unmounted) {
       setter(value);
@@ -45,71 +48,100 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log("Setting up auth state listener...");
     
-    // Critical flag to track component mount state
     setUnmounted(false);
     
-    // Immediately set an initializing timeout to ensure the loading state doesn't get stuck
+    let authRetryCount = 0;
+    const MAX_RETRIES = 3;
+    
     const loadingTimeout = setTimeout(() => {
       console.log("Auth loading timeout triggered - resetting loading state");
       safeSetState(setLoading, false);
-    }, 5000); // Fail-safe: reset loading after 5 seconds if nothing happens
+    }, 5000);
     
-    // Set up the auth state listener FIRST - this is critical!
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        
-        // Clear the timeout since we received an auth event
-        clearTimeout(loadingTimeout);
-        
-        // Check for signed out event - use type assertion for TypeScript compatibility
-        if (event === 'SIGNED_OUT' as AuthChangeEvent) {
-          console.log('User signed out, clearing auth state');
-          safeSetState(setSession, null);
-          safeSetState(setUser, null);
-          safeSetState(setProfile, null);
-          safeSetState(setUserType, null);
-          safeSetState(setLoading, false);
-          return;
-        }
-        
-        safeSetState(setSession, session);
-        safeSetState(setUser, session?.user ?? null);
-        
-        if (session?.user) {
-          // Extract userType directly from user metadata if available
-          const metadataUserType = session.user.user_metadata?.user_type as UserType | undefined;
+    let activeSubscription: { data: { subscription: any } } | null = null;
+    
+    try {
+      activeSubscription = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('Auth state changed:', event, session?.user?.id);
           
-          if (metadataUserType) {
-            console.log('User type found in metadata:', metadataUserType);
-            safeSetState(setUserType, metadataUserType);
-            // Still fetch profile for complete data, but don't block on it
-            fetchUserProfile(session.user.id).catch(err => {
-              console.error('Error fetching profile after auth state change:', err);
-            });
+          clearTimeout(loadingTimeout);
+          
+          if (event === 'SIGNED_OUT' as AuthChangeEvent) {
+            console.log('User signed out, clearing auth state');
+            safeSetState(setSession, null);
+            safeSetState(setUser, null);
+            safeSetState(setProfile, null);
+            safeSetState(setUserType, null);
             safeSetState(setLoading, false);
-          } else {
-            // If not in metadata, we must fetch profile
-            try {
-              await fetchUserProfile(session.user.id);
-            } catch (error) {
-              console.error('Error fetching profile:', error);
-            } finally {
-              // Always ensure loading is reset after trying to fetch profile
-              safeSetState(setLoading, false);
-            }
+            return;
           }
-        } else if (event !== 'SIGNED_OUT') { // Don't reset loading on sign out as we've already done it
-          safeSetState(setLoading, false);
+          
+          safeSetState(setSession, session);
+          safeSetState(setUser, session?.user ?? null);
+          
+          if (session?.user) {
+            const metadataUserType = session.user.user_metadata?.user_type as UserType | undefined;
+            
+            if (metadataUserType) {
+              console.log('User type found in metadata:', metadataUserType);
+              safeSetState(setUserType, metadataUserType);
+              
+              fetchUserProfile(session.user.id)
+                .catch(err => {
+                  console.error('Error fetching profile after auth state change:', err);
+                  if (!isNetworkError(err)) {
+                    showToastError('Error loading your profile data');
+                  }
+                })
+                .finally(() => {
+                  safeSetState(setLoading, false);
+                });
+            } else {
+              fetchUserProfile(session.user.id)
+                .catch(err => {
+                  console.error('Error fetching profile:', err);
+                  if (authRetryCount < MAX_RETRIES && isNetworkError(err)) {
+                    console.log(`Retrying profile fetch (${authRetryCount + 1}/${MAX_RETRIES})...`);
+                    authRetryCount++;
+                    setTimeout(() => {
+                      if (!unmounted) {
+                        fetchUserProfile(session.user.id)
+                          .catch(retryErr => console.error('Retry failed:', retryErr))
+                          .finally(() => safeSetState(setLoading, false));
+                      }
+                    }, 1000 * authRetryCount);
+                  } else {
+                    safeSetState(setLoading, false);
+                  }
+                })
+                .finally(() => {
+                  if (authRetryCount === 0) {
+                    safeSetState(setLoading, false);
+                  }
+                });
+            }
+          } else if (event !== 'SIGNED_OUT' as AuthChangeEvent) {
+            safeSetState(setLoading, false);
+          }
         }
-      }
-    );
+      );
+    } catch (err) {
+      console.error("Error setting up auth listener:", err);
+      safeSetState(setLoading, false);
+    }
 
-    // THEN check for existing session - do this AFTER setting up the listener
     const checkSession = async () => {
       try {
-        console.log('Checking for existing session...');
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Session check timeout')), 5000);
+        });
+        
+        const { data: { session }, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any;
         
         if (error) {
           console.error('Error getting session:', error);
@@ -124,36 +156,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           safeSetState(setUser, session?.user ?? null);
           
           if (session?.user) {
-            // Extract userType directly from user metadata if available
             const metadataUserType = session.user.user_metadata?.user_type as UserType | undefined;
             
             if (metadataUserType) {
               console.log('User type found in metadata:', metadataUserType);
               safeSetState(setUserType, metadataUserType);
-              // Still fetch profile but don't block on it
-              fetchUserProfile(session.user.id).catch(err => {
-                console.error('Error fetching profile after session check:', err);
-              });
-              safeSetState(setLoading, false);
+              fetchUserProfile(session.user.id)
+                .catch(err => {
+                  console.error('Error fetching profile after session check:', err);
+                  if (!isNetworkError(err)) {
+                    showToastError('Error loading your profile data');
+                  }
+                })
+                .finally(() => {
+                  safeSetState(setLoading, false);
+                });
             } else {
-              // If not in metadata, we must fetch profile
               try {
                 await fetchUserProfile(session.user.id);
               } catch (error) {
                 console.error('Error fetching profile:', error);
               } finally {
-                // Always ensure loading is reset
                 safeSetState(setLoading, false);
               }
             }
           } else {
-            // No user session
             safeSetState(setLoading, false);
           }
         }
       } catch (error) {
         console.error('Error checking session:', error);
-        safeSetState(setLoading, false); // Always ensure loading is reset on error
+        safeSetState(setLoading, false);
       }
     };
 
@@ -161,11 +194,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       console.log("Cleaning up auth subscription");
-      setUnmounted(true); // Mark component as unmounted
-      clearTimeout(loadingTimeout); // Clear timeout on cleanup
-      subscription.unsubscribe();
+      setUnmounted(true);
+      clearTimeout(loadingTimeout);
+      
+      if (activeSubscription?.data?.subscription) {
+        console.log("Unsubscribing from auth state changes");
+        activeSubscription.data.subscription.unsubscribe();
+      }
     };
   }, []);
+
+  const isNetworkError = (error: any): boolean => {
+    return (
+      error.message?.includes('network') ||
+      error.message?.includes('timeout') ||
+      error.message?.includes('abort') ||
+      error.message?.includes('ERR_') ||
+      error.message?.includes('fetch') ||
+      error.message?.includes('connection') ||
+      error.code === 'ECONNABORTED' ||
+      error.code === 'ETIMEDOUT'
+    );
+  };
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -180,11 +230,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Error fetching user profile:', error);
         
-        // Check if the error is because the profile doesn't exist
         if (error.code === 'PGRST116') {
           console.log('Profile not found for user:', userId);
           
-          // Try to get user_type from user metadata instead
           const { data: userData } = await supabase.auth.getUser();
           const metadataUserType = userData?.user?.user_metadata?.user_type as UserType | undefined;
           
@@ -206,7 +254,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         console.warn('No profile found for user:', userId);
         
-        // Try to get user_type from user metadata instead
         const { data: userData } = await supabase.auth.getUser();
         const metadataUserType = userData?.user?.user_metadata?.user_type as UserType | undefined;
         
@@ -217,10 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
-      // Don't reset loading here, let the caller handle it
-    } finally {
-      console.log('Profile fetch complete, resetting loading state');
-      safeSetState(setLoading, false); // Always reset loading after profile fetch attempt
+      throw error;
     }
   };
 
@@ -234,29 +278,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Sign in error:', error.message);
         toast.error(error.message);
-        safeSetState(setLoading, false); // Explicit reset on error
+        safeSetState(setLoading, false);
         return;
       }
       
       console.log('Sign in successful, user ID:', data.user?.id);
       toast.success('Sign in successful!');
       
-      // User metadata should have the user_type, use it immediately for faster UI updates
       if (data.user?.user_metadata?.user_type) {
         const metadataUserType = data.user.user_metadata.user_type as UserType;
         console.log('Using user_type from metadata:', metadataUserType);
         safeSetState(setUserType, metadataUserType);
       }
       
-      // We don't need to explicitly set loading to false here as the auth state listener will handle that
-      // But as a fallback, ensure loading is reset after a reasonable time
       setTimeout(() => {
         safeSetState(setLoading, false);
       }, 2000);
     } catch (error) {
       console.error('Error in signIn:', error);
       toast.error('An unexpected error occurred');
-      safeSetState(setLoading, false); // Always reset loading on error
+      safeSetState(setLoading, false);
     }
   };
 
@@ -300,7 +341,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      // Reset all auth state immediately rather than waiting for the listener
       safeSetState(setSession, null);
       safeSetState(setUser, null);
       safeSetState(setProfile, null);
@@ -313,7 +353,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('An error occurred while logging out');
-      safeSetState(setLoading, false); // Always reset loading on error
+      safeSetState(setLoading, false);
     }
   };
 

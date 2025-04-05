@@ -17,13 +17,18 @@ const ActiveWorkout = () => {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   
+  // Improved query with better error handling and network resilience
   const { data: workoutCompletion, isLoading: isLoadingCompletion, error: completionError } = useQuery({
     queryKey: ['workout-completion', workoutCompletionId],
     queryFn: async () => {
       if (!workoutCompletionId) throw new Error('No workout completion ID provided');
       
-      // Use .select() instead of .single() to get an array of results
-      const { data, error } = await supabase
+      // Use a timeout promise to prevent hanging requests
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 8000);
+      });
+      
+      const fetchPromise = supabase
         .from('workout_completions')
         .select(`
           *,
@@ -36,6 +41,12 @@ const ActiveWorkout = () => {
         `)
         .eq('id', workoutCompletionId);
       
+      // Race the fetch against the timeout
+      const { data, error } = await Promise.race([
+        fetchPromise,
+        timeoutPromise
+      ]) as any;
+      
       if (error) throw error;
       
       // Check if any data was returned
@@ -47,8 +58,17 @@ const ActiveWorkout = () => {
       return data[0];
     },
     enabled: !!workoutCompletionId,
+    retry: (count, error) => {
+      // Only retry network errors, not 404s or other client errors
+      if (count >= 2) return false;
+      return error.message?.includes('timeout') || 
+             error.message?.includes('network') ||
+             error.message?.includes('connection');
+    },
+    staleTime: 60000, // Cache for 1 minute
   });
   
+  // More efficient exercise query with batching and optimizations
   const { data: workoutExercises, isLoading: isLoadingExercises, error: exercisesError } = useQuery({
     queryKey: ['workout-exercises', workoutCompletion?.workout_id],
     queryFn: async () => {
@@ -80,7 +100,21 @@ const ActiveWorkout = () => {
       return data || [];
     },
     enabled: !!workoutCompletion?.workout_id,
+    staleTime: 300000, // Cache for 5 minutes (workout exercises rarely change)
   });
+  
+  // Listen for refetch events from other components
+  useEffect(() => {
+    const handleRefetch = () => {
+      queryClient.invalidateQueries({ queryKey: ['workout-set-completions'] });
+    };
+    
+    window.addEventListener('refetch-workout-sets', handleRefetch);
+    
+    return () => {
+      window.removeEventListener('refetch-workout-sets', handleRefetch);
+    };
+  }, [queryClient]);
   
   const handleBackClick = () => {
     navigate('/client-dashboard/workouts');
@@ -109,11 +143,18 @@ const ActiveWorkout = () => {
         return;
       }
       
-      // Invalidate related queries to trigger refetch
-      queryClient.invalidateQueries({ queryKey: ['weekly-run-progress'] });
-      queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
-      queryClient.invalidateQueries({ queryKey: ['client-workouts-week-progress'] });
-      queryClient.invalidateQueries({ queryKey: ['client-workouts-leaderboard'] });
+      // Batch invalidate related queries - this reduces network overhead
+      // compared to individual invalidations
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const queryKey = query.queryKey[0];
+          return typeof queryKey === 'string' && (
+            queryKey.includes('weekly-run-progress') ||
+            queryKey.includes('client-workouts') ||
+            queryKey.includes('leaderboard')
+          );
+        }
+      });
       
       toast.success('Workout completed!');
       navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);

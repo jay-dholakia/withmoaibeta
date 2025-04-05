@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save, HelpCircle, Info, Youtube } from 'lucide-react';
 import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft, hasWorkoutDraft } from '@/services/workout-draft-service';
+import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
 import { 
   Tooltip,
@@ -1310,7 +1310,7 @@ const ActiveWorkout = () => {
           <Button 
             onClick={finishWorkout}
             disabled={saveAllSetsMutation.isPending || !isWorkoutComplete()}
-            className="w-full max-w-md bg-green-500 hover:bg-green-600"
+            className="w-full max-w-md bg-client hover:bg-client/90"
           >
             {saveAllSetsMutation.isPending ? (
               <>

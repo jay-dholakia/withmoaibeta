@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +26,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const [notes, setNotes] = React.useState(initialData?.notes || '');
   const [duration, setDuration] = React.useState(initialData?.duration || '');
   const [distance, setDistance] = React.useState(initialData?.distance || '');
-  const [hasDraftLoaded, setHasDraftLoaded] = React.useState(false);
 
   // Create unique draft ID for this exercise form
   const exerciseFormDraftId = initialData?.id ? `exercise-form-${initialData.id}` : null;
@@ -41,72 +41,43 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   };
 
   // Use autosave hook when we have a valid exercise ID
-  const { saveStatus, saveNow } = useAutosave({
+  const { saveStatus } = useAutosave({
     data: draftData,
     onSave: async (data) => {
       if (!exerciseFormDraftId) return false;
-      console.log("Autosaving exercise form data:", data);
       return await saveWorkoutDraft(
         exerciseFormDraftId,
         'exercise_form',
         data
       );
     },
-    interval: 1000, // Reduced interval for more frequent saves
-    disabled: !exerciseFormDraftId || !hasDraftLoaded
+    disabled: !exerciseFormDraftId
   });
 
   // Load draft data when component mounts
   useEffect(() => {
     const loadDraftData = async () => {
-      if (!exerciseFormDraftId) {
-        setHasDraftLoaded(true);
-        return;
-      }
+      if (!exerciseFormDraftId) return;
       
-      try {
-        const draft = await getWorkoutDraft(exerciseFormDraftId);
+      const draft = await getWorkoutDraft(exerciseFormDraftId);
+      
+      if (draft && draft.draft_data) {
+        const data = draft.draft_data;
         
-        if (draft && draft.draft_data) {
-          console.log("Loaded draft data:", draft.draft_data);
-          const data = draft.draft_data;
-          
-          if (data.sets !== undefined) setSets(data.sets);
-          if (data.reps !== undefined) setReps(data.reps);
-          if (data.restSeconds !== undefined) setRestSeconds(data.restSeconds);
-          if (data.notes !== undefined) setNotes(data.notes);
-          if (data.duration !== undefined) setDuration(data.duration);
-          if (data.distance !== undefined) setDistance(data.distance);
-          
-          toast.info("Loaded your saved progress", { duration: 2000 });
-        }
-      } catch (err) {
-        console.error("Error loading draft data:", err);
-      } finally {
-        setHasDraftLoaded(true);
+        if (data.sets !== undefined) setSets(data.sets);
+        if (data.reps !== undefined) setReps(data.reps);
+        if (data.restSeconds !== undefined) setRestSeconds(data.restSeconds);
+        if (data.notes !== undefined) setNotes(data.notes);
+        if (data.duration !== undefined) setDuration(data.duration);
+        if (data.distance !== undefined) setDistance(data.distance);
       }
     };
     
     loadDraftData();
   }, [exerciseFormDraftId]);
 
-  // Force save when component unmounts
-  useEffect(() => {
-    return () => {
-      if (exerciseFormDraftId && hasDraftLoaded) {
-        console.log("Component unmounting, forcing final save");
-        saveNow();
-      }
-    };
-  }, [exerciseFormDraftId, hasDraftLoaded, saveNow]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Final save before submitting
-    if (exerciseFormDraftId && hasDraftLoaded) {
-      await saveNow();
-    }
     
     // When submitting, clean up the draft
     if (exerciseFormDraftId) {

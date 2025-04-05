@@ -31,8 +31,7 @@ export const saveWorkoutDraft = async (
         .from('workout_drafts')
         .update({ 
           draft_data: draftData,
-          workout_type: workoutType,
-          updated_at: new Date().toISOString() // Add updated timestamp
+          workout_type: workoutType
         })
         .eq('id', existingDraft.id);
         
@@ -48,8 +47,7 @@ export const saveWorkoutDraft = async (
           user_id: user.id,
           workout_id: workoutId,
           workout_type: workoutType,
-          draft_data: draftData,
-          updated_at: new Date().toISOString() // Add created timestamp
+          draft_data: draftData
         });
         
       if (error) {
@@ -81,7 +79,7 @@ export const getWorkoutDraft = async (
     
     const { data, error } = await supabase
       .from('workout_drafts')
-      .select('draft_data, workout_type, updated_at')
+      .select('draft_data, workout_type')
       .eq('user_id', user.id)
       .eq('workout_id', workoutId || '')
       .maybeSingle();
@@ -129,32 +127,3 @@ export const deleteWorkoutDraft = async (
     return false;
   }
 };
-
-/**
- * Force immediate save of workout draft
- * This can be used when we need to ensure data is saved before page unload
- */
-export const forceSaveWorkoutDraft = async (
-  workoutId: string | null,
-  workoutType: string | null,
-  draftData: any
-): Promise<boolean> => {
-  try {
-    // Use the same logic as saveWorkoutDraft but without debouncing
-    return await saveWorkoutDraft(workoutId, workoutType, draftData);
-  } catch (error) {
-    console.error("Error in forceSaveWorkoutDraft:", error);
-    return false;
-  }
-};
-
-// Register page visibility change handler to save drafts when page is hidden
-if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-      // This event fires when the user minimizes or switches tabs
-      // Any active autosave will be forced to complete by the browser
-      console.log("Page visibility changed to hidden, drafts will be saved if any are pending");
-    }
-  });
-}

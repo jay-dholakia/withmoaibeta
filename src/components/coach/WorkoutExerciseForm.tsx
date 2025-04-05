@@ -1,9 +1,10 @@
+
 import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label"; 
 import { Textarea } from "@/components/ui/textarea";
-import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft, forceSaveWorkoutDraft } from '@/services/workout-draft-service';
+import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -30,14 +31,14 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const exerciseFormDraftId = initialData?.id ? `exercise-form-${initialData.id}` : null;
 
   // Data object for autosave
-  const draftData = React.useMemo(() => ({
+  const draftData = {
     sets,
     reps,
     restSeconds,
     notes,
     duration,
     distance
-  }), [sets, reps, restSeconds, notes, duration, distance]);
+  };
 
   // Use autosave hook when we have a valid exercise ID
   const { saveStatus } = useAutosave({
@@ -74,19 +75,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     
     loadDraftData();
   }, [exerciseFormDraftId]);
-
-  // Force save draft before unmounting
-  useEffect(() => {
-    return () => {
-      if (exerciseFormDraftId) {
-        forceSaveWorkoutDraft(
-          exerciseFormDraftId,
-          'exercise_form',
-          draftData
-        );
-      }
-    };
-  }, [exerciseFormDraftId, draftData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -242,6 +242,9 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
                     {member.firstName} {member.lastName.charAt(0)}.
                     {member.isCurrentUser && <span className="text-xs text-muted-foreground ml-2">(You)</span>}
                   </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {member.workoutsCompleted} workout{member.workoutsCompleted !== 1 ? 's' : ''} this week
+                  </p>
                 </div>
               </div>
               <div className="text-2xl">
@@ -253,14 +256,14 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
           {!expandedCards[member.userId] && memberWorkouts && memberWorkouts[member.userId] && (
             <CardContent className="pt-0 pb-4">
               <WorkoutProgressCard
-                label=""
+                label={`${member.firstName}'s Progress`}
                 count={memberWorkouts[member.userId].count}
                 total={6}
                 completedDates={memberWorkouts[member.userId].completedDates || []}
                 lifeHappensDates={memberWorkouts[member.userId].lifeHappensDates || []}
                 workoutTypesMap={memberWorkouts[member.userId].workoutTypesMap || {}}
                 workoutTitlesMap={memberWorkouts[member.userId].workoutTitlesMap || {}}
-                userName=""
+                userName={`${member.firstName} ${member.lastName.charAt(0)}.`}
                 isCurrentUser={member.isCurrentUser}
               />
             </CardContent>
@@ -272,14 +275,14 @@ const MoaiGroupProgress: React.FC<MoaiGroupProgressProps> = ({ groupId }) => {
               
               <div className="mt-4">
                 <WorkoutProgressCard
-                  label=""
+                  label={`${member.firstName}'s Progress`}
                   count={memberWorkouts?.[member.userId]?.count || 0}
                   total={6}
                   completedDates={memberWorkouts?.[member.userId]?.completedDates || []}
                   lifeHappensDates={memberWorkouts?.[member.userId]?.lifeHappensDates || []}
                   workoutTypesMap={memberWorkouts?.[member.userId]?.workoutTypesMap || {}}
                   workoutTitlesMap={memberWorkouts?.[member.userId]?.workoutTitlesMap || {}}
-                  userName=""
+                  userName={`${member.firstName} ${member.lastName.charAt(0)}.`}
                   isCurrentUser={member.isCurrentUser}
                 />
               </div>

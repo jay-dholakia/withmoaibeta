@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, SubscriptionManager } from '@/integrations/supabase/client';
@@ -6,7 +7,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Loader2, Check, Dumbbell, Clock, Video, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { WorkoutExercise, WorkoutSetCompletion } from '@/types/workout';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { debounce } from '@/lib/utils';
@@ -59,40 +59,12 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     enabled: !!workoutId && !!user?.id
   });
   
+  // Instead of auto-creating a workout completion, we'll just use the ID if it exists
   useEffect(() => {
-    const createWorkoutCompletion = async () => {
-      if (!workoutId || !user?.id || isLoadingCompletion || existingCompletion) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('workout_completions')
-          .insert({
-            workout_id: workoutId,
-            user_id: user.id,
-            created_at: new Date().toISOString(),
-          })
-          .select('id')
-          .single();
-        
-        if (error) {
-          console.error('Error creating workout completion:', error);
-          return;
-        }
-        
-        setWorkoutCompletionId(data.id);
-      } catch (err) {
-        console.error('Error in createWorkoutCompletion:', err);
-      }
-    };
-    
-    if (!isLoadingCompletion) {
-      if (existingCompletion) {
-        setWorkoutCompletionId(existingCompletion.id);
-      } else {
-        createWorkoutCompletion();
-      }
+    if (!isLoadingCompletion && existingCompletion) {
+      setWorkoutCompletionId(existingCompletion.id);
     }
-  }, [workoutId, user?.id, isLoadingCompletion, existingCompletion]);
+  }, [existingCompletion, isLoadingCompletion]);
   
   const { data: workoutSetCompletions, isLoading, error } = useQuery({
     queryKey: ['workout-set-completions', workoutCompletionId],
@@ -150,6 +122,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     }
   }, 500);
   
+  // This function will now require a completion ID to create sets
   const createWorkoutSets = async (exerciseId: string, sets: number) => {
     if (readOnly || !workoutCompletionId) return;
     
@@ -245,16 +218,16 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     }
   }, [workoutCompletionId, workoutExercises, workoutSetCompletions, completions]);
   
-  if (isLoadingCompletion || !workoutCompletionId) {
+  if (isLoadingCompletion) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="w-6 h-6 animate-spin mr-2" />
-        <span>Setting up workout session...</span>
+        <span>Loading workout session...</span>
       </div>
     );
   }
   
-  if (isLoading) {
+  if (isLoading && workoutCompletionId) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="w-6 h-6 animate-spin mr-2" />
@@ -263,7 +236,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     );
   }
   
-  if (error) {
+  if (error && workoutCompletionId) {
     return (
       <div className="text-red-500 p-4 border border-red-200 rounded-md">
         Error loading workout exercises. Please try again.
@@ -278,6 +251,101 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
       </div>
     );
   }
+  
+  // New component to conditionally render exercise sets or a button to start tracking
+  const renderExerciseSets = (exercise: any) => {
+    const exerciseSets = completions[exercise.id] || [];
+    const isCardio = exercise.exercise?.exercise_type === 'cardio';
+    
+    if (!workoutCompletionId) {
+      return (
+        <div className="text-center py-4 text-gray-500">
+          Start the workout to begin tracking exercises.
+        </div>
+      );
+    }
+    
+    if (isCardio) {
+      return (
+        <div className="mb-3">
+          <label className="text-sm font-medium block mb-1">Duration</label>
+          {exerciseSets.length > 0 ? (
+            <Input
+              value={exerciseSets[0]?.duration || ''}
+              onChange={(e) => handleUpdateSet(exerciseSets[0].id, 'duration', e.target.value)}
+              placeholder="hh:mm:ss"
+              className="w-full"
+              disabled={readOnly}
+            />
+          ) : (
+            <div className="flex justify-center my-3">
+              <Button 
+                size="sm" 
+                onClick={() => createWorkoutSets(exercise.id, 1)}
+                disabled={readOnly}
+              >
+                Add Duration
+              </Button>
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      return (
+        <div className="space-y-2">
+          <div className="grid grid-cols-12 gap-2 mb-2 text-sm font-medium text-gray-500">
+            <div className="col-span-3">Set</div>
+            <div className="col-span-4">Reps</div>
+            <div className="col-span-5">Weight</div>
+          </div>
+          
+          {exerciseSets.length > 0 ? (
+            exerciseSets.map((set) => (
+              <div key={set.id} className="grid grid-cols-12 gap-2 items-center">
+                <div className="col-span-3 text-sm font-medium">
+                  {set.set_number}
+                  {updatingSetId === set.id && (
+                    <Loader2 className="inline w-3 h-3 ml-2 animate-spin" />
+                  )}
+                </div>
+                <div className="col-span-4">
+                  <Input 
+                    type="number"
+                    value={set.reps_completed || ''}
+                    onChange={(e) => handleUpdateSet(set.id, 'reps_completed', parseInt(e.target.value) || 0)}
+                    placeholder={String(exercise.reps)}
+                    className="h-8 text-sm"
+                    disabled={readOnly}
+                  />
+                </div>
+                <div className="col-span-5">
+                  <Input 
+                    type="number"
+                    value={set.weight || ''}
+                    onChange={(e) => handleUpdateSet(set.id, 'weight', parseFloat(e.target.value) || 0)}
+                    placeholder="Weight"
+                    className="h-8 text-sm"
+                    step="0.5"
+                    disabled={readOnly}
+                  />
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="flex justify-center my-3">
+              <Button 
+                size="sm" 
+                onClick={() => createWorkoutSets(exercise.id, exercise.sets)}
+                disabled={readOnly}
+              >
+                Add Sets
+              </Button>
+            </div>
+          )}
+        </div>
+      );
+    }
+  };
   
   return (
     <TooltipProvider>
@@ -302,9 +370,9 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                         <h4 className="font-medium">{exercise.exercise?.name}</h4>
                         <div className="flex gap-2 mt-1">
                           {!isCardio && (
-                            <Badge variant="outline" className="text-xs">
+                            <div className="text-xs text-gray-600">
                               {exercise.sets} sets × {exercise.reps}
-                            </Badge>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -373,82 +441,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                     </div>
                   )}
                   
-                  {isCardio ? (
-                    <div className="mb-3">
-                      <label className="text-sm font-medium block mb-1">Duration</label>
-                      {exerciseSets.length > 0 ? (
-                        <Input
-                          value={exerciseSets[0]?.duration || ''}
-                          onChange={(e) => handleUpdateSet(exerciseSets[0].id, 'duration', e.target.value)}
-                          placeholder="hh:mm:ss"
-                          className="w-full"
-                          disabled={readOnly}
-                        />
-                      ) : (
-                        <div className="flex justify-center my-3">
-                          <Button 
-                            size="sm" 
-                            onClick={() => createWorkoutSets(exercise.id, 1)}
-                            disabled={readOnly}
-                          >
-                            Add Duration
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-12 gap-2 mb-2 text-sm font-medium text-gray-500">
-                        <div className="col-span-3">Set</div>
-                        <div className="col-span-4">Reps</div>
-                        <div className="col-span-5">Weight</div>
-                      </div>
-                      
-                      {exerciseSets.length > 0 ? (
-                        exerciseSets.map((set) => (
-                          <div key={set.id} className="grid grid-cols-12 gap-2 items-center">
-                            <div className="col-span-3 text-sm font-medium">
-                              {set.set_number}
-                              {updatingSetId === set.id && (
-                                <Loader2 className="inline w-3 h-3 ml-2 animate-spin" />
-                              )}
-                            </div>
-                            <div className="col-span-4">
-                              <Input 
-                                type="number"
-                                value={set.reps_completed || ''}
-                                onChange={(e) => handleUpdateSet(set.id, 'reps_completed', parseInt(e.target.value) || 0)}
-                                placeholder={String(exercise.reps)}
-                                className="h-8 text-sm"
-                                disabled={readOnly}
-                              />
-                            </div>
-                            <div className="col-span-5">
-                              <Input 
-                                type="number"
-                                value={set.weight || ''}
-                                onChange={(e) => handleUpdateSet(set.id, 'weight', parseFloat(e.target.value) || 0)}
-                                placeholder="Weight"
-                                className="h-8 text-sm"
-                                step="0.5"
-                                disabled={readOnly}
-                              />
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="flex justify-center my-3">
-                          <Button 
-                            size="sm" 
-                            onClick={() => createWorkoutSets(exercise.id, exercise.sets)}
-                            disabled={readOnly}
-                          >
-                            Add Sets
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {renderExerciseSets(exercise)}
                 </AccordionContent>
               </AccordionItem>
             );

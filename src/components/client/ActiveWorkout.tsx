@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, ArrowLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle2, AlertTriangle, Play } from 'lucide-react';
 import WorkoutSetCompletions from './WorkoutSetCompletions';
 
 const ActiveWorkout = () => {
@@ -16,6 +16,7 @@ const ActiveWorkout = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [startingWorkout, setStartingWorkout] = useState(false);
 
   const { data: workout, isLoading: isLoadingWorkout, error: workoutError } = useQuery({
     queryKey: ['workout-details', workoutId],
@@ -79,22 +80,86 @@ const ActiveWorkout = () => {
     staleTime: 300000,
   });
 
+  // Query to check if a workout completion exists already (but isn't completed yet)
+  const { data: existingCompletion, isLoading: isLoadingCompletion } = useQuery({
+    queryKey: ['current-workout-completion', workoutId],
+    queryFn: async () => {
+      if (!workoutId || !user?.id) return null;
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data, error } = await supabase
+        .from('workout_completions')
+        .select('id')
+        .eq('workout_id', workoutId)
+        .eq('user_id', user.id)
+        .gte('created_at', today.toISOString())
+        .is('completed_at', null)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error checking for existing workout completion:', error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!workoutId && !!user?.id
+  });
+
   const handleBackClick = () => {
     navigate('/client-dashboard/workouts');
   };
 
-  const handleCompleteWorkout = async () => {
+  // New function to start a workout - creates a workout_completion record
+  const handleStartWorkout = async () => {
     if (!workoutId || !user?.id) return;
+    
+    try {
+      setStartingWorkout(true);
+      
+      const { data, error } = await supabase
+        .from('workout_completions')
+        .insert({
+          workout_id: workoutId,
+          user_id: user.id,
+          created_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+      
+      if (error) {
+        console.error('Error starting workout:', error);
+        toast.error('Failed to start workout');
+        setStartingWorkout(false);
+        return;
+      }
+      
+      toast.success('Workout started!');
+      queryClient.invalidateQueries({ queryKey: ['current-workout-completion', workoutId] });
+      setStartingWorkout(false);
+    } catch (err) {
+      console.error('Unexpected error in handleStartWorkout:', err);
+      toast.error('Something went wrong');
+      setStartingWorkout(false);
+    }
+  };
+
+  const handleCompleteWorkout = async () => {
+    if (!workoutId || !user?.id || !existingCompletion?.id) return;
 
     try {
       setLoading(true);
 
-      const { error } = await supabase.from('workout_completions').insert({
-        user_id: user.id,
-        workout_id: workoutId,
-        completed_at: new Date().toISOString(),
-        workout_type: workout?.workout_type || 'strength'
-      });
+      const { error } = await supabase
+        .from('workout_completions')
+        .update({
+          completed_at: new Date().toISOString(),
+          workout_type: workout?.workout_type || 'strength'
+        })
+        .eq('id', existingCompletion.id);
 
       if (error) {
         console.error('Error logging workout:', error);
@@ -113,7 +178,7 @@ const ActiveWorkout = () => {
     }
   };
 
-  const isLoading = isLoadingWorkout || isLoadingExercises;
+  const isLoading = isLoadingWorkout || isLoadingExercises || isLoadingCompletion;
 
   if (isLoading) {
     return (
@@ -207,19 +272,35 @@ const ActiveWorkout = () => {
         </CardContent>
 
         <CardFooter className="flex justify-center">
-          <Button 
-            onClick={handleCompleteWorkout} 
-            disabled={loading}
-            size="lg"
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {loading ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <CheckCircle2 className="mr-2 h-5 w-5" />
-            )}
-            Complete Workout
-          </Button>
+          {existingCompletion ? (
+            <Button 
+              onClick={handleCompleteWorkout} 
+              disabled={loading}
+              size="lg"
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {loading ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="mr-2 h-5 w-5" />
+              )}
+              Complete Workout
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleStartWorkout} 
+              disabled={startingWorkout}
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {startingWorkout ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <Play className="mr-2 h-5 w-5" />
+              )}
+              Start Workout
+            </Button>
+          )}
         </CardFooter>
       </Card>
     </div>

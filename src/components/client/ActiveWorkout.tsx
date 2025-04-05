@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
 import WorkoutSetCompletions from './WorkoutSetCompletions';
 
 const ActiveWorkout = () => {
@@ -22,6 +22,8 @@ const ActiveWorkout = () => {
     queryKey: ['workout-completion', workoutCompletionId],
     queryFn: async () => {
       if (!workoutCompletionId) throw new Error('No workout completion ID provided');
+      
+      console.log(`Fetching workout completion: ${workoutCompletionId}`);
       
       // Use a timeout promise to prevent hanging requests
       const timeoutPromise = new Promise((_, reject) => {
@@ -47,10 +49,14 @@ const ActiveWorkout = () => {
         timeoutPromise
       ]) as any;
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching workout completion:', error);
+        throw error;
+      }
       
       // Check if any data was returned
       if (!data || data.length === 0) {
+        console.error(`Workout completion ${workoutCompletionId} not found`);
         throw new Error(`Workout completion ${workoutCompletionId} not found`);
       }
       
@@ -96,7 +102,11 @@ const ActiveWorkout = () => {
         .eq('workout_id', workoutCompletion.workout_id)
         .order('order_index', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching workout exercises:', error);
+        throw error;
+      }
+      
       return data || [];
     },
     enabled: !!workoutCompletion?.workout_id,
@@ -174,13 +184,61 @@ const ActiveWorkout = () => {
     );
   }
   
-  if (completionError || exercisesError || !workoutCompletion) {
+  if (completionError || !workoutCompletion) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-500 mb-4">Error loading workout</p>
-        <Button onClick={handleBackClick}>
+      <div className="p-8">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-center">
+              <AlertTriangle className="h-10 w-10 text-amber-500 mr-2" />
+              <CardTitle className="text-xl">Workout Not Found</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-muted-foreground mb-4">
+              {completionError?.message?.includes('not found') ? 
+                'The requested workout could not be found.' : 
+                'There was a problem loading this workout.'}
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Error details: {completionError?.message || 'Unknown error'}
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <Button onClick={handleBackClick} className="w-full md:w-auto">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Return to Workouts
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+  
+  if (exercisesError) {
+    return (
+      <div className="p-8">
+        <Button variant="outline" size="sm" onClick={handleBackClick} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Workouts
         </Button>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">{workoutCompletion.workout?.title || workoutCompletion.title || 'Workout'}</CardTitle>
+            {workoutCompletion.workout?.description && (
+              <p className="text-muted-foreground">{workoutCompletion.workout.description}</p>
+            )}
+          </CardHeader>
+          
+          <CardContent>
+            <div className="text-center py-6">
+              <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+              <p className="text-red-500 mb-2">Error loading exercises for this workout.</p>
+              <p className="text-sm text-muted-foreground">
+                {exercisesError.message || 'Please try refreshing the page.'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

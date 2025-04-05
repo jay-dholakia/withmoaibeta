@@ -19,6 +19,7 @@ import PassCounter from '@/components/client/PassCounter';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import LogRunDialog from '@/components/client/LogRunDialog';
 
 // Create a wrapper component for WorkoutDayDetails to provide required props
 const WorkoutDayDetailsWrapper = () => {
@@ -36,13 +37,21 @@ const WorkoutsPage = () => {
   const [activeTab, setActiveTab] = useState("assigned");
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // Dialog control states
+  const [runDialogOpen, setRunDialogOpen] = useState(false);
 
   if (!user) {
     return <Navigate to="/client-login" />;
   }
 
   const handleLogRunClick = () => {
-    navigate('/client-dashboard/log-run');
+    setRunDialogOpen(true);
+  };
+
+  const handleRunComplete = () => {
+    // Optionally refresh data or update UI after logging a run
+    // For example, you might want to refetch the weekly progress data
   };
 
   const handleLogStrengthClick = () => {
@@ -141,6 +150,13 @@ const WorkoutsPage = () => {
                   <span className="text-xl">😌</span>
                 </Button>
               </div>
+              
+              {/* Run Logging Dialog */}
+              <LogRunDialog 
+                open={runDialogOpen} 
+                onOpenChange={setRunDialogOpen} 
+                onComplete={handleRunComplete}
+              />
             </div>
           } 
         />

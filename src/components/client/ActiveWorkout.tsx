@@ -118,10 +118,12 @@ const ActiveWorkout = () => {
     try {
       setStartingWorkout(true);
       
+      const workoutType = workout?.workout_type || 'strength';
+      
       const data = await createWorkoutCompletion(
         user.id, 
         workoutId, 
-        workout?.workout_type || 'strength'
+        workoutType 
       );
       
       if (!data) {
@@ -248,11 +250,11 @@ const ActiveWorkout = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">{workout.title}</CardTitle>
-          {workout.description && (
+          <CardTitle className="text-xl">{workout?.title}</CardTitle>
+          {workout?.description && (
             <p className="text-muted-foreground">{workout.description}</p>
           )}
-          {workout.week?.week_number && workout.week?.program?.title && (
+          {workout?.week?.week_number && workout?.week?.program?.title && (
             <div className="mt-2">
               <p className="text-sm text-muted-foreground">
                 <span className="font-medium">Program:</span> {workout.week.program.title} - Week {workout.week.week_number}

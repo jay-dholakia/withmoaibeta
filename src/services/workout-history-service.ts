@@ -84,7 +84,7 @@ export const countCompletedWorkoutsForWeek = async (userId: string, weekStart: D
       .eq('user_id', userId)
       .gte('completed_at', startFormatted)
       .lte('completed_at', endFormatted)
-      .is('rest_day', false) // This filter was already present
+      .is('rest_day', false)
       .is('life_happens_pass', false);
     
     if (error) {
@@ -346,7 +346,6 @@ export const createWorkoutCompletion = async (userId: string, workoutId: string,
       .insert({
         user_id: userId,
         workout_id: workoutId,
-        source: 'strength_mobility',
         started_at: new Date().toISOString(),
         workout_type: workoutType,
       })

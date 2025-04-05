@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, SubscriptionManager } from '@/integrations/supabase/client';
@@ -67,7 +66,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     enabled: !!workoutId && !!user?.id
   });
   
-  // Instead of auto-creating a workout completion, we'll just use the ID if it exists
   useEffect(() => {
     if (!isLoadingCompletion && existingCompletion) {
       setWorkoutCompletionId(existingCompletion.id);
@@ -108,13 +106,10 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
   }, [workoutSetCompletions]);
   
   useEffect(() => {
-    // Initialize temp sets for exercises that don't have real sets yet
     const initialTempSets: Record<string, TempSet[]> = {};
     workoutExercises.forEach(exercise => {
-      // Skip if it's not a strength exercise
       if (exercise.exercise?.exercise_type === 'cardio') return;
       
-      // Only create temp sets if we don't have real ones and it's a strength exercise
       if (!completions[exercise.id] || completions[exercise.id].length === 0) {
         initialTempSets[exercise.id] = Array.from(
           { length: exercise.sets }, 
@@ -168,7 +163,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     });
   };
   
-  // Modified function to save temp sets when workout is started
   const saveTempSetsToWorkoutCompletion = async (exerciseId: string, newWorkoutCompletionId: string) => {
     if (!tempSets[exerciseId] || tempSets[exerciseId].length === 0) return;
     
@@ -194,7 +188,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
         return;
       }
       
-      // Clear temp sets for this exercise
       setTempSets(prev => {
         const updated = {...prev};
         delete updated[exerciseId];
@@ -210,7 +203,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     }
   };
   
-  // This function will now require a completion ID to create sets
   const createWorkoutSets = async (exerciseId: string, sets: number) => {
     if (readOnly || !workoutCompletionId) return;
     
@@ -219,7 +211,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
         return;
       }
       
-      // Include any temp sets data if available
       const setsToCreate = Array.from({ length: sets }, (_, i) => {
         const tempSet = tempSets[exerciseId]?.find(ts => ts.setNumber === i + 1);
         
@@ -251,7 +242,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
         [exerciseId]: data
       }));
       
-      // Clear temp sets for this exercise as they're now saved
       setTempSets(prev => {
         const updated = {...prev};
         delete updated[exerciseId];
@@ -264,9 +254,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     }
   };
   
-  // Added to parent component's API
   React.useEffect(() => {
-    // Expose method to parent component
     if (window) {
       (window as any).saveTempSetsToWorkoutCompletion = async (newWorkoutCompletionId: string) => {
         for (const exerciseId of Object.keys(tempSets)) {
@@ -372,7 +360,6 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     );
   }
   
-  // Render input for temp sets that will be saved when workout is started
   const renderTempSets = (exercise: any) => {
     const exerciseSets = tempSets[exercise.id] || [];
     const isCardio = exercise.exercise?.exercise_type === 'cardio';
@@ -436,12 +423,10 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
     }
   };
   
-  // New component to conditionally render exercise sets or a button to start tracking
   const renderExerciseSets = (exercise: any) => {
     const exerciseSets = completions[exercise.id] || [];
     const isCardio = exercise.exercise?.exercise_type === 'cardio';
     
-    // If we have a workout completion and sets, show them
     if (workoutCompletionId && exerciseSets.length > 0) {
       if (isCardio) {
         return (
@@ -499,9 +484,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
           </div>
         );
       }
-    }
-    // If we have workout completion ID but no sets, show button to add sets
-    else if (workoutCompletionId) {
+    } else if (workoutCompletionId) {
       return (
         <div className="flex justify-center my-3">
           <Button 
@@ -513,9 +496,7 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
           </Button>
         </div>
       );
-    }
-    // If no workout completion yet, show temp sets that can be filled in
-    else {
+    } else {
       return renderTempSets(exercise);
     }
   };
@@ -556,17 +537,15 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                         {hasVideo && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 text-blue-500 p-1"
+                              <div 
+                                className="h-7 w-7 text-blue-500 p-1 flex items-center justify-center cursor-pointer hover:bg-slate-100 rounded-md"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setShowVideoId(showVideoId === exercise.id ? null : exercise.id);
                                 }}
                               >
                                 <Video className="h-5 w-5" />
-                              </Button>
+                              </div>
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Watch demo</p>
@@ -576,14 +555,12 @@ const WorkoutSetCompletions: React.FC<WorkoutSetCompletionsProps> = ({
                         
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-7 w-7 text-slate-500 p-1"
+                            <div 
+                              className="h-7 w-7 text-slate-500 p-1 flex items-center justify-center cursor-pointer hover:bg-slate-100 rounded-md"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <Info className="h-5 w-5" />
-                            </Button>
+                            </div>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>{exercise.exercise?.description || 'No additional information available.'}</p>

@@ -77,7 +77,7 @@ const WorkoutsPage = () => {
               <WorkoutTimer />
               
               {/* Workout Action Buttons */}
-              <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 p-3 space-y-3 z-10">
+              <div className="space-y-3 mt-6">
                 <Button 
                   variant="outline" 
                   className="flex items-center justify-between w-full rounded-full border py-3 px-4 text-blue-500"

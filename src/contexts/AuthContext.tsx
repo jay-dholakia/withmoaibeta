@@ -54,13 +54,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       safeSetState(setLoading, false);
     }, 5000); // Fail-safe: reset loading after 5 seconds if nothing happens
     
-    // Set up the auth state listener
+    // Set up the auth state listener FIRST - this is critical!
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
         
         // Clear the timeout since we received an auth event
         clearTimeout(loadingTimeout);
+        
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out, clearing auth state');
+          safeSetState(setSession, null);
+          safeSetState(setUser, null);
+          safeSetState(setProfile, null);
+          safeSetState(setUserType, null);
+          safeSetState(setLoading, false);
+          return;
+        }
         
         safeSetState(setSession, session);
         safeSetState(setUser, session?.user ?? null);
@@ -76,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             fetchUserProfile(session.user.id).catch(err => {
               console.error('Error fetching profile after auth state change:', err);
             });
+            safeSetState(setLoading, false);
           } else {
             // If not in metadata, we must fetch profile
             try {
@@ -87,18 +98,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               safeSetState(setLoading, false);
             }
           }
-        } else {
-          safeSetState(setProfile, null);
-          safeSetState(setUserType, null);
-          safeSetState(setLoading, false); // Always ensure loading is reset when there's no user
+        } else if (event !== 'SIGNED_OUT') { // Don't reset loading on sign out as we've already done it
+          safeSetState(setLoading, false);
         }
       }
     );
 
-    // Then check for existing session
+    // THEN check for existing session - do this AFTER setting up the listener
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Checking for existing session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          safeSetState(setLoading, false);
+          return;
+        }
+        
         console.log('Initial session check:', session?.user?.id);
         
         if (!unmounted) {
@@ -273,7 +290,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       safeSetState(setLoading, true);
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Error signing out:', error);
+        toast.error('An error occurred while logging out');
+        safeSetState(setLoading, false);
+        return;
+      }
       
       // Reset all auth state immediately rather than waiting for the listener
       safeSetState(setSession, null);

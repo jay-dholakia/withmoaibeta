@@ -6,9 +6,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { fetchClientProfile, createClientProfile } from '@/services/client-service';
 import { PageTransition } from '@/components/PageTransition';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 const ClientLogin = () => {
-  const { user, userType, loading } = useAuth();
+  const { user, userType, loading, session } = useAuth();
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [redirectAttempts, setRedirectAttempts] = useState(0);
@@ -16,7 +18,7 @@ const ClientLogin = () => {
   useEffect(() => {
     const checkUserAndRedirect = async () => {
       // Only proceed if authentication is complete and we have a client user
-      if (!loading && user && userType === 'client') {
+      if (!loading && user && userType === 'client' && session) {
         console.log('ClientLogin: Authenticated user detected:', user.id);
         
         // Set redirecting state to show loading UI
@@ -48,16 +50,17 @@ const ClientLogin = () => {
           } else {
             // If multiple attempts fail, reset state and let user try again
             setIsRedirecting(false);
+            toast.error('Unable to load your profile. Please try signing in again.');
           }
         }
       }
     };
     
     checkUserAndRedirect();
-  }, [user, userType, loading, navigate, redirectAttempts]);
+  }, [user, userType, loading, navigate, redirectAttempts, session]);
 
   // If we're already logged in, show a loading state until the redirect happens
-  if (isRedirecting || (!loading && user && userType === 'client')) {
+  if (isRedirecting || (!loading && user && userType === 'client' && session)) {
     return (
       <PageTransition>
         <AuthLayout 
@@ -66,7 +69,7 @@ const ClientLogin = () => {
           subtitle="Please wait while we take you to your dashboard"
         >
           <div className="flex justify-center py-8 w-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-client"></div>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </AuthLayout>
       </PageTransition>

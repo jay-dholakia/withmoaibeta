@@ -1257,7 +1257,7 @@ const ActiveWorkout = () => {
             <DialogTitle>{currentExerciseName}</DialogTitle>
           </DialogHeader>
           <div className="aspect-video w-full overflow-hidden rounded-md">
-            {currentVideoUrl && <VideoPlayer url={currentVideoUrl} />}
+            {currentVideoUrl && <VideoPlayer videoUrl={currentVideoUrl} />}
           </div>
         </DialogContent>
       </Dialog>

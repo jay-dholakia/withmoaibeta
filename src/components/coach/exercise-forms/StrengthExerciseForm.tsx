@@ -34,21 +34,14 @@ export const StrengthExerciseForm: React.FC<StrengthExerciseFormProps> = ({
         />
       </div>
       
-      {/* Column headers and inputs with padding adjustments */}
+      {/* Column headers and inputs with switched order (reps first, weight second) */}
       <div>
         <div className="grid grid-cols-2 gap-4 mb-1">
-          <div className="text-center text-sm text-muted-foreground">Weight</div>
           <div className="text-center text-sm text-muted-foreground">Reps</div>
+          <div className="text-center text-sm text-muted-foreground">Weight</div>
         </div>
         
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Input
-              disabled
-              placeholder="Client will enter"
-              className="w-full text-center bg-muted/30 min-w-0 px-2"
-            />
-          </div>
           <div>
             <Input
               id="reps"
@@ -58,6 +51,13 @@ export const StrengthExerciseForm: React.FC<StrengthExerciseFormProps> = ({
               className="w-full text-center min-w-0 px-2"
               type="text"
               inputMode="numeric"
+            />
+          </div>
+          <div>
+            <Input
+              disabled
+              placeholder="Client will enter"
+              className="w-full text-center bg-muted/30 min-w-0 px-2"
             />
           </div>
         </div>

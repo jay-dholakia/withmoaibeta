@@ -1073,17 +1073,6 @@ const ActiveWorkout = () => {
                       
                       <div className="flex-1 grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-xs mb-1 block text-muted-foreground">Weight</label>
-                          <Input 
-                            type="text"
-                            inputMode="decimal"
-                            placeholder="lbs"
-                            value={set.weight}
-                            onChange={(e) => handleSetChange(exercise.id, index, 'weight', e.target.value)}
-                            className="h-9"
-                          />
-                        </div>
-                        <div>
                           <label className="text-xs mb-1 block text-muted-foreground">Reps</label>
                           <Input 
                             type="text"
@@ -1091,6 +1080,17 @@ const ActiveWorkout = () => {
                             placeholder="count"
                             value={set.reps}
                             onChange={(e) => handleSetChange(exercise.id, index, 'reps', e.target.value)}
+                            className="h-9"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs mb-1 block text-muted-foreground">Weight</label>
+                          <Input 
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="lbs"
+                            value={set.weight}
+                            onChange={(e) => handleSetChange(exercise.id, index, 'weight', e.target.value)}
                             className="h-9"
                           />
                         </div>

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -54,8 +55,7 @@ export const saveWorkoutDraft = async (
         .update({ 
           draft_data: draftData,
           workout_type: workoutType,
-          updated_at: new Date().toISOString() // ✅ fix
-
+          updated_at: new Date().toISOString() // Convert to string to fix TypeScript error
         })
         .eq('id', existingDraft.id);
         

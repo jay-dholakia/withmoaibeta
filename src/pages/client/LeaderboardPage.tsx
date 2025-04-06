@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Container } from '@/components/ui/container';
 import { CoachMessageCard } from '@/components/client/CoachMessageCard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,10 +13,13 @@ import { toast } from 'sonner';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
+import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
+import { WorkoutHistoryItem } from '@/types/workout';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
-  const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDayWorkouts, setSelectedDayWorkouts] = useState<WorkoutHistoryItem[]>([]);
   
   const { data: profile, isLoading: isLoadingProfile, error: profileError } = useQuery({
     queryKey: ['client-profile', user?.id],
@@ -138,8 +141,9 @@ const LeaderboardPage = () => {
     return typesMap;
   }, [clientWorkouts]);
   
-  const handleDaySelect = (date: Date, workouts: any[]) => {
+  const handleDaySelect = (date: Date, workouts: WorkoutHistoryItem[]) => {
     setSelectedDate(date);
+    setSelectedDayWorkouts(workouts);
     console.log(`Selected date: ${format(date, 'yyyy-MM-dd')}, found ${workouts.length} workouts`);
   };
   
@@ -197,6 +201,23 @@ const LeaderboardPage = () => {
             )}
           </CardContent>
         </Card>
+        
+        {/* Workout Day Details Section */}
+        {selectedDayWorkouts.length > 0 && (
+          <div className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Workout Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <WorkoutDayDetails 
+                  date={selectedDate} 
+                  workouts={selectedDayWorkouts} 
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </Container>
   );

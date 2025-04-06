@@ -56,7 +56,7 @@ const WorkoutsPage = () => {
             <TabsList className="w-full mb-6">
               <TabsTrigger value="active-workouts" className="flex-1 flex items-center justify-center gap-2">
                 <ListTodo className="h-4 w-4" />
-                <span>My Workouts</span>
+                <span>Assigned Workouts</span>
               </TabsTrigger>
               <TabsTrigger value="history" className="flex-1 flex items-center justify-center gap-2">
                 <History className="h-4 w-4" />

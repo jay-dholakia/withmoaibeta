@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -64,36 +63,63 @@ export const saveWorkoutDraft = async (
 };
 
 /**
- * Retrieves a workout draft from the server
+ * Retrieves a workout draft from the server with retry logic
+ * @param workoutId The workout ID
+ * @param maxRetries Maximum number of retries (default: 3)
+ * @param retryInterval Interval between retries in ms (default: 1000)
  */
 export const getWorkoutDraft = async (
-  workoutId: string | null
+  workoutId: string | null,
+  maxRetries = 3,
+  retryInterval = 1000
 ): Promise<any | null> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.error("No authenticated user found");
-      return null;
-    }
-    
-    const { data, error } = await supabase
-      .from('workout_drafts')
-      .select('draft_data, workout_type')
-      .eq('user_id', user.id)
-      .eq('workout_id', workoutId || '')
-      .maybeSingle();
+  let retries = 0;
+  
+  while (retries <= maxRetries) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
       
-    if (error) {
-      console.error("Error retrieving workout draft:", error);
-      return null;
+      if (!user) {
+        console.log(`No authenticated user found, retry ${retries + 1}/${maxRetries + 1}`);
+        // If we've reached max retries, return null
+        if (retries === maxRetries) {
+          console.error("Max retries reached, no authenticated user found");
+          return null;
+        }
+        // Otherwise, wait and retry
+        retries++;
+        await new Promise(resolve => setTimeout(resolve, retryInterval));
+        continue;
+      }
+      
+      const { data, error } = await supabase
+        .from('workout_drafts')
+        .select('draft_data, workout_type')
+        .eq('user_id', user.id)
+        .eq('workout_id', workoutId || '')
+        .maybeSingle();
+        
+      if (error) {
+        console.error("Error retrieving workout draft:", error);
+        return null;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error("Error in getWorkoutDraft:", error);
+      
+      // If we've reached max retries, return null
+      if (retries === maxRetries) {
+        return null;
+      }
+      
+      // Otherwise, wait and retry
+      retries++;
+      await new Promise(resolve => setTimeout(resolve, retryInterval));
     }
-    
-    return data;
-  } catch (error) {
-    console.error("Error in getWorkoutDraft:", error);
-    return null;
   }
+  
+  return null;
 };
 
 /**

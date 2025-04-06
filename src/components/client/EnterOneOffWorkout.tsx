@@ -31,6 +31,7 @@ import { WORKOUT_TYPES, WorkoutType } from './WorkoutTypeIcon';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { deleteWorkoutDraft, getWorkoutDraft, saveWorkoutDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EnterOneOffWorkout = () => {
   const navigate = useNavigate();
@@ -49,6 +50,12 @@ const EnterOneOffWorkout = () => {
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
   const [location, setLocation] = useState<string>('');
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  
+  const { user } = useAuth();
+
+  // Define a constant ID for one-off workout drafts
+  const ONE_OFF_DRAFT_ID = 'one-off-workout';
 
   // Create data object for autosave
   const draftData = {
@@ -62,9 +69,6 @@ const EnterOneOffWorkout = () => {
     location
   };
 
-  // Define a constant ID for one-off workout drafts
-  const ONE_OFF_DRAFT_ID = 'one-off-workout';
-
   // Use autosave hook to save draft data
   const { saveStatus } = useAutosave({
     data: draftData,
@@ -77,29 +81,65 @@ const EnterOneOffWorkout = () => {
     }
   });
 
-  // Load draft data when component mounts
+  // Load draft data when component mounts and user is authenticated
   useEffect(() => {
+    let mounted = true;
+    let loadAttemptTimeout: NodeJS.Timeout | null = null;
+    
     const loadDraftData = async () => {
-      const draft = await getWorkoutDraft(ONE_OFF_DRAFT_ID);
+      if (draftLoaded || !user) return;
       
-      if (draft && draft.draft_data) {
-        const data = draft.draft_data;
+      try {
+        console.log("Loading draft data for one-off workout");
+        const draft = await getWorkoutDraft(ONE_OFF_DRAFT_ID, 5, 1000);
         
-        if (data.title) setTitle(data.title);
-        if (data.description) setDescription(data.description);
-        if (data.notes) setNotes(data.notes);
-        if (data.workoutType) setWorkoutType(data.workoutType);
-        if (data.date) setDate(new Date(data.date));
-        if (data.distance) setDistance(data.distance);
-        if (data.duration) setDuration(data.duration);
-        if (data.location) setLocation(data.location);
+        if (!mounted) return;
         
-        toast.success('Recovered unsaved workout data');
+        if (draft && draft.draft_data) {
+          const data = draft.draft_data;
+          
+          if (data.title) setTitle(data.title);
+          if (data.description) setDescription(data.description);
+          if (data.notes) setNotes(data.notes);
+          if (data.workoutType) setWorkoutType(data.workoutType);
+          if (data.date) setDate(new Date(data.date));
+          if (data.distance) setDistance(data.distance);
+          if (data.duration) setDuration(data.duration);
+          if (data.location) setLocation(data.location);
+          
+          console.log("Draft data loaded for one-off workout");
+          toast.success('Recovered unsaved workout data');
+          setDraftLoaded(true);
+        } else {
+          console.log("No draft data found for one-off workout");
+          setDraftLoaded(true);
+        }
+      } catch (error) {
+        console.error("Error loading draft data:", error);
+        setDraftLoaded(true);
       }
     };
     
-    loadDraftData();
-  }, []);
+    // Only attempt to load draft if user is authenticated
+    if (user && !draftLoaded) {
+      loadDraftData();
+    } else if (!user && !draftLoaded) {
+      // If user is not authenticated yet, wait a bit and retry
+      loadAttemptTimeout = setTimeout(() => {
+        if (mounted && !draftLoaded) {
+          console.log("Retrying draft load after timeout");
+          loadDraftData();
+        }
+      }, 1500);
+    }
+    
+    return () => {
+      mounted = false;
+      if (loadAttemptTimeout) {
+        clearTimeout(loadAttemptTimeout);
+      }
+    };
+  }, [draftLoaded, user]);
 
   // Function to add workout notes to journal
   const addToJournal = async (workoutTitle: string, notes: string, journalDate: Date) => {

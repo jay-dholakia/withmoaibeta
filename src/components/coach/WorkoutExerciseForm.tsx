@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label"; 
@@ -8,6 +8,9 @@ import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/service
 import { useAutosave } from '@/hooks/useAutosave';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { StrengthExerciseForm } from './exercise-forms/StrengthExerciseForm';
+import { RunningExerciseForm } from './exercise-forms/RunningExerciseForm';
 
 export interface WorkoutExerciseFormProps {
   initialData: any;
@@ -20,12 +23,14 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   onSubmit,
   isSubmitting = false
 }) => {
-  const [sets, setSets] = React.useState(initialData?.sets || 1);
-  const [reps, setReps] = React.useState(initialData?.reps || '');
-  const [restSeconds, setRestSeconds] = React.useState(initialData?.rest_seconds || 45);
-  const [notes, setNotes] = React.useState(initialData?.notes || '');
-  const [duration, setDuration] = React.useState(initialData?.duration || '');
-  const [distance, setDistance] = React.useState(initialData?.distance || '');
+  const [sets, setSets] = useState(initialData?.sets || 1);
+  const [reps, setReps] = useState(initialData?.reps || '');
+  const [restSeconds, setRestSeconds] = useState(initialData?.rest_seconds || 45);
+  const [notes, setNotes] = useState(initialData?.notes || '');
+  const [duration, setDuration] = useState(initialData?.duration || '');
+  const [distance, setDistance] = useState(initialData?.distance || '');
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const { user } = useAuth();
 
   // Create unique draft ID for this exercise form
   const exerciseFormDraftId = initialData?.id ? `exercise-form-${initialData.id}` : null;
@@ -54,27 +59,62 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     disabled: !exerciseFormDraftId
   });
 
-  // Load draft data when component mounts
+  // Load draft data when component mounts and user is authenticated
   useEffect(() => {
+    let mounted = true;
+    let loadAttemptTimeout: NodeJS.Timeout | null = null;
+    
     const loadDraftData = async () => {
-      if (!exerciseFormDraftId) return;
+      if (!exerciseFormDraftId || draftLoaded || !user) return;
       
-      const draft = await getWorkoutDraft(exerciseFormDraftId);
-      
-      if (draft && draft.draft_data) {
-        const data = draft.draft_data;
+      try {
+        console.log("Loading draft data for exercise form", exerciseFormDraftId);
+        const draft = await getWorkoutDraft(exerciseFormDraftId, 5, 1000);
         
-        if (data.sets !== undefined) setSets(data.sets);
-        if (data.reps !== undefined) setReps(data.reps);
-        if (data.restSeconds !== undefined) setRestSeconds(data.restSeconds);
-        if (data.notes !== undefined) setNotes(data.notes);
-        if (data.duration !== undefined) setDuration(data.duration);
-        if (data.distance !== undefined) setDistance(data.distance);
+        if (!mounted) return;
+        
+        if (draft && draft.draft_data) {
+          const data = draft.draft_data;
+          
+          if (data.sets !== undefined) setSets(data.sets);
+          if (data.reps !== undefined) setReps(data.reps);
+          if (data.restSeconds !== undefined) setRestSeconds(data.restSeconds);
+          if (data.notes !== undefined) setNotes(data.notes);
+          if (data.duration !== undefined) setDuration(data.duration);
+          if (data.distance !== undefined) setDistance(data.distance);
+          
+          console.log("Draft data loaded for exercise form", exerciseFormDraftId);
+          setDraftLoaded(true);
+        } else {
+          console.log("No draft data found for exercise form", exerciseFormDraftId);
+          setDraftLoaded(true);
+        }
+      } catch (error) {
+        console.error("Error loading draft data:", error);
+        setDraftLoaded(true);
       }
     };
     
-    loadDraftData();
-  }, [exerciseFormDraftId]);
+    // Only attempt to load draft if user is authenticated
+    if (user && exerciseFormDraftId && !draftLoaded) {
+      loadDraftData();
+    } else if (!user && exerciseFormDraftId && !draftLoaded) {
+      // If user is not authenticated yet, wait a bit and retry
+      loadAttemptTimeout = setTimeout(() => {
+        if (mounted && !draftLoaded) {
+          console.log("Retrying draft load after timeout");
+          loadDraftData();
+        }
+      }, 1500);
+    }
+    
+    return () => {
+      mounted = false;
+      if (loadAttemptTimeout) {
+        clearTimeout(loadAttemptTimeout);
+      }
+    };
+  }, [exerciseFormDraftId, draftLoaded, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,19 +134,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     });
   };
 
-  // Helper function to format duration input
-  const formatDurationInput = (value: string): string => {
-    let cleaned = value.replace(/[^\d:]/g, '');
-    
-    // Limit to maximum of 3 parts (hours:minutes:seconds)
-    const parts = cleaned.split(':');
-    if (parts.length > 3) {
-      cleaned = parts.slice(0, 3).join(':');
-    }
-    
-    return cleaned;
-  };
-
   // Determine if this is a running exercise based on the exercise type or name
   const isRunningExercise = React.useMemo(() => {
     if (!initialData?.exercise) return false;
@@ -119,6 +146,8 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
            exerciseType.includes('run') ||
            exerciseType.includes('cardio');
   }, [initialData]);
+
+  // Helper function to format duration input - moved to RunningExerciseForm component
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 text-center px-2">
@@ -140,97 +169,23 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
         </div>
       )}
       
-      {!isRunningExercise ? (
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="sets" className="text-center block mb-2">Sets</Label>
-            <Input
-              id="sets"
-              type="number"
-              value={sets}
-              onChange={(e) => setSets(Number(e.target.value))}
-              min={1}
-              className="w-full text-center"
-            />
-          </div>
-          
-          {/* Column headers and inputs with padding adjustments */}
-          <div>
-            <div className="grid grid-cols-2 gap-4 mb-1">
-              <div className="text-center text-sm text-muted-foreground">Reps</div>
-              <div className="text-center text-sm text-muted-foreground">Weight</div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Input
-                  id="reps"
-                  value={reps}
-                  onChange={(e) => setReps(e.target.value)}
-                  placeholder="e.g., 10 or 30s"
-                  className="w-full text-center min-w-0 px-2"
-                  type="text"
-                  inputMode="numeric"
-                />
-              </div>
-              <div>
-                <Input
-                  disabled
-                  placeholder="Client will enter"
-                  className="w-full text-center bg-muted/30 min-w-0 px-2"
-                />
-              </div>
-            </div>
-          </div>
-          
-          <p className="text-xs text-muted-foreground text-center">
-            For strength exercises, use just numbers (e.g., "10") to auto-populate client tracking
-          </p>
-        </div>
+      {/* Render different form based on exercise type */}
+      {isRunningExercise ? (
+        <RunningExerciseForm 
+          distance={distance}
+          setDistance={setDistance}
+          duration={duration}
+          setDuration={setDuration}
+        />
       ) : (
-        <div className="space-y-3">
-          <div>
-            <Label htmlFor="distance" className="text-center block">Distance (miles)</Label>
-            <Input
-              id="distance"
-              type="number"
-              value={distance}
-              onChange={(e) => setDistance(e.target.value)}
-              placeholder="3.1"
-              step="0.1"
-              min="0"
-              className="w-full text-center"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="duration" className="text-center block">Duration (hh:mm:ss)</Label>
-            <Input
-              id="duration"
-              value={duration}
-              onChange={(e) => setDuration(formatDurationInput(e.target.value))}
-              placeholder="00:30:00"
-              className="w-full text-center"
-            />
-            <p className="text-xs text-muted-foreground mt-1 text-center">
-              Format as hours:minutes:seconds (e.g., 00:30:00 for 30 minutes)
-            </p>
-          </div>
-        </div>
-      )}
-      
-      {!isRunningExercise && (
-        <div>
-          <Label htmlFor="rest" className="text-center block">Rest (seconds)</Label>
-          <Input
-            id="rest"
-            type="number"
-            value={restSeconds}
-            onChange={(e) => setRestSeconds(Number(e.target.value))}
-            min={0}
-            className="w-full text-center"
-          />
-        </div>
+        <StrengthExerciseForm
+          sets={sets}
+          setSets={setSets}
+          reps={reps}
+          setReps={setReps}
+          restSeconds={restSeconds}
+          setRestSeconds={setRestSeconds}
+        />
       )}
       
       <div>

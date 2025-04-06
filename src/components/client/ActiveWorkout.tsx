@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -1232,27 +1231,26 @@ const ActiveWorkout = () => {
         })}
       </div>
 
-      {workoutExercises.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t shadow-md flex justify-center">
-          <Button 
-            onClick={finishWorkout}
-            className="bg-client hover:bg-client/90 min-w-[200px]"
-            disabled={saveAllSetsMutation.isPending}
-          >
-            {saveAllSetsMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Complete Workout
-              </>
-            )}
-          </Button>
-        </div>
-      )}
+      {/* Always show the complete button, regardless of exercises */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t shadow-md flex justify-center z-10">
+        <Button 
+          onClick={finishWorkout}
+          className="bg-client hover:bg-client/90 min-w-[200px]"
+          disabled={saveAllSetsMutation.isPending}
+        >
+          {saveAllSetsMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              Complete Workout
+            </>
+          )}
+        </Button>
+      </div>
       
       <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
         <DialogContent className="sm:max-w-md">

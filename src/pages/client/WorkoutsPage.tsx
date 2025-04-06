@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -9,7 +8,7 @@ import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Armchair, ListTodo, History, Calendar as CalendarIcon } from 'lucide-react';
+import { Armchair, ListTodo, History, Calendar as CalendarIcon } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
 import { toast } from 'sonner';
 import {
@@ -69,9 +68,7 @@ const WorkoutsPage = () => {
             </TabsContent>
             
             <TabsContent value="history">
-              <WorkoutHistoryTab />
-              
-              <div className="mt-8 border-t pt-6">
+              <div className="mb-2">
                 <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
                   <Link to="/client-dashboard/workouts/one-off">
                     <PlusCircle className="h-4 w-4" />
@@ -81,7 +78,7 @@ const WorkoutsPage = () => {
                 
                 <Button 
                   variant="outline" 
-                  className="w-full mb-4 flex items-center justify-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
+                  className="w-full flex items-center justify-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
                   onClick={() => setShowRestDayDialog(true)}
                 >
                   <Armchair className="h-4 w-4" />

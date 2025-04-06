@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutBasic, WorkoutHistoryItem, WorkoutSetCompletion } from "@/types/workout";
 
@@ -49,103 +48,99 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
     
     // Only fetch workout details if we have valid workout IDs
     if (workoutIds.length > 0) {
-      try {
-        // Fetch workout details separately
-        const { data: workouts, error: workoutsError } = await supabase
-          .from('workouts')
-          .select('id, title, description, day_of_week, week_id, workout_type')
-          .in('id', workoutIds);
-        
-        if (workoutsError) {
-          console.error("Error fetching workouts:", workoutsError);
-          // Continue execution but with empty workouts
-        } else if (workouts && workouts.length > 0) {
-          // Create workout objects with week property initialized to null
-          workouts.forEach(workout => {
-            workoutMap.set(workout.id, {
-              ...workout,
-              week: null,
-              workout_type: workout.workout_type || 'strength', // Ensure workout_type is set
-              custom_workout: false
-            });
+      // Fetch workout details separately
+      const { data: workouts, error: workoutsError } = await supabase
+        .from('workouts')
+        .select('id, title, description, day_of_week, week_id, workout_type')
+        .in('id', workoutIds);
+      
+      if (workoutsError) {
+        console.error("Error fetching workouts:", workoutsError);
+        // Continue execution but with empty workouts
+      } else if (workouts && workouts.length > 0) {
+        // Create workout objects with week property initialized to null
+        workouts.forEach(workout => {
+          workoutMap.set(workout.id, {
+            ...workout,
+            week: null,
+            workout_type: workout.workout_type || 'strength', // Ensure workout_type is set
+            custom_workout: false
           });
+        });
+        
+        // Fetch the week data for the workouts
+        if (workouts.length > 0) {
+          const weekIds = [...new Set(workouts.map(w => w.week_id).filter(Boolean))];
           
-          // Fetch the week data for the workouts
-          if (workouts.length > 0) {
-            const weekIds = [...new Set(workouts.map(w => w.week_id).filter(Boolean))];
-            
-            if (weekIds.length > 0) {
-              try {
-                const { data: weeks, error: weeksError } = await supabase
-                  .from('workout_weeks')
-                  .select('id, week_number, program_id')
-                  .in('id', weekIds);
+          if (weekIds.length > 0) {
+            try {
+              const { data: weeks, error: weeksError } = await supabase
+                .from('workout_weeks')
+                .select('id, week_number, program_id')
+                .in('id', weekIds);
+              
+              if (weeksError) {
+                console.error("Error fetching workout weeks:", weeksError);
+              } else if (weeks && weeks.length > 0) {
+                // Get program info
+                const programIds = [...new Set(weeks.map(w => w.program_id).filter(Boolean))];
                 
-                if (weeksError) {
-                  console.error("Error fetching workout weeks:", weeksError);
-                } else if (weeks && weeks.length > 0) {
-                  // Get program info
-                  const programIds = [...new Set(weeks.map(w => w.program_id).filter(Boolean))];
-                  
-                  if (programIds.length > 0) {
-                    try {
-                      // Ensure we select the title and id fields from programs
-                      const { data: programs, error: programsError } = await supabase
-                        .from('workout_programs')
-                        .select('id, title')
-                        .in('id', programIds);
+                if (programIds.length > 0) {
+                  try {
+                    // Ensure we select the title and id fields from programs
+                    const { data: programs, error: programsError } = await supabase
+                      .from('workout_programs')
+                      .select('id, title')
+                      .in('id', programIds);
+                    
+                    if (programsError) {
+                      console.error("Error fetching programs:", programsError);
+                    } else if (programs) {
+                      // Create a map of programs for quick lookup
+                      const programMap = new Map();
+                      programs.forEach(program => {
+                        programMap.set(program.id, program);
+                      });
                       
-                      if (programsError) {
-                        console.error("Error fetching programs:", programsError);
-                      } else if (programs) {
-                        // Create a map of programs for quick lookup
-                        const programMap = new Map();
-                        programs.forEach(program => {
-                          programMap.set(program.id, program);
+                      // Create a map of weeks with program data
+                      const weekMap = new Map();
+                      weeks.forEach(week => {
+                        const program = programMap.get(week.program_id);
+                        weekMap.set(week.id, {
+                          ...week,
+                          program: program || null
                         });
-                        
-                        // Create a map of weeks with program data
-                        const weekMap = new Map();
-                        weeks.forEach(week => {
-                          const program = programMap.get(week.program_id);
-                          weekMap.set(week.id, {
-                            ...week,
-                            program: program || null
-                          });
-                        });
-                        
-                        // Add week data to each workout in workoutMap
-                        workoutMap.forEach((workout, workoutId) => {
-                          if (workout.week_id) {
-                            const weekData = weekMap.get(workout.week_id);
-                            if (weekData) {
-                              workoutMap.set(workoutId, {
-                                ...workout,
-                                week: {
-                                  week_number: weekData.week_number,
-                                  program: weekData.program ? {
-                                    id: weekData.program.id,
-                                    title: weekData.program.title
-                                  } : null
-                                }
-                              });
-                            }
+                      });
+                      
+                      // Add week data to each workout in workoutMap
+                      workoutMap.forEach((workout, workoutId) => {
+                        if (workout.week_id) {
+                          const weekData = weekMap.get(workout.week_id);
+                          if (weekData) {
+                            workoutMap.set(workoutId, {
+                              ...workout,
+                              week: {
+                                week_number: weekData.week_number,
+                                program: weekData.program ? {
+                                  id: weekData.program.id,
+                                  title: weekData.program.title
+                                } : null
+                              }
+                            });
                           }
-                        });
-                      }
-                    } catch (err) {
-                      console.error("Error processing program data:", err);
+                        }
+                      });
                     }
+                  } catch (err) {
+                    console.error("Error processing program data:", err);
                   }
                 }
-              } catch (err) {
-                console.error("Error processing week data:", err);
               }
+            } catch (err) {
+              console.error("Error processing week data:", err);
             }
           }
         }
-      } catch (err) {
-        console.error("Error processing workout data:", err);
       }
     }
     
@@ -233,10 +228,19 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
             rating: completion.rating,
             user_id: clientId,
             workout_id: '',
+            title: 'Rest Day', // Changed from '' to 'Rest Day'
             rest_day: true,
             life_happens_pass: completion.life_happens_pass || false,
             workout_set_completions,
-            workout: null
+            workout: {
+              id: completion.id,
+              title: 'Rest Day', // Changed from undefined to 'Rest Day'
+              description: 'Recovery day',
+              day_of_week: 0,
+              week_id: '',
+              workout_type: 'rest_day',
+              custom_workout: false
+            }
           } as WorkoutHistoryItem;
         }
         

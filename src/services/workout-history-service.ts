@@ -173,7 +173,8 @@ export const logRestDay = async (date: Date = new Date()): Promise<void> => {
       .insert({
         user_id: user.id,
         completed_at: date.toISOString(),
-        rest_day: true
+        rest_day: true,
+        title: "Rest Day" // Add title for rest days
       });
     
     if (error) {

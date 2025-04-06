@@ -291,7 +291,7 @@ export const countCompletedWorkoutsForWeek = async (
       
       const { count, error } = await supabase
         .from('workout_completions')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact', head: false })
         .eq('user_id', userId)
         .gte('completed_at', oneWeekAgo.toISOString())
         .not('rest_day', 'eq', true);
@@ -312,7 +312,7 @@ export const countCompletedWorkoutsForWeek = async (
     
     const { count, error } = await supabase
       .from('workout_completions')
-      .select('*', { count: 'exact' })
+      .select('*', { count: 'exact', head: false })
       .eq('user_id', userId)
       .gte('completed_at', startDate)
       .lte('completed_at', endDate)

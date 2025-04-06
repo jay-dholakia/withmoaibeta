@@ -60,12 +60,16 @@ const WorkoutsPage = () => {
               </TabsTrigger>
               <TabsTrigger value="history" className="flex-1 flex items-center justify-center gap-2">
                 <History className="h-4 w-4" />
-                <span>Workout History</span>
+                <span>Other Activity</span>
               </TabsTrigger>
             </TabsList>
             
             <TabsContent value="active-workouts">
               <WorkoutsList />
+            </TabsContent>
+            
+            <TabsContent value="history">
+              <WorkoutHistoryTab />
               
               <div className="mt-8 border-t pt-6">
                 <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
@@ -84,10 +88,6 @@ const WorkoutsPage = () => {
                   Log Rest Day
                 </Button>
               </div>
-            </TabsContent>
-            
-            <TabsContent value="history">
-              <WorkoutHistoryTab />
             </TabsContent>
           </Tabs>
         } />

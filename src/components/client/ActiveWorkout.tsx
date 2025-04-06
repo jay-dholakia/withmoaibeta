@@ -999,6 +999,18 @@ const ActiveWorkout = () => {
                 className="cursor-pointer bg-client/5 text-center relative" 
                 onClick={() => toggleExerciseExpanded(exercise.id)}
               >
+                <CardTitle className="text-lg font-medium flex items-center justify-center gap-2">
+                  {exercise.exercise?.name || 'Exercise'}
+                </CardTitle>
+                <CardDescription className="text-xs mt-1">
+                  {(exerciseType === 'strength' || exerciseType === 'bodyweight') && 
+                    `${exercise.sets} sets × ${exercise.reps} reps`
+                  }
+                  {exerciseType === 'cardio' && 'Cardio Exercise'}
+                  {exerciseType === 'flexibility' && 'Flexibility Exercise'}
+                  {isRunExercise && 'Running Exercise'}
+                </CardDescription>
+                
                 <div className="absolute right-1 top-1 flex gap-1">
                   {hasYoutubeLink && (
                     <TooltipProvider>
@@ -1022,12 +1034,233 @@ const ActiveWorkout = () => {
                       </Tooltip>
                     </TooltipProvider>
                   )}
+                  <div className="absolute right-3 text-muted-foreground">
+                    <ChevronRight className={`h-5 w-5 transition-transform ${exerciseState.expanded ? 'rotate-90' : ''}`} />
+                  </div>
                 </div>
               </CardHeader>
+
+              {exerciseState.expanded && (
+                <CardContent className="pt-4 px-4 pb-2">
+                  {hasDescription && (
+                    <div className="mb-4 bg-muted/30 rounded-md p-3 text-sm relative">
+                      <div className="flex justify-between items-start mb-1">
+                        <p className="font-medium text-xs flex items-center gap-1">
+                          <Info className="h-3 w-3" />
+                          Instructions
+                        </p>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 p-0" 
+                          onClick={() => toggleDescriptionExpanded(exercise.id)}
+                        >
+                          <ChevronRight className={`h-4 w-4 transition-transform ${expandedDescriptions[exercise.id] ? 'rotate-90' : ''}`} />
+                        </Button>
+                      </div>
+                      
+                      {expandedDescriptions[exercise.id] && (
+                        <p className="text-xs text-muted-foreground">{exercise.exercise?.description}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {(exerciseType === 'strength' || exerciseType === 'bodyweight') && exerciseState.sets?.map((set, index) => (
+                    <div key={`${exercise.id}-set-${index}`} className="flex items-center mb-3 gap-2">
+                      <div className="w-10 text-center">
+                        <span className="text-xs font-medium text-muted-foreground">#{index + 1}</span>
+                      </div>
+                      
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs mb-1 block text-muted-foreground">Weight</label>
+                          <Input 
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="lbs"
+                            value={set.weight}
+                            onChange={(e) => handleSetChange(exercise.id, index, 'weight', e.target.value)}
+                            className="h-9"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs mb-1 block text-muted-foreground">Reps</label>
+                          <Input 
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="count"
+                            value={set.reps}
+                            onChange={(e) => handleSetChange(exercise.id, index, 'reps', e.target.value)}
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="w-10 flex justify-center">
+                        <Checkbox 
+                          id={`set-${exercise.id}-${index}-complete`}
+                          checked={set.completed}
+                          onCheckedChange={(checked) => handleSetCompletion(exercise.id, index, !!checked)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {exerciseType === 'cardio' && exerciseState.cardioData && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs mb-1 block text-muted-foreground">Distance (optional)</label>
+                        <Input 
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="miles, km, etc."
+                          value={exerciseState.cardioData.distance}
+                          onChange={(e) => handleCardioChange(exercise.id, 'distance', e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1 block text-muted-foreground">Duration</label>
+                        <Input 
+                          type="text"
+                          placeholder="mm:ss"
+                          value={exerciseState.cardioData.duration}
+                          onChange={(e) => handleCardioChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
+                          className="h-9"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1 block text-muted-foreground">Location (optional)</label>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            type="text"
+                            placeholder="gym, park, etc."
+                            value={exerciseState.cardioData.location}
+                            onChange={(e) => handleCardioChange(exercise.id, 'location', e.target.value)}
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-2">
+                        <span className="text-sm">Mark as completed</span>
+                        <Checkbox 
+                          id={`cardio-${exercise.id}-complete`}
+                          checked={exerciseState.cardioData.completed}
+                          onCheckedChange={(checked) => handleCardioCompletion(exercise.id, !!checked)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {exerciseType === 'flexibility' && exerciseState.flexibilityData && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs mb-1 block text-muted-foreground">Duration</label>
+                        <Input 
+                          type="text"
+                          placeholder="mm:ss"
+                          value={exerciseState.flexibilityData.duration}
+                          onChange={(e) => handleFlexibilityChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between pt-2">
+                        <span className="text-sm">Mark as completed</span>
+                        <Checkbox 
+                          id={`flexibility-${exercise.id}-complete`}
+                          checked={exerciseState.flexibilityData.completed}
+                          onCheckedChange={(checked) => handleFlexibilityCompletion(exercise.id, !!checked)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {isRunExercise && exerciseState.runData && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs mb-1 block text-muted-foreground">Distance</label>
+                        <Input 
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="miles, km, etc."
+                          value={exerciseState.runData.distance}
+                          onChange={(e) => handleRunChange(exercise.id, 'distance', e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1 block text-muted-foreground">Duration</label>
+                        <Input 
+                          type="text"
+                          placeholder="mm:ss"
+                          value={exerciseState.runData.duration}
+                          onChange={(e) => handleRunChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
+                          className="h-9"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1 block text-muted-foreground">Location (optional)</label>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            type="text"
+                            placeholder="track, park, etc."
+                            value={exerciseState.runData.location}
+                            onChange={(e) => handleRunChange(exercise.id, 'location', e.target.value)}
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-2">
+                        <span className="text-sm">Mark as completed</span>
+                        <Checkbox 
+                          id={`run-${exercise.id}-complete`}
+                          checked={exerciseState.runData.completed}
+                          onCheckedChange={(checked) => handleRunCompletion(exercise.id, !!checked)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              )}
             </Card>
           );
         })}
       </div>
+
+      {workoutExercises.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t shadow-md flex justify-center">
+          <Button 
+            onClick={finishWorkout}
+            className="bg-client hover:bg-client/90 min-w-[200px]"
+            disabled={saveAllSetsMutation.isPending}
+          >
+            {saveAllSetsMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                Complete Workout
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+      
+      <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{currentExerciseName}</DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video w-full overflow-hidden rounded-md">
+            {currentVideoUrl && <VideoPlayer url={currentVideoUrl} />}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

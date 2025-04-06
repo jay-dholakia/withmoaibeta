@@ -8,7 +8,7 @@ import { fetchClientWorkoutHistory } from '@/services/client-workout-history-ser
 import { startOfWeek, format, isValid, isFuture } from 'date-fns';
 import { getWeeklyAssignedWorkoutsCount, countCompletedWorkoutsForWeek } from '@/services/workout-history-service';
 import { fetchClientProfile } from '@/services/client-service';
-import { Loader2, CalendarDays } from 'lucide-react';
+import { Loader2, CalendarDays, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -161,7 +161,21 @@ const LeaderboardPage = () => {
       <div className="w-full">
         {user && <CoachMessageCard userId={user.id} />}
         
-        <Card className="mt-6">
+        {/* Workout History Header */}
+        <div className="mt-6 mb-2 flex flex-col items-center">
+          <h2 className="text-xl font-bold mb-1 flex items-center justify-center gap-2">
+            <User className="h-5 w-5 text-client" />
+            Workout History
+          </h2>
+          
+          {clientWorkouts && clientWorkouts.length > 0 && (
+            <div className="text-sm text-center text-muted-foreground">
+              {clientWorkouts.length} total workouts in your history
+            </div>
+          )}
+        </div>
+        
+        <Card className="mt-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarDays className="h-5 w-5 text-client" />

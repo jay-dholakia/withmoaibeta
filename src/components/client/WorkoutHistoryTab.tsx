@@ -5,8 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { User, Loader2, FileX } from 'lucide-react';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
-import { format, isFuture, isValid, parseISO } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
+import { format, isFuture, isValid } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 
 const WorkoutHistoryTab = () => {

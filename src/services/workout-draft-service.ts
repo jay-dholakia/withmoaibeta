@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -63,21 +64,29 @@ export const saveWorkoutDraft = async (
 };
 
 /**
- * Retrieves a workout draft from the server with retry logic
+ * Retrieves a workout draft from the server with improved reliability and retry logic
  * @param workoutId The workout ID
- * @param maxRetries Maximum number of retries (default: 3)
- * @param retryInterval Interval between retries in ms (default: 1000)
+ * @param maxRetries Maximum number of retries (default: 5)
+ * @param retryInterval Interval between retries in ms (default: 300)
+ * @param getUser Optional function to get the authenticated user (for testing/mocking)
  */
 export const getWorkoutDraft = async (
   workoutId: string | null,
-  maxRetries = 3,
-  retryInterval = 1000
+  maxRetries = 5,
+  retryInterval = 300,
+  getUser = async () => await supabase.auth.getUser()
 ): Promise<any | null> => {
+  // Early return if no workoutId
+  if (!workoutId) {
+    console.log("No workout ID provided to getWorkoutDraft");
+    return null;
+  }
+  
   let retries = 0;
   
   while (retries <= maxRetries) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUser();
       
       if (!user) {
         console.log(`No authenticated user found, retry ${retries + 1}/${maxRetries + 1}`);
@@ -92,6 +101,8 @@ export const getWorkoutDraft = async (
         continue;
       }
       
+      console.log(`User found (${user.id}), fetching workout draft for workout ${workoutId}`);
+      
       const { data, error } = await supabase
         .from('workout_drafts')
         .select('draft_data, workout_type')
@@ -102,6 +113,12 @@ export const getWorkoutDraft = async (
       if (error) {
         console.error("Error retrieving workout draft:", error);
         return null;
+      }
+      
+      if (data) {
+        console.log("Successfully loaded draft data:", workoutId);
+      } else {
+        console.log("No draft data found for workout:", workoutId);
       }
       
       return data;

@@ -1,8 +1,6 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label"; 
 import { Textarea } from "@/components/ui/textarea";
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
@@ -30,7 +28,12 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const [duration, setDuration] = useState(initialData?.duration || '');
   const [distance, setDistance] = useState(initialData?.distance || '');
   const [draftLoaded, setDraftLoaded] = useState(false);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  
+  // Ref to track component mount state
+  const isMounted = useRef(true);
+  // Ref to track abort controller for cleanup
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Create unique draft ID for this exercise form
   const exerciseFormDraftId = initialData?.id ? `exercise-form-${initialData.id}` : null;
@@ -49,72 +52,95 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const { saveStatus } = useAutosave({
     data: draftData,
     onSave: async (data) => {
-      if (!exerciseFormDraftId) return false;
+      if (!exerciseFormDraftId || !user) return false;
       return await saveWorkoutDraft(
         exerciseFormDraftId,
         'exercise_form',
         data
       );
     },
-    disabled: !exerciseFormDraftId
+    disabled: !exerciseFormDraftId || !user
   });
 
+  // Function to load draft data
+  const loadDraftData = async () => {
+    if (!exerciseFormDraftId || draftLoaded || authLoading) return;
+    
+    // Create abort controller for cleanup
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+    
+    try {
+      console.log(`Attempting to load draft data for ${exerciseFormDraftId}, user:`, user?.id);
+      
+      if (!user) {
+        console.log("User not available yet, will retry when authenticated");
+        return; // The useEffect hook will run again when user is available
+      }
+      
+      const draft = await getWorkoutDraft(exerciseFormDraftId, 5, 300);
+      
+      // Check if component is still mounted and the request wasn't aborted
+      if (!isMounted.current || signal.aborted) return;
+      
+      if (draft && draft.draft_data) {
+        const data = draft.draft_data;
+        
+        // Update state with draft data
+        if (data.sets !== undefined) setSets(data.sets);
+        if (data.reps !== undefined) setReps(data.reps);
+        if (data.restSeconds !== undefined) setRestSeconds(data.restSeconds);
+        if (data.notes !== undefined) setNotes(data.notes);
+        if (data.duration !== undefined) setDuration(data.duration);
+        if (data.distance !== undefined) setDistance(data.distance);
+        
+        console.log("Draft data loaded for exercise form", exerciseFormDraftId);
+        toast.success('Recovered unsaved workout progress');
+      } else {
+        console.log("No draft data found for exercise form", exerciseFormDraftId);
+      }
+      
+      setDraftLoaded(true);
+    } catch (error) {
+      if (!isMounted.current || signal.aborted) return;
+      console.error("Error loading draft data:", error);
+      setDraftLoaded(true);
+    }
+  };
+  
   // Load draft data when component mounts and user is authenticated
   useEffect(() => {
-    let mounted = true;
-    let loadAttemptTimeout: NodeJS.Timeout | null = null;
+    // Don't attempt to load if there's no exerciseFormDraftId
+    if (!exerciseFormDraftId) {
+      setDraftLoaded(true);
+      return;
+    }
     
-    const loadDraftData = async () => {
-      if (!exerciseFormDraftId || draftLoaded || !user) return;
-      
-      try {
-        console.log("Loading draft data for exercise form", exerciseFormDraftId);
-        const draft = await getWorkoutDraft(exerciseFormDraftId, 5, 1000);
-        
-        if (!mounted) return;
-        
-        if (draft && draft.draft_data) {
-          const data = draft.draft_data;
-          
-          if (data.sets !== undefined) setSets(data.sets);
-          if (data.reps !== undefined) setReps(data.reps);
-          if (data.restSeconds !== undefined) setRestSeconds(data.restSeconds);
-          if (data.notes !== undefined) setNotes(data.notes);
-          if (data.duration !== undefined) setDuration(data.duration);
-          if (data.distance !== undefined) setDistance(data.distance);
-          
-          console.log("Draft data loaded for exercise form", exerciseFormDraftId);
-          setDraftLoaded(true);
-        } else {
-          console.log("No draft data found for exercise form", exerciseFormDraftId);
-          setDraftLoaded(true);
-        }
-      } catch (error) {
-        console.error("Error loading draft data:", error);
-        setDraftLoaded(true);
-      }
-    };
+    // Don't attempt to load if already loaded
+    if (draftLoaded) return;
     
-    // Only attempt to load draft if user is authenticated
-    if (user && exerciseFormDraftId && !draftLoaded) {
+    // If auth is still loading, wait
+    if (authLoading) {
+      console.log("Auth still loading, waiting before loading draft");
+      return;
+    }
+    
+    // If we have a user, load the draft
+    if (user) {
+      console.log("User authenticated, loading draft data");
       loadDraftData();
-    } else if (!user && exerciseFormDraftId && !draftLoaded) {
-      // If user is not authenticated yet, wait a bit and retry
-      loadAttemptTimeout = setTimeout(() => {
-        if (mounted && !draftLoaded) {
-          console.log("Retrying draft load after timeout");
-          loadDraftData();
-        }
-      }, 1500);
+    } else {
+      console.log("User not authenticated yet, will retry when auth completes");
     }
     
     return () => {
-      mounted = false;
-      if (loadAttemptTimeout) {
-        clearTimeout(loadAttemptTimeout);
+      // Cleanup function
+      isMounted.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
-  }, [exerciseFormDraftId, draftLoaded, user]);
+  }, [exerciseFormDraftId, draftLoaded, user, authLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,8 +173,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
            exerciseType.includes('cardio');
   }, [initialData]);
 
-  // Helper function to format duration input - moved to RunningExerciseForm component
-
   return (
     <form onSubmit={handleSubmit} className="space-y-3 text-center px-2">
       {/* Display autosave status */}
@@ -166,6 +190,16 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
               Saved
             </span>
           )}
+        </div>
+      )}
+      
+      {/* Show loading indicator when auth is loading and draft hasn't been loaded */}
+      {authLoading && !draftLoaded && (
+        <div className="text-xs text-center text-muted-foreground">
+          <span className="flex items-center justify-center gap-1">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading saved data...
+          </span>
         </div>
       )}
       
@@ -189,7 +223,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       )}
       
       <div>
-        <Label htmlFor="notes" className="text-center block">Notes (Optional)</Label>
+        <label htmlFor="notes" className="block text-sm font-medium text-gray-700 text-center">Notes (Optional)</label>
         <Textarea
           id="notes"
           value={notes}
@@ -202,7 +236,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       
       <Button 
         type="submit" 
-        disabled={isSubmitting}
+        disabled={isSubmitting || (authLoading && !draftLoaded)}
         className="w-full"
       >
         {isSubmitting ? 'Saving...' : 'Save'}

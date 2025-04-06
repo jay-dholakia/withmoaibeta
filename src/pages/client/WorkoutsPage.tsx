@@ -7,7 +7,6 @@ import WorkoutComplete from '@/components/client/WorkoutComplete';
 import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
 import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
-import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import { Button } from '@/components/ui/button';
 import { Armchair, ListTodo, History, Calendar as CalendarIcon, PlusCircle } from 'lucide-react';
 import { logRestDay } from '@/services/workout-history-service';
@@ -62,14 +61,14 @@ const WorkoutsPage = () => {
       <Routes>
         <Route index element={
           <Tabs defaultValue="active-workouts" className="w-full">
-            <TabsList className="w-full mb-6">
-              <TabsTrigger value="active-workouts" className="flex-1 flex items-center justify-center gap-2">
+            <TabsList className="w-full mb-6 grid grid-cols-2">
+              <TabsTrigger value="active-workouts" className="flex items-center justify-center gap-2">
                 <ListTodo className="h-4 w-4" />
-                <span>Assigned Workouts</span>
+                <span className="whitespace-nowrap">Assigned Workouts</span>
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex-1 flex items-center justify-center gap-2">
+              <TabsTrigger value="history" className="flex items-center justify-center gap-2">
                 <History className="h-4 w-4" />
-                <span>Other Activity</span>
+                <span className="whitespace-nowrap">Other Activity</span>
               </TabsTrigger>
             </TabsList>
             
@@ -169,3 +168,4 @@ const WorkoutsPage = () => {
 };
 
 export default WorkoutsPage;
+

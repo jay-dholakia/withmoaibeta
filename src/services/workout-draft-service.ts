@@ -53,7 +53,8 @@ export const saveWorkoutDraft = async (
         .from('workout_drafts')
         .update({ 
           draft_data: draftData,
-          workout_type: workoutType
+          workout_type: workoutType,
+          updated_at: new Date() // Explicitly set updated_at to ensure trigger fires
         })
         .eq('id', existingDraft.id);
         
@@ -148,11 +149,13 @@ export const getWorkoutDraft = async (
       
       console.log(`User found (${user.id}), fetching workout draft for workout ${workoutId}`);
       
+      // Enhanced query with better logging
       const { data, error } = await supabase
         .from('workout_drafts')
-        .select('draft_data, workout_type')
+        .select('draft_data, workout_type, updated_at')
         .eq('user_id', user.id)
         .eq('workout_id', workoutId || '')
+        .order('updated_at', { ascending: false })
         .maybeSingle();
         
       if (error) {
@@ -163,12 +166,23 @@ export const getWorkoutDraft = async (
           retry: retries,
           timestamp: new Date().toISOString()
         });
-        return null;
+        
+        // If we've reached max retries, return null
+        if (retries === maxRetries) {
+          return null;
+        }
+        
+        // Otherwise, wait and retry
+        retries++;
+        await new Promise(resolve => setTimeout(resolve, retryInterval));
+        continue;
       }
       
       if (data) {
         const dataSize = data.draft_data ? JSON.stringify(data.draft_data).length : 0;
         console.log(`Successfully loaded draft data for ${workoutId}, size: ${dataSize} bytes`);
+        console.log("Draft data content:", data.draft_data);
+        return data;
       } else {
         console.log("No draft data found for workout:", workoutId);
       }

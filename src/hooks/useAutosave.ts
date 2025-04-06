@@ -20,6 +20,7 @@ export function useAutosave<T>({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const previousDataRef = useRef<T | null>(null);
   const errorCountRef = useRef(0);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Create a memoized, debounced save function
   const debouncedSave = useCallback(
@@ -32,12 +33,17 @@ export function useAutosave<T>({
         
         // Get user's timezone for error reporting
         const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        console.log("Autosaving data:", dataToSave);
         const success = await onSave(dataToSave);
         
         if (success) {
           setSaveStatus('success');
           setLastSaved(new Date());
           errorCountRef.current = 0; // Reset error count on success
+          console.log("Autosave successful", {
+            timestamp: new Date().toISOString(),
+            lastSaved: new Date().toISOString()
+          });
         } else {
           console.warn('Autosave failed: onSave returned false', {
             timestamp: new Date().toISOString(),
@@ -76,18 +82,34 @@ export function useAutosave<T>({
     const dataAsString = JSON.stringify(data);
     const previousDataAsString = previousDataRef.current ? JSON.stringify(previousDataRef.current) : null;
     
+    // Clean up any existing timeout to prevent race conditions
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    
     if (dataAsString !== previousDataAsString) {
+      console.log("Data changed, triggering autosave");
       previousDataRef.current = JSON.parse(dataAsString);
       debouncedSave(data);
+    } else {
+      console.log("Data unchanged, skipping autosave");
     }
   }, [data, debouncedSave]);
   
-  // Clean up debounce on unmount
+  // Also trigger a save on component unmount if there are pending changes
   useEffect(() => {
     return () => {
       debouncedSave.cancel();
+      
+      // If there's unsaved data and we're not currently saving, do a final save
+      if (previousDataRef.current && !isSaving) {
+        onSave(previousDataRef.current).catch(error => {
+          console.error("Error during final autosave on unmount:", error);
+        });
+      }
     };
-  }, [debouncedSave]);
+  }, [debouncedSave, onSave, isSaving]);
   
   return {
     isSaving,

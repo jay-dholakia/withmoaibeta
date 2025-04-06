@@ -31,17 +31,20 @@ const WorkoutComplete = () => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [isEditingMessage, setIsEditingMessage] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   // Use autosave hook for notes and rating
   const { saveStatus } = useAutosave({
     data: { notes, rating },
     onSave: async (data) => {
+      console.log("Attempting to save draft with data:", data);
       return await saveWorkoutDraft(
         workoutCompletionId || null, 
         'completion', 
         data
       );
-    }
+    },
+    disabled: !workoutCompletionId || !user?.id
   });
   
   const { data: workoutData, isLoading } = useQuery({
@@ -199,25 +202,47 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Load draft data on mount
+  // Load draft data on mount - improved to better handle the draft loading
   useEffect(() => {
     const loadDraftData = async () => {
       if (!workoutCompletionId || !user?.id) return;
       
-      const draft = await getWorkoutDraft(workoutCompletionId);
+      console.log(`Loading draft data for workout ${workoutCompletionId}`);
       
-      if (draft && draft.draft_data) {
-        if (draft.draft_data.notes !== undefined) {
-          setNotes(draft.draft_data.notes);
+      try {
+        const draft = await getWorkoutDraft(workoutCompletionId);
+        
+        console.log("Received draft data:", draft);
+        
+        if (draft && draft.draft_data) {
+          // Check if the notes field exists and has a valid value before updating state
+          if (draft.draft_data.notes !== undefined) {
+            console.log(`Setting notes from draft: "${draft.draft_data.notes}"`);
+            setNotes(draft.draft_data.notes);
+          } else {
+            console.log("No notes found in draft data");
+          }
+          
+          // Check if the rating field exists and has a valid value before updating state
+          if (draft.draft_data.rating !== undefined) {
+            console.log(`Setting rating from draft: ${draft.draft_data.rating}`);
+            setRating(draft.draft_data.rating);
+          } else {
+            console.log("No rating found in draft data");
+          }
+          
+          if ((draft.draft_data.notes !== undefined && draft.draft_data.notes !== "") || 
+              (draft.draft_data.rating !== undefined && draft.draft_data.rating !== null)) {
+            toast.success('Recovered unsaved workout notes');
+          }
+        } else {
+          console.log("No valid draft data found for this workout");
         }
         
-        if (draft.draft_data.rating !== undefined) {
-          setRating(draft.draft_data.rating);
-        }
-        
-        if (draft.draft_data.notes || draft.draft_data.rating) {
-          toast.success('Recovered unsaved workout notes');
-        }
+        setDraftLoaded(true);
+      } catch (error) {
+        console.error("Error loading draft data:", error);
+        setDraftLoaded(true);
       }
     };
     

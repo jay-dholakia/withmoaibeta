@@ -33,17 +33,19 @@ const WorkoutComplete = () => {
   const [isEditingMessage, setIsEditingMessage] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
 
-  // Use autosave hook for notes and rating
+  // Use autosave hook for notes and rating with improved configuration
   const { saveStatus } = useAutosave({
     data: { notes, rating },
     onSave: async (data) => {
-      console.log("Attempting to save draft with data:", data);
+      if (!workoutCompletionId || !user?.id) return false;
+      console.log("Saving workout completion draft with data:", data);
       return await saveWorkoutDraft(
         workoutCompletionId || null, 
         'completion', 
         data
       );
     },
+    debounce: 1000, // quicker debounce for this use case
     disabled: !workoutCompletionId || !user?.id
   });
   
@@ -202,20 +204,26 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Load draft data on mount - improved to better handle the draft loading
+  // Load draft data on mount with improved reliability
   useEffect(() => {
+    let mounted = true;
+    let loadAttemptTimeout: NodeJS.Timeout | null = null;
+    
     const loadDraftData = async () => {
-      if (!workoutCompletionId || !user?.id) return;
-      
-      console.log(`Loading draft data for workout ${workoutCompletionId}`);
+      if (!workoutCompletionId || !user?.id || !mounted) return;
       
       try {
-        const draft = await getWorkoutDraft(workoutCompletionId);
+        console.log(`Loading draft data for workout completion ${workoutCompletionId}`);
         
-        console.log("Received draft data:", draft);
+        // Increase retries and interval for better reliability
+        const draft = await getWorkoutDraft(workoutCompletionId, 7, 500);
+        
+        if (!mounted) return;
         
         if (draft && draft.draft_data) {
-          // Check if the notes field exists and has a valid value before updating state
+          console.log("Workout completion draft data received:", draft.draft_data);
+          
+          // Check each property individually and apply it if it exists
           if (draft.draft_data.notes !== undefined) {
             console.log(`Setting notes from draft: "${draft.draft_data.notes}"`);
             setNotes(draft.draft_data.notes);
@@ -223,7 +231,6 @@ const WorkoutComplete = () => {
             console.log("No notes found in draft data");
           }
           
-          // Check if the rating field exists and has a valid value before updating state
           if (draft.draft_data.rating !== undefined) {
             console.log(`Setting rating from draft: ${draft.draft_data.rating}`);
             setRating(draft.draft_data.rating);
@@ -236,18 +243,38 @@ const WorkoutComplete = () => {
             toast.success('Recovered unsaved workout notes');
           }
         } else {
-          console.log("No valid draft data found for this workout");
+          console.log("No valid draft data found for this workout completion");
         }
         
         setDraftLoaded(true);
       } catch (error) {
-        console.error("Error loading draft data:", error);
+        console.error("Error loading workout completion draft data:", error);
         setDraftLoaded(true);
       }
     };
     
-    loadDraftData();
-  }, [workoutCompletionId, user?.id]);
+    // Initial load attempt
+    if (user && workoutCompletionId && !draftLoaded) {
+      console.log("User authenticated, loading workout completion draft data");
+      loadDraftData();
+    } else if (!user && workoutCompletionId && !draftLoaded) {
+      // If user is not authenticated yet, wait a bit and retry
+      console.log("User not authenticated yet, scheduling retry");
+      loadAttemptTimeout = setTimeout(() => {
+        if (mounted && !draftLoaded) {
+          console.log("Retrying workout completion draft load after timeout");
+          loadDraftData();
+        }
+      }, 1500);
+    }
+    
+    return () => {
+      mounted = false;
+      if (loadAttemptTimeout) {
+        clearTimeout(loadAttemptTimeout);
+      }
+    };
+  }, [workoutCompletionId, user, draftLoaded]);
 
   useEffect(() => {
     if (workoutData && !shareMessage) {

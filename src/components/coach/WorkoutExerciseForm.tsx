@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,15 +30,11 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const { user, loading: authLoading } = useAuth();
   const lastErrorToastTimeRef = useRef<number>(0);
   
-  // Ref to track component mount state
   const isMounted = useRef(true);
-  // Ref to track abort controller for cleanup
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Create unique draft ID for this exercise form
   const exerciseFormDraftId = initialData?.id ? `exercise-form-${initialData.id}` : null;
 
-  // Data object for autosave
   const draftData = {
     sets,
     reps,
@@ -49,11 +44,12 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     distance
   };
 
-  // Use autosave hook when we have a valid exercise ID
   const { saveStatus, errorCount } = useAutosave({
     data: draftData,
     onSave: async (data) => {
       if (!exerciseFormDraftId || !user) return false;
+      
+      console.log(`Saving draft data for exercise form ${exerciseFormDraftId}`);
       return await saveWorkoutDraft(
         exerciseFormDraftId,
         'exercise_form',
@@ -63,11 +59,9 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     disabled: !exerciseFormDraftId || !user
   });
 
-  // Show error toast after multiple consecutive autosave failures
   useEffect(() => {
     if (saveStatus === 'error' && errorCount && errorCount > 2) {
       const now = Date.now();
-      // Only show toast once every 10 seconds to avoid spam
       if (now - lastErrorToastTimeRef.current > 10000) {
         toast.error('Having trouble saving your progress', {
           description: 'Your changes may not be saved automatically',
@@ -79,11 +73,9 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     }
   }, [saveStatus, errorCount]);
 
-  // Function to load draft data
   const loadDraftData = async () => {
     if (!exerciseFormDraftId || draftLoaded || authLoading) return;
     
-    // Create abort controller for cleanup
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
     
@@ -92,26 +84,48 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       
       if (!user) {
         console.log("User not available yet, will retry when authenticated");
-        return; // The useEffect hook will run again when user is available
+        return;
       }
       
-      const draft = await getWorkoutDraft(exerciseFormDraftId, 5, 300);
+      const draft = await getWorkoutDraft(exerciseFormDraftId, 5, 500);
       
-      // Check if component is still mounted and the request wasn't aborted
       if (!isMounted.current || signal.aborted) return;
       
       if (draft && draft.draft_data) {
         const data = draft.draft_data;
+        console.log(`Loaded draft data:`, data);
         
-        // Update state with draft data
-        if (data.sets !== undefined) setSets(data.sets);
-        if (data.reps !== undefined) setReps(data.reps);
-        if (data.restSeconds !== undefined) setRestSeconds(data.restSeconds);
-        if (data.notes !== undefined) setNotes(data.notes);
-        if (data.duration !== undefined) setDuration(data.duration);
-        if (data.distance !== undefined) setDistance(data.distance);
+        if (data.sets !== undefined) {
+          console.log(`Setting sets from draft: ${data.sets}`);
+          setSets(data.sets);
+        }
         
-        console.log("Draft data loaded for exercise form", exerciseFormDraftId);
+        if (data.reps !== undefined) {
+          console.log(`Setting reps from draft: ${data.reps}`);
+          setReps(data.reps);
+        }
+        
+        if (data.restSeconds !== undefined) {
+          console.log(`Setting restSeconds from draft: ${data.restSeconds}`);
+          setRestSeconds(data.restSeconds);
+        }
+        
+        if (data.notes !== undefined) {
+          console.log(`Setting notes from draft: ${data.notes}`);
+          setNotes(data.notes);
+        }
+        
+        if (data.duration !== undefined) {
+          console.log(`Setting duration from draft: ${data.duration}`);
+          setDuration(data.duration);
+        }
+        
+        if (data.distance !== undefined) {
+          console.log(`Setting distance from draft: ${data.distance}`);
+          setDistance(data.distance);
+        }
+        
+        console.log("Draft data fully loaded for exercise form", exerciseFormDraftId);
         toast.success('Recovered unsaved workout progress');
       } else {
         console.log("No draft data found for exercise form", exerciseFormDraftId);
@@ -124,34 +138,43 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       setDraftLoaded(true);
     }
   };
-  
-  // Load draft data when component mounts and user is authenticated
+
   useEffect(() => {
-    // Don't attempt to load if there's no exerciseFormDraftId
     if (!exerciseFormDraftId) {
       setDraftLoaded(true);
       return;
     }
     
-    // Don't attempt to load if already loaded
     if (draftLoaded) return;
     
-    // If auth is still loading, wait
     if (authLoading) {
       console.log("Auth still loading, waiting before loading draft");
       return;
     }
     
-    // If we have a user, load the draft
     if (user) {
       console.log("User authenticated, loading draft data");
       loadDraftData();
     } else {
       console.log("User not authenticated yet, will retry when auth completes");
+      
+      const timer = setTimeout(() => {
+        if (isMounted.current && !draftLoaded && user) {
+          console.log("Retrying draft load after delay");
+          loadDraftData();
+        }
+      }, 1500);
+      
+      return () => {
+        clearTimeout(timer);
+        isMounted.current = false;
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+      };
     }
     
     return () => {
-      // Cleanup function
       isMounted.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -162,7 +185,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // When submitting, clean up the draft
     if (exerciseFormDraftId) {
       deleteWorkoutDraft(exerciseFormDraftId);
     }
@@ -177,7 +199,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     });
   };
 
-  // Determine if this is a running exercise based on the exercise type or name
   const isRunningExercise = React.useMemo(() => {
     if (!initialData?.exercise) return false;
     
@@ -192,7 +213,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 text-center px-2">
-      {/* Display autosave status */}
       {saveStatus !== 'idle' && (
         <div className="text-xs text-right text-muted-foreground">
           {saveStatus === 'saving' && (
@@ -216,7 +236,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
         </div>
       )}
       
-      {/* Show loading indicator when auth is loading and draft hasn't been loaded */}
       {authLoading && !draftLoaded && (
         <div className="text-xs text-center text-muted-foreground">
           <span className="flex items-center justify-center gap-1">
@@ -226,7 +245,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
         </div>
       )}
       
-      {/* Render different form based on exercise type */}
       {isRunningExercise ? (
         <RunningExerciseForm 
           distance={distance}

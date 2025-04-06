@@ -1,120 +1,173 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { debounce } from '@/lib/utils';
+import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 
-interface UseAutosaveProps<T> {
+type AutosaveStatus = 'idle' | 'saving' | 'success' | 'error';
+
+interface AutosaveProps<T> {
   data: T;
   onSave: (data: T) => Promise<boolean>;
   interval?: number;
+  debounce?: number;
   disabled?: boolean;
+  minChanges?: number;
 }
 
-export function useAutosave<T>({ 
-  data, 
-  onSave, 
-  interval = 2000, 
-  disabled = false 
-}: UseAutosaveProps<T>) {
-  const [isSaving, setIsSaving] = useState(false);
+interface AutosaveReturn {
+  saveStatus: AutosaveStatus;
+  lastSaved: Date | null;
+  errorCount: number;
+  forceSave: () => Promise<boolean>;
+}
+
+/**
+ * Custom hook for autosaving data
+ */
+export function useAutosave<T>({
+  data,
+  onSave,
+  interval = 10000,
+  debounce = 2000,
+  disabled = false,
+  minChanges = 0,
+}: AutosaveProps<T>): AutosaveReturn {
+  const [saveStatus, setSaveStatus] = useState<AutosaveStatus>('idle');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
-  const previousDataRef = useRef<T | null>(null);
-  const errorCountRef = useRef(0);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [errorCount, setErrorCount] = useState<number>(0);
   
-  // Create a memoized, debounced save function
-  const debouncedSave = useCallback(
-    debounce(async (dataToSave: T) => {
-      if (disabled) return;
+  const previousDataRef = useRef<string>('');
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const changeCountRef = useRef<number>(0);
+  const isSavingRef = useRef<boolean>(false);
+  
+  // Function to serialize data for comparison
+  const serializeData = (data: T): string => {
+    try {
+      return JSON.stringify(data);
+    } catch (error) {
+      console.error('Error serializing data for comparison:', error);
+      return '';
+    }
+  };
+  
+  // Function to check if data has changed meaningfully
+  const hasDataChanged = (prevData: string, currentData: T): boolean => {
+    const serializedCurrent = serializeData(currentData);
+    return prevData !== serializedCurrent;
+  };
+  
+  // Reset error count when disabled status changes
+  useEffect(() => {
+    if (disabled) {
+      setErrorCount(0);
+    }
+  }, [disabled]);
+  
+  // Function to save data
+  const saveData = async (): Promise<boolean> => {
+    if (isSavingRef.current || disabled) {
+      return false;
+    }
+    
+    const currentSerializedData = serializeData(data);
+    
+    // If data hasn't changed since last save, no need to save again
+    if (previousDataRef.current === currentSerializedData) {
+      console.log('Data unchanged, skipping autosave');
+      return false;
+    }
+    
+    try {
+      isSavingRef.current = true;
+      setSaveStatus('saving');
       
-      try {
-        setIsSaving(true);
-        setSaveStatus('saving');
-        
-        // Get user's timezone for error reporting
-        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        console.log("Autosaving data:", dataToSave);
-        const success = await onSave(dataToSave);
-        
-        if (success) {
-          setSaveStatus('success');
-          setLastSaved(new Date());
-          errorCountRef.current = 0; // Reset error count on success
-          console.log("Autosave successful", {
-            timestamp: new Date().toISOString(),
-            lastSaved: new Date().toISOString()
-          });
-        } else {
-          console.warn('Autosave failed: onSave returned false', {
-            timestamp: new Date().toISOString(),
-            localTime: new Date().toString(),
-            timezone: userTimeZone,
-            data: typeof dataToSave === 'object' ? 
-              { ...dataToSave, size: JSON.stringify(dataToSave).length } : 
-              dataToSave
-          });
-          setSaveStatus('error');
-          errorCountRef.current += 1;
-        }
-      } catch (error) {
-        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        console.error('Error during autosave:', {
-          error,
+      console.log('Autosaving data:', data);
+      const success = await onSave(data);
+      
+      isSavingRef.current = false;
+      
+      if (success) {
+        console.log('Autosave successful', {
           timestamp: new Date().toISOString(),
-          localTime: new Date().toString(),
-          timezone: userTimeZone,
-          data: typeof dataToSave === 'object' ? 
-            { dataSize: JSON.stringify(dataToSave).length } : 
-            'non-object data'
+          lastSaved: new Date().toISOString()
+        });
+        setSaveStatus('success');
+        setLastSaved(new Date());
+        setErrorCount(0);
+        previousDataRef.current = currentSerializedData;
+        changeCountRef.current = 0;
+        return true;
+      } else {
+        console.error('Autosave returned false', {
+          timestamp: new Date().toISOString()
         });
         setSaveStatus('error');
-        errorCountRef.current += 1;
-      } finally {
-        setIsSaving(false);
+        setErrorCount(prev => prev + 1);
+        return false;
       }
-    }, interval),
-    [onSave, interval, disabled]
-  );
-  
-  // Trigger the save when data changes
-  useEffect(() => {
-    // Check if the data has actually changed before saving
-    const dataAsString = JSON.stringify(data);
-    const previousDataAsString = previousDataRef.current ? JSON.stringify(previousDataRef.current) : null;
-    
-    // Clean up any existing timeout to prevent race conditions
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
+    } catch (error) {
+      console.error('Error during autosave:', error);
+      isSavingRef.current = false;
+      setSaveStatus('error');
+      setErrorCount(prev => prev + 1);
+      return false;
     }
-    
-    if (dataAsString !== previousDataAsString) {
-      console.log("Data changed, triggering autosave");
-      previousDataRef.current = JSON.parse(dataAsString);
-      debouncedSave(data);
-    } else {
-      console.log("Data unchanged, skipping autosave");
-    }
-  }, [data, debouncedSave]);
+  };
   
-  // Also trigger a save on component unmount if there are pending changes
+  // Debounced save effect
   useEffect(() => {
-    return () => {
-      debouncedSave.cancel();
+    if (disabled) return;
+    
+    const currentSerializedData = serializeData(data);
+    const hasChanged = hasDataChanged(previousDataRef.current, data);
+    
+    if (hasChanged) {
+      console.log('Data changed, triggering autosave');
+      changeCountRef.current += 1;
       
-      // If there's unsaved data and we're not currently saving, do a final save
-      if (previousDataRef.current && !isSaving) {
-        onSave(previousDataRef.current).catch(error => {
-          console.error("Error during final autosave on unmount:", error);
-        });
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      // Only save if we've had enough changes or this is the first change
+      if (changeCountRef.current >= minChanges || previousDataRef.current === '') {
+        // Set a new timeout
+        timeoutRef.current = setTimeout(() => {
+          saveData();
+        }, debounce);
+      }
+    } else {
+      console.log('Data unchanged, skipping autosave');
+    }
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
     };
-  }, [debouncedSave, onSave, isSaving]);
+  }, [data, disabled, debounce, minChanges]);
   
-  return {
-    isSaving,
-    lastSaved,
-    saveStatus,
-    errorCount: errorCountRef.current
+  // Regular interval save effect
+  useEffect(() => {
+    if (disabled) return;
+    
+    const intervalId = setInterval(() => {
+      if (changeCountRef.current > 0) {
+        saveData();
+      }
+    }, interval);
+    
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [disabled, interval]);
+  
+  // Force save function for manual saving
+  const forceSave = async (): Promise<boolean> => {
+    return await saveData();
   };
+  
+  return { saveStatus, lastSaved, errorCount, forceSave };
 }

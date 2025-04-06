@@ -224,25 +224,85 @@ const ActiveWorkout = () => {
 
   useEffect(() => {
     const loadDraftData = async () => {
-      if (!workoutCompletionId || !user?.id) return;
+      if (!workoutCompletionId || draftLoaded) return;
       
-      const draft = await getWorkoutDraft(workoutCompletionId);
-      
-      if (draft && draft.draft_data) {
-        const { exerciseStates, pendingSets, pendingCardio, pendingFlexibility, pendingRuns } = draft.draft_data;
+      try {
+        console.log("Attempting to load draft data for workout:", workoutCompletionId);
         
-        if (exerciseStates) setExerciseStates(exerciseStates);
-        if (pendingSets) setPendingSets(pendingSets);
-        if (pendingCardio) setPendingCardio(pendingCardio);
-        if (pendingFlexibility) setPendingFlexibility(pendingFlexibility);
-        if (pendingRuns) setPendingRuns(pendingRuns);
+        const draft = await getWorkoutDraft(workoutCompletionId, 7, 500);
         
-        toast.success('Recovered unsaved workout progress');
+        if (!mounted) return;
+        
+        if (draft && draft.draft_data) {
+          console.log("Draft data found, processing...");
+          
+          const draftData = draft.draft_data;
+          
+          if (draftData.exerciseStates && Object.keys(draftData.exerciseStates).length > 0) {
+            console.log(`Loading ${Object.keys(draftData.exerciseStates).length} exercise states from draft`);
+            setExerciseStates(prevStates => ({
+              ...prevStates,
+              ...draftData.exerciseStates
+            }));
+          }
+          
+          if (draftData.pendingSets && draftData.pendingSets.length > 0) {
+            console.log(`Loading ${draftData.pendingSets.length} pending sets from draft`);
+            setPendingSets(draftData.pendingSets);
+          }
+          
+          if (draftData.pendingCardio && draftData.pendingCardio.length > 0) {
+            console.log(`Loading ${draftData.pendingCardio.length} pending cardio from draft`);
+            setPendingCardio(draftData.pendingCardio);
+          }
+          
+          if (draftData.pendingFlexibility && draftData.pendingFlexibility.length > 0) {
+            console.log(`Loading ${draftData.pendingFlexibility.length} pending flexibility from draft`);
+            setPendingFlexibility(draftData.pendingFlexibility);
+          }
+          
+          if (draftData.pendingRuns && draftData.pendingRuns.length > 0) {
+            console.log(`Loading ${draftData.pendingRuns.length} pending runs from draft`);
+            setPendingRuns(draftData.pendingRuns);
+          }
+          
+          console.log("Draft data successfully loaded and applied to component state");
+          toast.success('Workout progress restored');
+        } else {
+          console.log("No draft data found or draft data is empty");
+        }
+        
+        setDraftLoaded(true);
+      } catch (error) {
+        console.error("Error loading workout draft:", error);
+        setDraftLoaded(true);
       }
     };
     
-    loadDraftData();
-  }, [workoutCompletionId, user?.id]);
+    let mounted = true;
+    let draftLoaded = false;
+    
+    if (user && workoutCompletionId && !draftLoaded) {
+      console.log("User authenticated, loading draft data");
+      loadDraftData();
+    } else if (!user && workoutCompletionId && !draftLoaded) {
+      console.log("User not authenticated yet, setting timeout for retry");
+      const timer = setTimeout(() => {
+        if (mounted && !draftLoaded) {
+          console.log("Retrying draft load after timeout");
+          loadDraftData();
+        }
+      }, 1500);
+      
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+    
+    return () => {
+      mounted = false;
+    };
+  }, [workoutCompletionId, user, draftLoaded]);
 
   const trackSetMutation = useMutation({
     mutationFn: async ({

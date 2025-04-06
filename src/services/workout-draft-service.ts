@@ -182,7 +182,24 @@ export const getWorkoutDraft = async (
       if (data) {
         const dataSize = data.draft_data ? JSON.stringify(data.draft_data).length : 0;
         console.log(`Successfully loaded draft data for ${workoutId}, size: ${dataSize} bytes`);
-        console.log("Draft data content:", data.draft_data);
+        
+        // Don't stringify the entire object to the log, but provide better insights
+        if (dataSize > 0) {
+          const keys = data.draft_data ? Object.keys(data.draft_data) : [];
+          console.log(`Draft data contains keys: ${keys.join(', ')}`);
+          
+          // Check if we have exerciseStates and how many
+          if (data.draft_data?.exerciseStates) {
+            const exerciseCount = Object.keys(data.draft_data.exerciseStates).length;
+            console.log(`Draft contains ${exerciseCount} exercise states`);
+          }
+          
+          // Check if we have pendingSets and how many
+          if (data.draft_data?.pendingSets) {
+            console.log(`Draft contains ${data.draft_data.pendingSets.length} pending sets`);
+          }
+        }
+        
         return data;
       } else {
         console.log("No draft data found for workout:", workoutId);

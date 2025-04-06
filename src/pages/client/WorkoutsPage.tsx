@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -138,23 +139,6 @@ const WorkoutsPage = () => {
                   />
                 </PopoverContent>
               </Popover>
-            </div>
-            
-            <div className="rounded-lg bg-green-50 p-4 text-sm">
-              <h4 className="font-semibold text-green-700 mb-2">The Power of Rest & Recovery</h4>
-              <p className="text-green-700 mb-3">
-                Rest days are just as important as workout days in your fitness journey! They allow your muscles to repair and grow stronger, prevent burnout, and reduce injury risk.
-              </p>
-              <h4 className="font-semibold text-green-700 mb-2">Rest Day Recommendations:</h4>
-              <ul className="list-disc pl-5 text-green-700 space-y-1">
-                <li>Gentle stretching or yoga</li>
-                <li>Short, relaxing walk</li>
-                <li>Meditation or deep breathing exercises</li>
-                <li>Adequate hydration</li>
-                <li>Quality sleep (7-9 hours)</li>
-                <li>Epsom salt bath for muscle relaxation</li>
-                <li>Foam rolling or self-massage</li>
-              </ul>
             </div>
           </div>
           

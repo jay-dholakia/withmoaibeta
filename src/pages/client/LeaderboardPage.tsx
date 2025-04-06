@@ -54,7 +54,6 @@ const LeaderboardPage = () => {
     queryFn: async () => {
       if (!user?.id) return 5; // Default to 5 if user ID not available
       try {
-        // Update to use the function with optional parameters
         const count = await getWeeklyAssignedWorkoutsCount(user.id);
         if (!count || count <= 0) return 5; // Default to 5 if no assigned workouts
         return count;
@@ -73,8 +72,7 @@ const LeaderboardPage = () => {
       
       try {
         const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
-        // Update to use the function with optional parameters
-        return await countCompletedWorkoutsForWeek(user.id);
+        return await countCompletedWorkoutsForWeek(user.id, monday);
       } catch (error) {
         console.error("Error counting completed workouts:", error);
         return 0;

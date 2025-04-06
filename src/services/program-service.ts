@@ -275,18 +275,15 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       return null;
     }
     
-    // Construct full program data and include start_date
+    // Construct full program data
     const fullProgramData = {
       ...currentAssignment,
-      start_date: currentAssignment.start_date,
-      end_date: currentAssignment.end_date,
       program: programData
     };
     
     console.log("Successfully built program data:", 
       fullProgramData.program.title, 
-      "with", fullProgramData.program.weekData?.length || 0, "weeks",
-      "starting on", fullProgramData.start_date
+      "with", fullProgramData.program.weekData?.length || 0, "weeks"
     );
     
     return fullProgramData;

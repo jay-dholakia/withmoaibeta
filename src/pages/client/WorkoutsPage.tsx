@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -167,3 +168,4 @@ const WorkoutsPage = () => {
 };
 
 export default WorkoutsPage;
+

@@ -54,7 +54,8 @@ export const saveWorkoutDraft = async (
         .update({ 
           draft_data: draftData,
           workout_type: workoutType,
-          updated_at: new Date() // Explicitly set updated_at to ensure trigger fires
+          updated_at: new Date().toISOString() // ✅ fix
+
         })
         .eq('id', existingDraft.id);
         

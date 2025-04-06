@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -10,20 +9,43 @@ export const saveWorkoutDraft = async (
   draftData: any
 ): Promise<boolean> => {
   try {
+    // Skip if no workout ID
+    if (!workoutId) {
+      console.warn("No workout ID provided to saveWorkoutDraft");
+      return false;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      console.error("No authenticated user found");
+      console.error("No authenticated user found in saveWorkoutDraft");
       return false;
     }
     
+    const dataSize = JSON.stringify(draftData).length;
+    console.log(`Saving draft for workout ${workoutId}, size: ${dataSize} bytes`);
+    
+    if (dataSize > 100000) {
+      console.warn(`Draft data size is large: ${dataSize} bytes. Consider optimizing.`);
+    }
+    
     // Check if a draft already exists for this workout
-    const { data: existingDraft } = await supabase
+    const { data: existingDraft, error: queryError } = await supabase
       .from('workout_drafts')
       .select('id')
       .eq('user_id', user.id)
       .eq('workout_id', workoutId || '')
       .maybeSingle();
+      
+    if (queryError) {
+      console.error("Error checking for existing workout draft:", {
+        error: queryError,
+        workoutId,
+        userId: user.id,
+        timestamp: new Date().toISOString()
+      });
+      return false;
+    }
       
     if (existingDraft) {
       // Update existing draft
@@ -36,9 +58,16 @@ export const saveWorkoutDraft = async (
         .eq('id', existingDraft.id);
         
       if (error) {
-        console.error("Error updating workout draft:", error);
+        console.error("Error updating workout draft:", {
+          error,
+          workoutId,
+          draftId: existingDraft.id,
+          timestamp: new Date().toISOString()
+        });
         return false;
       }
+      
+      console.log(`Successfully updated draft for workout ${workoutId}`);
     } else {
       // Create new draft
       const { error } = await supabase
@@ -51,14 +80,26 @@ export const saveWorkoutDraft = async (
         });
         
       if (error) {
-        console.error("Error creating workout draft:", error);
+        console.error("Error creating workout draft:", {
+          error,
+          workoutId,
+          userId: user.id,
+          timestamp: new Date().toISOString()
+        });
         return false;
       }
+      
+      console.log(`Successfully created new draft for workout ${workoutId}`);
     }
     
     return true;
   } catch (error) {
-    console.error("Error in saveWorkoutDraft:", error);
+    console.error("Error in saveWorkoutDraft:", {
+      error,
+      workoutId,
+      workoutType,
+      timestamp: new Date().toISOString()
+    });
     return false;
   }
 };
@@ -92,7 +133,11 @@ export const getWorkoutDraft = async (
         console.log(`No authenticated user found, retry ${retries + 1}/${maxRetries + 1}`);
         // If we've reached max retries, return null
         if (retries === maxRetries) {
-          console.error("Max retries reached, no authenticated user found");
+          console.error("Max retries reached, no authenticated user found", {
+            workoutId,
+            maxRetries,
+            timestamp: new Date().toISOString()
+          });
           return null;
         }
         // Otherwise, wait and retry
@@ -111,22 +156,35 @@ export const getWorkoutDraft = async (
         .maybeSingle();
         
       if (error) {
-        console.error("Error retrieving workout draft:", error);
+        console.error("Error retrieving workout draft:", {
+          error,
+          workoutId,
+          userId: user.id,
+          retry: retries,
+          timestamp: new Date().toISOString()
+        });
         return null;
       }
       
       if (data) {
-        console.log("Successfully loaded draft data:", workoutId);
+        const dataSize = data.draft_data ? JSON.stringify(data.draft_data).length : 0;
+        console.log(`Successfully loaded draft data for ${workoutId}, size: ${dataSize} bytes`);
       } else {
         console.log("No draft data found for workout:", workoutId);
       }
       
       return data;
     } catch (error) {
-      console.error("Error in getWorkoutDraft:", error);
+      console.error("Error in getWorkoutDraft:", {
+        error,
+        workoutId,
+        retry: retries,
+        timestamp: new Date().toISOString()
+      });
       
       // If we've reached max retries, return null
       if (retries === maxRetries) {
+        console.error(`Max retries (${maxRetries}) reached for getWorkoutDraft`);
         return null;
       }
       
@@ -146,10 +204,15 @@ export const deleteWorkoutDraft = async (
   workoutId: string | null
 ): Promise<boolean> => {
   try {
+    if (!workoutId) {
+      console.warn("No workout ID provided to deleteWorkoutDraft");
+      return false;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      console.error("No authenticated user found");
+      console.error("No authenticated user found in deleteWorkoutDraft");
       return false;
     }
     
@@ -160,13 +223,23 @@ export const deleteWorkoutDraft = async (
       .eq('workout_id', workoutId || '');
       
     if (error) {
-      console.error("Error deleting workout draft:", error);
+      console.error("Error deleting workout draft:", {
+        error,
+        workoutId,
+        userId: user.id,
+        timestamp: new Date().toISOString()
+      });
       return false;
     }
     
+    console.log(`Successfully deleted draft for workout ${workoutId}`);
     return true;
   } catch (error) {
-    console.error("Error in deleteWorkoutDraft:", error);
+    console.error("Error in deleteWorkoutDraft:", {
+      error,
+      workoutId,
+      timestamp: new Date().toISOString()
+    });
     return false;
   }
 };

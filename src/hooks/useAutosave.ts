@@ -19,6 +19,7 @@ export function useAutosave<T>({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const previousDataRef = useRef<T | null>(null);
+  const errorCountRef = useRef(0);
   
   // Create a memoized, debounced save function
   const debouncedSave = useCallback(
@@ -34,12 +35,27 @@ export function useAutosave<T>({
         if (success) {
           setSaveStatus('success');
           setLastSaved(new Date());
+          errorCountRef.current = 0; // Reset error count on success
         } else {
+          console.warn('Autosave failed: onSave returned false', {
+            timestamp: new Date().toISOString(),
+            data: typeof dataToSave === 'object' ? 
+              { ...dataToSave, size: JSON.stringify(dataToSave).length } : 
+              dataToSave
+          });
           setSaveStatus('error');
+          errorCountRef.current += 1;
         }
       } catch (error) {
-        console.error('Error during autosave:', error);
+        console.error('Error during autosave:', {
+          error,
+          timestamp: new Date().toISOString(),
+          data: typeof dataToSave === 'object' ? 
+            { dataSize: JSON.stringify(dataToSave).length } : 
+            'non-object data'
+        });
         setSaveStatus('error');
+        errorCountRef.current += 1;
       } finally {
         setIsSaving(false);
       }
@@ -69,6 +85,7 @@ export function useAutosave<T>({
   return {
     isSaving,
     lastSaved,
-    saveStatus
+    saveStatus,
+    errorCount: errorCountRef.current
   };
 }

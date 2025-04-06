@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
-import { Loader2, CheckCircle2 } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { StrengthExerciseForm } from './exercise-forms/StrengthExerciseForm';
@@ -29,6 +29,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const [distance, setDistance] = useState(initialData?.distance || '');
   const [draftLoaded, setDraftLoaded] = useState(false);
   const { user, loading: authLoading } = useAuth();
+  const lastErrorToastTimeRef = useRef<number>(0);
   
   // Ref to track component mount state
   const isMounted = useRef(true);
@@ -49,7 +50,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   };
 
   // Use autosave hook when we have a valid exercise ID
-  const { saveStatus } = useAutosave({
+  const { saveStatus, errorCount } = useAutosave({
     data: draftData,
     onSave: async (data) => {
       if (!exerciseFormDraftId || !user) return false;
@@ -61,6 +62,22 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     },
     disabled: !exerciseFormDraftId || !user
   });
+
+  // Show error toast after multiple consecutive autosave failures
+  useEffect(() => {
+    if (saveStatus === 'error' && errorCount && errorCount > 2) {
+      const now = Date.now();
+      // Only show toast once every 10 seconds to avoid spam
+      if (now - lastErrorToastTimeRef.current > 10000) {
+        toast.error('Having trouble saving your progress', {
+          description: 'Your changes may not be saved automatically',
+          duration: 5000
+        });
+        lastErrorToastTimeRef.current = now;
+        console.error(`Multiple autosave failures detected: ${errorCount} errors`);
+      }
+    }
+  }, [saveStatus, errorCount]);
 
   // Function to load draft data
   const loadDraftData = async () => {
@@ -188,6 +205,12 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
             <span className="flex items-center justify-end gap-1">
               <CheckCircle2 className="h-3 w-3 text-green-500" />
               Saved
+            </span>
+          )}
+          {saveStatus === 'error' && (
+            <span className="flex items-center justify-end gap-1">
+              <AlertCircle className="h-3 w-3 text-destructive" />
+              Save failed
             </span>
           )}
         </div>

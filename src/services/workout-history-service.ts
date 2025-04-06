@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { WorkoutHistoryItem } from "@/types/workout";
+import { WorkoutHistoryItem, WorkoutExercise } from "@/types/workout";
 import { getWeekDateRange } from './workout-week-service';
 
 /**
@@ -37,7 +37,22 @@ export const fetchAllWorkoutCompletions = async (userId: string): Promise<Workou
       return [];
     }
 
-    return data || [];
+    // Ensure the workout_exercises property is properly handled
+    const typedData = data?.map(item => {
+      // Cast to WorkoutHistoryItem with proper type handling
+      return {
+        ...item,
+        workout: item.workout ? {
+          ...item.workout,
+          // Ensure workout_exercises is always an array
+          workout_exercises: Array.isArray(item.workout.workout_exercises) 
+            ? item.workout.workout_exercises 
+            : []
+        } : null
+      } as WorkoutHistoryItem;
+    }) || [];
+
+    return typedData;
   } catch (error) {
     console.error("Error in fetchAllWorkoutCompletions:", error);
     return [];
@@ -51,10 +66,13 @@ export const fetchAllWorkoutCompletions = async (userId: string): Promise<Workou
  */
 export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHistoryItem[]> => {
   try {
-    // This is a placeholder - the workout_assignments table doesn't appear to exist
-    // For now, return an empty array to avoid type errors
+    // This is a placeholder - we'll just return an empty array
     console.log("Fetch assigned workouts called for user:", userId);
-    return [];
+    
+    // Mock data structure that matches WorkoutHistoryItem
+    const mockData: WorkoutHistoryItem[] = [];
+    
+    return mockData;
   } catch (error) {
     console.error("Error in fetchAssignedWorkouts:", error);
     return [];
@@ -186,7 +204,22 @@ export const getWorkoutsForWeek = async (
       return [];
     }
     
-    return data || [];
+    // Ensure the workout_exercises property is properly handled
+    const typedData = data?.map(item => {
+      // Cast to WorkoutHistoryItem with proper type handling
+      return {
+        ...item,
+        workout: item.workout ? {
+          ...item.workout,
+          // Ensure workout_exercises is always an array
+          workout_exercises: Array.isArray(item.workout.workout_exercises) 
+            ? item.workout.workout_exercises 
+            : []
+        } : null
+      } as WorkoutHistoryItem;
+    }) || [];
+    
+    return typedData;
   } catch (error) {
     console.error(`Error in getWorkoutsForWeek:`, error);
     return [];

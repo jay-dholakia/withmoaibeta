@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/accordion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { fetchCurrentProgram } from '@/services/program-service';
+import { getCurrentWeekNumber, formatWeekDateRange } from '@/services/workout-week-service';
 
 const WorkoutsList = () => {
   const { user } = useAuth();
@@ -28,6 +29,7 @@ const WorkoutsList = () => {
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
   const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const [weekDateRanges, setWeekDateRanges] = useState<Record<string, string>>({});
   const selectRef = useRef<HTMLDivElement>(null);
 
   // Safely toggle workout details 
@@ -73,22 +75,9 @@ const WorkoutsList = () => {
         
         console.log("Current user email:", user.email);
         console.log("Program data received:", program);
-        if (program && program.program) {
-          console.log("Program title:", program.program.title);
-          console.log("Program description:", program.program.description || "No description");
-          console.log("Program weeks data:", program.program.weekData);
-        } else {
-          console.log("No program assigned to this user or program data is incomplete");
-        }
-        
-        console.log("Assigned workouts loaded:", assignedWorkouts.length);
-        
-        // Filter out completed workouts here
-        const pendingWorkouts = assignedWorkouts.filter(workout => !workout.completed_at);
-        console.log("Pending workouts (not completed):", pendingWorkouts.length);
         
         setCurrentProgram(program);
-        setWorkouts(pendingWorkouts);
+        setWorkouts(assignedWorkouts);
         
         // Get all workouts (including completed) for checking completed weeks
         const allWorkouts = assignedWorkouts;
@@ -120,6 +109,10 @@ const WorkoutsList = () => {
         
         setCompletedWeeks(weekCompletionStatus);
         
+        // Filter out completed workouts for the regular view
+        const pendingWorkouts = assignedWorkouts.filter(workout => !workout.completed_at);
+        console.log("Pending workouts (not completed):", pendingWorkouts.length);
+        
         pendingWorkouts.forEach(workout => {
           if (workout.workout?.week && workout.workout.week.week_number) {
             weeksSet.add(workout.workout.week.week_number);
@@ -130,12 +123,29 @@ const WorkoutsList = () => {
         console.log("Debug - Extracted week numbers:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
-        if (extractedWeeks.length > 0) {
-          const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
-          // Set initial week filter after component is fully mounted
-          setTimeout(() => {
+        // Generate date ranges for each week based on program start date
+        if (program?.start_date) {
+          const dateRanges: Record<string, string> = {};
+          extractedWeeks.forEach(weekNum => {
+            dateRanges[weekNum.toString()] = formatWeekDateRange(program.start_date, weekNum);
+          });
+          setWeekDateRanges(dateRanges);
+          
+          // Calculate current week based on program start date
+          const currentWeek = getCurrentWeekNumber(program.start_date);
+          console.log("Current week based on program start date:", currentWeek);
+          
+          // Set initial week filter to the current week if available, otherwise lowest week
+          if (extractedWeeks.includes(currentWeek)) {
+            setWeekFilter(currentWeek.toString());
+          } else if (extractedWeeks.length > 0) {
+            const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
             setWeekFilter(sortedWeeks[0].toString());
-          }, 0);
+          }
+        } else if (extractedWeeks.length > 0) {
+          // Fallback if no program start date is available
+          const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
+          setWeekFilter(sortedWeeks[0].toString());
         }
       } catch (error) {
         console.error('Error loading workouts:', error);
@@ -281,7 +291,13 @@ const WorkoutsList = () => {
               >
                 <div className="flex items-center gap-1">
                   <Filter className="h-3.5 w-3.5" />
-                  <span>{weekFilter ? `Week ${weekFilter}` : "Filter by week"}</span>
+                  <span>
+                    {weekFilter ? (
+                      <>Week {weekFilter} {weekDateRanges[weekFilter] ? `(${weekDateRanges[weekFilter]})` : ''}</>
+                    ) : (
+                      "Filter by week"
+                    )}
+                  </span>
                 </div>
                 <ChevronDown className="h-4 w-4 opacity-50" />
               </button>
@@ -302,7 +318,12 @@ const WorkoutsList = () => {
                               <div className="h-4 w-4 flex items-center justify-center">✓</div>
                             )}
                           </span>
-                          {`Week ${weekNumber}`}
+                          <div className="flex flex-col items-start">
+                            <span>Week {weekNumber}</span>
+                            {weekDateRanges[weekNumber.toString()] && (
+                              <span className="text-xs text-muted-foreground">{weekDateRanges[weekNumber.toString()]}</span>
+                            )}
+                          </div>
                         </button>
                       ))}
                   </div>

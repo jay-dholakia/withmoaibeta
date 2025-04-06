@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -893,6 +894,8 @@ const ActiveWorkout = () => {
   };
 
   const isWorkoutComplete = () => {
+    // Always return true to ensure the button is enabled
+    // This can be enhanced later with actual completion checks
     return true;
   };
 

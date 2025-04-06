@@ -893,8 +893,6 @@ const ActiveWorkout = () => {
   };
 
   const isWorkoutComplete = () => {
-    // Always return true to ensure the button is enabled
-    // This can be enhanced later with actual completion checks
     return true;
   };
 
@@ -1001,43 +999,47 @@ const ActiveWorkout = () => {
                 className="cursor-pointer bg-client/5 text-center relative" 
                 onClick={() => toggleExerciseExpanded(exercise.id)}
               >
-                <CardTitle className="text-lg font-medium flex items-center justify-center gap-2">
-                  {exercise.exercise?.name || 'Exercise'}
-                </CardTitle>
-                <CardDescription className="text-xs mt-1">
-                  {(exerciseType === 'strength' || exerciseType === 'bodyweight') && 
-                    `${exercise.sets} sets × ${exercise.reps} reps`
-                  }
-                  {exerciseType === 'cardio' && 'Cardio Exercise'}
-                  {exerciseType === 'flexibility' && 'Flexibility Exercise'}
-                  {isRunExercise && 'Running Exercise'}
-                </CardDescription>
-                
-                <div className="absolute right-1 top-1 flex gap-1">
-                  {hasYoutubeLink && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6 p-0 text-red-500 z-10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openVideoDialog(exercise.exercise.youtube_link, exercise.exercise.name);
-                            }}
-                          >
-                            <Youtube className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Watch demo video</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                  <div className="absolute right-3 text-muted-foreground">
-                    <ChevronRight className={`h-5 w-5 transition-transform ${exerciseState.expanded ? 'rotate-90' : ''}`} />
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg font-medium flex items-center justify-center gap-2">
+                      {exercise.exercise?.name || 'Exercise'}
+                    </CardTitle>
+                    <CardDescription className="text-xs mt-1">
+                      {(exerciseType === 'strength' || exerciseType === 'bodyweight') && 
+                        `${exercise.sets} sets × ${exercise.reps} reps`
+                      }
+                      {exerciseType === 'cardio' && 'Cardio Exercise'}
+                      {exerciseType === 'flexibility' && 'Flexibility Exercise'}
+                      {isRunExercise && 'Running Exercise'}
+                    </CardDescription>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    {hasYoutubeLink && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 p-0 text-red-500 mr-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openVideoDialog(exercise.exercise.youtube_link, exercise.exercise.name);
+                              }}
+                            >
+                              <Youtube className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Watch demo video</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    <div className="text-muted-foreground">
+                      <ChevronRight className={`h-5 w-5 transition-transform ${exerciseState.expanded ? 'rotate-90' : ''}`} />
+                    </div>
                   </div>
                 </div>
               </CardHeader>
@@ -1231,7 +1233,6 @@ const ActiveWorkout = () => {
         })}
       </div>
 
-      {/* Always show the complete button, regardless of exercises */}
       <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t shadow-md flex justify-center z-10">
         <Button 
           onClick={finishWorkout}

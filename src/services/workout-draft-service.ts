@@ -2,6 +2,21 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
+ * Parses draft data if it's a string
+ */
+const safeParseDraftData = (data: any): any => {
+  if (typeof data === 'string') {
+    try {
+      return JSON.parse(data);
+    } catch (error) {
+      console.error("Error parsing draft data:", error);
+      return {};
+    }
+  }
+  return data;
+};
+
+/**
  * Saves a workout draft to the server
  */
 export const saveWorkoutDraft = async (
@@ -180,27 +195,37 @@ export const getWorkoutDraft = async (
       }
       
       if (data) {
-        const dataSize = data.draft_data ? JSON.stringify(data.draft_data).length : 0;
+        const parsedData = {
+          ...data,
+          draft_data: safeParseDraftData(data.draft_data)
+        };
+        
+        const dataSize = parsedData.draft_data ? JSON.stringify(parsedData.draft_data).length : 0;
         console.log(`Successfully loaded draft data for ${workoutId}, size: ${dataSize} bytes`);
         
         // Don't stringify the entire object to the log, but provide better insights
         if (dataSize > 0) {
-          const keys = data.draft_data ? Object.keys(data.draft_data) : [];
-          console.log(`Draft data contains keys: ${keys.join(', ')}`);
-          
-          // Check if we have exerciseStates and how many
-          if (data.draft_data?.exerciseStates) {
-            const exerciseCount = Object.keys(data.draft_data.exerciseStates).length;
-            console.log(`Draft contains ${exerciseCount} exercise states`);
-          }
-          
-          // Check if we have pendingSets and how many
-          if (data.draft_data?.pendingSets) {
-            console.log(`Draft contains ${data.draft_data.pendingSets.length} pending sets`);
+          const draftData = parsedData.draft_data;
+          if (draftData && typeof draftData === 'object') {
+            const keys = Object.keys(draftData);
+            console.log(`Draft data contains keys: ${keys.join(', ')}`);
+            
+            // Check if we have exerciseStates and how many
+            if (draftData.exerciseStates && typeof draftData.exerciseStates === 'object') {
+              const exerciseCount = Object.keys(draftData.exerciseStates).length;
+              console.log(`Draft contains ${exerciseCount} exercise states`);
+            }
+            
+            // Check if we have pendingSets and how many
+            if (Array.isArray(draftData.pendingSets)) {
+              console.log(`Draft contains ${draftData.pendingSets.length} pending sets`);
+            }
+          } else {
+            console.warn("Draft data is not an object, might need parsing:", typeof draftData);
           }
         }
         
-        return data;
+        return parsedData;
       } else {
         console.log("No draft data found for workout:", workoutId);
       }

@@ -39,6 +39,15 @@ export function useAutosave<T>({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const changeCountRef = useRef<number>(0);
   const isSavingRef = useRef<boolean>(false);
+  const mountedRef = useRef<boolean>(true);
+  
+  // Ensure component is mounted when effects run
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   
   // Function to serialize data for comparison
   const serializeData = (data: T): string => {
@@ -65,7 +74,7 @@ export function useAutosave<T>({
   
   // Function to save data
   const saveData = async (): Promise<boolean> => {
-    if (isSavingRef.current || disabled) {
+    if (isSavingRef.current || disabled || !mountedRef.current) {
       return false;
     }
     
@@ -79,12 +88,16 @@ export function useAutosave<T>({
     
     try {
       isSavingRef.current = true;
-      setSaveStatus('saving');
+      if (mountedRef.current) {
+        setSaveStatus('saving');
+      }
       
       console.log('Autosaving data:', data);
       const success = await onSave(data);
       
       isSavingRef.current = false;
+      
+      if (!mountedRef.current) return false;
       
       if (success) {
         console.log('Autosave successful', {
@@ -108,15 +121,17 @@ export function useAutosave<T>({
     } catch (error) {
       console.error('Error during autosave:', error);
       isSavingRef.current = false;
-      setSaveStatus('error');
-      setErrorCount(prev => prev + 1);
+      if (mountedRef.current) {
+        setSaveStatus('error');
+        setErrorCount(prev => prev + 1);
+      }
       return false;
     }
   };
   
   // Debounced save effect
   useEffect(() => {
-    if (disabled) return;
+    if (disabled || !mountedRef.current) return;
     
     const currentSerializedData = serializeData(data);
     const hasChanged = hasDataChanged(previousDataRef.current, data);
@@ -134,7 +149,9 @@ export function useAutosave<T>({
       if (changeCountRef.current >= minChanges || previousDataRef.current === '') {
         // Set a new timeout
         timeoutRef.current = setTimeout(() => {
-          saveData();
+          if (mountedRef.current) {
+            saveData();
+          }
         }, debounce);
       }
     } else {
@@ -151,10 +168,10 @@ export function useAutosave<T>({
   
   // Regular interval save effect
   useEffect(() => {
-    if (disabled) return;
+    if (disabled || !mountedRef.current) return;
     
     const intervalId = setInterval(() => {
-      if (changeCountRef.current > 0) {
+      if (changeCountRef.current > 0 && mountedRef.current) {
         saveData();
       }
     }, interval);

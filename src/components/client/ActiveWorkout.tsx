@@ -34,7 +34,6 @@ const ActiveWorkout = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
-  // Add draftLoaded state
   const [draftLoaded, setDraftLoaded] = useState(false);
   
   const [exerciseStates, setExerciseStates] = useState<{
@@ -239,7 +238,6 @@ const ActiveWorkout = () => {
         if (draft && draft.draft_data) {
           console.log("Draft data found, processing...");
           
-          // Parse draft data if it's a string
           let draftData = draft.draft_data;
           if (typeof draftData === 'string') {
             try {
@@ -252,7 +250,6 @@ const ActiveWorkout = () => {
             }
           }
           
-          // Check if draftData is an object before proceeding
           if (typeof draftData !== 'object' || draftData === null) {
             console.error("Invalid draft data format:", draftData);
             setDraftLoaded(true);
@@ -1014,3 +1011,25 @@ const ActiveWorkout = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               openVideoDialog(exercise.exercise.youtube_link, exercise.exercise.name);
+                            }}
+                          >
+                            <Youtube className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Watch demo video</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+              </CardHeader>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default ActiveWorkout;

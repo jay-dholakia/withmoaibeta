@@ -4,17 +4,27 @@ import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
 
 interface MonthlyCalendarViewProps {
   workouts: WorkoutHistoryItem[];
   onDaySelect?: (date: Date, workouts: WorkoutHistoryItem[]) => void;
   workoutTypesMap?: Record<string, WorkoutType>;
+  workoutTitlesMap?: Record<string, string>;
+  showWorkoutTooltips?: boolean;
 }
 
 export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({ 
   workouts, 
   onDaySelect,
-  workoutTypesMap = {} 
+  workoutTypesMap = {},
+  workoutTitlesMap = {},
+  showWorkoutTooltips = false
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
@@ -41,10 +51,8 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
 
   const getWorkoutsForDay = (day: Date): WorkoutHistoryItem[] => {
     const dayStr = format(day, 'yyyy-MM-dd');
-    console.log(`Getting workouts for: ${dayStr} in timezone ${userTimeZone}`);
     
     if (!workouts || workouts.length === 0) {
-      console.log('No workouts data available');
       return [];
     }
     
@@ -62,10 +70,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
           completionDate.getDate() === day.getDate()
         );
         
-        if (match) {
-          console.log(`Found workout: completed at ${workout.completed_at}, type: ${workout.workout?.workout_type || workout.workout_type || 'unknown'}`);
-        }
-        
         return match;
       } catch (error) {
         console.error('Date parsing error:', error);
@@ -73,7 +77,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       }
     });
     
-    console.log(`Found ${filteredWorkouts.length} workouts for ${dayStr}`);
     return filteredWorkouts;
   };
 
@@ -229,6 +232,58 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
     return 'custom';
   };
 
+  const getWorkoutTooltipContent = (day: Date): string => {
+    const workoutsForDay = getWorkoutsForDay(day);
+    if (workoutsForDay.length === 0) return "No workouts";
+    
+    if (workoutsForDay.some(w => w.rest_day)) {
+      return "Rest Day";
+    }
+    
+    return workoutsForDay.map(workout => {
+      const title = workout.title || workout.workout?.title || 'Unknown Workout';
+      const type = workout.workout_type || workout.workout?.workout_type || 'Unknown Type';
+      return `${title} (${type})`;
+    }).join('\n');
+  };
+  
+  const renderDayContent = (day: Date, isSelected: boolean, isCurrentDay: boolean) => {
+    const formattedDate = format(day, 'd');
+    const workoutType = getWorkoutTypeForDay(day);
+    const hasWorkout = !!workoutType;
+    
+    const dayContent = (
+      <div className="flex flex-col h-full justify-between items-center gap-0.5">
+        <span className="text-xs mb-0">{formattedDate}</span>
+        {hasWorkout && (
+          <div className="mt-[-2px]">
+            <WorkoutTypeIcon type={workoutType} />
+          </div>
+        )}
+      </div>
+    );
+    
+    if (showWorkoutTooltips && hasWorkout) {
+      const dateKey = format(day, 'yyyy-MM-dd');
+      const workoutTitle = workoutTitlesMap[dateKey] || getWorkoutTooltipContent(day);
+      
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {dayContent}
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">
+              {workoutTitle}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    
+    return dayContent;
+  };
+
   const renderCells = () => {
     const dateFormat = "d";
     const rows = [];
@@ -241,13 +296,9 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
     }
     
     for (const day of monthDays) {
-      const formattedDate = format(day, dateFormat);
       const isCurrentDay = isToday(day);
       const isSameMonthDay = isSameMonth(day, currentMonth);
       const isSelected = selectedDay ? isSameDay(day, selectedDay) : false;
-      
-      const workoutType = getWorkoutTypeForDay(day);
-      const hasWorkout = !!workoutType;
       
       days.push(
         <div 
@@ -259,14 +310,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
             isCurrentDay ? 'border-2 border-primary text-primary font-bold rounded-md' : ''
           }`}
         >
-          <div className="flex flex-col h-full justify-between items-center gap-0.5">
-            <span className="text-xs mb-0">{formattedDate}</span>
-            {hasWorkout && (
-              <div className="mt-[-2px]">
-                <WorkoutTypeIcon type={workoutType} />
-              </div>
-            )}
-          </div>
+          {renderDayContent(day, isSelected, isCurrentDay)}
         </div>
       );
       

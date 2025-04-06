@@ -1,5 +1,4 @@
-
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Container } from '@/components/ui/container';
 import { CoachMessageCard } from '@/components/client/CoachMessageCard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,15 +7,20 @@ import { fetchClientWorkoutHistory } from '@/services/client-workout-history-ser
 import { format, isThisWeek, startOfWeek, endOfWeek } from 'date-fns';
 import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
 import { getWeeklyAssignedWorkoutsCount, countCompletedWorkoutsForWeek } from '@/services/workout-history-service';
-import { WorkoutProgressCard } from '@/components/client/WorkoutProgressCard';
 import { fetchClientProfile } from '@/services/client-service';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
+import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
+import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { WorkoutHistoryItem } from '@/types/workout';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedWorkouts, setSelectedWorkouts] = useState<WorkoutHistoryItem[]>([]);
   
   const { data: profile, isLoading: isLoadingProfile, error: profileError } = useQuery({
     queryKey: ['client-profile', user?.id],
@@ -155,7 +159,6 @@ const LeaderboardPage = () => {
     return lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   }, [lifeHappensDates]);
   
-  // Changed: Don't add lifeHappensThisWeek to total count
   const totalCompletedCount = completedThisWeek || 0;
   
   const totalWorkouts = assignedWorkoutsCount || 5;
@@ -163,6 +166,11 @@ const LeaderboardPage = () => {
   const userDisplayName = profile?.first_name || (user?.email ? user.email.split('@')[0] : 'You');
   
   const isLoading = isLoadingProfile || isLoadingWorkouts || isLoadingCount || isLoadingCompleted;
+  
+  const handleDaySelect = (date: Date, workouts: WorkoutHistoryItem[]) => {
+    setSelectedDate(date);
+    setSelectedWorkouts(workouts || []);
+  };
   
   React.useEffect(() => {
     if (profileError) {
@@ -197,19 +205,27 @@ const LeaderboardPage = () => {
       <div className="w-full">
         {user && <CoachMessageCard userId={user.id} />}
         
-        <div className="mt-6">
-          <WorkoutProgressCard 
-            label="Your Workouts"
-            completedDates={completedDates}
-            lifeHappensDates={lifeHappensDates}
-            count={totalCompletedCount}
-            total={totalWorkouts}
-            workoutTypesMap={workoutTypesMap}
-            workoutTitlesMap={workoutTitlesMap}
-            userName={userDisplayName}
-            isCurrentUser={true}
-          />
-        </div>
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-center">Monthly Workout Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MonthlyCalendarView 
+              workouts={clientWorkouts || []}
+              onDaySelect={handleDaySelect}
+              workoutTypesMap={workoutTypesMap}
+              showWorkoutTooltips={true}
+              workoutTitlesMap={workoutTitlesMap}
+            />
+            
+            <div className="mt-8">
+              <WorkoutDayDetails
+                date={selectedDate}
+                workouts={selectedWorkouts}
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </Container>
   );

@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { WeekProgressBar } from './WeekProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,6 +52,7 @@ export const WeekProgressSection = ({
     queryFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
       try {
+        // Update to use the function with optional parameters
         const count = await getWeeklyAssignedWorkoutsCount(user.id);
         return count;
       } catch (error) {

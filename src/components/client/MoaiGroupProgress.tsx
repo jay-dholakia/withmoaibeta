@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,6 +39,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
     queryFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
       try {
+        // Update to use the function with optional parameters
         const count = await getWeeklyAssignedWorkoutsCount(user.id);
         return count;
       } catch (error) {

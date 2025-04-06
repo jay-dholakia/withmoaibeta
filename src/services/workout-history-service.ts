@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCurrentProgram } from "./program-service";
 import { startOfWeek, endOfWeek, format, addDays } from "date-fns";
@@ -73,10 +74,12 @@ export const countCompletedWorkoutsForWeek = async (
   try {
     console.log(`Counting completed workouts for user ${userId} for week starting ${weekStartDate.toISOString()}`);
     
+    // First, count regular workout completions
     const { count: completedWorkoutsCount, error: countError } = await supabase
       .from('workout_completions')
       .select('*', { count: 'exact', head: false }) // Added head:false to prevent deep recursion
       .eq('user_id', userId)
+      .eq('rest_day', false) // Only regular workouts, not rest days
       .gte('completed_at', weekStartDate.toISOString())
       .lt('completed_at', addDays(weekStartDate, 7).toISOString());
       
@@ -89,13 +92,14 @@ export const countCompletedWorkoutsForWeek = async (
       return completedWorkoutsCount || 0;
     }
     
-    // Count rest days in the same week
+    // Count rest days separately (but they're also in workout_completions table)
     const { count: restDaysCount, error: restDaysError } = await supabase
-      .from('rest_days')
+      .from('workout_completions')
       .select('*', { count: 'exact', head: false }) // Added head:false to prevent deep recursion
       .eq('user_id', userId)
-      .gte('date', weekStartDate.toISOString())
-      .lt('date', addDays(weekStartDate, 7).toISOString());
+      .eq('rest_day', true) // Only rest days
+      .gte('completed_at', weekStartDate.toISOString())
+      .lt('completed_at', addDays(weekStartDate, 7).toISOString());
       
     if (restDaysError) {
       console.error("Error counting rest days:", restDaysError);

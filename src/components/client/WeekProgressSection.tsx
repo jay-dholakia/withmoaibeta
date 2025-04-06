@@ -34,6 +34,9 @@ export const WeekProgressSection = ({
   const [typesMap, setTypesMap] = useState<Record<string, WorkoutType>>(workoutTypesMap);
   const [titlesMap, setTitlesMap] = useState<Record<string, string>>({});
   
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  console.log(`User timezone in WeekProgressSection: ${userTimeZone}`);
+  
   const { data: clientWorkouts, isLoading: isLoadingWorkouts } = useQuery({
     queryKey: ['client-workouts-week-progress', user?.id],
     queryFn: async () => {
@@ -77,6 +80,7 @@ export const WeekProgressSection = ({
               : workout.completed_at;
               
             const dateKey = format(completionDate, 'yyyy-MM-dd');
+            console.log(`Processing workout for date: ${dateKey} in timezone ${userTimeZone}`);
             
             if (workout.life_happens_pass || workout.rest_day) {
               newLifeHappensDates.push(completionDate);

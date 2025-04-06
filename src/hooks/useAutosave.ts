@@ -30,6 +30,8 @@ export function useAutosave<T>({
         setIsSaving(true);
         setSaveStatus('saving');
         
+        // Get user's timezone for error reporting
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const success = await onSave(dataToSave);
         
         if (success) {
@@ -39,6 +41,8 @@ export function useAutosave<T>({
         } else {
           console.warn('Autosave failed: onSave returned false', {
             timestamp: new Date().toISOString(),
+            localTime: new Date().toString(),
+            timezone: userTimeZone,
             data: typeof dataToSave === 'object' ? 
               { ...dataToSave, size: JSON.stringify(dataToSave).length } : 
               dataToSave
@@ -47,9 +51,12 @@ export function useAutosave<T>({
           errorCountRef.current += 1;
         }
       } catch (error) {
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         console.error('Error during autosave:', {
           error,
           timestamp: new Date().toISOString(),
+          localTime: new Date().toString(),
+          timezone: userTimeZone,
           data: typeof dataToSave === 'object' ? 
             { dataSize: JSON.stringify(dataToSave).length } : 
             'non-object data'

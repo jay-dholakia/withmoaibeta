@@ -7,6 +7,7 @@ import { User, Loader2, FileX, CalendarDays } from 'lucide-react';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { format, isFuture, isValid, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { WorkoutType, WorkoutTypeIcon } from '@/components/client/WorkoutTypeIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,9 @@ const WorkoutHistoryTab = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedWorkouts, setSelectedWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  console.log(`User timezone in WorkoutHistoryTab: ${userTimeZone}`);
   
   const refreshData = useCallback(() => {
     setRefreshKey(prev => prev + 1);
@@ -62,7 +66,7 @@ const WorkoutHistoryTab = () => {
     }
     
     try {
-      console.log(`Selected date: ${format(date, 'yyyy-MM-dd')}`);
+      console.log(`Selected date: ${format(date, 'yyyy-MM-dd')} in timezone ${userTimeZone}`);
       console.log(`Found ${workouts.length} workouts for this date`);
       
       workouts.forEach((workout, i) => {
@@ -235,13 +239,15 @@ const WorkoutHistoryTab = () => {
     }
   }, [clientWorkouts]);
   
-  // Get current week workouts
   const currentWeekWorkouts = React.useMemo(() => {
     if (!clientWorkouts || clientWorkouts.length === 0) return [];
     
     const today = new Date();
-    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
-    const weekEnd = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
+    const weekStartsOn = 1; // Monday
+    const weekStart = startOfWeek(today, { weekStartsOn });
+    const weekEnd = endOfWeek(today, { weekStartsOn });
+    
+    console.log(`Week boundaries: ${format(weekStart, 'yyyy-MM-dd')} to ${format(weekEnd, 'yyyy-MM-dd')} in ${userTimeZone}`);
     
     return clientWorkouts.filter(workout => {
       if (!workout.completed_at) return false;
@@ -265,7 +271,7 @@ const WorkoutHistoryTab = () => {
       const titleB = b.title || b.workout?.title || '';
       return titleA.localeCompare(titleB);
     });
-  }, [clientWorkouts]);
+  }, [clientWorkouts, userTimeZone]);
   
   if (isLoading) {
     return (

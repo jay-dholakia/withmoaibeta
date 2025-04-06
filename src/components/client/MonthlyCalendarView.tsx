@@ -19,6 +19,9 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
   const [isLegendExpanded, setIsLegendExpanded] = useState(true);
+  
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  console.log(`User timezone: ${userTimeZone}`);
 
   const prevMonth = () => {
     setCurrentMonth(prevDate => {
@@ -37,7 +40,8 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
   };
 
   const getWorkoutsForDay = (day: Date): WorkoutHistoryItem[] => {
-    console.log(`Getting workouts for: ${format(day, 'yyyy-MM-dd')}`);
+    const dayStr = format(day, 'yyyy-MM-dd');
+    console.log(`Getting workouts for: ${dayStr} in timezone ${userTimeZone}`);
     
     if (!workouts || workouts.length === 0) {
       console.log('No workouts data available');
@@ -69,7 +73,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       }
     });
     
-    console.log(`Found ${filteredWorkouts.length} workouts for ${format(day, 'yyyy-MM-dd')}`);
+    console.log(`Found ${filteredWorkouts.length} workouts for ${dayStr}`);
     return filteredWorkouts;
   };
 

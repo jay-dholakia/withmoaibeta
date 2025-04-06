@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { WorkoutType, WorkoutTypeIcon } from './WorkoutTypeIcon';
 import { format } from 'date-fns';
@@ -38,15 +37,48 @@ export const WorkoutProgressCard = ({
   const displayTotal = total <= 0 ? 6 : total;
   const [isOpen, setIsOpen] = useState(false);
   
-  const weekDays = [
-    { shortName: 'M', fullName: 'Monday' },
-    { shortName: 'T', fullName: 'Tuesday' },
-    { shortName: 'W', fullName: 'Wednesday' },
-    { shortName: 'T', fullName: 'Thursday' },
-    { shortName: 'F', fullName: 'Friday' },
-    { shortName: 'S', fullName: 'Saturday' },
-    { shortName: 'S', fullName: 'Sunday' }
-  ];
+  // Get user's timezone for logging
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  console.log(`User timezone in WorkoutProgressCard: ${userTimeZone}`);
+  
+  // Calculate today based on user's local time
+  const [today] = useState(new Date());
+  
+  // Find the start of the current week (Monday)
+  const [weekStart] = useState(() => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday, etc.
+    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust to make Monday the first day
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - diff);
+    monday.setHours(0, 0, 0, 0);
+    
+    // Log for debugging
+    console.log(`Week starts on: ${monday.toLocaleString()} in timezone ${userTimeZone}`);
+    return monday;
+  });
+  
+  // Calculate the days of the current week
+  const [weekDays] = useState(() => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + i);
+      days.push({
+        date: day,
+        shortName: ['M', 'T', 'W', 'T', 'F', 'S', 'S'][i],
+        fullName: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][i]
+      });
+    }
+    return days;
+  });
+  
+  // Log week boundaries for debugging
+  useEffect(() => {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    console.log(`Week boundaries in WorkoutProgressCard: ${format(weekStart, 'yyyy-MM-dd')} to ${format(weekEnd, 'yyyy-MM-dd')} (${userTimeZone})`);
+  }, [weekStart, userTimeZone]);
   
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
@@ -83,12 +115,7 @@ export const WorkoutProgressCard = ({
           
           <div className="flex justify-between items-center mt-4 px-1">
             {weekDays.map((day, index) => {
-              const today = new Date();
-              const weekStart = new Date(today);
-              weekStart.setDate(today.getDate() - today.getDay() + 1); // Start from Monday
-              
-              const currentDay = new Date(weekStart);
-              currentDay.setDate(weekStart.getDate() + index);
+              const currentDay = day.date;
               
               // Count how many workouts were completed on this day
               const workoutsCompletedToday = completedDates.filter(date => 
@@ -159,7 +186,7 @@ export const WorkoutProgressCard = ({
             })}
           </div>
           
-          {/* Move the Log Workout button here, below the weekdays view */}
+          {/* Keep existing Log Workout button */}
           {isCurrentUser && (
             <div className="mt-4 text-center">
               <Button 
@@ -185,12 +212,7 @@ export const WorkoutProgressCard = ({
           
           <div className="space-y-2">
             {weekDays.map((day, index) => {
-              const today = new Date();
-              const weekStart = new Date(today);
-              weekStart.setDate(today.getDate() - today.getDay() + 1); // Start from Monday
-              
-              const currentDay = new Date(weekStart);
-              currentDay.setDate(weekStart.getDate() + index);
+              const currentDay = day.date;
               
               const dateStr = format(currentDay, 'yyyy-MM-dd');
               

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -126,13 +125,11 @@ export const saveWorkoutDraft = async (
  * @param workoutId The workout ID
  * @param maxRetries Maximum number of retries (default: 5)
  * @param retryInterval Interval between retries in ms (default: 300)
- * @param getUser Optional function to get the authenticated user (for testing/mocking)
  */
 export const getWorkoutDraft = async (
   workoutId: string | null,
   maxRetries = 5,
-  retryInterval = 300,
-  getUser = async () => await supabase.auth.getUser()
+  retryInterval = 300
 ): Promise<any | null> => {
   // Early return if no workoutId
   if (!workoutId) {
@@ -144,7 +141,8 @@ export const getWorkoutDraft = async (
   
   while (retries <= maxRetries) {
     try {
-      const { data: { user } } = await getUser();
+      // Use fresh user session on each retry attempt to handle auth state changes
+      const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         console.log(`No authenticated user found, retry ${retries + 1}/${maxRetries + 1}`);

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
 import ActiveWorkout from '@/components/client/ActiveWorkout';
@@ -24,11 +25,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const WorkoutsPage = () => {
   const [showRestDayDialog, setShowRestDayDialog] = useState(false);
   const [restDate, setRestDate] = useState<Date>(new Date());
   const location = useLocation();
+  const { user } = useAuth();
+  
   console.log("WorkoutsPage component rendering");
   
   const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
@@ -46,6 +50,12 @@ const WorkoutsPage = () => {
       setShowRestDayDialog(false);
     });
   };
+
+  // Force re-render of child components when user auth changes
+  useEffect(() => {
+    console.log("Auth state changed in WorkoutsPage, user:", user?.id);
+    // No action needed - the effect dependency will trigger re-renders of children
+  }, [user]);
 
   return (
     <div className="w-full">
@@ -88,11 +98,11 @@ const WorkoutsPage = () => {
             </TabsContent>
           </Tabs>
         } />
-        <Route path="active/:workoutCompletionId" element={<ActiveWorkout />} />
-        <Route path="complete/:workoutCompletionId" element={<WorkoutComplete />} />
+        <Route path="active/:workoutCompletionId" element={<ActiveWorkout key={user?.id} />} />
+        <Route path="complete/:workoutCompletionId" element={<WorkoutComplete key={user?.id} />} />
         <Route path="create" element={<CreateCustomWorkout />} />
         <Route path="custom/:workoutId" element={<CustomWorkoutDetail />} />
-        <Route path="one-off" element={<EnterOneOffWorkout />} />
+        <Route path="one-off" element={<EnterOneOffWorkout key={user?.id} />} />
         <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
       
@@ -138,23 +148,6 @@ const WorkoutsPage = () => {
                   />
                 </PopoverContent>
               </Popover>
-            </div>
-            
-            <div className="rounded-lg bg-green-50 p-4 text-sm">
-              <h4 className="font-semibold text-green-700 mb-2">The Power of Rest & Recovery</h4>
-              <p className="text-green-700 mb-3">
-                Rest days are just as important as workout days in your fitness journey! They allow your muscles to repair and grow stronger, prevent burnout, and reduce injury risk.
-              </p>
-              <h4 className="font-semibold text-green-700 mb-2">Rest Day Recommendations:</h4>
-              <ul className="list-disc pl-5 text-green-700 space-y-1">
-                <li>Gentle stretching or yoga</li>
-                <li>Short, relaxing walk</li>
-                <li>Meditation or deep breathing exercises</li>
-                <li>Adequate hydration</li>
-                <li>Quality sleep (7-9 hours)</li>
-                <li>Epsom salt bath for muscle relaxation</li>
-                <li>Foam rolling or self-massage</li>
-              </ul>
             </div>
           </div>
           

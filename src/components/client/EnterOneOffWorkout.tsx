@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -53,11 +52,10 @@ const EnterOneOffWorkout = () => {
   const [draftLoaded, setDraftLoaded] = useState(false);
   
   const { user } = useAuth();
+  const [authStateChanged, setAuthStateChanged] = useState(0); // Counter for auth changes
 
-  // Define a constant ID for one-off workout drafts
   const ONE_OFF_DRAFT_ID = 'one-off-workout';
 
-  // Create data object for autosave
   const draftData = {
     title,
     description,
@@ -69,7 +67,6 @@ const EnterOneOffWorkout = () => {
     location
   };
 
-  // Use autosave hook to save draft data
   const { saveStatus } = useAutosave({
     data: draftData,
     onSave: async (data) => {
@@ -81,7 +78,14 @@ const EnterOneOffWorkout = () => {
     }
   });
 
-  // Load draft data when component mounts and user is authenticated
+  useEffect(() => {
+    if (user) {
+      console.log("Auth state detected in EnterOneOffWorkout, user:", user.id);
+      setAuthStateChanged(prev => prev + 1);
+      setDraftLoaded(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     let mounted = true;
     let loadAttemptTimeout: NodeJS.Timeout | null = null;
@@ -91,6 +95,10 @@ const EnterOneOffWorkout = () => {
       
       try {
         console.log("Loading draft data for one-off workout");
+        console.log(`Auth state changes detected: ${authStateChanged}`);
+        
+        const { getWorkoutDraft } = await import('@/services/workout-draft-service');
+        
         const draft = await getWorkoutDraft(ONE_OFF_DRAFT_ID, 5, 1000);
         
         if (!mounted) return;
@@ -120,11 +128,9 @@ const EnterOneOffWorkout = () => {
       }
     };
     
-    // Only attempt to load draft if user is authenticated
     if (user && !draftLoaded) {
       loadDraftData();
     } else if (!user && !draftLoaded) {
-      // If user is not authenticated yet, wait a bit and retry
       loadAttemptTimeout = setTimeout(() => {
         if (mounted && !draftLoaded) {
           console.log("Retrying draft load after timeout");
@@ -139,9 +145,8 @@ const EnterOneOffWorkout = () => {
         clearTimeout(loadAttemptTimeout);
       }
     };
-  }, [draftLoaded, user]);
+  }, [draftLoaded, user, authStateChanged]);
 
-  // Function to add workout notes to journal
   const addToJournal = async (workoutTitle: string, notes: string, journalDate: Date) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -163,7 +168,6 @@ const EnterOneOffWorkout = () => {
       console.log('Workout notes added to journal successfully');
     } catch (error) {
       console.error('Error adding workout notes to journal:', error);
-      // We'll continue with the workout submission even if journal entry fails
     }
   };
 
@@ -192,14 +196,12 @@ const EnterOneOffWorkout = () => {
         workoutData.location = location || undefined;
       }
       
-      // If there are notes, add them to the journal
       if (notes.trim()) {
         await addToJournal(title, notes, date || new Date());
       }
       
       await createOneOffWorkoutCompletion(workoutData);
       
-      // Delete the draft on successful submission
       await deleteWorkoutDraft(ONE_OFF_DRAFT_ID);
       
       toast.success('Workout logged successfully!');
@@ -245,7 +247,6 @@ const EnterOneOffWorkout = () => {
             Record a workout you've completed that wasn't in your assigned program
           </CardDescription>
           
-          {/* Autosave Status Indicator */}
           {saveStatus !== 'idle' && (
             <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
               {saveStatus === 'saving' && (

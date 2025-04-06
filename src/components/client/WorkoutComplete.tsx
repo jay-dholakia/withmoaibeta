@@ -32,8 +32,16 @@ const WorkoutComplete = () => {
   const [shareMessage, setShareMessage] = useState('');
   const [isEditingMessage, setIsEditingMessage] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [authStateChanged, setAuthStateChanged] = useState(0);
 
-  // Use autosave hook for notes and rating with improved configuration
+  useEffect(() => {
+    if (user) {
+      console.log("Auth state detected in WorkoutComplete, user:", user.id);
+      setAuthStateChanged(prev => prev + 1);
+      setDraftLoaded(false);
+    }
+  }, [user]);
+
   const { saveStatus } = useAutosave({
     data: { notes, rating },
     onSave: async (data) => {
@@ -45,17 +53,16 @@ const WorkoutComplete = () => {
         data
       );
     },
-    debounce: 1000, // quicker debounce for this use case
+    debounce: 1000,
     disabled: !workoutCompletionId || !user?.id
   });
-  
+
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['complete-workout', workoutCompletionId],
     queryFn: async () => {
       console.log("Fetching workout completion data for ID:", workoutCompletionId);
       
       try {
-        // First try to get the workout completion record directly
         const { data, error } = await supabase
           .from('workout_completions')
           .select(`
@@ -71,10 +78,10 @@ const WorkoutComplete = () => {
           `)
           .eq('id', workoutCompletionId || '')
           .maybeSingle();
-
+        
         if (error) {
           console.error("Error fetching workout completion data:", error);
-          // Continue and try other methods
+          return null;
         }
         
         if (data) {
@@ -82,8 +89,6 @@ const WorkoutComplete = () => {
           return data;
         }
         
-        // If no direct match on ID, see if it's a workout ID instead of a completion ID
-        console.log("No workout completion found, trying to fetch by workout_id and user_id");
         const { data: byWorkoutData, error: byWorkoutError } = await supabase
           .from('workout_completions')
           .select(`
@@ -109,9 +114,6 @@ const WorkoutComplete = () => {
           console.log("Found workout completion by workout_id:", byWorkoutData);
           return byWorkoutData;
         }
-        
-        // As a last resort, fetch the workout directly
-        console.log("No workout completion found, trying to fetch workout directly");
         
         const { data: workoutOnly, error: workoutError } = await supabase
           .from('workouts')
@@ -143,7 +145,6 @@ const WorkoutComplete = () => {
           };
         }
         
-        // Try standalone workouts as a last resort
         const { data: standaloneWorkout, error: standaloneError } = await supabase
           .from('standalone_workouts')
           .select(`
@@ -204,7 +205,6 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Load draft data on mount with improved reliability
   useEffect(() => {
     let mounted = true;
     let loadAttemptTimeout: NodeJS.Timeout | null = null;
@@ -215,7 +215,10 @@ const WorkoutComplete = () => {
       try {
         console.log(`Loading draft data for workout completion ${workoutCompletionId}`);
         
-        // Increase retries and interval for better reliability
+        console.log(`Auth state changes detected: ${authStateChanged}`);
+        
+        const { getWorkoutDraft } = await import('@/services/workout-draft-service');
+        
         const draft = await getWorkoutDraft(workoutCompletionId, 7, 500);
         
         if (!mounted) return;
@@ -223,7 +226,6 @@ const WorkoutComplete = () => {
         if (draft && draft.draft_data) {
           console.log("Workout completion draft data received:", draft.draft_data);
           
-          // Check each property individually and apply it if it exists
           if (draft.draft_data.notes !== undefined) {
             console.log(`Setting notes from draft: "${draft.draft_data.notes}"`);
             setNotes(draft.draft_data.notes);
@@ -253,12 +255,10 @@ const WorkoutComplete = () => {
       }
     };
     
-    // Initial load attempt
     if (user && workoutCompletionId && !draftLoaded) {
       console.log("User authenticated, loading workout completion draft data");
       loadDraftData();
     } else if (!user && workoutCompletionId && !draftLoaded) {
-      // If user is not authenticated yet, wait a bit and retry
       console.log("User not authenticated yet, scheduling retry");
       loadAttemptTimeout = setTimeout(() => {
         if (mounted && !draftLoaded) {
@@ -274,7 +274,7 @@ const WorkoutComplete = () => {
         clearTimeout(loadAttemptTimeout);
       }
     };
-  }, [workoutCompletionId, user, draftLoaded]);
+  }, [workoutCompletionId, user, draftLoaded, authStateChanged]);
 
   useEffect(() => {
     if (workoutData && !shareMessage) {
@@ -327,12 +327,10 @@ const WorkoutComplete = () => {
         await addToJournal(notes);
       }
       
-      // Check if we're dealing with an existing completion ID or a new workout ID
       let completionId = workoutData?.id || workoutCompletionId;
       let isNewCompletion = !workoutData?.id;
       
       if (isNewCompletion) {
-        // Create a new completion for this workout
         try {
           const { data: newCompletion, error } = await supabase
             .from('workout_completions')
@@ -362,7 +360,6 @@ const WorkoutComplete = () => {
           throw error;
         }
       } else {
-        // Update the existing completion
         const { error } = await supabase
           .from('workout_completions')
           .update({
@@ -382,9 +379,7 @@ const WorkoutComplete = () => {
     },
     onSuccess: (completionId) => {
       if (completionId) {
-        // Delete the draft when workout is successfully completed
         deleteWorkoutDraft(workoutCompletionId);
-        
         queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
         queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
         setShowShareDialog(true);

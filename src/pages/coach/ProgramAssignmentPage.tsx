@@ -1,27 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWorkoutProgram } from '@/services/workout-service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
-import { CalendarIcon, ArrowLeft, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { assignProgramToUser } from '@/services/workout-service';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchAllClients } from '@/services/workout-service';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command"
 import { ProgramAssignmentForm } from '@/components/coach/ProgramAssignmentForm';
 
 const ProgramAssignmentPage = () => {

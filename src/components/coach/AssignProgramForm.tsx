@@ -81,6 +81,7 @@ export const AssignProgramForm: React.FC<AssignProgramFormProps> = ({
         
         const clientsData = await fetchAllClients();
         setClients(clientsData);
+        console.log("Fetched clients with full info:", clientsData);
         
         setIsLoading(false);
       } catch (error) {

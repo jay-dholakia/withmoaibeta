@@ -128,7 +128,7 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
         setIsLoading(true);
         const clientsData = await fetchAllClients();
         setClients(clientsData as ClientInfo[]);
-        console.log('Fetched clients for form:', clientsData);
+        console.log('Fetched clients with display names:', clientsData);
         
         await loadAssignments();
         

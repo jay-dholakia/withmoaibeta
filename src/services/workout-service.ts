@@ -656,22 +656,53 @@ export const deleteWorkoutExercise = async (id: string): Promise<boolean> => {
 /**
  * Fetches all clients
  */
-export const fetchAllClients = async (): Promise<any[]> => {
+export const fetchAllClients = async () => {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(`
+        id,
+        user_type,
+        client_profiles (
+          first_name,
+          last_name
+        )
+      `)
       .eq('user_type', 'client');
-    
+
     if (error) {
-      console.error("Error fetching clients:", error);
-      return [];
+      console.error('Error fetching clients:', error);
+      throw error;
     }
-    
-    return data || [];
+
+    // Get emails for these clients
+    const userIds = data.map(client => client.id);
+    const { data: emailData, error: emailError } = await supabase.rpc('get_users_email', {
+      user_ids: userIds
+    });
+
+    if (emailError) {
+      console.error('Error fetching client emails:', emailError);
+    }
+
+    // Merge profile data with emails
+    const clientsWithEmail = data.map(client => {
+      const emailInfo = emailData?.find(e => e.id === client.id);
+      const profileData = client.client_profiles?.[0] || {};
+      
+      return {
+        id: client.id,
+        email: emailInfo?.email || 'No email',
+        user_type: client.user_type,
+        first_name: profileData?.first_name || null,
+        last_name: profileData?.last_name || null
+      };
+    });
+
+    return clientsWithEmail;
   } catch (error) {
-    console.error("Error fetching clients:", error);
-    return [];
+    console.error('Error in fetchAllClients:', error);
+    throw error;
   }
 };
 

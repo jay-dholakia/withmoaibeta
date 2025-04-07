@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -12,11 +11,14 @@ import {
   Users,
   Edit,
   Trash2,
-  LayoutTemplate
+  LayoutTemplate,
+  Dumbbell,
+  Running
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchWorkoutProgram, fetchWorkoutWeeks } from '@/services/workout-service';
+import { Badge } from '@/components/ui/badge';
 
 const WorkoutProgramDetailPage = () => {
   const { programId } = useParams<{ programId: string }>();
@@ -87,7 +89,6 @@ const WorkoutProgramDetailPage = () => {
     weeksCount: weeks?.length 
   });
 
-  // Show a helpful error message instead of a blank screen
   if (error) {
     return (
       <CoachLayout>
@@ -104,7 +105,6 @@ const WorkoutProgramDetailPage = () => {
     );
   }
 
-  // Show a loading indicator instead of a blank screen
   if (isLoading) {
     return (
       <CoachLayout>
@@ -120,7 +120,6 @@ const WorkoutProgramDetailPage = () => {
     );
   }
 
-  // Show a not found message if program is null or undefined
   if (!program) {
     return (
       <CoachLayout>
@@ -139,6 +138,8 @@ const WorkoutProgramDetailPage = () => {
     );
   }
 
+  const ProgramTypeIcon = program.program_type === 'run' ? Running : Dumbbell;
+
   return (
     <CoachLayout>
       <div className="container mx-auto px-4 py-6">
@@ -154,7 +155,13 @@ const WorkoutProgramDetailPage = () => {
         
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
           <div>
-            <h1 className="text-2xl font-bold">{program.title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">{program.title}</h1>
+              <Badge variant="outline" className="flex items-center gap-1">
+                <ProgramTypeIcon className="h-3.5 w-3.5" />
+                <span>Moai {program.program_type === 'run' ? 'Run' : 'Strength'}</span>
+              </Badge>
+            </div>
             {program.description && (
               <p className="text-muted-foreground mt-1">{program.description}</p>
             )}

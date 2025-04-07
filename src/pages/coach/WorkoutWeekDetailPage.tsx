@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, Plus, Clock, Calendar, Dumbbell } from 'lucide-react';
+import { ChevronLeft, Plus, Clock, Calendar, Dumbbell, Running } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
   fetchWorkoutWeek,
@@ -12,6 +12,7 @@ import {
   fetchWorkoutProgram 
 } from '@/services/workout-service';
 import { useQuery } from '@tanstack/react-query';
+import { Badge } from '@/components/ui/badge';
 
 const WorkoutWeekDetailPage = () => {
   const { weekId } = useParams<{ weekId: string }>();
@@ -109,6 +110,8 @@ const WorkoutWeekDetailPage = () => {
   };
 
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const isProgramTypeRun = programData?.program_type === 'run';
+  const ProgramTypeIcon = isProgramTypeRun ? Running : Dumbbell;
 
   return (
     <CoachLayout>
@@ -128,9 +131,17 @@ const WorkoutWeekDetailPage = () => {
             
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold">
-                  {weekData.title || `Week ${weekData.week_number}`}
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold">
+                    {weekData.title || `Week ${weekData.week_number}`}
+                  </h1>
+                  {programData && (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <ProgramTypeIcon className="h-3.5 w-3.5" />
+                      <span>Moai {isProgramTypeRun ? 'Run' : 'Strength'}</span>
+                    </Badge>
+                  )}
+                </div>
                 {weekData.description && (
                   <p className="text-muted-foreground mt-1">{weekData.description}</p>
                 )}
@@ -158,6 +169,85 @@ const WorkoutWeekDetailPage = () => {
                 <span className="font-medium">Week:</span> 
                 <span>{weekData.week_number} of {programData.weeks}</span>
               </p>
+            </div>
+          )}
+          
+          {/* Weekly metrics (program-type specific) */}
+          {programData && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
+              {isProgramTypeRun ? (
+                <>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Running className="h-4 w-4" />
+                        Target Miles
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">{weekData.target_miles_run || 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Target Cardio Minutes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">{weekData.target_cardio_minutes || 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Dumbbell className="h-4 w-4" />
+                        Strength Workouts
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">{weekData.target_strength_workouts || 0}</p>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Dumbbell className="h-4 w-4" />
+                        Strength Workouts
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">{weekData.target_strength_workouts || 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Target Cardio Minutes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">{weekData.target_cardio_minutes || 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Mobility Workouts
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">{weekData.target_strength_mobility_workouts || 0}</p>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </div>
           )}
           

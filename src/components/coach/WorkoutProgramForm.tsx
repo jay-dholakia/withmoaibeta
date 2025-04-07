@@ -27,7 +27,10 @@ import { WorkoutProgram } from '@/types/workout';
 const formSchema = z.object({
   title: z.string().min(3, 'Program title must be at least 3 characters'),
   description: z.string().optional(),
-  weeks: z.coerce.number().min(1, 'Program must have at least 1 week').max(52, 'Program cannot exceed 52 weeks')
+  weeks: z.coerce.number().min(1, 'Program must have at least 1 week').max(52, 'Program cannot exceed 52 weeks'),
+  programType: z.enum(['strength', 'run'], {
+    required_error: "Please select a program type",
+  })
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -52,7 +55,8 @@ export const WorkoutProgramForm: React.FC<WorkoutProgramFormProps> = ({
     defaultValues: {
       title: initialData?.title || '',
       description: initialData?.description || '',
-      weeks: initialData?.weeks || 4
+      weeks: initialData?.weeks || 4,
+      programType: (initialData?.program_type as 'strength' | 'run') || 'strength'
     }
   });
 
@@ -86,6 +90,36 @@ export const WorkoutProgramForm: React.FC<WorkoutProgramFormProps> = ({
                   value={field.value || ''}
                 />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="programType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Program Type</FormLabel>
+              <FormDescription>
+                Select the type of program which will determine metrics and features
+              </FormDescription>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                value={field.value}
+                disabled={mode === 'edit'} // Disable changing program type in edit mode
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a program type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="strength">Moai Strength</SelectItem>
+                  <SelectItem value="run">Moai Run</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

@@ -16,6 +16,7 @@ export interface WorkoutProgram {
   coach_id: string;
   created_at: string;
   updated_at: string;
+  program_type: string; // Added explicit program_type field
   // Add a field to store the actual weeks data when needed
   weekData?: WorkoutWeek[];
 }
@@ -30,6 +31,7 @@ export interface WorkoutWeek {
   program?: {
     title: string;
     id: string;
+    program_type?: string; // Added to match parent program type
   } | null;
   workouts?: Workout[];
 }
@@ -70,6 +72,7 @@ export interface WorkoutBasic {
     program?: {
       id: string;
       title: string;
+      program_type?: string; // Added to match program type
     }
   } | null;
   workout_exercises?: WorkoutExercise[];
@@ -107,7 +110,6 @@ export interface ProgramAssignment {
   created_at: string;
 }
 
-// Add WorkoutSetCompletion interface
 export interface WorkoutSetCompletion {
   id: string;
   workout_completion_id: string;
@@ -134,9 +136,7 @@ export interface WorkoutHistoryItem {
   workout?: WorkoutBasic | null;
   life_happens_pass?: boolean;
   rest_day?: boolean;
-  // Add the workout_set_completions property
   workout_set_completions?: WorkoutSetCompletion[];
-  // Add fields for custom workouts
   custom_workout_id?: string;
   title?: string;
   description?: string;
@@ -156,7 +156,6 @@ export const DAYS_OF_WEEK = [
   'Saturday'
 ];
 
-// Standardized workout types
 export const STANDARD_WORKOUT_TYPES = [
   'strength',
   'bodyweight',
@@ -173,6 +172,9 @@ export const STANDARD_WORKOUT_TYPES = [
 ] as const;
 
 export type StandardWorkoutType = typeof STANDARD_WORKOUT_TYPES[number];
+
+export const PROGRAM_TYPES = ['strength', 'run'] as const;
+export type ProgramType = typeof PROGRAM_TYPES[number];
 
 export interface ClientProfile {
   id?: string;

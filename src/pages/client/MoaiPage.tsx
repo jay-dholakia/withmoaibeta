@@ -1,36 +1,42 @@
+
 import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mountain, Users, UserRound, Music } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
+import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
-import { 
-  fetchUserGroups, 
-  diagnoseGroupAccess, 
-  verifyUserGroupMembership
-} from '@/services/moai-service';
-import { fetchCurrentProgram } from '@/services/program-service';
-import { getCurrentWeekNumber, formatWeekDateRange } from '@/services/assigned-workouts-service';
+import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
+import { fetchCurrentProgram } from '@/services/program-service';
 
-interface Group {
-  id: string;
-  name: string;
-  description: string | null;
-  spotify_playlist_url?: string | null;
-}
-
-const MoaiPage = () => {
+export default function MoaiPage() {
+  const { groupId } = useParams<{ groupId: string }>();
   const { user } = useAuth();
-  const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [currentWeekNumber, setCurrentWeekNumber] = useState<number>(1);
   
-  const { data: currentProgram } = useQuery({
+  // Fetch group data
+  const { data: groupData, isLoading: isLoadingGroup } = useQuery({
+    queryKey: ['moai-group', groupId],
+    queryFn: async () => {
+      if (!groupId) return null;
+      const { data, error } = await supabase
+        .from('groups')
+        .select('*, group_coaches(*)')
+        .eq('id', groupId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!groupId,
+  });
+  
+  // Fetch current program
+  const { data: currentProgram, isLoading: isLoadingProgram } = useQuery({
     queryKey: ['current-program', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -39,281 +45,58 @@ const MoaiPage = () => {
     enabled: !!user?.id,
   });
   
-  const { data: userGroups, isLoading: isLoadingGroups, refetch } = useQuery({
-    queryKey: ['client-groups', user?.id],
-    queryFn: async () => {
-      if (!user?.id) {
-        console.log('No user ID available for group fetch');
-        return [];
-      }
-      
-      console.log('Fetching groups for user ID:', user.id);
-      try {
-        const { data: membershipData, error: membershipError } = await supabase
-          .from('group_members')
-          .select('group_id')
-          .eq('user_id', user.id);
-          
-        if (membershipError) {
-          console.error('Direct membership check error:', membershipError);
-        } else {
-          console.log('Direct membership check result:', membershipData);
-        }
-        
-        const groups = await fetchUserGroups(user.id);
-        return groups as Group[] || []; // Cast to Group[] to ensure TypeScript knows the shape
-      } catch (err) {
-        console.error('Error fetching groups:', err);
-        setError('Failed to fetch your groups. Please try again later.');
-        return [];
-      }
-    },
-    enabled: !!user?.id,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    staleTime: 0, 
-    gcTime: 10000,
-  });
-  
+  // Set current week number based on program start date
   useEffect(() => {
-    let isMounted = true;
-    
-    const checkUserAndGroups = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const userExists = await verifyUserExistsInAuth(user.id);
-        if (!userExists) {
-          console.log('User verification failed, skipping group access diagnosis');
-          return;
-        }
-        
-        const result = await diagnoseGroupAccess(user.id);
-        console.log('Group access diagnosis result:', result);
-        
-        if (isMounted) {
-          setDiagnosticDetails(result);
-          
-          if (result && result.hasGroupMemberships && 
-              (!userGroups || userGroups.length === 0)) {
-            refetch();
-          }
-        }
-      } catch (error) {
-        console.error('Error during group access diagnosis:', error);
-        if (isMounted) {
-          setError('There was an error checking your group membership. Please try again later.');
-        }
-      }
-    };
-    
-    checkUserAndGroups();
-    
-    // Cleanup function to prevent state updates on unmounted component
-    return () => {
-      isMounted = false;
-    };
-  }, [user?.id, refetch, userGroups]);
-  
-  const verifyUserExistsInAuth = async (userId: string): Promise<boolean> => {
-    if (!userId) return false;
-    
-    try {
-      console.log('Verifying user existence in auth for ID:', userId);
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, user_type')
-        .eq('id', userId)
-        .maybeSingle();
-        
-      if (profileError) {
-        console.error('PROFILE VERIFICATION ERROR:', profileError);
-        return false;
-      }
-      
-      if (!profileData) {
-        console.log('No profile found for user:', userId);
-        return false;
-      }
-      
-      console.log('User profile exists:', profileData);
-      
-      try {
-        const { count, error: countError } = await supabase
-          .from('group_members')
-          .select('*', { count: 'exact', head: true });
-          
-        if (countError) {
-          console.error('ERROR counting group_members:', countError);
-        } else {
-          console.log('TOTAL group_members in database:', count);
-        }
-      } catch (countErr) {
-        console.error('Error counting group members:', countErr);
-      }
-      
-      return true;
-    } catch (err) {
-      console.error('Error verifying user:', err);
-      return false;
+    if (currentProgram?.start_date) {
+      const startDate = new Date(currentProgram.start_date);
+      const weekNumber = getCurrentWeekNumber(startDate);
+      setCurrentWeekNumber(weekNumber);
     }
-  };
+  }, [currentProgram]);
   
-  const getProgramInfo = () => {
-    if (!currentProgram || !currentProgram.start_date) {
-      return null;
-    }
-    
-    const startDate = new Date(currentProgram.start_date);
-    const currentWeek = getCurrentWeekNumber(startDate);
-    const weekDateRange = formatWeekDateRange(startDate, currentWeek);
-    
+  if (isLoadingGroup || isLoadingProgram) {
     return (
-      <div className="text-center mb-4 text-muted-foreground text-sm">
-        <p>
-          <span className="font-medium">{currentProgram.program?.title}</span>
-          {" • "}
-          Week {currentWeek}: {weekDateRange}
-        </p>
-      </div>
-    );
-  };
-  
-  if (isLoadingGroups) {
-    return (
-      <div className="space-y-6">
-        <p className="text-muted-foreground mb-4">
-          Your fitness community and accountability group
-        </p>
-        
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-client" />
-        </div>
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-client" />
       </div>
     );
   }
-  
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <p className="text-muted-foreground mb-4">
-          Your fitness community and accountability group
-        </p>
-        
-        <Card className="text-center py-12">
-          <CardContent>
-            <Mountain className="mx-auto h-12 w-12 text-red-400 mb-4" />
-            <h2 className="text-xl font-medium mb-2">Something Went Wrong</h2>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <button 
-              onClick={() => refetch()} 
-              className="px-4 py-2 bg-client text-white rounded-md hover:bg-client/90"
-            >
-              Try Again
-            </button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
-  if (!userGroups || userGroups.length === 0) {
-    return (
-      <div className="space-y-6">
-        <p className="text-muted-foreground mb-4">
-          Your fitness community and accountability group
-        </p>
-        
-        <Card className="text-center py-12">
-          <CardContent>
-            <Mountain className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h2 className="text-xl font-medium mb-2">Moai Assignment Pending</h2>
-            <p className="text-muted-foreground">
-              You'll be assigned to a Moai group shortly. Moai groups help you stay motivated 
-              with others on the same fitness journey.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
-  const group: Group = userGroups?.[0] || { id: '', name: 'Loading...', description: '', spotify_playlist_url: null };
   
   return (
     <div className="space-y-6">
-      <Card className="bg-client/5 relative">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-2xl text-center font-semibold text-black">
-            {group.name}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-center text-sm text-muted-foreground pt-0">
-          {group.description && <p>{group.description}</p>}
-          
-          {group.spotify_playlist_url && (
-            <div className="mt-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-1 text-green-600 border-green-600 hover:bg-green-50"
-                onClick={() => window.open(group.spotify_playlist_url, '_blank')}
-              >
-                <Music className="h-4 w-4" />
-                Team Playlist
-              </Button>
-            </div>
-          )}
+      {currentProgram?.program && (
+        <Card className="border-none shadow-none bg-slate-50">
+          <CardHeader className="text-center py-2 px-4">
+            <CardTitle className="text-lg font-medium">
+              {currentProgram.program.title} • Week {currentWeekNumber || 1}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      )}
+      
+      <Card>
+        <CardContent className="p-0">
+          <Tabs defaultValue="progress" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="progress">Progress</TabsTrigger>
+              <TabsTrigger value="members">Members</TabsTrigger>
+              <TabsTrigger value="coach">Coach</TabsTrigger>
+            </TabsList>
+            <TabsContent value="progress" className="pt-4">
+              <MoaiGroupProgress 
+                groupId={groupId || ''} 
+                currentProgram={currentProgram}
+              />
+            </TabsContent>
+            <TabsContent value="members">
+              <MoaiMembersTab groupId={groupId || ''} />
+            </TabsContent>
+            <TabsContent value="coach">
+              <MoaiCoachTab groupId={groupId || ''} />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
-      
-      {getProgramInfo()}
-      
-      <Tabs defaultValue="progress" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="progress" className="flex items-center justify-center">
-            <Mountain className="h-5 w-5 mr-2" />
-            Progress
-          </TabsTrigger>
-          <TabsTrigger value="members" className="flex items-center justify-center">
-            <Users className="h-5 w-5 mr-2" />
-            Members
-          </TabsTrigger>
-          <TabsTrigger value="coach" className="flex items-center justify-center">
-            <UserRound className="h-5 w-5 mr-2" />
-            Coach
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="progress">
-          {group.id ? (
-            <MoaiGroupProgress 
-              groupId={group.id}
-              currentProgram={currentProgram}
-            />
-          ) : (
-            <div className="text-center p-4">Loading group progress...</div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="members">
-          {group.id ? (
-            <MoaiMembersTab groupId={group.id} />
-          ) : (
-            <div className="text-center p-4">Loading members...</div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="coach">
-          {group.id ? (
-            <MoaiCoachTab groupId={group.id} />
-          ) : (
-            <div className="text-center p-4">Loading coach information...</div>
-          )}
-        </TabsContent>
-      </Tabs>
     </div>
   );
-};
-
-export default MoaiPage;
+}

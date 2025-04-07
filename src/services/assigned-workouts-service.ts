@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistoryItem } from "@/types/workout";
 import { format, addDays } from "date-fns";
@@ -33,12 +32,11 @@ export const getWeekDateRange = (programStartDate: Date, weekNumber: number): { 
 };
 
 /**
- * Formats a week's date range for display
- * Uses local time
+ * Formats a week's date range for display - now returns empty string
  */
 export const formatWeekDateRange = (programStartDate: Date, weekNumber: number): string => {
-  const { start, end } = getWeekDateRange(programStartDate, weekNumber);
-  return `${format(start, 'MMM d')} – ${format(end, 'MMM d')}`;
+  // Return empty string to hide the date range display
+  return '';
 };
 
 /**

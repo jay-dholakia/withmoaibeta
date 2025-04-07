@@ -75,7 +75,7 @@ export function WorkoutProgressCard({
   // Calculate progress percentage safely
   const progressPercentage = total > 0 ? Math.min(Math.round((count / total) * 100), 100) : 0;
   
-  // Get the current week date range if available
+  // Get the current week date range if available - removed from display
   let weekRangeDisplay = '';
   if (currentWeek && currentProgram?.start_date) {
     const startDate = new Date(currentProgram.start_date);
@@ -90,9 +90,10 @@ export function WorkoutProgressCard({
             <span className="text-base font-medium">
               {label ? label : userName}
             </span>
-            {currentWeek && weekRangeDisplay && (
+            {/* Week date range removed from display */}
+            {currentWeek && (
               <span className="text-xs text-muted-foreground">
-                Week {currentWeek}: {weekRangeDisplay}
+                Week {currentWeek}
               </span>
             )}
           </div>

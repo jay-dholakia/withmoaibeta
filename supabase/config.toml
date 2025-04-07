@@ -10,3 +10,5 @@ verify_jwt = true
 [functions.get_weekly_progress]
 verify_jwt = true
 
+[functions.update_weekly_metrics]
+verify_jwt = true

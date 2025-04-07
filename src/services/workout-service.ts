@@ -205,7 +205,7 @@ export const updateWorkoutWeek = async (
 ): Promise<any> => {
   try {
     const { data: updatedWeek, error } = await supabase
-      .from('program_weeks')
+      .from('workout_weeks')
       .update(data)
       .eq('id', weekId)
       .select()

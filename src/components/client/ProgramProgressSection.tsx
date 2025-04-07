@@ -98,7 +98,7 @@ export const ProgramProgressSection: React.FC = () => {
     );
   }
 
-  const isRunProgram = weeklyProgress?.program_type === 'moai_run';
+  // Always display miles run, regardless of program type
   
   return (
     <div className="space-y-6">
@@ -112,21 +112,20 @@ export const ProgramProgressSection: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isRunProgram && (
-            <ProgressBar 
-              label="Miles Run" 
-              value={weeklyProgress?.metrics.miles_run.actual || 0} 
-              max={weeklyProgress?.metrics.miles_run.target || 0}
-              color="bg-blue-500"
-            />
-          )}
+          {/* Always display Miles Run for both Moai Run and Moai Strength programs */}
+          <ProgressBar 
+            label="Miles Run" 
+            value={weeklyProgress?.metrics.miles_run.actual || 0} 
+            max={weeklyProgress?.metrics.miles_run.target || 0}
+            color="bg-blue-500"
+          />
           
           <ProgressBar 
-            label={isRunProgram ? "Strength & Mobility Workouts" : "Strength Workouts"} 
-            value={isRunProgram 
+            label={weeklyProgress?.program_type === 'moai_run' ? "Strength & Mobility Workouts" : "Strength Workouts"} 
+            value={weeklyProgress?.program_type === 'moai_run'
               ? (weeklyProgress?.metrics.strength_mobility.actual || 0)
               : (weeklyProgress?.metrics.strength_workouts.actual || 0)} 
-            max={isRunProgram
+            max={weeklyProgress?.program_type === 'moai_run'
               ? (weeklyProgress?.metrics.strength_mobility.target || 0)
               : (weeklyProgress?.metrics.strength_workouts.target || 0)}
             color="bg-purple-500"

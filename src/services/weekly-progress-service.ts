@@ -35,6 +35,11 @@ export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProg
       throw error;
     }
 
+    // Ensure miles_run metrics are included regardless of program type
+    if (data && !data.metrics.miles_run) {
+      data.metrics.miles_run = { target: 0, actual: 0 };
+    }
+
     return data as WeeklyProgressResponse;
   } catch (error) {
     console.error("Failed to fetch weekly progress:", error);

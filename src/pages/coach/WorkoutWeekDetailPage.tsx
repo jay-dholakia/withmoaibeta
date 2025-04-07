@@ -173,6 +173,10 @@ const WorkoutWeekDetailPage = () => {
     }
   };
 
+  const navigateToWorkoutEdit = (workoutId: string) => {
+    navigate(`/coach-dashboard/workouts/${workoutId}/edit`);
+  };
+
   if (isLoading) {
     return (
       <CoachLayout>
@@ -295,6 +299,14 @@ const WorkoutWeekDetailPage = () => {
                     <TableCell>{workout.day_of_week}</TableCell>
                     <TableCell>{workout.workout_type}</TableCell>
                     <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigateToWorkoutEdit(workout.id)}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit Workout
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"

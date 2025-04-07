@@ -18,7 +18,8 @@ import StandaloneWorkoutsPage from './pages/coach/StandaloneWorkoutsPage';
 import ClientDashboard from './pages/client/ClientDashboard';
 import CoachDashboard from './pages/coach/CoachDashboard';
 import AssignProgramPage from './pages/coach/AssignProgramPage';
-import ClientProfilePage from './pages/coach/ClientProfilePage';
+
+// Remove the import for ClientProfilePage since the file doesn't exist
 
 function App() {
   const { user, loading: authInitialized } = useAuth();
@@ -48,7 +49,8 @@ function App() {
         <Route path="/coach-dashboard" element={<RequireAuth allowedUserTypes={['coach']} />}>
           <Route index element={<CoachDashboard />} />
           <Route path="clients" element={<ClientsPage />} />
-          <Route path="clients/:clientId" element={<ClientProfilePage />} />
+          {/* Replace ClientProfilePage with a redirect to ClientsPage until implemented */}
+          <Route path="clients/:clientId" element={<Navigate to="/coach-dashboard/clients" />} />
           <Route path="workouts" element={<WorkoutProgramsPage />} />
           <Route path="workouts/create" element={<CreateWorkoutProgramPage />} />
           <Route path="workouts/:programId" element={<WorkoutProgramDetailPage />} />

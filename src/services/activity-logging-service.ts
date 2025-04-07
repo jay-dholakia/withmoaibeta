@@ -32,37 +32,39 @@ export interface RestLog {
   notes?: string;
 }
 
-// Generic function to log a run activity
-export const logRunActivity = async (runData: RunLog): Promise<string | null> => {
+// Generic function to log activities through edge function
+const logActivity = async (type: 'run' | 'cardio' | 'rest', data: any): Promise<string | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    // Format the data for insertion
-    const runLogData = {
-      ...runData,
-      client_id: user.id,
-      log_date: runData.log_date.toISOString()
-    };
-    
-    const { data, error } = await supabase
-      .from('run_logs')
-      .insert(runLogData)
-      .select('id')
-      .single();
+    const { data: responseData, error } = await supabase.functions.invoke('log_activity', {
+      method: 'POST',
+      body: { 
+        activity_type: type, 
+        activity_data: {
+          ...data,
+          date: data.log_date.toISOString()
+        }
+      },
+    });
     
     if (error) {
-      console.error("Error logging run activity:", error);
+      console.error(`Error logging ${type} activity:`, error);
       throw error;
     }
     
-    toast.success("Run activity logged successfully!");
-    return data.id;
+    return responseData?.id || null;
   } catch (error) {
-    console.error("Error in logRunActivity:", error);
+    console.error(`Error in log${type.charAt(0).toUpperCase() + type.slice(1)}Activity:`, error);
+    throw error;
+  }
+}
+
+// Generic function to log a run activity
+export const logRunActivity = async (runData: RunLog): Promise<string | null> => {
+  try {
+    const result = await logActivity('run', runData);
+    toast.success("Run activity logged successfully!");
+    return result;
+  } catch (error) {
     toast.error("Failed to log run activity");
     return null;
   }
@@ -71,34 +73,10 @@ export const logRunActivity = async (runData: RunLog): Promise<string | null> =>
 // Function to log a cardio activity
 export const logCardioActivity = async (cardioData: CardioLog): Promise<string | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    // Format the data for insertion
-    const cardioLogData = {
-      ...cardioData,
-      client_id: user.id,
-      log_date: cardioData.log_date.toISOString()
-    };
-    
-    const { data, error } = await supabase
-      .from('cardio_logs')
-      .insert(cardioLogData)
-      .select('id')
-      .single();
-    
-    if (error) {
-      console.error("Error logging cardio activity:", error);
-      throw error;
-    }
-    
+    const result = await logActivity('cardio', cardioData);
     toast.success("Cardio activity logged successfully!");
-    return data.id;
+    return result;
   } catch (error) {
-    console.error("Error in logCardioActivity:", error);
     toast.error("Failed to log cardio activity");
     return null;
   }
@@ -107,34 +85,10 @@ export const logCardioActivity = async (cardioData: CardioLog): Promise<string |
 // Function to log a rest day
 export const logRestDay = async (restData: RestLog): Promise<string | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    
-    // Format the data for insertion
-    const restLogData = {
-      ...restData,
-      client_id: user.id,
-      log_date: restData.log_date.toISOString()
-    };
-    
-    const { data, error } = await supabase
-      .from('rest_logs')
-      .insert(restLogData)
-      .select('id')
-      .single();
-    
-    if (error) {
-      console.error("Error logging rest day:", error);
-      throw error;
-    }
-    
+    const result = await logActivity('rest', restData);
     toast.success("Rest day logged successfully!");
-    return data.id;
+    return result;
   } catch (error) {
-    console.error("Error in logRestDay:", error);
     toast.error("Failed to log rest day");
     return null;
   }

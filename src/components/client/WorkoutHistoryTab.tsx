@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { PlusCircle, Armchair, Activity } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LogRunActivityDialog } from './LogRunActivityDialog';
 import { LogCardioActivityDialog } from './LogCardioActivityDialog';
@@ -18,6 +19,7 @@ import {
 } from '@/services/activity-logging-service';
 import { Badge } from '@/components/ui/badge';
 import { format, subDays } from 'date-fns';
+import { ProgramProgressSection } from './ProgramProgressSection';
 
 const WorkoutHistoryTab = () => {
   const { user } = useAuth();
@@ -103,37 +105,13 @@ const WorkoutHistoryTab = () => {
 
   return (
     <div>
+      {/* Progress Section */}
+      <div className="mb-6">
+        <ProgramProgressSection />
+      </div>
+      
       <div className="mt-8 border-t pt-6">
-        <h3 className="text-lg font-medium mb-4">Log Activity</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Button 
-            variant="outline" 
-            className="flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-            onClick={() => setShowRunDialog(true)}
-          >
-            <span role="img" aria-label="running" className="text-lg">🏃</span>
-            Log Run
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="flex items-center justify-center gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
-            onClick={() => setShowCardioDialog(true)}
-          >
-            <Activity className="h-4 w-4" />
-            Log Cardio
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="flex items-center justify-center gap-2 text-amber-600 border-amber-200 hover:bg-amber-50"
-            onClick={() => setShowRestDialog(true)}
-          >
-            <Armchair className="h-4 w-4" />
-            Log Rest Day
-          </Button>
-        </div>
+        <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
         
         <Button asChild variant="outline" className="w-full mt-4 mb-4 flex items-center justify-center gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50">
           <Link to="/client-dashboard/workouts/one-off">
@@ -172,24 +150,6 @@ const WorkoutHistoryTab = () => {
           </div>
         </div>
       )}
-      
-      <LogRunActivityDialog 
-        open={showRunDialog} 
-        onOpenChange={setShowRunDialog}
-        onSuccess={handleActivitySuccess} 
-      />
-      
-      <LogCardioActivityDialog 
-        open={showCardioDialog} 
-        onOpenChange={setShowCardioDialog}
-        onSuccess={handleActivitySuccess} 
-      />
-      
-      <LogRestDayDialog 
-        open={showRestDialog} 
-        onOpenChange={setShowRestDialog}
-        onSuccess={handleActivitySuccess} 
-      />
       
       <button 
         className="hidden" 

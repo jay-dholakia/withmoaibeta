@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -9,7 +8,7 @@ import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import { Button } from '@/components/ui/button';
-import { Armchair, ListTodo, History, Calendar as CalendarIcon, PlusCircle } from 'lucide-react';
+import { Armchair, ListTodo, History, Calendar as CalendarIcon } from 'lucide-react';
 import { logRestDay } from '@/services/activity-logging-service';
 import { toast } from 'sonner';
 import {
@@ -28,7 +27,6 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCurrentProgram } from '@/services/program-service';
-import { getCurrentWeekNumber, formatWeekDateRange } from '@/services/assigned-workouts-service';
 
 const WorkoutsPage = () => {
   const [showRestDayDialog, setShowRestDayDialog] = useState(false);

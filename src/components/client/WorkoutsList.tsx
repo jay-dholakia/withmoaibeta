@@ -4,7 +4,7 @@ import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import WorkoutProgressCard from './WorkoutProgressCard';
+import { WorkoutProgressCard } from './WorkoutProgressCard'; // Fix: Use named import instead of default import
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -59,13 +59,14 @@ const WorkoutsList = () => {
       
       console.log("WorkoutsList: Fetching assigned workouts for user", user.id);
       try {
-        const workouts = await fetchAssignedWorkouts();
+        const workouts = await fetchAssignedWorkouts(user.id); // Pass user.id to fetchAssignedWorkouts
         
         // Group workouts by week
         const groupedWorkouts: Record<string, WorkoutHistoryItem[]> = {};
         
         workouts.forEach(workout => {
-          const weekKey = workout.program_week_title || 'Other';
+          // Use optional chaining for accessing potentially undefined properties
+          const weekKey = workout.workout?.week?.week_number ? `Week ${workout.workout.week.week_number}` : 'Other';
           if (!groupedWorkouts[weekKey]) {
             groupedWorkouts[weekKey] = [];
           }
@@ -75,7 +76,8 @@ const WorkoutsList = () => {
         // Update completedWeeks status
         const newCompletedWeeks: Record<string, boolean> = {};
         Object.entries(groupedWorkouts).forEach(([weekKey, weekWorkouts]) => {
-          const allCompleted = weekWorkouts.every(w => w.status === 'completed');
+          // Check if all workouts in this week have been completed
+          const allCompleted = weekWorkouts.every(w => w.completed_at !== null);
           newCompletedWeeks[weekKey] = allCompleted && weekWorkouts.length > 0;
         });
         setCompletedWeeks(newCompletedWeeks);
@@ -143,17 +145,20 @@ const WorkoutsList = () => {
   
   const filterWorkoutsByWeek = useCallback((workouts: WorkoutHistoryItem[], week: string | null) => {
     if (!week) return workouts;
-    return workouts.filter(workout => (workout.program_week_title || 'Other') === week);
+    return workouts.filter(workout => {
+      const weekNumber = workout.workout?.week?.week_number;
+      return weekNumber ? `Week ${weekNumber}` === week : false;
+    });
   }, []);
 
   const getCompletionStatus = useCallback((workout: WorkoutHistoryItem) => {
-    if (workout.status === 'completed') {
+    if (workout.completed_at) {
       return (
         <span className="bg-green-500 text-white text-xs font-medium px-2 py-1 rounded-full">
           Completed
         </span>
       );
-    } else if (workout.status === 'in_progress') {
+    } else if (workout.workout_set_completions && workout.workout_set_completions.length > 0) {
       return (
         <span className="bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full">
           In Progress
@@ -315,12 +320,51 @@ const WorkoutsList = () => {
         {filteredWorkouts.length > 0 ? (
           <div className="space-y-3">
             {filteredWorkouts.map(workout => (
-              <WorkoutProgressCard
-                key={workout.workout_completion_id}
-                workout={workout}
-                onClick={() => toggleExpandedItem(workout.workout_completion_id)}
-                isExpanded={!!expandedItems[workout.workout_completion_id]}
-              />
+              <div
+                key={workout.id}
+                className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => toggleExpandedItem(workout.id)}
+              >
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    <WorkoutTypeIcon 
+                      type={workout.workout?.workout_type || 'strength'} 
+                      className="h-8 w-8" 
+                    />
+                    <div>
+                      <h3 className="font-medium">{workout.workout?.title || 'Untitled Workout'}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {workout.workout?.description || 'No description available'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getCompletionStatus(workout)}
+                  </div>
+                </div>
+                {expandedItems[workout.id] && (
+                  <div className="border-t p-4 bg-gray-50">
+                    <div className="flex justify-between mb-2">
+                      <p className="text-sm">
+                        <span className="font-medium">Status:</span> {workout.completed_at ? 'Completed' : 'Not started'}
+                      </p>
+                      {workout.completed_at && (
+                        <p className="text-sm">
+                          <span className="font-medium">Completed:</span> {format(new Date(workout.completed_at), 'MMM d, yyyy')}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      asChild
+                      className="w-full mt-2"
+                    >
+                      <Link to={`/client-dashboard/workouts/active/${workout.id}`}>
+                        {workout.completed_at ? 'View Details' : 'Start Workout'}
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         ) : (

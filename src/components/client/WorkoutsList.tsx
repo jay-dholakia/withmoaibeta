@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -17,6 +16,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { fetchCurrentProgram } from '@/services/program-service';
 import { ProgramProgressSection } from './ProgramProgressSection';
+import { WorkoutProgressCard } from './WorkoutProgressCard';
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
@@ -34,7 +34,6 @@ const WorkoutsList = () => {
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
 
-  // Safely toggle workout details 
   const toggleWorkoutDetails = useCallback((e: React.MouseEvent, workoutId: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -59,7 +58,6 @@ const WorkoutsList = () => {
         setIsLoading(true);
         setError(null);
         
-        // Fetch program information first
         let program = null;
         try {
           console.log("WorkoutsList: Fetching current program");
@@ -80,21 +78,17 @@ const WorkoutsList = () => {
           throw workoutsError; // Rethrow to be caught by outer catch
         }
         
-        // Filter out completed workouts here
         const pendingWorkouts = assignedWorkouts.filter(workout => !workout.completed_at);
         console.log("WorkoutsList: Pending workouts (not completed):", pendingWorkouts.length);
         
         setCurrentProgram(program);
         setWorkouts(pendingWorkouts);
         
-        // Get all workouts (including completed) for checking completed weeks
         const allWorkouts = assignedWorkouts;
         
-        // Determine which weeks are completed by checking if all workouts for that week are completed
         const weekCompletionStatus: Record<string, boolean> = {};
         const weeksSet = new Set<number>();
         
-        // Group all workouts by week
         const workoutsByWeek: Record<number, WorkoutHistoryItem[]> = {};
         
         allWorkouts.forEach(workout => {
@@ -109,7 +103,6 @@ const WorkoutsList = () => {
           }
         });
         
-        // Check if all workouts in each week are completed
         Object.entries(workoutsByWeek).forEach(([weekNum, weekWorkouts]) => {
           const allCompleted = weekWorkouts.every(workout => !!workout.completed_at);
           weekCompletionStatus[weekNum] = allCompleted;
@@ -127,11 +120,9 @@ const WorkoutsList = () => {
         console.log("WorkoutsList: Extracted week numbers:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
-        // Set initial week filter to current week if available, otherwise use the most recent week
         if (extractedWeeks.length > 0) {
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
           
-          // Find current week based on program start date
           let currentWeekNumber = 1;
           if (program && program.start_date) {
             const startDate = new Date(program.start_date);
@@ -141,12 +132,10 @@ const WorkoutsList = () => {
             currentWeekNumber = Math.max(1, Math.floor(daysElapsed / 7) + 1);
           }
           
-          // Use current week if it exists, otherwise use the first week
           const weekExists = sortedWeeks.includes(currentWeekNumber);
           const initialWeek = weekExists ? currentWeekNumber : sortedWeeks[0];
           console.log(`WorkoutsList: Setting initial week filter to ${weekExists ? 'current' : 'first available'} week: ${initialWeek}`);
           
-          // Set the week filter after component is mounted
           setTimeout(() => {
             setWeekFilter(initialWeek.toString());
           }, 0);
@@ -187,9 +176,7 @@ const WorkoutsList = () => {
       return weekMatches;
     });
     
-    // Sort workouts by priority first, then by day_of_week as a backup
     return filtered.sort((a, b) => {
-      // First by priority (lower number = higher priority)
       const priorityA = a.workout?.priority ?? Number.MAX_SAFE_INTEGER;
       const priorityB = b.workout?.priority ?? Number.MAX_SAFE_INTEGER;
       
@@ -197,45 +184,38 @@ const WorkoutsList = () => {
         return priorityA - priorityB;
       }
       
-      // If priority is the same, sort by day_of_week
       return (a.workout?.day_of_week ?? 0) - (b.workout?.day_of_week ?? 0);
     });
   }, [workouts, weekFilter]);
 
-  // Handle week filter change - completely rewritten
   const handleWeekFilterChange = useCallback((value: string) => {
     console.log(`Setting week filter to: ${value}`);
     setWeekFilter(value);
     setIsSelectOpen(false);
   }, []);
 
-  // Toggle select dropdown visibility
   const toggleSelectDropdown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsSelectOpen(prev => !prev);
   }, []);
 
-  // Close select dropdown
   const closeSelectDropdown = useCallback(() => {
     setIsSelectOpen(false);
   }, []);
 
-  // Handle week selection
   const handleWeekSelect = useCallback((e: React.MouseEvent, weekNumber: string) => {
     e.preventDefault();
     e.stopPropagation();
     handleWeekFilterChange(weekNumber);
   }, [handleWeekFilterChange]);
 
-  // Navigate to active workout
   const handleStartWorkout = useCallback((e: React.MouseEvent, workoutId: string) => {
     e.preventDefault();
     e.stopPropagation();
     navigate(`/client-dashboard/workouts/active/${workoutId}`);
   }, [navigate]);
 
-  // Close select dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
@@ -269,12 +249,10 @@ const WorkoutsList = () => {
     );
   }
 
-  // Check if the selected week is completed
   const isSelectedWeekCompleted = weekFilter ? completedWeeks[weekFilter] : false;
 
   return (
     <div className="space-y-6">
-      {/* Add the ProgramProgressSection at the top */}
       <ProgramProgressSection />
       
       <div className="space-y-4">
@@ -291,7 +269,6 @@ const WorkoutsList = () => {
         
         {availableWeeks.length > 0 && (
           <div className="flex justify-center mb-2">
-            {/* Custom dropdown implementation */}
             <div className="relative" ref={selectRef}>
               <button
                 className="flex w-[200px] h-8 text-sm items-center justify-between rounded-md border border-input bg-background px-3 py-2 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -445,6 +422,17 @@ const WorkoutsList = () => {
             ))}
           </div>
         )}
+      </div>
+      
+      <div className="mt-8 border-t pt-6">
+        <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
+        
+        <Button asChild variant="outline" className="w-full mt-4 mb-4 flex items-center justify-center gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+          <Link to="/client-dashboard/workouts/one-off">
+            <PlusCircle className="h-4 w-4" />
+            Enter Custom Workout
+          </Link>
+        </Button>
       </div>
     </div>
   );

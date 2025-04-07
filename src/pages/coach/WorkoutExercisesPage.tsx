@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -10,6 +9,7 @@ import { WorkoutExerciseForm } from '@/components/coach/WorkoutExerciseForm';
 import { fetchWorkout, fetchWorkoutExercises, createWorkoutExercise, updateWorkoutExercise, deleteWorkoutExercise, moveWorkoutExerciseUp, moveWorkoutExerciseDown } from '@/services/workout-service';
 import { Exercise } from '@/types/workout';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const WorkoutExercisesPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -21,6 +21,7 @@ const WorkoutExercisesPage = () => {
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [exerciseListExpanded, setExerciseListExpanded] = useState<Record<string, boolean>>({});
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
 
   useEffect(() => {
     const loadWorkoutDetails = async () => {
@@ -28,18 +29,21 @@ const WorkoutExercisesPage = () => {
 
       try {
         setIsLoading(true);
+        console.log("Fetching workout details for ID:", workoutId);
         
         const workoutData = await fetchWorkout(workoutId);
         if (workoutData) {
+          console.log("Workout data received:", workoutData);
           setWorkout(workoutData);
           
           // Fetch any exercises for this workout
           const exercisesData = await fetchWorkoutExercises(workoutId);
+          console.log("Exercises data received:", exercisesData);
           setExercises(exercisesData || []);
           
           const expandedState: Record<string, boolean> = {};
           exercisesData.forEach((exercise: any) => {
-            expandedState[exercise.id] = true;
+            expandedState[exercise.id] = false; // Start collapsed for cleaner UI
           });
           setExerciseListExpanded(expandedState);
         } else {
@@ -64,15 +68,20 @@ const WorkoutExercisesPage = () => {
     }));
   };
 
-  const handleAddExercise = async (exerciseId: string, data: any) => {
-    if (!workoutId) return;
+  const handleAddExercise = async (exercise: Exercise) => {
+    setSelectedExercise(exercise);
+    // Keep the form visible to enter details
+  };
+
+  const handleSubmitNewExercise = async (data: any) => {
+    if (!workoutId || !selectedExercise) return;
     
     try {
       setIsSubmitting(true);
       
       await createWorkoutExercise({
         workout_id: workoutId,
-        exercise_id: exerciseId,
+        exercise_id: selectedExercise.id,
         sets: data.sets,
         reps: data.reps,
         rest_seconds: data.rest_seconds,
@@ -84,6 +93,7 @@ const WorkoutExercisesPage = () => {
       setExercises(updatedExercises);
       
       setIsAddingExercise(false);
+      setSelectedExercise(null);
       toast.success('Exercise added successfully');
     } catch (error) {
       console.error('Error adding exercise:', error);
@@ -172,17 +182,26 @@ const WorkoutExercisesPage = () => {
     }
   };
 
-  const handleSelectExercise = (exercise: Exercise) => {
-    console.log("Exercise selected:", exercise);
-  };
+  const renderLoadingSkeleton = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-10 w-[200px]" />
+        <Skeleton className="h-10 w-[120px]" />
+      </div>
+      <Skeleton className="h-4 w-[300px]" />
+      <div className="space-y-3">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    </div>
+  );
 
   if (isLoading) {
     return (
       <CoachLayout>
         <div className="container mx-auto px-4 py-6">
-          <div className="flex justify-center items-center h-48">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
+          {renderLoadingSkeleton()}
         </div>
       </CoachLayout>
     );
@@ -220,7 +239,10 @@ const WorkoutExercisesPage = () => {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Exercises</h2>
           <Button 
-            onClick={() => setIsAddingExercise(true)} 
+            onClick={() => {
+              setSelectedExercise(null);
+              setIsAddingExercise(true);
+            }} 
             disabled={isAddingExercise}
             className="gap-1"
           >
@@ -232,15 +254,55 @@ const WorkoutExercisesPage = () => {
         {isAddingExercise && (
           <Card className="mb-6 bg-muted/50">
             <CardHeader>
-              <CardTitle className="text-base">Add Exercise</CardTitle>
+              <CardTitle className="text-base">
+                {selectedExercise ? `Add ${selectedExercise.name}` : 'Select an Exercise'}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <ExerciseSelector
-                onSelectExercise={handleSelectExercise}
-                onSelect={handleAddExercise}
-                onCancel={() => setIsAddingExercise(false)}
-                isSubmitting={isSubmitting}
-              />
+              {!selectedExercise ? (
+                <ExerciseSelector
+                  onSelectExercise={handleAddExercise}
+                  excludeIds={exercises.map((e: any) => e.exercise?.id).filter(Boolean)}
+                  buttonText="Select Exercise"
+                />
+              ) : (
+                <div className="space-y-4">
+                  <div className="border border-border p-3 rounded-md bg-card">
+                    <h3 className="font-medium">{selectedExercise.name}</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {selectedExercise.category} • {selectedExercise.exercise_type}
+                    </p>
+                    {selectedExercise.description && (
+                      <p className="text-sm mt-2">{selectedExercise.description}</p>
+                    )}
+                  </div>
+                  
+                  <WorkoutExerciseForm
+                    initialData={{
+                      sets: 3,
+                      reps: '8-12',
+                      rest_seconds: 60,
+                      notes: '',
+                      exercise: selectedExercise
+                    }}
+                    onSubmit={handleSubmitNewExercise}
+                    isSubmitting={isSubmitting}
+                  />
+                  
+                  <div className="flex justify-end mt-2">
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => {
+                        setSelectedExercise(null);
+                        setIsAddingExercise(false);
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -289,7 +351,7 @@ const WorkoutExercisesPage = () => {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
                         onClick={() => handleDeleteExercise(exercise.id)}
                         disabled={isSubmitting}
                       >

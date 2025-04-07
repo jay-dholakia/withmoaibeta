@@ -11,7 +11,7 @@ interface ExerciseSelectorProps {
   onSelectExercise: (exercise: Exercise) => void;
   excludeIds?: string[];
   buttonText?: string;
-  // Add optional props for StandaloneWorkoutForm and WorkoutDayForm
+  // Legacy props - maintained for compatibility
   onSelect?: (exerciseId: string, data: any) => Promise<void>;
   onCancel?: () => void;
   isSubmitting?: boolean;
@@ -31,27 +31,40 @@ export const ExerciseSelector = ({
   // Change the type of state to handle the exercises correctly
   const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, Exercise[]>>({});
   const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // Get all exercises on initial load
   useEffect(() => {
     const getExercises = async () => {
       setIsLoading(true);
+      setError(null);
       try {
+        console.log("Fetching exercises by category");
         const exercises = await fetchExercisesByCategory();
+        console.log("Received exercises:", exercises);
+        
+        if (!exercises || exercises.length === 0) {
+          setError("No exercises found. Please add exercises to the system first.");
+          setExercisesByCategory({});
+          setFilteredExercises([]);
+          return;
+        }
         
         // Group exercises by category
         const categorized: Record<string, Exercise[]> = {};
         exercises.forEach(exercise => {
-          if (!categorized[exercise.category]) {
-            categorized[exercise.category] = [];
+          const category = exercise.category || 'Uncategorized';
+          if (!categorized[category]) {
+            categorized[category] = [];
           }
-          categorized[exercise.category].push(exercise);
+          categorized[category].push(exercise);
         });
         
         setExercisesByCategory(categorized);
         updateFilteredExercises(categorized, selectedCategory, searchQuery, excludeIds);
       } catch (error) {
         console.error('Error fetching exercises:', error);
+        setError("Failed to load exercises. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -63,7 +76,7 @@ export const ExerciseSelector = ({
   // Update filtered exercises when category or search query changes
   useEffect(() => {
     updateFilteredExercises(exercisesByCategory, selectedCategory, searchQuery, excludeIds);
-  }, [selectedCategory, searchQuery, excludeIds]);
+  }, [selectedCategory, searchQuery, excludeIds, exercisesByCategory]);
 
   // Helper function to update filtered exercises
   const updateFilteredExercises = (
@@ -111,47 +124,53 @@ export const ExerciseSelector = ({
         />
       </div>
 
-      <Tabs defaultValue="All" value={selectedCategory} onValueChange={setSelectedCategory}>
-        <TabsList className="mb-4 flex flex-wrap h-auto">
-          {categories.map((category) => (
-            <TabsTrigger key={category} value={category} className="text-xs">
-              {category}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {error ? (
+        <div className="text-center py-8 text-destructive">
+          {error}
+        </div>
+      ) : (
+        <Tabs defaultValue="All" value={selectedCategory} onValueChange={setSelectedCategory}>
+          <TabsList className="mb-4 flex flex-wrap h-auto">
+            {categories.map((category) => (
+              <TabsTrigger key={category} value={category} className="text-xs">
+                {category}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        <TabsContent value={selectedCategory} className="mt-0">
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : filteredExercises.length > 0 ? (
-            <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2">
-              {filteredExercises.map((exercise) => (
-                <Button
-                  key={exercise.id}
-                  variant="outline"
-                  className="justify-start h-auto py-3 px-4"
-                  onClick={() => onSelectExercise(exercise)}
-                >
-                  <div className="text-left">
-                    <div className="font-medium">{exercise.name}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {exercise.category} • {exercise.exercise_type}
+          <TabsContent value={selectedCategory} className="mt-0">
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : filteredExercises.length > 0 ? (
+              <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2">
+                {filteredExercises.map((exercise) => (
+                  <Button
+                    key={exercise.id}
+                    variant="outline"
+                    className="justify-start h-auto py-3 px-4"
+                    onClick={() => onSelectExercise(exercise)}
+                  >
+                    <div className="text-left">
+                      <div className="font-medium">{exercise.name}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {exercise.category} • {exercise.exercise_type}
+                      </div>
                     </div>
-                  </div>
-                </Button>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No exercises found. Try a different category or search term.
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No exercises found. Try a different category or search term.
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
       
-      {/* Add buttons for the onSelect/onCancel flow */}
+      {/* Legacy code for backward compatibility */}
       {onSelect && onCancel && (
         <div className="mt-4 flex justify-end space-x-2">
           <Button 
@@ -161,7 +180,6 @@ export const ExerciseSelector = ({
           >
             Cancel
           </Button>
-          {/* This button would be used in some implementation */}
           {buttonText && (
             <Button disabled={isSubmitting}>
               {isSubmitting ? 'Processing...' : buttonText}

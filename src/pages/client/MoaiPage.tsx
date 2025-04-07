@@ -213,12 +213,8 @@ const MoaiPage = () => {
   const group: Group = userGroups?.[0] || { id: '', name: 'Loading...', description: '', spotify_playlist_url: null };
   
   return (
-    <div className="space-y-6 px-0">
-      <p className="text-muted-foreground mb-4 px-[10px]">
-        Your fitness community and accountability group
-      </p>
-      
-      <Card className="bg-client/5 relative mx-[10px]">
+    <div className="space-y-6">
+      <Card className="bg-client/5 relative">
         <CardHeader className="pb-2">
           <CardTitle className="text-2xl text-center font-semibold text-black">
             {group.name}
@@ -243,7 +239,7 @@ const MoaiPage = () => {
         </CardContent>
       </Card>
       
-      <Tabs defaultValue="progress" className="w-full px-[10px]">
+      <Tabs defaultValue="progress" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="progress" className="flex items-center justify-center">
             <Mountain className="h-5 w-5 mr-2" />
@@ -259,7 +255,7 @@ const MoaiPage = () => {
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="progress" className="px-0">
+        <TabsContent value="progress">
           {group.id ? (
             <MoaiGroupProgress groupId={group.id} />
           ) : (

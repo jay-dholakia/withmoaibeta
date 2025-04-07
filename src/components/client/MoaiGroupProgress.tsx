@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -353,7 +352,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
   }
   
   return (
-    <div className="space-y-4 px-[10px]">
+    <div className="space-y-4">
       {user && (
         <WorkoutProgressCard 
           label="Your Workouts"

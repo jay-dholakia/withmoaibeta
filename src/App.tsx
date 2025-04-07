@@ -18,6 +18,9 @@ import ClientDashboard from './pages/client/ClientDashboard';
 import CoachDashboard from './pages/coach/CoachDashboard';
 import AssignProgramPage from './pages/coach/AssignProgramPage';
 import CoachLogin from './pages/CoachLogin';
+import ClientLogin from './pages/ClientLogin';
+import AdminLogin from './pages/AdminLogin';
+import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -40,7 +43,12 @@ function App() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={user ? (userType === 'coach' ? <Navigate to="/coach-dashboard" /> : <Navigate to="/client-dashboard" />) : <CoachLogin />} />
+      <Route path="/" element={<Index />} />
+      
+      {/* Auth Routes */}
+      <Route path="/admin" element={user ? (userType === 'admin' ? <Navigate to="/admin-dashboard" /> : <Navigate to="/" />) : <AdminLogin />} />
+      <Route path="/coach" element={user ? (userType === 'coach' ? <Navigate to="/coach-dashboard" /> : <Navigate to="/" />) : <CoachLogin />} />
+      <Route path="/client" element={user ? (userType === 'client' ? <Navigate to="/client-dashboard" /> : <Navigate to="/" />) : <ClientLogin />} />
       
       {/* Client Routes */}
       <Route path="/client-dashboard/*" element={<RequireAuth allowedUserTypes={['client']} />}>

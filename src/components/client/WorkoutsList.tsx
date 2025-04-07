@@ -1,23 +1,38 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Filter, ChevronDown, ChevronUp, Play, Trophy, PlusCircle } from 'lucide-react';
+import { Loader2, Filter, ChevronDown, Trophy, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { 
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { WorkoutCard } from './WorkoutCard';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { fetchCurrentProgram } from '@/services/program-service';
 import { ProgramProgressSection } from './ProgramProgressSection';
-import { WorkoutProgressCard } from './WorkoutProgressCard';
+
+// Mock data for group members - replace with actual data fetching in production
+const MOCK_GROUP_MEMBERS = [
+  {
+    id: '1',
+    name: 'Alex Kim',
+    profile_picture_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
+    completed_workout_ids: ['workout1', 'workout3']
+  },
+  {
+    id: '2',
+    name: 'Jordan Lee',
+    profile_picture_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan',
+    completed_workout_ids: ['workout2']
+  },
+  {
+    id: '3',
+    name: 'Taylor Park',
+    profile_picture_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Taylor',
+    completed_workout_ids: ['workout1', 'workout2']
+  }
+];
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
@@ -30,19 +45,8 @@ const WorkoutsList = () => {
   const [weekFilter, setWeekFilter] = useState<string>("");
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
-  const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
-  const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
-
-  const toggleWorkoutDetails = useCallback((e: React.MouseEvent, workoutId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setExpandedWorkouts(prev => ({
-      ...prev,
-      [workoutId]: !prev[workoutId]
-    }));
-  }, []);
 
   useEffect(() => {
     const loadWorkoutsAndProgram = async () => {
@@ -79,39 +83,12 @@ const WorkoutsList = () => {
           throw workoutsError; // Rethrow to be caught by outer catch
         }
         
-        const pendingWorkouts = assignedWorkouts.filter(workout => !workout.completed_at);
-        console.log("WorkoutsList: Pending workouts (not completed):", pendingWorkouts.length);
-        
         setCurrentProgram(program);
-        setWorkouts(pendingWorkouts);
+        setWorkouts(assignedWorkouts);
         
-        const allWorkouts = assignedWorkouts;
-        
-        const weekCompletionStatus: Record<string, boolean> = {};
         const weeksSet = new Set<number>();
         
-        const workoutsByWeek: Record<number, WorkoutHistoryItem[]> = {};
-        
-        allWorkouts.forEach(workout => {
-          if (workout.workout?.week && workout.workout.week.week_number) {
-            const weekNum = workout.workout.week.week_number;
-            weeksSet.add(weekNum);
-            
-            if (!workoutsByWeek[weekNum]) {
-              workoutsByWeek[weekNum] = [];
-            }
-            workoutsByWeek[weekNum].push(workout);
-          }
-        });
-        
-        Object.entries(workoutsByWeek).forEach(([weekNum, weekWorkouts]) => {
-          const allCompleted = weekWorkouts.every(workout => !!workout.completed_at);
-          weekCompletionStatus[weekNum] = allCompleted;
-        });
-        
-        setCompletedWeeks(weekCompletionStatus);
-        
-        pendingWorkouts.forEach(workout => {
+        assignedWorkouts.forEach(workout => {
           if (workout.workout?.week && workout.workout.week.week_number) {
             weeksSet.add(workout.workout.week.week_number);
           }
@@ -211,9 +188,7 @@ const WorkoutsList = () => {
     handleWeekFilterChange(weekNumber);
   }, [handleWeekFilterChange]);
 
-  const handleStartWorkout = useCallback((e: React.MouseEvent, workoutId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleStartWorkout = useCallback((workoutId: string) => {
     navigate(`/client-dashboard/workouts/active/${workoutId}`);
   }, [navigate]);
 
@@ -229,6 +204,10 @@ const WorkoutsList = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [closeSelectDropdown]);
+
+  // Separate completed and pending workouts
+  const pendingWorkouts = filteredWorkouts.filter(workout => !workout.completed_at);
+  const completedWorkouts = filteredWorkouts.filter(workout => !!workout.completed_at);
 
   if (isLoading) {
     return (
@@ -250,7 +229,16 @@ const WorkoutsList = () => {
     );
   }
 
-  const isSelectedWeekCompleted = weekFilter ? completedWeeks[weekFilter] : false;
+  // Add the current user to the mock group members
+  const allGroupMembers = [
+    ...MOCK_GROUP_MEMBERS,
+    {
+      id: user?.id || '',
+      name: user?.name || 'You',
+      profile_picture_url: user?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=You',
+      completed_workout_ids: completedWorkouts.map(w => w.id)
+    }
+  ];
 
   return (
     <div className="space-y-6">
@@ -308,119 +296,55 @@ const WorkoutsList = () => {
           </div>
         )}
         
-        {isSelectedWeekCompleted ? (
-          <Card className="bg-green-50 border-green-200">
-            <CardContent className="pt-6 pb-6 text-center">
-              <Trophy className="h-12 w-12 mx-auto mb-3 text-green-600" />
-              <h3 className="text-xl font-bold text-green-800 mb-2">
-                Congratulations! 🎉💪
-              </h3>
-              <p className="text-green-700">
-                You've completed all workouts in your plan for Week {weekFilter}.
-              </p>
-            </CardContent>
-          </Card>
-        ) : filteredWorkouts.length === 0 ? (
-          <Card>
-            <CardContent className="pt-4 pb-4 text-center">
-              <p className="text-muted-foreground">
-                No workouts found for the selected filter.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredWorkouts.map((workout) => (
-              <Card key={workout.id} className="overflow-hidden">
-                <Collapsible
-                  open={expandedWorkouts[workout.id] || false}
-                  onOpenChange={() => {}}
-                >
-                  <CardHeader className="px-4 py-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg">
-                      {workout.workout?.title || 'Untitled Workout'}
-                    </CardTitle>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-7 w-7 p-0 ml-2"
-                      onClick={(e) => toggleWorkoutDetails(e, workout.id)}
-                    >
-                      {expandedWorkouts[workout.id] ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                      <span className="sr-only">Toggle details</span>
-                    </Button>
-                  </CardHeader>
-                  
-                  <CardContent className="p-0">
-                    <CollapsibleContent className="px-4 pb-2 pt-0 space-y-2">
-                      {workout.workout?.description && (
-                        <div className="mb-2">
-                          <h4 className="text-xs font-medium">Description</h4>
-                          <p className="text-xs text-muted-foreground">
-                            {workout.workout.description}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {workout.workout?.workout_exercises && workout.workout.workout_exercises.length > 0 && (
-                        <div>
-                          <h4 className="text-xs font-medium mb-1">Exercises</h4>
-                          <Accordion type="single" collapsible className="w-full">
-                            {workout.workout.workout_exercises.map((exercise) => (
-                              <AccordionItem key={exercise.id} value={exercise.id} className="border-b-0 py-0">
-                                <div className="flex flex-col">
-                                  <AccordionTrigger className="py-1 text-xs">
-                                    {exercise.exercise?.name || 'Unknown Exercise'}
-                                  </AccordionTrigger>
-                                  
-                                  <div className="flex flex-wrap gap-2 px-1 py-1 text-xs">
-                                    <span className="bg-muted px-2 py-0.5 rounded-md">Sets: {exercise.sets}</span>
-                                    <span className="bg-muted px-2 py-0.5 rounded-md">Reps: {exercise.reps}</span>
-                                    {exercise.rest_seconds && (
-                                      <span className="bg-muted px-2 py-0.5 rounded-md">Rest: {exercise.rest_seconds}s</span>
-                                    )}
-                                  </div>
-                                </div>
-                                
-                                <AccordionContent className="pb-1">
-                                  <div className="space-y-1 text-xs">
-                                    {exercise.notes && (
-                                      <div className="text-xs bg-muted p-1.5 rounded-md">
-                                        <span className="font-medium">Notes:</span> {exercise.notes}
-                                      </div>
-                                    )}
-                                    {exercise.exercise?.description && (
-                                      <div className="text-xs bg-muted p-1.5 rounded-md">
-                                        <span className="font-medium">Description:</span> {exercise.exercise.description}
-                                      </div>
-                                    )}
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            ))}
-                          </Accordion>
-                        </div>
-                      )}
-                    </CollapsibleContent>
-                  </CardContent>
-                </Collapsible>
-                
-                <CardFooter className="p-3">
-                  <Button 
-                    className="w-full h-9 py-1" 
-                    size="sm"
-                    onClick={(e) => handleStartWorkout(e, workout.id)}
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    Start Workout
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+        {/* Pending Workouts Section */}
+        <div>
+          <h3 className="text-lg font-semibold mb-3">Pending Workouts</h3>
+          {pendingWorkouts.length === 0 ? (
+            <Card>
+              <CardContent className="pt-4 pb-4 text-center">
+                <p className="text-muted-foreground">
+                  No pending workouts for this week.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {pendingWorkouts.map((workout) => (
+                <WorkoutCard
+                  key={workout.id}
+                  workoutId={workout.id}
+                  title={workout.workout?.title || 'Untitled Workout'}
+                  description={workout.workout?.description || ''}
+                  type={workout.workout?.workout_type as any}
+                  groupMembers={allGroupMembers}
+                  currentUserId={user?.id || ''}
+                  onStartWorkout={handleStartWorkout}
+                  completed={false}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {/* Completed Workouts Section */}
+        {completedWorkouts.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-3">Completed Workouts</h3>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {completedWorkouts.map((workout) => (
+                <WorkoutCard
+                  key={workout.id}
+                  workoutId={workout.id}
+                  title={workout.workout?.title || 'Untitled Workout'}
+                  description={workout.workout?.description || ''}
+                  type={workout.workout?.workout_type as any}
+                  groupMembers={allGroupMembers}
+                  currentUserId={user?.id || ''}
+                  onStartWorkout={handleStartWorkout}
+                  completed={true}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>

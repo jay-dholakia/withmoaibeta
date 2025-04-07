@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -6,34 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Filter, ChevronDown, Trophy, PlusCircle } from 'lucide-react';
+import { Loader2, Filter, ChevronDown, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { WorkoutCard } from './WorkoutCard';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { fetchCurrentProgram } from '@/services/program-service';
 import { ProgramProgressSection } from './ProgramProgressSection';
-
-// Mock data for group members - replace with actual data fetching in production
-const MOCK_GROUP_MEMBERS = [
-  {
-    id: '1',
-    name: 'Alex Kim',
-    profile_picture_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
-    completed_workout_ids: ['workout1', 'workout3']
-  },
-  {
-    id: '2',
-    name: 'Jordan Lee',
-    profile_picture_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan',
-    completed_workout_ids: ['workout2']
-  },
-  {
-    id: '3',
-    name: 'Taylor Park',
-    profile_picture_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Taylor',
-    completed_workout_ids: ['workout1', 'workout2']
-  }
-];
+import { fetchGroupMembers, GroupMember } from '@/services/group-member-service';
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
@@ -47,6 +25,7 @@ const WorkoutsList = () => {
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const selectRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,6 +42,16 @@ const WorkoutsList = () => {
         console.log("WorkoutsList: Loading assigned workouts for user:", user.id);
         setIsLoading(true);
         setError(null);
+        
+        // Load group members first
+        try {
+          const members = await fetchGroupMembers(user.id);
+          console.log("WorkoutsList: Group members loaded:", members.length);
+          setGroupMembers(members);
+        } catch (groupError) {
+          console.error('WorkoutsList: Error loading group members:', groupError);
+          // Continue even if group members fail to load
+        }
         
         let program = null;
         try {
@@ -206,7 +195,6 @@ const WorkoutsList = () => {
     };
   }, [closeSelectDropdown]);
 
-  // Separate completed and pending workouts
   const pendingWorkouts = filteredWorkouts.filter(workout => !workout.completed_at);
   const completedWorkouts = filteredWorkouts.filter(workout => !!workout.completed_at);
 
@@ -230,16 +218,17 @@ const WorkoutsList = () => {
     );
   }
 
-  // Add the current user to the mock group members
-  const allGroupMembers = [
-    ...MOCK_GROUP_MEMBERS,
-    {
-      id: user?.id || '',
-      name: user?.displayName || user?.email || 'You', // Fixed: Use displayName or email instead of name
-      profile_picture_url: user?.photoURL || 'https://api.dicebear.com/7.x/avataaars/svg?seed=You', // Fixed: Use photoURL instead of avatar_url
-      completed_workout_ids: completedWorkouts.map(w => w.id)
-    }
-  ];
+  const allGroupMembers = groupMembers.some(member => member.id === user?.id)
+    ? groupMembers
+    : [
+        ...groupMembers,
+        {
+          id: user?.id || '',
+          name: user?.email?.split('@')[0] || 'You',
+          profile_picture_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'You'}`,
+          completed_workout_ids: completedWorkouts.map(w => w.id)
+        }
+      ];
 
   return (
     <div className="space-y-6">
@@ -297,7 +286,6 @@ const WorkoutsList = () => {
           </div>
         )}
         
-        {/* Pending Workouts Section */}
         <div>
           <h3 className="text-lg font-semibold mb-3">Pending Workouts</h3>
           {pendingWorkouts.length === 0 ? (
@@ -327,7 +315,6 @@ const WorkoutsList = () => {
           )}
         </div>
         
-        {/* Completed Workouts Section */}
         {completedWorkouts.length > 0 && (
           <div className="mt-8">
             <h3 className="text-lg font-semibold mb-3">Completed Workouts</h3>

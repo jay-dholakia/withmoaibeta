@@ -77,7 +77,7 @@ function App() {
         <Route path="workouts/:programId/create-week" element={<CreateWorkoutWeekPage />} />
         <Route path="workouts/assign" element={<AssignProgramPage />} />
         <Route path="workouts/week/:weekId" element={<WorkoutWeekDetailPage />} />
-        <Route path="workouts/:workoutId/edit" element={<EditWorkoutPage />} />
+        <Route path="workouts/workout/:workoutId/edit" element={<EditWorkoutPage />} />
         <Route path="workout-templates" element={<StandaloneWorkoutsPage />} />
       </Route>
 

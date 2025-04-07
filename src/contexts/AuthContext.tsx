@@ -33,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userType, setUserType] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
   const [unmounted, setUnmounted] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Helper function to safely update state only if component is still mounted
@@ -61,6 +62,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Clear the timeout since we received an auth event
         clearTimeout(loadingTimeout);
+        
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed successfully');
+          setAuthError(null);
+        }
+        
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out - clearing auth state');
+          safeSetState(setSession, null);
+          safeSetState(setUser, null);
+          safeSetState(setProfile, null);
+          safeSetState(setUserType, null);
+          safeSetState(setLoading, false);
+          return;
+        }
         
         safeSetState(setSession, session);
         safeSetState(setUser, session?.user ?? null);
@@ -98,7 +114,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Then check for existing session
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setAuthError('Failed to retrieve session');
+          safeSetState(setLoading, false);
+          return;
+        }
+        
         console.log('Initial session check:', session?.user?.id);
         
         if (!unmounted) {
@@ -135,6 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error('Error checking session:', error);
+        setAuthError('Failed to initialize authentication');
         safeSetState(setLoading, false); // Always ensure loading is reset on error
       }
     };
@@ -206,17 +231,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const handleAuthError = (error: any) => {
+    console.error('Authentication error:', error);
+    
+    // Handle specific error cases
+    if (error.message?.includes("Invalid Refresh Token")) {
+      setAuthError('Your session has expired. Please sign in again.');
+      toast.error('Your session has expired. Please sign in again.');
+      // Force sign out to clear any problematic tokens
+      supabase.auth.signOut().catch(e => console.error('Error during forced sign-out:', e));
+      navigate('/');
+    } else {
+      toast.error(error.message || 'An authentication error occurred');
+    }
+    
+    safeSetState(setLoading, false);
+  };
+
   const signIn = async (email: string, password: string, userType: UserType) => {
     try {
       console.log(`Attempting to sign in with email: ${email} and userType: ${userType}`);
       safeSetState(setLoading, true);
+      setAuthError(null);
       
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
-        console.error('Sign in error:', error.message);
-        toast.error(error.message);
-        safeSetState(setLoading, false); // Explicit reset on error
+        handleAuthError(error);
         return;
       }
       
@@ -236,15 +277,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         safeSetState(setLoading, false);
       }, 2000);
     } catch (error) {
-      console.error('Error in signIn:', error);
-      toast.error('An unexpected error occurred');
-      safeSetState(setLoading, false); // Always reset loading on error
+      handleAuthError(error);
     }
   };
 
   const signUp = async (email: string, password: string, userType: UserType) => {
     try {
       safeSetState(setLoading, true);
+      setAuthError(null);
+      
       const { data, error } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -256,24 +297,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
-        toast.error(error.message);
-        safeSetState(setLoading, false);
+        handleAuthError(error);
         return;
       }
       
       toast.success('Registration successful! Please check your email to confirm your account.');
       safeSetState(setLoading, false);
     } catch (error) {
-      console.error('Error in signUp:', error);
-      toast.error('An unexpected error occurred');
-      safeSetState(setLoading, false);
+      handleAuthError(error);
     }
   };
 
   const signOut = async () => {
     try {
       safeSetState(setLoading, true);
-      await supabase.auth.signOut();
+      setAuthError(null);
+      
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        handleAuthError(error);
+        return;
+      }
       
       // Reset all auth state immediately rather than waiting for the listener
       safeSetState(setSession, null);
@@ -286,9 +331,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       safeSetState(setLoading, false);
     } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error('An error occurred while logging out');
-      safeSetState(setLoading, false); // Always reset loading on error
+      handleAuthError(error);
     }
   };
 
@@ -305,6 +348,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading
       }}
     >
+      {authError && !user && (
+        <div className="fixed top-4 right-4 z-50 bg-destructive text-destructive-foreground px-4 py-2 rounded shadow-md">
+          {authError}
+          <button 
+            className="ml-2 font-bold"
+            onClick={() => {
+              setAuthError(null);
+              navigate('/');
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
       {children}
     </AuthContext.Provider>
   );

@@ -24,12 +24,17 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
     const fetchAssignmentCounts = async () => {
       if (programs.length === 0) return;
       
-      // Extract all program IDs
-      const programIds = programs.map(program => program.id);
-      
-      // Fetch counts for all programs at once
-      const counts = await getWorkoutProgramAssignmentCount(programIds);
-      setAssignmentCounts(counts);
+      try {
+        // Extract all program IDs
+        const programIds = programs.map(program => program.id);
+        
+        // Fetch counts for all programs at once
+        const counts = await getWorkoutProgramAssignmentCount(programIds);
+        setAssignmentCounts(counts || {});
+      } catch (error) {
+        console.error('Error fetching assignment counts:', error);
+        setAssignmentCounts({});
+      }
     };
 
     if (programs.length > 0) {

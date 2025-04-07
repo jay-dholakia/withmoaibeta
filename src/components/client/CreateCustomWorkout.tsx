@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
@@ -113,7 +112,6 @@ const CreateCustomWorkout = () => {
         workout_type: workoutType
       });
       
-      // Only save exercises if there are any
       if (exercises.length > 0) {
         const exercisePromises = exercises.map((ex, index) => {
           const isCardio = ex.exercise 

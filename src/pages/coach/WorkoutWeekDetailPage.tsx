@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 interface RouteParams {
+  [key: string]: string;
   weekId: string;
 }
 
@@ -107,7 +108,6 @@ const WorkoutWeekDetailPage = () => {
 
   const handleCreateWorkout = async (data: any) => {
     try {
-      // Ensure workout_type is properly typed
       const workoutType = data.workout_type === 'strength' || data.workout_type === 'cardio' || 
                           data.workout_type === 'mobility' || data.workout_type === 'flexibility' 
                           ? data.workout_type 
@@ -133,7 +133,6 @@ const WorkoutWeekDetailPage = () => {
 
   const handleUpdateWorkout = async (workoutId: string, data: any) => {
     try {
-      // Ensure workout_type is properly typed
       const workoutType = data.workout_type === 'strength' || data.workout_type === 'cardio' || 
                           data.workout_type === 'mobility' || data.workout_type === 'flexibility' 
                           ? data.workout_type 
@@ -321,7 +320,6 @@ const WorkoutWeekDetailPage = () => {
           </CardContent>
         </Card>
 
-        {/* Create/Edit Workout Modal */}
         {isWorkoutModalOpen || editWorkoutId ? (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
             <Card className="max-w-md w-full">
@@ -344,7 +342,6 @@ const WorkoutWeekDetailPage = () => {
           </div>
         ) : null}
 
-        {/* Delete Workout Alert Dialog */}
         <AlertDialog open={deleteWorkoutId !== null} onOpenChange={(open) => !open && setDeleteWorkoutId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>

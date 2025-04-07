@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Exercise } from '@/types/workout';
 import { fetchExercisesByCategory } from '@/services/workout-service';
@@ -9,9 +10,21 @@ import { Search, Loader2 } from 'lucide-react';
 interface ExerciseSelectorProps {
   onSelectExercise: (exercise: Exercise) => void;
   excludeIds?: string[];
+  buttonText?: string;
+  // Add optional props for StandaloneWorkoutForm and WorkoutDayForm
+  onSelect?: (exerciseId: string, data: any) => Promise<void>;
+  onCancel?: () => void;
+  isSubmitting?: boolean;
 }
 
-export const ExerciseSelector = ({ onSelectExercise, excludeIds = [] }: ExerciseSelectorProps) => {
+export const ExerciseSelector = ({ 
+  onSelectExercise, 
+  excludeIds = [], 
+  buttonText,
+  onSelect,
+  onCancel,
+  isSubmitting
+}: ExerciseSelectorProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -137,6 +150,25 @@ export const ExerciseSelector = ({ onSelectExercise, excludeIds = [] }: Exercise
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Add buttons for the onSelect/onCancel flow */}
+      {onSelect && onCancel && (
+        <div className="mt-4 flex justify-end space-x-2">
+          <Button 
+            variant="ghost" 
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          {/* This button would be used in some implementation */}
+          {buttonText && (
+            <Button disabled={isSubmitting}>
+              {isSubmitting ? 'Processing...' : buttonText}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

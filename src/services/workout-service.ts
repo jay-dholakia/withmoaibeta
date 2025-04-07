@@ -1,5 +1,5 @@
-
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
+import { WorkoutProgram, WorkoutWeek, Workout, Exercise, StandaloneWorkout } from '@/types/workout';
 
 /**
  * Fetches all clients
@@ -1120,20 +1120,46 @@ export const createExercise = async (exerciseData: {
 /**
  * Gets the count of program assignments
  */
-export const getWorkoutProgramAssignmentCount = async (programId: string) => {
+export const getWorkoutProgramAssignmentCount = async (programIds: string[]): Promise<Record<string, number>> => {
   try {
-    const { count, error } = await supabase
-      .from('program_assignments')
-      .select('id', { count: 'exact', head: true })
-      .eq('program_id', programId);
-    
-    if (error) {
-      throw error;
+    if (!programIds || programIds.length === 0) {
+      return {};
     }
-    
-    return count || 0;
-  } catch (error) {
-    console.error('Error getting program assignment count:', error);
-    return 0;
+
+    const { data, error } = await supabase
+      .from('program_assignments')
+      .select('program_id, count')
+      .in('program_id', programIds)
+      .select('program_id')
+      .then(result => {
+        const counts: Record<string, number> = {};
+        
+        // Initialize all program IDs with 0 count
+        programIds.forEach(id => {
+          counts[id] = 0;
+        });
+        
+        // Update counts for programs that have assignments
+        if (result.data) {
+          result.data.forEach(row => {
+            if (!counts[row.program_id]) {
+              counts[row.program_id] = 0;
+            }
+            counts[row.program_id]++;
+          });
+        }
+        
+        return { data: counts, error: result.error };
+      });
+
+    if (error) {
+      console.error('Error fetching program assignment counts:', error);
+      return {};
+    }
+
+    return data;
+  } catch (err) {
+    console.error('Error in getWorkoutProgramAssignmentCount:', err);
+    return {};
   }
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +25,8 @@ import {
 } from '@/services/workout-service';
 import { Exercise } from '@/types/workout';
 
+type WorkoutDayFormWorkoutType = "cardio" | "strength" | "mobility" | "flexibility";
+
 interface WorkoutDayFormProps {
   weekId: string;
   workoutId?: string;
@@ -44,7 +45,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dayOfWeek, setDayOfWeek] = useState(0);
-  const [workoutType, setWorkoutType] = useState<WorkoutType>('strength');
+  const [workoutType, setWorkoutType] = useState<WorkoutDayFormWorkoutType>('strength');
   const [priority, setPriority] = useState(0);
   const [workoutCount, setWorkoutCount] = useState(0);
   
@@ -59,7 +60,6 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       loadWorkoutDetails();
     }
     
-    // Load all workouts for the week to determine the count
     const loadWeekWorkouts = async () => {
       try {
         const workouts = await fetchWorkouts(weekId);
@@ -88,13 +88,9 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
         const normalizedType = workout.workout_type.toLowerCase();
         
         if (normalizedType.includes('strength')) setWorkoutType('strength');
-        else if (normalizedType.includes('body') || normalizedType.includes('weight')) setWorkoutType('bodyweight');
-        else if (normalizedType.includes('cardio') || normalizedType.includes('hiit')) setWorkoutType('cardio');
-        else if (normalizedType.includes('flex') || normalizedType.includes('yoga') || 
-                normalizedType.includes('recovery')) setWorkoutType('flexibility');
-        else if (normalizedType.includes('rest')) setWorkoutType('rest_day');
-        else if (normalizedType.includes('custom')) setWorkoutType('custom');
-        else if (normalizedType.includes('one')) setWorkoutType('one_off');
+        else if (normalizedType.includes('cardio')) setWorkoutType('cardio');
+        else if (normalizedType.includes('flex') || normalizedType.includes('yoga')) setWorkoutType('flexibility');
+        else if (normalizedType.includes('mobil')) setWorkoutType('mobility');
         else setWorkoutType('strength');
       }
       
@@ -115,17 +111,13 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     }
   };
 
-  // Generate priority options based on workout count
   const generatePriorityOptions = () => {
-    // Get the adjusted count (original count in edit mode, or original count + 1 in create mode)
     const adjustedCount = isEdit ? workoutCount : workoutCount + 1;
     
-    // Start with default option
     const options = [
       <SelectItem key="0" value="0">Default (0)</SelectItem>
     ];
     
-    // Add numbered options from 1 to workout count
     for (let i = 1; i <= adjustedCount; i++) {
       options.push(
         <SelectItem key={i} value={i.toString()}>
@@ -358,24 +350,17 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           <Select 
             value={workoutType} 
             onValueChange={(value: string) => {
-              setWorkoutType(value as WorkoutType);
+              setWorkoutType(value as WorkoutDayFormWorkoutType);
             }}
           >
             <SelectTrigger id="type">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
-              {WORKOUT_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  <div className="flex items-center gap-2">
-                    {typeof type.icon === 'string' ? 
-                      <span>{type.icon}</span> : 
-                      type.icon
-                    }
-                    <span>{type.label}</span>
-                  </div>
-                </SelectItem>
-              ))}
+              <SelectItem value="strength">Strength</SelectItem>
+              <SelectItem value="cardio">Cardio</SelectItem>
+              <SelectItem value="flexibility">Flexibility</SelectItem>
+              <SelectItem value="mobility">Mobility</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -409,10 +394,10 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
               </CardHeader>
               <CardContent>
                 <ExerciseSelector
+                  onSelectExercise={handleSelectExercise}
                   onSelect={handleAddExercise}
                   onCancel={() => setIsAddingExercise(false)}
                   isSubmitting={isSubmitting}
-                  onSelectExercise={handleSelectExercise}
                 />
               </CardContent>
             </Card>
@@ -486,7 +471,6 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
                 ))}
               </div>
               
-              {/* Save button moved outside the cards list */}
               <div className="flex justify-end mt-4">
                 <Button 
                   type="button" 

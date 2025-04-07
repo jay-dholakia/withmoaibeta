@@ -360,10 +360,10 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
               </CardHeader>
               <CardContent>
                 <ExerciseSelector
+                  onSelectExercise={handleSelectExercise}
                   onSelect={handleAddExercise}
                   onCancel={() => setIsAddingExercise(false)}
                   isSubmitting={isSubmitting}
-                  onSelectExercise={handleSelectExercise}
                 />
               </CardContent>
             </Card>

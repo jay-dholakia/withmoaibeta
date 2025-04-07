@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -54,7 +53,6 @@ const WorkoutHistoryTab = () => {
     enabled: !!user?.id,
   });
 
-  // Fetch recent activities (last 7 days) when the component mounts or refreshKey changes
   useEffect(() => {
     const fetchRecentActivities = async () => {
       if (!user?.id) return;

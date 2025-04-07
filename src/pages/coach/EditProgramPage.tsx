@@ -25,12 +25,12 @@ const EditProgramPage = () => {
         if (data) {
           setProgram(data);
         } else {
-          toast.error('Program not found');
+          toast.error('Program not found. It may have been deleted or you may not have permission to view it.');
           navigate('/coach-dashboard/workouts');
         }
       } catch (error) {
         console.error('Error fetching program:', error);
-        toast.error('Failed to load program');
+        toast.error('Failed to load program details');
         navigate('/coach-dashboard/workouts');
       } finally {
         setIsLoading(false);

@@ -171,9 +171,10 @@ export const fetchWorkoutProgram = async (programId: string) => {
       .from('workout_programs')
       .select('*')
       .eq('id', programId)
-      .single();
+      .maybeSingle();
     
     if (error) {
+      console.error('Error fetching workout program:', error);
       throw error;
     }
     

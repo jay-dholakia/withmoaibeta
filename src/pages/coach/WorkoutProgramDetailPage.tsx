@@ -49,7 +49,7 @@ const WorkoutProgramDetailPage = () => {
         console.log("Program data received:", programData);
         
         if (!programData) {
-          console.error("Program data is null or undefined");
+          console.error("Program not found");
           setError("Program not found or you don't have access to it");
           setIsLoading(false);
           return;

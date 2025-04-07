@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Filter, ChevronDown, ChevronUp, Play, Trophy } from 'lucide-react';
+import { Loader2, Filter, ChevronDown, ChevronUp, Play, Trophy, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
   Accordion,

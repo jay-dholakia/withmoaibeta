@@ -96,6 +96,8 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
   const { data: members, isLoading: isLoadingMembers } = useQuery({
     queryKey: ['moai-members', groupId],
     queryFn: async () => {
+      console.log("Fetching members for group:", groupId);
+      
       const { data: groupMembers, error: membersError } = await supabase
         .from('group_members')
         .select('user_id')
@@ -106,6 +108,12 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
         throw membersError;
       }
       
+      console.log("Found group members:", groupMembers);
+      
+      if (!groupMembers || groupMembers.length === 0) {
+        return [];
+      }
+      
       const memberData = await Promise.all(
         groupMembers.map(async (member) => {
           try {
@@ -114,6 +122,8 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
               .select('first_name, last_name, avatar_url')
               .eq('id', member.user_id)
               .maybeSingle();
+              
+            console.log(`Profile for ${member.user_id}:`, profile);
               
             const email = `user_${member.user_id.substring(0, 8)}@example.com`;
             
@@ -134,8 +144,10 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
         })
       );
       
+      console.log("Processed member data:", memberData);
       return memberData;
-    }
+    },
+    staleTime: 60000 // 1 minute
   });
   
   const { data: memberProfile, isLoading: isLoadingProfile } = useQuery({

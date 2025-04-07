@@ -30,6 +30,7 @@ export default function MoaiPage() {
         .single();
       
       if (error) throw error;
+      console.log("Fetched group data:", data);
       return data;
     },
     enabled: !!groupId,
@@ -62,6 +63,14 @@ export default function MoaiPage() {
     );
   }
   
+  if (!groupId) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-muted-foreground">No group selected.</p>
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-6">
       {currentProgram?.program && (
@@ -76,7 +85,7 @@ export default function MoaiPage() {
       
       <Card>
         <CardContent className="p-0">
-          <Tabs defaultValue="progress" className="w-full">
+          <Tabs defaultValue="members" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="progress">Progress</TabsTrigger>
               <TabsTrigger value="members">Members</TabsTrigger>

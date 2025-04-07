@@ -658,6 +658,18 @@ export const deleteWorkoutExercise = async (id: string): Promise<boolean> => {
  */
 export const fetchAllClients = async () => {
   try {
+    // Define an interface for the client profiles data structure
+    interface ClientProfileData {
+      first_name: string | null;
+      last_name: string | null;
+    }
+
+    interface ClientQueryResult {
+      id: string;
+      user_type: string;
+      client_profiles: ClientProfileData[] | null;
+    }
+
     const { data, error } = await supabase
       .from('profiles')
       .select(`
@@ -687,15 +699,16 @@ export const fetchAllClients = async () => {
 
     // Merge profile data with emails
     const clientsWithEmail = data.map(client => {
-      const emailInfo = emailData?.find(e => e.id === client.id);
-      const profileData = client.client_profiles?.[0] || {};
+      const typedClient = client as unknown as ClientQueryResult;
+      const emailInfo = emailData?.find(e => e.id === typedClient.id);
+      const profileData = typedClient.client_profiles?.[0] || { first_name: null, last_name: null };
       
       return {
-        id: client.id,
+        id: typedClient.id,
         email: emailInfo?.email || 'No email',
-        user_type: client.user_type,
-        first_name: profileData?.first_name || null,
-        last_name: profileData?.last_name || null
+        user_type: typedClient.user_type,
+        first_name: profileData.first_name || null,
+        last_name: profileData.last_name || null
       };
     });
 

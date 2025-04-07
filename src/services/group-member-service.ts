@@ -9,6 +9,23 @@ export interface GroupMember {
   completed_workout_ids: string[];
 }
 
+// Define interfaces for the raw data returned from Supabase
+interface RawGroupMember {
+  user_id: string;
+  client_profiles?: {
+    first_name?: string | null;
+    last_name?: string | null;
+    avatar_url?: string | null;
+  } | null;
+}
+
+interface WorkoutCompletion {
+  id: string;
+  user_id: string;
+  workout_id: string;
+  completed_at: string;
+}
+
 /**
  * Fetches group members for the current user's group
  */
@@ -44,18 +61,14 @@ export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> 
       .from('group_members')
       .select(`
         user_id,
-        profiles:user_id (
-          id,
-          user_type
-        ),
         client_profiles:user_id (
-          id,
           first_name,
           last_name,
           avatar_url
         )
       `)
-      .in('group_id', groupIds);
+      .in('group_id', groupIds)
+      .returns<RawGroupMember[]>();
       
     if (membersError) {
       console.error("Error fetching group members:", membersError);
@@ -70,7 +83,8 @@ export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> 
       .from('workout_completions')
       .select('id, user_id, workout_id, completed_at')
       .in('user_id', memberIds)
-      .not('completed_at', 'is', null);
+      .not('completed_at', 'is', null)
+      .returns<WorkoutCompletion[]>();
       
     if (completionsError) {
       console.error("Error fetching workout completions:", completionsError);
@@ -84,10 +98,10 @@ export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> 
         .filter(completion => completion.user_id === member.user_id && completion.workout_id)
         .map(completion => completion.workout_id);
         
-      // TypeScript fix: Explicitly define profile with proper interface
+      // Handle null/undefined profile safely
       const profile = member.client_profiles || {};
       
-      // Use optional chaining and nullish coalescing for safer access
+      // Use nullish coalescing for safer access
       const firstName = profile.first_name ?? '';
       const lastName = profile.last_name ?? '';
       const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Unknown User';
@@ -95,7 +109,7 @@ export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> 
       return {
         id: member.user_id,
         name: fullName,
-        profile_picture_url: profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.user_id}`,
+        profile_picture_url: profile.avatar_url ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.user_id}`,
         completed_workout_ids: completedWorkoutIds
       };
     });

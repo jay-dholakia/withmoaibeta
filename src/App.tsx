@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   Route,
   Routes,
@@ -21,17 +21,22 @@ import CoachLogin from './pages/CoachLogin';
 import NotFound from './pages/NotFound';
 
 function App() {
-  const { user, userType, loading: authInitialized } = useAuth();
+  const { user, userType, loading } = useAuth();
+  console.log("App: Rendering with auth state:", { user: user?.id, userType, loading });
   
   // Show a loading indicator while the auth state is being initialized
-  if (!authInitialized) {
+  if (loading) {
+    console.log("App: Still initializing auth state...");
     return (
       <div className="flex justify-center items-center h-screen">
         <span className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></span>
+        <span className="ml-3">Loading authentication...</span>
       </div>
     );
   }
 
+  console.log("App: Auth initialized, setting up routes");
+  
   return (
     <Routes>
       {/* Public Routes */}

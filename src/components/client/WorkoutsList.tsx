@@ -17,6 +17,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { fetchCurrentProgram } from '@/services/program-service';
 
 const WorkoutsList = () => {
+  console.log("WorkoutsList: Component rendering");
+  
   const { user } = useAuth();
   const navigate = useNavigate();
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
@@ -42,50 +44,43 @@ const WorkoutsList = () => {
 
   useEffect(() => {
     const loadWorkoutsAndProgram = async () => {
+      console.log("WorkoutsList: Loading workouts and program");
       if (!user || !user.id) {
-        console.error("Cannot load workouts: User or user ID is missing", user);
+        console.error("WorkoutsList: Cannot load workouts - User or user ID is missing", { user });
         setError('User not authenticated properly. Please try logging in again.');
         setIsLoading(false);
         return;
       }
       
       try {
-        console.log("Loading assigned workouts for user:", user.id);
+        console.log("WorkoutsList: Loading assigned workouts for user:", user.id);
         setIsLoading(true);
         setError(null);
         
         // Fetch program information first
         let program = null;
         try {
+          console.log("WorkoutsList: Fetching current program");
           program = await fetchCurrentProgram(user.id);
+          console.log("WorkoutsList: Program data received:", program);
         } catch (programError) {
-          console.error('Error loading program:', programError);
+          console.error('WorkoutsList: Error loading program:', programError);
           // Continue even if program fails to load
         }
         
         let assignedWorkouts: WorkoutHistoryItem[] = [];
         try {
+          console.log("WorkoutsList: Calling fetchAssignedWorkouts");
           assignedWorkouts = await fetchAssignedWorkouts(user.id);
+          console.log("WorkoutsList: Assigned workouts loaded:", assignedWorkouts.length);
         } catch (workoutsError) {
-          console.error('Error loading assigned workouts:', workoutsError);
+          console.error('WorkoutsList: Error loading assigned workouts:', workoutsError);
           throw workoutsError; // Rethrow to be caught by outer catch
         }
         
-        console.log("Current user email:", user.email);
-        console.log("Program data received:", program);
-        if (program && program.program) {
-          console.log("Program title:", program.program.title);
-          console.log("Program description:", program.program.description || "No description");
-          console.log("Program weeks data:", program.program.weekData);
-        } else {
-          console.log("No program assigned to this user or program data is incomplete");
-        }
-        
-        console.log("Assigned workouts loaded:", assignedWorkouts.length);
-        
         // Filter out completed workouts here
         const pendingWorkouts = assignedWorkouts.filter(workout => !workout.completed_at);
-        console.log("Pending workouts (not completed):", pendingWorkouts.length);
+        console.log("WorkoutsList: Pending workouts (not completed):", pendingWorkouts.length);
         
         setCurrentProgram(program);
         setWorkouts(pendingWorkouts);
@@ -127,7 +122,7 @@ const WorkoutsList = () => {
         });
         
         const extractedWeeks = Array.from(weeksSet);
-        console.log("Debug - Extracted week numbers:", extractedWeeks);
+        console.log("WorkoutsList: Extracted week numbers:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
         // Set initial week filter to current week if available, otherwise use the most recent week
@@ -147,18 +142,19 @@ const WorkoutsList = () => {
           // Use current week if it exists, otherwise use the first week
           const weekExists = sortedWeeks.includes(currentWeekNumber);
           const initialWeek = weekExists ? currentWeekNumber : sortedWeeks[0];
-          console.log(`Setting initial week filter to ${weekExists ? 'current' : 'first available'} week: ${initialWeek}`);
+          console.log(`WorkoutsList: Setting initial week filter to ${weekExists ? 'current' : 'first available'} week: ${initialWeek}`);
           
           // Set the week filter after component is mounted
           setTimeout(() => {
             setWeekFilter(initialWeek.toString());
           }, 0);
         }
+        
+        setIsLoading(false);
       } catch (error) {
-        console.error('Error loading workouts:', error);
+        console.error('WorkoutsList: Error loading workouts:', error);
         setError('Failed to load your assigned workouts');
         toast.error('There was a problem loading your workouts');
-      } finally {
         setIsLoading(false);
       }
     };

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Navigate, Routes, Route } from 'react-router-dom';
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { ClientLayout } from '@/layouts/ClientLayout';
 import WorkoutsPage from './WorkoutsPage';
 import MoaiPage from './MoaiPage';
@@ -10,7 +10,8 @@ import NotesPage from './NotesPage';
 import ProfileEditor from './ProfileEditor';
 
 const ClientDashboard = () => {
-  console.log("ClientDashboard component rendering with path:", window.location.pathname);
+  const location = useLocation();
+  console.log("ClientDashboard: Rendering with path:", location.pathname);
   
   return (
     <ClientLayout>

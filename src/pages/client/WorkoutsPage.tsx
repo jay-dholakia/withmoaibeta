@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
 import ActiveWorkout from '@/components/client/ActiveWorkout';
 import WorkoutComplete from '@/components/client/WorkoutComplete';
@@ -34,7 +35,7 @@ const WorkoutsPage = () => {
   const location = useLocation();
   const { user } = useAuth();
   
-  console.log("WorkoutsPage component rendering");
+  console.log("WorkoutsPage: Component rendering with path:", location.pathname);
   
   const isMainWorkoutsPage = location.pathname === "/client-dashboard/workouts";
   
@@ -73,8 +74,10 @@ const WorkoutsPage = () => {
   };
 
   useEffect(() => {
-    console.log("Auth state changed in WorkoutsPage, user:", user?.id);
+    console.log("WorkoutsPage: Auth state changed, user:", user?.id);
   }, [user]);
+  
+  console.log("WorkoutsPage: About to render routes");
   
   return (
     <div className="w-full">
@@ -93,10 +96,12 @@ const WorkoutsPage = () => {
             </TabsList>
             
             <TabsContent value="active-workouts">
+              {console.log("WorkoutsPage: Rendering WorkoutsList component")}
               <WorkoutsList />
             </TabsContent>
             
             <TabsContent value="history">
+              {console.log("WorkoutsPage: Rendering WorkoutHistoryTab component")}
               <WorkoutHistoryTab />
             </TabsContent>
           </Tabs>

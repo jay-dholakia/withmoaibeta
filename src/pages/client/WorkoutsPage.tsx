@@ -96,12 +96,12 @@ const WorkoutsPage = () => {
             </TabsList>
             
             <TabsContent value="active-workouts">
-              {console.log("WorkoutsPage: Rendering WorkoutsList component")}
+              {/* Debug log moved out of JSX rendering */}
               <WorkoutsList />
             </TabsContent>
             
             <TabsContent value="history">
-              {console.log("WorkoutsPage: Rendering WorkoutHistoryTab component")}
+              {/* Debug log moved out of JSX rendering */}
               <WorkoutHistoryTab />
             </TabsContent>
           </Tabs>

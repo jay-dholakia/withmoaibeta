@@ -1,7 +1,6 @@
 
 import React, { useEffect } from 'react';
 import {
-  BrowserRouter as Router,
   Route,
   Routes,
   Navigate
@@ -34,36 +33,34 @@ function App() {
   }
 
   return (
-    <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Navigate to="/coach-dashboard" />} />
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<Navigate to="/coach-dashboard" />} />
 
-        {/* Client Routes */}
-        <Route path="/client-dashboard" element={<RequireAuth allowedUserTypes={['client']} />}>
-          <Route index element={<ClientDashboard />} />
-          {/* Add more client routes when pages are available */}
-        </Route>
+      {/* Client Routes */}
+      <Route path="/client-dashboard" element={<RequireAuth allowedUserTypes={['client']} />}>
+        <Route index element={<ClientDashboard />} />
+        {/* Add more client routes when pages are available */}
+      </Route>
 
-        {/* Coach Routes */}
-        <Route path="/coach-dashboard" element={<RequireAuth allowedUserTypes={['coach']} />}>
-          <Route index element={<CoachDashboard />} />
-          <Route path="clients" element={<ClientsPage />} />
-          {/* Replace ClientProfilePage with a redirect to ClientsPage until implemented */}
-          <Route path="clients/:clientId" element={<Navigate to="/coach-dashboard/clients" />} />
-          <Route path="workouts" element={<WorkoutProgramsPage />} />
-          <Route path="workouts/create" element={<CreateWorkoutProgramPage />} />
-          <Route path="workouts/:programId" element={<WorkoutProgramDetailPage />} />
-          <Route path="workouts/:programId/edit" element={<EditProgramPage />} />
-          <Route path="workouts/:programId/assign" element={<AssignProgramPage />} />
-          <Route path="workouts/assign" element={<AssignProgramPage />} />
-          <Route path="workout-templates" element={<StandaloneWorkoutsPage />} />
-        </Route>
+      {/* Coach Routes */}
+      <Route path="/coach-dashboard" element={<RequireAuth allowedUserTypes={['coach']} />}>
+        <Route index element={<CoachDashboard />} />
+        <Route path="clients" element={<ClientsPage />} />
+        {/* Replace ClientProfilePage with a redirect to ClientsPage until implemented */}
+        <Route path="clients/:clientId" element={<Navigate to="/coach-dashboard/clients" />} />
+        <Route path="workouts" element={<WorkoutProgramsPage />} />
+        <Route path="workouts/create" element={<CreateWorkoutProgramPage />} />
+        <Route path="workouts/:programId" element={<WorkoutProgramDetailPage />} />
+        <Route path="workouts/:programId/edit" element={<EditProgramPage />} />
+        <Route path="workouts/:programId/assign" element={<AssignProgramPage />} />
+        <Route path="workouts/assign" element={<AssignProgramPage />} />
+        <Route path="workout-templates" element={<StandaloneWorkoutsPage />} />
+      </Route>
 
-        {/* Redirect all unknown routes to the coach dashboard */}
-        <Route path="*" element={<Navigate to="/coach-dashboard" />} />
-      </Routes>
-    </Router>
+      {/* Redirect all unknown routes to the coach dashboard */}
+      <Route path="*" element={<Navigate to="/coach-dashboard" />} />
+    </Routes>
   );
 }
 

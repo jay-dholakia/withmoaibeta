@@ -12,8 +12,7 @@ import {
   Edit,
   Trash2,
   LayoutTemplate,
-  Dumbbell,
-  Running
+  Dumbbell
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,7 +45,6 @@ const WorkoutProgramDetailPage = () => {
         console.log("Fetching program details for ID:", programId);
         setIsLoading(true);
         
-        // Fetch program data with error handling
         const programData = await fetchWorkoutProgram(programId);
         console.log("Program data received:", programData);
         
@@ -59,7 +57,6 @@ const WorkoutProgramDetailPage = () => {
         
         setProgram(programData);
         
-        // Fetch program weeks with error handling
         const weeksData = await fetchWorkoutWeeks(programId);
         console.log("Weeks data received:", weeksData);
         
@@ -138,7 +135,7 @@ const WorkoutProgramDetailPage = () => {
     );
   }
 
-  const ProgramTypeIcon = program.program_type === 'run' ? Running : Dumbbell;
+  const ProgramTypeIcon = program.program_type === 'run' ? '🏃' : <Dumbbell className="h-3.5 w-3.5" />;
 
   return (
     <CoachLayout>
@@ -158,7 +155,11 @@ const WorkoutProgramDetailPage = () => {
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold">{program.title}</h1>
               <Badge variant="outline" className="flex items-center gap-1">
-                <ProgramTypeIcon className="h-3.5 w-3.5" />
+                {typeof ProgramTypeIcon === 'string' ? (
+                  <span className="mr-1">{ProgramTypeIcon}</span>
+                ) : (
+                  ProgramTypeIcon
+                )}
                 <span>Moai {program.program_type === 'run' ? 'Run' : 'Strength'}</span>
               </Badge>
             </div>

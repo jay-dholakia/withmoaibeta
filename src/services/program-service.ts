@@ -179,6 +179,7 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
     // Return program with week data in the new format
     return {
       ...programData,
+      program_type: programData.program_type || 'strength', // Ensure program_type is defined
       weekData: weeksWithWorkouts
     };
   } catch (error) {

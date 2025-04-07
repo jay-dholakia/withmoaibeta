@@ -1,3 +1,4 @@
+
 export interface Exercise {
   id: string;
   name: string;
@@ -16,7 +17,7 @@ export interface WorkoutProgram {
   coach_id: string;
   created_at: string;
   updated_at: string;
-  program_type: string; // Added explicit program_type field
+  program_type: string; // Ensure this field exists
   // Add a field to store the actual weeks data when needed
   weekData?: WorkoutWeek[];
 }

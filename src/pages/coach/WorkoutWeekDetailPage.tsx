@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, Plus, Clock, Calendar, Dumbbell, Running } from 'lucide-react';
+import { ChevronLeft, Plus, Clock, Calendar, Dumbbell } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
   fetchWorkoutWeek,
@@ -111,7 +111,7 @@ const WorkoutWeekDetailPage = () => {
 
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const isProgramTypeRun = programData?.program_type === 'run';
-  const ProgramTypeIcon = isProgramTypeRun ? Running : Dumbbell;
+  const ProgramTypeIcon = isProgramTypeRun ? '🏃' : <Dumbbell className="h-3.5 w-3.5" />;
 
   return (
     <CoachLayout>
@@ -137,7 +137,11 @@ const WorkoutWeekDetailPage = () => {
                   </h1>
                   {programData && (
                     <Badge variant="outline" className="flex items-center gap-1">
-                      <ProgramTypeIcon className="h-3.5 w-3.5" />
+                      {typeof ProgramTypeIcon === 'string' ? (
+                        <span className="mr-1">{ProgramTypeIcon}</span>
+                      ) : (
+                        ProgramTypeIcon
+                      )}
                       <span>Moai {isProgramTypeRun ? 'Run' : 'Strength'}</span>
                     </Badge>
                   )}
@@ -180,7 +184,7 @@ const WorkoutWeekDetailPage = () => {
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <Running className="h-4 w-4" />
+                        <span role="img" aria-label="running">🏃</span>
                         Target Miles
                       </CardTitle>
                     </CardHeader>

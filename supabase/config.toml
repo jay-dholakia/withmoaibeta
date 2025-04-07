@@ -6,3 +6,7 @@ verify_jwt = true
 
 [functions.log_activity]
 verify_jwt = true
+
+[functions.get_weekly_progress]
+verify_jwt = true
+

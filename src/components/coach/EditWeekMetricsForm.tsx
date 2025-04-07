@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,29 +33,29 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
   const formSchema = z.object({
     target_miles_run: z.string()
       .optional()
-      .transform(val => val ? Number(val) : undefined),
+      .transform(val => val ? Number(val) : 0),
     target_cardio_minutes: z.string()
       .optional()
-      .transform(val => val ? Number(val) : undefined),
+      .transform(val => val ? Number(val) : 0),
     target_strength_workouts: z.string()
       .optional()
-      .transform(val => val ? Number(val) : undefined),
+      .transform(val => val ? Number(val) : 0),
     target_strength_mobility_workouts: z.string()
       .optional()
-      .transform(val => val ? Number(val) : undefined),
+      .transform(val => val ? Number(val) : 0),
   });
 
   // Define the form values type based on the schema
   type FormValues = z.infer<typeof formSchema>;
 
-  // Initialize the form with empty string values (removing defaults)
+  // Initialize the form with string values for inputs, but defaulted to "0" instead of empty strings
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      target_miles_run: initialData.target_miles_run !== undefined ? initialData.target_miles_run.toString() : '',
-      target_cardio_minutes: initialData.target_cardio_minutes !== undefined ? initialData.target_cardio_minutes.toString() : '',
-      target_strength_workouts: initialData.target_strength_workouts !== undefined ? initialData.target_strength_workouts.toString() : '',
-      target_strength_mobility_workouts: initialData.target_strength_mobility_workouts !== undefined ? initialData.target_strength_mobility_workouts.toString() : '',
+      target_miles_run: initialData.target_miles_run !== undefined ? initialData.target_miles_run.toString() : "0",
+      target_cardio_minutes: initialData.target_cardio_minutes !== undefined ? initialData.target_cardio_minutes.toString() : "0",
+      target_strength_workouts: initialData.target_strength_workouts !== undefined ? initialData.target_strength_workouts.toString() : "0",
+      target_strength_mobility_workouts: initialData.target_strength_mobility_workouts !== undefined ? initialData.target_strength_mobility_workouts.toString() : "0",
     },
   });
 

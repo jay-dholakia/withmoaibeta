@@ -16,17 +16,16 @@ export const RunningExerciseForm: React.FC<RunningExerciseFormProps> = ({
   duration,
   setDuration
 }) => {
-  // Helper function to format duration input
+  // Helper function to format distance input
+  const formatDistanceInput = (value: string): string => {
+    // Allow only numbers and decimal point
+    return value.replace(/[^\d.]/g, '');
+  };
+
+  // Helper function to format duration input as minutes
   const formatDurationInput = (value: string): string => {
-    let cleaned = value.replace(/[^\d:]/g, '');
-    
-    // Limit to maximum of 3 parts (hours:minutes:seconds)
-    const parts = cleaned.split(':');
-    if (parts.length > 3) {
-      cleaned = parts.slice(0, 3).join(':');
-    }
-    
-    return cleaned;
+    // Allow only numbers
+    return value.replace(/[^\d]/g, '');
   };
 
   return (
@@ -35,27 +34,28 @@ export const RunningExerciseForm: React.FC<RunningExerciseFormProps> = ({
         <Label htmlFor="distance" className="text-center block">Distance (miles)</Label>
         <Input
           id="distance"
-          type="number"
+          type="text"
+          inputMode="decimal"
           value={distance}
-          onChange={(e) => setDistance(e.target.value)}
+          onChange={(e) => setDistance(formatDistanceInput(e.target.value))}
           placeholder="3.1"
-          step="0.1"
-          min="0"
           className="w-full text-center"
         />
       </div>
       
       <div>
-        <Label htmlFor="duration" className="text-center block">Duration (hh:mm:ss)</Label>
+        <Label htmlFor="duration" className="text-center block">Duration (minutes)</Label>
         <Input
           id="duration"
+          type="text"
+          inputMode="numeric"
           value={duration}
           onChange={(e) => setDuration(formatDurationInput(e.target.value))}
-          placeholder="00:30:00"
+          placeholder="30"
           className="w-full text-center"
         />
         <p className="text-xs text-muted-foreground mt-1 text-center">
-          Format as hours:minutes:seconds (e.g., 00:30:00 for 30 minutes)
+          Enter total minutes (e.g., 30 for 30 minutes)
         </p>
       </div>
     </div>

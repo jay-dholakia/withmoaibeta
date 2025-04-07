@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -6,9 +7,10 @@ import WorkoutComplete from '@/components/client/WorkoutComplete';
 import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
 import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
+import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
 import { Button } from '@/components/ui/button';
 import { Armchair, ListTodo, History, Calendar as CalendarIcon, PlusCircle } from 'lucide-react';
-import { logRestDay } from '@/services/workout-history-service';
+import { logRestDay } from '@/services/activity-logging-service';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -51,9 +53,20 @@ const WorkoutsPage = () => {
   });
   
   const handleLogRestDay = () => {
-    logRestDay(restDate).then(() => {
-      toast.success("Rest day logged successfully!");
-      setShowRestDayDialog(false);
+    logRestDay({
+      log_date: restDate,
+      notes: "Rest day logged from workouts page"
+    }).then((result) => {
+      if (result) {
+        toast.success("Rest day logged successfully!");
+        setShowRestDayDialog(false);
+        
+        // Find the refresh button for workout history and click it if it exists
+        const refreshButton = document.getElementById("refresh-workout-history");
+        if (refreshButton) {
+          refreshButton.click();
+        }
+      }
     }).catch((error) => {
       console.error("Error logging rest day:", error);
       toast.error("Failed to log rest day");
@@ -86,23 +99,7 @@ const WorkoutsPage = () => {
             </TabsContent>
             
             <TabsContent value="history">
-              <div className="mb-2">
-                <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
-                  <Link to="/client-dashboard/workouts/one-off">
-                    <PlusCircle className="h-4 w-4" />
-                    Enter Custom Workout
-                  </Link>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full flex items-center justify-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
-                  onClick={() => setShowRestDayDialog(true)}
-                >
-                  <Armchair className="h-4 w-4" />
-                  Log Rest Day
-                </Button>
-              </div>
+              <WorkoutHistoryTab />
             </TabsContent>
           </Tabs>
         } />
@@ -118,7 +115,7 @@ const WorkoutsPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Armchair className="h-5 w-5 text-green-600" />
+              <Armchair className="h-5 w-5 text-amber-600" />
               <span>Log a Rest Day</span>
             </DialogTitle>
             <DialogDescription>
@@ -165,7 +162,7 @@ const WorkoutsPage = () => {
             </Button>
             <Button 
               onClick={handleLogRestDay}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-amber-600 hover:bg-amber-700"
             >
               Yes, Log My Rest Day
             </Button>

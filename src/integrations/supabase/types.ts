@@ -60,6 +60,47 @@ export type Database = {
         }
         Relationships: []
       }
+      cardio_logs: {
+        Row: {
+          activity_type: string
+          client_id: string
+          created_at: string
+          duration: number
+          id: string
+          log_date: string
+          notes: string | null
+          program_week_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          client_id: string
+          created_at?: string
+          duration: number
+          id?: string
+          log_date?: string
+          notes?: string | null
+          program_week_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          client_id?: string
+          created_at?: string
+          duration?: number
+          id?: string
+          log_date?: string
+          notes?: string | null
+          program_week_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cardio_logs_program_week_id_fkey"
+            columns: ["program_week_id"]
+            isOneToOne: false
+            referencedRelation: "program_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_custom_workout_exercises: {
         Row: {
           created_at: string
@@ -831,6 +872,85 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      rest_logs: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          log_date: string
+          notes: string | null
+          program_week_id: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          log_date?: string
+          notes?: string | null
+          program_week_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          log_date?: string
+          notes?: string | null
+          program_week_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rest_logs_program_week_id_fkey"
+            columns: ["program_week_id"]
+            isOneToOne: false
+            referencedRelation: "program_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      run_logs: {
+        Row: {
+          client_id: string
+          created_at: string
+          distance: number
+          duration: number
+          id: string
+          location: string | null
+          log_date: string
+          notes: string | null
+          program_week_id: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          distance: number
+          duration: number
+          id?: string
+          location?: string | null
+          log_date?: string
+          notes?: string | null
+          program_week_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          distance?: number
+          duration?: number
+          id?: string
+          location?: string | null
+          log_date?: string
+          notes?: string | null
+          program_week_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "run_logs_program_week_id_fkey"
+            columns: ["program_week_id"]
+            isOneToOne: false
+            referencedRelation: "program_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       standalone_superset_groups: {
         Row: {

@@ -18,7 +18,8 @@ export const fetchClientPrograms = async (clientId: string): Promise<any[]> => {
           id,
           title,
           description,
-          weeks
+          weeks,
+          program_type
         )
       `)
       .eq('user_id', clientId)
@@ -175,9 +176,10 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
       });
     }
     
-    // Return program with week data in the new format
+    // Return program with week data in the new format and ensure program_type is defined
     return {
       ...programData,
+      program_type: programData.program_type || 'strength', // Ensure program_type is set with fallback
       weekData: weeksWithWorkouts
     };
   } catch (error) {

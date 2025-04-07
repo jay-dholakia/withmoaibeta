@@ -23,6 +23,7 @@ import AdminLogin from './pages/AdminLogin';
 import WorkoutWeekDetailPage from './pages/coach/WorkoutWeekDetailPage';
 import CreateWorkoutWeekPage from './pages/coach/CreateWorkoutWeekPage';
 import EditWorkoutPage from './pages/coach/EditWorkoutPage';
+import WorkoutExercisesPage from './pages/coach/WorkoutExercisesPage';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import ProfileBuilder from './pages/client/ProfileBuilder';
@@ -78,6 +79,7 @@ function App() {
         <Route path="workouts/assign" element={<AssignProgramPage />} />
         <Route path="workouts/week/:weekId" element={<WorkoutWeekDetailPage />} />
         <Route path="workouts/workout/:workoutId/edit" element={<EditWorkoutPage />} />
+        <Route path="workouts/workout/:workoutId/exercises" element={<WorkoutExercisesPage />} />
         <Route path="workout-templates" element={<StandaloneWorkoutsPage />} />
       </Route>
 

@@ -418,6 +418,7 @@ export const fetchWorkout = async (workoutId: string) => {
       .single();
     
     if (error) {
+      console.error('Error fetching workout:', error);
       throw error;
     }
     

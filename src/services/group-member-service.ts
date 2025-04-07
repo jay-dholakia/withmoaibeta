@@ -55,6 +55,7 @@ export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> 
     }
     
     const groupIds = userGroups.map(g => g.group_id);
+    console.log("User belongs to these groups:", groupIds);
     
     // Then, get all members of those groups
     const { data: groupMembers, error: membersError } = await supabase
@@ -75,6 +76,8 @@ export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> 
       return [];
     }
     
+    console.log("Found group members:", groupMembers?.length || 0);
+    
     // Get the user IDs to fetch their workout completions
     const memberIds = groupMembers.map(m => m.user_id);
     
@@ -90,6 +93,8 @@ export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> 
       console.error("Error fetching workout completions:", completionsError);
       return [];
     }
+    
+    console.log("Found workout completions:", workoutCompletions?.length || 0);
     
     // Map to the required format
     const mappedMembers: GroupMember[] = groupMembers.map(member => {
@@ -114,6 +119,7 @@ export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> 
       };
     });
     
+    console.log("Mapped members result:", mappedMembers);
     return mappedMembers;
   } catch (error) {
     console.error("Error in fetchGroupMembers:", error);

@@ -45,8 +45,9 @@ const WorkoutsList = () => {
         
         // Load group members first
         try {
+          console.log("WorkoutsList: Fetching group members");
           const members = await fetchGroupMembers(user.id);
-          console.log("WorkoutsList: Group members loaded:", members.length);
+          console.log("WorkoutsList: Group members loaded:", members);
           setGroupMembers(members);
         } catch (groupError) {
           console.error('WorkoutsList: Error loading group members:', groupError);
@@ -218,6 +219,8 @@ const WorkoutsList = () => {
     );
   }
 
+  console.log("WorkoutsList: Rendering with group members:", groupMembers);
+
   const allGroupMembers = groupMembers.some(member => member.id === user?.id)
     ? groupMembers
     : [
@@ -229,6 +232,8 @@ const WorkoutsList = () => {
           completed_workout_ids: completedWorkouts.map(w => w.id)
         }
       ];
+
+  console.log("WorkoutsList: Final group members for cards:", allGroupMembers);
 
   return (
     <div className="space-y-6">

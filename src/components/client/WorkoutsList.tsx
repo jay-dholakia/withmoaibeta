@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -234,8 +235,8 @@ const WorkoutsList = () => {
     ...MOCK_GROUP_MEMBERS,
     {
       id: user?.id || '',
-      name: user?.name || 'You',
-      profile_picture_url: user?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=You',
+      name: user?.displayName || user?.email || 'You', // Fixed: Use displayName or email instead of name
+      profile_picture_url: user?.photoURL || 'https://api.dicebear.com/7.x/avataaars/svg?seed=You', // Fixed: Use photoURL instead of avatar_url
       completed_workout_ids: completedWorkouts.map(w => w.id)
     }
   ];

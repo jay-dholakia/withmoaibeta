@@ -3,7 +3,6 @@ import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Bike, Run, Dumbbell, Shirt } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
@@ -26,17 +25,18 @@ interface WorkoutCardProps {
 }
 
 export const WorkoutTypeIcon: React.FC<{ type?: string; className?: string }> = ({ type, className }) => {
+  // Use iOS-style emojis instead of Lucide icons
   switch (type?.toLowerCase()) {
     case 'run':
-      return <Run className={cn("h-5 w-5", className)} />;
+      return <span className={className} role="img" aria-label="run">🏃</span>;
     case 'bike':
     case 'cycling':
-      return <Bike className={cn("h-5 w-5", className)} />;
+      return <span className={className} role="img" aria-label="cycling">🚴</span>;
     case 'swim':
     case 'swimming':
-      return <Shirt className={cn("h-5 w-5", className)} />;
+      return <span className={className} role="img" aria-label="swimming">🏊</span>;
     default:
-      return <Dumbbell className={cn("h-5 w-5", className)} />;
+      return <span className={className} role="img" aria-label="strength">🏋️</span>;
   }
 };
 
@@ -66,7 +66,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
     )}>
       <CardHeader className="px-4 py-3 flex flex-row items-start justify-between">
         <div className="flex items-center gap-2">
-          <div className="text-client">
+          <div className="text-client text-lg">
             <WorkoutTypeIcon type={type} />
           </div>
           <CardTitle className="text-lg">{title}</CardTitle>

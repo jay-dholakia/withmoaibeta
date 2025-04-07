@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -54,7 +53,6 @@ const ProgramAssignmentPage = () => {
       });
       
       toast.success(`Program assigned successfully`);
-      // Fix the redirect URL to use /workouts/ instead of /programs/
       navigate(`/coach-dashboard/workouts/${programId}`);
     } catch (error) {
       console.error('Error assigning program:', error);
@@ -106,7 +104,6 @@ const ProgramAssignmentPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Use the ProgramAssignmentForm component */}
           <ProgramAssignmentForm 
             programId={programId!}
             onAssign={handleAssignProgram}

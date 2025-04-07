@@ -24,6 +24,7 @@ import WorkoutWeekDetailPage from './pages/coach/WorkoutWeekDetailPage';
 import CreateWorkoutWeekPage from './pages/coach/CreateWorkoutWeekPage';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
+import { ProfileBuilder } from './pages/client/ProfileBuilder';
 
 function App() {
   const { user, userType, loading } = useAuth();
@@ -51,6 +52,9 @@ function App() {
       <Route path="/admin" element={user ? (userType === 'admin' ? <Navigate to="/admin-dashboard" /> : <Navigate to="/" />) : <AdminLogin />} />
       <Route path="/coach" element={user ? (userType === 'coach' ? <Navigate to="/coach-dashboard" /> : <Navigate to="/" />) : <CoachLogin />} />
       <Route path="/client" element={user ? (userType === 'client' ? <Navigate to="/client-dashboard" /> : <Navigate to="/" />) : <ClientLogin />} />
+      
+      {/* Client Profile Builder - Add this route */}
+      <Route path="/client-profile-builder" element={<RequireAuth allowedUserTypes={['client']}><ProfileBuilder /></RequireAuth>} />
       
       {/* Client Routes */}
       <Route path="/client-dashboard/*" element={<RequireAuth allowedUserTypes={['client']} />}>

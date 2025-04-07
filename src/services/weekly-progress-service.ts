@@ -18,6 +18,7 @@ export interface WeeklyProgressResponse {
     miles_run: WeeklyProgressMetric;
     cardio_minutes: WeeklyProgressMetric;
   };
+  error?: string;
 }
 
 /**
@@ -25,6 +26,7 @@ export interface WeeklyProgressResponse {
  */
 export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProgressResponse> => {
   try {
+    console.log("Calling get_weekly_progress Edge Function...");
     const { data, error } = await supabase.functions.invoke('get_weekly_progress', {
       method: 'POST',
       body: { client_id: clientId },
@@ -33,6 +35,11 @@ export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProg
     if (error) {
       console.error("Error fetching weekly progress:", error);
       throw error;
+    }
+
+    // Check if the function returned an error in the response
+    if (data?.error) {
+      console.warn("Edge function returned an error:", data.error);
     }
 
     // Ensure miles_run metrics are included regardless of program type
@@ -46,7 +53,7 @@ export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProg
     // Return empty data structure when there's an error
     return {
       program_id: '',
-      program_title: '',
+      program_title: 'Error Loading Progress',
       current_week: 1,
       total_weeks: 4,
       program_type: 'moai_strength',
@@ -55,7 +62,8 @@ export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProg
         strength_mobility: { target: 0, actual: 0 },
         miles_run: { target: 0, actual: 0 },
         cardio_minutes: { target: 0, actual: 0 }
-      }
+      },
+      error: error.message || "Failed to load progress data"
     };
   }
 };

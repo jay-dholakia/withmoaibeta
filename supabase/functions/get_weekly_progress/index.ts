@@ -11,12 +11,16 @@ const corsHeaders = {
 
 // Handle incoming requests
 serve(async (req) => {
+  console.log("get_weekly_progress function invoked");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("Handling OPTIONS request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log("Creating Supabase client");
     // Create a Supabase client with the auth context of the request
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -31,6 +35,7 @@ serve(async (req) => {
     // Get the JWT from the request to verify the user
     const token = req.headers.get("Authorization")?.replace("Bearer ", "");
     if (!token) {
+      console.error("No authorization token provided");
       return new Response(
         JSON.stringify({ error: "No authorization token provided" }),
         {
@@ -41,24 +46,42 @@ serve(async (req) => {
     }
 
     // Verify the JWT and get the user
+    console.log("Verifying user token");
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     
     if (authError || !user) {
       console.error("Authentication error:", authError);
       return new Response(
-        JSON.stringify({ error: "Authentication failed" }),
+        JSON.stringify({ error: "Authentication failed", details: authError }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
+    
+    console.log("Authenticated user:", user.id);
 
     // Parse the request body to get client_id
-    let { client_id } = await req.json();
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (e) {
+      console.error("Failed to parse request body:", e);
+      return new Response(
+        JSON.stringify({ error: "Invalid request body" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    
+    let { client_id } = requestBody;
     
     // Use authenticated user id if client_id not provided
     client_id = client_id || user.id;
+    console.log("Using client_id:", client_id);
 
     // 1. Get current date info
     const today = new Date();
@@ -68,8 +91,10 @@ serve(async (req) => {
     // ISO format for database queries
     const weekStartISO = weekStart.toISOString();
     const weekEndISO = weekEnd.toISOString();
+    console.log(`Week range: ${weekStartISO} to ${weekEndISO}`);
     
     // 2. Get client's current active program
+    console.log("Fetching program assignment");
     const { data: programAssignment, error: programError } = await supabaseClient
       .from('program_assignments')
       .select(`
@@ -93,7 +118,7 @@ serve(async (req) => {
     if (programError) {
       console.error("Error fetching program assignment:", programError);
       return new Response(
-        JSON.stringify({ error: "Failed to fetch program assignment" }),
+        JSON.stringify({ error: "Failed to fetch program assignment", details: programError }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -102,14 +127,31 @@ serve(async (req) => {
     }
     
     if (!programAssignment) {
+      console.error("No active program found for client");
       return new Response(
-        JSON.stringify({ error: "No active program found for client" }),
+        JSON.stringify({ 
+          error: "No active program found",
+          program_id: "",
+          program_title: "No Program",
+          current_week: 1,
+          total_weeks: 1,
+          program_type: "moai_strength",
+          metrics: {
+            strength_workouts: { target: 0, actual: 0 },
+            strength_mobility: { target: 0, actual: 0 },
+            miles_run: { target: 0, actual: 0 },
+            cardio_minutes: { target: 0, actual: 0 }
+          }
+        }),
         {
-          status: 404,
+          status: 200, // Return 200 with empty data instead of 404
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
+    
+    console.log("Found program assignment:", programAssignment.id);
+    console.log("Program:", programAssignment.program?.title);
     
     // 3. Calculate which program week we're in
     const programStartDate = new Date(programAssignment.start_date);
@@ -122,7 +164,10 @@ serve(async (req) => {
       programAssignment.program?.weeks || 4
     );
     
+    console.log("Current week number:", currentWeekNumber);
+    
     // 4. Get the week's targets from program_weeks
+    console.log("Fetching week data for week", currentWeekNumber);
     const { data: weekData, error: weekError } = await supabaseClient
       .from('program_weeks')
       .select(`
@@ -140,7 +185,7 @@ serve(async (req) => {
     if (weekError) {
       console.error("Error fetching week data:", weekError);
       return new Response(
-        JSON.stringify({ error: "Failed to fetch program week targets" }),
+        JSON.stringify({ error: "Failed to fetch program week targets", details: weekError }),
         {
           status: 500, 
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -149,14 +194,30 @@ serve(async (req) => {
     }
     
     if (!weekData) {
+      console.error(`Week ${currentWeekNumber} not found in program`);
+      // Create a default response with zeros for metrics
       return new Response(
-        JSON.stringify({ error: `Week ${currentWeekNumber} not found in program` }),
+        JSON.stringify({
+          program_id: programAssignment.program_id,
+          program_title: programAssignment.program?.title,
+          current_week: currentWeekNumber,
+          total_weeks: programAssignment.program?.weeks || 4,
+          program_type: "moai_strength", // Default to strength
+          metrics: {
+            strength_workouts: { target: 0, actual: 0 },
+            strength_mobility: { target: 0, actual: 0 },
+            miles_run: { target: 0, actual: 0 },
+            cardio_minutes: { target: 0, actual: 0 }
+          }
+        }),
         {
-          status: 404,
+          status: 200, // Return 200 with default data
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
+    
+    console.log("Week data retrieved:", weekData);
 
     // 5. Determine program type (default to strength if not specified)
     let programType = "moai_strength";
@@ -166,7 +227,10 @@ serve(async (req) => {
       programType = "moai_run";
     }
     
+    console.log("Program type:", programType);
+    
     // 6. Fetch completed workouts for the week
+    console.log("Fetching workout completions");
     const { data: workoutCompletions, error: workoutsError } = await supabaseClient
       .from('workout_completions')
       .select(`
@@ -185,7 +249,10 @@ serve(async (req) => {
       console.error("Error fetching workout completions:", workoutsError);
     }
     
+    console.log(`Found ${workoutCompletions?.length || 0} workout completions`);
+    
     // 7. Fetch run logs for the week
+    console.log("Fetching run logs");
     const { data: runLogs, error: runLogsError } = await supabaseClient
       .from('run_logs')
       .select('id, distance, duration')
@@ -197,7 +264,10 @@ serve(async (req) => {
       console.error("Error fetching run logs:", runLogsError);
     }
     
+    console.log(`Found ${runLogs?.length || 0} run logs`);
+    
     // 8. Fetch cardio logs for the week
+    console.log("Fetching cardio logs");
     const { data: cardioLogs, error: cardioLogsError } = await supabaseClient
       .from('cardio_logs')
       .select('id, duration')
@@ -208,6 +278,8 @@ serve(async (req) => {
     if (cardioLogsError) {
       console.error("Error fetching cardio logs:", cardioLogsError);
     }
+    
+    console.log(`Found ${cardioLogs?.length || 0} cardio logs`);
     
     // 9. Calculate actual progress metrics
     // Count completed strength workouts
@@ -259,6 +331,8 @@ serve(async (req) => {
       }
     };
     
+    console.log("Response prepared:", JSON.stringify(response));
+    
     // Return the response
     return new Response(
       JSON.stringify(response),
@@ -271,11 +345,24 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in get_weekly_progress function:", error);
     
-    // Return error response
+    // Return error response with default values
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
+      JSON.stringify({ 
+        error: error.message || "Internal server error",
+        program_id: "",
+        program_title: "Error",
+        current_week: 1,
+        total_weeks: 4,
+        program_type: "moai_strength",
+        metrics: {
+          strength_workouts: { target: 0, actual: 0 },
+          strength_mobility: { target: 0, actual: 0 },
+          miles_run: { target: 0, actual: 0 },
+          cardio_minutes: { target: 0, actual: 0 }
+        }
+      }),
       {
-        status: 500,
+        status: 200, // Return 200 with error details instead of 500
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );

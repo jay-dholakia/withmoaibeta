@@ -16,6 +16,7 @@ export interface WeeklyProgressResponse {
     miles_run: { target: number; actual: number };
     cardio_minutes: { target: number; actual: number };
   };
+  error?: string; // Add optional error field
 }
 
 /**
@@ -24,8 +25,10 @@ export interface WeeklyProgressResponse {
  */
 async function testWeeklyProgressFunction() {
   console.log("🧪 Testing get_weekly_progress Edge Function...");
+  console.log("🔍 Edge Function URL:", `${supabase.functions.url}/get_weekly_progress`);
 
   try {
+    console.log("📤 Sending request to get_weekly_progress...");
     // Call the Edge Function with a test payload
     const { data, error } = await supabase.functions.invoke('get_weekly_progress', {
       method: 'POST',
@@ -35,10 +38,24 @@ async function testWeeklyProgressFunction() {
     // Log the results
     if (error) {
       console.error("❌ Error calling get_weekly_progress:", error);
-      return;
+      console.error("📋 Error details:", JSON.stringify(error, null, 2));
+      console.log("🔑 Verifying authentication...");
+      const { data: authData } = await supabase.auth.getUser();
+      console.log("🔐 Current auth state:", authData?.user ? "Authenticated" : "Not authenticated");
+      
+      throw error;
     }
 
     console.log("✅ Successfully called get_weekly_progress Edge Function!");
+    
+    // Check if the function returned an error
+    if (data?.error) {
+      console.warn("⚠️ Function returned with error:", data.error);
+      if (data.details) {
+        console.warn("📋 Error details:", data.details);
+      }
+    }
+    
     console.log("📊 Response structure:", JSON.stringify(data, null, 2));
     
     // Type validation

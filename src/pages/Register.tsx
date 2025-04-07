@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -128,14 +129,13 @@ const RegisterPage = () => {
       console.log('Signup result:', signUpResult);
       
       if (isShareableLink) {
-        const now = new Date().toISOString();
-        
-        const { error: usageError } = await supabase.from('invitation_usage' as any)
+        // For shareable links, track usage in invitation_usage table instead of marking the invitation as accepted
+        const { error: usageError } = await supabase
+          .from('invitation_usage')
           .insert({ 
             invitation_id: invitation.id,
             user_email: values.email,
-            used_at: now
-          } as any);
+          });
           
         if (usageError) {
           console.error('Error tracking invitation usage:', usageError);
@@ -143,6 +143,7 @@ const RegisterPage = () => {
           console.log('Invitation usage tracked successfully');
         }
       } else {
+        // For single-use invitations, mark as accepted
         const now = new Date().toISOString();
         const { error: updateError } = await supabase
           .from('invitations')

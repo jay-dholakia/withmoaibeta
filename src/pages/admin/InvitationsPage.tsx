@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,6 +35,13 @@ interface ShareLinks {
   admin?: string;
 }
 
+interface InvitationUsage {
+  id: string;
+  invitation_id: string;
+  user_email: string;
+  used_at: string;
+}
+
 const InvitationsPage: React.FC = () => {
   const [shareLinks, setShareLinks] = useState<ShareLinks>({});
   const [inviteLink, setInviteLink] = useState('');
@@ -60,6 +68,22 @@ const InvitationsPage: React.FC = () => {
       if (error) throw error;
       
       return data as Invitation[];
+    },
+    enabled: currentUserType === 'admin',
+    refetchInterval: 10000
+  });
+
+  const { data: invitationUsage, isLoading: isLoadingUsage } = useQuery({
+    queryKey: ['invitation_usage'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('invitation_usage')
+        .select('*')
+        .order('used_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data as InvitationUsage[];
     },
     enabled: currentUserType === 'admin',
     refetchInterval: 10000
@@ -344,16 +368,35 @@ const InvitationsPage: React.FC = () => {
     toast.success('Invitation link copied to clipboard');
   };
 
-  const pendingInvitations = invitations?.filter(inv => 
+  // Map invitation usage to respective invitations
+  const enrichInvitationsWithUsage = () => {
+    if (!invitations || !invitationUsage) return [];
+    
+    // Create a map of invitation IDs to their usage counts
+    const usageCounts = invitationUsage.reduce((acc, usage) => {
+      acc[usage.invitation_id] = (acc[usage.invitation_id] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    // Return invitations with usage counts
+    return invitations.map(inv => ({
+      ...inv,
+      usageCount: usageCounts[inv.id] || 0
+    }));
+  };
+  
+  const enrichedInvitations = enrichInvitationsWithUsage();
+
+  const pendingInvitations = enrichedInvitations.filter(inv => 
     inv.accepted === false && new Date(inv.expires_at) > new Date()
   ) || [];
   
-  const expiredInvitations = invitations?.filter(inv => 
+  const expiredInvitations = enrichedInvitations.filter(inv => 
     inv.accepted === false && new Date(inv.expires_at) <= new Date()
   ) || [];
   
-  const acceptedInvitations = invitations?.filter(inv => 
-    inv.accepted === true
+  const acceptedInvitations = enrichedInvitations.filter(inv => 
+    inv.accepted === true || (inv.is_share_link && inv.usageCount > 0)
   ) || [];
 
   if (currentUserType !== 'admin') {
@@ -444,7 +487,7 @@ const InvitationsPage: React.FC = () => {
           <TabsContent value="accepted" className="pt-4">
             <AcceptedInvitationsTab 
               invitations={acceptedInvitations}
-              isLoading={isLoading}
+              isLoading={isLoading || isLoadingUsage}
             />
           </TabsContent>
         </Tabs>

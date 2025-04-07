@@ -761,6 +761,77 @@ export type Database = {
           },
         ]
       }
+      program_weeks: {
+        Row: {
+          created_at: string | null
+          id: string
+          program_id: string
+          target_cardio_minutes: number | null
+          target_miles_run: number | null
+          target_strength_mobility_workouts: number | null
+          target_strength_workouts: number | null
+          updated_at: string | null
+          week_number: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          program_id: string
+          target_cardio_minutes?: number | null
+          target_miles_run?: number | null
+          target_strength_mobility_workouts?: number | null
+          target_strength_workouts?: number | null
+          updated_at?: string | null
+          week_number: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          program_id?: string
+          target_cardio_minutes?: number | null
+          target_miles_run?: number | null
+          target_strength_mobility_workouts?: number | null
+          target_strength_workouts?: number | null
+          updated_at?: string | null
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_program"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programs: {
+        Row: {
+          coach_id: string
+          created_at: string | null
+          id: string
+          name: string
+          program_type: Database["public"]["Enums"]["program_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          coach_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+          program_type: Database["public"]["Enums"]["program_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          coach_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          program_type?: Database["public"]["Enums"]["program_type"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       standalone_superset_groups: {
         Row: {
           created_at: string
@@ -1485,6 +1556,7 @@ export type Database = {
       }
     }
     Enums: {
+      program_type: "moai_run" | "moai_strength"
       workout_type: "cardio" | "strength" | "mobility" | "flexibility"
     }
     CompositeTypes: {

@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { fetchCurrentProgram } from '@/services/program-service';
 import { ProgramProgressSection } from './ProgramProgressSection';
 import { fetchGroupMembers, GroupMember } from '@/services/group-member-service';
+import { WeeklyProgressTestPanel } from './WeeklyProgressTestPanel';
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
@@ -352,6 +353,8 @@ const WorkoutsList = () => {
           </Link>
         </Button>
       </div>
+
+      <WeeklyProgressTestPanel />
     </div>
   );
 };

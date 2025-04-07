@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -13,443 +14,95 @@ import {
   Trash2,
   LayoutTemplate
 } from 'lucide-react';
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth } from '@/contexts/AuthContext';
-import { WorkoutWeekForm } from '@/components/coach/WorkoutWeekForm';
-import WorkoutDayForm from '@/components/coach/WorkoutDayForm';
-import { WorkoutProgramForm } from '@/components/coach/WorkoutProgramForm';
-import { 
-  fetchWorkoutProgram, 
-  fetchWorkoutWeeks,
-  createWorkoutWeek,
-  updateWorkoutWeek,
-  fetchWorkouts,
-  createWorkout,
-  deleteWorkout,
-  deleteWorkoutWeek,
-  deleteWorkoutProgram,
-  fetchStandaloneWorkouts,
-  addWorkoutToWeek,
-  updateWorkoutProgram,
-  copyTemplateWorkoutToWeek,
-  copyWorkoutToWeek
-} from '@/services/workout-service';
-import { WorkoutProgram, WorkoutWeek, Workout, DAYS_OF_WEEK, StandaloneWorkout } from '@/types/workout';
 import { toast } from 'sonner';
-import { ScrollArea as NewScrollArea } from '@/components/ui/scroll-area';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchWorkoutProgram, fetchWorkoutWeeks } from '@/services/workout-service';
 
 const WorkoutProgramDetailPage = () => {
   const { programId } = useParams<{ programId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const [program, setProgram] = useState<WorkoutProgram | null>(null);
-  const [weeks, setWeeks] = useState<WorkoutWeek[]>([]);
-  const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
-  const [isCreatingWeek, setIsCreatingWeek] = useState(false);
-  const [isSubmittingWeek, setIsSubmittingWeek] = useState(false);
-  const [isEditingWeek, setIsEditingWeek] = useState<string | null>(null);
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  const [isEditingWorkout, setIsEditingWorkout] = useState<string | null>(null);
-  
-  const [openDialogId, setOpenDialogId] = useState<string | null>(null);
-  const [isNewWorkoutDialogOpen, setIsNewWorkoutDialogOpen] = useState(false);
-
-  const [deleteWorkoutId, setDeleteWorkoutId] = useState<string | null>(null);
-  const [deleteWeekId, setDeleteWeekId] = useState<string | null>(null);
-  const [isConfirmDeleteProgram, setIsConfirmDeleteProgram] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  
-  const [isEditingProgram, setIsEditingProgram] = useState(false);
-  const [isSubmittingProgram, setIsSubmittingProgram] = useState(false);
-  
-  const [standaloneWorkouts, setStandaloneWorkouts] = useState<StandaloneWorkout[]>([]);
-  const [isAddingTemplate, setIsAddingTemplate] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [isAddingTemplateToWeek, setIsAddingTemplateToWeek] = useState<string | null>(null);
-  
-  const [workoutCounts, setWorkoutCounts] = useState<Record<string, number>>({});
-  
-  const [isCopyingWorkout, setIsCopyingWorkout] = useState<string | null>(null);
-  const [targetWeekId, setTargetWeekId] = useState<string | null>(null);
-  const [isCopying, setIsCopying] = useState(false);
-  
-  const updateWorkoutCount = async (weekId: string) => {
-    try {
-      const workouts = await fetchWorkouts(weekId);
-      setWorkoutCounts(prev => ({
-        ...prev,
-        [weekId]: workouts.length
-      }));
-    } catch (error) {
-      console.error('Error updating workout count:', error);
-    }
-  };
-
-  const addWorkout = async (weekId: string, workoutData: any) => {
-    try {
-      const newWorkout = await addWorkoutToWeek(weekId, workoutData);
-      setWorkouts(prev => [...prev, newWorkout]);
-      updateWorkoutCount(weekId);
-    } catch (error) {
-      console.error('Error adding workout:', error);
-      toast.error('Failed to add workout');
-    }
-  };
+  const [error, setError] = useState<string | null>(null);
+  const [program, setProgram] = useState<any>(null);
+  const [weeks, setWeeks] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!programId) return;
-    
     const loadProgramDetails = async () => {
+      if (!programId) {
+        setError("No program ID provided");
+        setIsLoading(false);
+        return;
+      }
+      
       try {
+        console.log("Fetching program details for ID:", programId);
         setIsLoading(true);
         
+        // Fetch program data with error handling
         const programData = await fetchWorkoutProgram(programId);
+        console.log("Program data received:", programData);
         setProgram(programData);
         
+        // Fetch program weeks with error handling
         const weeksData = await fetchWorkoutWeeks(programId);
+        console.log("Weeks data received:", weeksData);
         setWeeks(weeksData);
         
-        const counts: Record<string, number> = {};
-        for (const week of weeksData) {
-          const workouts = await fetchWorkouts(week.id);
-          counts[week.id] = workouts.length;
-        }
-        setWorkoutCounts(counts);
-        
-        if (weeksData.length > 0) {
-          setSelectedWeek(weeksData[0].id);
-        }
-        
-        setIsLoading(false);
       } catch (error) {
         console.error('Error loading program details:', error);
+        setError("Failed to load program details. Please try again.");
         toast.error('Failed to load program details');
+      } finally {
         setIsLoading(false);
       }
     };
     
     loadProgramDetails();
-  }, [programId]);
-  
-  useEffect(() => {
-    if (selectedWeek) {
-      const loadWorkouts = async () => {
-        try {
-          const workouts = await fetchWorkouts(selectedWeek);
-          
-          // Sort workouts by priority first, then by day_of_week as a backup
-          const sortedWorkouts = workouts.sort((a, b) => {
-            // First by priority (lower number = higher priority)
-            const priorityA = a.priority ?? Number.MAX_SAFE_INTEGER;
-            const priorityB = b.priority ?? Number.MAX_SAFE_INTEGER;
-            
-            if (priorityA !== priorityB) {
-              return priorityA - priorityB;
-            }
-            
-            // If priority is the same, sort by day_of_week
-            return a.day_of_week - b.day_of_week;
-          });
-          
-          setWorkouts(sortedWorkouts);
-        } catch (error) {
-          console.error('Error loading workouts:', error);
-          toast.error('Failed to load workouts for this week');
-        }
-      };
-      
-      loadWorkouts();
-    }
-  }, [selectedWeek]);
-  
-  useEffect(() => {
-    if (user?.id) {
-      const loadTemplates = async () => {
-        try {
-          const templates = await fetchStandaloneWorkouts(user.id);
-          setStandaloneWorkouts(templates);
-        } catch (error) {
-          console.error('Error loading workout templates:', error);
-        }
-      };
-      
-      loadTemplates();
-    }
-  }, [user]);
-  
-  const handleCreateWeek = async (values: { title: string; description?: string }) => {
-    if (!programId || !user) return;
-    
-    try {
-      setIsSubmittingWeek(true);
-      
-      const newWeekData = {
-        program_id: programId,
-        week_number: weeks.length + 1,
-        title: values.title,
-        description: values.description || null
-      };
-      
-      const newWeek = await createWorkoutWeek(newWeekData);
-      
-      setWeeks(prev => [...prev, newWeek]);
-      setSelectedWeek(newWeek.id);
-      setIsCreatingWeek(false);
-      
-      toast.success('Week created successfully');
-    } catch (error) {
-      console.error('Error creating week:', error);
-      toast.error('Failed to create week');
-    } finally {
-      setIsSubmittingWeek(false);
-    }
-  };
-  
-  const handleUpdateWeek = async (weekId: string, values: { title: string; description?: string }) => {
-    if (!programId || !user) return;
-    
-    try {
-      setIsSubmittingWeek(true);
-      
-      if (!values.title) {
-        toast.error('Week title is required');
-        return;
-      }
-      
-      const updatedWeek = await updateWorkoutWeek(weekId, {
-        title: values.title,
-        description: values.description || null
-      });
-      
-      setWeeks(prev => prev.map(week => week.id === weekId ? updatedWeek : week));
-      setIsEditingWeek(null);
-      
-      toast.success('Week updated successfully');
-    } catch (error) {
-      console.error('Error updating week:', error);
-      toast.error('Failed to update week');
-    } finally {
-      setIsSubmittingWeek(false);
-    }
-  };
-  
-  const handleSaveWorkout = async (workoutId: string) => {
-    if (selectedWeek) {
-      fetchWorkouts(selectedWeek).then(workouts => {
-        setWorkouts(workouts);
-        updateWorkoutCount(selectedWeek);
-      });
-      
-      setOpenDialogId(null);
-      setIsNewWorkoutDialogOpen(false);
-      setIsEditingWorkout(null);
-    }
-  };
+  }, [programId, navigate]);
 
-  const handleDeleteWorkout = async () => {
-    if (!deleteWorkoutId) return;
-    
-    try {
-      setIsDeleting(true);
-      await deleteWorkout(deleteWorkoutId);
-      
-      if (selectedWeek) {
-        const updatedWorkouts = await fetchWorkouts(selectedWeek);
-        setWorkouts(updatedWorkouts);
-        updateWorkoutCount(selectedWeek);
-      }
-      
-      toast.success('Workout deleted successfully');
-    } catch (error) {
-      console.error('Error deleting workout:', error);
-      toast.error('Failed to delete workout');
-    } finally {
-      setIsDeleting(false);
-      setDeleteWorkoutId(null);
-    }
-  };
-
-  const handleDeleteWeek = async () => {
-    if (!deleteWeekId || !programId) return;
-    
-    try {
-      setIsDeleting(true);
-      await deleteWorkoutWeek(deleteWeekId);
-      
-      const updatedWeeks = await fetchWorkoutWeeks(programId);
-      setWeeks(updatedWeeks);
-      
-      if (deleteWeekId === selectedWeek && updatedWeeks.length > 0) {
-        setSelectedWeek(updatedWeeks[0].id);
-      } else if (updatedWeeks.length === 0) {
-        setSelectedWeek(null);
-      }
-      
-      toast.success('Week deleted successfully');
-    } catch (error) {
-      console.error('Error deleting week:', error);
-      toast.error('Failed to delete week');
-    } finally {
-      setIsDeleting(false);
-      setDeleteWeekId(null);
-    }
-  };
-
-  const handleDeleteProgram = async () => {
-    if (!programId) return;
-    
-    try {
-      setIsDeleting(true);
-      await deleteWorkoutProgram(programId);
-      navigate('/coach-dashboard/workouts');
-      toast.success('Workout program deleted successfully');
-    } catch (error) {
-      console.error('Error deleting program:', error);
-      toast.error('Failed to delete workout program');
-    } finally {
-      setIsDeleting(false);
-      setIsConfirmDeleteProgram(false);
-    }
-  };
-  
-  const handleAddTemplateToWeek = async () => {
-    if (!isAddingTemplateToWeek || !selectedTemplate) {
-      toast.error('Please select a template');
-      return;
-    }
-    
-    try {
-      setIsAddingTemplate(true);
-      
-      // Use the copyTemplateWorkoutToWeek function with the correct parameters
-      await copyTemplateWorkoutToWeek(selectedTemplate, isAddingTemplateToWeek);
-      
-      if (isAddingTemplateToWeek === selectedWeek) {
-        const updatedWorkouts = await fetchWorkouts(selectedWeek);
-        setWorkouts(updatedWorkouts);
-      }
-      
-      updateWorkoutCount(isAddingTemplateToWeek);
-      
-      toast.success('Template workout added successfully');
-      setIsAddingTemplateToWeek(null);
-      setSelectedTemplate(null);
-      setSelectedDay(null);
-    } catch (error) {
-      console.error('Error adding template workout:', error);
-      toast.error('Failed to add template workout');
-    } finally {
-      setIsAddingTemplate(false);
-    }
-  };
-  
-  const handleCopyWorkout = async () => {
-    if (!isCopyingWorkout || !targetWeekId) {
-      toast.error('Please select a target week');
-      return;
-    }
-    
-    try {
-      setIsCopying(true);
-      await copyWorkoutToWeek(isCopyingWorkout, targetWeekId);
-      
-      // Refresh workouts for the target week if it's currently selected
-      if (targetWeekId === selectedWeek) {
-        const updatedWorkouts = await fetchWorkouts(targetWeekId);
-        setWorkouts(updatedWorkouts);
-      }
-      
-      // Update workout count for the target week
-      updateWorkoutCount(targetWeekId);
-      
-      toast.success('Workout copied successfully');
-      setIsCopyingWorkout(null);
-      setTargetWeekId(null);
-    } catch (error) {
-      console.error('Error copying workout:', error);
-      toast.error('Failed to copy workout');
-    } finally {
-      setIsCopying(false);
-    }
-  };
-  
-  const handleUpdateProgram = async (values: { title: string; description?: string; weeks: number }) => {
-    if (!programId || !program) return;
-    
-    try {
-      setIsSubmittingProgram(true);
-      
-      const updatedProgram = await updateWorkoutProgram(programId, {
-        title: values.title,
-        description: values.description || null,
-        weeks: values.weeks
-      });
-      
-      setProgram(updatedProgram);
-      setIsEditingProgram(false);
-      
-      toast.success('Program updated successfully');
-    } catch (error) {
-      console.error('Error updating program:', error);
-      toast.error('Failed to update program');
-    } finally {
-      setIsSubmittingProgram(false);
-    }
-  };
-  
-  if (isLoading) {
+  // Show a helpful error message instead of a blank screen
+  if (error) {
     return (
       <CoachLayout>
         <div className="container mx-auto px-4 py-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-10 bg-muted rounded w-1/4"></div>
-            <div className="h-8 bg-muted rounded w-1/2 mt-6"></div>
-            <div className="h-40 bg-muted rounded mt-6"></div>
+          <div className="text-center p-10">
+            <h2 className="text-xl font-semibold mb-4 text-red-500">Error</h2>
+            <p className="mb-6">{error}</p>
+            <Button onClick={() => navigate('/coach-dashboard/workouts')}>
+              Back to Programs
+            </Button>
           </div>
         </div>
       </CoachLayout>
     );
   }
-  
+
+  // Show a loading indicator instead of a blank screen
+  if (isLoading) {
+    return (
+      <CoachLayout>
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex justify-center items-center h-64">
+            <div className="flex flex-col items-center">
+              <div className="loading loading-spinner loading-lg text-primary mb-4"></div>
+              <p>Loading program details...</p>
+            </div>
+          </div>
+        </div>
+      </CoachLayout>
+    );
+  }
+
   if (!program) {
     return (
       <CoachLayout>
         <div className="container mx-auto px-4 py-6">
-          <div className="text-center py-10">
-            <h2 className="text-xl font-semibold mb-2">Program Not Found</h2>
-            <p className="text-muted-foreground mb-6">
-              The workout program you're looking for doesn't exist or you don't have permission to view it.
+          <div className="text-center">
+            <h2 className="text-xl font-medium mb-2">Program not found</h2>
+            <p className="text-muted-foreground mb-4">
+              The program you're looking for doesn't exist or you don't have permission to view it.
             </p>
             <Button onClick={() => navigate('/coach-dashboard/workouts')}>
               Back to Programs
@@ -459,7 +112,7 @@ const WorkoutProgramDetailPage = () => {
       </CoachLayout>
     );
   }
-  
+
   return (
     <CoachLayout>
       <div className="container mx-auto px-4 py-6">
@@ -473,536 +126,93 @@ const WorkoutProgramDetailPage = () => {
           Back to Programs
         </Button>
         
-        <div className="mb-6">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-2xl font-bold">{program.title}</h1>
-              {program.description && (
-                <p className="text-muted-foreground mt-1">{program.description}</p>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsEditingProgram(true)}
-                className="gap-2"
-              >
-                <Edit className="h-4 w-4" />
-                Edit Program
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/coach-dashboard/workout-templates')}
-                className="gap-2"
-              >
-                <LayoutTemplate className="h-4 w-4" />
-                Manage Templates
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate(`/coach-dashboard/workouts/${programId}/assign`)}
-                className="gap-2"
-              >
-                <Users className="h-4 w-4" />
-                Assign Program
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setIsConfirmDeleteProgram(true)}
-                className="gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete Program
-              </Button>
-            </div>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">{program.title}</h1>
+            {program.description && (
+              <p className="text-muted-foreground mt-1">{program.description}</p>
+            )}
           </div>
           
-          <div className="flex flex-wrap gap-2 mt-4">
-            <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              {program.weeks} {program.weeks === 1 ? 'week' : 'weeks'}
-            </span>
-            <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              Created {new Date(program.created_at).toLocaleDateString()}
-            </span>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate(`/coach-dashboard/workouts/${programId}/assign`)}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Assign
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate(`/coach-dashboard/workouts/${programId}/edit`)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
           </div>
         </div>
         
-        {weeks.length === 0 ? (
-          <div className="text-center p-10 border rounded-lg bg-muted/10">
-            <h3 className="font-medium text-lg mb-2">No weeks configured yet</h3>
-            <p className="text-muted-foreground mb-6">
-              Start by creating the first week of your program
-            </p>
-            <Button 
-              onClick={() => setIsCreatingWeek(true)}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Create First Week
-            </Button>
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-xl font-semibold">Program Weeks</h2>
+            {program.weeks && (
+              <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-slate-100">
+                {weeks.length}/{program.weeks} Weeks
+              </span>
+            )}
           </div>
-        ) : (
-          <div>
-            <div className="mb-6 flex justify-between items-center">
-              <Tabs 
-                value={selectedWeek || ''} 
-                onValueChange={setSelectedWeek}
-                className="w-full"
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">Program Schedule</h2>
-                  <Dialog open={isCreatingWeek} onOpenChange={setIsCreatingWeek}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" className="gap-1">
-                        <Plus className="h-4 w-4" />
-                        Add Week
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Create New Week</DialogTitle>
-                      </DialogHeader>
-                      <div className="mt-4">
-                        <WorkoutWeekForm
-                          weekNumber={weeks.length + 1}
-                          onSubmit={handleCreateWeek}
-                          isSubmitting={isSubmittingWeek}
-                          onCancel={() => setIsCreatingWeek(false)}
-                        />
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-                
-                <TabsList className="grid grid-cols-4 lg:grid-cols-7 mb-6">
-                  {weeks.map((week) => (
-                    <TabsTrigger key={week.id} value={week.id}>
-                      Week {week.week_number} ({workoutCounts[week.id] || 0})
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                
-                <NewScrollArea className="h-[calc(100vh-25rem)]">
-                  {weeks.map((week) => (
-                    <TabsContent key={week.id} value={week.id}>
-                      <div className="mb-4 flex justify-between items-start">
-                        <div>
-                          <h3 className="text-lg font-medium">{week.title}</h3>
-                          {week.description && (
-                            <p className="text-muted-foreground text-sm mt-1">{week.description}</p>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsEditingWeek(week.id)}
-                            className="gap-1"
-                          >
-                            <Edit className="h-4 w-4" />
-                            Edit Week
-                          </Button>
-                          <Button 
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteWeekId(week.id)}
-                            className="gap-1 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete Week
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end mb-4 gap-2">
-                        <Dialog 
-                          open={isAddingTemplateToWeek === week.id} 
-                          onOpenChange={(open) => {
-                            if (open) {
-                              setIsAddingTemplateToWeek(week.id);
-                            } else {
-                              setIsAddingTemplateToWeek(null);
-                              setSelectedTemplate(null);
-                              setSelectedDay(null);
-                            }
-                          }}
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {program.weeks && Array.from({ length: program.weeks }, (_, i) => {
+              const weekNumber = i + 1;
+              const weekEntry = weeks.find(w => w.week_number === weekNumber);
+              
+              return (
+                <Card key={weekNumber} className={weekEntry ? 'border-slate-200' : 'border-dashed border-slate-300'}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Week {weekNumber}</CardTitle>
+                    {weekEntry && weekEntry.title && weekEntry.title !== `Week ${weekNumber}` && (
+                      <p className="text-sm text-muted-foreground">{weekEntry.title}</p>
+                    )}
+                  </CardHeader>
+                  <CardContent className="pb-4">
+                    {weekEntry ? (
+                      <>
+                        {weekEntry.description && (
+                          <p className="text-sm text-muted-foreground">{weekEntry.description}</p>
+                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => navigate(`/coach-dashboard/workouts/week/${weekEntry.id}`)}
                         >
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="gap-2"
-                              disabled={standaloneWorkouts.length === 0}
-                            >
-                              <LayoutTemplate className="h-4 w-4" />
-                              Add from Templates
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Add Template Workout</DialogTitle>
-                              <DialogDescription>
-                                Select a workout template to add to this week
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                              <div className="space-y-2">
-                                <h4 className="font-medium">Template Workout</h4>
-                                <Select 
-                                  value={selectedTemplate || ''} 
-                                  onValueChange={setSelectedTemplate}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select a template" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {standaloneWorkouts.map(template => (
-                                      <SelectItem key={template.id} value={template.id}>
-                                        {template.title}
-                                        {template.category ? ` (${template.category})` : ''}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <Button 
-                                onClick={handleAddTemplateToWeek}
-                                disabled={!selectedTemplate || isAddingTemplate}
-                              >
-                                {isAddingTemplate ? 'Adding...' : 'Add Template Workout'}
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      
-                        <Dialog 
-                          open={isNewWorkoutDialogOpen && selectedWeek === week.id} 
-                          onOpenChange={(open) => setIsNewWorkoutDialogOpen(open)}
+                          View Details
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="text-center py-2">
+                        <p className="text-sm text-muted-foreground italic mb-2">No content added yet</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/coach-dashboard/workouts/${programId}/create-week`, { 
+                            state: { weekNumber }
+                          })}
                         >
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="gap-2"
-                            >
-                              <Plus className="h-4 w-4" />
-                              Add Custom Workout
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl">
-                            <DialogHeader>
-                              <DialogTitle>Create New Workout</DialogTitle>
-                              <DialogDescription>
-                                Add a new workout to this week with custom exercises.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="mt-4">
-                              <WorkoutDayForm
-                                weekId={week.id}
-                                onSave={handleSaveWorkout}
-                              />
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Content
+                        </Button>
                       </div>
-                      
-                      {workouts.length === 0 ? (
-                        <div className="text-center py-10 border rounded-lg">
-                          <h3 className="font-medium mb-2">No workouts added yet</h3>
-                          <p className="text-muted-foreground mb-6">
-                            Add workouts to create your training plan for this week
-                          </p>
-                          <Button 
-                            onClick={() => setIsNewWorkoutDialogOpen(true)}
-                            className="gap-2"
-                          >
-                            <Plus className="h-4 w-4" />
-                            Add First Workout
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {workouts.map((workout) => (
-                            <Card key={workout.id}>
-                              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-lg truncate" title={workout.title}>
-                                  {workout.title}
-                                </CardTitle>
-                                <div className="flex items-center gap-1">
-                                  <Dialog
-                                    open={isEditingWorkout === workout.id}
-                                    onOpenChange={(open) => {
-                                      if (!open) setIsEditingWorkout(null);
-                                      else setIsEditingWorkout(workout.id);
-                                    }}
-                                  >
-                                    <DialogTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                        <Edit className="h-4 w-4" />
-                                        <span className="sr-only">Edit workout</span>
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-4xl">
-                                      <DialogHeader>
-                                        <DialogTitle>Edit Workout</DialogTitle>
-                                      </DialogHeader>
-                                      <div className="mt-4">
-                                        <WorkoutDayForm
-                                          weekId={week.id}
-                                          workoutId={workout.id}
-                                          onSave={handleSaveWorkout}
-                                          mode="edit"
-                                        />
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                    onClick={() => setDeleteWorkoutId(workout.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Delete workout</span>
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => setIsCopyingWorkout(workout.id)}
-                                    title="Copy to another week"
-                                  >
-                                    <svg 
-                                      xmlns="http://www.w3.org/2000/svg" 
-                                      width="16" 
-                                      height="16" 
-                                      viewBox="0 0 24 24" 
-                                      fill="none" 
-                                      stroke="currentColor" 
-                                      strokeWidth="2" 
-                                      strokeLinecap="round" 
-                                      strokeLinejoin="round"
-                                    >
-                                      <rect x="8" y="8" width="12" height="12" rx="2" />
-                                      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
-                                    </svg>
-                                    <span className="sr-only">Copy workout</span>
-                                  </Button>
-                                </div>
-                              </CardHeader>
-                              <CardContent>
-                                {workout.description && (
-                                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                                    {workout.description}
-                                  </p>
-                                )}
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="w-full"
-                                  onClick={() => setIsEditingWorkout(workout.id)}
-                                >
-                                  View & Edit
-                                </Button>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-                    </TabsContent>
-                  ))}
-                </NewScrollArea>
-              </Tabs>
-            </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
-        )}
-        
-        <Dialog open={isCreatingWeek} onOpenChange={setIsCreatingWeek}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create First Week</DialogTitle>
-            </DialogHeader>
-            <div className="mt-4">
-              <WorkoutWeekForm
-                weekNumber={1}
-                onSubmit={handleCreateWeek}
-                isSubmitting={isSubmittingWeek}
-                onCancel={() => setIsCreatingWeek(false)}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-        
-        {isEditingWeek && weeks.find(week => week.id === isEditingWeek) && (
-          <Dialog open={!!isEditingWeek} onOpenChange={(open) => !open && setIsEditingWeek(null)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Edit Week</DialogTitle>
-              </DialogHeader>
-              <div className="mt-4">
-                <WorkoutWeekForm
-                  weekNumber={weeks.find(week => week.id === isEditingWeek)?.week_number || 1}
-                  initialData={weeks.find(week => week.id === isEditingWeek)}
-                  onSubmit={(values) => {
-                    if (!values.title) {
-                      toast.error('Week title is required');
-                      return;
-                    }
-                    handleUpdateWeek(isEditingWeek, values);
-                  }}
-                  isSubmitting={isSubmittingWeek}
-                  onCancel={() => setIsEditingWeek(null)}
-                  mode="edit"
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        <Dialog 
-          open={isEditingProgram} 
-          onOpenChange={setIsEditingProgram}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Program</DialogTitle>
-              <DialogDescription>
-                Update the program details. Note that changing the number of weeks is disabled to preserve program integrity.
-              </DialogDescription>
-            </DialogHeader>
-            <WorkoutProgramForm
-              onSubmit={handleUpdateProgram}
-              isSubmitting={isSubmittingProgram}
-              initialData={program}
-              mode="edit"
-              onCancel={() => setIsEditingProgram(false)}
-            />
-          </DialogContent>
-        </Dialog>
-
-        <AlertDialog 
-          open={deleteWorkoutId !== null}
-          onOpenChange={(open) => !open && setDeleteWorkoutId(null)}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Workout</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this workout? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleDeleteWorkout}
-                disabled={isDeleting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        <AlertDialog 
-          open={deleteWeekId !== null}
-          onOpenChange={(open) => !open && setDeleteWeekId(null)}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Week</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this week and all its workouts? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleDeleteWeek}
-                disabled={isDeleting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        <AlertDialog 
-          open={isConfirmDeleteProgram}
-          onOpenChange={setIsConfirmDeleteProgram}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Workout Program</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this entire workout program including all weeks and workouts? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleDeleteProgram}
-                disabled={isDeleting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        <Dialog 
-          open={isCopyingWorkout !== null} 
-          onOpenChange={(open) => {
-            if (!open) {
-              setIsCopyingWorkout(null);
-              setTargetWeekId(null);
-            }
-          }}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Copy Workout to Another Week</DialogTitle>
-              <DialogDescription>
-                Select the week where you want to copy this workout
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <h4 className="font-medium">Target Week</h4>
-                <Select 
-                  value={targetWeekId || ''} 
-                  onValueChange={setTargetWeekId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a week" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {weeks.map(week => (
-                      <SelectItem key={week.id} value={week.id}>
-                        Week {week.week_number}: {week.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button 
-                onClick={handleCopyWorkout}
-                disabled={!targetWeekId || isCopying}
-              >
-                {isCopying ? 'Copying...' : 'Copy Workout'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        </div>
       </div>
     </CoachLayout>
   );

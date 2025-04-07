@@ -84,10 +84,12 @@ export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> 
         .filter(completion => completion.user_id === member.user_id && completion.workout_id)
         .map(completion => completion.workout_id);
         
+      // TypeScript fix: Explicitly define profile with proper interface
       const profile = member.client_profiles || {};
       
-      const firstName = profile.first_name || '';
-      const lastName = profile.last_name || '';
+      // Use optional chaining and nullish coalescing for safer access
+      const firstName = profile.first_name ?? '';
+      const lastName = profile.last_name ?? '';
       const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Unknown User';
       
       return {

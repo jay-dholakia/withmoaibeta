@@ -35,10 +35,12 @@ const EditWorkoutPage = () => {
 
       try {
         setIsLoading(true);
+        console.log("Fetching workout data for ID:", workoutId);
         
         const workoutData = await fetchWorkout(workoutId);
         
         if (workoutData) {
+          console.log("Workout data received:", workoutData);
           setWorkout(workoutData);
           setTitle(workoutData.title || '');
           setDescription(workoutData.description || '');
@@ -48,6 +50,7 @@ const EditWorkoutPage = () => {
           
           // Also fetch any exercises for this workout
           const exercisesData = await fetchWorkoutExercises(workoutId);
+          console.log("Exercises data received:", exercisesData);
           setExercises(exercisesData || []);
         } else {
           toast.error('Workout not found');

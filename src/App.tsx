@@ -20,6 +20,7 @@ import AssignProgramPage from './pages/coach/AssignProgramPage';
 import CoachLogin from './pages/CoachLogin';
 import ClientLogin from './pages/ClientLogin';
 import AdminLogin from './pages/AdminLogin';
+import WorkoutWeekDetailPage from './pages/coach/WorkoutWeekDetailPage';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 
@@ -67,6 +68,7 @@ function App() {
         <Route path="workouts/:programId/edit" element={<EditProgramPage />} />
         <Route path="workouts/:programId/assign" element={<AssignProgramPage />} />
         <Route path="workouts/assign" element={<AssignProgramPage />} />
+        <Route path="workouts/week/:weekId" element={<WorkoutWeekDetailPage />} />
         <Route path="workout-templates" element={<StandaloneWorkoutsPage />} />
       </Route>
 

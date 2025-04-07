@@ -124,7 +124,7 @@ serve(async (req) => {
     
     // 4. Get the week's targets from program_weeks
     const { data: weekData, error: weekError } = await supabaseClient
-      .from('workout_weeks')
+      .from('program_weeks')
       .select(`
         id,
         week_number,

@@ -990,7 +990,6 @@ const ActiveWorkout = () => {
             return null;
           }
 
-          const hasDescription = exercise.exercise?.description && exercise.exercise.description.trim() !== '';
           const hasYoutubeLink = exercise.exercise?.youtube_link && exercise.exercise.youtube_link.trim() !== '';
           
           return (
@@ -1046,69 +1045,53 @@ const ActiveWorkout = () => {
 
               {exerciseState.expanded && (
                 <CardContent className="pt-4 px-4 pb-2">
-                  {hasDescription && (
-                    <div className="mb-4 bg-muted/30 rounded-md p-3 text-sm relative">
-                      <div className="flex justify-between items-start mb-1">
-                        <p className="font-medium text-xs flex items-center gap-1">
-                          <Info className="h-3 w-3" />
-                          Instructions
-                        </p>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6 p-0" 
-                          onClick={() => toggleDescriptionExpanded(exercise.id)}
-                        >
-                          <ChevronRight className={`h-4 w-4 transition-transform ${expandedDescriptions[exercise.id] ? 'rotate-90' : ''}`} />
-                        </Button>
+                  {(exerciseType === 'strength' || exerciseType === 'bodyweight') && (
+                    <>
+                      <div className="grid grid-cols-4 gap-2 mb-2">
+                        <div className="text-center text-xs font-medium text-muted-foreground">Set</div>
+                        <div className="text-center text-xs font-medium text-muted-foreground">Reps</div>
+                        <div className="text-center text-xs font-medium text-muted-foreground">Weight</div>
+                        <div className="text-center text-xs font-medium text-muted-foreground">Done</div>
                       </div>
-                      
-                      {expandedDescriptions[exercise.id] && (
-                        <p className="text-xs text-muted-foreground">{exercise.exercise?.description}</p>
-                      )}
-                    </div>
+                      {exerciseState.sets?.map((set, index) => (
+                        <div key={`${exercise.id}-set-${index}`} className="grid grid-cols-4 items-center mb-3 gap-2">
+                          <div className="text-center text-sm">
+                            {index + 1}
+                          </div>
+                          
+                          <div>
+                            <Input 
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="count"
+                              value={set.reps}
+                              onChange={(e) => handleSetChange(exercise.id, index, 'reps', e.target.value)}
+                              className="h-9"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Input 
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="lbs"
+                              value={set.weight}
+                              onChange={(e) => handleSetChange(exercise.id, index, 'weight', e.target.value)}
+                              className="h-9"
+                            />
+                          </div>
+                          
+                          <div className="flex justify-center">
+                            <Checkbox 
+                              id={`set-${exercise.id}-${index}-complete`}
+                              checked={set.completed}
+                              onCheckedChange={(checked) => handleSetCompletion(exercise.id, index, !!checked)}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </>
                   )}
-
-                  {(exerciseType === 'strength' || exerciseType === 'bodyweight') && exerciseState.sets?.map((set, index) => (
-                    <div key={`${exercise.id}-set-${index}`} className="flex items-center mb-3 gap-2">
-                      <div className="w-10 text-center">
-                        <span className="text-xs font-medium text-muted-foreground">#{index + 1}</span>
-                      </div>
-                      
-                      <div className="flex-1 grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-xs mb-1 block text-muted-foreground">Reps</label>
-                          <Input 
-                            type="text"
-                            inputMode="numeric"
-                            placeholder="count"
-                            value={set.reps}
-                            onChange={(e) => handleSetChange(exercise.id, index, 'reps', e.target.value)}
-                            className="h-9"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs mb-1 block text-muted-foreground">Weight</label>
-                          <Input 
-                            type="text"
-                            inputMode="decimal"
-                            placeholder="lbs"
-                            value={set.weight}
-                            onChange={(e) => handleSetChange(exercise.id, index, 'weight', e.target.value)}
-                            className="h-9"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="w-10 flex justify-center">
-                        <Checkbox 
-                          id={`set-${exercise.id}-${index}-complete`}
-                          checked={set.completed}
-                          onCheckedChange={(checked) => handleSetCompletion(exercise.id, index, !!checked)}
-                        />
-                      </div>
-                    </div>
-                  ))}
                   
                   {exerciseType === 'cardio' && exerciseState.cardioData && (
                     <div className="space-y-3">

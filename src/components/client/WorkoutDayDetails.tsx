@@ -15,6 +15,14 @@ import { updateCustomWorkout } from '@/services/client-custom-workout-service';
 import { updateWorkoutCompletion } from '@/services/workout-edit-service';
 import EditWorkoutSetCompletions from './EditWorkoutSetCompletions';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -398,20 +406,25 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                                 )}
                               </div>
                             ) : (
-                              <div className="grid grid-cols-3 text-xs font-medium text-muted-foreground mt-1">
-                                <div>Set</div>
-                                <div>Reps</div>
-                                <div>Weight</div>
-                              </div>
+                              <Table className="mt-1">
+                                <TableHeader>
+                                  <TableRow className="hover:bg-transparent">
+                                    <TableHead className="w-1/4 h-8 py-1 px-2">Set</TableHead>
+                                    <TableHead className="w-1/4 h-8 py-1 px-2">Reps</TableHead>
+                                    <TableHead className="w-1/2 h-8 py-1 px-2">Weight</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {group.type !== 'cardio' && group.sets.sort((a: any, b: any) => a.set_number - b.set_number).map((set: any) => (
+                                    <TableRow key={set.id}>
+                                      <TableCell className="py-1 px-2">{set.set_number}</TableCell>
+                                      <TableCell className="py-1 px-2">{set.reps_completed || '-'}</TableCell>
+                                      <TableCell className="py-1 px-2">{set.weight ? `${set.weight} lbs` : '-'}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
                             )}
-                            
-                            {group.type !== 'cardio' && group.sets.sort((a: any, b: any) => a.set_number - b.set_number).map((set: any) => (
-                              <div key={set.id} className="grid grid-cols-3 text-sm mt-1">
-                                <div>{set.set_number}</div>
-                                <div>{set.reps_completed || '-'}</div>
-                                <div>{set.weight ? `${set.weight} lbs` : '-'}</div>
-                              </div>
-                            ))}
                             
                             {group.type !== 'cardio' && group.sets[0]?.notes && (
                               <div className="text-xs mt-2">

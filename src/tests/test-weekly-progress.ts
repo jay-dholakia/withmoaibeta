@@ -2,6 +2,23 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
+ * Type definition for the expected response from get_weekly_progress
+ */
+export interface WeeklyProgressResponse {
+  program_id: string;
+  program_title: string;
+  current_week: number;
+  total_weeks: number;
+  program_type: 'moai_run' | 'moai_strength';
+  metrics: {
+    strength_workouts: { target: number; actual: number };
+    strength_mobility: { target: number; actual: number };
+    miles_run: { target: number; actual: number };
+    cardio_minutes: { target: number; actual: number };
+  };
+}
+
+/**
  * Test script to validate that the get_weekly_progress Edge Function 
  * is correctly deployed and callable from the frontend
  */
@@ -42,7 +59,7 @@ async function testWeeklyProgressFunction() {
       console.log("✅ Response contains all expected top-level fields");
     }
     
-    const metrics = data.metrics || {};
+    const metrics = data?.metrics || {};
     const missingMetrics = metricsFields.filter(field => !(field in metrics));
     
     if (missingMetrics.length > 0) {
@@ -51,14 +68,33 @@ async function testWeeklyProgressFunction() {
       console.log("✅ Response metrics contain all expected fields");
     }
 
+    // Check that each metric has target and actual properties
+    let metricsFormatValid = true;
+    for (const metric of metricsFields) {
+      if (metrics[metric]) {
+        if (!('target' in metrics[metric]) || !('actual' in metrics[metric])) {
+          console.warn(`⚠️ Metric ${metric} is missing target or actual property`);
+          metricsFormatValid = false;
+        }
+      }
+    }
+    
+    if (metricsFormatValid) {
+      console.log("✅ All metrics have the correct format with target and actual values");
+    }
+
+    // Validate program_type is one of the expected values
+    if (data.program_type && !['moai_run', 'moai_strength'].includes(data.program_type)) {
+      console.warn(`⚠️ Unexpected program_type: ${data.program_type}`);
+    } else {
+      console.log(`✅ Program type is valid: ${data.program_type || 'not provided'}`);
+    }
+
+    return data as WeeklyProgressResponse;
   } catch (error) {
     console.error("❌ Exception calling get_weekly_progress:", error);
+    throw error;
   }
-}
-
-// Execute test when imported directly
-if (import.meta.url === import.meta.main) {
-  testWeeklyProgressFunction();
 }
 
 // Export for use in other modules

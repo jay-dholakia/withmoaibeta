@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import {
   Route,
   Routes,
-  Navigate
+  Navigate,
 } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import RequireAuth from './components/RequireAuth';
@@ -17,17 +17,17 @@ import StandaloneWorkoutsPage from './pages/coach/StandaloneWorkoutsPage';
 import ClientDashboard from './pages/client/ClientDashboard';
 import CoachDashboard from './pages/coach/CoachDashboard';
 import AssignProgramPage from './pages/coach/AssignProgramPage';
-
-// Remove the import for ClientProfilePage since the file doesn't exist
+import CoachLogin from './pages/CoachLogin';
+import NotFound from './pages/NotFound';
 
 function App() {
-  const { user, loading: authInitialized } = useAuth();
-
+  const { user, userType, loading: authInitialized } = useAuth();
+  
   // Show a loading indicator while the auth state is being initialized
   if (!authInitialized) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <span className="loading loading-spinner text-primary"></span>
+        <span className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></span>
       </div>
     );
   }
@@ -35,19 +35,18 @@ function App() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={<Navigate to="/coach-dashboard" />} />
-
+      <Route path="/" element={user ? (userType === 'coach' ? <Navigate to="/coach-dashboard" /> : <Navigate to="/client-dashboard" />) : <CoachLogin />} />
+      
       {/* Client Routes */}
-      <Route path="/client-dashboard" element={<RequireAuth allowedUserTypes={['client']} />}>
+      <Route path="/client-dashboard/*" element={<RequireAuth allowedUserTypes={['client']} />}>
         <Route index element={<ClientDashboard />} />
-        {/* Add more client routes when pages are available */}
+        <Route path="*" element={<ClientDashboard />} />
       </Route>
 
       {/* Coach Routes */}
       <Route path="/coach-dashboard" element={<RequireAuth allowedUserTypes={['coach']} />}>
         <Route index element={<CoachDashboard />} />
         <Route path="clients" element={<ClientsPage />} />
-        {/* Replace ClientProfilePage with a redirect to ClientsPage until implemented */}
         <Route path="clients/:clientId" element={<Navigate to="/coach-dashboard/clients" />} />
         <Route path="workouts" element={<WorkoutProgramsPage />} />
         <Route path="workouts/create" element={<CreateWorkoutProgramPage />} />
@@ -58,8 +57,8 @@ function App() {
         <Route path="workout-templates" element={<StandaloneWorkoutsPage />} />
       </Route>
 
-      {/* Redirect all unknown routes to the coach dashboard */}
-      <Route path="*" element={<Navigate to="/coach-dashboard" />} />
+      {/* Fallback for unknown routes */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

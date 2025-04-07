@@ -15,7 +15,7 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ allowedUserTypes, children })
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <span className="loading loading-spinner text-primary"></span>
+        <span className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></span>
       </div>
     );
   }

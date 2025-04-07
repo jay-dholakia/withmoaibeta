@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Users, Dumbbell, BarChart3, Award, Heart, FileText, RefreshCw, Plus, AlertCircle } from 'lucide-react';
@@ -37,8 +36,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
 
 const CoachDashboard = () => {
+  console.log("CoachDashboard: Component rendering...");
   const { user, userType, loading } = useAuth();
   const navigate = useNavigate();
+  
+  console.log("CoachDashboard: Auth state:", { 
+    user: user?.id, 
+    userType, 
+    loading 
+  });
+
   const [isFixingAssignment, setIsFixingAssignment] = useState(false);
   const [isSyncingGroups, setIsSyncingGroups] = useState(false);
   const [diagnosticInfo, setDiagnosticInfo] = useState<{
@@ -67,6 +74,8 @@ const CoachDashboard = () => {
       };
       
       fetchUserEmail();
+    } else {
+      console.log('CoachDashboard: No user data available');
     }
   }, [user, userType]);
 
@@ -192,6 +201,7 @@ const CoachDashboard = () => {
   };
 
   if (loading) {
+    console.log("CoachDashboard: Still loading auth state...");
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-coach" />
@@ -200,9 +210,20 @@ const CoachDashboard = () => {
   }
 
   if (!user || userType !== 'coach') {
-    return <div>Unauthorized access</div>;
+    console.log("CoachDashboard: Unauthorized access", { user: !!user, userType });
+    return (
+      <div className="flex justify-center items-center min-h-screen flex-col">
+        <div className="text-xl font-bold mb-4">Unauthorized Access</div>
+        <p className="mb-4">You do not have permission to view this page.</p>
+        <Button onClick={() => navigate('/')}>
+          Return to Login
+        </Button>
+      </div>
+    );
   }
 
+  console.log("CoachDashboard: Rendering content for authenticated coach");
+  
   return (
     <CoachLayout>
       <h1 className="text-3xl font-bold text-coach mb-8">Coach Dashboard</h1>

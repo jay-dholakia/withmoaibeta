@@ -5,6 +5,7 @@ import App from './App.tsx';
 import './index.css';
 import { AuthProvider } from './contexts/AuthContext';
 
+// Create a proper DOM rendering setup with all required providers
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
     <AuthProvider>

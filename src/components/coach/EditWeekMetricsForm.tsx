@@ -44,7 +44,9 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
       .transform(val => val ? Number(val) : undefined),
   });
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  type FormValues = z.infer<typeof formSchema>;
+
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       target_miles_run: initialData.target_miles_run?.toString() || '',
@@ -54,11 +56,11 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
 
-      // Convert any empty strings to undefined
+      // Convert values to numbers for the API
       const updatedData = {
         target_miles_run: values.target_miles_run,
         target_cardio_minutes: values.target_cardio_minutes,
@@ -66,7 +68,10 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
         target_strength_mobility_workouts: values.target_strength_mobility_workouts,
       };
 
+      console.log('Updating week metrics:', weekId, updatedData);
+      
       await updateWorkoutWeek(weekId, updatedData);
+      toast.success('Weekly metrics updated successfully');
       onSuccess();
     } catch (error) {
       console.error('Error updating metrics:', error);

@@ -65,35 +65,11 @@ const WorkoutsPage = () => {
     console.log("Auth state changed in WorkoutsPage, user:", user?.id);
   }, [user]);
   
-  const getProgramInfo = () => {
-    if (!currentProgram || !currentProgram.program) {
-      return null;
-    }
-    
-    const startDate = new Date(currentProgram.start_date);
-    const currentDate = new Date();
-    
-    const currentWeek = getCurrentWeekNumber(startDate, currentDate);
-    
-    const weekDateRange = formatWeekDateRange(startDate, currentWeek);
-    
-    return (
-      <div className="text-center mb-4 text-muted-foreground text-sm">
-        <p>
-          <span className="font-medium">{currentProgram.program.title}</span>
-          {" • "}
-          Week {currentWeek}: {weekDateRange}
-        </p>
-      </div>
-    );
-  };
-
   return (
     <div className="w-full">
       <Routes>
         <Route index element={
           <Tabs defaultValue="active-workouts" className="w-full">
-            {getProgramInfo()}
             <TabsList className="w-full mb-6 grid grid-cols-2">
               <TabsTrigger value="active-workouts" className="flex items-center justify-center gap-2">
                 <ListTodo className="h-4 w-4" />

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -117,13 +116,9 @@ const WorkoutProgramDetailPage = () => {
     }
   };
 
-  const addWorkout = async (weekId: string, dayOfWeek: number) => {
+  const addWorkout = async (weekId: string, workoutData: any) => {
     try {
-      const newWorkout = await addWorkoutToWeek(weekId, {
-        title: `Day ${dayOfWeek + 1} Workout`,
-        day_of_week: dayOfWeek,
-        workout_type: 'strength'
-      });
+      const newWorkout = await addWorkoutToWeek(weekId, workoutData);
       setWorkouts(prev => [...prev, newWorkout]);
       updateWorkoutCount(weekId);
     } catch (error) {
@@ -357,11 +352,8 @@ const WorkoutProgramDetailPage = () => {
     try {
       setIsAddingTemplate(true);
       
-      // Default to day 0 (Sunday) if no day is selected
-      const dayToUse = selectedDay || 0;
-      
-      // Use the new copyTemplateWorkoutToWeek function to copy all template attributes and exercises
-      await copyTemplateWorkoutToWeek(isAddingTemplateToWeek, selectedTemplate, dayToUse);
+      // Use the copyTemplateWorkoutToWeek function with the correct parameters
+      await copyTemplateWorkoutToWeek(selectedTemplate, isAddingTemplateToWeek);
       
       if (isAddingTemplateToWeek === selectedWeek) {
         const updatedWorkouts = await fetchWorkouts(selectedWeek);

@@ -22,12 +22,13 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
 
   useEffect(() => {
     const fetchAssignmentCounts = async () => {
-      const counts: Record<string, number> = {};
+      if (programs.length === 0) return;
       
-      for (const program of programs) {
-        counts[program.id] = await getWorkoutProgramAssignmentCount(program.id);
-      }
+      // Extract all program IDs
+      const programIds = programs.map(program => program.id);
       
+      // Fetch counts for all programs at once
+      const counts = await getWorkoutProgramAssignmentCount(programIds);
       setAssignmentCounts(counts);
     };
 

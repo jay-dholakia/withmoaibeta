@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ProgramAssignment, WorkoutExercise, WorkoutProgram, WorkoutWeek } from "@/types/workout";
 
@@ -744,8 +743,10 @@ export const deleteProgramAssignment = async (assignmentId: string): Promise<boo
 /**
  * Gets the count of assignments for each workout program
  */
-export const getWorkoutProgramAssignmentCount = async (programIds: string[]): Promise<Record<string, number>> => {
+export const getWorkoutProgramAssignmentCount = async (programId: string | string[]): Promise<Record<string, number>> => {
   try {
+    const programIds = Array.isArray(programId) ? programId : [programId];
+    
     if (!programIds.length) return {};
     
     const { data, error } = await supabase
@@ -883,23 +884,18 @@ export const fetchStandaloneWorkout = async (id: string): Promise<any> => {
 };
 
 export const createStandaloneWorkoutExercise = async (exerciseData: any): Promise<any> => {
-  // For now, we'll just use the regular workout exercise functions
-  // but in the future, you might want to use a different table
   return createWorkoutExercise(exerciseData);
 };
 
 export const fetchStandaloneWorkoutExercises = async (workoutId: string): Promise<any[]> => {
-  // For now, we'll just use the regular workout exercise functions
   return fetchWorkoutExercises(workoutId);
 };
 
 export const updateStandaloneWorkoutExercise = async (id: string, exerciseData: any): Promise<any> => {
-  // For now, we'll just use the regular workout exercise functions
   return updateWorkoutExercise(id, exerciseData);
 };
 
 export const deleteStandaloneWorkoutExercise = async (id: string): Promise<boolean> => {
-  // For now, we'll just use the regular workout exercise functions
   return deleteWorkoutExercise(id);
 };
 
@@ -966,9 +962,14 @@ export const moveWorkoutExerciseDown = async (exerciseId: string, workoutId: str
 export const moveStandaloneWorkoutExerciseUp = moveWorkoutExerciseUp;
 export const moveStandaloneWorkoutExerciseDown = moveWorkoutExerciseDown;
 
-// Functions for adding workouts to weeks
-export const addWorkoutToWeek = async (workoutData: any): Promise<any> => {
-  return createWorkout(workoutData);
+/**
+ * Functions for adding workouts to weeks
+ */
+export const addWorkoutToWeek = async (weekId: string, workoutData: any): Promise<any> => {
+  return createWorkout({
+    ...workoutData,
+    week_id: weekId
+  });
 };
 
 export const copyTemplateWorkoutToWeek = async (templateId: string, weekId: string): Promise<any> => {

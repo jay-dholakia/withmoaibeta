@@ -19,6 +19,7 @@ const ClientDashboard = () => {
           <Route index element={<Navigate to="moai" replace />} />
           <Route path="workouts/*" element={<WorkoutsPage />} />
           <Route path="moai" element={<MoaiPage />} />
+          <Route path="moai/:groupId" element={<MoaiPage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="settings/edit-profile" element={<ProfileEditor />} />

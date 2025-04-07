@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -93,6 +93,12 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
   const { user } = useAuth();
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   
+  useEffect(() => {
+    console.log("MoaiMembersTab received groupId:", groupId);
+  }, [groupId]);
+  
+  const enabled = !!groupId && groupId.trim() !== '';
+  
   const { data: members, isLoading: isLoadingMembers } = useQuery({
     queryKey: ['moai-members', groupId],
     queryFn: async () => {
@@ -147,6 +153,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
       console.log("Processed member data:", memberData);
       return memberData;
     },
+    enabled: enabled,
     staleTime: 60000 // 1 minute
   });
   
@@ -230,6 +237,14 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
     }
   };
 
+  if (!groupId || groupId.trim() === '') {
+    return (
+      <div className="flex justify-center items-center h-40">
+        <p className="text-muted-foreground">No group selected</p>
+      </div>
+    );
+  }
+  
   if (isLoadingMembers) {
     return (
       <div className="flex justify-center items-center h-40">

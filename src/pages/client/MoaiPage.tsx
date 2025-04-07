@@ -12,28 +12,53 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { fetchCurrentProgram } from '@/services/program-service';
+import { fetchUserGroups } from '@/services/moai-service';
 
 export default function MoaiPage() {
   const { groupId } = useParams<{ groupId: string }>();
   const { user } = useAuth();
   const [currentWeekNumber, setCurrentWeekNumber] = useState<number>(1);
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+  
+  // Fetch user's groups
+  const { data: userGroups, isLoading: isLoadingUserGroups } = useQuery({
+    queryKey: ['user-groups', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      console.log("Fetching user groups for:", user.id);
+      const groups = await fetchUserGroups(user.id);
+      console.log("User groups:", groups);
+      return groups;
+    },
+    enabled: !!user?.id,
+  });
+  
+  // Set active group ID based on URL param or first available group
+  useEffect(() => {
+    if (groupId) {
+      setActiveGroupId(groupId);
+    } else if (userGroups && userGroups.length > 0) {
+      console.log("Setting active group to first group:", userGroups[0].id);
+      setActiveGroupId(userGroups[0].id);
+    }
+  }, [groupId, userGroups]);
   
   // Fetch group data
   const { data: groupData, isLoading: isLoadingGroup } = useQuery({
-    queryKey: ['moai-group', groupId],
+    queryKey: ['moai-group', activeGroupId],
     queryFn: async () => {
-      if (!groupId) return null;
+      if (!activeGroupId) return null;
       const { data, error } = await supabase
         .from('groups')
         .select('*, group_coaches(*)')
-        .eq('id', groupId)
+        .eq('id', activeGroupId)
         .single();
       
       if (error) throw error;
       console.log("Fetched group data:", data);
       return data;
     },
-    enabled: !!groupId,
+    enabled: !!activeGroupId,
   });
   
   // Fetch current program
@@ -55,7 +80,7 @@ export default function MoaiPage() {
     }
   }, [currentProgram]);
   
-  if (isLoadingGroup || isLoadingProgram) {
+  if (isLoadingGroup || isLoadingProgram || isLoadingUserGroups) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-client" />
@@ -63,10 +88,12 @@ export default function MoaiPage() {
     );
   }
   
-  if (!groupId) {
+  // No groups found
+  if ((!activeGroupId || !groupData) && (!userGroups || userGroups.length === 0)) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-muted-foreground">No group selected.</p>
+      <div className="flex flex-col justify-center items-center h-64 space-y-4">
+        <p className="text-muted-foreground text-center">No groups found. You aren't assigned to any Moai group yet.</p>
+        <p className="text-sm text-muted-foreground text-center">Please contact your coach or administrator.</p>
       </div>
     );
   }
@@ -83,6 +110,23 @@ export default function MoaiPage() {
         </Card>
       )}
       
+      {/* Group selector if multiple groups */}
+      {userGroups && userGroups.length > 1 && (
+        <div className="flex justify-center">
+          <select
+            value={activeGroupId || ''}
+            onChange={(e) => setActiveGroupId(e.target.value)}
+            className="px-3 py-1.5 border rounded-md text-sm"
+          >
+            {userGroups.map(group => (
+              <option key={group.id} value={group.id}>
+                {group.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      
       <Card>
         <CardContent className="p-0">
           <Tabs defaultValue="members" className="w-full">
@@ -93,15 +137,15 @@ export default function MoaiPage() {
             </TabsList>
             <TabsContent value="progress" className="pt-4">
               <MoaiGroupProgress 
-                groupId={groupId || ''} 
+                groupId={activeGroupId || ''} 
                 currentProgram={currentProgram}
               />
             </TabsContent>
             <TabsContent value="members">
-              <MoaiMembersTab groupId={groupId || ''} />
+              <MoaiMembersTab groupId={activeGroupId || ''} />
             </TabsContent>
             <TabsContent value="coach">
-              <MoaiCoachTab groupId={groupId || ''} />
+              <MoaiCoachTab groupId={activeGroupId || ''} />
             </TabsContent>
           </Tabs>
         </CardContent>

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { PlusCircle, Armchair, Running, Activity } from 'lucide-react';
+import { PlusCircle, Armchair, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LogRunActivityDialog } from './LogRunActivityDialog';
 import { LogCardioActivityDialog } from './LogCardioActivityDialog';
@@ -114,7 +114,7 @@ const WorkoutHistoryTab = () => {
             className="flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
             onClick={() => setShowRunDialog(true)}
           >
-            <Running className="h-4 w-4" />
+            <span role="img" aria-label="running" className="text-lg">🏃</span>
             Log Run
           </Button>
           

@@ -30,30 +30,41 @@ export const RunningExerciseForm: React.FC<RunningExerciseFormProps> = ({
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center mb-2">
+        <span role="img" aria-label="running" className="mr-2 text-lg">🏃</span>
+        <span className="font-medium">Running Exercise</span>
+      </div>
+      
       <div>
         <Label htmlFor="distance" className="text-center block">Distance (miles)</Label>
-        <Input
-          id="distance"
-          type="text"
-          inputMode="decimal"
-          value={distance}
-          onChange={(e) => setDistance(formatDistanceInput(e.target.value))}
-          placeholder="3.1"
-          className="w-full text-center"
-        />
+        <div className="relative">
+          <span role="img" aria-label="ruler" className="absolute left-3 top-2.5 text-muted-foreground text-sm">📏</span>
+          <Input
+            id="distance"
+            type="text"
+            inputMode="decimal"
+            value={distance}
+            onChange={(e) => setDistance(formatDistanceInput(e.target.value))}
+            placeholder="3.1"
+            className="w-full text-center pl-10"
+          />
+        </div>
       </div>
       
       <div>
         <Label htmlFor="duration" className="text-center block">Duration (minutes)</Label>
-        <Input
-          id="duration"
-          type="text"
-          inputMode="numeric"
-          value={duration}
-          onChange={(e) => setDuration(formatDurationInput(e.target.value))}
-          placeholder="30"
-          className="w-full text-center"
-        />
+        <div className="relative">
+          <span role="img" aria-label="timer" className="absolute left-3 top-2.5 text-muted-foreground text-sm">⏱️</span>
+          <Input
+            id="duration"
+            type="text"
+            inputMode="numeric"
+            value={duration}
+            onChange={(e) => setDuration(formatDurationInput(e.target.value))}
+            placeholder="30"
+            className="w-full text-center pl-10"
+          />
+        </div>
         <p className="text-xs text-muted-foreground mt-1 text-center">
           Enter total minutes (e.g., 30 for 30 minutes)
         </p>

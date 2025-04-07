@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, 
@@ -10,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, MapPin, Timer, Ruler } from "lucide-react";
+import { CalendarIcon, MapPin, Timer } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { RunLog, logRunActivity } from "@/services/activity-logging-service";
@@ -76,7 +75,7 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-blue-700">
-            <Ruler className="h-5 w-5" />
+            <span role="img" aria-label="running" className="text-lg">🏃</span>
             <span>Log Running Activity</span>
           </DialogTitle>
           <DialogDescription>
@@ -117,7 +116,7 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
             <div className="grid gap-2">
               <Label htmlFor="distance">Distance (miles)</Label>
               <div className="relative">
-                <Ruler className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <span role="img" aria-label="ruler" className="absolute left-3 top-2.5 text-muted-foreground text-sm">📏</span>
                 <Input
                   id="distance"
                   type="number"

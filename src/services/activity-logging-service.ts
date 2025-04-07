@@ -166,7 +166,7 @@ export const getClientRunActivities = async (startDate: Date, endDate: Date): Pr
     return data.map(item => ({
       ...item,
       log_date: new Date(item.log_date)
-    }));
+    })) as RunLog[];
   } catch (error) {
     console.error("Error in getClientRunActivities:", error);
     return [];
@@ -199,7 +199,7 @@ export const getClientCardioActivities = async (startDate: Date, endDate: Date):
     return data.map(item => ({
       ...item,
       log_date: new Date(item.log_date)
-    }));
+    })) as CardioLog[];
   } catch (error) {
     console.error("Error in getClientCardioActivities:", error);
     return [];
@@ -232,7 +232,7 @@ export const getClientRestDays = async (startDate: Date, endDate: Date): Promise
     return data.map(item => ({
       ...item,
       log_date: new Date(item.log_date)
-    }));
+    })) as RestLog[];
   } catch (error) {
     console.error("Error in getClientRestDays:", error);
     return [];

@@ -1440,7 +1440,12 @@ export type Database = {
           description: string | null
           id: string
           program_id: string
+          target_cardio_minutes: number | null
+          target_miles_run: number | null
+          target_strength_mobility_workouts: number | null
+          target_strength_workouts: number | null
           title: string
+          updated_at: string | null
           week_number: number
         }
         Insert: {
@@ -1448,7 +1453,12 @@ export type Database = {
           description?: string | null
           id?: string
           program_id: string
+          target_cardio_minutes?: number | null
+          target_miles_run?: number | null
+          target_strength_mobility_workouts?: number | null
+          target_strength_workouts?: number | null
           title: string
+          updated_at?: string | null
           week_number: number
         }
         Update: {
@@ -1456,7 +1466,12 @@ export type Database = {
           description?: string | null
           id?: string
           program_id?: string
+          target_cardio_minutes?: number | null
+          target_miles_run?: number | null
+          target_strength_mobility_workouts?: number | null
+          target_strength_workouts?: number | null
           title?: string
+          updated_at?: string | null
           week_number?: number
         }
         Relationships: [

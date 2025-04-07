@@ -192,23 +192,33 @@ export const createWorkoutWeek = async (weekData: any): Promise<any> => {
 /**
  * Updates an existing workout week
  */
-export const updateWorkoutWeek = async (id: string, weekData: any): Promise<any> => {
+export const updateWorkoutWeek = async (
+  weekId: string,
+  data: {
+    title?: string;
+    description?: string | null;
+    target_miles_run?: number;
+    target_cardio_minutes?: number;
+    target_strength_workouts?: number;
+    target_strength_mobility_workouts?: number;
+  }
+): Promise<any> => {
   try {
-    const { data, error } = await supabase
-      .from('workout_weeks')
-      .update(weekData)
-      .eq('id', id)
+    const { data: updatedWeek, error } = await supabase
+      .from('program_weeks')
+      .update(data)
+      .eq('id', weekId)
       .select()
-      .single();
-    
+      .maybeSingle();
+
     if (error) {
-      console.error("Error updating workout week:", error);
+      console.error('Error updating workout week:', error);
       throw error;
     }
-    
-    return data;
+
+    return updatedWeek;
   } catch (error) {
-    console.error("Error updating workout week:", error);
+    console.error('Failed to update workout week:', error);
     throw error;
   }
 };

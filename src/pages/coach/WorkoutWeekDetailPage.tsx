@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, Plus, Clock, Calendar, Dumbbell } from 'lucide-react';
+import { ChevronLeft, Plus, Clock, Calendar, Dumbbell, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
   fetchWorkoutWeek,
@@ -13,16 +13,20 @@ import {
 } from '@/services/workout-service';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { EditWeekMetricsForm } from '@/components/coach/EditWeekMetricsForm';
 
 const WorkoutWeekDetailPage = () => {
   const { weekId } = useParams<{ weekId: string }>();
   const navigate = useNavigate();
+  const [showMetricsDialog, setShowMetricsDialog] = useState(false);
   
   // Fetch week details
   const { 
     data: weekData, 
     isLoading: isLoadingWeek,
-    error: weekError
+    error: weekError,
+    refetch: refetchWeekData
   } = useQuery({
     queryKey: ['workout-week', weekId],
     queryFn: () => weekId ? fetchWorkoutWeek(weekId) : null,
@@ -64,6 +68,13 @@ const WorkoutWeekDetailPage = () => {
       console.error("Error loading workouts:", workoutsError);
     }
   }, [weekError, workoutsError]);
+
+  // Handler for when metrics are updated
+  const handleMetricsUpdated = () => {
+    setShowMetricsDialog(false);
+    refetchWeekData();
+    toast.success("Weekly metrics updated successfully");
+  };
 
   if (isLoading) {
     return (
@@ -178,80 +189,93 @@ const WorkoutWeekDetailPage = () => {
           
           {/* Weekly metrics (program-type specific) */}
           {programData && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
-              {isProgramTypeRun ? (
-                <>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <span role="img" aria-label="running">🏃</span>
-                        Target Miles
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-2xl font-bold">{weekData.target_miles_run || 0}</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Target Cardio Minutes
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-2xl font-bold">{weekData.target_cardio_minutes || 0}</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <Dumbbell className="h-4 w-4" />
-                        Strength Workouts
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-2xl font-bold">{weekData.target_strength_workouts || 0}</p>
-                    </CardContent>
-                  </Card>
-                </>
-              ) : (
-                <>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <Dumbbell className="h-4 w-4" />
-                        Strength Workouts
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-2xl font-bold">{weekData.target_strength_workouts || 0}</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Target Cardio Minutes
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-2xl font-bold">{weekData.target_cardio_minutes || 0}</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        Mobility Workouts
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-2xl font-bold">{weekData.target_strength_mobility_workouts || 0}</p>
-                    </CardContent>
-                  </Card>
-                </>
-              )}
+            <div className="relative">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
+                {isProgramTypeRun ? (
+                  <>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <span role="img" aria-label="running">🏃</span>
+                          Target Miles
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-bold">{weekData.target_miles_run || 0}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          Target Cardio Minutes
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-bold">{weekData.target_cardio_minutes || 0}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <Dumbbell className="h-4 w-4" />
+                          Strength Workouts
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-bold">{weekData.target_strength_mobility_workouts || 0}</p>
+                      </CardContent>
+                    </Card>
+                  </>
+                ) : (
+                  <>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <Dumbbell className="h-4 w-4" />
+                          Strength Workouts
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-bold">{weekData.target_strength_workouts || 0}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          Target Cardio Minutes
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-bold">{weekData.target_cardio_minutes || 0}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          Mobility Workouts
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-bold">{weekData.target_strength_mobility_workouts || 0}</p>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+              </div>
+              
+              {/* Edit metrics button */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="absolute top-0 right-0"
+                onClick={() => setShowMetricsDialog(true)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Metrics
+              </Button>
             </div>
           )}
           
@@ -313,6 +337,23 @@ const WorkoutWeekDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Metrics Dialog */}
+      <Dialog open={showMetricsDialog} onOpenChange={setShowMetricsDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Weekly Metrics</DialogTitle>
+          </DialogHeader>
+          {weekData && programData && (
+            <EditWeekMetricsForm 
+              weekId={weekId || ''} 
+              initialData={weekData}
+              programType={programData.program_type || 'strength'} 
+              onSuccess={handleMetricsUpdated}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </CoachLayout>
   );
 };

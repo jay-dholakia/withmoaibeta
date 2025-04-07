@@ -104,7 +104,7 @@ const WorkoutHistoryTab = () => {
 
   return (
     <div>
-      <div className="mt-8 border-t pt-6">
+      <div className="mt-8 pt-6">
         <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
         
         <Button asChild variant="outline" className="w-full mt-4 mb-4 flex items-center justify-center gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50">

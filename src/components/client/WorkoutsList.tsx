@@ -2,13 +2,15 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Filter, ChevronDown, ChevronUp, Play, Trophy } from 'lucide-react';
-import { toast } from 'sonner';
-import { 
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import WorkoutProgressCard from './WorkoutProgressCard';
+import { format, parseISO } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { WorkoutTypeIcon } from './WorkoutTypeIcon';
+import { PlusCircle } from 'lucide-react';
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -22,254 +24,218 @@ const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
   
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [weekFilter, setWeekFilter] = useState<string>("");
-  const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
-  const [currentProgram, setCurrentProgram] = useState<any | null>(null);
-  const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
+  const queryClient = useQueryClient();
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const [weekFilter, setWeekFilter] = useState<string | null>(null);
+  const [expandedWeeks, setExpandedWeeks] = useState<Record<string, boolean>>({});
   const [completedWeeks, setCompletedWeeks] = useState<Record<string, boolean>>({});
-  const [isSelectOpen, setIsSelectOpen] = useState(false);
-  const selectRef = useRef<HTMLDivElement>(null);
+  const [tabsKey, setTabsKey] = useState(0); // For forcing remounting
+  const didFetchWorkouts = useRef(false);
+  
+  const { data: currentProgram, isLoading: isLoadingProgram } = useQuery({
+    queryKey: ['current-program', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      console.log("WorkoutsList: Fetching current program for user", user.id);
+      try {
+        return await fetchCurrentProgram(user.id);
+      } catch (error) {
+        console.error("WorkoutsList: Error fetching current program:", error);
+        return null;
+      }
+    },
+    enabled: !!user?.id,
+  });
 
-  // Safely toggle workout details 
-  const toggleWorkoutDetails = useCallback((e: React.MouseEvent, workoutId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setExpandedWorkouts(prev => ({
+  const { 
+    data: workoutsData, 
+    isLoading: isLoadingWorkouts,
+    error: workoutsError,
+    refetch: refetchWorkouts
+  } = useQuery({
+    queryKey: ['assigned-workouts', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return { workouts: [], groupedWorkouts: {} };
+      
+      console.log("WorkoutsList: Fetching assigned workouts for user", user.id);
+      try {
+        const workouts = await fetchAssignedWorkouts();
+        
+        // Group workouts by week
+        const groupedWorkouts: Record<string, WorkoutHistoryItem[]> = {};
+        
+        workouts.forEach(workout => {
+          const weekKey = workout.program_week_title || 'Other';
+          if (!groupedWorkouts[weekKey]) {
+            groupedWorkouts[weekKey] = [];
+          }
+          groupedWorkouts[weekKey].push(workout);
+        });
+        
+        // Update completedWeeks status
+        const newCompletedWeeks: Record<string, boolean> = {};
+        Object.entries(groupedWorkouts).forEach(([weekKey, weekWorkouts]) => {
+          const allCompleted = weekWorkouts.every(w => w.status === 'completed');
+          newCompletedWeeks[weekKey] = allCompleted && weekWorkouts.length > 0;
+        });
+        setCompletedWeeks(newCompletedWeeks);
+        
+        // Set default expanded week if no filter is selected
+        if (!weekFilter && Object.keys(groupedWorkouts).length > 0) {
+          const currentWeek = Object.keys(groupedWorkouts).find(week => 
+            !newCompletedWeeks[week] && groupedWorkouts[week].length > 0
+          ) || Object.keys(groupedWorkouts)[0];
+          
+          if (currentWeek) {
+            setWeekFilter(currentWeek);
+            setExpandedWeeks(prev => ({
+              ...prev,
+              [currentWeek]: true
+            }));
+          }
+        }
+        
+        console.log(`WorkoutsList: Fetched ${workouts.length} workouts, grouped into ${Object.keys(groupedWorkouts).length} weeks`);
+        didFetchWorkouts.current = true;
+        
+        return { 
+          workouts,
+          groupedWorkouts
+        };
+      } catch (error) {
+        console.error("WorkoutsList: Error fetching assigned workouts:", error);
+        return { workouts: [], groupedWorkouts: {} };
+      }
+    },
+    enabled: !!user?.id,
+  });
+
+  const workouts = workoutsData?.workouts || [];
+  const groupedWorkouts = workoutsData?.groupedWorkouts || {};
+  
+  const toggleExpandedItem = useCallback((id: string) => {
+    setExpandedItems(prev => ({
       ...prev,
-      [workoutId]: !prev[workoutId]
+      [id]: !prev[id]
     }));
   }, []);
-
-  useEffect(() => {
-    const loadWorkoutsAndProgram = async () => {
-      console.log("WorkoutsList: Loading workouts and program");
-      if (!user || !user.id) {
-        console.error("WorkoutsList: Cannot load workouts - User or user ID is missing", { user });
-        setError('User not authenticated properly. Please try logging in again.');
-        setIsLoading(false);
-        return;
-      }
-      
-      try {
-        console.log("WorkoutsList: Loading assigned workouts for user:", user.id);
-        setIsLoading(true);
-        setError(null);
-        
-        // Fetch program information first
-        let program = null;
-        try {
-          console.log("WorkoutsList: Fetching current program");
-          program = await fetchCurrentProgram(user.id);
-          console.log("WorkoutsList: Program data received:", program);
-        } catch (programError) {
-          console.error('WorkoutsList: Error loading program:', programError);
-          // Continue even if program fails to load
-        }
-        
-        let assignedWorkouts: WorkoutHistoryItem[] = [];
-        try {
-          console.log("WorkoutsList: Calling fetchAssignedWorkouts");
-          assignedWorkouts = await fetchAssignedWorkouts(user.id);
-          console.log("WorkoutsList: Assigned workouts loaded:", assignedWorkouts.length);
-        } catch (workoutsError) {
-          console.error('WorkoutsList: Error loading assigned workouts:', workoutsError);
-          throw workoutsError; // Rethrow to be caught by outer catch
-        }
-        
-        // Filter out completed workouts here
-        const pendingWorkouts = assignedWorkouts.filter(workout => !workout.completed_at);
-        console.log("WorkoutsList: Pending workouts (not completed):", pendingWorkouts.length);
-        
-        setCurrentProgram(program);
-        setWorkouts(pendingWorkouts);
-        
-        // Get all workouts (including completed) for checking completed weeks
-        const allWorkouts = assignedWorkouts;
-        
-        // Determine which weeks are completed by checking if all workouts for that week are completed
-        const weekCompletionStatus: Record<string, boolean> = {};
-        const weeksSet = new Set<number>();
-        
-        // Group all workouts by week
-        const workoutsByWeek: Record<number, WorkoutHistoryItem[]> = {};
-        
-        allWorkouts.forEach(workout => {
-          if (workout.workout?.week && workout.workout.week.week_number) {
-            const weekNum = workout.workout.week.week_number;
-            weeksSet.add(weekNum);
-            
-            if (!workoutsByWeek[weekNum]) {
-              workoutsByWeek[weekNum] = [];
-            }
-            workoutsByWeek[weekNum].push(workout);
-          }
-        });
-        
-        // Check if all workouts in each week are completed
-        Object.entries(workoutsByWeek).forEach(([weekNum, weekWorkouts]) => {
-          const allCompleted = weekWorkouts.every(workout => !!workout.completed_at);
-          weekCompletionStatus[weekNum] = allCompleted;
-        });
-        
-        setCompletedWeeks(weekCompletionStatus);
-        
-        pendingWorkouts.forEach(workout => {
-          if (workout.workout?.week && workout.workout.week.week_number) {
-            weeksSet.add(workout.workout.week.week_number);
-          }
-        });
-        
-        const extractedWeeks = Array.from(weeksSet);
-        console.log("WorkoutsList: Extracted week numbers:", extractedWeeks);
-        setAvailableWeeks(extractedWeeks);
-        
-        // Set initial week filter to current week if available, otherwise use the most recent week
-        if (extractedWeeks.length > 0) {
-          const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
-          
-          // Find current week based on program start date
-          let currentWeekNumber = 1;
-          if (program && program.start_date) {
-            const startDate = new Date(program.start_date);
-            const now = new Date(); // Use local time
-            const msInDay = 1000 * 60 * 60 * 24;
-            const daysElapsed = Math.floor((now.getTime() - startDate.getTime()) / msInDay);
-            currentWeekNumber = Math.max(1, Math.floor(daysElapsed / 7) + 1);
-          }
-          
-          // Use current week if it exists, otherwise use the first week
-          const weekExists = sortedWeeks.includes(currentWeekNumber);
-          const initialWeek = weekExists ? currentWeekNumber : sortedWeeks[0];
-          console.log(`WorkoutsList: Setting initial week filter to ${weekExists ? 'current' : 'first available'} week: ${initialWeek}`);
-          
-          // Set the week filter after component is mounted
-          setTimeout(() => {
-            setWeekFilter(initialWeek.toString());
-          }, 0);
-        }
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('WorkoutsList: Error loading workouts:', error);
-        setError('Failed to load your assigned workouts');
-        toast.error('There was a problem loading your workouts');
-        setIsLoading(false);
-      }
-    };
-
-    loadWorkoutsAndProgram();
-  }, [user]);
-
-  const filteredWorkouts = React.useMemo(() => {
-    if (!weekFilter) {
-      return workouts;
+  
+  const toggleExpandedWeek = useCallback((week: string) => {
+    setExpandedWeeks(prev => ({
+      ...prev,
+      [week]: !prev[week]
+    }));
+  }, []);
+  
+  const handleWeekFilterSelect = useCallback((week: string | null) => {
+    setWeekFilter(week);
+    
+    if (week) {
+      setExpandedWeeks(prev => ({
+        ...prev,
+        [week]: true
+      }));
+    } else {
+      // Clear all expanded weeks if 'All Weeks' is selected
+      setExpandedWeeks({});
     }
-    
-    const weekNumber = parseInt(weekFilter, 10);
-    
-    console.log(`Debug - Filtering workouts by Week ${weekNumber}`);
-    
-    const filtered = workouts.filter(workout => {
-      if (!workout.workout || !workout.workout.week) {
-        return false;
-      }
-      
-      const weekMatches = workout.workout.week.week_number === weekNumber;
-      
-      if (workout.workout && workout.workout.week) {
-        console.log(`Debug - Workout ${workout.id} - Week: ${workout.workout.week.week_number}, Program: ${workout.workout.week.program?.title}, Matches: ${weekMatches}`);
-      }
-      
-      return weekMatches;
-    });
-    
-    // Sort workouts by priority first, then by day_of_week as a backup
-    return filtered.sort((a, b) => {
-      // First by priority (lower number = higher priority)
-      const priorityA = a.workout?.priority ?? Number.MAX_SAFE_INTEGER;
-      const priorityB = b.workout?.priority ?? Number.MAX_SAFE_INTEGER;
-      
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
-      }
-      
-      // If priority is the same, sort by day_of_week
-      return (a.workout?.day_of_week ?? 0) - (b.workout?.day_of_week ?? 0);
-    });
-  }, [workouts, weekFilter]);
-
-  // Handle week filter change - completely rewritten
-  const handleWeekFilterChange = useCallback((value: string) => {
-    console.log(`Setting week filter to: ${value}`);
-    setWeekFilter(value);
-    setIsSelectOpen(false);
+  }, []);
+  
+  const filterWorkoutsByWeek = useCallback((workouts: WorkoutHistoryItem[], week: string | null) => {
+    if (!week) return workouts;
+    return workouts.filter(workout => (workout.program_week_title || 'Other') === week);
   }, []);
 
-  // Toggle select dropdown visibility
-  const toggleSelectDropdown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsSelectOpen(prev => !prev);
-  }, []);
-
-  // Close select dropdown
-  const closeSelectDropdown = useCallback(() => {
-    setIsSelectOpen(false);
-  }, []);
-
-  // Handle week selection
-  const handleWeekSelect = useCallback((e: React.MouseEvent, weekNumber: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    handleWeekFilterChange(weekNumber);
-  }, [handleWeekFilterChange]);
-
-  // Navigate to active workout
-  const handleStartWorkout = useCallback((e: React.MouseEvent, workoutId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    navigate(`/client-dashboard/workouts/active/${workoutId}`);
-  }, [navigate]);
-
-  // Close select dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
-        closeSelectDropdown();
-      }
+  const getCompletionStatus = useCallback((workout: WorkoutHistoryItem) => {
+    if (workout.status === 'completed') {
+      return (
+        <span className="bg-green-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+          Completed
+        </span>
+      );
+    } else if (workout.status === 'in_progress') {
+      return (
+        <span className="bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+          In Progress
+        </span>
+      );
+    } else {
+      return (
+        <span className="bg-gray-200 text-gray-700 text-xs font-medium px-2 py-1 rounded-full">
+          Not Started
+        </span>
+      );
     }
+  }, []);
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [closeSelectDropdown]);
-
+  // Only show program weeks that have workouts
+  const programWeeks = Object.keys(groupedWorkouts).filter(week => 
+    groupedWorkouts[week] && groupedWorkouts[week].length > 0
+  );
+  
+  useEffect(() => {
+    if (user?.id && !didFetchWorkouts.current) {
+      console.log("WorkoutsList: User ID changed, refetching workouts");
+      refetchWorkouts();
+      setTabsKey(prev => prev + 1);
+    }
+  }, [user?.id, refetchWorkouts]);
+  
+  // Overall loading state
+  const isLoading = isLoadingProgram || isLoadingWorkouts;
+  
   if (isLoading) {
     return (
-      <div className="py-10 text-center">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-client" />
-        <p>Loading your workouts...</p>
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-client mx-auto"></div>
+          <p className="text-muted-foreground">Loading your workouts...</p>
+        </div>
       </div>
     );
   }
-
-  if (error) {
+  
+  if (workoutsError) {
     return (
-      <div className="py-10 text-center">
-        <p className="text-red-500 mb-4">{error}</p>
-        <Button onClick={() => window.location.reload()}>
-          Try Again
+      <div className="text-center py-12">
+        <p className="text-red-500">Error loading workouts. Please try again later.</p>
+        <Button 
+          variant="outline" 
+          className="mt-4"
+          onClick={() => refetchWorkouts()}
+        >
+          Retry
         </Button>
       </div>
     );
   }
-
-  // Check if the selected week is completed
+  
+  if (workouts.length === 0) {
+    return (
+      <div className="space-y-6">
+        {/* Add the ProgramProgressSection at the top */}
+        <ProgramProgressSection />
+        
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">You don't have any assigned workouts yet.</p>
+        </div>
+        
+        {/* Quick Actions moved below the workouts */}
+        <div className="mt-8 border-t pt-6">
+          <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
+          
+          <Button asChild variant="outline" className="w-full mt-4 mb-4 flex items-center justify-center gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+            <Link to="/client-dashboard/workouts/one-off">
+              <PlusCircle className="h-4 w-4" />
+              Enter Custom Workout
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
+  const filteredWorkouts = filterWorkoutsByWeek(workouts, weekFilter);
   const isSelectedWeekCompleted = weekFilter ? completedWeeks[weekFilter] : false;
 
   return (
@@ -280,171 +246,100 @@ const WorkoutsList = () => {
       <div className="space-y-4">
         {currentProgram && currentProgram.program && (
           <div className="text-center space-y-1 flex-1">
-            <h2 className="text-xl font-bold">{currentProgram.program.title}</h2>
-            {currentProgram.program.description && (
-              <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
-                {currentProgram.program.description}
-              </p>
-            )}
-          </div>
-        )}
-        
-        {availableWeeks.length > 0 && (
-          <div className="flex justify-center mb-2">
-            {/* Custom dropdown implementation */}
-            <div className="relative" ref={selectRef}>
-              <button
-                className="flex w-[200px] h-8 text-sm items-center justify-between rounded-md border border-input bg-background px-3 py-2 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                onClick={toggleSelectDropdown}
-              >
-                <div className="flex items-center gap-1">
-                  <Filter className="h-3.5 w-3.5" />
-                  <span>{weekFilter ? `Week ${weekFilter}` : "Filter by week"}</span>
-                </div>
-                <ChevronDown className="h-4 w-4 opacity-50" />
-              </button>
-              
-              {isSelectOpen && (
-                <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md animate-in fade-in-0 zoom-in-95">
-                  <div className="p-1">
-                    {availableWeeks
-                      .sort((a, b) => a - b)
-                      .map((weekNumber) => (
-                        <button
-                          key={weekNumber}
-                          className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                          onClick={(e) => handleWeekSelect(e, weekNumber.toString())}
-                        >
-                          <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                            {weekFilter === weekNumber.toString() && (
-                              <div className="h-4 w-4 flex items-center justify-center">✓</div>
-                            )}
-                          </span>
-                          {`Week ${weekNumber}`}
-                        </button>
-                      ))}
-                  </div>
-                </div>
-              )}
+            <h2 className="text-lg font-medium">{currentProgram.program.title}</h2>
+            <div className="text-sm text-muted-foreground">
+              Current Program
             </div>
           </div>
         )}
         
-        {isSelectedWeekCompleted ? (
-          <Card className="bg-green-50 border-green-200">
-            <CardContent className="pt-6 pb-6 text-center">
-              <Trophy className="h-12 w-12 mx-auto mb-3 text-green-600" />
-              <h3 className="text-xl font-bold text-green-800 mb-2">
-                Congratulations! 🎉💪
-              </h3>
-              <p className="text-green-700">
-                You've completed all workouts in your plan for Week {weekFilter}.
-              </p>
-            </CardContent>
-          </Card>
-        ) : filteredWorkouts.length === 0 ? (
-          <Card>
-            <CardContent className="pt-4 pb-4 text-center">
-              <p className="text-muted-foreground">
-                No workouts found for the selected filter.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredWorkouts.map((workout) => (
-              <Card key={workout.id} className="overflow-hidden">
-                <Collapsible
-                  open={expandedWorkouts[workout.id] || false}
-                  onOpenChange={() => {}}
-                >
-                  <CardHeader className="px-4 py-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg">
-                      {workout.workout?.title || 'Untitled Workout'}
-                    </CardTitle>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-7 w-7 p-0 ml-2"
-                      onClick={(e) => toggleWorkoutDetails(e, workout.id)}
+        {programWeeks.length > 1 && (
+          <div className="my-4 border-b pb-4">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="weeks">
+                <AccordionTrigger className="py-2">
+                  <span className="text-sm font-medium">
+                    {weekFilter ? `Week: ${weekFilter}` : "All Weeks"}
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
+                    {/* "All Weeks" option */}
+                    <Button
+                      variant={weekFilter === null ? "default" : "outline"}
+                      size="sm"
+                      className="text-xs h-auto py-1.5"
+                      onClick={() => handleWeekFilterSelect(null)}
                     >
-                      {expandedWorkouts[workout.id] ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                      <span className="sr-only">Toggle details</span>
+                      All Weeks
                     </Button>
-                  </CardHeader>
-                  
-                  <CardContent className="p-0">
-                    <CollapsibleContent className="px-4 pb-2 pt-0 space-y-2">
-                      {workout.workout?.description && (
-                        <div className="mb-2">
-                          <h4 className="text-xs font-medium">Description</h4>
-                          <p className="text-xs text-muted-foreground">
-                            {workout.workout.description}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {workout.workout?.workout_exercises && workout.workout.workout_exercises.length > 0 && (
-                        <div>
-                          <h4 className="text-xs font-medium mb-1">Exercises</h4>
-                          <Accordion type="single" collapsible className="w-full">
-                            {workout.workout.workout_exercises.map((exercise) => (
-                              <AccordionItem key={exercise.id} value={exercise.id} className="border-b-0 py-0">
-                                <div className="flex flex-col">
-                                  <AccordionTrigger className="py-1 text-xs">
-                                    {exercise.exercise?.name || 'Unknown Exercise'}
-                                  </AccordionTrigger>
-                                  
-                                  <div className="flex flex-wrap gap-2 px-1 py-1 text-xs">
-                                    <span className="bg-muted px-2 py-0.5 rounded-md">Sets: {exercise.sets}</span>
-                                    <span className="bg-muted px-2 py-0.5 rounded-md">Reps: {exercise.reps}</span>
-                                    {exercise.rest_seconds && (
-                                      <span className="bg-muted px-2 py-0.5 rounded-md">Rest: {exercise.rest_seconds}s</span>
-                                    )}
-                                  </div>
-                                </div>
-                                
-                                <AccordionContent className="pb-1">
-                                  <div className="space-y-1 text-xs">
-                                    {exercise.notes && (
-                                      <div className="text-xs bg-muted p-1.5 rounded-md">
-                                        <span className="font-medium">Notes:</span> {exercise.notes}
-                                      </div>
-                                    )}
-                                    {exercise.exercise?.description && (
-                                      <div className="text-xs bg-muted p-1.5 rounded-md">
-                                        <span className="font-medium">Description:</span> {exercise.exercise.description}
-                                      </div>
-                                    )}
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            ))}
-                          </Accordion>
-                        </div>
-                      )}
-                    </CollapsibleContent>
-                  </CardContent>
-                </Collapsible>
-                
-                <CardFooter className="p-3">
-                  <Button 
-                    className="w-full h-9 py-1" 
-                    size="sm"
-                    onClick={(e) => handleStartWorkout(e, workout.id)}
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    Start Workout
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+                    
+                    {/* Week filter buttons */}
+                    {programWeeks.map(week => (
+                      <Button
+                        key={week}
+                        variant={weekFilter === week ? "default" : "outline"}
+                        size="sm"
+                        className={`text-xs h-auto py-1.5 ${
+                          completedWeeks[week] ? "bg-emerald-500 hover:bg-emerald-600" : ""
+                        }`}
+                        onClick={() => handleWeekFilterSelect(week)}
+                      >
+                        {week}
+                      </Button>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
         )}
+        
+        {weekFilter && (
+          <div className="text-sm mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-medium">
+                {weekFilter}
+              </h3>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                isSelectedWeekCompleted 
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-blue-100 text-blue-800"
+              }`}>
+                {isSelectedWeekCompleted ? "Completed" : "In Progress"}
+              </span>
+            </div>
+          </div>
+        )}
+        
+        {filteredWorkouts.length > 0 ? (
+          <div className="space-y-3">
+            {filteredWorkouts.map(workout => (
+              <WorkoutProgressCard
+                key={workout.workout_completion_id}
+                workout={workout}
+                onClick={() => toggleExpandedItem(workout.workout_completion_id)}
+                isExpanded={!!expandedItems[workout.workout_completion_id]}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-muted-foreground">No workouts found for this week.</p>
+          </div>
+        )}
+      </div>
+      
+      {/* Quick Actions moved below the workouts */}
+      <div className="mt-8 border-t pt-6">
+        <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
+        
+        <Button asChild variant="outline" className="w-full mt-4 mb-4 flex items-center justify-center gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+          <Link to="/client-dashboard/workouts/one-off">
+            <PlusCircle className="h-4 w-4" />
+            Enter Custom Workout
+          </Link>
+        </Button>
       </div>
     </div>
   );

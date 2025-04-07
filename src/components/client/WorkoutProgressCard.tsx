@@ -15,7 +15,7 @@ interface WorkoutProgressCardProps {
   count: number;
   total: number;
   workoutTypesMap?: Record<string, WorkoutType>;
-  workoutTitlesMap?: Record<string, string>;
+  workoutTitlesMap?: Record<string, string>; // Separate map for titles
   userName?: string;
   isCurrentUser?: boolean;
   workoutDetailsMap?: Record<string, { title: string; type: WorkoutType }>;
@@ -28,31 +28,37 @@ export const WorkoutProgressCard = ({
   count,
   total,
   workoutTypesMap = {},
-  workoutTitlesMap = {},
+  workoutTitlesMap = {}, // Initialize the titles map
   userName,
   isCurrentUser,
   workoutDetailsMap = {}
 }: WorkoutProgressCardProps) => {
+  // Default to 6 if total is 0 or undefined
   const displayTotal = total <= 0 ? 6 : total;
   const [isOpen, setIsOpen] = useState(false);
   
+  // Get user's timezone for logging
   const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   console.log(`User timezone in WorkoutProgressCard: ${userTimeZone}`);
   
+  // Calculate today based on user's local time
   const [today] = useState(new Date());
   
+  // Find the start of the current week (Monday)
   const [weekStart] = useState(() => {
     const now = new Date();
-    const dayOfWeek = now.getDay();
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const dayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday, etc.
+    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust to make Monday the first day
     const monday = new Date(now);
     monday.setDate(now.getDate() - diff);
     monday.setHours(0, 0, 0, 0);
     
+    // Log for debugging
     console.log(`Week starts on: ${monday.toLocaleString()} in timezone ${userTimeZone}`);
     return monday;
   });
   
+  // Calculate the days of the current week
   const [weekDays] = useState(() => {
     const days = [];
     for (let i = 0; i < 7; i++) {
@@ -67,6 +73,7 @@ export const WorkoutProgressCard = ({
     return days;
   });
   
+  // Log week boundaries for debugging
   useEffect(() => {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
@@ -75,7 +82,7 @@ export const WorkoutProgressCard = ({
   
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
-      <Card className="shadow-sm border-slate-200 cursor-pointer w-full" onClick={() => setIsOpen(!isOpen)}>
+      <Card className="shadow-sm border-slate-200 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
         <CardHeader className="pb-2 pt-4 px-4">
           <div className="flex justify-between items-center">
             <CardTitle className="text-base font-medium">
@@ -110,6 +117,7 @@ export const WorkoutProgressCard = ({
             {weekDays.map((day, index) => {
               const currentDay = day.date;
               
+              // Count how many workouts were completed on this day
               const workoutsCompletedToday = completedDates.filter(date => 
                 new Date(date).toDateString() === currentDay.toDateString()
               ).length;
@@ -122,18 +130,23 @@ export const WorkoutProgressCard = ({
               
               const isToday = today.toDateString() === currentDay.toDateString();
               
+              // Format date to get the correct workout type from map
               const dateStr = format(currentDay, 'yyyy-MM-dd');
               let workoutType = workoutTypesMap[dateStr];
               
+              // If we don't have a defined workout type but the day is completed,
+              // detect it from any workout title we might have
               if (!workoutType && isDayCompleted && workoutTitlesMap[dateStr]) {
                 const title = workoutTitlesMap[dateStr];
                 workoutType = detectWorkoutTypeFromText(title);
               }
               
+              // Fallback to defaults if still no workout type
               if (!workoutType) {
                 workoutType = isLifeHappens ? 'rest_day' : 'strength';
               }
               
+              // Use lighter background colors for better emoji visibility
               let bgColor = 'bg-slate-50';
               
               if (isLifeHappens) {
@@ -153,6 +166,7 @@ export const WorkoutProgressCard = ({
                       <span></span>
                     )}
                     
+                    {/* Make the superscript more visible with enhanced styling */}
                     {workoutsCompletedToday > 1 && (
                       <div className="absolute -top-1.5 -right-1.5 bg-client text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm z-10 font-bold">
                         {workoutsCompletedToday}
@@ -160,8 +174,10 @@ export const WorkoutProgressCard = ({
                     )}
                   </div>
                   
+                  {/* Day of week label moved below the circle */}
                   <span className="text-xs font-medium text-slate-600 mt-1">{day.shortName}</span>
                   
+                  {/* Current day indicator */}
                   {isToday && (
                     <div className="w-1.5 h-1.5 bg-client rounded-full mt-0.5"></div>
                   )}
@@ -170,6 +186,7 @@ export const WorkoutProgressCard = ({
             })}
           </div>
           
+          {/* Keep existing Log Workout button */}
           {isCurrentUser && (
             <div className="mt-4 text-center">
               <Button 
@@ -190,7 +207,7 @@ export const WorkoutProgressCard = ({
       </Card>
       
       <CollapsibleContent>
-        <div className="mt-1 mb-4 bg-white rounded-md border shadow-sm p-3 w-full">
+        <div className="mt-1 mb-4 bg-white rounded-md border shadow-sm p-3">
           <h4 className="font-medium text-sm mb-2">Weekly Workouts</h4>
           
           <div className="space-y-2">
@@ -199,6 +216,7 @@ export const WorkoutProgressCard = ({
               
               const dateStr = format(currentDay, 'yyyy-MM-dd');
               
+              // Find all workouts completed on this day
               const workoutsForThisDay = completedDates.filter(date => 
                 new Date(date).toDateString() === currentDay.toDateString()
               );

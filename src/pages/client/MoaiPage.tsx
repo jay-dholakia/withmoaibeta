@@ -152,7 +152,7 @@ const MoaiPage = () => {
   
   if (isLoadingGroups) {
     return (
-      <div className="space-y-6 px-[10px]">
+      <div className="space-y-6">
         <p className="text-muted-foreground mb-4">
           Your fitness community and accountability group
         </p>
@@ -166,12 +166,12 @@ const MoaiPage = () => {
   
   if (error) {
     return (
-      <div className="space-y-6 px-[10px]">
+      <div className="space-y-6">
         <p className="text-muted-foreground mb-4">
           Your fitness community and accountability group
         </p>
         
-        <Card className="text-center py-12 w-full">
+        <Card className="text-center py-12">
           <CardContent>
             <Mountain className="mx-auto h-12 w-12 text-red-400 mb-4" />
             <h2 className="text-xl font-medium mb-2">Something Went Wrong</h2>
@@ -190,12 +190,12 @@ const MoaiPage = () => {
   
   if (!userGroups || userGroups.length === 0) {
     return (
-      <div className="space-y-6 px-[10px]">
+      <div className="space-y-6">
         <p className="text-muted-foreground mb-4">
           Your fitness community and accountability group
         </p>
         
-        <Card className="text-center py-12 w-full">
+        <Card className="text-center py-12">
           <CardContent>
             <Mountain className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <h2 className="text-xl font-medium mb-2">Moai Assignment Pending</h2>
@@ -213,80 +213,76 @@ const MoaiPage = () => {
   const group: Group = userGroups?.[0] || { id: '', name: 'Loading...', description: '', spotify_playlist_url: null };
   
   return (
-    <div className="space-y-6">
-      <div className="px-[10px]">
-        <p className="text-muted-foreground mb-4">
-          Your fitness community and accountability group
-        </p>
+    <div className="space-y-6 px-0">
+      <p className="text-muted-foreground mb-4 px-[10px]">
+        Your fitness community and accountability group
+      </p>
       
-        <Card className="bg-client/5 relative w-full">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-2xl text-center font-semibold text-black">
-              {group.name}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-center text-sm text-muted-foreground pt-0">
-            {group.description && <p>{group.description}</p>}
-            
-            {group.spotify_playlist_url && (
-              <div className="mt-4">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="gap-1 text-green-600 border-green-600 hover:bg-green-50"
-                  onClick={() => window.open(group.spotify_playlist_url, '_blank')}
-                >
-                  <Music className="h-4 w-4" />
-                  Team Playlist
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="bg-client/5 relative mx-[10px]">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-2xl text-center font-semibold text-black">
+            {group.name}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center text-sm text-muted-foreground pt-0">
+          {group.description && <p>{group.description}</p>}
+          
+          {group.spotify_playlist_url && (
+            <div className="mt-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-1 text-green-600 border-green-600 hover:bg-green-50"
+                onClick={() => window.open(group.spotify_playlist_url, '_blank')}
+              >
+                <Music className="h-4 w-4" />
+                Team Playlist
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
       
-      <div className="px-[10px]">
-        <Tabs defaultValue="progress" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="progress" className="flex items-center justify-center">
-              <Mountain className="h-5 w-5 mr-2" />
-              Progress
-            </TabsTrigger>
-            <TabsTrigger value="members" className="flex items-center justify-center">
-              <Users className="h-5 w-5 mr-2" />
-              Members
-            </TabsTrigger>
-            <TabsTrigger value="coach" className="flex items-center justify-center">
-              <UserRound className="h-5 w-5 mr-2" />
-              Coach
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="progress" className="p-0">
-            {group.id ? (
-              <MoaiGroupProgress groupId={group.id} />
-            ) : (
-              <div className="text-center p-4">Loading group progress...</div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="members">
-            {group.id ? (
-              <MoaiMembersTab groupId={group.id} />
-            ) : (
-              <div className="text-center p-4">Loading members...</div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="coach">
-            {group.id ? (
-              <MoaiCoachTab groupId={group.id} />
-            ) : (
-              <div className="text-center p-4">Loading coach information...</div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
+      <Tabs defaultValue="progress" className="w-full px-[10px]">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="progress" className="flex items-center justify-center">
+            <Mountain className="h-5 w-5 mr-2" />
+            Progress
+          </TabsTrigger>
+          <TabsTrigger value="members" className="flex items-center justify-center">
+            <Users className="h-5 w-5 mr-2" />
+            Members
+          </TabsTrigger>
+          <TabsTrigger value="coach" className="flex items-center justify-center">
+            <UserRound className="h-5 w-5 mr-2" />
+            Coach
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="progress" className="px-0">
+          {group.id ? (
+            <MoaiGroupProgress groupId={group.id} />
+          ) : (
+            <div className="text-center p-4">Loading group progress...</div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="members">
+          {group.id ? (
+            <MoaiMembersTab groupId={group.id} />
+          ) : (
+            <div className="text-center p-4">Loading members...</div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="coach">
+          {group.id ? (
+            <MoaiCoachTab groupId={group.id} />
+          ) : (
+            <div className="text-center p-4">Loading coach information...</div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

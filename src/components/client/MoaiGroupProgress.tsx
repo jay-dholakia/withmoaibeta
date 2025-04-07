@@ -341,35 +341,31 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
   
   if (isLoadingCurrentUser || isLoadingMembers || isLoadingCurrentUserProfile) {
     return (
-      <div className="px-[10px]">
-        <Card className="w-full">
-          <CardContent className="py-6">
-            <div className="flex justify-center items-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-client mr-2" />
-              <p className="text-sm text-muted-foreground">Loading your progress...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardContent className="py-6">
+          <div className="flex justify-center items-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin text-client mr-2" />
+            <p className="text-sm text-muted-foreground">Loading your progress...</p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-[10px]">
       {user && (
-        <div className="px-[10px]">
-          <WorkoutProgressCard 
-            label="Your Workouts"
-            completedDates={completedDates}
-            lifeHappensDates={lifeHappensDates}
-            count={totalCompletedThisWeek}
-            total={totalWorkouts}
-            workoutTypesMap={workoutTypesMap}
-            workoutTitlesMap={workoutTitlesMap}
-            userName={getCurrentUserDisplayName()}
-            isCurrentUser={true}
-          />
-        </div>
+        <WorkoutProgressCard 
+          label="Your Workouts"
+          completedDates={completedDates}
+          lifeHappensDates={lifeHappensDates}
+          count={totalCompletedThisWeek}
+          total={totalWorkouts}
+          workoutTypesMap={workoutTypesMap}
+          workoutTitlesMap={workoutTitlesMap}
+          userName={getCurrentUserDisplayName()}
+          isCurrentUser={true}
+        />
       )}
       
       {groupMembers && groupMembers.filter(m => !m.isCurrentUser).map(member => {
@@ -377,15 +373,13 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
         
         if (!memberData) {
           return (
-            <div className="px-[10px]" key={member.userId}>
-              <Card className="p-4 animate-pulse w-full">
-                <div className="flex items-center space-x-2">
-                  <div className="h-8 w-8 bg-slate-200 rounded-full"></div>
-                  <div className="h-4 w-36 bg-slate-200 rounded"></div>
-                </div>
-                <div className="mt-3 h-2 bg-slate-200 rounded-full"></div>
-              </Card>
-            </div>
+            <Card key={member.userId} className="p-4 animate-pulse">
+              <div className="flex items-center space-x-2">
+                <div className="h-8 w-8 bg-slate-200 rounded-full"></div>
+                <div className="h-4 w-36 bg-slate-200 rounded"></div>
+              </div>
+              <div className="mt-3 h-2 bg-slate-200 rounded-full"></div>
+            </Card>
           );
         }
         
@@ -398,24 +392,23 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
         const memberTotalCompletedThisWeek = memberCompletedThisWeek + memberLifeHappensThisWeek;
         
         return (
-          <div className="px-[10px]" key={member.userId}>
-            <WorkoutProgressCard 
-              label=""
-              completedDates={memberData.completedDates}
-              lifeHappensDates={memberData.lifeHappensDates}
-              count={memberTotalCompletedThisWeek}
-              total={totalWorkouts}
-              workoutTypesMap={memberData.workoutTypesMap}
-              workoutTitlesMap={memberData.workoutTitlesMap}
-              userName={getDisplayName(member)}
-              isCurrentUser={false}
-            />
-          </div>
+          <WorkoutProgressCard 
+            key={member.userId}
+            label=""
+            completedDates={memberData.completedDates}
+            lifeHappensDates={memberData.lifeHappensDates}
+            count={memberTotalCompletedThisWeek}
+            total={totalWorkouts}
+            workoutTypesMap={memberData.workoutTypesMap}
+            workoutTitlesMap={memberData.workoutTitlesMap}
+            userName={getDisplayName(member)}
+            isCurrentUser={false}
+          />
         );
       })}
       
       {(!groupMembers || groupMembers.filter(m => !m.isCurrentUser).length === 0) && (
-        <p className="text-center text-sm text-muted-foreground mt-4 px-[10px]">
+        <p className="text-center text-sm text-muted-foreground mt-4">
           Other group members' progress will appear here soon.
         </p>
       )}

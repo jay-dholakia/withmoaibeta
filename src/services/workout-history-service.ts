@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCurrentProgram } from "./program-service";
 import { startOfWeek, endOfWeek, format, addDays } from "date-fns";
@@ -7,59 +6,70 @@ import { WorkoutHistoryItem, WorkoutBasic, WorkoutSetCompletion, StandardWorkout
 /**
  * Gets the weekly assigned workouts count for a user
  */
-export const getWeeklyAssignedWorkoutsCount = async (userId: string): Promise<number> => {
+export const getWeeklyAssignedWorkoutsCount = async (userId: string, weekNumber?: number): Promise<number> => {
   try {
     if (!userId) {
-      console.error("Invalid userId provided to getWeeklyAssignedWorkoutsCount");
-      return 6; // Default to 6 workouts if no userId
+      return 6; // Default value
     }
     
-    console.log("Getting weekly assigned workouts count for user:", userId);
-    
-    // Fetch the user's current program
-    const currentProgram = await fetchCurrentProgram(userId);
-    
-    if (!currentProgram || !currentProgram.program) {
-      console.error("No current program found for user");
-      return 6; // Default to 6 workouts if no program assigned
+    // If week number is provided, use the Supabase function
+    if (weekNumber) {
+      const { data, error } = await supabase.rpc('count_workouts_for_user_and_week', {
+        user_id_param: userId,
+        week_number_param: weekNumber
+      });
+      
+      if (error) {
+        console.error("Error counting workouts for week:", error);
+        return 6; // Default value
+      }
+      
+      // Return the count, with fallback to default
+      return data || 6;
     }
     
-    // Calculate the current week within the program
-    const startDate = new Date(currentProgram.start_date);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - startDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const currentWeekNumber = Math.floor(diffDays / 7) + 1;
+    // If no week number, use our standard logic to count all workouts
+    const { data: programAssignments, error: assignmentError } = await supabase
+      .from('program_assignments')
+      .select('program_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
     
-    console.log(`Current week in program: ${currentWeekNumber}`);
-    
-    // Find the corresponding week in the program
-    const weeks = currentProgram.program.weekData || [];
-    
-    if (!Array.isArray(weeks)) {
-      console.error("Program weekData is not an array:", weeks);
-      return 6;
+    if (assignmentError || !programAssignments || programAssignments.length === 0) {
+      console.log("No program assignments found, returning default count");
+      return 6; // Default value
     }
     
-    const currentWeek = weeks.find(week => week.week_number === currentWeekNumber);
+    const programId = programAssignments[0].program_id;
     
-    if (!currentWeek) {
-      console.error(`Week ${currentWeekNumber} not found in program`);
-      return 6; // Default to 6 workouts if week not found
+    // Count workouts in the program's weeks
+    const { data: weeks, error: weeksError } = await supabase
+      .from('workout_weeks')
+      .select('id')
+      .eq('program_id', programId);
+    
+    if (weeksError || !weeks || weeks.length === 0) {
+      console.log("No weeks found in program, returning default count");
+      return 6; // Default value
     }
     
-    // Count the number of workouts in this week
-    const workoutsCount = currentWeek.workouts && Array.isArray(currentWeek.workouts) 
-      ? currentWeek.workouts.length 
-      : 0;
+    const weekIds = weeks.map(week => week.id);
     
-    console.log(`Found ${workoutsCount} workouts assigned for week ${currentWeekNumber}`);
+    const { count, error: workoutError } = await supabase
+      .from('workouts')
+      .select('*', { count: 'exact', head: true })
+      .in('week_id', weekIds);
     
-    // If no workouts found in the week, return default of 6
-    return workoutsCount > 0 ? workoutsCount : 6;
+    if (workoutError) {
+      console.error("Error counting workouts in program:", workoutError);
+      return 6; // Default value
+    }
+    
+    return count || 6; // Ensure we have a number, default to 6 if null
   } catch (error) {
-    console.error("Error getting weekly assigned workouts count:", error);
-    return 6; // Default to 6 workouts on error
+    console.error("Error in getWeeklyAssignedWorkoutsCount:", error);
+    return 6; // Default to 6 workouts as fallback
   }
 };
 

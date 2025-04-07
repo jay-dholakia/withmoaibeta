@@ -10,9 +10,11 @@ import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-servi
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
+import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 
 interface MoaiGroupProgressProps {
   groupId: string;
+  currentProgram?: any; // Program details with start date
 }
 
 interface GroupMember {
@@ -26,18 +28,31 @@ interface GroupMember {
   };
 }
 
-const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
+const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) => {
   const { user, profile } = useAuth();
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
   const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
   const [workoutTypesMap, setWorkoutTypesMap] = useState<Record<string, WorkoutType>>({});
   const [workoutTitlesMap, setWorkoutTitlesMap] = useState<Record<string, string>>({});
+  const [currentWeek, setCurrentWeek] = useState<number>(1);
+  
+  useEffect(() => {
+    if (currentProgram?.start_date) {
+      const startDate = new Date(currentProgram.start_date);
+      const weekNumber = getCurrentWeekNumber(startDate);
+      setCurrentWeek(weekNumber);
+      console.log(`Current program week: ${weekNumber} (start date: ${startDate})`);
+    }
+  }, [currentProgram]);
   
   const { data: assignedWorkoutsCount } = useQuery({
-    queryKey: ['assigned-workouts-count', user?.id],
+    queryKey: ['assigned-workouts-count', user?.id, currentWeek],
     queryFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
       try {
+        if (currentWeek > 0) {
+          return await getWeeklyAssignedWorkoutsCount(user.id, currentWeek);
+        }
         const count = await getWeeklyAssignedWorkoutsCount(user.id);
         return count;
       } catch (error) {
@@ -352,7 +367,7 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
   }
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-[10px]">
       {user && (
         <WorkoutProgressCard 
           label="Your Workouts"
@@ -364,6 +379,8 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
           workoutTitlesMap={workoutTitlesMap}
           userName={getCurrentUserDisplayName()}
           isCurrentUser={true}
+          currentWeek={currentWeek}
+          currentProgram={currentProgram}
         />
       )}
       
@@ -402,6 +419,8 @@ const MoaiGroupProgress = ({ groupId }: MoaiGroupProgressProps) => {
             workoutTitlesMap={memberData.workoutTitlesMap}
             userName={getDisplayName(member)}
             isCurrentUser={false}
+            currentWeek={currentWeek}
+            currentProgram={currentProgram}
           />
         );
       })}

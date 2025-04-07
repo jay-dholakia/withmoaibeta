@@ -25,6 +25,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { fetchCurrentProgram } from '@/services/program-service';
 
 const WorkoutsPage = () => {
   const [showRestDayDialog, setShowRestDayDialog] = useState(false);
@@ -38,6 +40,15 @@ const WorkoutsPage = () => {
   
   const isActiveOrCompleteWorkout = location.pathname.includes('/active/') || 
                                    location.pathname.includes('/complete/');
+  
+  const { data: currentProgram } = useQuery({
+    queryKey: ['current-program', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      return await fetchCurrentProgram(user.id);
+    },
+    enabled: !!user?.id,
+  });
   
   const handleLogRestDay = () => {
     logRestDay(restDate).then(() => {
@@ -55,12 +66,45 @@ const WorkoutsPage = () => {
     console.log("Auth state changed in WorkoutsPage, user:", user?.id);
     // No action needed - the effect dependency will trigger re-renders of children
   }, [user]);
+  
+  // Display program information if available
+  const getProgramInfo = () => {
+    if (!currentProgram || !currentProgram.program) {
+      return null;
+    }
+    
+    const startDate = new Date(currentProgram.start_date);
+    const currentDate = new Date();
+    
+    // Calculate days elapsed
+    const msInDay = 1000 * 60 * 60 * 24;
+    const daysElapsed = Math.floor((currentDate.getTime() - startDate.getTime()) / msInDay);
+    const currentWeek = Math.floor(daysElapsed / 7) + 1;
+    
+    const weekStartDay = (currentWeek - 1) * 7;
+    const weekStart = new Date(startDate);
+    weekStart.setDate(startDate.getDate() + weekStartDay);
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    
+    return (
+      <div className="text-center mb-4 text-muted-foreground text-sm">
+        <p>
+          <span className="font-medium">{currentProgram.program.title}</span>
+          {" • "}
+          Week {currentWeek}: {format(weekStart, 'MMM d')} – {format(weekEnd, 'MMM d')}
+        </p>
+      </div>
+    );
+  };
 
   return (
     <div className="w-full">
       <Routes>
         <Route index element={
           <Tabs defaultValue="active-workouts" className="w-full">
+            {getProgramInfo()}
             <TabsList className="w-full mb-6 grid grid-cols-2">
               <TabsTrigger value="active-workouts" className="flex items-center justify-center gap-2">
                 <ListTodo className="h-4 w-4" />
@@ -168,4 +212,3 @@ const WorkoutsPage = () => {
 };
 
 export default WorkoutsPage;
-

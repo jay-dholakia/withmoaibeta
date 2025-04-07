@@ -1,12 +1,9 @@
 
-CREATE OR REPLACE FUNCTION public.count_workouts_for_user_and_week(
-  user_id_param UUID,
-  week_number_param INTEGER
-)
-RETURNS INTEGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
+CREATE OR REPLACE FUNCTION public.count_workouts_for_user_and_week(user_id_param uuid, week_number_param integer)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
 DECLARE
   workout_count INTEGER;
 BEGIN
@@ -19,10 +16,6 @@ BEGIN
   WHERE pa.user_id = user_id_param
     AND ww.week_number = week_number_param;
   
-  RETURN workout_count;
+  RETURN COALESCE(workout_count, 6);  -- Default to 6 if no count is found
 END;
-$$;
-
--- Grant execute privileges
-GRANT EXECUTE ON FUNCTION public.count_workouts_for_user_and_week TO authenticated;
-GRANT EXECUTE ON FUNCTION public.count_workouts_for_user_and_week TO anon;
+$function$;

@@ -1,282 +1,157 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { WorkoutType, WorkoutTypeIcon } from './WorkoutTypeIcon';
-import { format } from 'date-fns';
-import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
+import React from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
+import { format, isThisWeek, addDays, startOfWeek } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatWeekDateRange } from '@/services/assigned-workouts-service';
 
 interface WorkoutProgressCardProps {
-  label: string;
-  completedDates: Date[];
-  lifeHappensDates: Date[];
+  label?: string;
   count: number;
   total: number;
-  workoutTypesMap?: Record<string, WorkoutType>;
-  workoutTitlesMap?: Record<string, string>; // Separate map for titles
-  userName?: string;
-  isCurrentUser?: boolean;
-  workoutDetailsMap?: Record<string, { title: string; type: WorkoutType }>;
+  userName: string;
+  isCurrentUser: boolean;
+  completedDates: Date[];
+  lifeHappensDates: Date[];
+  workoutTypesMap: Record<string, WorkoutType>;
+  workoutTitlesMap: Record<string, string>;
+  className?: string;
+  currentWeek?: number;
+  currentProgram?: any;
 }
 
-export const WorkoutProgressCard = ({
+export function WorkoutProgressCard({ 
   label,
-  completedDates,
-  lifeHappensDates,
   count,
   total,
-  workoutTypesMap = {},
-  workoutTitlesMap = {}, // Initialize the titles map
   userName,
   isCurrentUser,
-  workoutDetailsMap = {}
-}: WorkoutProgressCardProps) => {
-  // Default to 6 if total is 0 or undefined
-  const displayTotal = total <= 0 ? 6 : total;
-  const [isOpen, setIsOpen] = useState(false);
+  completedDates,
+  lifeHappensDates,
+  workoutTypesMap,
+  workoutTitlesMap,
+  className,
+  currentWeek,
+  currentProgram
+}: WorkoutProgressCardProps) {
+  // Always use Monday as the first day of the week
+  const today = new Date();
+  const startDate = startOfWeek(today, { weekStartsOn: 1 });
   
-  // Get user's timezone for logging
-  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  console.log(`User timezone in WorkoutProgressCard: ${userTimeZone}`);
-  
-  // Calculate today based on user's local time
-  const [today] = useState(new Date());
-  
-  // Find the start of the current week (Monday)
-  const [weekStart] = useState(() => {
-    const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday, etc.
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust to make Monday the first day
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - diff);
-    monday.setHours(0, 0, 0, 0);
-    
-    // Log for debugging
-    console.log(`Week starts on: ${monday.toLocaleString()} in timezone ${userTimeZone}`);
-    return monday;
+  // Generate array of the 7 days in the current week
+  const daysOfWeek = Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(startDate, i);
+    return {
+      date,
+      dayName: format(date, 'EEE'),
+      isToday: format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'),
+      dateStr: format(date, 'yyyy-MM-dd'),
+    };
   });
   
-  // Calculate the days of the current week
-  const [weekDays] = useState(() => {
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(weekStart);
-      day.setDate(weekStart.getDate() + i);
-      days.push({
-        date: day,
-        shortName: ['M', 'T', 'W', 'T', 'F', 'S', 'S'][i],
-        fullName: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][i]
-      });
-    }
-    return days;
-  });
+  // Function to get workout type for a specific date
+  const getWorkoutType = (dateStr: string): WorkoutType => {
+    return workoutTypesMap[dateStr] || null;
+  };
   
-  // Log week boundaries for debugging
-  useEffect(() => {
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    console.log(`Week boundaries in WorkoutProgressCard: ${format(weekStart, 'yyyy-MM-dd')} to ${format(weekEnd, 'yyyy-MM-dd')} (${userTimeZone})`);
-  }, [weekStart, userTimeZone]);
+  // Function to get workout title for a specific date
+  const getWorkoutTitle = (dateStr: string): string => {
+    return workoutTitlesMap[dateStr] || '';
+  };
+  
+  // Check if a specific date has a workout
+  const hasWorkoutOnDate = (dateStr: string): boolean => {
+    return completedDates.some(date => format(date, 'yyyy-MM-dd') === dateStr);
+  };
+  
+  // Check if a specific date is a rest day
+  const isRestDay = (dateStr: string): boolean => {
+    return lifeHappensDates.some(date => format(date, 'yyyy-MM-dd') === dateStr);
+  };
+  
+  // Calculate progress percentage safely
+  const progressPercentage = total > 0 ? Math.min(Math.round((count / total) * 100), 100) : 0;
+  
+  // Get the current week date range if available
+  let weekRangeDisplay = '';
+  if (currentWeek && currentProgram?.start_date) {
+    const startDate = new Date(currentProgram.start_date);
+    weekRangeDisplay = formatWeekDateRange(startDate, currentWeek);
+  }
   
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
-      <Card className="shadow-sm border-slate-200 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-        <CardHeader className="pb-2 pt-4 px-4">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-base font-medium">
-              {userName ? (
-                <span>
-                  {userName}
-                  {isCurrentUser && <span className="text-xs text-muted-foreground ml-1">(You)</span>}
-                </span>
-              ) : (
-                label
-              )}
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-semibold text-client">{count}/{displayTotal}</span>
-              <CollapsibleTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
-                  {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0 pb-4 px-4">
-          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-            <div 
-              className="bg-client h-full rounded-full"
-              style={{ width: `${Math.min(100, (count / displayTotal) * 100)}%` }}
-            />
-          </div>
-          
-          <div className="flex justify-between items-center mt-4 px-1">
-            {weekDays.map((day, index) => {
-              const currentDay = day.date;
-              
-              // Count how many workouts were completed on this day
-              const workoutsCompletedToday = completedDates.filter(date => 
-                new Date(date).toDateString() === currentDay.toDateString()
-              ).length;
-              
-              const isDayCompleted = workoutsCompletedToday > 0;
-              
-              const isLifeHappens = lifeHappensDates.some(date => 
-                new Date(date).toDateString() === currentDay.toDateString()
-              );
-              
-              const isToday = today.toDateString() === currentDay.toDateString();
-              
-              // Format date to get the correct workout type from map
-              const dateStr = format(currentDay, 'yyyy-MM-dd');
-              let workoutType = workoutTypesMap[dateStr];
-              
-              // If we don't have a defined workout type but the day is completed,
-              // detect it from any workout title we might have
-              if (!workoutType && isDayCompleted && workoutTitlesMap[dateStr]) {
-                const title = workoutTitlesMap[dateStr];
-                workoutType = detectWorkoutTypeFromText(title);
-              }
-              
-              // Fallback to defaults if still no workout type
-              if (!workoutType) {
-                workoutType = isLifeHappens ? 'rest_day' : 'strength';
-              }
-              
-              // Use lighter background colors for better emoji visibility
-              let bgColor = 'bg-slate-50';
-              
-              if (isLifeHappens) {
-                bgColor = 'bg-yellow-50';
-              }
-              
-              if (isDayCompleted) {
-                bgColor = 'bg-client/10';
-              }
-              
-              return (
-                <div key={index} className="flex flex-col items-center">
-                  <div className={`relative w-7 h-7 rounded-full flex items-center justify-center ${bgColor} border border-slate-200`}>
-                    {(isDayCompleted || isLifeHappens) ? (
-                      <WorkoutTypeIcon type={workoutType} />
-                    ) : (
-                      <span></span>
-                    )}
-                    
-                    {/* Make the superscript more visible with enhanced styling */}
-                    {workoutsCompletedToday > 1 && (
-                      <div className="absolute -top-1.5 -right-1.5 bg-client text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm z-10 font-bold">
-                        {workoutsCompletedToday}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Day of week label moved below the circle */}
-                  <span className="text-xs font-medium text-slate-600 mt-1">{day.shortName}</span>
-                  
-                  {/* Current day indicator */}
-                  {isToday && (
-                    <div className="w-1.5 h-1.5 bg-client rounded-full mt-0.5"></div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          
-          {/* Keep existing Log Workout button */}
-          {isCurrentUser && (
-            <div className="mt-4 text-center">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-client text-client hover:bg-client/10 w-full"
-                asChild
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Link to="/client-dashboard/workouts">
-                  <Plus className="h-4 w-4 mr-1" />
-                  Log Workout
-                </Link>
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
-      <CollapsibleContent>
-        <div className="mt-1 mb-4 bg-white rounded-md border shadow-sm p-3">
-          <h4 className="font-medium text-sm mb-2">Weekly Workouts</h4>
-          
-          <div className="space-y-2">
-            {weekDays.map((day, index) => {
-              const currentDay = day.date;
-              
-              const dateStr = format(currentDay, 'yyyy-MM-dd');
-              
-              // Find all workouts completed on this day
-              const workoutsForThisDay = completedDates.filter(date => 
-                new Date(date).toDateString() === currentDay.toDateString()
-              );
-              
-              const isLifeHappens = lifeHappensDates.some(date => 
-                new Date(date).toDateString() === currentDay.toDateString()
-              );
-              
-              let workoutType = workoutTypesMap[dateStr];
-              const workoutTitle = workoutTitlesMap[dateStr] || 'Workout';
-              
-              if (!workoutType && workoutsForThisDay.length > 0 && workoutTitlesMap[dateStr]) {
-                workoutType = detectWorkoutTypeFromText(workoutTitlesMap[dateStr]);
-              }
-              
-              if (!workoutType) {
-                workoutType = isLifeHappens ? 'rest_day' : 'strength';
-              }
-              
-              if (workoutsForThisDay.length === 0 && !isLifeHappens) {
-                return null;
-              }
-              
-              return (
-                <div key={`detail-${index}`} className="flex items-center p-2 bg-slate-50 rounded-md">
-                  <div className="w-8 text-xs font-medium text-slate-500">{day.shortName}</div>
-                  {isLifeHappens ? (
-                    <div className="flex items-center">
-                      <div className="bg-yellow-50 p-1 rounded-full mr-2">
-                        <WorkoutTypeIcon type="rest_day" />
-                      </div>
-                      <span className="text-sm">Rest Day</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center">
-                      <div className="bg-client/10 p-1 rounded-full mr-2">
-                        <WorkoutTypeIcon type={workoutType} />
-                      </div>
-                      <span className="text-sm">
-                        {workoutTitle}
-                        {workoutsForThisDay.length > 1 && (
-                          <span className="text-xs text-slate-500 ml-1">
-                            (+{workoutsForThisDay.length - 1} more)
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              );
-            }).filter(Boolean)}
-            
-            {!completedDates.length && !lifeHappensDates.length && (
-              <div className="text-center text-sm text-slate-500 py-2">
-                No workouts completed this week
-              </div>
+    <Card className={cn("w-full overflow-hidden", className)}>
+      <CardHeader className="pt-4 pb-2">
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-medium">
+              {label ? label : userName}
+            </span>
+            {currentWeek && weekRangeDisplay && (
+              <span className="text-xs text-muted-foreground">
+                Week {currentWeek}: {weekRangeDisplay}
+              </span>
             )}
           </div>
+          <span className="text-sm font-normal text-muted-foreground">
+            {count}/{total}
+          </span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        <Progress value={progressPercentage} className="h-2 mb-4" />
+        <div className="grid grid-cols-7 gap-0.5">
+          {daysOfWeek.map((day) => {
+            const hasWorkout = hasWorkoutOnDate(day.dateStr);
+            const restDay = isRestDay(day.dateStr);
+            const workoutType = getWorkoutType(day.dateStr);
+            const workoutTitle = getWorkoutTitle(day.dateStr);
+            
+            return (
+              <div key={day.dateStr} className="text-center">
+                <div className="text-xs text-muted-foreground mb-1">
+                  {day.dayName}
+                </div>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className={cn(
+                        "relative mx-auto w-8 h-8 rounded-full flex items-center justify-center", 
+                        day.isToday ? "ring-1 ring-primary ring-offset-1" : "",
+                        hasWorkout || restDay ? "bg-muted" : "bg-muted/30"
+                      )}>
+                        {(hasWorkout || restDay) && workoutType && (
+                          <WorkoutTypeIcon
+                            type={workoutType}
+                            className="h-5 w-5"
+                            colorOverride={hasWorkout ? undefined : "text-muted-foreground"}
+                          />
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[220px]">
+                      <div className="text-xs">
+                        <div className="font-medium">{format(day.date, 'MMM d, yyyy')}</div>
+                        {hasWorkout && workoutTitle ? (
+                          <span>{workoutTitle}</span>
+                        ) : restDay ? (
+                          <span>Rest Day</span>
+                        ) : (
+                          <span>No workout completed</span>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            );
+          })}
         </div>
-      </CollapsibleContent>
-    </Collapsible>
+      </CardContent>
+    </Card>
   );
-};
+}

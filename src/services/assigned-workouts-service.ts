@@ -1,5 +1,34 @@
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistoryItem } from "@/types/workout";
+import { format, addDays } from "date-fns";
+
+/**
+ * Calculates the current week number based on program start date
+ */
+export const getCurrentWeekNumber = (programStartDate: Date, currentDate: Date = new Date()): number => {
+  const msInDay = 1000 * 60 * 60 * 24;
+  const daysElapsed = Math.floor((currentDate.getTime() - programStartDate.getTime()) / msInDay);
+  return Math.max(1, Math.floor(daysElapsed / 7) + 1); // Week 1 starts on day 0, minimum week is 1
+};
+
+/**
+ * Gets the date range for a specific program week
+ */
+export const getWeekDateRange = (programStartDate: Date, weekNumber: number): { start: Date; end: Date } => {
+  const weekStartDay = (weekNumber - 1) * 7; // Week 1 starts at day 0
+  const start = addDays(programStartDate, weekStartDay);
+  const end = addDays(start, 6); // 7 days in a week, but we count from 0
+  
+  return { start, end };
+};
+
+/**
+ * Formats a week's date range for display
+ */
+export const formatWeekDateRange = (programStartDate: Date, weekNumber: number): string => {
+  const { start, end } = getWeekDateRange(programStartDate, weekNumber);
+  return `${format(start, 'MMM d')} – ${format(end, 'MMM d')}`;
+};
 
 /**
  * Fetches workouts that have been assigned to a client but not yet completed
@@ -37,8 +66,14 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
     const programIds = [...new Set(programAssignments.map(pa => pa.program_id))];
     console.log(`Program IDs:`, programIds);
     
+    // Calculate the current week number for the active program
+    const activeAssignment = programAssignments[0]; // Assuming the first one is the active one
+    const startDate = new Date(activeAssignment.start_date);
+    const currentWeek = getCurrentWeekNumber(startDate);
+    console.log(`Current week number: ${currentWeek} for start date: ${startDate}`);
+    
     // Pass program IDs as array, not as comma-separated string
-    return await fetchWorkoutsFromPrograms(userId, programIds, programAssignments);
+    return await fetchWorkoutsFromPrograms(userId, programIds, programAssignments, currentWeek);
   } catch (error) {
     console.error("Error in fetchAssignedWorkouts:", error);
     return [];
@@ -51,13 +86,15 @@ export const fetchAssignedWorkouts = async (userId: string): Promise<WorkoutHist
 const fetchWorkoutsFromPrograms = async (
   userId: string, 
   programIds: string[], 
-  programAssignments: any[]
+  programAssignments: any[],
+  currentWeek: number
 ): Promise<WorkoutHistoryItem[]> => {
   // Get all weeks associated with these programs
   const { data: weeks, error: weeksError } = await supabase
     .from('workout_weeks')
     .select('id, week_number, program_id')
     .in('program_id', programIds)
+    .lte('week_number', currentWeek) // Only fetch weeks up to the current week
     .order('week_number', { ascending: true });
   
   if (weeksError) {
@@ -93,7 +130,7 @@ const fetchWorkoutsFromPrograms = async (
   
   console.log(`Found ${workouts.length} workouts in the assigned program weeks`);
   
-  return await processWorkoutsForAssignment(userId, weeks, workouts, programIds);
+  return await processWorkoutsForAssignment(userId, weeks, workouts, programIds, programAssignments);
 };
 
 /**
@@ -166,7 +203,8 @@ const processWorkoutsForAssignment = async (
   userId: string,
   weeks: any[],
   workouts: any[],
-  programIds: string[]
+  programIds: string[],
+  programAssignments: any[]
 ): Promise<WorkoutHistoryItem[]> => {
   // Create a map of weeks with their program info
   const weekMap = new Map();
@@ -176,6 +214,12 @@ const processWorkoutsForAssignment = async (
       week_number: week.week_number,
       program_id: programId
     });
+  });
+  
+  // Create a map of program assignments for quick lookup
+  const programAssignmentMap = new Map();
+  programAssignments.forEach(assignment => {
+    programAssignmentMap.set(assignment.program_id, assignment);
   });
   
   // Get the program details for better display
@@ -266,6 +310,13 @@ const processWorkoutsForAssignment = async (
       const completionId = inProgressWorkouts.get(workout.id);
       const weekInfo = weekMap.get(workout.week_id);
       const program = weekInfo ? programMap.get(weekInfo.program_id) : null;
+      const programAssignment = weekInfo ? programAssignmentMap.get(weekInfo.program_id) : null;
+      
+      let weekDateRange = '';
+      if (programAssignment && weekInfo) {
+        const startDate = new Date(programAssignment.start_date);
+        weekDateRange = formatWeekDateRange(startDate, weekInfo.week_number);
+      }
       
       result.push({
         id: completionId,
@@ -276,6 +327,7 @@ const processWorkoutsForAssignment = async (
           ...workout,
           week: {
             week_number: weekInfo?.week_number,
+            date_range: weekDateRange,
             program: program ? {
               id: program.id,
               title: program.title
@@ -304,7 +356,7 @@ const processWorkoutsForAssignment = async (
         completed_at: null
       })
       .select('id')
-      .single();
+      .maybeSingle();
     
     if (newCompletionError) {
       console.error(`Error creating workout completion for workout ${workout.id}:`, newCompletionError);
@@ -314,6 +366,13 @@ const processWorkoutsForAssignment = async (
     if (newCompletion) {
       const weekInfo = weekMap.get(workout.week_id);
       const program = weekInfo ? programMap.get(weekInfo.program_id) : null;
+      const programAssignment = weekInfo ? programAssignmentMap.get(weekInfo.program_id) : null;
+      
+      let weekDateRange = '';
+      if (programAssignment && weekInfo) {
+        const startDate = new Date(programAssignment.start_date);
+        weekDateRange = formatWeekDateRange(startDate, weekInfo.week_number);
+      }
       
       result.push({
         id: newCompletion.id,
@@ -324,6 +383,7 @@ const processWorkoutsForAssignment = async (
           ...workout,
           week: {
             week_number: weekInfo?.week_number,
+            date_range: weekDateRange,
             program: program ? {
               id: program.id,
               title: program.title

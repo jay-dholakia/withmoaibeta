@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,9 +13,11 @@ import {
   diagnoseGroupAccess, 
   verifyUserGroupMembership
 } from '@/services/moai-service';
+import { fetchCurrentProgram } from '@/services/program-service';
+import { getCurrentWeekNumber, formatWeekDateRange } from '@/services/assigned-workouts-service';
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
-// Define a type for the group to avoid TypeScript errors
 interface Group {
   id: string;
   name: string;
@@ -28,6 +29,15 @@ const MoaiPage = () => {
   const { user } = useAuth();
   const [diagnosticDetails, setDiagnosticDetails] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  const { data: currentProgram } = useQuery({
+    queryKey: ['current-program', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      return await fetchCurrentProgram(user.id);
+    },
+    enabled: !!user?.id,
+  });
   
   const { data: userGroups, isLoading: isLoadingGroups, refetch } = useQuery({
     queryKey: ['client-groups', user?.id],
@@ -128,7 +138,6 @@ const MoaiPage = () => {
       
       console.log('User profile exists:', profileData);
       
-      // This section is optional for debugging
       try {
         const { count, error: countError } = await supabase
           .from('group_members')
@@ -148,6 +157,26 @@ const MoaiPage = () => {
       console.error('Error verifying user:', err);
       return false;
     }
+  };
+  
+  const getProgramInfo = () => {
+    if (!currentProgram || !currentProgram.start_date) {
+      return null;
+    }
+    
+    const startDate = new Date(currentProgram.start_date);
+    const currentWeek = getCurrentWeekNumber(startDate);
+    const weekDateRange = formatWeekDateRange(startDate, currentWeek);
+    
+    return (
+      <div className="text-center mb-4 text-muted-foreground text-sm">
+        <p>
+          <span className="font-medium">{currentProgram.program?.title}</span>
+          {" • "}
+          Week {currentWeek}: {weekDateRange}
+        </p>
+      </div>
+    );
   };
   
   if (isLoadingGroups) {
@@ -209,7 +238,6 @@ const MoaiPage = () => {
     );
   }
   
-  // Ensure we have a valid group object before proceeding
   const group: Group = userGroups?.[0] || { id: '', name: 'Loading...', description: '', spotify_playlist_url: null };
   
   return (
@@ -239,6 +267,8 @@ const MoaiPage = () => {
         </CardContent>
       </Card>
       
+      {getProgramInfo()}
+      
       <Tabs defaultValue="progress" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="progress" className="flex items-center justify-center">
@@ -257,7 +287,10 @@ const MoaiPage = () => {
         
         <TabsContent value="progress">
           {group.id ? (
-            <MoaiGroupProgress groupId={group.id} />
+            <MoaiGroupProgress 
+              groupId={group.id}
+              currentProgram={currentProgram}
+            />
           ) : (
             <div className="text-center p-4">Loading group progress...</div>
           )}

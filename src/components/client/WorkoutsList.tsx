@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/accordion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { fetchCurrentProgram } from '@/services/program-service';
+import { ProgramProgressSection } from './ProgramProgressSection';
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
@@ -271,7 +273,10 @@ const WorkoutsList = () => {
   const isSelectedWeekCompleted = weekFilter ? completedWeeks[weekFilter] : false;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Add the ProgramProgressSection at the top */}
+      <ProgramProgressSection />
+      
       <div className="space-y-4">
         {currentProgram && currentProgram.program && (
           <div className="text-center space-y-1 flex-1">

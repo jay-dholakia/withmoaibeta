@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -96,12 +95,10 @@ const WorkoutsPage = () => {
             </TabsList>
             
             <TabsContent value="active-workouts">
-              {/* Debug log moved out of JSX rendering */}
               <WorkoutsList />
             </TabsContent>
             
             <TabsContent value="history">
-              {/* Debug log moved out of JSX rendering */}
               <WorkoutHistoryTab />
             </TabsContent>
           </Tabs>

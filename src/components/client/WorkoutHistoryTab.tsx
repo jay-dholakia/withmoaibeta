@@ -19,7 +19,6 @@ import {
 } from '@/services/activity-logging-service';
 import { Badge } from '@/components/ui/badge';
 import { format, subDays } from 'date-fns';
-import { ProgramProgressSection } from './ProgramProgressSection';
 
 const WorkoutHistoryTab = () => {
   const { user } = useAuth();
@@ -105,11 +104,6 @@ const WorkoutHistoryTab = () => {
 
   return (
     <div>
-      {/* Progress Section */}
-      <div className="mb-6">
-        <ProgramProgressSection />
-      </div>
-      
       <div className="mt-8 border-t pt-6">
         <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
         

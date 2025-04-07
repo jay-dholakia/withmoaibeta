@@ -24,7 +24,7 @@ import WorkoutWeekDetailPage from './pages/coach/WorkoutWeekDetailPage';
 import CreateWorkoutWeekPage from './pages/coach/CreateWorkoutWeekPage';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
-import { ProfileBuilder } from './pages/client/ProfileBuilder';
+import ProfileBuilder from './pages/client/ProfileBuilder';
 
 function App() {
   const { user, userType, loading } = useAuth();

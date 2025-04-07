@@ -130,11 +130,28 @@ const WorkoutsList = () => {
         console.log("Debug - Extracted week numbers:", extractedWeeks);
         setAvailableWeeks(extractedWeeks);
         
+        // Set initial week filter to current week if available, otherwise use the most recent week
         if (extractedWeeks.length > 0) {
           const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
-          // Set initial week filter after component is fully mounted
+          
+          // Find current week based on program start date
+          let currentWeekNumber = 1;
+          if (program && program.start_date) {
+            const startDate = new Date(program.start_date);
+            const now = new Date(); // Use local time
+            const msInDay = 1000 * 60 * 60 * 24;
+            const daysElapsed = Math.floor((now.getTime() - startDate.getTime()) / msInDay);
+            currentWeekNumber = Math.max(1, Math.floor(daysElapsed / 7) + 1);
+          }
+          
+          // Use current week if it exists, otherwise use the first week
+          const weekExists = sortedWeeks.includes(currentWeekNumber);
+          const initialWeek = weekExists ? currentWeekNumber : sortedWeeks[0];
+          console.log(`Setting initial week filter to ${weekExists ? 'current' : 'first available'} week: ${initialWeek}`);
+          
+          // Set the week filter after component is mounted
           setTimeout(() => {
-            setWeekFilter(sortedWeeks[0].toString());
+            setWeekFilter(initialWeek.toString());
           }, 0);
         }
       } catch (error) {

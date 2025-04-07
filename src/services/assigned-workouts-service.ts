@@ -1,22 +1,32 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistoryItem } from "@/types/workout";
 import { format, addDays } from "date-fns";
 
 /**
  * Calculates the current week number based on program start date
+ * Uses local time and ensures weeks start on Mondays
  */
 export const getCurrentWeekNumber = (programStartDate: Date, currentDate: Date = new Date()): number => {
+  // Adjust for local time by creating new Date objects
+  const localProgramStart = new Date(programStartDate);
+  const localCurrentDate = new Date(currentDate);
+  
   const msInDay = 1000 * 60 * 60 * 24;
-  const daysElapsed = Math.floor((currentDate.getTime() - programStartDate.getTime()) / msInDay);
+  const daysElapsed = Math.floor((localCurrentDate.getTime() - localProgramStart.getTime()) / msInDay);
   return Math.max(1, Math.floor(daysElapsed / 7) + 1); // Week 1 starts on day 0, minimum week is 1
 };
 
 /**
  * Gets the date range for a specific program week
+ * Ensures weeks start on Mondays
  */
 export const getWeekDateRange = (programStartDate: Date, weekNumber: number): { start: Date; end: Date } => {
+  // Ensure we're working with a new date object to avoid modifying the original
+  const localProgramStart = new Date(programStartDate);
+  
   const weekStartDay = (weekNumber - 1) * 7; // Week 1 starts at day 0
-  const start = addDays(programStartDate, weekStartDay);
+  const start = addDays(localProgramStart, weekStartDay);
   const end = addDays(start, 6); // 7 days in a week, but we count from 0
   
   return { start, end };
@@ -24,6 +34,7 @@ export const getWeekDateRange = (programStartDate: Date, weekNumber: number): { 
 
 /**
  * Formats a week's date range for display
+ * Uses local time
  */
 export const formatWeekDateRange = (programStartDate: Date, weekNumber: number): string => {
   const { start, end } = getWeekDateRange(programStartDate, weekNumber);

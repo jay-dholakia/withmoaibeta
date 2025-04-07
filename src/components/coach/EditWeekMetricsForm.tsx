@@ -29,33 +29,25 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Define the schema for form validation with string inputs that transform to numbers
+  // Define the schema for form validation with numeric values
   const formSchema = z.object({
-    target_miles_run: z.string()
-      .optional()
-      .transform(val => val ? Number(val) : 0),
-    target_cardio_minutes: z.string()
-      .optional()
-      .transform(val => val ? Number(val) : 0),
-    target_strength_workouts: z.string()
-      .optional()
-      .transform(val => val ? Number(val) : 0),
-    target_strength_mobility_workouts: z.string()
-      .optional()
-      .transform(val => val ? Number(val) : 0),
+    target_miles_run: z.number().default(0),
+    target_cardio_minutes: z.number().default(0),
+    target_strength_workouts: z.number().default(0),
+    target_strength_mobility_workouts: z.number().default(0),
   });
 
   // Define the form values type based on the schema
   type FormValues = z.infer<typeof formSchema>;
 
-  // Initialize the form with string values for inputs, but defaulted to "0" instead of empty strings
+  // Initialize the form with number values
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      target_miles_run: initialData.target_miles_run !== undefined ? initialData.target_miles_run.toString() : "0",
-      target_cardio_minutes: initialData.target_cardio_minutes !== undefined ? initialData.target_cardio_minutes.toString() : "0",
-      target_strength_workouts: initialData.target_strength_workouts !== undefined ? initialData.target_strength_workouts.toString() : "0",
-      target_strength_mobility_workouts: initialData.target_strength_mobility_workouts !== undefined ? initialData.target_strength_mobility_workouts.toString() : "0",
+      target_miles_run: initialData.target_miles_run ?? 0,
+      target_cardio_minutes: initialData.target_cardio_minutes ?? 0,
+      target_strength_workouts: initialData.target_strength_workouts ?? 0,
+      target_strength_mobility_workouts: initialData.target_strength_mobility_workouts ?? 0,
     },
   });
 
@@ -63,7 +55,6 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
     try {
       setIsSubmitting(true);
 
-      // The values are automatically transformed to numbers by the schema
       const updatedData = {
         target_miles_run: values.target_miles_run,
         target_cardio_minutes: values.target_cardio_minutes,
@@ -99,7 +90,8 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
                     <Input 
                       type="number" 
                       placeholder="Enter target miles" 
-                      {...field} 
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -117,7 +109,8 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
                     <Input 
                       type="number" 
                       placeholder="Enter number of workouts" 
-                      {...field} 
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -139,7 +132,8 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
                     <Input 
                       type="number" 
                       placeholder="Enter number of workouts" 
-                      {...field} 
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -157,7 +151,8 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
                     <Input 
                       type="number" 
                       placeholder="Enter number of workouts" 
-                      {...field} 
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -177,7 +172,8 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
                 <Input 
                   type="number" 
                   placeholder="Enter target minutes" 
-                  {...field} 
+                  {...field}
+                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
                 />
               </FormControl>
               <FormMessage />

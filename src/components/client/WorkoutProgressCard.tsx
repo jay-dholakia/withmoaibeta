@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -75,13 +74,6 @@ export function WorkoutProgressCard({
   // Calculate progress percentage safely
   const progressPercentage = total > 0 ? Math.min(Math.round((count / total) * 100), 100) : 0;
   
-  // We still calculate the week range but don't display it
-  let weekRangeDisplay = '';
-  if (currentWeek && currentProgram?.start_date) {
-    const startDate = new Date(currentProgram.start_date);
-    weekRangeDisplay = formatWeekDateRange(startDate, currentWeek);
-  }
-  
   return (
     <Card className={cn("w-full overflow-hidden", className)}>
       <CardHeader className="pt-4 pb-2">
@@ -90,7 +82,6 @@ export function WorkoutProgressCard({
             <span className="text-base font-medium">
               {label ? label : userName}
             </span>
-            {/* We no longer display the program title or week date range */}
           </div>
           <span className="text-sm font-normal text-muted-foreground">
             {count}/{total}

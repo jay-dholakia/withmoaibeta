@@ -28,9 +28,13 @@ const WorkoutProgramDetailPage = () => {
   const [program, setProgram] = useState<any>(null);
   const [weeks, setWeeks] = useState<any[]>([]);
 
+  console.log("WorkoutProgramDetailPage: Component rendered with programId:", programId);
+  console.log("WorkoutProgramDetailPage: Current Auth User:", user?.id);
+
   useEffect(() => {
     const loadProgramDetails = async () => {
       if (!programId) {
+        console.error("No program ID provided in URL parameters");
         setError("No program ID provided");
         setIsLoading(false);
         return;
@@ -43,12 +47,26 @@ const WorkoutProgramDetailPage = () => {
         // Fetch program data with error handling
         const programData = await fetchWorkoutProgram(programId);
         console.log("Program data received:", programData);
+        
+        if (!programData) {
+          console.error("Program data is null or undefined");
+          setError("Program not found or you don't have access to it");
+          setIsLoading(false);
+          return;
+        }
+        
         setProgram(programData);
         
         // Fetch program weeks with error handling
         const weeksData = await fetchWorkoutWeeks(programId);
         console.log("Weeks data received:", weeksData);
-        setWeeks(weeksData);
+        
+        if (!weeksData) {
+          console.warn("Weeks data is null or undefined, setting empty array");
+          setWeeks([]);
+        } else {
+          setWeeks(weeksData);
+        }
         
       } catch (error) {
         console.error('Error loading program details:', error);
@@ -61,6 +79,13 @@ const WorkoutProgramDetailPage = () => {
     
     loadProgramDetails();
   }, [programId, navigate]);
+
+  console.log("WorkoutProgramDetailPage: Current state:", { 
+    isLoading, 
+    error, 
+    programExists: !!program,
+    weeksCount: weeks?.length 
+  });
 
   // Show a helpful error message instead of a blank screen
   if (error) {
@@ -86,7 +111,7 @@ const WorkoutProgramDetailPage = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex justify-center items-center h-64">
             <div className="flex flex-col items-center">
-              <div className="loading loading-spinner loading-lg text-primary mb-4"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
               <p>Loading program details...</p>
             </div>
           </div>
@@ -95,11 +120,12 @@ const WorkoutProgramDetailPage = () => {
     );
   }
 
+  // Show a not found message if program is null or undefined
   if (!program) {
     return (
       <CoachLayout>
         <div className="container mx-auto px-4 py-6">
-          <div className="text-center">
+          <div className="text-center p-10">
             <h2 className="text-xl font-medium mb-2">Program not found</h2>
             <p className="text-muted-foreground mb-4">
               The program you're looking for doesn't exist or you don't have permission to view it.

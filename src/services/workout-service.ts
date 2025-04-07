@@ -1,14 +1,21 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ProgramAssignment, WorkoutExercise, WorkoutProgram, WorkoutWeek } from "@/types/workout";
 
 /**
  * Fetches all workout programs
  */
-export const fetchWorkoutPrograms = async (): Promise<any[]> => {
+export const fetchWorkoutPrograms = async (coachId?: string): Promise<any[]> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('workout_programs')
       .select('*');
+    
+    if (coachId) {
+      query = query.eq('coach_id', coachId);
+    }
+    
+    const { data, error } = await query;
     
     if (error) {
       console.error("Error fetching workout programs:", error);
@@ -253,6 +260,29 @@ export const fetchWorkoutsForWeek = async (weekId: string): Promise<any[]> => {
 };
 
 /**
+ * Fetches all workouts for a program
+ */
+export const fetchWorkouts = async (weekId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('*')
+      .eq('week_id', weekId)
+      .order('day_of_week', { ascending: true });
+    
+    if (error) {
+      console.error("Error fetching workouts:", error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching workouts:", error);
+    return [];
+  }
+};
+
+/**
  * Fetches a single workout by ID
  */
 export const fetchWorkout = async (id: string): Promise<any> => {
@@ -366,6 +396,42 @@ export const fetchExercises = async (): Promise<any[]> => {
 };
 
 /**
+ * Fetches exercises by category
+ */
+export const fetchExercisesByCategory = async (): Promise<Record<string, any[]>> => {
+  try {
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('*')
+      .order('name');
+    
+    if (error) {
+      console.error("Error fetching exercises by category:", error);
+      return {};
+    }
+    
+    const exercisesByCategory: Record<string, any[]> = { 'All': data || [] };
+    
+    if (data) {
+      data.forEach(exercise => {
+        const category = exercise.category || 'Uncategorized';
+        
+        if (!exercisesByCategory[category]) {
+          exercisesByCategory[category] = [];
+        }
+        
+        exercisesByCategory[category].push(exercise);
+      });
+    }
+    
+    return exercisesByCategory;
+  } catch (error) {
+    console.error("Error fetching exercises by category:", error);
+    return { 'All': [] };
+  }
+};
+
+/**
  * Fetches a single exercise by ID
  */
 export const fetchExercise = async (id: string): Promise<any> => {
@@ -469,7 +535,7 @@ export const fetchWorkoutExercises = async (workoutId: string): Promise<any[]> =
         exercise:exercise_id (*)
       `)
       .eq('workout_id', workoutId)
-      .order('order', { ascending: true });
+      .order('order_index', { ascending: true });
     
     if (error) {
       console.error("Error fetching workout exercises:", error);
@@ -649,6 +715,342 @@ export const assignProgramToUser = async (assignmentData: {
     return data;
   } catch (error) {
     console.error('Error in assignProgramToUser:', error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes a program assignment
+ */
+export const deleteProgramAssignment = async (assignmentId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('program_assignments')
+      .delete()
+      .eq('id', assignmentId);
+    
+    if (error) {
+      console.error("Error deleting program assignment:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting program assignment:", error);
+    return false;
+  }
+};
+
+/**
+ * Gets the count of assignments for each workout program
+ */
+export const getWorkoutProgramAssignmentCount = async (programIds: string[]): Promise<Record<string, number>> => {
+  try {
+    if (!programIds.length) return {};
+    
+    const { data, error } = await supabase
+      .from('program_assignments')
+      .select('program_id')
+      .in('program_id', programIds);
+    
+    if (error) {
+      console.error("Error getting assignment counts:", error);
+      return {};
+    }
+    
+    const counts: Record<string, number> = {};
+    programIds.forEach(id => counts[id] = 0);
+    
+    if (data) {
+      data.forEach(assignment => {
+        const programId = assignment.program_id;
+        counts[programId] = (counts[programId] || 0) + 1;
+      });
+    }
+    
+    return counts;
+  } catch (error) {
+    console.error("Error getting assignment counts:", error);
+    return {};
+  }
+};
+
+/**
+ * Functions for standalone workouts
+ */
+export const fetchStandaloneWorkouts = async (coachId?: string): Promise<any[]> => {
+  try {
+    let query = supabase
+      .from('standalone_workouts')
+      .select('*');
+    
+    if (coachId) {
+      query = query.eq('coach_id', coachId);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error("Error fetching standalone workouts:", error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching standalone workouts:", error);
+    return [];
+  }
+};
+
+export const createStandaloneWorkout = async (workoutData: any): Promise<any> => {
+  try {
+    const { data, error } = await supabase
+      .from('standalone_workouts')
+      .insert([workoutData])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error creating standalone workout:", error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error creating standalone workout:", error);
+    throw error;
+  }
+};
+
+export const updateStandaloneWorkout = async (id: string, workoutData: any): Promise<any> => {
+  try {
+    const { data, error } = await supabase
+      .from('standalone_workouts')
+      .update(workoutData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error updating standalone workout:", error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error updating standalone workout:", error);
+    throw error;
+  }
+};
+
+export const deleteStandaloneWorkout = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('standalone_workouts')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error("Error deleting standalone workout:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting standalone workout:", error);
+    return false;
+  }
+};
+
+export const fetchStandaloneWorkout = async (id: string): Promise<any> => {
+  try {
+    const { data, error } = await supabase
+      .from('standalone_workouts')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error("Error fetching standalone workout:", error);
+      return null;
+    }
+    
+    return data || null;
+  } catch (error) {
+    console.error("Error fetching standalone workout:", error);
+    return null;
+  }
+};
+
+export const createStandaloneWorkoutExercise = async (exerciseData: any): Promise<any> => {
+  // For now, we'll just use the regular workout exercise functions
+  // but in the future, you might want to use a different table
+  return createWorkoutExercise(exerciseData);
+};
+
+export const fetchStandaloneWorkoutExercises = async (workoutId: string): Promise<any[]> => {
+  // For now, we'll just use the regular workout exercise functions
+  return fetchWorkoutExercises(workoutId);
+};
+
+export const updateStandaloneWorkoutExercise = async (id: string, exerciseData: any): Promise<any> => {
+  // For now, we'll just use the regular workout exercise functions
+  return updateWorkoutExercise(id, exerciseData);
+};
+
+export const deleteStandaloneWorkoutExercise = async (id: string): Promise<boolean> => {
+  // For now, we'll just use the regular workout exercise functions
+  return deleteWorkoutExercise(id);
+};
+
+// Functions for moving workout exercises up and down
+export const moveWorkoutExerciseUp = async (exerciseId: string, workoutId: string): Promise<any[]> => {
+  try {
+    // First, get all exercises for this workout
+    const exercises = await fetchWorkoutExercises(workoutId);
+    
+    // Find the exercise we want to move and its index
+    const index = exercises.findIndex(e => e.id === exerciseId);
+    
+    // If it's already at the top or not found, do nothing
+    if (index <= 0) return exercises;
+    
+    // Get the exercise above it
+    const currentExercise = exercises[index];
+    const previousExercise = exercises[index - 1];
+    
+    // Swap their order_index values
+    await Promise.all([
+      updateWorkoutExercise(currentExercise.id, { order_index: previousExercise.order_index }),
+      updateWorkoutExercise(previousExercise.id, { order_index: currentExercise.order_index })
+    ]);
+    
+    // Fetch and return the updated list
+    return fetchWorkoutExercises(workoutId);
+  } catch (error) {
+    console.error("Error moving exercise up:", error);
+    throw error;
+  }
+};
+
+export const moveWorkoutExerciseDown = async (exerciseId: string, workoutId: string): Promise<any[]> => {
+  try {
+    // First, get all exercises for this workout
+    const exercises = await fetchWorkoutExercises(workoutId);
+    
+    // Find the exercise we want to move and its index
+    const index = exercises.findIndex(e => e.id === exerciseId);
+    
+    // If it's already at the bottom or not found, do nothing
+    if (index === -1 || index >= exercises.length - 1) return exercises;
+    
+    // Get the exercise below it
+    const currentExercise = exercises[index];
+    const nextExercise = exercises[index + 1];
+    
+    // Swap their order_index values
+    await Promise.all([
+      updateWorkoutExercise(currentExercise.id, { order_index: nextExercise.order_index }),
+      updateWorkoutExercise(nextExercise.id, { order_index: currentExercise.order_index })
+    ]);
+    
+    // Fetch and return the updated list
+    return fetchWorkoutExercises(workoutId);
+  } catch (error) {
+    console.error("Error moving exercise down:", error);
+    throw error;
+  }
+};
+
+// Same functions but for standalone workouts
+export const moveStandaloneWorkoutExerciseUp = moveWorkoutExerciseUp;
+export const moveStandaloneWorkoutExerciseDown = moveWorkoutExerciseDown;
+
+// Functions for adding workouts to weeks
+export const addWorkoutToWeek = async (workoutData: any): Promise<any> => {
+  return createWorkout(workoutData);
+};
+
+export const copyTemplateWorkoutToWeek = async (templateId: string, weekId: string): Promise<any> => {
+  try {
+    // First, get the template workout
+    const template = await fetchStandaloneWorkout(templateId);
+    if (!template) {
+      throw new Error("Template workout not found");
+    }
+    
+    // Create a new workout in the week based on the template
+    const newWorkout = await createWorkout({
+      week_id: weekId,
+      title: template.title,
+      description: template.description,
+      workout_type: template.workout_type,
+      day_of_week: 0, // Default to first day, user can change
+      priority: 0 // Default priority
+    });
+    
+    // Get all exercises from the template
+    const templateExercises = await fetchWorkoutExercises(templateId);
+    
+    // Add all exercises to the new workout
+    for (let i = 0; i < templateExercises.length; i++) {
+      const exercise = templateExercises[i];
+      await createWorkoutExercise({
+        workout_id: newWorkout.id,
+        exercise_id: exercise.exercise_id,
+        sets: exercise.sets,
+        reps: exercise.reps,
+        rest_seconds: exercise.rest_seconds,
+        notes: exercise.notes,
+        order_index: i
+      });
+    }
+    
+    return newWorkout;
+  } catch (error) {
+    console.error("Error copying template workout:", error);
+    throw error;
+  }
+};
+
+export const copyWorkoutToWeek = async (sourceWorkoutId: string, targetWeekId: string): Promise<any> => {
+  try {
+    // First, get the source workout
+    const sourceWorkout = await fetchWorkout(sourceWorkoutId);
+    if (!sourceWorkout) {
+      throw new Error("Source workout not found");
+    }
+    
+    // Create a new workout in the target week based on the source
+    const newWorkout = await createWorkout({
+      week_id: targetWeekId,
+      title: sourceWorkout.title,
+      description: sourceWorkout.description,
+      workout_type: sourceWorkout.workout_type,
+      day_of_week: sourceWorkout.day_of_week,
+      priority: sourceWorkout.priority
+    });
+    
+    // Get all exercises from the source workout
+    const sourceExercises = await fetchWorkoutExercises(sourceWorkoutId);
+    
+    // Add all exercises to the new workout
+    for (let i = 0; i < sourceExercises.length; i++) {
+      const exercise = sourceExercises[i];
+      await createWorkoutExercise({
+        workout_id: newWorkout.id,
+        exercise_id: exercise.exercise_id,
+        sets: exercise.sets,
+        reps: exercise.reps,
+        rest_seconds: exercise.rest_seconds,
+        notes: exercise.notes,
+        order_index: i
+      });
+    }
+    
+    return newWorkout;
+  } catch (error) {
+    console.error("Error copying workout:", error);
     throw error;
   }
 };

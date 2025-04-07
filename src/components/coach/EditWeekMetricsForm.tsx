@@ -29,6 +29,7 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Define the schema for form validation with string inputs that transform to numbers
   const formSchema = z.object({
     target_miles_run: z.string()
       .optional()
@@ -44,8 +45,10 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
       .transform(val => val ? Number(val) : undefined),
   });
 
+  // Define the form values type based on the schema
   type FormValues = z.infer<typeof formSchema>;
 
+  // Initialize the form with string values for the inputs
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -60,7 +63,7 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
     try {
       setIsSubmitting(true);
 
-      // Convert values to numbers for the API
+      // The values are automatically transformed to numbers by the schema
       const updatedData = {
         target_miles_run: values.target_miles_run,
         target_cardio_minutes: values.target_cardio_minutes,

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -24,36 +23,24 @@ const CreateProgramPage = () => {
     programType: 'Moai Run' | 'Moai Strength';
   } | null>(null);
 
-  const handleCreateProgram = async (values: any) => {
-    if (!user?.id) {
-      toast.error('You must be logged in to create a program');
-      return;
-    }
+  const handleCreateProgram = async (data: any) => {
+    if (!user) return;
     
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      
-      const programData = {
-        title: values.title,
-        description: values.description || null,
-        weeks: values.weeks,
-        coach_id: user.id
-      };
-      
-      const createdProgram = await createWorkoutProgram(programData);
-      
-      toast.success('Workout program created successfully');
-      setProgramCreated(true);
-      setProgramData({
-        id: createdProgram.id,
-        title: createdProgram.title,
-        description: createdProgram.description,
-        weeks: createdProgram.weeks,
-        programType: 'Moai Strength' // Default, could be configurable in future
+      const program = await createWorkoutProgram({
+        title: data.title,
+        description: data.description,
+        weeks: data.weeks,
+        coach_id: user.id,
+        program_type: data.program_type || 'strength'
       });
+      
+      toast.success('Program created successfully');
+      navigate(`/coach-dashboard/workouts/${program.id}`);
     } catch (error) {
-      console.error('Error creating workout program:', error);
-      toast.error('Failed to create workout program');
+      console.error('Error creating program:', error);
+      toast.error('Failed to create program');
     } finally {
       setIsSubmitting(false);
     }

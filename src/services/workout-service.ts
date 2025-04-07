@@ -436,7 +436,7 @@ export const createWorkout = async (workoutData: {
   title: string;
   description?: string | null;
   day_of_week: number;
-  workout_type?: string;
+  workout_type?: "cardio" | "strength" | "mobility" | "flexibility";
   priority?: number;
 }) => {
   try {
@@ -464,7 +464,7 @@ export const updateWorkout = async (workoutId: string, workoutData: {
   title?: string;
   description?: string | null;
   day_of_week?: number;
-  workout_type?: string;
+  workout_type?: "cardio" | "strength" | "mobility" | "flexibility";
   priority?: number;
 }) => {
   try {

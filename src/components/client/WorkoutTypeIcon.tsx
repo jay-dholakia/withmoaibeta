@@ -8,12 +8,14 @@ interface WorkoutTypeIconProps {
   type: WorkoutType;
   className?: string;
   size?: 'sm' | 'md' | 'lg'; // Add size prop
+  colorOverride?: string; // Add colorOverride prop
 }
 
 export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({ 
   type, 
   className = '',
-  size = 'md' // Default to medium size
+  size = 'md', // Default to medium size
+  colorOverride // Add colorOverride parameter
 }) => {
   const getIconForType = () => {
     switch (type) {
@@ -64,7 +66,11 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
       className={`workout-type-icon ${className}`} 
       role="img" 
       aria-label={`${type} workout`}
-      style={{ fontSize: getFontSize(), lineHeight: 1 }}
+      style={{ 
+        fontSize: getFontSize(), 
+        lineHeight: 1,
+        color: colorOverride // Apply colorOverride if provided
+      }}
     >
       {getIconForType()}
     </span>

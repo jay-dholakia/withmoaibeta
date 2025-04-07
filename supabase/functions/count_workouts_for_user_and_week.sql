@@ -8,6 +8,7 @@ DECLARE
   workout_count INTEGER;
 BEGIN
   -- Get count of workouts matching the week number for the user's assigned programs
+  -- Week numbers are calculated based on program start dates with weeks starting on Monday
   SELECT COUNT(w.id)
   INTO workout_count
   FROM workouts w

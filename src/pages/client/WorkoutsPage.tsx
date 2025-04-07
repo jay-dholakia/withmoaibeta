@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -22,11 +21,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from "@/components/ui/calendar";
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCurrentProgram } from '@/services/program-service';
+import { getCurrentWeekNumber, formatWeekDateRange } from '@/services/assigned-workouts-service';
 
 const WorkoutsPage = () => {
   const [showRestDayDialog, setShowRestDayDialog] = useState(false);
@@ -61,13 +61,10 @@ const WorkoutsPage = () => {
     });
   };
 
-  // Force re-render of child components when user auth changes
   useEffect(() => {
     console.log("Auth state changed in WorkoutsPage, user:", user?.id);
-    // No action needed - the effect dependency will trigger re-renders of children
   }, [user]);
   
-  // Display program information if available
   const getProgramInfo = () => {
     if (!currentProgram || !currentProgram.program) {
       return null;
@@ -76,24 +73,16 @@ const WorkoutsPage = () => {
     const startDate = new Date(currentProgram.start_date);
     const currentDate = new Date();
     
-    // Calculate days elapsed
-    const msInDay = 1000 * 60 * 60 * 24;
-    const daysElapsed = Math.floor((currentDate.getTime() - startDate.getTime()) / msInDay);
-    const currentWeek = Math.floor(daysElapsed / 7) + 1;
+    const currentWeek = getCurrentWeekNumber(startDate, currentDate);
     
-    const weekStartDay = (currentWeek - 1) * 7;
-    const weekStart = new Date(startDate);
-    weekStart.setDate(startDate.getDate() + weekStartDay);
-    
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
+    const weekDateRange = formatWeekDateRange(startDate, currentWeek);
     
     return (
       <div className="text-center mb-4 text-muted-foreground text-sm">
         <p>
           <span className="font-medium">{currentProgram.program.title}</span>
           {" • "}
-          Week {currentWeek}: {format(weekStart, 'MMM d')} – {format(weekEnd, 'MMM d')}
+          Week {currentWeek}: {weekDateRange}
         </p>
       </div>
     );

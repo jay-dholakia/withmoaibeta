@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -188,22 +187,15 @@ export const ProgramAssignmentForm: React.FC<ProgramAssignmentFormProps> = ({
   };
 
   const getClientDisplayName = (client: ClientInfo): string => {
-    let displayName = '';
+    const nameParts = [];
     
-    if (client.first_name && client.last_name) {
-      displayName = `${client.first_name} ${client.last_name}`;
-    } else if (client.first_name) {
-      displayName = client.first_name;
-    } else {
-      displayName = `Client ${client.id.substring(0, 8)}`;
-    }
+    if (client.first_name) nameParts.push(client.first_name);
+    if (client.last_name) nameParts.push(client.last_name);
     
-    // Add email in parentheses if available
-    if (client.email) {
-      displayName += ` (${client.email})`;
-    }
+    const fullName = nameParts.length > 0 ? nameParts.join(' ') : `Client ${client.id.substring(0, 8)}`;
     
-    return displayName;
+    // Always include email in parentheses if available
+    return client.email ? `${fullName} (${client.email})` : fullName;
   };
   
   const availableClients = clients.filter(client => 

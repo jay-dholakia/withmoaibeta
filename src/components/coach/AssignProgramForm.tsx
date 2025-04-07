@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -77,11 +76,9 @@ export const AssignProgramForm: React.FC<AssignProgramFormProps> = ({
     const loadData = async () => {
       try {
         setIsLoading(true);
-        // Fetch programs
         const programsData = await fetchWorkoutPrograms(user?.id);
         setPrograms(programsData);
         
-        // Fetch clients
         const clientsData = await fetchAllClients();
         setClients(clientsData);
         
@@ -97,11 +94,21 @@ export const AssignProgramForm: React.FC<AssignProgramFormProps> = ({
   }, [user?.id]);
 
   useEffect(() => {
-    // Set initial program ID if provided
     if (initialProgramId) {
       form.setValue('programId', initialProgramId);
     }
   }, [initialProgramId, form]);
+
+  const getClientDisplayName = (client: any): string => {
+    const nameParts = [];
+    
+    if (client.first_name) nameParts.push(client.first_name);
+    if (client.last_name) nameParts.push(client.last_name);
+    
+    const fullName = nameParts.length > 0 ? nameParts.join(' ') : `Client ${client.id.slice(0, 8)}`;
+    
+    return client.email ? `${fullName} (${client.email})` : fullName;
+  };
 
   const onSubmit = async (values: FormValues) => {
     if (!user) {
@@ -124,7 +131,6 @@ export const AssignProgramForm: React.FC<AssignProgramFormProps> = ({
       if (onSuccess) {
         onSuccess();
       } else {
-        // Default behavior: redirect to program details
         navigate(`/coach-dashboard/workouts/${values.programId}`);
       }
     } catch (error) {
@@ -199,9 +205,7 @@ export const AssignProgramForm: React.FC<AssignProgramFormProps> = ({
                 <SelectContent>
                   {clients.map(client => (
                     <SelectItem key={client.id} value={client.id}>
-                      {client.first_name && client.last_name ? 
-                        `${client.first_name} ${client.last_name}` : 
-                        client.email || `Client ${client.id.slice(0, 8)}`}
+                      {getClientDisplayName(client)}
                     </SelectItem>
                   ))}
                 </SelectContent>

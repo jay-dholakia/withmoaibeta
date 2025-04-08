@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,6 @@ interface WorkoutCardProps {
 }
 
 export const WorkoutTypeIcon: React.FC<{ type?: string; className?: string }> = ({ type, className }) => {
-  // Use iOS-style emojis instead of Lucide icons
   switch (type?.toLowerCase()) {
     case 'run':
       return <span className={className} role="img" aria-label="run">🏃</span>;
@@ -38,6 +36,14 @@ export const WorkoutTypeIcon: React.FC<{ type?: string; className?: string }> = 
     default:
       return <span className={className} role="img" aria-label="strength">🏋️</span>;
   }
+};
+
+// Helper to get initials
+const getMemberInitials = (name: string): string => {
+  const parts = name.split(' ').filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
 export const WorkoutCard: React.FC<WorkoutCardProps> = ({
@@ -57,14 +63,6 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
     e.preventDefault();
     e.stopPropagation();
     onStartWorkout(workoutId);
-  };
-
-  // Function to get member initials from name
-  const getMemberInitials = (name: string): string => {
-    const nameParts = name.split(' ').filter(part => part.length > 0);
-    if (nameParts.length === 0) return '?';
-    if (nameParts.length === 1) return nameParts[0].charAt(0).toUpperCase();
-    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
   };
 
   return (
@@ -92,8 +90,10 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
                         "h-7 w-7 border-2 border-white",
                         !hasCompleted && "grayscale opacity-60"
                       )}>
-                        <AvatarImage src={member.profile_picture_url} alt={member.name} />
-                        <AvatarFallback className="bg-client/80 text-white">
+                        {member.profile_picture_url && (
+                          <AvatarImage src={member.profile_picture_url} alt={member.name} />
+                        )}
+                        <AvatarFallback className="bg-client/80 text-white text-xs">
                           {getMemberInitials(member.name)}
                         </AvatarFallback>
                       </Avatar>
@@ -131,3 +131,4 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
     </Card>
   );
 };
+

@@ -175,13 +175,7 @@ const LeaderboardPage = () => {
         </div>
         
         <Card className="mt-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5 text-client" />
-              Workout Calendar
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {clientWorkouts && clientWorkouts.length > 0 ? (
               <MonthlyCalendarView 
                 workouts={clientWorkouts} 

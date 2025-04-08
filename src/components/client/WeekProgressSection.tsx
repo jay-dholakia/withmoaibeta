@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { WeekProgressBar } from './WeekProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +8,7 @@ import { format, isThisWeek } from 'date-fns';
 import { WorkoutType } from './WorkoutTypeIcon';
 import { WorkoutProgressCard } from './WorkoutProgressCard';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -34,9 +34,68 @@ export const WeekProgressSection = ({
   const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
   const [typesMap, setTypesMap] = useState<Record<string, WorkoutType>>(workoutTypesMap);
   const [titlesMap, setTitlesMap] = useState<Record<string, string>>({});
+  const [targetCardioMinutes, setTargetCardioMinutes] = useState<number | null>(null);
   
   const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   console.log(`User timezone in WeekProgressSection: ${userTimeZone}`);
+  
+  const { data: currentProgramData } = useQuery({
+    queryKey: ['current-program-week', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data: programAssignment } = await supabase
+        .from('program_assignments')
+        .select(`
+          program_id,
+          program:program_id (
+            id,
+            title,
+            program_type
+          )
+        `)
+        .eq('user_id', user.id)
+        .is('end_date', null)
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (!programAssignment) return null;
+      
+      if (weekNumber) {
+        const { data: weekData } = await supabase
+          .from('workout_weeks')
+          .select(`
+            id,
+            title,
+            description,
+            target_miles_run,
+            target_cardio_minutes,
+            target_strength_mobility_workouts
+          `)
+          .eq('program_id', programAssignment.program_id)
+          .eq('week_number', weekNumber)
+          .single();
+        
+        return {
+          program: programAssignment.program,
+          week: weekData
+        };
+      }
+      
+      return {
+        program: programAssignment.program,
+        week: null
+      };
+    },
+    enabled: !!user?.id && !!weekNumber
+  });
+  
+  useEffect(() => {
+    if (currentProgramData?.week) {
+      setTargetCardioMinutes(currentProgramData.week.target_cardio_minutes || 0);
+    }
+  }, [currentProgramData]);
   
   const { data: clientWorkouts, isLoading: isLoadingWorkouts } = useQuery({
     queryKey: ['client-workouts-week-progress', user?.id],
@@ -152,6 +211,8 @@ export const WeekProgressSection = ({
   
   const userDisplayName = user?.email ? user.email.split('@')[0] : 'You';
   
+  const [completedCardioMinutes, setCompletedCardioMinutes] = useState(30);
+  
   return (
     <div className="w-full">
       {showPersonal && (
@@ -165,6 +226,8 @@ export const WeekProgressSection = ({
           workoutTitlesMap={titlesMap}
           userName={userDisplayName}
           isCurrentUser={true}
+          cardioMinutes={completedCardioMinutes}
+          targetCardioMinutes={targetCardioMinutes || 0}
         />
       )}
       

@@ -28,26 +28,25 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Define the schema for form validation based on program type
+  // Define separate schemas for both program types
   const runProgramSchema = z.object({
     target_miles_run: z.number().min(0, "Target miles must be a positive number"),
     target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
-    // Note: target_strength_mobility_workouts is calculated automatically
   });
   
   const strengthProgramSchema = z.object({
     target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
-    // Strength workouts are auto-calculated based on assigned workouts
   });
   
   // Choose schema based on program type
   const formSchema = programType === 'run' ? runProgramSchema : strengthProgramSchema;
 
-  // Define the form values type based on the schema
-  type FormValues = z.infer<typeof formSchema>;
-
-  // Initialize the form with appropriate default values based on program type
-  const form = useForm<FormValues>({
+  // Define the form types based on program type
+  type RunFormValues = z.infer<typeof runProgramSchema>;
+  type StrengthFormValues = z.infer<typeof strengthProgramSchema>;
+  
+  // Use the correct form type based on program type
+  const form = useForm<RunFormValues | StrengthFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: programType === 'run' ? {
       target_miles_run: initialData.target_miles_run ?? 0,
@@ -57,20 +56,20 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
     }
   });
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (values: RunFormValues | StrengthFormValues) => {
     try {
       setIsSubmitting(true);
 
       // Only include relevant fields based on program type
       const updatedData = programType === 'run' 
         ? {
-            target_miles_run: values.target_miles_run,
-            target_cardio_minutes: values.target_cardio_minutes,
+            target_miles_run: (values as RunFormValues).target_miles_run,
+            target_cardio_minutes: (values as RunFormValues).target_cardio_minutes,
             // We don't include target_strength_mobility_workouts as it's auto-calculated
           }
         : {
             // For strength programs, only include cardio minutes
-            target_cardio_minutes: values.target_cardio_minutes,
+            target_cardio_minutes: (values as StrengthFormValues).target_cardio_minutes,
           };
 
       console.log('Updating week metrics:', weekId, updatedData);

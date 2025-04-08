@@ -81,4 +81,3 @@ export const LogActivityButtons: React.FC<LogActivityButtonsProps> = ({ onActivi
     </>
   );
 };
-

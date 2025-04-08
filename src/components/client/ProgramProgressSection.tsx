@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWeeklyProgress, WeeklyProgressResponse } from '@/services/weekly-progress-service';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dumbbell, ArrowTrendingUp, Timer, Trophy, Bike } from 'lucide-react';
+import { Dumbbell, Timer, Trophy, Bike } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { WeekProgressSection } from './WeekProgressSection';
+import { WorkoutTypeIcon } from './WorkoutTypeIcon';
 
 interface MetricCardProps {
   title: string;
@@ -101,7 +102,7 @@ export function ProgramProgressSection() {
               title="Mobility Workouts"
               actual={metrics.strength_mobility.actual}
               target={metrics.strength_mobility.target}
-              icon={<ArrowTrendingUp className="h-4 w-4" />}
+              icon={<WorkoutTypeIcon type="flexibility" size="md" />}
               color="purple"
             />
             

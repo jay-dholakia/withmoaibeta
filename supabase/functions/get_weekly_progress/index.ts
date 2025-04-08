@@ -302,8 +302,20 @@ serve(async (req) => {
       .filter(wc => wc.workout_type === 'cardio' || wc.workout_type === 'running')
       .reduce((sum, wc) => sum + (Number(wc.duration) || 0), 0);
     
-    // Total cardio minutes
-    const cardioMinutes = cardioMinutesFromLogs + cardioMinutesFromWorkouts;
+    // NEW: Include run durations as part of cardio minutes
+    const runMinutes = (runLogs || []).reduce(
+      (sum, log) => sum + (Number(log.duration) || 0), 
+      0
+    );
+    
+    // Total cardio minutes (now including run minutes)
+    const cardioMinutes = cardioMinutesFromLogs + cardioMinutesFromWorkouts + runMinutes;
+    
+    console.log("Cardio minutes breakdown:");
+    console.log("- From cardio logs:", cardioMinutesFromLogs);
+    console.log("- From workout completions:", cardioMinutesFromWorkouts);
+    console.log("- From run logs:", runMinutes);
+    console.log("- Total:", cardioMinutes);
     
     // 9. Determine program type (default to strength if not specified)
     // We can check the workout types or other factors to determine this

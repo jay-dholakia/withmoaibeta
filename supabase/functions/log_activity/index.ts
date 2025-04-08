@@ -82,6 +82,7 @@ serve(async (req) => {
     }
 
     let result;
+    let workoutCompletionId;
     
     // Process based on activity type
     switch (activity_type) {
@@ -98,8 +99,8 @@ serve(async (req) => {
           );
         }
 
-        // Insert into run_logs table
-        const { data, error } = await supabaseClient
+        // Step 1: Insert into run_logs table
+        const { data: runData, error: runError } = await supabaseClient
           .from("run_logs")
           .insert({
             client_id,
@@ -112,15 +113,40 @@ serve(async (req) => {
           .select("id")
           .single();
 
-        if (error) {
-          console.error("Error logging run activity:", error);
-          throw error;
+        if (runError) {
+          console.error("Error logging run activity:", runError);
+          throw runError;
+        }
+        
+        // Step 2: Insert into workout_completions table to track as a workout
+        const { data: workoutData, error: workoutError } = await supabaseClient
+          .from("workout_completions")
+          .insert({
+            user_id: client_id,
+            completed_at: new Date(date).toISOString(),
+            title: `${distance} mile run`,
+            workout_type: "running",
+            notes,
+            distance: distance.toString(),
+            duration: duration.toString(),
+            location
+          })
+          .select("id")
+          .single();
+        
+        if (workoutError) {
+          console.error("Error creating workout completion for run:", workoutError);
+          // Continue even if this fails - we still logged the run
+        } else {
+          workoutCompletionId = workoutData.id;
+          console.log("Created workout completion for run:", workoutCompletionId);
         }
         
         result = { 
           success: true, 
           message: "Run activity logged successfully", 
-          id: data.id,
+          id: runData.id,
+          workout_completion_id: workoutCompletionId,
           activity_type: "run"
         };
         break;
@@ -139,8 +165,8 @@ serve(async (req) => {
           );
         }
 
-        // Insert into cardio_logs table
-        const { data, error } = await supabaseClient
+        // Step 1: Insert into cardio_logs table
+        const { data: cardioData, error: cardioError } = await supabaseClient
           .from("cardio_logs")
           .insert({
             client_id,
@@ -152,15 +178,38 @@ serve(async (req) => {
           .select("id")
           .single();
 
-        if (error) {
-          console.error("Error logging cardio activity:", error);
-          throw error;
+        if (cardioError) {
+          console.error("Error logging cardio activity:", cardioError);
+          throw cardioError;
+        }
+        
+        // Step 2: Insert into workout_completions table to track as a workout
+        const { data: workoutData, error: workoutError } = await supabaseClient
+          .from("workout_completions")
+          .insert({
+            user_id: client_id,
+            completed_at: new Date(date).toISOString(),
+            title: `${type} (${duration} mins)`,
+            workout_type: "cardio",
+            notes,
+            duration: duration.toString()
+          })
+          .select("id")
+          .single();
+        
+        if (workoutError) {
+          console.error("Error creating workout completion for cardio:", workoutError);
+          // Continue even if this fails - we still logged the cardio
+        } else {
+          workoutCompletionId = workoutData.id;
+          console.log("Created workout completion for cardio:", workoutCompletionId);
         }
         
         result = { 
           success: true, 
           message: "Cardio activity logged successfully", 
-          id: data.id,
+          id: cardioData.id,
+          workout_completion_id: workoutCompletionId,
           activity_type: "cardio"
         };
         break;
@@ -179,8 +228,8 @@ serve(async (req) => {
           );
         }
 
-        // Insert into rest_logs table
-        const { data, error } = await supabaseClient
+        // Step 1: Insert into rest_logs table
+        const { data: restData, error: restError } = await supabaseClient
           .from("rest_logs")
           .insert({
             client_id,
@@ -190,15 +239,37 @@ serve(async (req) => {
           .select("id")
           .single();
 
-        if (error) {
-          console.error("Error logging rest activity:", error);
-          throw error;
+        if (restError) {
+          console.error("Error logging rest activity:", restError);
+          throw restError;
+        }
+        
+        // Step 2: Insert into workout_completions table as a rest day
+        const { data: workoutData, error: workoutError } = await supabaseClient
+          .from("workout_completions")
+          .insert({
+            user_id: client_id,
+            completed_at: new Date(date).toISOString(),
+            title: "Rest Day",
+            rest_day: true,
+            notes
+          })
+          .select("id")
+          .single();
+        
+        if (workoutError) {
+          console.error("Error creating workout completion for rest day:", workoutError);
+          // Continue even if this fails - we still logged the rest day
+        } else {
+          workoutCompletionId = workoutData.id;
+          console.log("Created workout completion for rest day:", workoutCompletionId);
         }
         
         result = { 
           success: true, 
           message: "Rest day logged successfully", 
-          id: data.id,
+          id: restData.id,
+          workout_completion_id: workoutCompletionId,
           activity_type: "rest"
         };
         break;

@@ -27,9 +27,11 @@ const WorkoutHistoryTab = () => {
   
   const refreshData = useCallback(() => {
     setRefreshKey(prev => prev + 1);
+    // Also trigger a refresh of the weekly progress data
+    document.dispatchEvent(new Event('refresh-weekly-progress'));
   }, []);
   
-  const { refetch } = useQuery({
+  const { data: workoutHistory, refetch } = useQuery({
     queryKey: ['client-workouts', user?.id, refreshKey],
     queryFn: async () => {
       if (!user?.id) return [];

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -50,11 +50,25 @@ export const ProgramProgressSection: React.FC = () => {
     data: weeklyProgress, 
     isLoading,
     error,
+    refetch
   } = useQuery<WeeklyProgressResponse>({
     queryKey: ['weekly-progress', user?.id],
     queryFn: () => fetchWeeklyProgress(user?.id),
     enabled: !!user?.id,
   });
+  
+  // Listen for refresh events from other components
+  useEffect(() => {
+    const handleRefresh = () => {
+      console.log("Refreshing weekly progress data");
+      refetch();
+    };
+    
+    document.addEventListener('refresh-weekly-progress', handleRefresh);
+    return () => {
+      document.removeEventListener('refresh-weekly-progress', handleRefresh);
+    };
+  }, [refetch]);
 
   if (isLoading) {
     return (

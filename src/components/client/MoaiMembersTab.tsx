@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -341,7 +342,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                         </div>
                       )}
                     
-                      {(isOwnProfile || (memberProfile.height || memberProfile.weight)) && (
+                      {isOwnProfile && (memberProfile.height || memberProfile.weight) && (
                         <div className="flex justify-center gap-6">
                           {memberProfile.height && (
                             <div className="text-center">
@@ -359,7 +360,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                         </div>
                       )}
                       
-                      {!isOwnProfile && !(memberProfile.height || memberProfile.weight) && (
+                      {!isOwnProfile && (
                         <div className="flex justify-center py-2">
                           <div className="flex items-center text-muted-foreground text-sm">
                             <ShieldCheck className="h-4 w-4 mr-1.5" />

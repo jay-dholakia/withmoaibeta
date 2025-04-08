@@ -49,6 +49,7 @@ const WorkoutWeekDetailPage = () => {
   const navigate = useNavigate();
 
   const [weekData, setWeekData] = useState<any>(null);
+  const [programType, setProgramType] = useState<'strength' | 'run'>('strength');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -64,6 +65,11 @@ const WorkoutWeekDetailPage = () => {
       try {
         const week = await fetchWorkoutWeek(weekId);
         setWeekData(week);
+        
+        // Determine program type based on the week's associated program
+        if (week.program) {
+          setProgramType(week.program.program_type === 'run' ? 'run' : 'strength');
+        }
 
         const workoutsData = await fetchWorkoutsForWeek(weekId);
         setWorkouts(workoutsData);
@@ -84,15 +90,23 @@ const WorkoutWeekDetailPage = () => {
 
     setIsSaving(true);
     try {
-      await updateWorkoutWeek(weekId, {
-        title: weekData.title,
-        description: weekData.description,
-        target_miles_run: weekData.target_miles_run,
-        target_cardio_minutes: weekData.target_cardio_minutes,
-        target_strength_workouts: weekData.target_strength_workouts,
-        target_strength_mobility_workouts: weekData.target_strength_mobility_workouts
-      });
+      // Only include fields relevant to the program type
+      const updateData = programType === 'run' 
+        ? {
+            title: weekData.title,
+            description: weekData.description,
+            target_miles_run: weekData.target_miles_run,
+            target_cardio_minutes: weekData.target_cardio_minutes,
+            target_strength_mobility_workouts: weekData.target_strength_mobility_workouts
+          }
+        : {
+            title: weekData.title,
+            description: weekData.description,
+            target_cardio_minutes: weekData.target_cardio_minutes
+            // Strength workouts are auto-calculated based on assigned workouts
+          };
 
+      await updateWorkoutWeek(weekId, updateData);
       toast.success('Week details updated successfully');
     } catch (error) {
       console.error('Error updating week details:', error);
@@ -228,16 +242,34 @@ const WorkoutWeekDetailPage = () => {
                   onChange={handleInputChange}
                 />
               </div>
-              <div>
-                <Label htmlFor="target_miles_run">Target Miles Run</Label>
-                <Input
-                  type="number"
-                  id="target_miles_run"
-                  name="target_miles_run"
-                  value={weekData.target_miles_run || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
+              
+              {/* Only show run-specific fields for run programs */}
+              {programType === 'run' && (
+                <>
+                  <div>
+                    <Label htmlFor="target_miles_run">Target Miles Run</Label>
+                    <Input
+                      type="number"
+                      id="target_miles_run"
+                      name="target_miles_run"
+                      value={weekData.target_miles_run || ''}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="target_strength_mobility_workouts">Target Strength Mobility Workouts</Label>
+                    <Input
+                      type="number"
+                      id="target_strength_mobility_workouts"
+                      name="target_strength_mobility_workouts"
+                      value={weekData.target_strength_mobility_workouts || ''}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </>
+              )}
+              
+              {/* Always show cardio minutes for both program types */}
               <div>
                 <Label htmlFor="target_cardio_minutes">Target Cardio Minutes</Label>
                 <Input
@@ -248,26 +280,14 @@ const WorkoutWeekDetailPage = () => {
                   onChange={handleInputChange}
                 />
               </div>
-              <div>
-                <Label htmlFor="target_strength_workouts">Target Strength Workouts</Label>
-                <Input
-                  type="number"
-                  id="target_strength_workouts"
-                  name="target_strength_workouts"
-                  value={weekData.target_strength_workouts || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div>
-                <Label htmlFor="target_strength_mobility_workouts">Target Strength Mobility Workouts</Label>
-                <Input
-                  type="number"
-                  id="target_strength_mobility_workouts"
-                  name="target_strength_mobility_workouts"
-                  value={weekData.target_strength_mobility_workouts || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
+              
+              {/* Message about auto-calculated strength workouts for strength programs */}
+              {programType === 'strength' && (
+                <div className="text-sm text-muted-foreground mt-1">
+                  <p>Strength workouts will be automatically calculated based on assigned workouts.</p>
+                </div>
+              )}
+              
               <Button type="submit" disabled={isSaving}>
                 {isSaving ? 'Saving...' : 'Update Week'}
               </Button>

@@ -33,7 +33,6 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
   const formSchema = z.object({
     target_miles_run: z.number().default(0),
     target_cardio_minutes: z.number().default(0),
-    target_strength_workouts: z.number().default(0),
     target_strength_mobility_workouts: z.number().default(0),
   });
 
@@ -46,7 +45,6 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
     defaultValues: {
       target_miles_run: initialData.target_miles_run ?? 0,
       target_cardio_minutes: initialData.target_cardio_minutes ?? 0,
-      target_strength_workouts: initialData.target_strength_workouts ?? 0,
       target_strength_mobility_workouts: initialData.target_strength_mobility_workouts ?? 0,
     },
   });
@@ -144,6 +142,12 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
             </FormItem>
           )}
         />
+
+        {programType === 'strength' && (
+          <div className="text-sm text-muted-foreground">
+            <p>Strength workouts will be automatically calculated based on assigned workouts.</p>
+          </div>
+        )}
         
         <div className="flex justify-end gap-2 pt-2">
           <Button

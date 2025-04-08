@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -75,7 +76,7 @@ export function WorkoutProgressCard({
   const progressPercentage = total > 0 ? Math.min(Math.round((count / total) * 100), 100) : 0;
   
   return (
-    <Card className={cn("w-full overflow-hidden", className)}>
+    <Card className={cn("w-full overflow-hidden border bg-transparent shadow-none", className)}>
       <CardHeader className="pt-4 pb-2">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">

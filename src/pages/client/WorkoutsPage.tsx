@@ -7,10 +7,6 @@ import WorkoutComplete from '@/components/client/WorkoutComplete';
 import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
 import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
-import WorkoutHistoryTab from '@/components/client/WorkoutHistoryTab';
-import { Button } from '@/components/ui/button';
-import { ListTodo, History } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCurrentProgram } from '@/services/program-service';
@@ -44,28 +40,7 @@ const WorkoutsPage = () => {
   return (
     <div className="w-full">
       <Routes>
-        <Route index element={
-          <Tabs defaultValue="active-workouts" className="w-full">
-            <TabsList className="w-full mb-6 grid grid-cols-2">
-              <TabsTrigger value="active-workouts" className="flex items-center justify-center gap-2">
-                <ListTodo className="h-4 w-4" />
-                <span className="whitespace-nowrap">Assigned Workouts</span>
-              </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center justify-center gap-2">
-                <History className="h-4 w-4" />
-                <span className="whitespace-nowrap">Other Activity</span>
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="active-workouts">
-              <WorkoutsList />
-            </TabsContent>
-            
-            <TabsContent value="history">
-              <WorkoutHistoryTab />
-            </TabsContent>
-          </Tabs>
-        } />
+        <Route index element={<WorkoutsList />} />
         <Route path="active/:workoutCompletionId" element={<ActiveWorkout key={user?.id} />} />
         <Route path="complete/:workoutCompletionId" element={<WorkoutComplete key={user?.id} />} />
         <Route path="create" element={<CreateCustomWorkout />} />

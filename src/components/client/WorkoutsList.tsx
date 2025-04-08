@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -13,6 +14,7 @@ import { fetchCurrentProgram } from '@/services/program-service';
 import { ProgramProgressSection } from './ProgramProgressSection';
 import { fetchGroupMembers, GroupMember } from '@/services/group-member-service';
 import { WeeklyProgressTestPanel } from './WeeklyProgressTestPanel';
+import { LogActivityButtons } from './LogActivityButtons';
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
@@ -344,9 +346,11 @@ const WorkoutsList = () => {
       </div>
       
       <div className="mt-8 border-t pt-6">
-        <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
+        <h3 className="text-lg font-medium mb-4">Add Other Activity</h3>
         
-        <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+        <LogActivityButtons />
+        
+        <Button asChild variant="outline" className="w-full flex items-center justify-center gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50">
           <Link to="/client-dashboard/workouts/one-off">
             <PlusCircle className="h-4 w-4" />
             Enter Custom Workout

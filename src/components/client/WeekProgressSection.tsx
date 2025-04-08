@@ -9,6 +9,7 @@ import { WorkoutType } from './WorkoutTypeIcon';
 import { WorkoutProgressCard } from './WorkoutProgressCard';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchWeeklyProgress } from '@/services/weekly-progress-service';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -35,25 +36,27 @@ export const WeekProgressSection = ({
   const [typesMap, setTypesMap] = useState<Record<string, WorkoutType>>(workoutTypesMap);
   const [titlesMap, setTitlesMap] = useState<Record<string, string>>({});
   const [targetCardioMinutes, setTargetCardioMinutes] = useState<number | null>(null);
+  const [completedCardioMinutes, setCompletedCardioMinutes] = useState(0);
   
   const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  console.log(`User timezone in WeekProgressSection: ${userTimeZone}`);
   
-  const { data: currentProgramData } = useQuery({
-    queryKey: ['current-program-week', user?.id],
+  const { data: weeklyProgressData } = useQuery({
+    queryKey: ['weekly-progress-metrics', user?.id, weekNumber],
     queryFn: async () => {
       if (!user?.id) return null;
+      return fetchWeeklyProgress(user.id);
+    },
+    enabled: !!user?.id
+  });
+  
+  const { data: currentWeekData } = useQuery({
+    queryKey: ['specific-week-data', weekNumber],
+    queryFn: async () => {
+      if (!user?.id || !weekNumber) return null;
       
       const { data: programAssignment } = await supabase
         .from('program_assignments')
-        .select(`
-          program_id,
-          program:program_id (
-            id,
-            title,
-            program_type
-          )
-        `)
+        .select('program_id')
         .eq('user_id', user.id)
         .is('end_date', null)
         .order('start_date', { ascending: false })
@@ -62,40 +65,29 @@ export const WeekProgressSection = ({
       
       if (!programAssignment) return null;
       
-      if (weekNumber) {
-        const { data: weekData } = await supabase
-          .from('workout_weeks')
-          .select(`
-            id,
-            title,
-            description,
-            target_miles_run,
-            target_cardio_minutes,
-            target_strength_mobility_workouts
-          `)
-          .eq('program_id', programAssignment.program_id)
-          .eq('week_number', weekNumber)
-          .single();
-        
-        return {
-          program: programAssignment.program,
-          week: weekData
-        };
-      }
+      const { data: weekData } = await supabase
+        .from('workout_weeks')
+        .select('id, target_cardio_minutes')
+        .eq('program_id', programAssignment.program_id)
+        .eq('week_number', weekNumber)
+        .single();
       
-      return {
-        program: programAssignment.program,
-        week: null
-      };
+      return weekData;
     },
     enabled: !!user?.id && !!weekNumber
   });
   
   useEffect(() => {
-    if (currentProgramData?.week) {
-      setTargetCardioMinutes(currentProgramData.week.target_cardio_minutes || 0);
+    if (currentWeekData?.target_cardio_minutes) {
+      setTargetCardioMinutes(currentWeekData.target_cardio_minutes);
+    } else if (weeklyProgressData?.metrics?.cardio_minutes?.target) {
+      setTargetCardioMinutes(weeklyProgressData.metrics.cardio_minutes.target);
     }
-  }, [currentProgramData]);
+    
+    if (weeklyProgressData?.metrics?.cardio_minutes?.actual) {
+      setCompletedCardioMinutes(weeklyProgressData.metrics.cardio_minutes.actual);
+    }
+  }, [weeklyProgressData, currentWeekData]);
   
   const { data: clientWorkouts, isLoading: isLoadingWorkouts } = useQuery({
     queryKey: ['client-workouts-week-progress', user?.id],
@@ -107,10 +99,13 @@ export const WeekProgressSection = ({
   });
   
   const { data: totalAssignedWorkouts, isError: isWorkoutsCountError } = useQuery({
-    queryKey: ['weekly-assigned-workouts-count', user?.id],
+    queryKey: ['weekly-assigned-workouts-count', user?.id, weekNumber],
     queryFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
       try {
+        if (weekNumber) {
+          return await getWeeklyAssignedWorkoutsCount(user.id, weekNumber);
+        }
         const count = await getWeeklyAssignedWorkoutsCount(user.id);
         return count;
       } catch (error) {
@@ -190,7 +185,7 @@ export const WeekProgressSection = ({
       setTypesMap({...workoutTypesMap, ...newTypesMap});
       setTitlesMap(newTitlesMap);
     }
-  }, [clientWorkouts, workoutTypesMap]);
+  }, [clientWorkouts, workoutTypesMap, userTimeZone]);
   
   const completedThisWeek = useMemo(() => {
     if (!completedDates.length) return 0;
@@ -211,8 +206,6 @@ export const WeekProgressSection = ({
   
   const userDisplayName = user?.email ? user.email.split('@')[0] : 'You';
   
-  const [completedCardioMinutes, setCompletedCardioMinutes] = useState(30);
-  
   return (
     <div className="w-full">
       {showPersonal && (
@@ -228,6 +221,7 @@ export const WeekProgressSection = ({
           isCurrentUser={true}
           cardioMinutes={completedCardioMinutes}
           targetCardioMinutes={targetCardioMinutes || 0}
+          currentWeek={weekNumber}
         />
       )}
       

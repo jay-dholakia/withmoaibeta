@@ -59,6 +59,14 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
     onStartWorkout(workoutId);
   };
 
+  // Function to get member initials from name
+  const getMemberInitials = (name: string): string => {
+    const nameParts = name.split(' ').filter(part => part.length > 0);
+    if (nameParts.length === 0) return '?';
+    if (nameParts.length === 1) return nameParts[0].charAt(0).toUpperCase();
+    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+  };
+
   return (
     <Card className={cn(
       "overflow-hidden transition-all",
@@ -85,7 +93,9 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
                         !hasCompleted && "grayscale opacity-60"
                       )}>
                         <AvatarImage src={member.profile_picture_url} alt={member.name} />
-                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="bg-client/80 text-white">
+                          {getMemberInitials(member.name)}
+                        </AvatarFallback>
                       </Avatar>
                     </TooltipTrigger>
                     <TooltipContent>

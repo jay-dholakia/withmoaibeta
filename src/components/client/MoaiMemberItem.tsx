@@ -34,7 +34,25 @@ const MoaiMemberItem: React.FC<MemberItemProps> = ({ member, onClick }) => {
   };
   
   const displayName = getDisplayName();
-  const initials = displayName.substring(0, 2).toUpperCase();
+  
+  // Get the initials from first and last name
+  const getInitials = (): string => {
+    const firstName = member.profileData?.first_name;
+    const lastName = member.profileData?.last_name;
+    
+    if (firstName && lastName) {
+      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    } else if (firstName) {
+      return firstName.charAt(0).toUpperCase();
+    } else if (lastName) {
+      return lastName.charAt(0).toUpperCase();
+    }
+    
+    // Fallback to first two letters of display name
+    return displayName.substring(0, 2).toUpperCase();
+  };
+  
+  const initials = getInitials();
   
   return (
     <Card 

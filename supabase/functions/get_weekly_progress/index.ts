@@ -238,7 +238,8 @@ serve(async (req) => {
         user_id,
         workout_id,
         completed_at,
-        workout_type
+        workout_type,
+        duration
       `)
       .eq('user_id', client_id)
       .gte('completed_at', weekStartISO)
@@ -298,11 +299,21 @@ serve(async (req) => {
       0
     );
     
-    // Sum cardio minutes
-    const cardioMinutes = (cardioLogs || []).reduce(
+    // Sum cardio minutes from both cardio logs and workout completions with duration
+    const cardioMinutesFromLogs = (cardioLogs || []).reduce(
       (sum, log) => sum + (Number(log.duration) || 0), 
       0
     );
+    
+    // Get additional cardio minutes from relevant workout completions (for Moai Strength only)
+    const cardioMinutesFromWorkouts = programType === 'moai_strength' ? 
+      (workoutCompletions || [])
+        .filter(wc => wc.workout_type === 'cardio' || wc.workout_type === 'running')
+        .reduce((sum, wc) => sum + (Number(wc.duration) || 0), 0) :
+      0;
+    
+    // Total cardio minutes
+    const cardioMinutes = cardioMinutesFromLogs + cardioMinutesFromWorkouts;
     
     // 10. Build the response object
     const response = {

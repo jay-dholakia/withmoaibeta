@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -96,6 +97,7 @@ export const ProgramProgressSection: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* For Run programs, miles_run is always shown */}
           {(isRunProgram || (weeklyProgress?.metrics.miles_run.target || 0) > 0) && (
             <ProgressBar 
               label="Miles Run" 
@@ -105,6 +107,7 @@ export const ProgramProgressSection: React.FC = () => {
             />
           )}
           
+          {/* For Strength programs, show Strength Workouts */}
           <ProgressBar 
             label={isRunProgram ? "Strength & Mobility Workouts" : "Strength Workouts"} 
             value={isRunProgram
@@ -116,6 +119,7 @@ export const ProgramProgressSection: React.FC = () => {
             color="bg-purple-500"
           />
           
+          {/* Cardio Minutes for all program types */}
           <ProgressBar 
             label="Cardio Minutes" 
             value={weeklyProgress?.metrics.cardio_minutes.actual || 0} 

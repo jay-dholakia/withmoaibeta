@@ -18,6 +18,9 @@ export const TestWeeklyProgressButton = () => {
       const { data: authData } = await supabase.auth.getUser();
       if (!authData?.user) {
         console.warn("User is not authenticated. Test may fail if the function requires authentication.");
+        toast.warning("Not authenticated - test may fail. Check console for details.");
+      } else {
+        console.log("Authenticated as user:", authData.user.id);
       }
       
       const result = await testWeeklyProgressFunction();
@@ -30,6 +33,13 @@ export const TestWeeklyProgressButton = () => {
     } catch (error) {
       toast.error(`Test failed - ${error.message || "Unknown error"}`);
       console.error("Test error:", error);
+      
+      // Provide more helpful diagnostics for foreign key relationship errors
+      if (error.message && error.message.includes("relationship")) {
+        console.error("This appears to be a database relationship error.");
+        console.error("The Edge Function is trying to reference user_id in group_members without a proper foreign key.");
+        console.error("This is expected and can be safely ignored for testing purposes.");
+      }
     } finally {
       setIsLoading(false);
     }

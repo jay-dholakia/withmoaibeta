@@ -27,6 +27,15 @@ export interface WeeklyProgressResponse {
 export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProgressResponse> => {
   try {
     console.log("Calling get_weekly_progress Edge Function...");
+    
+    // Try to get auth status first to help with debugging
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      console.log("Auth status:", authData?.user ? "Authenticated as " + authData.user.id : "Not authenticated");
+    } catch (authError) {
+      console.warn("Could not verify auth status:", authError);
+    }
+    
     const { data, error } = await supabase.functions.invoke('get_weekly_progress', {
       method: 'POST',
       body: { client_id: clientId },
@@ -34,6 +43,12 @@ export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProg
 
     if (error) {
       console.error("Error fetching weekly progress:", error);
+      
+      // Check for relationship errors specifically
+      if (error.message && error.message.includes("relationship")) {
+        console.warn("Database relationship error detected. This may indicate missing foreign keys.");
+      }
+      
       throw error;
     }
 

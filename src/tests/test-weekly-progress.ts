@@ -31,7 +31,11 @@ async function testWeeklyProgressFunction() {
     // Call the Edge Function with a test payload
     const { data, error } = await supabase.functions.invoke('get_weekly_progress', {
       method: 'POST',
-      body: { client_id: 'test-client-id' },
+      body: { 
+        client_id: 'test-client-id',
+        // Include debug info to help troubleshoot database relationship errors
+        debug: true 
+      },
     });
 
     // Log the results

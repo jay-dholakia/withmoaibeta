@@ -20,20 +20,6 @@ interface EditWeekMetricsFormProps {
   onSuccess: () => void;
 }
 
-// Define schemas for both program types
-const runProgramSchema = z.object({
-  target_miles_run: z.number().min(0, "Target miles must be a positive number"),
-  target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
-});
-
-const strengthProgramSchema = z.object({
-  target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
-});
-
-// Define types based on schemas
-type RunFormValues = z.infer<typeof runProgramSchema>;
-type StrengthFormValues = z.infer<typeof strengthProgramSchema>;
-
 const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
   weekId,
   initialData,
@@ -42,17 +28,32 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Use the correct form based on program type
+  // Define separate schemas for both program types
+  const runProgramSchema = z.object({
+    target_miles_run: z.number().min(0, "Target miles must be a positive number"),
+    target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
+  });
+  
+  const strengthProgramSchema = z.object({
+    target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
+  });
+  
+  // Choose schema based on program type
+  const formSchema = programType === 'run' ? runProgramSchema : strengthProgramSchema;
+
+  // Define the form types based on program type
+  type RunFormValues = z.infer<typeof runProgramSchema>;
+  type StrengthFormValues = z.infer<typeof strengthProgramSchema>;
+  
+  // Use the correct form type based on program type
   const form = useForm<RunFormValues | StrengthFormValues>({
-    resolver: zodResolver(programType === 'run' ? runProgramSchema : strengthProgramSchema),
-    defaultValues: programType === 'run' 
-      ? {
-          target_miles_run: initialData.target_miles_run ?? 0,
-          target_cardio_minutes: initialData.target_cardio_minutes ?? 0
-        } 
-      : {
-          target_cardio_minutes: initialData.target_cardio_minutes ?? 0
-        }
+    resolver: zodResolver(formSchema),
+    defaultValues: programType === 'run' ? {
+      target_miles_run: initialData.target_miles_run ?? 0,
+      target_cardio_minutes: initialData.target_cardio_minutes ?? 0
+    } : {
+      target_cardio_minutes: initialData.target_cardio_minutes ?? 0
+    }
   });
 
   const onSubmit = async (values: RunFormValues | StrengthFormValues) => {

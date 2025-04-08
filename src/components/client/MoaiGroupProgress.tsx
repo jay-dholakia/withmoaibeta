@@ -37,31 +37,6 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
   const [workoutTypesMap, setWorkoutTypesMap] = useState<Record<string, WorkoutType>>({});
   const [workoutTitlesMap, setWorkoutTitlesMap] = useState<Record<string, string>>({});
   const [currentWeek, setCurrentWeek] = useState<number>(1);
-  const [targetCardioMinutes, setTargetCardioMinutes] = useState<number>(0);
-  const [completedCardioMinutes, setCompletedCardioMinutes] = useState<number>(0);
-  
-  useEffect(() => {
-    const fetchTargetCardioMinutes = async () => {
-      if (currentProgram?.program?.id && currentWeek) {
-        try {
-          const { data } = await supabase
-            .from('workout_weeks')
-            .select('target_cardio_minutes')
-            .eq('program_id', currentProgram.program.id)
-            .eq('week_number', currentWeek)
-            .single();
-          
-          if (data && data.target_cardio_minutes) {
-            setTargetCardioMinutes(data.target_cardio_minutes);
-          }
-        } catch (error) {
-          console.error('Error fetching target cardio minutes:', error);
-        }
-      }
-    };
-    
-    fetchTargetCardioMinutes();
-  }, [currentProgram, currentWeek]);
   
   useEffect(() => {
     if (currentProgram?.start_date) {
@@ -193,8 +168,6 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
       const newWorkoutTypesMap: Record<string, WorkoutType> = {};
       const newTitlesMap: Record<string, string> = {};
       
-      let totalCardioMinutes = 0;
-      
       currentUserWorkouts.forEach(workout => {
         if (workout.completed_at) {
           try {
@@ -204,10 +177,6 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
               
             if (!isNaN(completionDate.getTime())) {
               const dateKey = format(completionDate, 'yyyy-MM-dd');
-              
-              if (workout.workout_type === 'cardio' && workout.duration) {
-                totalCardioMinutes += Number(workout.duration);
-              }
               
               if (workout.life_happens_pass || workout.rest_day) {
                 newLifeHappensDates.push(completionDate);
@@ -257,7 +226,6 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
       setLifeHappensDates(newLifeHappensDates);
       setWorkoutTypesMap(newWorkoutTypesMap);
       setWorkoutTitlesMap(newTitlesMap);
-      setCompletedCardioMinutes(totalCardioMinutes);
     }
   }, [currentUserWorkouts]);
   
@@ -407,8 +375,6 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
             workoutTitlesMap={workoutTitlesMap}
             userName={getCurrentUserDisplayName()}
             isCurrentUser={true}
-            cardioMinutes={completedCardioMinutes}
-            targetCardioMinutes={targetCardioMinutes}
             currentWeek={currentWeek}
             currentProgram={currentProgram}
           />
@@ -461,8 +427,6 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
             workoutTitlesMap={memberData.workoutTitlesMap}
             userName={getDisplayName(member)}
             isCurrentUser={false}
-            cardioMinutes={0}
-            targetCardioMinutes={targetCardioMinutes}
             currentWeek={currentWeek}
             currentProgram={currentProgram}
           />

@@ -16,8 +16,6 @@ interface WorkoutProgressCardProps {
   isCurrentUser?: boolean;
   cardioMinutes?: number;
   targetCardioMinutes?: number;
-  currentWeek?: number;
-  currentProgram?: any;
 }
 
 export const WorkoutProgressCard: React.FC<WorkoutProgressCardProps> = ({
@@ -32,9 +30,7 @@ export const WorkoutProgressCard: React.FC<WorkoutProgressCardProps> = ({
   userName = 'User',
   isCurrentUser = false,
   cardioMinutes = 0,
-  targetCardioMinutes = 0,
-  currentWeek,
-  currentProgram
+  targetCardioMinutes = 0
 }) => {
   return (
     <div 
@@ -51,11 +47,9 @@ export const WorkoutProgressCard: React.FC<WorkoutProgressCardProps> = ({
       <WeekProgressBar 
         completedDates={completedDates}
         lifeHappensDates={lifeHappensDates}
-        workoutTypes={workoutTypesMap}
+        workoutTypesMap={workoutTypesMap}
         workoutTitlesMap={workoutTitlesMap}
         userName={userName}
-        count={count}
-        total={total}
       />
       
       {/* Cardio minutes progress */}

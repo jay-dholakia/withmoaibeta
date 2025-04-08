@@ -7,7 +7,7 @@ interface WeekProgressBarProps {
   label?: string;
   completedDates: Date[];
   lifeHappensDates: Date[];
-  count?: number;
+  count: number;
   total?: number;
   color?: string;
   textColor?: string;
@@ -15,17 +15,15 @@ interface WeekProgressBarProps {
   showDayCircles?: boolean;
   weekNumber?: number;
   workoutTypes?: Record<string, WorkoutType>;
-  workoutTitlesMap?: Record<string, string>;
   hasError?: boolean;
   compact?: boolean;
-  userName?: string;
 }
 
 export const WeekProgressBar = ({
   label,
   completedDates = [],
   lifeHappensDates = [],
-  count = 0,
+  count,
   total = 0,
   color = 'bg-client',
   textColor = 'text-client',
@@ -33,10 +31,8 @@ export const WeekProgressBar = ({
   showDayCircles = true,
   weekNumber,
   workoutTypes = {},
-  workoutTitlesMap = {},
   hasError = false,
   compact = false,
-  userName,
 }: WeekProgressBarProps) => {
   const { weekStart, weekDays } = useMemo(() => {
     const start = startOfWeek(new Date(), { weekStartsOn: 1 });

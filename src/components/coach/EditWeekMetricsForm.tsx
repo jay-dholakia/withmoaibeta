@@ -1,8 +1,14 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -20,6 +26,21 @@ interface EditWeekMetricsFormProps {
   onSuccess: () => void;
 }
 
+// 🎯 Discriminated union for form types
+const runSchema = z.object({
+  type: z.literal('run'),
+  target_miles_run: z.number().min(0, 'Target miles must be a positive number'),
+  target_cardio_minutes: z.number().min(0, 'Target cardio minutes must be a positive number')
+});
+
+const strengthSchema = z.object({
+  type: z.literal('strength'),
+  target_cardio_minutes: z.number().min(0, 'Target cardio minutes must be a positive number')
+});
+
+const formSchema = z.discriminatedUnion('type', [runSchema, strengthSchema]);
+type FormValues = z.infer<typeof formSchema>;
+
 const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
   weekId,
   initialData,
@@ -27,50 +48,40 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
   onSuccess
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Define the schema for form validation based on program type
-  const runProgramSchema = z.object({
-    target_miles_run: z.number().min(0, "Target miles must be a positive number"),
-    target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
-  });
-  
-  const strengthProgramSchema = z.object({
-    target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
-  });
-  
-  // Choose schema based on program type
-  const formSchema = programType === 'run' ? runProgramSchema : strengthProgramSchema;
 
-  // Define the form with the correct typing
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: programType === 'run' 
+  // Correctly typed default values
+  const defaultValues: FormValues =
+    programType === 'run'
       ? {
+          type: 'run',
           target_miles_run: initialData.target_miles_run ?? 0,
           target_cardio_minutes: initialData.target_cardio_minutes ?? 0
-        } 
-      : {
-          target_cardio_minutes: initialData.target_cardio_minutes ?? 0
         }
+      : {
+          type: 'strength',
+          target_cardio_minutes: initialData.target_cardio_minutes ?? 0
+        };
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
 
-      // Only include relevant fields based on program type
-      const updatedData = programType === 'run' 
-        ? {
-            target_miles_run: values.target_miles_run,
-            target_cardio_minutes: values.target_cardio_minutes,
-          }
-        : {
-            target_cardio_minutes: values.target_cardio_minutes,
-          };
+      const updatePayload =
+        values.type === 'run'
+          ? {
+              target_miles_run: values.target_miles_run,
+              target_cardio_minutes: values.target_cardio_minutes
+            }
+          : {
+              target_cardio_minutes: values.target_cardio_minutes
+            };
 
-      console.log('Updating week metrics:', weekId, updatedData);
-      
-      await updateWorkoutWeek(weekId, updatedData);
+      await updateWorkoutWeek(weekId, updatePayload);
       toast.success('Weekly metrics updated successfully');
       onSuccess();
     } catch (error) {
@@ -84,7 +95,7 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        {programType === 'run' && (
+        {form.watch('type') === 'run' && (
           <FormField
             control={form.control}
             name="target_miles_run"
@@ -92,11 +103,11 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
               <FormItem>
                 <FormLabel>Target Miles</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    placeholder="Enter target miles" 
+                  <Input
+                    type="number"
+                    placeholder="Enter target miles"
                     {...field}
-                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                    onChange={(e) => field.onChange(Number(e.target.value || 0))}
                   />
                 </FormControl>
                 <FormMessage />
@@ -104,7 +115,7 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
             )}
           />
         )}
-        
+
         <FormField
           control={form.control}
           name="target_cardio_minutes"
@@ -112,11 +123,11 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
             <FormItem>
               <FormLabel>Target Cardio Minutes</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
-                  placeholder="Enter target minutes" 
+                <Input
+                  type="number"
+                  placeholder="Enter target minutes"
                   {...field}
-                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                  onChange={(e) => field.onChange(Number(e.target.value || 0))}
                 />
               </FormControl>
               <FormMessage />
@@ -124,20 +135,19 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
           )}
         />
 
-        {/* Information about auto-calculated metrics */}
         <div className="text-sm text-muted-foreground">
           {programType === 'run' ? (
-            <p>Strength/mobility workouts will be automatically calculated based on assigned workouts.</p>
+            <p>Strength & mobility workouts will be automatically calculated based on assigned workouts.</p>
           ) : (
             <p>Strength workouts will be automatically calculated based on assigned workouts.</p>
           )}
         </div>
-        
+
         <div className="flex justify-end gap-2 pt-2">
           <Button
             type="button"
             variant="outline"
-            onClick={() => onSuccess()}
+            onClick={onSuccess}
             disabled={isSubmitting}
           >
             Cancel
@@ -152,3 +162,4 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
 };
 
 export { EditWeekMetricsForm };
+

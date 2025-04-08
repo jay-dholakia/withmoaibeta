@@ -135,7 +135,7 @@ serve(async (req) => {
 
       case "cardio": {
         // Validate cardio activity data
-        const { date, type, duration, notes } = activity_data;
+        const { date, activity_type: type, duration, notes } = activity_data;
         if (!date || !duration || !type) {
           return new Response(
             JSON.stringify({ error: "Missing required fields for cardio activity" }),
@@ -146,31 +146,13 @@ serve(async (req) => {
           );
         }
 
-        // Insert into cardio_logs table
-        const { data: cardioData, error: cardioError } = await supabaseClient
-          .from("cardio_logs")
-          .insert({
-            client_id,
-            log_date: new Date(date).toISOString(),
-            activity_type: type,
-            duration,
-            notes,
-          })
-          .select("id")
-          .single();
-
-        if (cardioError) {
-          console.error("Error logging cardio activity:", cardioError);
-          throw cardioError;
-        }
-        
-        // Also create a workout completion entry
+        // Insert into workout_completions table as a cardio workout
         const { data: workoutData, error: workoutError } = await supabaseClient
           .from("workout_completions")
           .insert({
             user_id: client_id,
             completed_at: new Date(date).toISOString(),
-            title: `${type} (${duration} mins)`,
+            title: type,
             workout_type: "cardio",
             notes,
             duration: duration.toString()
@@ -180,16 +162,16 @@ serve(async (req) => {
         
         if (workoutError) {
           console.error("Error creating workout completion for cardio:", workoutError);
-          // Continue even if this fails - we still logged the cardio
-        } else {
-          workoutCompletionId = workoutData.id;
-          console.log("Created workout completion for cardio:", workoutCompletionId);
+          throw workoutError;
         }
+        
+        workoutCompletionId = workoutData.id;
+        console.log("Created workout completion for cardio:", workoutCompletionId);
         
         result = { 
           success: true, 
           message: "Cardio activity logged successfully", 
-          id: cardioData.id,
+          id: workoutCompletionId,
           workout_completion_id: workoutCompletionId,
           activity_type: "cardio"
         };
@@ -209,22 +191,6 @@ serve(async (req) => {
           );
         }
 
-        // Insert into rest_logs table
-        const { data: restData, error: restError } = await supabaseClient
-          .from("rest_logs")
-          .insert({
-            client_id,
-            log_date: new Date(date).toISOString(),
-            notes,
-          })
-          .select("id")
-          .single();
-
-        if (restError) {
-          console.error("Error logging rest activity:", restError);
-          throw restError;
-        }
-        
         // Insert into workout_completions table as a rest day
         const { data: workoutData, error: workoutError } = await supabaseClient
           .from("workout_completions")
@@ -240,16 +206,16 @@ serve(async (req) => {
         
         if (workoutError) {
           console.error("Error creating workout completion for rest day:", workoutError);
-          // Continue even if this fails - we still logged the rest day
-        } else {
-          workoutCompletionId = workoutData.id;
-          console.log("Created workout completion for rest day:", workoutCompletionId);
+          throw workoutError;
         }
+        
+        workoutCompletionId = workoutData.id;
+        console.log("Created workout completion for rest day:", workoutCompletionId);
         
         result = { 
           success: true, 
           message: "Rest day logged successfully", 
-          id: restData.id,
+          id: workoutCompletionId,
           workout_completion_id: workoutCompletionId,
           activity_type: "rest"
         };

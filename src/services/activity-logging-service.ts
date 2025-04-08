@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -141,14 +142,15 @@ export const getClientCardioActivities = async (startDate: Date, endDate: Date):
       throw new Error("User not authenticated");
     }
     
-    // Keep using cardio_logs table for now since it has specific fields
+    // Use workout_completions table for cardio activities
     const { data, error } = await supabase
-      .from('cardio_logs')
+      .from('workout_completions')
       .select('*')
-      .eq('client_id', user.id)
-      .gte('log_date', startDate.toISOString())
-      .lte('log_date', endDate.toISOString())
-      .order('log_date', { ascending: false });
+      .eq('user_id', user.id)
+      .eq('workout_type', 'cardio')
+      .gte('completed_at', startDate.toISOString())
+      .lte('completed_at', endDate.toISOString())
+      .order('completed_at', { ascending: false });
     
     if (error) {
       console.error("Error fetching cardio activities:", error);
@@ -157,8 +159,12 @@ export const getClientCardioActivities = async (startDate: Date, endDate: Date):
     
     // Transform the data to match the interface
     return data.map(item => ({
-      ...item,
-      log_date: new Date(item.log_date)
+      id: item.id,
+      client_id: item.user_id,
+      log_date: new Date(item.completed_at),
+      notes: item.notes,
+      activity_type: item.title || 'Cardio',
+      duration: Number(item.duration) || 0
     })) as CardioLog[];
   } catch (error) {
     console.error("Error in getClientCardioActivities:", error);
@@ -175,14 +181,15 @@ export const getClientRestDays = async (startDate: Date, endDate: Date): Promise
       throw new Error("User not authenticated");
     }
     
-    // Keep using rest_logs table for consistency
+    // Use workout_completions table for rest days
     const { data, error } = await supabase
-      .from('rest_logs')
+      .from('workout_completions')
       .select('*')
-      .eq('client_id', user.id)
-      .gte('log_date', startDate.toISOString())
-      .lte('log_date', endDate.toISOString())
-      .order('log_date', { ascending: false });
+      .eq('user_id', user.id)
+      .eq('rest_day', true)
+      .gte('completed_at', startDate.toISOString())
+      .lte('completed_at', endDate.toISOString())
+      .order('completed_at', { ascending: false });
     
     if (error) {
       console.error("Error fetching rest days:", error);
@@ -191,8 +198,10 @@ export const getClientRestDays = async (startDate: Date, endDate: Date): Promise
     
     // Transform the data to match the interface
     return data.map(item => ({
-      ...item,
-      log_date: new Date(item.log_date)
+      id: item.id,
+      client_id: item.user_id,
+      log_date: new Date(item.completed_at),
+      notes: item.notes
     })) as RestLog[];
   } catch (error) {
     console.error("Error in getClientRestDays:", error);

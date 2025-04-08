@@ -1,7 +1,5 @@
-
 import React, { useState } from 'react';
 import { Container } from '@/components/ui/container';
-import { CoachMessageCard } from '@/components/client/CoachMessageCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
@@ -163,9 +161,6 @@ const LeaderboardPage = () => {
   return (
     <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">
       <div className="w-full">
-        {user && <CoachMessageCard userId={user.id} />}
-        
-        {/* Workout History Header */}
         <div className="mt-6 mb-2 flex flex-col items-center">
           <h2 className="text-xl font-bold mb-1 flex items-center justify-center gap-2">
             <User className="h-5 w-5 text-client" />
@@ -202,7 +197,6 @@ const LeaderboardPage = () => {
           </CardContent>
         </Card>
         
-        {/* Workout Day Details Section */}
         {selectedDayWorkouts.length > 0 && (
           <div className="mt-6">
             <Card>

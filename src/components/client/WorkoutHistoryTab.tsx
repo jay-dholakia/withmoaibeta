@@ -97,10 +97,12 @@ const WorkoutHistoryTab = () => {
         
         <LogActivityButtons onActivityLogged={refreshData} />
         
-        <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-center gap-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+        <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-between text-emerald-600 border-emerald-200 hover:bg-emerald-50">
           <Link to="/client-dashboard/workouts/one-off">
-            <PlusCircle className="h-4 w-4" />
-            Enter Custom Workout
+            <div className="flex items-center">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              <span>Enter Custom Workout</span>
+            </div>
           </Link>
         </Button>
       </div>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { LogRunActivityDialog } from './LogRunActivityDialog';
 import { LogCardioActivityDialog } from './LogCardioActivityDialog';
 import { LogRestDayDialog } from './LogRestDayDialog';
-import { Activity, Armchair, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface LogActivityButtonsProps {
   onActivityLogged?: () => void;
@@ -27,28 +27,37 @@ export const LogActivityButtons: React.FC<LogActivityButtonsProps> = ({ onActivi
         <Button 
           onClick={() => setShowRunDialog(true)}
           variant="outline" 
-          className="flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+          className="flex items-center justify-between text-blue-600 border-blue-200 hover:bg-blue-50"
         >
-          <Plus className="h-4 w-4" />
-          <span>Log Run 🏃</span>
+          <div className="flex items-center">
+            <Plus className="h-4 w-4 mr-2" />
+            <span>Log Run</span>
+          </div>
+          <span className="ml-auto">🏃</span>
         </Button>
         
         <Button 
           onClick={() => setShowCardioDialog(true)}
           variant="outline"
-          className="flex items-center justify-center gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
+          className="flex items-center justify-between text-purple-600 border-purple-200 hover:bg-purple-50"
         >
-          <Plus className="h-4 w-4" />
-          <span>Log Cardio Cross Training 🚴</span>
+          <div className="flex items-center">
+            <Plus className="h-4 w-4 mr-2" />
+            <span>Log Cardio Cross Training</span>
+          </div>
+          <span className="ml-auto">🚴</span>
         </Button>
         
         <Button 
           onClick={() => setShowRestDialog(true)} 
           variant="outline"
-          className="flex items-center justify-center gap-2 text-amber-600 border-amber-200 hover:bg-amber-50"
+          className="flex items-center justify-between text-amber-600 border-amber-200 hover:bg-amber-50"
         >
-          <Plus className="h-4 w-4" />
-          <span>Log Rest Day 😴</span>
+          <div className="flex items-center">
+            <Plus className="h-4 w-4 mr-2" />
+            <span>Log Rest Day</span>
+          </div>
+          <span className="ml-auto">😴</span>
         </Button>
       </div>
       

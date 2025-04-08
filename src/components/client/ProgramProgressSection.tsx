@@ -141,44 +141,5 @@ export const ProgramProgressSection: React.FC = () => {
           />
         </CardContent>
       </Card>
-
-      <div className="space-y-2">
-        <h3 className="text-lg font-medium">Log Activity</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Button 
-            variant="outline" 
-            className="flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-            onClick={() => setShowRunDialog(true)}
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span className="flex items-center">
-              Log a Run <span role="img" aria-label="running" className="text-lg ml-1">🏃</span>
-            </span>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="flex items-center justify-center gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
-            onClick={() => setShowCardioDialog(true)}
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span className="flex items-center">
-              Log Cardio <span role="img" aria-label="cycling" className="text-lg ml-1">🚴</span>
-            </span>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="flex items-center justify-center gap-2 text-amber-600 border-amber-200 hover:bg-amber-50"
-            onClick={() => setShowRestDialog(true)}
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span className="flex items-center">
-              Log Rest <span role="img" aria-label="sleep" className="text-lg ml-1">😴</span>
-            </span>
-          </Button>
-        </div>
-     
   );
 };

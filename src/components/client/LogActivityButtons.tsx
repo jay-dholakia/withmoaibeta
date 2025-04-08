@@ -30,7 +30,7 @@ export const LogActivityButtons: React.FC<LogActivityButtonsProps> = ({ onActivi
           className="flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
         >
           <Plus className="h-4 w-4" />
-          <span>Log a Run 🏃</span>
+          <span>Log Run 🏃</span>
         </Button>
         
         <Button 
@@ -39,7 +39,7 @@ export const LogActivityButtons: React.FC<LogActivityButtonsProps> = ({ onActivi
           className="flex items-center justify-center gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
         >
           <Plus className="h-4 w-4" />
-          <span>Log Cardio 🚴</span>
+          <span>Log Cardio Cross Training 🚴</span>
         </Button>
         
         <Button 

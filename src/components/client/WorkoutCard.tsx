@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { WorkoutTypeIcon } from './WorkoutTypeIcon';
 
 interface GroupMember {
   id: string;
@@ -16,27 +18,12 @@ interface WorkoutCardProps {
   workoutId: string;
   title: string;
   description?: string;
-  type?: 'run' | 'bike' | 'swim' | 'strength';
+  type?: string;
   groupMembers?: GroupMember[];
   currentUserId: string;
   onStartWorkout: (workoutId: string) => void;
   completed?: boolean;
 }
-
-export const WorkoutTypeIcon: React.FC<{ type?: string; className?: string }> = ({ type, className }) => {
-  switch (type?.toLowerCase()) {
-    case 'run':
-      return <span className={className} role="img" aria-label="run">🏃</span>;
-    case 'bike':
-    case 'cycling':
-      return <span className={className} role="img" aria-label="cycling">🚴</span>;
-    case 'swim':
-    case 'swimming':
-      return <span className={className} role="img" aria-label="swimming">🏊</span>;
-    default:
-      return <span className={className} role="img" aria-label="strength">🏋️</span>;
-  }
-};
 
 // Helper to get initials
 const getMemberInitials = (name: string): string => {
@@ -73,7 +60,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
       <CardHeader className="px-4 py-3 flex flex-row items-start justify-between">
         <div className="flex items-center gap-2">
           <div className="text-client text-lg">
-            <WorkoutTypeIcon type={type} />
+            <WorkoutTypeIcon type={type as any} />
           </div>
           <CardTitle className="text-lg">{title}</CardTitle>
         </div>
@@ -131,4 +118,3 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
     </Card>
   );
 };
-

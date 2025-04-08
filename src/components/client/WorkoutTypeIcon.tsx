@@ -24,7 +24,7 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
       case 'bodyweight':
         return '💪'; // Muscle emoji
       case 'cardio':
-        return '🏃'; // Running emoji
+        return '🏃'; // Running emoji - updated for cardio workouts
       case 'flexibility':
         return '🧘'; // Yoga/flexibility emoji
       case 'rest_day':
@@ -81,7 +81,7 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
 export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.ReactNode}[] = [
   { value: 'strength', label: 'Strength', icon: '🏋️' },
   { value: 'bodyweight', label: 'Bodyweight', icon: '💪' },
-  { value: 'cardio', label: 'Cardio', icon: '🏃' },
+  { value: 'cardio', label: 'Cardio', icon: '🏃' }, // Updated icon for cardio
   { value: 'flexibility', label: 'Flexibility', icon: '🧘' },
   { value: 'hiit', label: 'HIIT', icon: '⚡' },
   { value: 'sport', label: 'Sport', icon: '🎾' },

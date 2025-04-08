@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { startOfWeek, endOfWeek } from "https://esm.sh/date-fns@2.30.0";
@@ -166,7 +165,7 @@ serve(async (req) => {
     
     console.log("Current week number:", currentWeekNumber);
 
-    // 4. Count the actual assigned workouts for this program and week
+    // 4. NEW: Count the actual assigned workouts for this program and week
     console.log("Counting assigned workouts for week", currentWeekNumber);
     const { data: assignedWorkouts, error: workoutsCountError } = await supabaseClient
       .from('workouts')
@@ -197,19 +196,14 @@ serve(async (req) => {
       workout => workout.workout_type === 'flexibility'
     ).length;
     
-    // NEW: Count total workouts assigned by coach for this week (excluding rest days)
-    const totalAssignedWorkouts = (assignedWorkouts || []).filter(
-      workout => workout.workout_type !== 'rest_day'
-    ).length;
-    
-    console.log(`Found ${strengthWorkoutsCount} strength workouts, ${mobilityWorkoutsCount} mobility workouts, and ${totalAssignedWorkouts} total workouts`);
+    console.log(`Found ${strengthWorkoutsCount} strength workouts and ${mobilityWorkoutsCount} mobility workouts`);
     
     // Since program_weeks might be empty, we need defaults for other metrics
     // These could be configured elsewhere or calculated differently if needed
     const defaultMilesRunTarget = 0;
     const defaultCardioMinutesTarget = 60;
     
-    // 5. Fetch completed workouts for the week
+    // 5. Fetch completed workouts for the week (unchanged)
     console.log("Fetching workout completions");
     const { data: workoutCompletions, error: workoutsError } = await supabaseClient
       .from('workout_completions')
@@ -232,7 +226,7 @@ serve(async (req) => {
     
     console.log(`Found ${workoutCompletions?.length || 0} workout completions`);
     
-    // 6. Fetch run logs for the week
+    // 6. Fetch run logs for the week (unchanged)
     console.log("Fetching run logs");
     const { data: runLogs, error: runLogsError } = await supabaseClient
       .from('run_logs')
@@ -247,7 +241,7 @@ serve(async (req) => {
     
     console.log(`Found ${runLogs?.length || 0} run logs`);
     
-    // 7. Fetch cardio logs for the week
+    // 7. Fetch cardio logs for the week (unchanged)
     console.log("Fetching cardio logs");
     const { data: cardioLogs, error: cardioLogsError } = await supabaseClient
       .from('cardio_logs')
@@ -313,8 +307,8 @@ serve(async (req) => {
       program_type: programType,
       metrics: {
         strength_workouts: { 
-          target: totalAssignedWorkouts, // Using total assigned workouts instead of just strength workouts
-          actual: workoutCompletions?.length || 0 // Count all completed workouts
+          target: strengthWorkoutsCount, 
+          actual: strengthWorkouts 
         },
         strength_mobility: { 
           target: mobilityWorkoutsCount, 

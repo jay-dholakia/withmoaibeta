@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { startOfWeek, endOfWeek } from "https://esm.sh/date-fns@2.30.0";
@@ -165,41 +166,58 @@ serve(async (req) => {
     
     console.log("Current week number:", currentWeekNumber);
 
-    // 4. NEW: Count the actual assigned workouts for this program and week
-    console.log("Counting assigned workouts for week", currentWeekNumber);
-    const { data: assignedWorkouts, error: workoutsCountError } = await supabaseClient
-      .from('workouts')
-      .select(`
-        id, 
-        workout_type,
-        week_id,
-        week:week_id (
-          week_number,
-          program_id
-        )
-      `)
-      .eq('week.program_id', programAssignment.program_id)
-      .eq('week.week_number', currentWeekNumber);
-      
-    if (workoutsCountError) {
-      console.error("Error counting assigned workouts:", workoutsCountError);
+    // 4. Get workouts for the specific week from program_weeks and workouts tables
+    console.log(`Fetching workouts for week ${currentWeekNumber} of program ${programAssignment.program_id}`);
+    
+    // First get the week ID for the current week number
+    const { data: weekData, error: weekError } = await supabaseClient
+      .from('workout_weeks')
+      .select('id')
+      .eq('program_id', programAssignment.program_id)
+      .eq('week_number', currentWeekNumber)
+      .maybeSingle();
+    
+    if (weekError) {
+      console.error(`Error fetching week ${currentWeekNumber}:`, weekError);
     }
     
-    console.log(`Found ${assignedWorkouts?.length || 0} total assigned workouts`);
+    if (!weekData) {
+      console.error(`Week ${currentWeekNumber} not found in program ${programAssignment.program_id}`);
+    }
     
-    // Count specific workout types
-    const strengthWorkoutsCount = (assignedWorkouts || []).filter(
-      workout => workout.workout_type === 'strength' || workout.workout_type === 'bodyweight'
-    ).length;
+    // Now get workouts for this specific week
+    let assignedWorkouts = [];
+    let strengthWorkoutsCount = 0;
+    let mobilityWorkoutsCount = 0;
     
-    const mobilityWorkoutsCount = (assignedWorkouts || []).filter(
-      workout => workout.workout_type === 'flexibility'
-    ).length;
+    if (weekData?.id) {
+      const { data: workouts, error: workoutsError } = await supabaseClient
+        .from('workouts')
+        .select(`
+          id, 
+          workout_type
+        `)
+        .eq('week_id', weekData.id);
+      
+      if (workoutsError) {
+        console.error("Error fetching workouts for week:", workoutsError);
+      } else {
+        assignedWorkouts = workouts || [];
+        // Count specific workout types
+        strengthWorkoutsCount = assignedWorkouts.filter(
+          workout => workout.workout_type === 'strength' || workout.workout_type === 'bodyweight'
+        ).length;
+        
+        mobilityWorkoutsCount = assignedWorkouts.filter(
+          workout => workout.workout_type === 'flexibility'
+        ).length;
+        
+        console.log(`Found ${assignedWorkouts.length} total assigned workouts for week ${currentWeekNumber}`);
+        console.log(`Found ${strengthWorkoutsCount} strength workouts and ${mobilityWorkoutsCount} mobility workouts`);
+      }
+    }
     
-    console.log(`Found ${strengthWorkoutsCount} strength workouts and ${mobilityWorkoutsCount} mobility workouts`);
-    
-    // Since program_weeks might be empty, we need defaults for other metrics
-    // These could be configured elsewhere or calculated differently if needed
+    // Use defaults if we couldn't find workouts
     const defaultMilesRunTarget = 0;
     const defaultCardioMinutesTarget = 60;
     

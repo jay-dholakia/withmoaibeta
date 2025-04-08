@@ -244,12 +244,12 @@ serve(async (req) => {
     
     console.log(`Found ${workoutCompletions?.length || 0} workout completions`);
     
-    // 6. Fetch run logs for the week (unchanged)
+    // 6. Fetch run logs for the week - IMPORTANT: Use the client_id parameter for filtering
     console.log("Fetching run logs");
     const { data: runLogs, error: runLogsError } = await supabaseClient
       .from('run_logs')
       .select('id, distance, duration')
-      .eq('client_id', client_id)
+      .eq('client_id', client_id) // Ensure we're only getting this client's runs
       .gte('log_date', weekStartISO)
       .lte('log_date', weekEndISO);
     
@@ -259,12 +259,12 @@ serve(async (req) => {
     
     console.log(`Found ${runLogs?.length || 0} run logs`);
     
-    // 7. Fetch cardio logs for the week (unchanged)
+    // 7. Fetch cardio logs for the week - IMPORTANT: Use the client_id parameter for filtering
     console.log("Fetching cardio logs");
     const { data: cardioLogs, error: cardioLogsError } = await supabaseClient
       .from('cardio_logs')
       .select('id, duration')
-      .eq('client_id', client_id)
+      .eq('client_id', client_id) // Ensure we're only getting this client's cardio logs
       .gte('log_date', weekStartISO)
       .lte('log_date', weekEndISO);
     
@@ -275,34 +275,38 @@ serve(async (req) => {
     console.log(`Found ${cardioLogs?.length || 0} cardio logs`);
     
     // 8. Calculate actual progress metrics
-    // Count completed strength workouts
+    // Count completed strength workouts for this specific user
     const strengthWorkouts = (workoutCompletions || []).filter(
-      wc => wc.workout_type === 'strength' || wc.workout_type === 'bodyweight'
+      wc => (wc.workout_type === 'strength' || wc.workout_type === 'bodyweight') && wc.user_id === client_id
     ).length;
     
-    // Count completed mobility workouts
+    // Count completed mobility workouts for this specific user
     const mobilityWorkouts = (workoutCompletions || []).filter(
-      wc => wc.workout_type === 'flexibility'
+      wc => wc.workout_type === 'flexibility' && wc.user_id === client_id
     ).length;
     
-    // Sum run distances
+    // Sum run distances - these are already filtered by client_id
     const milesRun = (runLogs || []).reduce(
       (sum, log) => sum + (Number(log.distance) || 0), 
       0
     );
     
-    // Sum cardio minutes from both cardio logs and workout completions with duration
+    // Sum cardio minutes from cardio logs - these are already filtered by client_id
     const cardioMinutesFromLogs = (cardioLogs || []).reduce(
       (sum, log) => sum + (Number(log.duration) || 0), 
       0
     );
     
     // Get additional cardio minutes from relevant workout completions (for Moai Strength only)
+    // Ensure we're only counting this client's workout completions
     const cardioMinutesFromWorkouts = (workoutCompletions || [])
-      .filter(wc => wc.workout_type === 'cardio' || wc.workout_type === 'running')
+      .filter(wc => 
+        (wc.workout_type === 'cardio' || wc.workout_type === 'running') && 
+        wc.user_id === client_id
+      )
       .reduce((sum, wc) => sum + (Number(wc.duration) || 0), 0);
     
-    // NEW: Include run durations as part of cardio minutes
+    // Include run durations as part of cardio minutes - these are already filtered by client_id
     const runMinutes = (runLogs || []).reduce(
       (sum, log) => sum + (Number(log.duration) || 0), 
       0

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { startOfWeek, endOfWeek } from "https://esm.sh/date-fns@2.30.0";
@@ -165,71 +164,46 @@ serve(async (req) => {
     );
     
     console.log("Current week number:", currentWeekNumber);
-    
-    // 4. Get the week's targets from program_weeks
-    console.log("Fetching week data for week", currentWeekNumber);
-    const { data: weekData, error: weekError } = await supabaseClient
-      .from('program_weeks')
-      .select(`
-        id,
-        week_number,
-        target_strength_workouts,
-        target_strength_mobility_workouts,
-        target_miles_run,
-        target_cardio_minutes
-      `)
-      .eq('program_id', programAssignment.program_id)
-      .eq('week_number', currentWeekNumber)
-      .maybeSingle();
-    
-    if (weekError) {
-      console.error("Error fetching week data:", weekError);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch program week targets", details: weekError }),
-        {
-          status: 500, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-    
-    if (!weekData) {
-      console.error(`Week ${currentWeekNumber} not found in program`);
-      // Create a default response with zeros for metrics
-      return new Response(
-        JSON.stringify({
-          program_id: programAssignment.program_id,
-          program_title: programAssignment.program?.title,
-          current_week: currentWeekNumber,
-          total_weeks: programAssignment.program?.weeks || 4,
-          program_type: "moai_strength", // Default to strength
-          metrics: {
-            strength_workouts: { target: 0, actual: 0 },
-            strength_mobility: { target: 0, actual: 0 },
-            miles_run: { target: 0, actual: 0 },
-            cardio_minutes: { target: 0, actual: 0 }
-          }
-        }),
-        {
-          status: 200, // Return 200 with default data
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-    
-    console.log("Week data retrieved:", weekData);
 
-    // 5. Determine program type (default to strength if not specified)
-    let programType = "moai_strength";
-    
-    // If program has significant run targets, consider it a running program
-    if (weekData.target_miles_run && weekData.target_miles_run > 5) {
-      programType = "moai_run";
+    // 4. NEW: Count the actual assigned workouts for this program and week
+    console.log("Counting assigned workouts for week", currentWeekNumber);
+    const { data: assignedWorkouts, error: workoutsCountError } = await supabaseClient
+      .from('workouts')
+      .select(`
+        id, 
+        workout_type,
+        week_id,
+        week:week_id (
+          week_number,
+          program_id
+        )
+      `)
+      .eq('week.program_id', programAssignment.program_id)
+      .eq('week.week_number', currentWeekNumber);
+      
+    if (workoutsCountError) {
+      console.error("Error counting assigned workouts:", workoutsCountError);
     }
     
-    console.log("Program type:", programType);
+    console.log(`Found ${assignedWorkouts?.length || 0} total assigned workouts`);
     
-    // 6. Fetch completed workouts for the week
+    // Count specific workout types
+    const strengthWorkoutsCount = (assignedWorkouts || []).filter(
+      workout => workout.workout_type === 'strength' || workout.workout_type === 'bodyweight'
+    ).length;
+    
+    const mobilityWorkoutsCount = (assignedWorkouts || []).filter(
+      workout => workout.workout_type === 'flexibility'
+    ).length;
+    
+    console.log(`Found ${strengthWorkoutsCount} strength workouts and ${mobilityWorkoutsCount} mobility workouts`);
+    
+    // Since program_weeks might be empty, we need defaults for other metrics
+    // These could be configured elsewhere or calculated differently if needed
+    const defaultMilesRunTarget = 0;
+    const defaultCardioMinutesTarget = 60;
+    
+    // 5. Fetch completed workouts for the week (unchanged)
     console.log("Fetching workout completions");
     const { data: workoutCompletions, error: workoutsError } = await supabaseClient
       .from('workout_completions')
@@ -252,7 +226,7 @@ serve(async (req) => {
     
     console.log(`Found ${workoutCompletions?.length || 0} workout completions`);
     
-    // 7. Fetch run logs for the week
+    // 6. Fetch run logs for the week (unchanged)
     console.log("Fetching run logs");
     const { data: runLogs, error: runLogsError } = await supabaseClient
       .from('run_logs')
@@ -267,7 +241,7 @@ serve(async (req) => {
     
     console.log(`Found ${runLogs?.length || 0} run logs`);
     
-    // 8. Fetch cardio logs for the week
+    // 7. Fetch cardio logs for the week (unchanged)
     console.log("Fetching cardio logs");
     const { data: cardioLogs, error: cardioLogsError } = await supabaseClient
       .from('cardio_logs')
@@ -282,7 +256,7 @@ serve(async (req) => {
     
     console.log(`Found ${cardioLogs?.length || 0} cardio logs`);
     
-    // 9. Calculate actual progress metrics
+    // 8. Calculate actual progress metrics
     // Count completed strength workouts
     const strengthWorkouts = (workoutCompletions || []).filter(
       wc => wc.workout_type === 'strength' || wc.workout_type === 'bodyweight'
@@ -306,14 +280,23 @@ serve(async (req) => {
     );
     
     // Get additional cardio minutes from relevant workout completions (for Moai Strength only)
-    const cardioMinutesFromWorkouts = programType === 'moai_strength' ? 
-      (workoutCompletions || [])
-        .filter(wc => wc.workout_type === 'cardio' || wc.workout_type === 'running')
-        .reduce((sum, wc) => sum + (Number(wc.duration) || 0), 0) :
-      0;
+    const cardioMinutesFromWorkouts = (workoutCompletions || [])
+      .filter(wc => wc.workout_type === 'cardio' || wc.workout_type === 'running')
+      .reduce((sum, wc) => sum + (Number(wc.duration) || 0), 0);
     
     // Total cardio minutes
     const cardioMinutes = cardioMinutesFromLogs + cardioMinutesFromWorkouts;
+    
+    // 9. Determine program type (default to strength if not specified)
+    // We can check the workout types or other factors to determine this
+    let programType = "moai_strength";
+    
+    // If program has significant run targets or run workouts, consider it a running program
+    if (assignedWorkouts && assignedWorkouts.some(w => w.workout_type === 'running')) {
+      programType = "moai_run";
+    }
+    
+    console.log("Program type:", programType);
     
     // 10. Build the response object
     const response = {
@@ -324,19 +307,19 @@ serve(async (req) => {
       program_type: programType,
       metrics: {
         strength_workouts: { 
-          target: weekData.target_strength_workouts || 0, 
+          target: strengthWorkoutsCount, 
           actual: strengthWorkouts 
         },
         strength_mobility: { 
-          target: weekData.target_strength_mobility_workouts || 0, 
+          target: mobilityWorkoutsCount, 
           actual: mobilityWorkouts 
         },
         miles_run: { 
-          target: weekData.target_miles_run || 0, 
+          target: defaultMilesRunTarget, 
           actual: milesRun 
         },
         cardio_minutes: { 
-          target: weekData.target_cardio_minutes || 0, 
+          target: defaultCardioMinutesTarget, 
           actual: cardioMinutes 
         }
       }

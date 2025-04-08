@@ -23,6 +23,7 @@ export interface WeeklyProgressResponse {
 
 /**
  * Fetches the client's weekly progress for their current program
+ * Uses the actual assigned workouts in workout_programs > workout_weeks > workouts tables
  */
 export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProgressResponse> => {
   try {

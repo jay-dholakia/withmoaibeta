@@ -33,7 +33,7 @@ const LeaderboardPage = () => {
     enabled: !!user?.id,
   });
   
-  const { data: clientWorkouts, isLoading: isLoadingWorkouts, error: workoutsError, refetch: refetchWorkouts } = useQuery({
+  const { data: clientWorkouts, isLoading: isLoadingWorkouts, error: workoutsError } = useQuery({
     queryKey: ['client-workouts-leaderboard', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -145,12 +145,6 @@ const LeaderboardPage = () => {
     console.log(`Selected date: ${format(date, 'yyyy-MM-dd')}, found ${workouts.length} workouts`);
   };
   
-  const handleWorkoutDeleted = () => {
-    refetchWorkouts();
-    setSelectedDayWorkouts([]);
-    toast.success("Workout history updated");
-  };
-  
   const isLoading = isLoadingProfile || isLoadingWorkouts || isLoadingCount || isLoadingCompleted;
   
   if (isLoading) {
@@ -207,7 +201,6 @@ const LeaderboardPage = () => {
                 <WorkoutDayDetails 
                   date={selectedDate} 
                   workouts={selectedDayWorkouts} 
-                  onWorkoutDeleted={handleWorkoutDeleted}
                 />
               </CardContent>
             </Card>

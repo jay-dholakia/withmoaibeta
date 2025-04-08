@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutSetCompletion, StandardWorkoutType } from "@/types/workout";
 
@@ -312,29 +313,5 @@ export const getExerciseInfoByWorkoutExerciseId = async (
   } catch (error) {
     console.error("Error in getExerciseInfoByWorkoutExerciseId:", error);
     return null;
-  }
-};
-
-/**
- * Deletes a workout completion entry
- */
-export const deleteWorkoutCompletion = async (
-  completionId: string
-): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('workout_completions')
-      .delete()
-      .eq('id', completionId);
-      
-    if (error) {
-      console.error("Error deleting workout completion:", error);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Error in deleteWorkoutCompletion:", error);
-    return false;
   }
 };

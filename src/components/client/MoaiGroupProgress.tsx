@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -355,14 +354,10 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
   
   if (isLoadingCurrentUser || isLoadingMembers || isLoadingCurrentUserProfile) {
     return (
-      <Card>
-        <CardContent className="py-6">
-          <div className="flex justify-center items-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin text-client mr-2" />
-            <p className="text-sm text-muted-foreground">Loading your progress...</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex justify-center items-center py-4">
+        <Loader2 className="h-6 w-6 animate-spin text-client mr-2" />
+        <p className="text-sm text-muted-foreground">Loading your progress...</p>
+      </div>
     );
   }
   

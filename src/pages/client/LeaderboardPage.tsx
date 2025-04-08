@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Container } from '@/components/ui/container';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,7 +35,7 @@ const LeaderboardPage = () => {
     enabled: !!user?.id,
   });
   
-  const { data: clientWorkouts, isLoading: isLoadingWorkouts, error: workoutsError } = useQuery({
+  const { data: clientWorkouts, isLoading: isLoadingWorkouts, error: workoutsError, refetch: refetchWorkouts } = useQuery({
     queryKey: ['client-workouts-leaderboard', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -155,6 +156,10 @@ const LeaderboardPage = () => {
     }, 100);
   };
   
+  const handleRefreshWorkoutHistory = () => {
+    refetchWorkouts();
+  };
+  
   const isLoading = isLoadingProfile || isLoadingWorkouts || isLoadingCount || isLoadingCompleted;
   
   if (isLoading) {
@@ -171,6 +176,14 @@ const LeaderboardPage = () => {
   return (
     <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">
       <div className="w-full">
+        <button 
+          id="refresh-workout-history" 
+          className="hidden"
+          onClick={handleRefreshWorkoutHistory}
+        >
+          Refresh
+        </button>
+        
         <div className="mt-6 mb-2 flex flex-col items-center">
           <h2 className="text-xl font-bold mb-1 flex items-center justify-center gap-2">
             <User className="h-5 w-5 text-client" />

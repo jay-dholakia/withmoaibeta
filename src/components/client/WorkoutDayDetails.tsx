@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { format, isValid } from 'date-fns';
-import { FileX, Edit, Save, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileX, Edit, Save, X, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { WorkoutTypeIcon, WORKOUT_TYPES } from './WorkoutTypeIcon';
 import { Button } from '@/components/ui/button';
 import { Label } from "@/components/ui/label";
@@ -13,9 +12,10 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { toast } from 'sonner';
 import { updateCustomWorkout } from '@/services/client-custom-workout-service';
 import { updateWorkoutCompletion } from '@/services/workout-edit-service';
+import { deleteWorkoutCompletion } from '@/services/workout-delete-service';
 import EditWorkoutSetCompletions from './EditWorkoutSetCompletions';
 import { supabase } from '@/integrations/supabase/client';
-import { 
+import {
   Table, 
   TableBody, 
   TableCell, 
@@ -23,6 +23,17 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -35,6 +46,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
   const [exerciseGroups, setExerciseGroups] = useState<Record<string, any>>({});
   const [editingExercises, setEditingExercises] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -148,6 +160,26 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       toast.error('Failed to update workout');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteWorkout = async (workoutId: string) => {
+    try {
+      setIsDeleting(true);
+      const success = await deleteWorkoutCompletion(workoutId);
+      
+      if (success) {
+        toast.success('Workout deleted successfully');
+        
+        document.getElementById('refresh-workout-history')?.click();
+      } else {
+        toast.error('Failed to delete workout');
+      }
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      toast.error('An error occurred while deleting the workout');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -342,6 +374,37 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                         Edit
                       </Button>
                     )}
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-xs text-destructive hover:text-destructive"
+                          disabled={isDeleting}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Workout</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this workout? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteWorkout(workout.id)}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
                 

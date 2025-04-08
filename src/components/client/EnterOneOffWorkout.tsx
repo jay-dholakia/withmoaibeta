@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
@@ -8,7 +9,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Loader2, Calendar, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Calendar } from 'lucide-react';
 import { createOneOffWorkoutCompletion } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -28,8 +29,6 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { WORKOUT_TYPES, WorkoutType } from './WorkoutTypeIcon';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { deleteWorkoutDraft, getWorkoutDraft, saveWorkoutDraft } from '@/services/workout-draft-service';
-import { useAutosave } from '@/hooks/useAutosave';
 import { useAuth } from '@/contexts/AuthContext';
 
 const EnterOneOffWorkout = () => {
@@ -49,103 +48,8 @@ const EnterOneOffWorkout = () => {
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
   const [location, setLocation] = useState<string>('');
-  const [draftLoaded, setDraftLoaded] = useState(false);
   
   const { user } = useAuth();
-  const [authStateChanged, setAuthStateChanged] = useState(0); // Counter for auth changes
-
-  const ONE_OFF_DRAFT_ID = 'one-off-workout';
-
-  const draftData = {
-    title,
-    description,
-    notes,
-    workoutType,
-    date: date?.toISOString(),
-    distance,
-    duration,
-    location
-  };
-
-  const { saveStatus } = useAutosave({
-    data: draftData,
-    onSave: async (data) => {
-      return await saveWorkoutDraft(
-        ONE_OFF_DRAFT_ID,
-        'one_off',
-        data
-      );
-    }
-  });
-
-  useEffect(() => {
-    if (user) {
-      console.log("Auth state detected in EnterOneOffWorkout, user:", user.id);
-      setAuthStateChanged(prev => prev + 1);
-      setDraftLoaded(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    let mounted = true;
-    let loadAttemptTimeout: NodeJS.Timeout | null = null;
-    
-    const loadDraftData = async () => {
-      if (draftLoaded || !user) return;
-      
-      try {
-        console.log("Loading draft data for one-off workout");
-        console.log(`Auth state changes detected: ${authStateChanged}`);
-        
-        const { getWorkoutDraft } = await import('@/services/workout-draft-service');
-        
-        const draft = await getWorkoutDraft(ONE_OFF_DRAFT_ID, 5, 1000);
-        
-        if (!mounted) return;
-        
-        if (draft && draft.draft_data) {
-          const data = draft.draft_data;
-          
-          if (data.title) setTitle(data.title);
-          if (data.description) setDescription(data.description);
-          if (data.notes) setNotes(data.notes);
-          if (data.workoutType) setWorkoutType(data.workoutType);
-          if (data.date) setDate(new Date(data.date));
-          if (data.distance) setDistance(data.distance);
-          if (data.duration) setDuration(data.duration);
-          if (data.location) setLocation(data.location);
-          
-          console.log("Draft data loaded for one-off workout");
-          toast.success('Recovered unsaved workout data');
-          setDraftLoaded(true);
-        } else {
-          console.log("No draft data found for one-off workout");
-          setDraftLoaded(true);
-        }
-      } catch (error) {
-        console.error("Error loading draft data:", error);
-        setDraftLoaded(true);
-      }
-    };
-    
-    if (user && !draftLoaded) {
-      loadDraftData();
-    } else if (!user && !draftLoaded) {
-      loadAttemptTimeout = setTimeout(() => {
-        if (mounted && !draftLoaded) {
-          console.log("Retrying draft load after timeout");
-          loadDraftData();
-        }
-      }, 1500);
-    }
-    
-    return () => {
-      mounted = false;
-      if (loadAttemptTimeout) {
-        clearTimeout(loadAttemptTimeout);
-      }
-    };
-  }, [draftLoaded, user, authStateChanged]);
 
   const addToJournal = async (workoutTitle: string, notes: string, journalDate: Date) => {
     try {
@@ -202,8 +106,6 @@ const EnterOneOffWorkout = () => {
       
       await createOneOffWorkoutCompletion(workoutData);
       
-      await deleteWorkoutDraft(ONE_OFF_DRAFT_ID);
-      
       toast.success('Workout logged successfully!');
       navigate('/client-dashboard/workouts');
     } catch (error) {
@@ -246,23 +148,6 @@ const EnterOneOffWorkout = () => {
           <CardDescription>
             Record a workout you've completed that wasn't in your assigned program
           </CardDescription>
-          
-          {saveStatus !== 'idle' && (
-            <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
-              {saveStatus === 'saving' && (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>Saving draft...</span>
-                </>
-              )}
-              {saveStatus === 'success' && (
-                <>
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
-                  <span>Draft saved</span>
-                </>
-              )}
-            </div>
-          )}
         </CardHeader>
         
         <form onSubmit={handleSubmit}>

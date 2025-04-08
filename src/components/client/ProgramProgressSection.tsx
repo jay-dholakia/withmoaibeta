@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -9,13 +8,7 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
-import { LogRunActivityDialog } from './LogRunActivityDialog';
-import { LogCardioActivityDialog } from './LogCardioActivityDialog';
-import { LogRestDayDialog } from './LogRestDayDialog';
 import { fetchWeeklyProgress, WeeklyProgressResponse } from '@/services/weekly-progress-service';
-import { toast } from 'sonner';
 
 interface ProgressBarProps {
   label: string;
@@ -51,25 +44,16 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 
 export const ProgramProgressSection: React.FC = () => {
   const { user } = useAuth();
-  const [showRunDialog, setShowRunDialog] = useState(false);
-  const [showCardioDialog, setShowCardioDialog] = useState(false);
-  const [showRestDialog, setShowRestDialog] = useState(false);
-  
+
   const { 
     data: weeklyProgress, 
     isLoading,
     error,
-    refetch 
   } = useQuery<WeeklyProgressResponse>({
     queryKey: ['weekly-progress', user?.id],
     queryFn: () => fetchWeeklyProgress(user?.id),
     enabled: !!user?.id,
   });
-
-  const handleActivitySuccess = () => {
-    toast.success("Activity logged successfully!");
-    refetch();
-  };
 
   if (isLoading) {
     return (
@@ -112,7 +96,6 @@ export const ProgramProgressSection: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Only display Miles Run for Moai Run program or if there's a non-zero target */}
           {(isRunProgram || (weeklyProgress?.metrics.miles_run.target || 0) > 0) && (
             <ProgressBar 
               label="Miles Run" 
@@ -141,5 +124,7 @@ export const ProgramProgressSection: React.FC = () => {
           />
         </CardContent>
       </Card>
+    </div>
   );
 };
+

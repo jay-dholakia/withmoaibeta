@@ -54,6 +54,8 @@ export const WorkoutProgressCard: React.FC<WorkoutProgressCardProps> = ({
         workoutTypes={workoutTypesMap}
         workoutTitlesMap={workoutTitlesMap}
         userName={userName}
+        count={count}
+        total={total}
       />
       
       {/* Cardio minutes progress */}

@@ -111,6 +111,12 @@ export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> 
       const lastName = profile.last_name ?? '';
       const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Unknown User';
       
+      return {
+        id: member.user_id,
+        name: fullName,
+        profile_picture_url: profile.avatar_url ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.user_id}`,
+        completed_workout_ids: completedWorkoutIds
+      };
     });
     
     console.log("Mapped members result:", mappedMembers);

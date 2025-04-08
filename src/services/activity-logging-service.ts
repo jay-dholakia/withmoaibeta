@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -104,12 +103,13 @@ export const getClientRunActivities = async (startDate: Date, endDate: Date): Pr
     }
     
     const { data, error } = await supabase
-      .from('run_logs')
+      .from('workout_completions')
       .select('*')
-      .eq('client_id', user.id)
-      .gte('log_date', startDate.toISOString())
-      .lte('log_date', endDate.toISOString())
-      .order('log_date', { ascending: false });
+      .eq('user_id', user.id)
+      .eq('workout_type', 'running')
+      .gte('completed_at', startDate.toISOString())
+      .lte('completed_at', endDate.toISOString())
+      .order('completed_at', { ascending: false });
     
     if (error) {
       console.error("Error fetching run activities:", error);
@@ -118,8 +118,13 @@ export const getClientRunActivities = async (startDate: Date, endDate: Date): Pr
     
     // Transform the data to match the interface
     return data.map(item => ({
-      ...item,
-      log_date: new Date(item.log_date)
+      id: item.id,
+      client_id: item.user_id,
+      log_date: new Date(item.completed_at),
+      notes: item.notes,
+      distance: Number(item.distance) || 0,
+      duration: Number(item.duration) || 0,
+      location: item.location
     })) as RunLog[];
   } catch (error) {
     console.error("Error in getClientRunActivities:", error);
@@ -136,6 +141,7 @@ export const getClientCardioActivities = async (startDate: Date, endDate: Date):
       throw new Error("User not authenticated");
     }
     
+    // Keep using cardio_logs table for now since it has specific fields
     const { data, error } = await supabase
       .from('cardio_logs')
       .select('*')
@@ -169,6 +175,7 @@ export const getClientRestDays = async (startDate: Date, endDate: Date): Promise
       throw new Error("User not authenticated");
     }
     
+    // Keep using rest_logs table for consistency
     const { data, error } = await supabase
       .from('rest_logs')
       .select('*')

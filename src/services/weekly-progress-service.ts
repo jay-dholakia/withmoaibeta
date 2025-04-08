@@ -62,11 +62,6 @@ export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProg
       data.metrics.miles_run = { target: 0, actual: 0 };
     }
 
-    // Override the target for strength workouts to always be 5
-    if (data && data.metrics.strength_workouts) {
-      data.metrics.strength_workouts.target = 5;
-    }
-
     return data as WeeklyProgressResponse;
   } catch (error) {
     console.error("Failed to fetch weekly progress:", error);
@@ -78,7 +73,7 @@ export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProg
       total_weeks: 4,
       program_type: 'moai_strength',
       metrics: {
-        strength_workouts: { target: 5, actual: 0 },
+        strength_workouts: { target: 0, actual: 0 },
         strength_mobility: { target: 0, actual: 0 },
         miles_run: { target: 0, actual: 0 },
         cardio_minutes: { target: 0, actual: 0 }

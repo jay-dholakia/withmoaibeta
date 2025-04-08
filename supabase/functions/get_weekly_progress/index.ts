@@ -137,7 +137,7 @@ serve(async (req) => {
           total_weeks: 1,
           program_type: "moai_strength",
           metrics: {
-            strength_workouts: { target: 5, actual: 0 },
+            strength_workouts: { target: 0, actual: 0 },
             strength_mobility: { target: 0, actual: 0 },
             miles_run: { target: 0, actual: 0 },
             cardio_minutes: { target: 0, actual: 0 }
@@ -204,7 +204,7 @@ serve(async (req) => {
           total_weeks: programAssignment.program?.weeks || 4,
           program_type: "moai_strength", // Default to strength
           metrics: {
-            strength_workouts: { target: 5, actual: 0 },
+            strength_workouts: { target: 0, actual: 0 },
             strength_mobility: { target: 0, actual: 0 },
             miles_run: { target: 0, actual: 0 },
             cardio_minutes: { target: 0, actual: 0 }
@@ -324,7 +324,7 @@ serve(async (req) => {
       program_type: programType,
       metrics: {
         strength_workouts: { 
-          target: 5, // Always set to 5 coach-assigned workouts per week
+          target: weekData.target_strength_workouts || 0, 
           actual: strengthWorkouts 
         },
         strength_mobility: { 
@@ -366,7 +366,7 @@ serve(async (req) => {
         total_weeks: 4,
         program_type: "moai_strength",
         metrics: {
-          strength_workouts: { target: 5, actual: 0 },
+          strength_workouts: { target: 0, actual: 0 },
           strength_mobility: { target: 0, actual: 0 },
           miles_run: { target: 0, actual: 0 },
           cardio_minutes: { target: 0, actual: 0 }

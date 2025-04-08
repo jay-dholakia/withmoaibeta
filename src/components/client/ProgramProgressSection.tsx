@@ -1,131 +1,133 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
-import { fetchWeeklyProgress, WeeklyProgressResponse } from '@/services/weekly-progress-service';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dumbbell, Timer, Trophy, Bike } from 'lucide-react';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { WeekProgressSection } from './WeekProgressSection';
-import { WorkoutTypeIcon } from './WorkoutTypeIcon';
+import { fetchWeeklyProgress, WeeklyProgressResponse } from '@/services/weekly-progress-service';
 
-interface MetricCardProps {
-  title: string;
-  actual: number;
-  target: number;
-  icon: React.ReactNode;
-  color: string;
+interface ProgressBarProps {
+  label: string;
+  value: number;
+  max: number;
+  color?: string;
 }
 
-const MetricCard = ({ title, actual, target, icon, color }: MetricCardProps) => {
-  const progress = target > 0 ? Math.min(Math.round((actual / target) * 100), 100) : 0;
-
+const ProgressBar: React.FC<ProgressBarProps> = ({ 
+  label, 
+  value, 
+  max, 
+  color = 'bg-client' 
+}) => {
+  const percentage = max > 0 ? Math.min(Math.round((value / max) * 100), 100) : 0;
+  
   return (
-    <Card className="overflow-hidden rounded-xl border shadow">
-      <CardHeader className={`bg-${color}-50 p-4 pb-2`}>
-        <CardTitle className="flex justify-between items-center text-base font-semibold">
-          {title}
-          <span className={`bg-${color}-100 p-1.5 rounded-full text-${color}-700`}>
-            {icon}
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 pt-2">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-2xl font-bold">{actual}</span>
-          <span className="text-sm text-muted-foreground">of {target}</span>
-        </div>
-        <Progress value={progress} className="h-2" />
-      </CardContent>
-    </Card>
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium">{label}</span>
+        <span className="text-sm font-medium">{value}/{max}</span>
+      </div>
+      <Progress 
+        value={percentage} 
+        className="h-2"
+        style={{ 
+          '--progress-background': color === 'bg-client' ? 'var(--client)' : color
+        } as React.CSSProperties}
+      />
+    </div>
   );
 };
 
-export function ProgramProgressSection() {
+export const ProgramProgressSection: React.FC = () => {
   const { user } = useAuth();
-  
-  const { data: weeklyProgress, isLoading, error } = useQuery({
+
+  const { 
+    data: weeklyProgress, 
+    isLoading,
+    error,
+  } = useQuery<WeeklyProgressResponse>({
     queryKey: ['weekly-progress', user?.id],
-    queryFn: async () => {
-      if (!user?.id) throw new Error("No user ID available");
-      return fetchWeeklyProgress(user.id);
-    },
+    queryFn: () => fetchWeeklyProgress(user?.id),
     enabled: !!user?.id,
-    refetchOnWindowFocus: false,
   });
-  
+
   if (isLoading) {
     return (
-      <div className="animate-pulse">
-        <Card className="overflow-hidden rounded-xl border shadow-sm">
-          <CardContent className="p-8">
-            <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
-  if (error || !weeklyProgress) {
-    console.error("Error loading weekly progress:", error);
-    return null;
-  }
-  
-  const { metrics, program_title, current_week, total_weeks } = weeklyProgress;
-  
-  return (
-    <div className="space-y-4">
-      <Card className="overflow-hidden rounded-xl border shadow-sm">
-        <CardContent className="p-6">
-          <h2 className="text-lg font-semibold mb-1">
-            {program_title} - Week {current_week} of {total_weeks}
-          </h2>
-          <p className="text-muted-foreground text-sm mb-4">
-            Weekly progress summary
-          </p>
-          
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
-              title="Strength Workouts"
-              actual={metrics.strength_workouts.actual}
-              target={metrics.strength_workouts.target}
-              icon={<Dumbbell className="h-4 w-4" />}
-              color="blue"
-            />
-            
-            <MetricCard
-              title="Mobility Workouts"
-              actual={metrics.strength_mobility.actual}
-              target={metrics.strength_mobility.target}
-              icon={<WorkoutTypeIcon type="flexibility" size="md" />}
-              color="purple"
-            />
-            
-            <MetricCard
-              title="Miles Run"
-              actual={metrics.miles_run.actual}
-              target={metrics.miles_run.target}
-              icon={<Trophy className="h-4 w-4" />}
-              color="amber"
-            />
-            
-            <MetricCard
-              title="Cardio Minutes"
-              actual={metrics.cardio_minutes.actual}
-              target={metrics.cardio_minutes.target}
-              icon={<Bike className="h-4 w-4" />}
-              color="emerald"
-            />
+      <Card className="w-full">
+        <CardContent className="pt-6">
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-2 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded animate-pulse mt-4"></div>
+            <div className="h-2 bg-gray-200 rounded animate-pulse"></div>
           </div>
         </CardContent>
       </Card>
-      
-      <WeekProgressSection />
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="w-full">
+        <CardContent className="pt-6">
+          <p className="text-center text-red-500">
+            Error loading program progress. Please try again later.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const isRunProgram = weeklyProgress?.program_type === 'moai_run';
+  
+  return (
+    <div className="space-y-6">
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="text-lg">
+            {weeklyProgress?.program_title || 'Weekly Progress'} 
+            <span className="text-sm font-normal text-muted-foreground ml-2">
+              (Week {weeklyProgress?.current_week}/{weeklyProgress?.total_weeks})
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* For Run programs, miles_run is always shown */}
+          {(isRunProgram || (weeklyProgress?.metrics.miles_run.target || 0) > 0) && (
+            <ProgressBar 
+              label="Miles Run" 
+              value={weeklyProgress?.metrics.miles_run.actual || 0} 
+              max={weeklyProgress?.metrics.miles_run.target || 0}
+              color="bg-blue-500"
+            />
+          )}
+          
+          {/* For Strength programs, show Strength Workouts */}
+          <ProgressBar 
+            label={isRunProgram ? "Strength & Mobility Workouts" : "Strength Workouts"} 
+            value={isRunProgram
+              ? (weeklyProgress?.metrics.strength_mobility.actual || 0)
+              : (weeklyProgress?.metrics.strength_workouts.actual || 0)} 
+            max={isRunProgram
+              ? (weeklyProgress?.metrics.strength_mobility.target || 0)
+              : (weeklyProgress?.metrics.strength_workouts.target || 0)}
+            color="bg-purple-500"
+          />
+          
+          {/* Cardio Minutes for all program types */}
+          <ProgressBar 
+            label="Cardio Minutes" 
+            value={weeklyProgress?.metrics.cardio_minutes.actual || 0} 
+            max={weeklyProgress?.metrics.cardio_minutes.target || 0}
+            color="bg-green-500"
+          />
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};

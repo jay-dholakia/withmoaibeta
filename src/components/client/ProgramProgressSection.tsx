@@ -179,25 +179,6 @@ export const ProgramProgressSection: React.FC = () => {
             </span>
           </Button>
         </div>
-      </div>
-      
-      <LogRunActivityDialog 
-        open={showRunDialog}
-        onOpenChange={setShowRunDialog}
-        onSuccess={handleActivitySuccess}
-      />
-      
-      <LogCardioActivityDialog 
-        open={showCardioDialog}
-        onOpenChange={setShowCardioDialog}
-        onSuccess={handleActivitySuccess}
-      />
-      
-      <LogRestDayDialog 
-        open={showRestDialog}
-        onOpenChange={setShowRestDialog}
-        onSuccess={handleActivitySuccess}
-      />
-    </div>
+     
   );
 };

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { startOfWeek, endOfWeek } from "https://esm.sh/date-fns@2.30.0";
@@ -217,10 +216,6 @@ serve(async (req) => {
       }
     }
     
-    // Use defaults if we couldn't find workouts
-    const defaultMilesRunTarget = 0;
-    const defaultCardioMinutesTarget = 60;
-    
     // 5. Fetch completed workouts for the week
     console.log("Fetching workout completions");
     const { data: workoutCompletions, error: workoutsError } = await supabaseClient
@@ -247,23 +242,25 @@ serve(async (req) => {
     
     console.log(`Found ${workoutCompletions?.length || 0} workout completions`);
     
-    // Add detailed logging for cardio-related workout completions
-    if (workoutCompletions && workoutCompletions.length > 0) {
-      const cardioWorkouts = workoutCompletions.filter(
-        wc => (wc.workout_type === 'cardio' || wc.workout_type === 'running') && wc.user_id === client_id
-      );
-      
-      console.log(`Found ${cardioWorkouts.length} cardio/running workouts for user ${client_id}`);
-      
-      // Log each cardio workout details
-      cardioWorkouts.forEach((workout, index) => {
-        console.log(`Cardio workout #${index + 1}:`);
-        console.log(`  - ID: ${workout.id}`);
-        console.log(`  - Type: ${workout.workout_type}`);
-        console.log(`  - Distance: ${workout.distance || 'N/A'}`);
-        console.log(`  - Duration: ${workout.duration} minutes`);
-        console.log(`  - Completed: ${workout.completed_at}`);
-      });
+    // Fetch target metrics from workout_weeks table if available
+    let targetMilesRun = 0;
+    let targetCardioMinutes = 60; // Default value
+    
+    if (weekData?.id) {
+      console.log(`Fetching target metrics for week ${currentWeekNumber}`);
+      const { data: weekMetrics, error: metricsError } = await supabaseClient
+        .from('workout_weeks')
+        .select('target_miles_run, target_cardio_minutes')
+        .eq('id', weekData.id)
+        .maybeSingle();
+        
+      if (metricsError) {
+        console.error("Error fetching week metrics:", metricsError);
+      } else if (weekMetrics) {
+        console.log("Found week metrics:", weekMetrics);
+        targetMilesRun = Number(weekMetrics.target_miles_run) || 0;
+        targetCardioMinutes = Number(weekMetrics.target_cardio_minutes) || 60;
+      }
     }
     
     // Get run logs from workout completions with workout_type = 'running'
@@ -358,11 +355,11 @@ serve(async (req) => {
           actual: mobilityWorkouts 
         },
         miles_run: { 
-          target: defaultMilesRunTarget, 
+          target: targetMilesRun, 
           actual: milesRun 
         },
         cardio_minutes: { 
-          target: defaultCardioMinutesTarget, 
+          target: targetCardioMinutes, 
           actual: cardioMinutes 
         }
       }

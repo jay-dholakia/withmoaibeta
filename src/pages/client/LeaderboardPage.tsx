@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Container } from '@/components/ui/container';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +18,7 @@ const LeaderboardPage = () => {
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedDayWorkouts, setSelectedDayWorkouts] = useState<WorkoutHistoryItem[]>([]);
+  const workoutDetailsRef = useRef<HTMLDivElement>(null);
   
   const { data: profile, isLoading: isLoadingProfile, error: profileError } = useQuery({
     queryKey: ['client-profile', user?.id],
@@ -143,6 +144,15 @@ const LeaderboardPage = () => {
     setSelectedDate(date);
     setSelectedDayWorkouts(workouts);
     console.log(`Selected date: ${format(date, 'yyyy-MM-dd')}, found ${workouts.length} workouts`);
+    
+    setTimeout(() => {
+      if (workouts.length > 0 && workoutDetailsRef.current) {
+        workoutDetailsRef.current.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    }, 100);
   };
   
   const isLoading = isLoadingProfile || isLoadingWorkouts || isLoadingCount || isLoadingCompleted;
@@ -192,7 +202,7 @@ const LeaderboardPage = () => {
         </Card>
         
         {selectedDayWorkouts.length > 0 && (
-          <div className="mt-6">
+          <div className="mt-6" ref={workoutDetailsRef}>
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Workout Details</CardTitle>

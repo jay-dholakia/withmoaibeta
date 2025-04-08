@@ -14,7 +14,6 @@ interface EditWeekMetricsFormProps {
   initialData: {
     target_miles_run?: number;
     target_cardio_minutes?: number;
-    target_strength_workouts?: number;
     target_strength_mobility_workouts?: number;
   };
   programType: 'strength' | 'run';
@@ -32,12 +31,13 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
   // Define the schema for form validation based on program type
   const runProgramSchema = z.object({
     target_miles_run: z.number().min(0, "Target miles must be a positive number"),
-    target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number"),
-    target_strength_mobility_workouts: z.number().min(0, "Target strength/mobility workouts must be a positive number")
+    target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
+    // Note: target_strength_mobility_workouts is calculated automatically
   });
   
   const strengthProgramSchema = z.object({
     target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
+    // Strength workouts are auto-calculated based on assigned workouts
   });
   
   // Choose schema based on program type
@@ -46,13 +46,12 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
   // Define the form values type based on the schema
   type FormValues = z.infer<typeof formSchema>;
 
-  // Initialize the form with appropriate default values
+  // Initialize the form with appropriate default values based on program type
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: programType === 'run' ? {
       target_miles_run: initialData.target_miles_run ?? 0,
-      target_cardio_minutes: initialData.target_cardio_minutes ?? 0,
-      target_strength_mobility_workouts: initialData.target_strength_mobility_workouts ?? 0
+      target_cardio_minutes: initialData.target_cardio_minutes ?? 0
     } : {
       target_cardio_minutes: initialData.target_cardio_minutes ?? 0
     }
@@ -67,7 +66,7 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
         ? {
             target_miles_run: values.target_miles_run,
             target_cardio_minutes: values.target_cardio_minutes,
-            target_strength_mobility_workouts: values.target_strength_mobility_workouts,
+            // We don't include target_strength_mobility_workouts as it's auto-calculated
           }
         : {
             // For strength programs, only include cardio minutes
@@ -91,48 +90,26 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         {programType === 'run' && (
-          <>
-            <FormField
-              control={form.control}
-              name="target_miles_run"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Target Miles</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      placeholder="Enter target miles" 
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="target_strength_mobility_workouts"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Target Strength/Mobility Workouts</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      placeholder="Enter number of workouts" 
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </>
+          <FormField
+            control={form.control}
+            name="target_miles_run"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Target Miles</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    placeholder="Enter target miles" 
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         )}
         
-        {/* Only the cardio field is shown for strength programs */}
         <FormField
           control={form.control}
           name="target_cardio_minutes"
@@ -152,11 +129,14 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
           )}
         />
 
-        {programType === 'strength' && (
-          <div className="text-sm text-muted-foreground">
+        {/* Information about auto-calculated metrics */}
+        <div className="text-sm text-muted-foreground">
+          {programType === 'run' ? (
+            <p>Strength/mobility workouts will be automatically calculated based on assigned workouts.</p>
+          ) : (
             <p>Strength workouts will be automatically calculated based on assigned workouts.</p>
-          </div>
-        )}
+          )}
+        </div>
         
         <div className="flex justify-end gap-2 pt-2">
           <Button

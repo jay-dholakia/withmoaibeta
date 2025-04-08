@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -13,7 +12,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { fetchCurrentProgram } from '@/services/program-service';
 import { ProgramProgressSection } from './ProgramProgressSection';
 import { fetchGroupMembers, GroupMember } from '@/services/group-member-service';
-import { WeeklyProgressTestPanel } from './WeeklyProgressTestPanel';
 import { LogActivityButtons } from './LogActivityButtons';
 
 const WorkoutsList = () => {
@@ -359,8 +357,6 @@ const WorkoutsList = () => {
           </Link>
         </Button>
       </div>
-
-      <WeeklyProgressTestPanel />
     </div>
   );
 };

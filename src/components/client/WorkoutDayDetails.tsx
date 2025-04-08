@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { format } from 'date-fns';
-import { WorkoutHistoryItem } from '@/types/workout';
+import { WorkoutHistoryItem, StandardWorkoutType } from '@/types/workout';
 import { WorkoutTypeIcon } from './WorkoutTypeIcon';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 import { Trash2 } from 'lucide-react';
@@ -49,6 +49,9 @@ export const WorkoutDayDetails = ({
           let workoutType = workout.workout?.workout_type || '';
           if (!workoutType && workout.title) {
             workoutType = detectWorkoutTypeFromText(workout.title);
+          } else if (!workoutType) {
+            // Default to strength if no type could be detected
+            workoutType = 'strength' as StandardWorkoutType;
           }
           
           return (
@@ -57,7 +60,7 @@ export const WorkoutDayDetails = ({
                 <div className="flex items-start gap-3">
                   <div className="mt-1">
                     <WorkoutTypeIcon 
-                      type={workoutType || 'strength'} 
+                      type={workoutType as StandardWorkoutType} 
                       className="h-5 w-5"
                     />
                   </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,14 +32,18 @@ const WorkoutsList = () => {
       const today = new Date();
       
       const upcoming = assignedWorkouts.filter(workout => {
-        if (!workout.workout?.workout_date) return false;
-        const workoutDate = new Date(workout.workout.workout_date);
+        if (!workout.workout?.day_of_week) return false;
+        const workoutDate = workout.workout?.week?.week_number ? 
+          new Date(today.getFullYear(), today.getMonth(), today.getDate() + (workout.workout.day_of_week - today.getDay())) :
+          today;
         return !workout.completed_at && (isToday(workoutDate) || isFuture(workoutDate));
       });
       
       const past = assignedWorkouts.filter(workout => {
-        if (!workout.workout?.workout_date) return false;
-        const workoutDate = new Date(workout.workout.workout_date);
+        if (!workout.workout?.day_of_week) return false;
+        const workoutDate = workout.workout?.week?.week_number ?
+          new Date(today.getFullYear(), today.getMonth(), today.getDate() - (today.getDay() - workout.workout.day_of_week)) :
+          today;
         return !workout.completed_at && isPast(workoutDate) && !isToday(workoutDate);
       });
       
@@ -101,7 +106,8 @@ const WorkoutsList = () => {
               <CardContent>
                 <div className="flex items-center gap-2 text-sm">
                   <Timer className="h-4 w-4 text-muted-foreground" />
-                  {workout.workout?.duration_minutes || '30'} minutes
+                  {/* Default to 30 minutes if no duration is specified */}
+                  30 minutes
                 </div>
               </CardContent>
               <div className="p-4 border-t">
@@ -138,7 +144,14 @@ const WorkoutsList = () => {
           <h3 className="text-lg font-semibold mb-2">Past Workouts</h3>
           <div className="space-y-3">
             {pastWorkouts.map(workout => {
-              const workoutDate = new Date(workout.workout?.workout_date || '');
+              const dayOfWeek = workout.workout?.day_of_week || 1;
+              const today = new Date();
+              const workoutDate = new Date(
+                today.getFullYear(),
+                today.getMonth(),
+                today.getDate() - (today.getDay() - dayOfWeek)
+              );
+              
               return (
                 <Card key={workout.id}>
                   <CardHeader>

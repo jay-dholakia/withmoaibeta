@@ -32,32 +32,29 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
   const runProgramSchema = z.object({
     target_miles_run: z.number().min(0, "Target miles must be a positive number"),
     target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
-    // Note: target_strength_mobility_workouts is calculated automatically
   });
   
   const strengthProgramSchema = z.object({
     target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
-    // Strength workouts are auto-calculated based on assigned workouts
   });
   
   // Choose schema based on program type
   const formSchema = programType === 'run' ? runProgramSchema : strengthProgramSchema;
 
-  // Define the form values type based on the schema
-  type FormValues = z.infer<typeof formSchema>;
-
-  // Initialize the form with appropriate default values based on program type
-  const form = useForm<FormValues>({
+  // Define the form with the correct typing
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: programType === 'run' ? {
-      target_miles_run: initialData.target_miles_run ?? 0,
-      target_cardio_minutes: initialData.target_cardio_minutes ?? 0
-    } : {
-      target_cardio_minutes: initialData.target_cardio_minutes ?? 0
-    }
+    defaultValues: programType === 'run' 
+      ? {
+          target_miles_run: initialData.target_miles_run ?? 0,
+          target_cardio_minutes: initialData.target_cardio_minutes ?? 0
+        } 
+      : {
+          target_cardio_minutes: initialData.target_cardio_minutes ?? 0
+        }
   });
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsSubmitting(true);
 
@@ -66,10 +63,8 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
         ? {
             target_miles_run: values.target_miles_run,
             target_cardio_minutes: values.target_cardio_minutes,
-            // We don't include target_strength_mobility_workouts as it's auto-calculated
           }
         : {
-            // For strength programs, only include cardio minutes
             target_cardio_minutes: values.target_cardio_minutes,
           };
 

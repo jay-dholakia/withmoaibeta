@@ -25,8 +25,7 @@ export interface WeeklyProgressResponse {
  */
 async function testWeeklyProgressFunction() {
   console.log("🧪 Testing get_weekly_progress Edge Function...");
-  console.log("🔍 Edge Function URL:", `${supabase.functions.url}/get_weekly_progress`);
-
+  
   try {
     console.log("📤 Sending request to get_weekly_progress...");
     // Call the Edge Function with a test payload

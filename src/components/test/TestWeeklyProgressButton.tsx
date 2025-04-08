@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { testWeeklyProgressFunction, WeeklyProgressResponse } from '@/tests/test-weekly-progress';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export const TestWeeklyProgressButton = () => {
   const [isLoading, setIsLoading] = useState(false);

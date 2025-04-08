@@ -55,12 +55,17 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
     try {
       setIsSubmitting(true);
 
-      const updatedData = {
-        target_miles_run: values.target_miles_run,
-        target_cardio_minutes: values.target_cardio_minutes,
-        target_strength_workouts: values.target_strength_workouts,
-        target_strength_mobility_workouts: values.target_strength_mobility_workouts,
-      };
+      // Only include relevant fields based on program type
+      const updatedData = programType === 'run' 
+        ? {
+            target_miles_run: values.target_miles_run,
+            target_cardio_minutes: values.target_cardio_minutes,
+            target_strength_mobility_workouts: values.target_strength_mobility_workouts,
+          }
+        : {
+            // For strength programs, only include cardio minutes
+            target_cardio_minutes: values.target_cardio_minutes,
+          };
 
       console.log('Updating week metrics:', weekId, updatedData);
       
@@ -120,48 +125,7 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
           </>
         )}
         
-        {programType === 'strength' && (
-          <>
-            <FormField
-              control={form.control}
-              name="target_strength_workouts"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Target Strength Workouts</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      placeholder="Enter number of workouts" 
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="target_strength_mobility_workouts"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Target Mobility Workouts</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      placeholder="Enter number of workouts" 
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </>
-        )}
-        
+        {/* Only the cardio field is shown for strength programs */}
         <FormField
           control={form.control}
           name="target_cardio_minutes"

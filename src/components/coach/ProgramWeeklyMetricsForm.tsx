@@ -89,18 +89,26 @@ const ProgramWeeklyMetricsForm: React.FC<ProgramWeeklyMetricsFormProps> = ({
 
     setSavingWeek(weekNumber);
     try {
+      // Only send the metrics relevant to the program type
+      const metricsToUpdate = programType === 'Moai Run'
+        ? week.metrics
+        : {
+            // For strength programs, only send targetCardioMinutes
+            targetCardioMinutes: week.metrics.targetCardioMinutes
+          };
+      
       await updateWeeklyMetrics({
         programId,
         weekNumber,
-        metrics: week.metrics
+        metrics: metricsToUpdate
       });
 
       toast.success(`Week ${weekNumber} metrics saved successfully`);
       
-      // Mark as complete if all relevant metrics are set
+      // Mark as complete based on program type
       const isComplete = programType === 'Moai Run'
         ? !!(week.metrics.targetMilesRun && week.metrics.targetStrengthMobilityWorkouts && week.metrics.targetCardioMinutes)
-        : !!(week.metrics.targetStrengthWorkouts && week.metrics.targetCardioMinutes);
+        : !!(week.metrics.targetCardioMinutes); // Only require cardio minutes for strength programs
       
       setWeeklyMetrics(prev => 
         prev.map(w => 
@@ -121,7 +129,9 @@ const ProgramWeeklyMetricsForm: React.FC<ProgramWeeklyMetricsFormProps> = ({
     <div className="space-y-6">
       <h3 className="text-lg font-medium">Weekly Metrics</h3>
       <p className="text-muted-foreground">
-        Set target metrics for each week of the program
+        {programType === 'Moai Run' 
+          ? 'Set target metrics for each week of the running program'
+          : 'Set target cardio minutes for each week of the strength program'}
       </p>
       
       <div className="space-y-4">
@@ -200,30 +210,19 @@ const ProgramWeeklyMetricsForm: React.FC<ProgramWeeklyMetricsFormProps> = ({
                 )}
 
                 {programType === 'Moai Strength' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Target Strength Workouts</label>
-                      <Input
-                        type="number"
-                        value={week.metrics.targetStrengthWorkouts || ''}
-                        onChange={(e) => handleInputChange(week.weekNumber, 'targetStrengthWorkouts', e.target.value)}
-                        min={0}
-                        placeholder="Enter target workouts"
-                        className="w-full"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Target Cardio Minutes</label>
-                      <Input
-                        type="number"
-                        value={week.metrics.targetCardioMinutes || ''}
-                        onChange={(e) => handleInputChange(week.weekNumber, 'targetCardioMinutes', e.target.value)}
-                        min={0}
-                        placeholder="Enter target minutes"
-                        className="w-full"
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Target Cardio Minutes</label>
+                    <Input
+                      type="number"
+                      value={week.metrics.targetCardioMinutes || ''}
+                      onChange={(e) => handleInputChange(week.weekNumber, 'targetCardioMinutes', e.target.value)}
+                      min={0}
+                      placeholder="Enter target minutes"
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Strength workouts will be automatically tracked based on completed workouts.
+                    </p>
                   </div>
                 )}
 

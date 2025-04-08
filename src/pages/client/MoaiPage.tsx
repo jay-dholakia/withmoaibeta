@@ -129,7 +129,7 @@ export default function MoaiPage() {
       
       <Card>
         <CardContent className="p-0">
-          <Tabs defaultValue="members" className="w-full">
+          <Tabs defaultValue="progress" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="progress">Progress</TabsTrigger>
               <TabsTrigger value="members">Members</TabsTrigger>

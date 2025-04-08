@@ -5,10 +5,21 @@ import { CoachLayout } from '@/layouts/CoachLayout';
 import { AssignProgramForm } from '@/components/coach/AssignProgramForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users } from 'lucide-react';
-import { fetchAssignedUsers, fetchWorkoutProgram, fetchAllClients } from '@/services/workout-service';
+import { ArrowLeft, Users, Trash2 } from 'lucide-react';
+import { fetchAssignedUsers, fetchWorkoutProgram, fetchAllClients, deleteProgramAssignment } from '@/services/workout-service';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Define a type for assigned clients
 interface AssignedClient {
@@ -33,6 +44,9 @@ const AssignProgramPage = () => {
   const [clientsInfo, setClientsInfo] = useState<ClientInfo[]>([]);
   const [programTitle, setProgramTitle] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<AssignedClient | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch assigned clients when the component mounts
   useEffect(() => {
@@ -80,6 +94,31 @@ const AssignProgramPage = () => {
     
     const name = nameParts.length > 0 ? nameParts.join(' ') : 'Client';
     return client.email ? `${name} (${client.email})` : name;
+  };
+
+  const openDeleteDialog = (client: AssignedClient) => {
+    setClientToDelete(client);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteAssignment = async () => {
+    if (!clientToDelete) return;
+    
+    try {
+      setIsDeleting(true);
+      await deleteProgramAssignment(clientToDelete.id);
+      toast.success('Program assignment removed successfully');
+      
+      // Update the client list after deletion
+      setAssignedClients(prev => prev.filter(client => client.id !== clientToDelete.id));
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      toast.error('Failed to remove program assignment');
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setClientToDelete(null);
+    }
   };
 
   return (
@@ -134,7 +173,17 @@ const AssignProgramPage = () => {
                           Start date: {formatDate(client.start_date)}
                         </div>
                       </div>
-                      <Badge variant="outline" className="mt-1 sm:mt-0">Assigned</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="mt-1 sm:mt-0">Assigned</Badge>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive hover:bg-destructive/10" 
+                          onClick={() => openDeleteDialog(client)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -147,6 +196,27 @@ const AssignProgramPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Program Assignment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the client's access to this program. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAssignment}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Removing...' : 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </CoachLayout>
   );
 };

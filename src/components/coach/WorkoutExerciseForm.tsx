@@ -26,6 +26,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const [notes, setNotes] = useState(initialData?.notes || '');
   const [duration, setDuration] = useState(initialData?.duration || '');
   const [distance, setDistance] = useState(initialData?.distance || '');
+  const [location, setLocation] = useState(initialData?.location || '');
   const [draftLoaded, setDraftLoaded] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const lastErrorToastTimeRef = useRef<number>(0);
@@ -41,7 +42,8 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     restSeconds,
     notes,
     duration,
-    distance
+    distance,
+    location
   };
 
   const { saveStatus, errorCount } = useAutosave({
@@ -125,6 +127,11 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
           setDistance(data.distance);
         }
         
+        if (data.location !== undefined) {
+          console.log(`Setting location from draft: ${data.location}`);
+          setLocation(data.location);
+        }
+        
         console.log("Draft data fully loaded for exercise form", exerciseFormDraftId);
         toast.success('Recovered unsaved workout progress');
       } else {
@@ -195,7 +202,8 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       rest_seconds: restSeconds,
       notes,
       duration,
-      distance
+      distance,
+      location
     });
   };
 
@@ -212,7 +220,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   }, [initialData]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 text-center px-2">
+    <form onSubmit={handleSubmit} className="space-y-3 px-2">
       {saveStatus !== 'idle' && (
         <div className="text-xs text-right text-muted-foreground">
           {saveStatus === 'saving' && (
@@ -251,29 +259,35 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
           setDistance={setDistance}
           duration={duration}
           setDuration={setDuration}
+          location={location}
+          setLocation={setLocation}
+          notes={notes}
+          setNotes={setNotes}
         />
       ) : (
-        <StrengthExerciseForm
-          sets={sets}
-          setSets={setSets}
-          reps={reps}
-          setReps={setReps}
-          restSeconds={restSeconds}
-          setRestSeconds={setRestSeconds}
-        />
+        <>
+          <StrengthExerciseForm
+            sets={sets}
+            setSets={setSets}
+            reps={reps}
+            setReps={setReps}
+            restSeconds={restSeconds}
+            setRestSeconds={setRestSeconds}
+          />
+          
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 text-center">Notes (Optional)</label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add special instructions or cues"
+              rows={2}
+              className="min-h-[60px] text-center"
+            />
+          </div>
+        </>
       )}
-      
-      <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-gray-700 text-center">Notes (Optional)</label>
-        <Textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Add special instructions or cues"
-          rows={2}
-          className="min-h-[60px] text-center"
-        />
-      </div>
       
       <Button 
         type="submit" 

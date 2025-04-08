@@ -1,4 +1,3 @@
-
 export interface Exercise {
   id: string;
   name: string;
@@ -99,6 +98,7 @@ export interface WorkoutExercise {
   // Add running-specific fields
   distance?: string;
   duration?: string;
+  location?: string;
 }
 
 export interface ProgramAssignment {

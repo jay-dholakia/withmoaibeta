@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,20 +27,20 @@ interface EditWeekMetricsFormProps {
   onSuccess: () => void;
 }
 
-// 🎯 Discriminated union for form types
-const runSchema = z.object({
-  type: z.literal('run'),
+// Define schemas based on program type
+const runFormSchema = z.object({
   target_miles_run: z.number().min(0, 'Target miles must be a positive number'),
   target_cardio_minutes: z.number().min(0, 'Target cardio minutes must be a positive number')
 });
 
-const strengthSchema = z.object({
-  type: z.literal('strength'),
+const strengthFormSchema = z.object({
   target_cardio_minutes: z.number().min(0, 'Target cardio minutes must be a positive number')
 });
 
-const formSchema = z.discriminatedUnion('type', [runSchema, strengthSchema]);
-type FormValues = z.infer<typeof formSchema>;
+type RunFormValues = z.infer<typeof runFormSchema>;
+type StrengthFormValues = z.infer<typeof strengthFormSchema>;
+
+type FormValues = RunFormValues | StrengthFormValues;
 
 const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
   weekId,
@@ -49,37 +50,35 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Correctly typed default values
-  const defaultValues: FormValues =
-    programType === 'run'
+  // Set up the form with the appropriate schema and default values based on program type
+  const form = useForm<FormValues>({
+    resolver: zodResolver(programType === 'run' ? runFormSchema : strengthFormSchema),
+    defaultValues: programType === 'run' 
       ? {
-          type: 'run',
           target_miles_run: initialData.target_miles_run ?? 0,
           target_cardio_minutes: initialData.target_cardio_minutes ?? 0
-        }
+        } as RunFormValues
       : {
-          type: 'strength',
           target_cardio_minutes: initialData.target_cardio_minutes ?? 0
-        };
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues
+        } as StrengthFormValues
   });
 
   const onSubmit = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
 
-      const updatePayload =
-        values.type === 'run'
-          ? {
-              target_miles_run: values.target_miles_run,
-              target_cardio_minutes: values.target_cardio_minutes
-            }
-          : {
-              target_cardio_minutes: values.target_cardio_minutes
-            };
+      // Type guard to determine what values to include in the update payload
+      const isRunForm = (values: FormValues): values is RunFormValues => 
+        'target_miles_run' in values;
+
+      const updatePayload = isRunForm(values)
+        ? {
+            target_miles_run: values.target_miles_run,
+            target_cardio_minutes: values.target_cardio_minutes
+          }
+        : {
+            target_cardio_minutes: values.target_cardio_minutes
+          };
 
       await updateWorkoutWeek(weekId, updatePayload);
       toast.success('Weekly metrics updated successfully');
@@ -95,7 +94,7 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        {form.watch('type') === 'run' && (
+        {programType === 'run' && (
           <FormField
             control={form.control}
             name="target_miles_run"
@@ -162,4 +161,3 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
 };
 
 export { EditWeekMetricsForm };
-

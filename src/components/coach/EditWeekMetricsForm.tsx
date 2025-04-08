@@ -29,24 +29,33 @@ const EditWeekMetricsForm: React.FC<EditWeekMetricsFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Define the schema for form validation with numeric values
-  const formSchema = z.object({
-    target_miles_run: z.number().default(0),
-    target_cardio_minutes: z.number().default(0),
-    target_strength_mobility_workouts: z.number().default(0),
+  // Define the schema for form validation based on program type
+  const runProgramSchema = z.object({
+    target_miles_run: z.number().min(0, "Target miles must be a positive number"),
+    target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number"),
+    target_strength_mobility_workouts: z.number().min(0, "Target strength/mobility workouts must be a positive number")
   });
+  
+  const strengthProgramSchema = z.object({
+    target_cardio_minutes: z.number().min(0, "Target cardio minutes must be a positive number")
+  });
+  
+  // Choose schema based on program type
+  const formSchema = programType === 'run' ? runProgramSchema : strengthProgramSchema;
 
   // Define the form values type based on the schema
   type FormValues = z.infer<typeof formSchema>;
 
-  // Initialize the form with number values
+  // Initialize the form with appropriate default values
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: programType === 'run' ? {
       target_miles_run: initialData.target_miles_run ?? 0,
       target_cardio_minutes: initialData.target_cardio_minutes ?? 0,
-      target_strength_mobility_workouts: initialData.target_strength_mobility_workouts ?? 0,
-    },
+      target_strength_mobility_workouts: initialData.target_strength_mobility_workouts ?? 0
+    } : {
+      target_cardio_minutes: initialData.target_cardio_minutes ?? 0
+    }
   });
 
   const onSubmit = async (values: FormValues) => {

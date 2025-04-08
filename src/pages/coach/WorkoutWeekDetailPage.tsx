@@ -18,6 +18,7 @@ import {
 } from '@/services/workout-service';
 import { Workout } from '@/types/workout';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
   TableBody,
@@ -38,6 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { EditWeekMetricsForm } from '@/components/coach/EditWeekMetricsForm';
 
 interface RouteParams {
   [key: string]: string;
@@ -56,6 +58,7 @@ const WorkoutWeekDetailPage = () => {
   const [isWorkoutModalOpen, setIsWorkoutModalOpen] = useState(false);
   const [editWorkoutId, setEditWorkoutId] = useState<string | null>(null);
   const [deleteWorkoutId, setDeleteWorkoutId] = useState<string | null>(null);
+  const [isEditingMetrics, setIsEditingMetrics] = useState(false);
 
   useEffect(() => {
     const loadWeekDetails = async () => {
@@ -63,11 +66,24 @@ const WorkoutWeekDetailPage = () => {
 
       setIsLoading(true);
       try {
-        const week = await fetchWorkoutWeek(weekId);
+        // Updated to include the program relationship
+        const { data: week } = await supabase
+          .from('workout_weeks')
+          .select(`
+            *,
+            program:program_id (
+              id,
+              title,
+              program_type
+            )
+          `)
+          .eq('id', weekId)
+          .single();
+            
         setWeekData(week);
         
         // Determine program type based on the week's associated program
-        if (week.program) {
+        if (week && week.program) {
           setProgramType(week.program.program_type === 'run' ? 'run' : 'strength');
         }
 
@@ -97,7 +113,6 @@ const WorkoutWeekDetailPage = () => {
             description: weekData.description,
             target_miles_run: weekData.target_miles_run,
             target_cardio_minutes: weekData.target_cardio_minutes,
-            target_strength_mobility_workouts: weekData.target_strength_mobility_workouts
           }
         : {
             title: weekData.title,
@@ -188,6 +203,35 @@ const WorkoutWeekDetailPage = () => {
     }
   };
 
+  const handleMetricsUpdate = () => {
+    // Refresh the week data
+    if (weekId) {
+      setIsEditingMetrics(false);
+      const loadWeekDetails = async () => {
+        try {
+          const { data: week } = await supabase
+            .from('workout_weeks')
+            .select(`
+              *,
+              program:program_id (
+                id,
+                title,
+                program_type
+              )
+            `)
+            .eq('id', weekId)
+            .single();
+              
+          setWeekData(week);
+        } catch (error) {
+          console.error('Error reloading week details:', error);
+        }
+      };
+      
+      loadWeekDetails();
+    }
+  };
+
   const navigateToWorkoutEdit = (workoutId: string) => {
     navigate(`/coach-dashboard/workouts/workout/${workoutId}/edit`);
   };
@@ -222,76 +266,81 @@ const WorkoutWeekDetailPage = () => {
             <CardTitle>Week Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleWeekUpdate} className="grid gap-4">
-              <div>
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  type="text"
-                  id="title"
-                  name="title"
-                  value={weekData.title || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  name="description"
-                  value={weekData.description || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-              
-              {/* Only show run-specific fields for run programs */}
-              {programType === 'run' && (
-                <>
-                  <div>
-                    <Label htmlFor="target_miles_run">Target Miles Run</Label>
-                    <Input
-                      type="number"
-                      id="target_miles_run"
-                      name="target_miles_run"
-                      value={weekData.target_miles_run || ''}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="target_strength_mobility_workouts">Target Strength Mobility Workouts</Label>
-                    <Input
-                      type="number"
-                      id="target_strength_mobility_workouts"
-                      name="target_strength_mobility_workouts"
-                      value={weekData.target_strength_mobility_workouts || ''}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </>
-              )}
-              
-              {/* Always show cardio minutes for both program types */}
-              <div>
-                <Label htmlFor="target_cardio_minutes">Target Cardio Minutes</Label>
-                <Input
-                  type="number"
-                  id="target_cardio_minutes"
-                  name="target_cardio_minutes"
-                  value={weekData.target_cardio_minutes || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-              
-              {/* Message about auto-calculated strength workouts for strength programs */}
-              {programType === 'strength' && (
-                <div className="text-sm text-muted-foreground mt-1">
-                  <p>Strength workouts will be automatically calculated based on assigned workouts.</p>
+            {isEditingMetrics ? (
+              <EditWeekMetricsForm
+                weekId={weekId!}
+                initialData={{
+                  target_miles_run: weekData.target_miles_run,
+                  target_cardio_minutes: weekData.target_cardio_minutes,
+                  target_strength_mobility_workouts: weekData.target_strength_mobility_workouts,
+                }}
+                programType={programType}
+                onSuccess={handleMetricsUpdate}
+              />
+            ) : (
+              <form onSubmit={handleWeekUpdate} className="grid gap-4">
+                <div>
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={weekData.title || ''}
+                    onChange={handleInputChange}
+                  />
                 </div>
-              )}
-              
-              <Button type="submit" disabled={isSaving}>
-                {isSaving ? 'Saving...' : 'Update Week'}
-              </Button>
-            </form>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    name="description"
+                    value={weekData.description || ''}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                
+                {/* Metrics display section */}
+                <div className="mt-4 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">Weekly Targets</h3>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setIsEditingMetrics(true)}>
+                      Edit Targets
+                    </Button>
+                  </div>
+                  
+                  {programType === 'run' && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-sm font-medium">Target Miles Run:</span>
+                          <div className="mt-1">{weekData.target_miles_run || 0}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium">Target Strength/Mobility Workouts:</span>
+                          <div className="mt-1">{weekData.target_strength_mobility_workouts || 0}</div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Always show cardio minutes for both program types */}
+                  <div>
+                    <span className="text-sm font-medium">Target Cardio Minutes:</span>
+                    <div className="mt-1">{weekData.target_cardio_minutes || 0}</div>
+                  </div>
+                  
+                  {programType === 'strength' && (
+                    <div className="text-sm text-muted-foreground mt-1">
+                      <p>Strength workouts will be automatically calculated based on assigned workouts.</p>
+                    </div>
+                  )}
+                </div>
+                
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving ? 'Saving...' : 'Update Week'}
+                </Button>
+              </form>
+            )}
           </CardContent>
         </Card>
 

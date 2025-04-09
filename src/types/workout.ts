@@ -99,6 +99,7 @@ export interface WorkoutExercise {
   distance?: string;
   duration?: string;
   location?: string;
+  completed_date?: string;
 }
 
 export interface ProgramAssignment {
@@ -125,6 +126,7 @@ export interface WorkoutSetCompletion {
   notes?: string;
   created_at: string;
   user_id?: string;
+  completed_date?: string;
 }
 
 export interface WorkoutHistoryItem {
@@ -145,6 +147,7 @@ export interface WorkoutHistoryItem {
   duration?: string;
   distance?: string;
   location?: string;
+  completed_date?: string;
 }
 
 export const DAYS_OF_WEEK = [

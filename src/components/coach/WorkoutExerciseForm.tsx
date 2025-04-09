@@ -28,6 +28,10 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const [distance, setDistance] = useState(initialData?.distance || '');
   const [location, setLocation] = useState(initialData?.location || '');
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [date, setDate] = useState<Date | undefined>(
+    initialData?.completed_date ? new Date(initialData.completed_date) : new Date()
+  );
+  
   const { user, loading: authLoading } = useAuth();
   const lastErrorToastTimeRef = useRef<number>(0);
   
@@ -43,7 +47,8 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     notes,
     duration,
     distance,
-    location
+    location,
+    date: date ? date.toISOString() : undefined
   };
 
   const { saveStatus, errorCount } = useAutosave({
@@ -97,40 +102,14 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
         const data = draft.draft_data;
         console.log(`Loaded draft data:`, data);
         
-        if (data.sets !== undefined) {
-          console.log(`Setting sets from draft: ${data.sets}`);
-          setSets(data.sets);
-        }
-        
-        if (data.reps !== undefined) {
-          console.log(`Setting reps from draft: ${data.reps}`);
-          setReps(data.reps);
-        }
-        
-        if (data.restSeconds !== undefined) {
-          console.log(`Setting restSeconds from draft: ${data.restSeconds}`);
-          setRestSeconds(data.restSeconds);
-        }
-        
-        if (data.notes !== undefined) {
-          console.log(`Setting notes from draft: ${data.notes}`);
-          setNotes(data.notes);
-        }
-        
-        if (data.duration !== undefined) {
-          console.log(`Setting duration from draft: ${data.duration}`);
-          setDuration(data.duration);
-        }
-        
-        if (data.distance !== undefined) {
-          console.log(`Setting distance from draft: ${data.distance}`);
-          setDistance(data.distance);
-        }
-        
-        if (data.location !== undefined) {
-          console.log(`Setting location from draft: ${data.location}`);
-          setLocation(data.location);
-        }
+        if (data.sets !== undefined) setSets(data.sets);
+        if (data.reps !== undefined) setReps(data.reps);
+        if (data.restSeconds !== undefined) setRestSeconds(data.restSeconds);
+        if (data.notes !== undefined) setNotes(data.notes);
+        if (data.duration !== undefined) setDuration(data.duration);
+        if (data.distance !== undefined) setDistance(data.distance);
+        if (data.location !== undefined) setLocation(data.location);
+        if (data.date !== undefined && data.date) setDate(new Date(data.date));
         
         console.log("Draft data fully loaded for exercise form", exerciseFormDraftId);
         toast.success('Recovered unsaved workout progress');
@@ -203,7 +182,8 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       notes,
       duration,
       distance,
-      location
+      location,
+      completed_date: date ? date.toISOString() : undefined
     });
   };
 
@@ -263,6 +243,8 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
           setLocation={setLocation}
           notes={notes}
           setNotes={setNotes}
+          date={date}
+          setDate={setDate}
         />
       ) : (
         <>

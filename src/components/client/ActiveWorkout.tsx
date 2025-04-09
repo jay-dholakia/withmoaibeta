@@ -1040,14 +1040,14 @@ const ActiveWorkout = () => {
                           <TooltipTrigger asChild>
                             <Button 
                               variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6 p-0 text-red-500 mr-2"
+                              size="sm"
+                              className="bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 mr-2 p-1.5"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 openVideoDialog(exercise.exercise.youtube_link, exercise.exercise.name);
                               }}
                             >
-                              <Youtube className="h-4 w-4" />
+                              <Youtube className="h-5 w-5" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>

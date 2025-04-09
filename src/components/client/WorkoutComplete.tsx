@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { deleteWorkoutDraft, getWorkoutDraft, saveWorkoutDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
+import Stopwatch from './Stopwatch';
 
 const WorkoutComplete = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -412,6 +413,8 @@ const WorkoutComplete = () => {
     setIsEditingMessage(!isEditingMessage);
   };
 
+  const isStrengthWorkout = workoutData?.workout?.workout_type === 'strength';
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -531,6 +534,10 @@ const WorkoutComplete = () => {
       </div>
 
       <div className="flex flex-col gap-3 pt-4">
+        {isStrengthWorkout && (
+          <Stopwatch className="mb-2" />
+        )}
+        
         <Button
           onClick={() => completeMutation.mutate()}
           disabled={completeMutation.isPending}

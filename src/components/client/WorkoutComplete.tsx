@@ -211,14 +211,11 @@ const WorkoutComplete = () => {
     let loadAttemptTimeout: NodeJS.Timeout | null = null;
     
     const loadDraftData = async () => {
-      if (!workoutCompletionId || !user?.id || !mounted) return;
+      if (!workoutCompletionId || !user?.id || !mounted || draftLoaded) return;
       
       try {
         console.log(`Loading draft data for workout completion ${workoutCompletionId}`);
-        
         console.log(`Auth state changes detected: ${authStateChanged}`);
-        
-        const { getWorkoutDraft } = await import('@/services/workout-draft-service');
         
         const draft = await getWorkoutDraft(workoutCompletionId, 7, 500);
         

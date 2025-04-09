@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -163,12 +164,12 @@ export const getWorkoutDraft = async (
       
       console.log(`User found (${user.id}), fetching workout draft for workout ${workoutId}`);
       
-      // Enhanced query with better logging
+      // Enhanced query with better logging and more explicit user_id condition
       const { data, error } = await supabase
         .from('workout_drafts')
         .select('draft_data, workout_type, updated_at')
         .eq('user_id', user.id)
-        .eq('workout_id', workoutId || '')
+        .eq('workout_id', workoutId)
         .order('updated_at', { ascending: false })
         .maybeSingle();
         

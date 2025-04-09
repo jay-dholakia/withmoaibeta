@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save, HelpCircle, Info, Youtube } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save, HelpCircle, Info, Youtube, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
@@ -917,6 +917,14 @@ const ActiveWorkout = () => {
     return cleaned;
   };
 
+  const formatRestTime = (seconds: number | null) => {
+    if (!seconds) return "No rest";
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -994,6 +1002,7 @@ const ActiveWorkout = () => {
           }
 
           const hasYoutubeLink = exercise.exercise?.youtube_link && exercise.exercise.youtube_link.trim() !== '';
+          const restTime = formatRestTime(exercise.rest_seconds);
           
           return (
             <Card key={exercise.id} className="overflow-hidden border-gray-200 w-full">
@@ -1007,9 +1016,17 @@ const ActiveWorkout = () => {
                       {exercise.exercise?.name || 'Exercise'}
                     </CardTitle>
                     <CardDescription className="text-xs mt-1">
-                      {(exerciseType === 'strength' || exerciseType === 'bodyweight') && 
-                        `${exercise.sets} sets × ${exercise.reps} reps`
-                      }
+                      {(exerciseType === 'strength' || exerciseType === 'bodyweight') && (
+                        <>
+                          {`${exercise.sets} sets × ${exercise.reps} reps`}
+                          {exercise.rest_seconds > 0 && (
+                            <span className="ml-2 flex items-center justify-center gap-1 text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {restTime}
+                            </span>
+                          )}
+                        </>
+                      )}
                       {exerciseType === 'cardio' && 'Cardio Exercise'}
                       {exerciseType === 'flexibility' && 'Flexibility Exercise'}
                       {isRunExercise && 'Running Exercise'}
@@ -1050,6 +1067,11 @@ const ActiveWorkout = () => {
                 <CardContent className="pt-4 px-4 pb-2">
                   {(exerciseType === 'strength' || exerciseType === 'bodyweight') && (
                     <>
+                      <div className="flex items-center mb-3 gap-1 justify-center text-sm text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>Rest between sets: {restTime}</span>
+                      </div>
+                      
                       <div className="grid grid-cols-4 gap-2 mb-2">
                         <div className="text-center text-xs font-medium text-muted-foreground">Set</div>
                         <div className="text-center text-xs font-medium text-muted-foreground">Reps</div>

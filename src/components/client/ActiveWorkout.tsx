@@ -982,10 +982,6 @@ const ActiveWorkout = () => {
         </div>
       </div>
 
-      {isStrengthWorkout && (
-        <Stopwatch className="w-full" />
-      )}
-
       <div className="space-y-4 w-full">
         {workoutExercises.map((exercise: any) => {
           const exerciseType = exercise.exercise?.exercise_type || 'strength';
@@ -1223,7 +1219,10 @@ const ActiveWorkout = () => {
         })}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t shadow-md flex justify-center z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t shadow-md flex flex-col justify-center z-10 gap-3">
+        {isStrengthWorkout && (
+          <Stopwatch className="w-full mb-2" />
+        )}
         <Button 
           onClick={finishWorkout}
           className="bg-client hover:bg-client/90 min-w-[200px]"

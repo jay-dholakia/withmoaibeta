@@ -534,10 +534,6 @@ const WorkoutComplete = () => {
       </div>
 
       <div className="flex flex-col gap-3 pt-4">
-        {isStrengthWorkout && (
-          <Stopwatch className="mb-2" />
-        )}
-        
         <Button
           onClick={() => completeMutation.mutate()}
           disabled={completeMutation.isPending}

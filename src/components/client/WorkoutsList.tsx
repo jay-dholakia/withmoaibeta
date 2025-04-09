@@ -241,17 +241,6 @@ const WorkoutsList = () => {
       <ProgramProgressSection />
       
       <div className="space-y-4">
-        {currentProgram && currentProgram.program && (
-          <div className="text-center space-y-1 flex-1">
-            <h2 className="text-xl font-bold">{currentProgram.program.title}</h2>
-            {currentProgram.program.description && (
-              <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
-                {currentProgram.program.description}
-              </p>
-            )}
-          </div>
-        )}
-        
         {availableWeeks.length > 0 && (
           <div className="flex justify-center mb-2">
             <div className="relative" ref={selectRef}>

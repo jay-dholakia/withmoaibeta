@@ -27,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { VideoPlayer } from '@/components/client/VideoPlayer';
+import Stopwatch from './Stopwatch';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -942,6 +943,8 @@ const ActiveWorkout = () => {
   const workoutExercises = Array.isArray(workoutData.workout?.workout_exercises) 
     ? workoutData.workout.workout_exercises 
     : [];
+    
+  const isStrengthWorkout = workoutData.workout?.workout_type === 'strength';
 
   return (
     <div className="space-y-6 pb-28 flex flex-col items-center mx-auto px-4 w-full max-w-md">
@@ -978,6 +981,10 @@ const ActiveWorkout = () => {
           )}
         </div>
       </div>
+
+      {isStrengthWorkout && (
+        <Stopwatch className="w-full" />
+      )}
 
       <div className="space-y-4 w-full">
         {workoutExercises.map((exercise: any) => {

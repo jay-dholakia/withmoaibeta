@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Exercise } from '@/types/workout';
 import { fetchExercisesByCategory } from '@/services/workout-service';
@@ -26,6 +25,7 @@ interface ExtendedExercise extends Exercise {
   alternative_exercise_1_name?: string | null;
   alternative_exercise_2_name?: string | null;
   alternative_exercise_3_name?: string | null;
+  created_at?: string; // Make created_at optional
 }
 
 export const ExerciseSelector = ({ 

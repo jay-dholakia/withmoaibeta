@@ -44,15 +44,7 @@ import { Exercise, STANDARD_WORKOUT_TYPES } from '@/types/workout';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-interface ExtendedExercise extends Exercise {
-  alternative_exercise_1_id?: string | null;
-  alternative_exercise_2_id?: string | null;
-  alternative_exercise_3_id?: string | null;
-  alternative_exercise_1_name?: string | null;
-  alternative_exercise_2_name?: string | null;
-  alternative_exercise_3_name?: string | null;
-}
+import { ExtendedExercise } from '@/services/workout-service';
 
 const ExerciseManagementPage = () => {
   const [exercises, setExercises] = useState<ExtendedExercise[]>([]);
@@ -87,7 +79,7 @@ const ExerciseManagementPage = () => {
         throw error;
       }
       
-      setExercises(data || []);
+      setExercises(data as ExtendedExercise[]);
     } catch (error) {
       console.error('Error fetching exercises:', error);
       toast.error('Failed to load exercises');

@@ -157,7 +157,9 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     try {
       setIsSaving(true);
       
-      if (workout.custom_workout_id) {
+      const isCoachAssigned = !!workout.workout_id;
+      
+      if (workout.custom_workout_id && !isCoachAssigned) {
         await updateCustomWorkout(workout.custom_workout_id, {
           title: editTitle,
           description: editDescription || null,
@@ -171,14 +173,20 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
         formattedCompletedAt = editCompletedDate.toISOString();
       }
       
-      await updateWorkoutCompletion(workout.id, {
-        title: editTitle,
-        description: editDescription || null,
-        duration: editDuration ? editDuration.toString() : null,
-        workout_type: editWorkoutType,
-        notes: editNotes,
-        completed_at: formattedCompletedAt
-      });
+      if (isCoachAssigned) {
+        await updateWorkoutCompletion(workout.id, {
+          completed_at: formattedCompletedAt
+        });
+      } else {
+        await updateWorkoutCompletion(workout.id, {
+          title: editTitle,
+          description: editDescription || null,
+          duration: editDuration ? editDuration.toString() : null,
+          workout_type: editWorkoutType,
+          notes: editNotes,
+          completed_at: formattedCompletedAt
+        });
+      }
       
       document.getElementById('refresh-workout-history')?.click();
       
@@ -277,108 +285,145 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           <CardContent className="p-4">
             {editingWorkoutId === workout.id ? (
               <div className="space-y-4">
-                <div className="grid gap-3">
-                  <div>
-                    <Label htmlFor="title">Workout Title</Label>
-                    <Input
-                      id="title"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      placeholder="Enter workout title"
-                      className="mt-1"
-                    />
+                {!!workout.workout_id ? (
+                  <div className="grid gap-3">
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">{workout.title || workout.workout?.title || 'Workout'}</h3>
+                      <Label htmlFor="completion-date">Completion Date</Label>
+                      <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="completion-date"
+                            variant="outline"
+                            className="mt-1 w-full justify-start text-left font-normal"
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {editCompletedDate ? (
+                              formatDateShort(editCompletedDate)
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={editCompletedDate}
+                            onSelect={(date) => {
+                              setEditCompletedDate(date);
+                              setDatePopoverOpen(false);
+                            }}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="workout-type">Workout Type</Label>
-                    <Select
-                      value={editWorkoutType}
-                      onValueChange={setEditWorkoutType}
-                    >
-                      <SelectTrigger id="workout-type" className="mt-1">
-                        <SelectValue placeholder="Select workout type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {WORKOUT_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            <div className="flex items-center gap-2">
-                              <span>{type.icon}</span>
-                              <span>{type.label}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                ) : (
+                  <div className="grid gap-3">
+                    <div>
+                      <Label htmlFor="title">Workout Title</Label>
+                      <Input
+                        id="title"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        placeholder="Enter workout title"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="workout-type">Workout Type</Label>
+                      <Select
+                        value={editWorkoutType}
+                        onValueChange={setEditWorkoutType}
+                      >
+                        <SelectTrigger id="workout-type" className="mt-1">
+                          <SelectValue placeholder="Select workout type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {WORKOUT_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              <div className="flex items-center gap-2">
+                                <span>{type.icon}</span>
+                                <span>{type.label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="completion-date">Completion Date</Label>
+                      <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="completion-date"
+                            variant="outline"
+                            className="mt-1 w-full justify-start text-left font-normal"
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {editCompletedDate ? (
+                              formatDateShort(editCompletedDate)
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={editCompletedDate}
+                            onSelect={(date) => {
+                              setEditCompletedDate(date);
+                              setDatePopoverOpen(false);
+                            }}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="duration">Duration (minutes)</Label>
+                      <Input
+                        id="duration"
+                        type="number"
+                        value={editDuration || ''}
+                        onChange={(e) => setEditDuration(e.target.value ? Number(e.target.value) : null)}
+                        placeholder="Enter duration in minutes"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        placeholder="Enter workout description"
+                        className="mt-1"
+                        rows={3}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="notes">Notes</Label>
+                      <Textarea
+                        id="notes"
+                        value={editNotes}
+                        onChange={(e) => setEditNotes(e.target.value)}
+                        placeholder="Enter workout notes"
+                        className="mt-1"
+                        rows={2}
+                      />
+                    </div>
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="completion-date">Completion Date</Label>
-                    <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="completion-date"
-                          variant="outline"
-                          className="mt-1 w-full justify-start text-left font-normal"
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {editCompletedDate ? (
-                            formatDateShort(editCompletedDate)
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={editCompletedDate}
-                          onSelect={(date) => {
-                            setEditCompletedDate(date);
-                            setDatePopoverOpen(false);
-                          }}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="duration">Duration (minutes)</Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      value={editDuration || ''}
-                      onChange={(e) => setEditDuration(e.target.value ? Number(e.target.value) : null)}
-                      placeholder="Enter duration in minutes"
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      placeholder="Enter workout description"
-                      className="mt-1"
-                      rows={3}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="notes">Notes</Label>
-                    <Textarea
-                      id="notes"
-                      value={editNotes}
-                      onChange={(e) => setEditNotes(e.target.value)}
-                      placeholder="Enter workout notes"
-                      className="mt-1"
-                      rows={2}
-                    />
-                  </div>
-                </div>
+                )}
                 
                 <div className="flex justify-end space-x-2">
                   <Button 
@@ -443,7 +488,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                         className="text-xs"
                       >
                         <Edit className="h-3.5 w-3.5 mr-1" />
-                        Edit
+                        {!!workout.workout_id ? 'Edit Date' : 'Edit'}
                       </Button>
                     )}
                     

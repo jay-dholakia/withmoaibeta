@@ -65,8 +65,18 @@ export const ProgramProgressSection: React.FC = () => {
     };
     
     document.addEventListener('refresh-weekly-progress', handleRefresh);
+    
+    // Also listen for workout completion events
+    const handleWorkoutCompleted = () => {
+      console.log("Workout completed, refreshing progress data");
+      refetch();
+    };
+    
+    document.addEventListener('workout-completed', handleWorkoutCompleted);
+    
     return () => {
       document.removeEventListener('refresh-weekly-progress', handleRefresh);
+      document.removeEventListener('workout-completed', handleWorkoutCompleted);
     };
   }, [refetch]);
 

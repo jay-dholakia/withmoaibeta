@@ -380,6 +380,9 @@ const WorkoutComplete = () => {
         deleteWorkoutDraft(workoutCompletionId);
         queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
         queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
+        
+        document.dispatchEvent(new Event('workout-completed'));
+        
         setShowShareDialog(true);
       } else {
         toast.error('Failed to complete workout');

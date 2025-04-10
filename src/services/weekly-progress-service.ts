@@ -63,6 +63,11 @@ export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProg
       data.metrics.miles_run = { target: 0, actual: 0 };
     }
 
+    // Count completed strength workouts if needed
+    if (data && clientId) {
+      await updateStrengthWorkoutsCount(data, clientId);
+    }
+
     return data as WeeklyProgressResponse;
   } catch (error) {
     console.error("Failed to fetch weekly progress:", error);
@@ -83,3 +88,68 @@ export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProg
     };
   }
 };
+
+/**
+ * Updates the weekly strength workouts count based on completed workouts
+ */
+async function updateStrengthWorkoutsCount(
+  data: WeeklyProgressResponse, 
+  clientId: string
+): Promise<void> {
+  try {
+    // Get the current week's start and end dates
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Monday of this week
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+    // Query for completed strength workouts in this week
+    const { data: completions, error } = await supabase
+      .from('workout_completions')
+      .select(`
+        id,
+        completed_at,
+        workout_id,
+        workout:workout_id (
+          workout_type
+        ),
+        workout_type
+      `)
+      .eq('user_id', clientId)
+      .gte('completed_at', startOfWeek.toISOString())
+      .lt('completed_at', endOfWeek.toISOString())
+      .not('completed_at', 'is', null);
+
+    if (error) {
+      console.error("Error counting completed strength workouts:", error);
+      return;
+    }
+
+    // Count strength workouts
+    let strengthCount = 0;
+    
+    if (completions && completions.length > 0) {
+      strengthCount = completions.filter(completion => {
+        // Check workout type from either the completion itself or the associated workout
+        const workoutType = (completion.workout_type || 
+                             (completion.workout && completion.workout.workout_type) || 
+                             '').toLowerCase();
+        
+        return workoutType === 'strength';
+      }).length;
+      
+      console.log(`Found ${strengthCount} completed strength workouts this week`);
+      
+      // Update the data object with the actual count
+      if (data && data.metrics && data.metrics.strength_workouts) {
+        data.metrics.strength_workouts.actual = strengthCount;
+      }
+    }
+  } catch (err) {
+    console.error("Error updating strength workout count:", err);
+  }
+}
+

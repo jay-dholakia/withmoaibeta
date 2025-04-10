@@ -949,19 +949,30 @@ const ActiveWorkout = () => {
       
       const updatedWorkoutData = { ...workoutData };
       if (updatedWorkoutData?.workout?.workout_exercises) {
-        const exerciseIndex = updatedWorkoutData.workout.workout_exercises.findIndex(
+        const workoutExercises = Array.isArray(updatedWorkoutData.workout.workout_exercises) 
+          ? updatedWorkoutData.workout.workout_exercises 
+          : [];
+          
+        const exerciseIndex = workoutExercises.findIndex(
           (ex: any) => ex.id === currentExercise.id
         );
         
         if (exerciseIndex !== -1) {
-          updatedWorkoutData.workout.workout_exercises[exerciseIndex].exercise = {
-            ...updatedWorkoutData.workout.workout_exercises[exerciseIndex].exercise,
-            id: alternativeId,
-            name: alternativeName,
-            youtube_link: exerciseData.youtube_link,
-            description: exerciseData.description,
-            exercise_type: exerciseData.exercise_type
-          };
+          const exerciseToUpdate = workoutExercises[exerciseIndex];
+          if (exerciseToUpdate && typeof exerciseToUpdate === 'object') {
+            if (!exerciseToUpdate.exercise) {
+              exerciseToUpdate.exercise = {};
+            }
+            
+            exerciseToUpdate.exercise = {
+              ...exerciseToUpdate.exercise,
+              id: alternativeId,
+              name: alternativeName,
+              youtube_link: exerciseData.youtube_link,
+              description: exerciseData.description,
+              exercise_type: exerciseData.exercise_type
+            };
+          }
         }
       }
       

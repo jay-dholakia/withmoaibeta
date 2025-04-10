@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -275,7 +274,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     );
   }
 
-  // Main return statement for the component
   return (
     <div>
       {workouts.map((workout) => (
@@ -284,7 +282,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
             {editingWorkoutId === workout.id ? (
               <div className="space-y-4">
                 {!workout.workout_id ? (
-                  // For non-coach assigned workouts, show all editing fields
                   <>
                     <div>
                       <Label htmlFor="title">Title</Label>
@@ -320,13 +317,11 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                     </div>
                   </>
                 ) : (
-                  // For coach assigned workouts, show workout title as non-editable heading
                   <h3 className="text-lg font-medium mb-4">
                     {workout.title || workout.workout?.title || 'Unnamed Workout'}
                   </h3>
                 )}
                 
-                {/* Always show date selector for all workout types */}
                 <div>
                   <Label htmlFor="completion-date">Completion Date</Label>
                   <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
@@ -359,7 +354,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                   </Popover>
                 </div>
                 
-                {/* Only show these fields for non-coach assigned workouts */}
                 {!workout.workout_id && (
                   <>
                     <div>
@@ -549,10 +543,8 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                   </div>
                 )}
 
-                {/* Updated action buttons layout to match the design in the image */}
                 <div className="mt-4 border-t pt-3 -mx-4 px-4 -mb-4 bg-gray-50/50 rounded-b-lg">
                   <div className="flex justify-between items-center">
-                    {/* Expand button */}
                     {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
                       <Button 
                         variant="ghost" 
@@ -563,7 +555,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                         {expandedWorkoutId === workout.id ? (
                           <>
                             <ChevronUp className="h-4 w-4 mr-1" />
-                            Expand
+                            Collapse
                           </>
                         ) : (
                           <>
@@ -574,10 +566,9 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                       </Button>
                     )}
                     {!workout.workout_set_completions || workout.workout_set_completions.length === 0 ? (
-                      <div></div> // Empty div as placeholder when there's no expand button
+                      <div></div>
                     ) : null}
 
-                    {/* Edit button with dynamic text based on coach assignment */}
                     {isWorkoutEditable(workout) && (
                       <Button 
                         variant="ghost" 
@@ -590,7 +581,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                       </Button>
                     )}
 
-                    {/* Delete button */}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button 

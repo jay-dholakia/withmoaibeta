@@ -104,6 +104,26 @@ const ActiveWorkout = () => {
   const [currentExercise, setCurrentExercise] = useState<any>(null);
   const [alternativeExercises, setAlternativeExercises] = useState<any[]>([]);
 
+  const formatDurationInput = (value: string): string => {
+    let cleaned = value.replace(/[^\d:]/g, '');
+    
+    const parts = cleaned.split(':');
+    
+    if (parts.length > 3) {
+      cleaned = parts.slice(0, 3).join(':');
+    }
+    
+    return cleaned;
+  };
+
+  const formatRestTime = (seconds: number | null) => {
+    if (!seconds) return "";
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  };
+
   useEffect(() => {
     if (user) {
       console.log("Auth state detected in ActiveWorkout, user:", user.id);
@@ -996,14 +1016,6 @@ const ActiveWorkout = () => {
     } catch (error) {
       console.error("Error saving workout data:", error);
     }
-  };
-
-  const formatRestTime = (seconds: number | null) => {
-    if (!seconds) return "";
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
   };
 
   if (isLoading) {

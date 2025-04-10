@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save, HelpCircle, Info, Youtube, Clock } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save, HelpCircle, Info, Youtube, Clock, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
@@ -25,6 +25,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { VideoPlayer } from '@/components/client/VideoPlayer';
 import Stopwatch from './Stopwatch';
@@ -97,6 +99,10 @@ const ActiveWorkout = () => {
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
   const [currentExerciseName, setCurrentExerciseName] = useState<string>('');
+
+  const [alternativeDialogOpen, setAlternativeDialogOpen] = useState(false);
+  const [currentExercise, setCurrentExercise] = useState<any>(null);
+  const [alternativeExercises, setAlternativeExercises] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -891,6 +897,83 @@ const ActiveWorkout = () => {
     }
   };
 
+  const fetchAlternativeExercises = async (exerciseId: string) => {
+    try {
+      const { data: alternatives, error } = await supabase
+        .rpc('get_exercise_alternatives', { exercise_id_param: exerciseId });
+
+      if (error) {
+        console.error("Error fetching alternative exercises:", error);
+        return [];
+      }
+
+      console.log("Alternative exercises:", alternatives);
+      return alternatives || [];
+    } catch (error) {
+      console.error("Error in fetchAlternativeExercises:", error);
+      return [];
+    }
+  };
+
+  const openAlternativeDialog = async (exercise: any) => {
+    setCurrentExercise(exercise);
+    
+    const alternatives = await fetchAlternativeExercises(exercise.exercise_id);
+    
+    if (!alternatives || alternatives.length === 0) {
+      toast.info('No alternative exercises available');
+      return;
+    }
+    
+    setAlternativeExercises(alternatives);
+    setAlternativeDialogOpen(true);
+  };
+
+  const handleAlternativeSelection = async (alternativeId: string, alternativeName: string) => {
+    if (!currentExercise) return;
+
+    try {
+      const updatedExerciseState = { ...exerciseStates[currentExercise.id] };
+      
+      const { data: exerciseData, error: exerciseError } = await supabase
+        .from('exercises')
+        .select('*')
+        .eq('id', alternativeId)
+        .single();
+      
+      if (exerciseError) {
+        console.error("Error fetching alternative exercise details:", exerciseError);
+        toast.error('Could not load alternative exercise');
+        return;
+      }
+      
+      const updatedWorkoutData = { ...workoutData };
+      if (updatedWorkoutData?.workout?.workout_exercises) {
+        const exerciseIndex = updatedWorkoutData.workout.workout_exercises.findIndex(
+          (ex: any) => ex.id === currentExercise.id
+        );
+        
+        if (exerciseIndex !== -1) {
+          updatedWorkoutData.workout.workout_exercises[exerciseIndex].exercise = {
+            ...updatedWorkoutData.workout.workout_exercises[exerciseIndex].exercise,
+            id: alternativeId,
+            name: alternativeName,
+            youtube_link: exerciseData.youtube_link,
+            description: exerciseData.description,
+            exercise_type: exerciseData.exercise_type
+          };
+        }
+      }
+      
+      setAlternativeDialogOpen(false);
+      toast.success(`Switched to ${alternativeName}`);
+      
+    } catch (error) {
+      console.error("Error selecting alternative exercise:", error);
+      toast.error('Failed to switch exercise');
+    }
+  };
+
   const isWorkoutComplete = () => {
     return true;
   };
@@ -1032,6 +1115,27 @@ const ActiveWorkout = () => {
                   </div>
                   
                   <div className="flex items-center">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 hover:text-amber-700 mr-2 p-1.5"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openAlternativeDialog(exercise);
+                            }}
+                          >
+                            <ArrowRightLeft className="h-5 w-5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>See alternative exercises</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
                     {hasYoutubeLink && (
                       <TooltipProvider>
                         <Tooltip>
@@ -1270,6 +1374,47 @@ const ActiveWorkout = () => {
           <div className="aspect-video w-full overflow-hidden rounded-md">
             {currentVideoUrl && <VideoPlayer youtubeUrl={currentVideoUrl} />}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={alternativeDialogOpen} onOpenChange={setAlternativeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Alternative Exercises</DialogTitle>
+            <DialogDescription>
+              Choose an alternative exercise to replace {currentExercise?.exercise?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 my-2 max-h-[60vh] overflow-y-auto">
+            {alternativeExercises.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No alternative exercises available</p>
+            ) : (
+              alternativeExercises.map((alt) => (
+                <Card 
+                  key={alt.alternative_id} 
+                  className="cursor-pointer hover:bg-accent/20 transition-colors"
+                  onClick={() => handleAlternativeSelection(alt.alternative_id, alt.alternative_name)}
+                >
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-base">{alt.alternative_name}</CardTitle>
+                    <CardDescription className="text-xs">
+                      {alt.alternative_type.replace('_', ' ')}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              ))
+            )}
+          </div>
+          
+          <DialogFooter className="sm:justify-between">
+            <Button 
+              variant="secondary" 
+              onClick={() => setAlternativeDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

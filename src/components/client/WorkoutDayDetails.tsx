@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutHistoryItem } from '@/types/workout';
-import { format, isValid } from 'date-fns';
-import { FileX, Edit, Save, X, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { format, isValid, parseISO } from 'date-fns';
+import { FileX, Edit, Save, X, ChevronDown, ChevronUp, Trash2, Calendar } from 'lucide-react';
 import { WorkoutTypeIcon, WORKOUT_TYPES } from './WorkoutTypeIcon';
 import { Button } from '@/components/ui/button';
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -47,12 +53,14 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   const [exerciseGroups, setExerciseGroups] = useState<Record<string, any>>({});
   const [editingExercises, setEditingExercises] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
   
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editDuration, setEditDuration] = useState<number | null>(null);
   const [editWorkoutType, setEditWorkoutType] = useState<string>('strength');
   const [editNotes, setEditNotes] = useState('');
+  const [editCompletedDate, setEditCompletedDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     const fetchWorkoutExerciseDetails = async (workout: WorkoutHistoryItem) => {
@@ -123,11 +131,26 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     setEditDuration(workout.duration ? parseInt(workout.duration) : null);
     setEditWorkoutType(workout.workout_type || 'custom');
     setEditNotes(workout.notes || '');
+    
+    if (workout.completed_at) {
+      try {
+        const completedDate = parseISO(workout.completed_at);
+        setEditCompletedDate(completedDate);
+      } catch (err) {
+        console.error("Error parsing completed date:", err);
+        setEditCompletedDate(new Date());
+      }
+    } else {
+      setEditCompletedDate(new Date());
+    }
+    
     setEditingWorkoutId(workout.id);
   };
 
   const handleCancelEdit = () => {
     setEditingWorkoutId(null);
+    setEditCompletedDate(undefined);
+    setDatePopoverOpen(false);
   };
 
   const handleSaveWorkout = async (workout: WorkoutHistoryItem) => {
@@ -141,19 +164,27 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           duration_minutes: editDuration,
           workout_type: editWorkoutType
         });
-      } else {
-        await updateWorkoutCompletion(workout.id, {
-          title: editTitle,
-          description: editDescription || null,
-          duration: editDuration ? editDuration.toString() : null,
-          workout_type: editWorkoutType,
-          notes: editNotes
-        });
       }
+      
+      let formattedCompletedAt: string | null = null;
+      if (editCompletedDate) {
+        formattedCompletedAt = editCompletedDate.toISOString();
+      }
+      
+      await updateWorkoutCompletion(workout.id, {
+        title: editTitle,
+        description: editDescription || null,
+        duration: editDuration ? editDuration.toString() : null,
+        workout_type: editWorkoutType,
+        notes: editNotes,
+        completed_at: formattedCompletedAt
+      });
       
       document.getElementById('refresh-workout-history')?.click();
       
       setEditingWorkoutId(null);
+      setEditCompletedDate(undefined);
+      setDatePopoverOpen(false);
       toast.success('Workout updated successfully');
     } catch (error) {
       console.error('Error updating workout:', error);
@@ -192,8 +223,17 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     }
   };
 
+  const formatDateShort = (date: Date): string => {
+    try {
+      return format(date, 'MMM d, yyyy');
+    } catch (err) {
+      console.error('Error formatting date:', err);
+      return 'Invalid Date';
+    }
+  };
+
   const isWorkoutEditable = (workout: WorkoutHistoryItem): boolean => {
-    return Boolean(workout.custom_workout_id) || Boolean(workout.title) || (workout.workout_type === 'one_off' || workout.workout_type === 'custom');
+    return true;
   };
 
   const toggleWorkoutExpand = (workoutId: string) => {
@@ -269,6 +309,38 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="completion-date">Completion Date</Label>
+                    <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="completion-date"
+                          variant="outline"
+                          className="mt-1 w-full justify-start text-left font-normal"
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {editCompletedDate ? (
+                            formatDateShort(editCompletedDate)
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={editCompletedDate}
+                          onSelect={(date) => {
+                            setEditCompletedDate(date);
+                            setDatePopoverOpen(false);
+                          }}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   
                   <div>
@@ -417,6 +489,13 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                 )}
                 
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  {workout.completed_at && (
+                    <div className="text-muted-foreground flex items-center">
+                      <Calendar className="h-3.5 w-3.5 mr-1" />
+                      <span className="font-medium">Completed:</span> {formatDateShort(parseISO(workout.completed_at))}
+                    </div>
+                  )}
+                  
                   {workout.duration && (
                     <div className="text-muted-foreground">
                       <span className="font-medium">Duration:</span> {workout.duration} minutes

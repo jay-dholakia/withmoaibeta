@@ -40,6 +40,7 @@ export const updateWorkoutCompletion = async (
     notes?: string | null;
     location?: string | null;
     distance?: string | null;
+    completed_at?: string | null; // Added ability to update completion date
   }
 ): Promise<boolean> => {
   try {

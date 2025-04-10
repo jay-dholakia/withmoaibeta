@@ -27,6 +27,14 @@ import WorkoutExercisesPage from './pages/coach/WorkoutExercisesPage';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import ProfileBuilder from './pages/client/ProfileBuilder';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminSetup from './pages/AdminSetup';
+import ClientsPage as AdminClientsPage from './pages/admin/ClientsPage';
+import CoachesPage from './pages/admin/CoachesPage';
+import GroupsPage from './pages/admin/GroupsPage';
+import GroupDetailsPage from './pages/admin/GroupDetailsPage';
+import InvitationsPage from './pages/admin/InvitationsPage';
+import ExerciseManagementPage from './pages/admin/ExerciseManagementPage';
 
 function App() {
   const { user, userType, loading } = useAuth();
@@ -49,6 +57,7 @@ function App() {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Index />} />
+      <Route path="/admin-setup" element={<AdminSetup />} />
       
       {/* Auth Routes */}
       <Route path="/admin" element={user ? (userType === 'admin' ? <Navigate to="/admin-dashboard" /> : <Navigate to="/" />) : <AdminLogin />} />
@@ -58,6 +67,15 @@ function App() {
       
       {/* Client Profile Builder - Add this route */}
       <Route path="/client-profile-builder" element={<RequireAuth allowedUserTypes={['client']}><ProfileBuilder /></RequireAuth>} />
+      
+      {/* Admin Routes */}
+      <Route path="/admin-dashboard" element={<RequireAuth allowedUserTypes={['admin']}><AdminDashboard /></RequireAuth>} />
+      <Route path="/admin-dashboard/clients" element={<RequireAuth allowedUserTypes={['admin']}><AdminClientsPage /></RequireAuth>} />
+      <Route path="/admin-dashboard/coaches" element={<RequireAuth allowedUserTypes={['admin']}><CoachesPage /></RequireAuth>} />
+      <Route path="/admin-dashboard/groups" element={<RequireAuth allowedUserTypes={['admin']}><GroupsPage /></RequireAuth>} />
+      <Route path="/admin-dashboard/groups/:groupId" element={<RequireAuth allowedUserTypes={['admin']}><GroupDetailsPage /></RequireAuth>} />
+      <Route path="/admin-dashboard/invitations" element={<RequireAuth allowedUserTypes={['admin']}><InvitationsPage /></RequireAuth>} />
+      <Route path="/admin-dashboard/exercise-management" element={<RequireAuth allowedUserTypes={['admin']}><ExerciseManagementPage /></RequireAuth>} />
       
       {/* Client Routes */}
       <Route path="/client-dashboard/*" element={<RequireAuth allowedUserTypes={['client']} />}>

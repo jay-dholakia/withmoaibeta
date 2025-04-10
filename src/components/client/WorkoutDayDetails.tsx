@@ -273,65 +273,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       </Card>
     );
   }
-
-  return (
-    <div className="space-y-4">
-      <div className="text-center">
-        <p className="text-lg font-medium">{formatDate(date)}</p>
-      </div>
-
-      {workouts.map((workout) => (
-        <Card key={workout.id} className="overflow-hidden">
-          <CardContent className="p-4">
-            {editingWorkoutId === workout.id ? (
-              <div className="space-y-4">
-                {!!workout.workout_id ? (
-                  <div className="grid gap-3">
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">{workout.title || workout.workout?.title || 'Workout'}</h3>
-                      <Label htmlFor="completion-date">Completion Date</Label>
-                      <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            id="completion-date"
-                            variant="outline"
-                            className="mt-1 w-full justify-start text-left font-normal"
-                          >
-                            <Calendar className="mr-2 h-4 w-4" />
-                            {editCompletedDate ? (
-                              formatDateShort(editCompletedDate)
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={editCompletedDate}
-                            onSelect={(date) => {
-                              setEditCompletedDate(date);
-                              setDatePopoverOpen(false);
-                            }}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid gap-3">
-                    <div>
-                      <Label htmlFor="title">Workout Title</Label>
-                      <Input
-                        id="title"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        placeholder="Enter workout title"
-                        className="mt-1"
-                      />
-                    </div>
                     
                     <div>
                       <Label htmlFor="workout-type">Workout Type</Label>

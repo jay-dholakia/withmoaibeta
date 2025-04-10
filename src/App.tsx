@@ -29,7 +29,7 @@ import NotFound from './pages/NotFound';
 import ProfileBuilder from './pages/client/ProfileBuilder';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSetup from './pages/AdminSetup';
-import ClientsPage as AdminClientsPage from './pages/admin/ClientsPage';
+import { ClientsPage as AdminClientsPage } from './pages/admin/ClientsPage';
 import CoachesPage from './pages/admin/CoachesPage';
 import GroupsPage from './pages/admin/GroupsPage';
 import GroupDetailsPage from './pages/admin/GroupDetailsPage';
@@ -108,3 +108,4 @@ function App() {
 }
 
 export default App;
+

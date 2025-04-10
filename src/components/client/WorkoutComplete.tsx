@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -265,6 +266,7 @@ const WorkoutComplete = () => {
     if (user) {
       loadDraft();
     } else {
+      // If user data isn't available yet, retry after a delay
       const timeout = setTimeout(() => {
         if (isMountedRef.current && !draftLoaded) {
           console.log("Retrying draft load after timeout");

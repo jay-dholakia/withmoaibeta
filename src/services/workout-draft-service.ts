@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -168,6 +169,7 @@ export const getWorkoutDraft = async (
         .eq('user_id', user.id)
         .eq('workout_id', workoutId)
         .order('updated_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
         
       if (error) {

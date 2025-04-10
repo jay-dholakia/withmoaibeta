@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { WorkoutProgram, WorkoutWeek, Workout, Exercise, StandaloneWorkout } from '@/types/workout';
+import { Exercise, WorkoutProgram, WorkoutWeek, Workout, WorkoutExercise, StandaloneWorkout } from '@/types/workout';
 
 /**
  * Fetches all clients
@@ -1113,6 +1113,22 @@ export const createExercise = async (exerciseData: {
 };
 
 /**
+ * Fetches exercises with alternatives
+ */
+export const fetchExercisesWithAlternatives = async (): Promise<ExtendedExercise[]> => {
+  const { data, error } = await supabase
+    .from('exercises_with_alternatives')
+    .select('*')
+    .order('name');
+
+  if (error) {
+    throw error;
+  }
+
+  return data as ExtendedExercise[];
+};
+
+/**
  * Gets the count of program assignments
  */
 export const getWorkoutProgramAssignmentCount = async (programIds: string[]): Promise<Record<string, number>> => {
@@ -1158,3 +1174,20 @@ export const getWorkoutProgramAssignmentCount = async (programIds: string[]): Pr
     return {};
   }
 };
+
+/**
+ * ExtendedExercise interface
+ */
+interface ExtendedExercise extends Exercise {
+  alternative_exercise_1_id?: string | null;
+  alternative_exercise_2_id?: string | null;
+  alternative_exercise_3_id?: string | null;
+  alternative_exercise_1_name?: string | null;
+  alternative_exercise_2_name?: string | null;
+  alternative_exercise_3_name?: string | null;
+}
+
+/**
+ * Export the ExtendedExercise interface
+ */
+export type { ExtendedExercise };

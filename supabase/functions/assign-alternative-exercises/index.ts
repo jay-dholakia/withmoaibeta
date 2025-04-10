@@ -60,6 +60,8 @@ Deno.serve(async (req) => {
     // Group exercises by category
     const exercisesByCategory: Record<string, Exercise[]> = {};
     exercises.forEach((exercise: Exercise) => {
+      if (!exercise.category) return; // Skip exercises without category
+      
       if (!exercisesByCategory[exercise.category]) {
         exercisesByCategory[exercise.category] = [];
       }
@@ -72,6 +74,11 @@ Deno.serve(async (req) => {
     // Process each exercise
     for (const exercise of exercises) {
       processedCount++;
+      
+      // Skip exercises without a category
+      if (!exercise.category) {
+        continue;
+      }
       
       // Skip exercises that already have all alternatives set
       if (

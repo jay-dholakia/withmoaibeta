@@ -68,7 +68,7 @@ export const ExerciseSelector = ({
           if (!categorized[category]) {
             categorized[category] = [];
           }
-          categorized[category].push(exercise);
+          categorized[category].push(exercise as ExtendedExercise);
         });
         
         setExercisesByCategory(categorized);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,7 +45,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-// Extended Exercise interface with alternatives
 interface ExtendedExercise extends Exercise {
   alternative_exercise_1_id?: string | null;
   alternative_exercise_2_id?: string | null;
@@ -60,8 +58,8 @@ const ExerciseManagementPage = () => {
   const [exercises, setExercises] = useState<ExtendedExercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [categoryFilter, setCategoryFilter] = useState<string>("_all");
+  const [typeFilter, setTypeFilter] = useState<string>("_all");
   const [categories, setCategories] = useState<string[]>([]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentExercise, setCurrentExercise] = useState<ExtendedExercise | null>(null);
@@ -109,7 +107,6 @@ const ExerciseManagementPage = () => {
         throw error;
       }
       
-      // Extract unique categories
       const uniqueCategories = [...new Set(data?.map(item => item.category))];
       setCategories(uniqueCategories);
     } catch (error) {
@@ -131,7 +128,6 @@ const ExerciseManagementPage = () => {
     setIsEditDialogOpen(true);
     setActiveTab('alternatives');
     
-    // Fetch potential alternatives from the same category
     await fetchPotentialAlternatives(exercise);
   };
   
@@ -170,13 +166,12 @@ const ExerciseManagementPage = () => {
       
       toast.success('YouTube link updated successfully');
       
-      // Update the local exercises state
       setExercises(exercises.map(ex => 
         ex.id === currentExercise.id ? { ...ex, youtube_link: youtubeLink } : ex
       ));
       
       setIsEditDialogOpen(false);
-      fetchExercises(); // Refresh data
+      fetchExercises();
     } catch (error) {
       console.error('Error updating YouTube link:', error);
       toast.error('Failed to update YouTube link');
@@ -200,17 +195,12 @@ const ExerciseManagementPage = () => {
       
       toast.success(`Alternative exercise ${position} assigned successfully`);
       
-      // Find the name of the assigned alternative
-      const alternative = potentialAlternatives.find(a => a.id === alternativeId);
-      
-      // Update the local state
       setCurrentExercise({
         ...currentExercise,
         [`alternative_exercise_${position}_id`]: alternativeId,
-        [`alternative_exercise_${position}_name`]: alternative?.name || ''
+        [`alternative_exercise_${position}_name`]: potentialAlternatives.find(a => a.id === alternativeId)?.name || ''
       });
       
-      // Refresh the exercises list
       fetchExercises();
     } catch (error) {
       console.error('Error assigning alternative exercise:', error);
@@ -235,14 +225,12 @@ const ExerciseManagementPage = () => {
       
       toast.success(`Alternative exercise ${position} removed`);
       
-      // Update the local state
       setCurrentExercise({
         ...currentExercise,
         [`alternative_exercise_${position}_id`]: null,
         [`alternative_exercise_${position}_name`]: null
       });
       
-      // Refresh the exercises list
       fetchExercises();
     } catch (error) {
       console.error('Error removing alternative exercise:', error);
@@ -259,14 +247,13 @@ const ExerciseManagementPage = () => {
     }
   };
   
-  // Filter exercises based on search term and filters
   const filteredExercises = exercises
     .filter(ex => 
       ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (ex.description && ex.description.toLowerCase().includes(searchTerm.toLowerCase()))
     )
-    .filter(ex => !categoryFilter || ex.category === categoryFilter)
-    .filter(ex => !typeFilter || ex.exercise_type === typeFilter)
+    .filter(ex => categoryFilter === "_all" || ex.category === categoryFilter)
+    .filter(ex => typeFilter === "_all" || ex.exercise_type === typeFilter)
     .sort((a, b) => {
       const fieldA = a[sortField]?.toLowerCase() || '';
       const fieldB = b[sortField]?.toLowerCase() || '';
@@ -286,11 +273,10 @@ const ExerciseManagementPage = () => {
   
   const resetFilters = () => {
     setSearchTerm('');
-    setCategoryFilter('');
-    setTypeFilter('');
+    setCategoryFilter("_all");
+    setTypeFilter("_all");
   };
 
-  // Helper function to check if an exercise is already set as an alternative
   const isAlreadyAlternative = (alternativeId: string) => {
     return (
       currentExercise?.alternative_exercise_1_id === alternativeId ||
@@ -328,9 +314,9 @@ const ExerciseManagementPage = () => {
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="_all">All Categories</SelectItem>
                   {categories.map(category => (
-                    <SelectItem key={category} value={category || "unknown"}>{category || "Unknown"}</SelectItem>
+                    <SelectItem key={category} value={category || "uncategorized"}>{category || "Uncategorized"}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -341,7 +327,7 @@ const ExerciseManagementPage = () => {
                   <SelectValue placeholder="Exercise Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="_all">All Types</SelectItem>
                   {STANDARD_WORKOUT_TYPES.map(type => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
@@ -517,7 +503,6 @@ const ExerciseManagementPage = () => {
             
             <TabsContent value="alternatives" className="py-4">
               <div className="space-y-6">
-                {/* Current alternatives */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium">Current Alternative Exercises</h4>
                   
@@ -572,7 +557,6 @@ const ExerciseManagementPage = () => {
                   </div>
                 </div>
                 
-                {/* Potential alternatives list */}
                 <div>
                   <h4 className="text-sm font-medium mb-2">Available Exercises in Same Category</h4>
                   <Input
@@ -580,8 +564,6 @@ const ExerciseManagementPage = () => {
                     placeholder="Filter alternatives..."
                     className="mb-2"
                     onChange={(e) => {
-                      // This could filter the potentialAlternatives list
-                      // but for now we'll just use the database filtering
                     }}
                   />
                   

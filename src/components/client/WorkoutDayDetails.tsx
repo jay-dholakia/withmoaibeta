@@ -283,39 +283,50 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           <CardContent className="p-4">
             {editingWorkoutId === workout.id ? (
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    placeholder="Workout title"
-                    className="mt-1"
-                  />
-                </div>
+                {!workout.workout_id ? (
+                  // For non-coach assigned workouts, show all editing fields
+                  <>
+                    <div>
+                      <Label htmlFor="title">Title</Label>
+                      <Input
+                        id="title"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        placeholder="Workout title"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="workout-type">Workout Type</Label>
+                      <Select
+                        value={editWorkoutType}
+                        onValueChange={setEditWorkoutType}
+                      >
+                        <SelectTrigger id="workout-type" className="mt-1">
+                          <SelectValue placeholder="Select workout type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {WORKOUT_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              <div className="flex items-center gap-2">
+                                <span>{type.icon}</span>
+                                <span>{type.label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                ) : (
+                  // For coach assigned workouts, show workout title as non-editable heading
+                  <h3 className="text-lg font-medium mb-4">
+                    {workout.title || workout.workout?.title || 'Unnamed Workout'}
+                  </h3>
+                )}
                 
-                <div>
-                  <Label htmlFor="workout-type">Workout Type</Label>
-                  <Select
-                    value={editWorkoutType}
-                    onValueChange={setEditWorkoutType}
-                  >
-                    <SelectTrigger id="workout-type" className="mt-1">
-                      <SelectValue placeholder="Select workout type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {WORKOUT_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          <div className="flex items-center gap-2">
-                            <span>{type.icon}</span>
-                            <span>{type.label}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
+                {/* Always show date selector for all workout types */}
                 <div>
                   <Label htmlFor="completion-date">Completion Date</Label>
                   <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
@@ -348,41 +359,46 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                   </Popover>
                 </div>
                 
-                <div>
-                  <Label htmlFor="duration">Duration (minutes)</Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    value={editDuration || ''}
-                    onChange={(e) => setEditDuration(e.target.value ? Number(e.target.value) : null)}
-                    placeholder="Enter duration in minutes"
-                    className="mt-1"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={editDescription}
-                    onChange={(e) => setEditDescription(e.target.value)}
-                    placeholder="Enter workout description"
-                    className="mt-1"
-                    rows={3}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={editNotes}
-                    onChange={(e) => setEditNotes(e.target.value)}
-                    placeholder="Enter workout notes"
-                    className="mt-1"
-                    rows={2}
-                  />
-                </div>
+                {/* Only show these fields for non-coach assigned workouts */}
+                {!workout.workout_id && (
+                  <>
+                    <div>
+                      <Label htmlFor="duration">Duration (minutes)</Label>
+                      <Input
+                        id="duration"
+                        type="number"
+                        value={editDuration || ''}
+                        onChange={(e) => setEditDuration(e.target.value ? Number(e.target.value) : null)}
+                        placeholder="Enter duration in minutes"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        placeholder="Enter workout description"
+                        className="mt-1"
+                        rows={3}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="notes">Notes</Label>
+                      <Textarea
+                        id="notes"
+                        value={editNotes}
+                        onChange={(e) => setEditNotes(e.target.value)}
+                        placeholder="Enter workout notes"
+                        className="mt-1"
+                        rows={2}
+                      />
+                    </div>
+                  </>
+                )}
                 
                 <div className="flex justify-end space-x-2">
                   <Button 
@@ -561,7 +577,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                       <div></div> // Empty div as placeholder when there's no expand button
                     ) : null}
 
-                    {/* Edit button */}
+                    {/* Edit button with dynamic text based on coach assignment */}
                     {isWorkoutEditable(workout) && (
                       <Button 
                         variant="ghost" 

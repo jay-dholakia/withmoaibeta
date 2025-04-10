@@ -998,20 +998,8 @@ const ActiveWorkout = () => {
     }
   };
 
-  const formatDurationInput = (value: string): string => {
-    let cleaned = value.replace(/[^\d:]/g, '');
-    
-    const parts = cleaned.split(':');
-    
-    if (parts.length > 3) {
-      cleaned = parts.slice(0, 3).join(':');
-    }
-    
-    return cleaned;
-  };
-
   const formatRestTime = (seconds: number | null) => {
-    if (!seconds) return "No rest";
+    if (!seconds) return "";
     if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -1095,7 +1083,6 @@ const ActiveWorkout = () => {
           }
 
           const hasYoutubeLink = exercise.exercise?.youtube_link && exercise.exercise.youtube_link.trim() !== '';
-          const restTime = formatRestTime(exercise.rest_seconds);
           
           return (
             <Card key={exercise.id} className="overflow-hidden border-gray-200 w-full">
@@ -1112,12 +1099,6 @@ const ActiveWorkout = () => {
                       {(exerciseType === 'strength' || exerciseType === 'bodyweight') && (
                         <>
                           {`${exercise.sets} sets × ${exercise.reps} reps`}
-                          {exercise.rest_seconds > 0 && (
-                            <span className="ml-2 flex items-center justify-center gap-1 text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              {restTime}
-                            </span>
-                          )}
                         </>
                       )}
                       {exerciseType === 'cardio' && 'Cardio Exercise'}
@@ -1183,7 +1164,7 @@ const ActiveWorkout = () => {
                     <>
                       <div className="flex items-center mb-3 gap-1 justify-center text-sm text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        <span>Rest between sets: {restTime}</span>
+                        <span>Rest between sets: {formatRestTime(exercise.rest_seconds)}</span>
                       </div>
                       
                       <div className="grid grid-cols-4 gap-2 mb-2">

@@ -533,70 +533,79 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                   </div>
                 )}
 
-                <div className="mt-4 flex justify-end space-x-2">
-                  {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => toggleWorkoutExpand(workout.id)}
-                      className="text-xs"
-                    >
-                      {expandedWorkoutId === workout.id ? (
-                        <>
-                          <ChevronUp className="h-3.5 w-3.5 mr-1" />
-                          Collapse
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="h-3.5 w-3.5 mr-1" />
-                          Expand
-                        </>
-                      )}
-                    </Button>
-                  )}
-
-                  {isWorkoutEditable(workout) && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleEditWorkout(workout)}
-                      className="text-xs"
-                    >
-                      <Edit className="h-3.5 w-3.5 mr-1" />
-                      {!!workout.workout_id ? 'Edit Date' : 'Edit'}
-                    </Button>
-                  )}
-                  
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                {/* Updated action buttons layout to match the design in the image */}
+                <div className="mt-4 border-t pt-3 -mx-4 px-4 -mb-4 bg-gray-50/50 rounded-b-lg">
+                  <div className="flex justify-between items-center">
+                    {/* Expand button */}
+                    {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
                       <Button 
                         variant="ghost" 
-                        size="sm"
-                        className="text-xs text-destructive hover:text-destructive"
-                        disabled={isDeleting}
+                        size="sm" 
+                        onClick={() => toggleWorkoutExpand(workout.id)}
+                        className="text-xs text-gray-700 hover:bg-transparent"
                       >
-                        <Trash2 className="h-3.5 w-3.5 mr-1" />
-                        Delete
+                        {expandedWorkoutId === workout.id ? (
+                          <>
+                            <ChevronUp className="h-4 w-4 mr-1" />
+                            Expand
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4 mr-1" />
+                            Expand
+                          </>
+                        )}
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Workout</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this workout? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDeleteWorkout(workout.id)}
-                          className="bg-destructive hover:bg-destructive/90"
+                    )}
+                    {!workout.workout_set_completions || workout.workout_set_completions.length === 0 ? (
+                      <div></div> // Empty div as placeholder when there's no expand button
+                    ) : null}
+
+                    {/* Edit button */}
+                    {isWorkoutEditable(workout) && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleEditWorkout(workout)}
+                        className="text-xs text-gray-700 hover:bg-transparent"
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        {!!workout.workout_id ? 'Edit Date' : 'Edit'}
+                      </Button>
+                    )}
+
+                    {/* Delete button */}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-xs text-destructive hover:bg-transparent"
+                          disabled={isDeleting}
                         >
+                          <Trash2 className="h-4 w-4 mr-1" />
                           Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Workout</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this workout? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteWorkout(workout.id)}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </>
             )}

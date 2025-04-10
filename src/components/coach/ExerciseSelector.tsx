@@ -5,7 +5,8 @@ import { fetchExercisesByCategory } from '@/services/workout-service';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, ArrowRightLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface ExerciseSelectorProps {
   onSelectExercise: (exercise: Exercise) => void;
@@ -15,6 +16,16 @@ interface ExerciseSelectorProps {
   onSelect?: (exerciseId: string, data: any) => Promise<void>;
   onCancel?: () => void;
   isSubmitting?: boolean;
+}
+
+// Extended Exercise interface with alternatives
+interface ExtendedExercise extends Exercise {
+  alternative_exercise_1_id?: string | null;
+  alternative_exercise_2_id?: string | null;
+  alternative_exercise_3_id?: string | null;
+  alternative_exercise_1_name?: string | null;
+  alternative_exercise_2_name?: string | null;
+  alternative_exercise_3_name?: string | null;
 }
 
 export const ExerciseSelector = ({ 
@@ -29,8 +40,8 @@ export const ExerciseSelector = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   // Change the type of state to handle the exercises correctly
-  const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, Exercise[]>>({});
-  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
+  const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, ExtendedExercise[]>>({});
+  const [filteredExercises, setFilteredExercises] = useState<ExtendedExercise[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Get all exercises on initial load
@@ -51,7 +62,7 @@ export const ExerciseSelector = ({
         }
         
         // Group exercises by category
-        const categorized: Record<string, Exercise[]> = {};
+        const categorized: Record<string, ExtendedExercise[]> = {};
         exercises.forEach(exercise => {
           const category = exercise.category || 'Uncategorized';
           if (!categorized[category]) {
@@ -80,12 +91,12 @@ export const ExerciseSelector = ({
 
   // Helper function to update filtered exercises
   const updateFilteredExercises = (
-    allExercises: Record<string, Exercise[]>,
+    allExercises: Record<string, ExtendedExercise[]>,
     category: string,
     query: string,
     excluded: string[]
   ) => {
-    let filtered: Exercise[] = [];
+    let filtered: ExtendedExercise[] = [];
 
     // Get exercises based on category
     if (category === 'All') {
@@ -111,6 +122,13 @@ export const ExerciseSelector = ({
   };
 
   const categories = ['All', ...Object.keys(exercisesByCategory).sort()];
+
+  // Check if an exercise has alternatives
+  const hasAlternatives = (exercise: ExtendedExercise) => {
+    return !!(exercise.alternative_exercise_1_id || 
+              exercise.alternative_exercise_2_id || 
+              exercise.alternative_exercise_3_id);
+  };
 
   return (
     <div className="w-full">
@@ -152,8 +170,16 @@ export const ExerciseSelector = ({
                     className="justify-start h-auto py-3 px-4"
                     onClick={() => onSelectExercise(exercise)}
                   >
-                    <div className="text-left">
-                      <div className="font-medium">{exercise.name}</div>
+                    <div className="text-left flex-1">
+                      <div className="font-medium flex items-center">
+                        {exercise.name}
+                        {hasAlternatives(exercise) && (
+                          <Badge variant="outline" className="ml-2 flex items-center">
+                            <ArrowRightLeft className="h-3 w-3 mr-1" />
+                            <span className="text-xs">Has alternatives</span>
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         {exercise.category} • {exercise.exercise_type}
                       </div>

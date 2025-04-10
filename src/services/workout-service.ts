@@ -174,7 +174,6 @@ export const fetchWorkoutProgram = async (programId: string) => {
       .maybeSingle();
     
     if (error) {
-      console.error('Error fetching workout program:', error);
       throw error;
     }
     
@@ -1043,26 +1042,20 @@ export const moveStandaloneWorkoutExerciseDown = async (exerciseId: string, work
 /**
  * Fetches all exercises or exercises by category
  */
-export const fetchExercisesByCategory = async (category?: string) => {
+export const fetchExercisesByCategory = async () => {
   try {
-    let query = supabase
-      .from('exercises')
+    const { data, error } = await supabase
+      .from('exercises_with_alternatives')
       .select('*')
-      .order('name', { ascending: true });
-    
-    if (category && category !== 'All') {
-      query = query.eq('category', category);
-    }
-    
-    const { data, error } = await query;
-    
+      .order('name');
+
     if (error) {
       throw error;
     }
     
     return data || [];
   } catch (error) {
-    console.error('Error fetching exercises:', error);
+    console.error('Error fetching exercises by category:', error);
     throw error;
   }
 };

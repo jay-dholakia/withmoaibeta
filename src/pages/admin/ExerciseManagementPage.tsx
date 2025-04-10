@@ -23,7 +23,8 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,24 +38,39 @@ import {
   RotateCcw,
   Pencil,
   ArrowUpDown,
-  ExternalLink
+  ExternalLink,
+  Dumbbell
 } from 'lucide-react';
 import { Exercise, STANDARD_WORKOUT_TYPES } from '@/types/workout';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// Extended Exercise interface with alternatives
+interface ExtendedExercise extends Exercise {
+  alternative_exercise_1_id?: string | null;
+  alternative_exercise_2_id?: string | null;
+  alternative_exercise_3_id?: string | null;
+  alternative_exercise_1_name?: string | null;
+  alternative_exercise_2_name?: string | null;
+  alternative_exercise_3_name?: string | null;
+}
 
 const ExerciseManagementPage = () => {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exercises, setExercises] = useState<ExtendedExercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [categories, setCategories] = useState<string[]>([]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [currentExercise, setCurrentExercise] = useState<Exercise | null>(null);
+  const [currentExercise, setCurrentExercise] = useState<ExtendedExercise | null>(null);
   const [youtubeLink, setYoutubeLink] = useState('');
   const [sortField, setSortField] = useState<'name' | 'category' | 'exercise_type'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [isAlternativesDialogOpen, setIsAlternativesDialogOpen] = useState(false);
+  const [potentialAlternatives, setPotentialAlternatives] = useState<ExtendedExercise[]>([]);
+  const [activeTab, setActiveTab] = useState<string>('youtube');
   
   useEffect(() => {
     fetchExercises();
@@ -65,7 +81,7 @@ const ExerciseManagementPage = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('exercises')
+        .from('exercises_with_alternatives')
         .select('*')
         .order('name');
         
@@ -101,10 +117,42 @@ const ExerciseManagementPage = () => {
     }
   };
   
-  const openEditDialog = (exercise: Exercise) => {
+  const openEditDialog = (exercise: ExtendedExercise) => {
+    setCurrentExercise(exercise);
+    setYoutubeLink(exercise.youtube_link || '');
+    setIsAlternativesDialogOpen(false);
+    setIsEditDialogOpen(true);
+    setActiveTab('youtube');
+  };
+
+  const openAlternativesDialog = async (exercise: ExtendedExercise) => {
     setCurrentExercise(exercise);
     setYoutubeLink(exercise.youtube_link || '');
     setIsEditDialogOpen(true);
+    setActiveTab('alternatives');
+    
+    // Fetch potential alternatives from the same category
+    await fetchPotentialAlternatives(exercise);
+  };
+  
+  const fetchPotentialAlternatives = async (exercise: ExtendedExercise) => {
+    try {
+      const { data, error } = await supabase
+        .from('exercises')
+        .select('*')
+        .eq('category', exercise.category)
+        .neq('id', exercise.id)
+        .order('name');
+        
+      if (error) {
+        throw error;
+      }
+      
+      setPotentialAlternatives(data || []);
+    } catch (error) {
+      console.error('Error fetching potential alternatives:', error);
+      toast.error('Failed to load alternative exercises');
+    }
   };
   
   const handleSaveYoutubeLink = async () => {
@@ -128,9 +176,77 @@ const ExerciseManagementPage = () => {
       ));
       
       setIsEditDialogOpen(false);
+      fetchExercises(); // Refresh data
     } catch (error) {
       console.error('Error updating YouTube link:', error);
       toast.error('Failed to update YouTube link');
+    }
+  };
+
+  const assignAlternative = async (alternativeId: string, position: 1 | 2 | 3) => {
+    if (!currentExercise) return;
+    
+    try {
+      const fieldName = `alternative_exercise_${position}_id`;
+      
+      const { error } = await supabase
+        .from('exercises')
+        .update({ [fieldName]: alternativeId })
+        .eq('id', currentExercise.id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast.success(`Alternative exercise ${position} assigned successfully`);
+      
+      // Find the name of the assigned alternative
+      const alternative = potentialAlternatives.find(a => a.id === alternativeId);
+      
+      // Update the local state
+      setCurrentExercise({
+        ...currentExercise,
+        [`alternative_exercise_${position}_id`]: alternativeId,
+        [`alternative_exercise_${position}_name`]: alternative?.name || ''
+      });
+      
+      // Refresh the exercises list
+      fetchExercises();
+    } catch (error) {
+      console.error('Error assigning alternative exercise:', error);
+      toast.error('Failed to assign alternative exercise');
+    }
+  };
+
+  const removeAlternative = async (position: 1 | 2 | 3) => {
+    if (!currentExercise) return;
+    
+    try {
+      const fieldName = `alternative_exercise_${position}_id`;
+      
+      const { error } = await supabase
+        .from('exercises')
+        .update({ [fieldName]: null })
+        .eq('id', currentExercise.id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast.success(`Alternative exercise ${position} removed`);
+      
+      // Update the local state
+      setCurrentExercise({
+        ...currentExercise,
+        [`alternative_exercise_${position}_id`]: null,
+        [`alternative_exercise_${position}_name`]: null
+      });
+      
+      // Refresh the exercises list
+      fetchExercises();
+    } catch (error) {
+      console.error('Error removing alternative exercise:', error);
+      toast.error('Failed to remove alternative exercise');
     }
   };
   
@@ -173,14 +289,23 @@ const ExerciseManagementPage = () => {
     setCategoryFilter('');
     setTypeFilter('');
   };
+
+  // Helper function to check if an exercise is already set as an alternative
+  const isAlreadyAlternative = (alternativeId: string) => {
+    return (
+      currentExercise?.alternative_exercise_1_id === alternativeId ||
+      currentExercise?.alternative_exercise_2_id === alternativeId ||
+      currentExercise?.alternative_exercise_3_id === alternativeId
+    );
+  };
   
   return (
     <AdminDashboardLayout title="Exercise Management">
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Manage Exercise YouTube Links</CardTitle>
+          <CardTitle>Manage Exercises</CardTitle>
           <CardDescription>
-            Add or edit YouTube video links for exercises to provide visual demonstrations to clients.
+            Add YouTube video links and assign alternative exercises from the same muscle group.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -203,7 +328,7 @@ const ExerciseManagementPage = () => {
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="">All Categories</SelectItem>
                   {categories.map(category => (
                     <SelectItem key={category} value={category || "unknown"}>{category || "Unknown"}</SelectItem>
                   ))}
@@ -216,7 +341,7 @@ const ExerciseManagementPage = () => {
                   <SelectValue placeholder="Exercise Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="">All Types</SelectItem>
                   {STANDARD_WORKOUT_TYPES.map(type => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
@@ -235,7 +360,7 @@ const ExerciseManagementPage = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead 
-                    className="w-[40%] cursor-pointer"
+                    className="w-[25%] cursor-pointer"
                     onClick={() => handleSort('name')}
                   >
                     Exercise Name
@@ -244,7 +369,7 @@ const ExerciseManagementPage = () => {
                     )}
                   </TableHead>
                   <TableHead 
-                    className="w-[20%] cursor-pointer"
+                    className="w-[15%] cursor-pointer"
                     onClick={() => handleSort('category')}
                   >
                     Category
@@ -253,7 +378,7 @@ const ExerciseManagementPage = () => {
                     )}
                   </TableHead>
                   <TableHead 
-                    className="w-[20%] cursor-pointer"
+                    className="w-[15%] cursor-pointer"
                     onClick={() => handleSort('exercise_type')}
                   >
                     Type
@@ -261,20 +386,21 @@ const ExerciseManagementPage = () => {
                       <ArrowUpDown className={`ml-2 h-4 w-4 inline ${sortDirection === 'desc' ? 'rotate-180 transform' : ''}`} />
                     )}
                   </TableHead>
-                  <TableHead className="w-[20%] text-right">YouTube Link</TableHead>
+                  <TableHead className="w-[25%]">Alternative Exercises</TableHead>
+                  <TableHead className="w-[20%] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8">
+                    <TableCell colSpan={5} className="text-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin mx-auto" />
                     </TableCell>
                   </TableRow>
                 ) : filteredExercises.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8">
+                    <TableCell colSpan={5} className="text-center py-8">
                       No exercises found
                     </TableCell>
                   </TableRow>
@@ -284,26 +410,43 @@ const ExerciseManagementPage = () => {
                       <TableCell className="font-medium">{exercise.name}</TableCell>
                       <TableCell>{exercise.category}</TableCell>
                       <TableCell>{exercise.exercise_type}</TableCell>
+                      <TableCell>
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          {exercise.alternative_exercise_1_name && (
+                            <div>1. {exercise.alternative_exercise_1_name}</div>
+                          )}
+                          {exercise.alternative_exercise_2_name && (
+                            <div>2. {exercise.alternative_exercise_2_name}</div>
+                          )}
+                          {exercise.alternative_exercise_3_name && (
+                            <div>3. {exercise.alternative_exercise_3_name}</div>
+                          )}
+                          {!exercise.alternative_exercise_1_name && 
+                           !exercise.alternative_exercise_2_name && 
+                           !exercise.alternative_exercise_3_name && (
+                            <div>No alternatives set</div>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end items-center space-x-2">
-                          {exercise.youtube_link && (
-                            <Button 
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openYoutubeLink(exercise.youtube_link || '')}
-                              title="Open YouTube link"
-                            >
-                              <ExternalLink className="h-4 w-4 text-red-500" />
-                            </Button>
-                          )}
+                          <Button 
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openAlternativesDialog(exercise)}
+                            className="flex items-center"
+                          >
+                            <Dumbbell className="h-4 w-4 mr-1" />
+                            Alternatives
+                          </Button>
                           <Button 
                             variant="ghost"
                             size="sm"
                             onClick={() => openEditDialog(exercise)}
                             className="flex items-center"
                           >
-                            <Pencil className="h-4 w-4 mr-1" />
-                            {exercise.youtube_link ? 'Edit Link' : 'Add Link'}
+                            <Youtube className="h-4 w-4 mr-1 text-red-500" />
+                            YouTube
                           </Button>
                         </div>
                       </TableCell>
@@ -317,56 +460,191 @@ const ExerciseManagementPage = () => {
       </Card>
       
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>
-              {currentExercise?.youtube_link 
-                ? 'Edit YouTube Link' 
-                : 'Add YouTube Link'
-              }
+              Edit Exercise: {currentExercise?.name}
             </DialogTitle>
+            <DialogDescription>
+              Manage YouTube links and alternative exercises for the same muscle group
+            </DialogDescription>
           </DialogHeader>
           
-          <div className="py-4">
-            <p className="mb-4 font-medium">{currentExercise?.name}</p>
-            
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-1">
-                YouTube Video URL
-              </label>
-              <div className="flex">
-                <Youtube className="h-5 w-5 text-red-500 mr-2 self-center" />
-                <Input
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  value={youtubeLink}
-                  onChange={(e) => setYoutubeLink(e.target.value)}
-                />
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid grid-cols-2 mb-4">
+              <TabsTrigger value="youtube">YouTube Link</TabsTrigger>
+              <TabsTrigger value="alternatives">Alternative Exercises</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="youtube" className="py-4">
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-1">
+                  YouTube Video URL
+                </label>
+                <div className="flex">
+                  <Youtube className="h-5 w-5 text-red-500 mr-2 self-center" />
+                  <Input
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={youtubeLink}
+                    onChange={(e) => setYoutubeLink(e.target.value)}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enter the full YouTube video URL for this exercise
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Enter the full YouTube video URL for this exercise
-              </p>
-            </div>
+              
+              {youtubeLink && (
+                <Button 
+                  variant="outline" 
+                  className="mb-4"
+                  onClick={() => openYoutubeLink(youtubeLink)}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Test Link
+                </Button>
+              )}
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveYoutubeLink}>
+                  Save
+                </Button>
+              </DialogFooter>
+            </TabsContent>
             
-            {youtubeLink && (
-              <Button 
-                variant="outline" 
-                className="mb-4"
-                onClick={() => openYoutubeLink(youtubeLink)}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Test Link
-              </Button>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveYoutubeLink}>
-              Save
-            </Button>
-          </DialogFooter>
+            <TabsContent value="alternatives" className="py-4">
+              <div className="space-y-6">
+                {/* Current alternatives */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium">Current Alternative Exercises</h4>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium">Alternative 1:</div>
+                      <div className="flex-1 mx-3">
+                        {currentExercise?.alternative_exercise_1_name || 'None set'}
+                      </div>
+                      {currentExercise?.alternative_exercise_1_id && (
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          onClick={() => removeAlternative(1)}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium">Alternative 2:</div>
+                      <div className="flex-1 mx-3">
+                        {currentExercise?.alternative_exercise_2_name || 'None set'}
+                      </div>
+                      {currentExercise?.alternative_exercise_2_id && (
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          onClick={() => removeAlternative(2)}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium">Alternative 3:</div>
+                      <div className="flex-1 mx-3">
+                        {currentExercise?.alternative_exercise_3_name || 'None set'}
+                      </div>
+                      {currentExercise?.alternative_exercise_3_id && (
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          onClick={() => removeAlternative(3)}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Potential alternatives list */}
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Available Exercises in Same Category</h4>
+                  <Input
+                    type="search"
+                    placeholder="Filter alternatives..."
+                    className="mb-2"
+                    onChange={(e) => {
+                      // This could filter the potentialAlternatives list
+                      // but for now we'll just use the database filtering
+                    }}
+                  />
+                  
+                  <ScrollArea className="h-64 border rounded-md p-2">
+                    {potentialAlternatives.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No alternative exercises found in this category
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {potentialAlternatives.map(alt => (
+                          <div key={alt.id} className="flex justify-between items-center p-2 hover:bg-accent rounded-md">
+                            <span>{alt.name}</span>
+                            <div className="flex space-x-1">
+                              {!isAlreadyAlternative(alt.id) && (
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    disabled={!!currentExercise?.alternative_exercise_1_id}
+                                    onClick={() => assignAlternative(alt.id, 1)}
+                                  >
+                                    Set as Alt 1
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    disabled={!!currentExercise?.alternative_exercise_2_id}
+                                    onClick={() => assignAlternative(alt.id, 2)}
+                                  >
+                                    Set as Alt 2
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    disabled={!!currentExercise?.alternative_exercise_3_id}
+                                    onClick={() => assignAlternative(alt.id, 3)}
+                                  >
+                                    Set as Alt 3
+                                  </Button>
+                                </>
+                              )}
+                              {isAlreadyAlternative(alt.id) && (
+                                <Button size="sm" variant="secondary" disabled>
+                                  Already Added
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+              </div>
+              
+              <DialogFooter className="mt-6">
+                <Button onClick={() => setIsEditDialogOpen(false)}>
+                  Done
+                </Button>
+              </DialogFooter>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </AdminDashboardLayout>

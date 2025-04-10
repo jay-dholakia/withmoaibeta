@@ -60,7 +60,7 @@ function App() {
       <Route path="/admin-setup" element={<AdminSetup />} />
       
       {/* Auth Routes */}
-      <Route path="/admin" element={user ? (userType === 'admin' ? <Navigate to="/admin-dashboard" /> : <Navigate to="/" />) : <AdminLogin />} />
+      <Route path="/admin" element={<AdminLogin />} />
       <Route path="/coach" element={user ? (userType === 'coach' ? <Navigate to="/coach-dashboard" /> : <Navigate to="/" />) : <CoachLogin />} />
       <Route path="/client" element={user ? (userType === 'client' ? <Navigate to="/client-dashboard" /> : <Navigate to="/" />) : <ClientLogin />} />
       <Route path="/client-login" element={user ? (userType === 'client' ? <Navigate to="/client-dashboard" /> : <Navigate to="/" />) : <ClientLogin />} />
@@ -108,4 +108,3 @@ function App() {
 }
 
 export default App;
-

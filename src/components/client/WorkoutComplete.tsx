@@ -33,15 +33,21 @@ const WorkoutComplete = () => {
   const [shareMessage, setShareMessage] = useState('');
   const [isEditingMessage, setIsEditingMessage] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
-  const [authStateChanged, setAuthStateChanged] = useState(0);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(true);
+  const [userTimeout, setUserTimeout] = useState<NodeJS.Timeout | null>(null);
 
+  const isMountedRef = React.useRef(true);
+  
   useEffect(() => {
-    if (user) {
-      console.log("Auth state detected in WorkoutComplete, user:", user.id);
-      setAuthStateChanged(prev => prev + 1);
-      setDraftLoaded(false);
-    }
-  }, [user]);
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+      if (userTimeout) {
+        clearTimeout(userTimeout);
+      }
+    };
+  }, [userTimeout]);
 
   const { saveStatus } = useAutosave({
     data: { notes, rating },
@@ -49,13 +55,13 @@ const WorkoutComplete = () => {
       if (!workoutCompletionId || !user?.id) return false;
       console.log("Saving workout completion draft with data:", data);
       return await saveWorkoutDraft(
-        workoutCompletionId || null, 
+        workoutCompletionId, 
         'completion', 
         data
       );
     },
     debounce: 1000,
-    disabled: !workoutCompletionId || !user?.id
+    disabled: !workoutCompletionId || !user?.id || !draftLoaded
   });
 
   const { data: workoutData, isLoading } = useQuery({
@@ -207,72 +213,74 @@ const WorkoutComplete = () => {
   });
 
   useEffect(() => {
-    let mounted = true;
-    let loadAttemptTimeout: NodeJS.Timeout | null = null;
-    
-    const loadDraftData = async () => {
-      if (!workoutCompletionId || !user?.id || !mounted || draftLoaded) return;
-      
+    const loadDraft = async () => {
+      if (!workoutCompletionId || !user?.id) {
+        console.log("Cannot load draft: missing workout ID or user");
+        setIsLoadingDraft(false);
+        return;
+      }
+
+      if (!isMountedRef.current) return;
+
       try {
-        console.log(`Loading draft data for workout completion ${workoutCompletionId}`);
-        console.log(`Auth state changes detected: ${authStateChanged}`);
+        setIsLoadingDraft(true);
+        console.log(`Attempting to load draft for workout ${workoutCompletionId}`);
         
-        const draft = await getWorkoutDraft(workoutCompletionId, 7, 500);
+        const draft = await getWorkoutDraft(workoutCompletionId);
         
-        if (!mounted) return;
+        if (!isMountedRef.current) return;
         
         if (draft && draft.draft_data) {
-          console.log("Workout completion draft data received:", draft.draft_data);
+          console.log("Draft data received:", draft.draft_data);
           
           if (draft.draft_data.notes !== undefined) {
-            console.log(`Setting notes from draft: "${draft.draft_data.notes}"`);
             setNotes(draft.draft_data.notes);
-          } else {
-            console.log("No notes found in draft data");
           }
           
           if (draft.draft_data.rating !== undefined) {
-            console.log(`Setting rating from draft: ${draft.draft_data.rating}`);
             setRating(draft.draft_data.rating);
-          } else {
-            console.log("No rating found in draft data");
           }
           
-          if ((draft.draft_data.notes !== undefined && draft.draft_data.notes !== "") || 
-              (draft.draft_data.rating !== undefined && draft.draft_data.rating !== null)) {
-            toast.success('Recovered unsaved workout notes');
+          const hasContent = 
+            (draft.draft_data.notes !== undefined && draft.draft_data.notes !== '') || 
+            (draft.draft_data.rating !== undefined && draft.draft_data.rating !== null);
+            
+          if (hasContent) {
+            toast.success('Recovered your workout progress');
           }
         } else {
-          console.log("No valid draft data found for this workout completion");
+          console.log("No draft data found for this workout");
         }
         
         setDraftLoaded(true);
       } catch (error) {
-        console.error("Error loading workout completion draft data:", error);
-        setDraftLoaded(true);
+        console.error("Error loading draft:", error);
+      } finally {
+        if (isMountedRef.current) {
+          setIsLoadingDraft(false);
+        }
       }
     };
-    
-    if (user && workoutCompletionId && !draftLoaded) {
-      console.log("User authenticated, loading workout completion draft data");
-      loadDraftData();
-    } else if (!user && workoutCompletionId && !draftLoaded) {
-      console.log("User not authenticated yet, scheduling retry");
-      loadAttemptTimeout = setTimeout(() => {
-        if (mounted && !draftLoaded) {
-          console.log("Retrying workout completion draft load after timeout");
-          loadDraftData();
+
+    if (user) {
+      loadDraft();
+    } else {
+      const timeout = setTimeout(() => {
+        if (isMountedRef.current && !draftLoaded) {
+          console.log("Retrying draft load after timeout");
+          loadDraft();
         }
-      }, 1500);
+      }, 1000);
+      
+      setUserTimeout(timeout);
     }
     
     return () => {
-      mounted = false;
-      if (loadAttemptTimeout) {
-        clearTimeout(loadAttemptTimeout);
+      if (userTimeout) {
+        clearTimeout(userTimeout);
       }
     };
-  }, [workoutCompletionId, user, draftLoaded, authStateChanged]);
+  }, [workoutCompletionId, user, draftLoaded, userTimeout]);
 
   useEffect(() => {
     if (workoutData && !shareMessage) {
@@ -415,7 +423,7 @@ const WorkoutComplete = () => {
 
   const isStrengthWorkout = workoutData?.workout?.workout_type === 'strength';
 
-  if (isLoading) {
+  if (isLoading || (isLoadingDraft && !draftLoaded)) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-client" />

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -13,7 +12,7 @@ const safeParseDraftData = (data: any): any => {
       return {};
     }
   }
-  return data;
+  return data || {};
 };
 
 /**
@@ -38,7 +37,9 @@ export const saveWorkoutDraft = async (
       return false;
     }
     
-    const dataSize = JSON.stringify(draftData).length;
+    // Convert data to string to accurately measure size
+    const stringifiedData = JSON.stringify(draftData);
+    const dataSize = stringifiedData.length;
     console.log(`Saving draft for workout ${workoutId}, size: ${dataSize} bytes`);
     
     if (dataSize > 100000) {
@@ -50,7 +51,7 @@ export const saveWorkoutDraft = async (
       .from('workout_drafts')
       .select('id')
       .eq('user_id', user.id)
-      .eq('workout_id', workoutId || '')
+      .eq('workout_id', workoutId)
       .maybeSingle();
       
     if (queryError) {
@@ -70,7 +71,7 @@ export const saveWorkoutDraft = async (
         .update({ 
           draft_data: draftData,
           workout_type: workoutType,
-          updated_at: new Date().toISOString() // Convert to string to fix TypeScript error
+          updated_at: new Date().toISOString()
         })
         .eq('id', existingDraft.id);
         
@@ -122,7 +123,7 @@ export const saveWorkoutDraft = async (
 };
 
 /**
- * Retrieves a workout draft from the server with improved reliability and retry logic
+ * Retrieves a workout draft from the server with improved reliability
  * @param workoutId The workout ID
  * @param maxRetries Maximum number of retries (default: 5)
  * @param retryInterval Interval between retries in ms (default: 300)
@@ -142,18 +143,14 @@ export const getWorkoutDraft = async (
   
   while (retries <= maxRetries) {
     try {
-      // Use fresh user session on each retry attempt to handle auth state changes
+      // Get current user session
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         console.log(`No authenticated user found, retry ${retries + 1}/${maxRetries + 1}`);
         // If we've reached max retries, return null
         if (retries === maxRetries) {
-          console.error("Max retries reached, no authenticated user found", {
-            workoutId,
-            maxRetries,
-            timestamp: new Date().toISOString()
-          });
+          console.error("Max retries reached, no authenticated user found");
           return null;
         }
         // Otherwise, wait and retry
@@ -162,9 +159,9 @@ export const getWorkoutDraft = async (
         continue;
       }
       
-      console.log(`User found (${user.id}), fetching workout draft for workout ${workoutId}`);
+      console.log(`Fetching workout draft for workout ${workoutId} as user ${user.id}`);
       
-      // Enhanced query with better logging and more explicit user_id condition
+      // Query for drafts by workoutId
       const { data, error } = await supabase
         .from('workout_drafts')
         .select('draft_data, workout_type, updated_at')
@@ -179,54 +176,50 @@ export const getWorkoutDraft = async (
           workoutId,
           userId: user.id,
           retry: retries,
-          timestamp: new Date().toISOString()
         });
         
-        // If we've reached max retries, return null
         if (retries === maxRetries) {
           return null;
         }
         
-        // Otherwise, wait and retry
         retries++;
         await new Promise(resolve => setTimeout(resolve, retryInterval));
         continue;
       }
       
       if (data) {
+        // Ensure draft data is properly parsed
         const parsedData = {
           ...data,
           draft_data: safeParseDraftData(data.draft_data)
         };
         
-        const dataSize = parsedData.draft_data ? JSON.stringify(parsedData.draft_data).length : 0;
+        const dataSize = JSON.stringify(parsedData.draft_data).length;
         console.log(`Successfully loaded draft data for ${workoutId}, size: ${dataSize} bytes`);
         
-        // Don't stringify the entire object to the log, but provide better insights
+        // Log information about the draft content for debugging
         if (dataSize > 0) {
           const draftData = parsedData.draft_data;
           if (draftData && typeof draftData === 'object') {
             const keys = Object.keys(draftData);
             console.log(`Draft data contains keys: ${keys.join(', ')}`);
             
-            // Check if we have exerciseStates and how many
+            // Check for exercise states
             if (draftData.exerciseStates && typeof draftData.exerciseStates === 'object') {
               const exerciseCount = Object.keys(draftData.exerciseStates).length;
               console.log(`Draft contains ${exerciseCount} exercise states`);
             }
             
-            // Check if we have pendingSets and how many
+            // Check for pending sets
             if (Array.isArray(draftData.pendingSets)) {
               console.log(`Draft contains ${draftData.pendingSets.length} pending sets`);
             }
-          } else {
-            console.warn("Draft data is not an object, might need parsing:", typeof draftData);
           }
         }
         
         return parsedData;
       } else {
-        console.log("No draft data found for workout:", workoutId);
+        console.log(`No draft data found for workout ${workoutId}`);
       }
       
       return data;
@@ -235,16 +228,13 @@ export const getWorkoutDraft = async (
         error,
         workoutId,
         retry: retries,
-        timestamp: new Date().toISOString()
       });
       
-      // If we've reached max retries, return null
       if (retries === maxRetries) {
         console.error(`Max retries (${maxRetries}) reached for getWorkoutDraft`);
         return null;
       }
       
-      // Otherwise, wait and retry
       retries++;
       await new Promise(resolve => setTimeout(resolve, retryInterval));
     }
@@ -276,14 +266,13 @@ export const deleteWorkoutDraft = async (
       .from('workout_drafts')
       .delete()
       .eq('user_id', user.id)
-      .eq('workout_id', workoutId || '');
+      .eq('workout_id', workoutId);
       
     if (error) {
       console.error("Error deleting workout draft:", {
         error,
         workoutId,
         userId: user.id,
-        timestamp: new Date().toISOString()
       });
       return false;
     }
@@ -294,7 +283,6 @@ export const deleteWorkoutDraft = async (
     console.error("Error in deleteWorkoutDraft:", {
       error,
       workoutId,
-      timestamp: new Date().toISOString()
     });
     return false;
   }

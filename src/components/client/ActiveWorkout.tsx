@@ -960,17 +960,18 @@ const ActiveWorkout = () => {
         if (exerciseIndex !== -1) {
           const exerciseToUpdate = workoutExercises[exerciseIndex];
           if (exerciseToUpdate && typeof exerciseToUpdate === 'object') {
-            if (!exerciseToUpdate.exercise) {
-              exerciseToUpdate.exercise = {};
-            }
-            
             exerciseToUpdate.exercise = {
-              ...exerciseToUpdate.exercise,
               id: alternativeId,
               name: alternativeName,
-              youtube_link: exerciseData.youtube_link,
-              description: exerciseData.description,
-              exercise_type: exerciseData.exercise_type
+              youtube_link: exerciseData.youtube_link || null,
+              description: exerciseData.description || null,
+              exercise_type: exerciseData.exercise_type || 'strength',
+              category: exerciseData.category || '',
+              log_type: exerciseData.log_type || 'weight_reps',
+              created_at: exerciseData.created_at || new Date().toISOString(),
+              alternative_exercise_1_id: exerciseData.alternative_exercise_1_id || null,
+              alternative_exercise_2_id: exerciseData.alternative_exercise_2_id || null,
+              alternative_exercise_3_id: exerciseData.alternative_exercise_3_id || null
             };
           }
         }

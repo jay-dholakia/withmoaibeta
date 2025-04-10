@@ -534,13 +534,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                 )}
                 
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                  {workout.completed_at && (
-                    <div className="text-muted-foreground flex items-center">
-                      <Calendar className="h-3.5 w-3.5 mr-1" />
-                      {formatDateShort(parseISO(workout.completed_at))}
-                    </div>
-                  )}
-                  
                   {workout.duration && (
                     <div className="text-muted-foreground">
                       <span className="font-medium">Duration:</span> {workout.duration} minutes

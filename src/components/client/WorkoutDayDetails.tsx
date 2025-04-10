@@ -554,7 +554,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                 </div>
                 
                 {expandedWorkoutId === workout.id && workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
-                  <div className="mt-4 border-t pt-3">
+                  <div className="mt-4">
                     <div className="flex justify-between items-center mb-2">
                       <h4 className="font-medium">Exercise Details</h4>
                       <Button 
@@ -635,7 +635,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                   </div>
                 )}
 
-                <div className="mt-4 pt-2 border-t flex justify-end space-x-2">
+                <div className="mt-4 flex justify-end space-x-2">
                   {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
                     <Button 
                       variant="ghost" 

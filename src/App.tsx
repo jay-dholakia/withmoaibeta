@@ -35,6 +35,7 @@ import GroupsPage from './pages/admin/GroupsPage';
 import GroupDetailsPage from './pages/admin/GroupDetailsPage';
 import InvitationsPage from './pages/admin/InvitationsPage';
 import ExerciseManagementPage from './pages/admin/ExerciseManagementPage';
+import ExerciseImportPage from './pages/ExerciseImportPage';
 
 function App() {
   const { user, userType, loading } = useAuth();
@@ -76,6 +77,7 @@ function App() {
       <Route path="/admin-dashboard/groups/:groupId" element={<RequireAuth allowedUserTypes={['admin']}><GroupDetailsPage /></RequireAuth>} />
       <Route path="/admin-dashboard/invitations" element={<RequireAuth allowedUserTypes={['admin']}><InvitationsPage /></RequireAuth>} />
       <Route path="/admin-dashboard/exercise-management" element={<RequireAuth allowedUserTypes={['admin']}><ExerciseManagementPage /></RequireAuth>} />
+      <Route path="/exercise-import" element={<RequireAuth allowedUserTypes={['admin']}><ExerciseImportPage /></RequireAuth>} />
       
       {/* Client Routes */}
       <Route path="/client-dashboard/*" element={<RequireAuth allowedUserTypes={['client']} />}>

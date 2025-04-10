@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,6 +62,7 @@ const ExerciseManagementPage = () => {
   const [isAlternativesDialogOpen, setIsAlternativesDialogOpen] = useState(false);
   const [potentialAlternatives, setPotentialAlternatives] = useState<ExtendedExercise[]>([]);
   const [activeTab, setActiveTab] = useState<string>('youtube');
+  const [alternativesFilterTerm, setAlternativesFilterTerm] = useState('');
   
   useEffect(() => {
     fetchExercises();
@@ -117,6 +119,7 @@ const ExerciseManagementPage = () => {
   const openAlternativesDialog = async (exercise: ExtendedExercise) => {
     setCurrentExercise(exercise);
     setYoutubeLink(exercise.youtube_link || '');
+    setAlternativesFilterTerm(''); // Reset the alternatives filter term
     setIsEditDialogOpen(true);
     setActiveTab('alternatives');
     
@@ -256,6 +259,12 @@ const ExerciseManagementPage = () => {
         return fieldB.localeCompare(fieldA);
       }
     });
+
+  const filteredPotentialAlternatives = alternativesFilterTerm 
+    ? potentialAlternatives.filter(alt => 
+        alt.name.toLowerCase().includes(alternativesFilterTerm.toLowerCase())
+      )
+    : potentialAlternatives;
   
   const openYoutubeLink = (link: string) => {
     if (link) {
@@ -555,18 +564,21 @@ const ExerciseManagementPage = () => {
                     type="search"
                     placeholder="Filter alternatives..."
                     className="mb-2"
-                    onChange={(e) => {
-                    }}
+                    value={alternativesFilterTerm}
+                    onChange={(e) => setAlternativesFilterTerm(e.target.value)}
                   />
                   
                   <ScrollArea className="h-64 border rounded-md p-2">
-                    {potentialAlternatives.length === 0 ? (
+                    {filteredPotentialAlternatives.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
-                        No alternative exercises found in this category
+                        {potentialAlternatives.length === 0 ? 
+                          "No alternative exercises found in this category" :
+                          "No exercises match your search"
+                        }
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        {potentialAlternatives.map(alt => (
+                        {filteredPotentialAlternatives.map(alt => (
                           <div key={alt.id} className="flex justify-between items-center p-2 hover:bg-accent rounded-md">
                             <span>{alt.name}</span>
                             <div className="flex space-x-1">

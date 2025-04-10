@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Exercise } from '@/types/workout';
-import { fetchExercisesByCategory } from '@/services/workout-service';
+import { fetchExercisesByCategory, ExtendedExercise } from '@/services/workout-service';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,17 +17,6 @@ interface ExerciseSelectorProps {
   isSubmitting?: boolean;
 }
 
-// Extended Exercise interface with alternatives
-interface ExtendedExercise extends Exercise {
-  alternative_exercise_1_id?: string | null;
-  alternative_exercise_2_id?: string | null;
-  alternative_exercise_3_id?: string | null;
-  alternative_exercise_1_name?: string | null;
-  alternative_exercise_2_name?: string | null;
-  alternative_exercise_3_name?: string | null;
-  created_at?: string; // Make created_at optional
-}
-
 export const ExerciseSelector = ({ 
   onSelectExercise, 
   excludeIds = [], 
@@ -39,12 +28,10 @@ export const ExerciseSelector = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  // Change the type of state to handle the exercises correctly
   const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, ExtendedExercise[]>>({});
   const [filteredExercises, setFilteredExercises] = useState<ExtendedExercise[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Get all exercises on initial load
   useEffect(() => {
     const getExercises = async () => {
       setIsLoading(true);
@@ -61,7 +48,6 @@ export const ExerciseSelector = ({
           return;
         }
         
-        // Group exercises by category
         const categorized: Record<string, ExtendedExercise[]> = {};
         exercises.forEach(exercise => {
           const category = exercise.category || 'Uncategorized';
@@ -84,12 +70,10 @@ export const ExerciseSelector = ({
     getExercises();
   }, [excludeIds]);
 
-  // Update filtered exercises when category or search query changes
   useEffect(() => {
     updateFilteredExercises(exercisesByCategory, selectedCategory, searchQuery, excludeIds);
   }, [selectedCategory, searchQuery, excludeIds, exercisesByCategory]);
 
-  // Helper function to update filtered exercises
   const updateFilteredExercises = (
     allExercises: Record<string, ExtendedExercise[]>,
     category: string,
@@ -98,14 +82,12 @@ export const ExerciseSelector = ({
   ) => {
     let filtered: ExtendedExercise[] = [];
 
-    // Get exercises based on category
     if (category === 'All') {
       filtered = Object.values(allExercises).flat();
     } else if (allExercises[category]) {
       filtered = [...allExercises[category]];
     }
 
-    // Filter by search query if provided
     if (query) {
       const lowerQuery = query.toLowerCase();
       filtered = filtered.filter(exercise => 
@@ -113,7 +95,6 @@ export const ExerciseSelector = ({
       );
     }
 
-    // Exclude specified IDs
     if (excluded.length > 0) {
       filtered = filtered.filter(exercise => !excluded.includes(exercise.id));
     }
@@ -123,7 +104,6 @@ export const ExerciseSelector = ({
 
   const categories = ['All', ...Object.keys(exercisesByCategory).sort()];
 
-  // Check if an exercise has alternatives
   const hasAlternatives = (exercise: ExtendedExercise) => {
     return !!(exercise.alternative_exercise_1_id || 
               exercise.alternative_exercise_2_id || 
@@ -168,7 +148,7 @@ export const ExerciseSelector = ({
                     key={exercise.id}
                     variant="outline"
                     className="justify-start h-auto py-3 px-4"
-                    onClick={() => onSelectExercise(exercise)}
+                    onClick={() => onSelectExercise(exercise as Exercise)}
                   >
                     <div className="text-left flex-1">
                       <div className="font-medium flex items-center">
@@ -196,7 +176,6 @@ export const ExerciseSelector = ({
         </Tabs>
       )}
       
-      {/* Legacy code for backward compatibility */}
       {onSelect && onCancel && (
         <div className="mt-4 flex justify-end space-x-2">
           <Button 

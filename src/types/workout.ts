@@ -1,9 +1,10 @@
+
 export interface Exercise {
   id: string;
   name: string;
   category: string;
   description: string | null;
-  created_at: string;
+  created_at?: string; // Make this optional to accommodate ExtendedExercise
   exercise_type: string; 
   youtube_link?: string;
 }

@@ -1185,7 +1185,7 @@ interface ExtendedExercise extends Exercise {
   alternative_exercise_1_name?: string | null;
   alternative_exercise_2_name?: string | null;
   alternative_exercise_3_name?: string | null;
-  created_at?: string; // Make created_at optional
+  // No need to redefine created_at since it's already optional in the parent interface
 }
 
 /**

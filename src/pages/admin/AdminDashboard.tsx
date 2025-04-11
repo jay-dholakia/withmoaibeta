@@ -3,16 +3,26 @@ import React from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mail, Users, UserPlus, UserSquare } from 'lucide-react';
+import { Mail, Users, UserPlus, UserSquare, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ClientPreview } from '@/components/admin/ClientPreview';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { userType } = useAuth();
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = React.useState(false);
   
   React.useEffect(() => {
     if (userType !== 'admin') {
@@ -146,6 +156,39 @@ const AdminDashboard: React.FC = () => {
                 Auto-Assign Alternative Exercises
               </Button>
             </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-l-4 border-l-blue-500 w-full">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl">Client Preview</CardTitle>
+            <CardDescription>
+              Preview client dashboard as an admin
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full">
+                  <Eye className="w-4 h-4 mr-2" />
+                  Preview Client View
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Client View Preview</DialogTitle>
+                </DialogHeader>
+                
+                <Tabs defaultValue="client-view" className="w-full mt-4">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="client-view" className="flex-1">Preview Client View</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="client-view" className="pt-4">
+                    <ClientPreview />
+                  </TabsContent>
+                </Tabs>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </div>

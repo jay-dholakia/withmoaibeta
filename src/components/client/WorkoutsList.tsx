@@ -3,7 +3,7 @@ import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Filter, ChevronDown, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,12 +13,15 @@ import { fetchCurrentProgram } from '@/services/program-service';
 import { ProgramProgressSection } from './ProgramProgressSection';
 import { fetchGroupMembers, GroupMember } from '@/services/group-member-service';
 import { LogActivityButtons } from './LogActivityButtons';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { X } from 'lucide-react';
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
   
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +30,48 @@ const WorkoutsList = () => {
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [calendarSuccess, setCalendarSuccess] = useState<string | null>(null);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
   const selectRef = useRef<HTMLDivElement>(null);
+
+  // Check for calendar-related query parameters
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const success = queryParams.get('success');
+    const error = queryParams.get('error');
+    
+    if (success === 'calendar_event_created') {
+      setCalendarSuccess('Workout was successfully added to your Google Calendar');
+      toast.success('Added to Google Calendar');
+      
+      // Remove query params after displaying the message
+      navigate('/client-dashboard/workouts', { replace: true });
+    }
+    
+    if (error) {
+      let errorMessage = 'Failed to add workout to Google Calendar';
+      
+      switch (error) {
+        case 'access_denied':
+          errorMessage = 'Calendar access was denied';
+          break;
+        case 'token_exchange':
+          errorMessage = 'Authentication failed with Google';
+          break;
+        case 'calendar_api':
+          errorMessage = 'Error creating calendar event';
+          break;
+        default:
+          errorMessage = `Failed to add to calendar: ${error.replace(/_/g, ' ')}`;
+      }
+      
+      setCalendarError(errorMessage);
+      toast.error(errorMessage);
+      
+      // Remove query params after displaying the message
+      navigate('/client-dashboard/workouts', { replace: true });
+    }
+  }, [location.search, navigate]);
 
   useEffect(() => {
     const loadWorkoutsAndProgram = async () => {
@@ -220,8 +264,6 @@ const WorkoutsList = () => {
     );
   }
 
-  console.log("WorkoutsList: Rendering with group members:", groupMembers);
-
   const allGroupMembers = groupMembers.some(member => member.id === user?.id)
     ? groupMembers
     : [
@@ -234,11 +276,30 @@ const WorkoutsList = () => {
         }
       ];
 
-  console.log("WorkoutsList: Final group members for cards:", allGroupMembers);
-
   return (
     <div className="space-y-6">
       <ProgramProgressSection />
+      
+      {(calendarSuccess || calendarError) && (
+        <Alert className={calendarError ? 'bg-destructive/15 text-destructive' : 'bg-green-50 border-green-200 text-green-800'}>
+          <div className="flex items-center justify-between">
+            <AlertDescription>
+              {calendarSuccess || calendarError}
+            </AlertDescription>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-5 w-5" 
+              onClick={() => {
+                setCalendarSuccess(null);
+                setCalendarError(null);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </Alert>
+      )}
       
       <div className="space-y-4">
         {availableWeeks.length > 0 && (

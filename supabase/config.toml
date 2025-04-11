@@ -6,3 +6,9 @@ verify_jwt = true
 
 [functions.get_weekly_progress]
 verify_jwt = true
+
+[functions.add-to-google-calendar]
+verify_jwt = true
+
+[functions.google-calendar-callback]
+verify_jwt = false

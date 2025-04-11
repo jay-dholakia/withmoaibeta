@@ -154,14 +154,11 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       if (title.includes('hiking')) return 'hiking';
       if (title.includes('skiing')) return 'skiing';
       if (title.includes('yoga')) return 'yoga';
-      if (title.includes('soccer') || title.includes('football')) return 'sport';
-      if (title.includes('game') || title.includes('match') || title.includes('play')) return 'sport';
     }
     
     for (const workout of workoutsForDay) {
       if (workout.workout_type) {
         const type = workout.workout_type.toLowerCase();
-        if (type === 'sport') return 'sport';
         if (type === 'strength') return 'strength';
         if (type === 'cardio') return 'cardio';
         if (type === 'bodyweight') return 'bodyweight';
@@ -171,7 +168,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
         if (type === 'cycling') return 'cycling';
         if (type === 'dance') return 'dance';
         if (type === 'custom') return 'custom';
-        if (type === 'one_off') return 'one_off';
         if (type === 'basketball') return 'basketball';
         if (type === 'golf') return 'golf';
         if (type === 'volleyball') return 'volleyball'; 
@@ -196,11 +192,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
         if (workoutType === 'skiing') return 'skiing';
         if (workoutType === 'yoga') return 'yoga';
         
-        if (workoutType.includes('sport')) return 'sport';
-        if (workoutType.includes('tennis')) return 'tennis';
-        if (workoutType.includes('soccer')) return 'sport';
-        if (workoutType.includes('game') || workoutType.includes('match')) return 'sport';
-        
         if (workoutType === 'strength') return 'strength';
         if (workoutType === 'cardio') return 'cardio';
         if (workoutType === 'bodyweight') return 'bodyweight';
@@ -210,7 +201,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
         if (workoutType === 'cycling') return 'cycling';
         if (workoutType === 'dance') return 'dance';
         if (workoutType === 'custom') return 'custom';
-        if (workoutType === 'one_off') return 'one_off';
       }
     }
 
@@ -225,12 +215,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       if (description.includes('hiking')) return 'hiking';
       if (description.includes('skiing')) return 'skiing';
       if (description.includes('yoga')) return 'yoga';
-      
-      if (description.includes('soccer') || description.includes('sport') || 
-          description.includes('game') || description.includes('match') || 
-          description.includes('play')) {
-        return 'sport';
-      }
       
       if (description.includes('dance')) return 'dance';
       if (description.includes('swim')) return 'swimming';
@@ -358,9 +342,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       { type: 'flexibility', label: 'Flexibility' },
       { type: 'rest_day', label: 'Rest Day' },
       { type: 'custom', label: 'Custom' },
-      { type: 'one_off', label: 'One-off' },
       { type: 'hiit', label: 'HIIT' },
-      { type: 'sport', label: 'Sport' },
       { type: 'swimming', label: 'Swimming' },
       { type: 'cycling', label: 'Cycling' },
       { type: 'dance', label: 'Dance' },

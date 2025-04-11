@@ -132,14 +132,12 @@ const LeaderboardPage = () => {
           else if (workoutType.toLowerCase().includes('cardio')) typesMap[dateKey] = 'cardio';
           else if (workoutType.toLowerCase().includes('body') || workoutType.toLowerCase().includes('weight')) typesMap[dateKey] = 'bodyweight';
           else if (workoutType.toLowerCase().includes('flex') || workoutType.toLowerCase().includes('yoga')) typesMap[dateKey] = 'flexibility';
-          else if (workoutType.toLowerCase().includes('sport')) typesMap[dateKey] = 'sport';
           else if (workoutType.toLowerCase().includes('hiit')) typesMap[dateKey] = 'hiit';
           else if (workoutType.toLowerCase().includes('swim')) typesMap[dateKey] = 'swimming';
           else if (workoutType.toLowerCase().includes('dance')) typesMap[dateKey] = 'dance';
           else if (workoutType.toLowerCase().includes('cycl') || workoutType.toLowerCase().includes('bike')) typesMap[dateKey] = 'cycling';
           else if (workoutType.toLowerCase().includes('custom')) typesMap[dateKey] = 'custom';
-          else if (workoutType.toLowerCase().includes('one')) typesMap[dateKey] = 'one_off';
-          else typesMap[dateKey] = 'strength'; // Default
+          else typesMap[dateKey] = 'custom'; // Default changed from one_off to custom
         } catch (err) {
           console.error('Error processing workout date:', err, item.completed_at);
         }

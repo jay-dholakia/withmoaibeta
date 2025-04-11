@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { StandardWorkoutType } from '@/types/workout';
 
@@ -98,7 +99,6 @@ export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.Reac
   { value: 'bodyweight', label: 'Bodyweight', icon: '💪' },
   { value: 'flexibility', label: 'Flexibility', icon: '🧘' },
   { value: 'hiit', label: 'HIIT', icon: '⚡' },
-  { value: 'sport', label: 'Sport', icon: '🎾' },
   { value: 'swimming', label: 'Swimming', icon: '🏊' },
   { value: 'cycling', label: 'Cycling', icon: '🚴' },
   { value: 'dance', label: 'Dance', icon: '💃' },
@@ -110,5 +110,5 @@ export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.Reac
   { value: 'hiking', label: 'Hiking', icon: '🥾' },
   { value: 'skiing', label: 'Skiing', icon: '⛷️' },
   { value: 'yoga', label: 'Yoga', icon: '🧘' }
-  // Removed: cardio, custom, one_off, rest_day as requested
+  // Removed: cardio, sport, one_off, custom, rest_day as requested
 ];

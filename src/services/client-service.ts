@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -177,11 +178,36 @@ export const fetchAllClientProfiles = async () => {
 
 /**
  * Track workout set
+ * Updated function signature to match how it's used in ActiveWorkout.tsx
  */
-export const trackWorkoutSet = async (workoutData: any) => {
-  const { data, error } = await supabase
+export const trackWorkoutSet = async (
+  exerciseId: string, 
+  completionId: string, 
+  setNumber: number, 
+  data: {
+    weight?: number | null;
+    reps_completed?: number | null;
+    notes?: string | null;
+    distance?: string | null;
+    duration?: string | null;
+    location?: string | null;
+    completed?: boolean;
+  }
+) => {
+  const { data: result, error } = await supabase
     .from('workout_set_completions')
-    .insert([workoutData])
+    .insert([{
+      workout_exercise_id: exerciseId,
+      workout_completion_id: completionId,
+      set_number: setNumber,
+      weight: data.weight,
+      reps_completed: data.reps_completed,
+      notes: data.notes,
+      distance: data.distance,
+      duration: data.duration,
+      location: data.location,
+      completed: data.completed || false
+    }])
     .select()
     .single();
 
@@ -190,7 +216,7 @@ export const trackWorkoutSet = async (workoutData: any) => {
     throw error;
   }
 
-  return data;
+  return result;
 };
 
 /**

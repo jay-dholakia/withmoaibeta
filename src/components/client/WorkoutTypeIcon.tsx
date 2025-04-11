@@ -43,6 +43,22 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
         return '🚴'; // Cycling
       case 'dance':
         return '💃'; // Dance workout
+      case 'basketball':
+        return '🏀'; // Basketball
+      case 'golf':
+        return '⛳'; // Golf
+      case 'volleyball':
+        return '🏐'; // Volleyball
+      case 'baseball':
+        return '⚾'; // Baseball
+      case 'tennis':
+        return '🎾'; // Tennis
+      case 'hiking':
+        return '🥾'; // Hiking/trails
+      case 'skiing':
+        return '⛷️'; // Skiing
+      case 'yoga':
+        return '🧘'; // Yoga
       default:
         return '📝'; // Default icon
     }
@@ -81,12 +97,20 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
 export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.ReactNode}[] = [
   { value: 'strength', label: 'Strength', icon: '🏋️' },
   { value: 'bodyweight', label: 'Bodyweight', icon: '💪' },
-  { value: 'cardio', label: 'Cardio', icon: '🏃' }, // Updated icon for cardio
+  { value: 'cardio', label: 'Cardio', icon: '🏃' },
   { value: 'flexibility', label: 'Flexibility', icon: '🧘' },
   { value: 'hiit', label: 'HIIT', icon: '⚡' },
   { value: 'sport', label: 'Sport', icon: '🎾' },
   { value: 'swimming', label: 'Swimming', icon: '🏊' },
   { value: 'cycling', label: 'Cycling', icon: '🚴' },
-  { value: 'dance', label: 'Dance', icon: '💃' }
-  // Removed: custom, one_off, rest_day, core as requested
+  { value: 'dance', label: 'Dance', icon: '💃' },
+  { value: 'basketball', label: 'Basketball', icon: '🏀' },
+  { value: 'golf', label: 'Golf', icon: '⛳' },
+  { value: 'volleyball', label: 'Volleyball', icon: '🏐' },
+  { value: 'baseball', label: 'Baseball', icon: '⚾' },
+  { value: 'tennis', label: 'Tennis', icon: '🎾' },
+  { value: 'hiking', label: 'Hiking', icon: '🥾' },
+  { value: 'skiing', label: 'Skiing', icon: '⛷️' },
+  { value: 'yoga', label: 'Yoga', icon: '🧘' }
+  // Removed: custom, one_off, rest_day as requested
 ];

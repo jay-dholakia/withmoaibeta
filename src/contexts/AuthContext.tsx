@@ -313,18 +313,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       safeSetState(setLoading, true);
       setAuthError(null);
       
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        handleAuthError(error);
-        return;
-      }
-      
-      // Reset all auth state immediately rather than waiting for the listener
+      // Reset all auth state immediately before attempting to sign out
+      // This ensures UI updates even if the signOut call fails
       safeSetState(setSession, null);
       safeSetState(setUser, null);
       safeSetState(setProfile, null);
       safeSetState(setUserType, null);
+      
+      // Try to sign out, but handle errors gracefully
+      try {
+        await supabase.auth.signOut();
+        console.log('Successfully signed out from Supabase');
+      } catch (signOutError) {
+        // Just log the error, don't throw, since we've already reset the state
+        console.error('Error during Supabase signOut:', signOutError);
+      }
       
       navigate('/');
       toast.success('Logged out successfully');

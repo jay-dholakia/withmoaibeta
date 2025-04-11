@@ -1,11 +1,10 @@
-
 import React, { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Users, Mail, UserPlus, LogOut, 
   BarChart, Settings, ChevronDown, 
   UserSquare, CircleDashed, Database,
-  Dumbbell
+  Dumbbell, BarChart3
 } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { Logo } from '@/components/Logo';
@@ -61,6 +60,11 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
       icon: <UserPlus className="w-5 h-5" />,
     },
     {
+      name: 'Client Stats',
+      path: '/admin-dashboard/client-stats',
+      icon: <BarChart3 className="w-5 h-5" />,
+    },
+    {
       name: 'Exercise Import',
       path: '/exercise-import',
       icon: <Database className="w-5 h-5" />,
@@ -77,7 +81,6 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
     navigate('/');
   };
 
-  // Helper function to check if a navigation item is active
   const isNavItemActive = (item: typeof navItems[0]) => {
     if (item.exact) {
       return location.pathname === item.path;
@@ -87,7 +90,6 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
       <div className="w-64 border-r bg-card hidden md:flex md:flex-col">
         <div className="p-4 border-b">
           <Logo variant="admin" />
@@ -122,7 +124,6 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
         </div>
       </div>
       
-      {/* Mobile header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-background border-b p-4 flex justify-between items-center">
         <Logo variant="admin" size="sm" />
         
@@ -157,7 +158,6 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
         </DropdownMenu>
       </div>
       
-      {/* Main content */}
       <div className="flex-1 flex flex-col">
         <PageTransition>
           <main className="flex-1 p-4 md:p-6 pt-20 md:pt-6">
@@ -172,4 +172,3 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
     </div>
   );
 };
-

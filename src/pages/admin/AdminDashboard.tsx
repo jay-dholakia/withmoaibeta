@@ -3,7 +3,7 @@ import React from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mail, Users, UserPlus, UserSquare } from 'lucide-react';
+import { Mail, Users, UserPlus, UserSquare, CircleGraph, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -81,7 +81,7 @@ const AdminDashboard: React.FC = () => {
               className="w-full" 
               onClick={() => navigate('/admin-dashboard/groups')}
             >
-              <UserSquare className="w-4 h-4 mr-2" />
+              <UserSquare className="w-5 h-5 mr-2" />
               Manage Groups
             </Button>
           </CardContent>
@@ -99,7 +99,7 @@ const AdminDashboard: React.FC = () => {
               className="w-full" 
               onClick={() => navigate('/admin-dashboard/clients')}
             >
-              <Users className="w-4 h-4 mr-2" />
+              <Users className="w-5 h-5 mr-2" />
               View Clients
             </Button>
           </CardContent>
@@ -117,8 +117,26 @@ const AdminDashboard: React.FC = () => {
               className="w-full" 
               onClick={() => navigate('/admin-dashboard/coaches')}
             >
-              <UserPlus className="w-4 h-4 mr-2" />
+              <UserPlus className="w-5 h-5 mr-2" />
               View Coaches
+            </Button>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-l-4 border-l-green-500 w-full">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl">Client Stats</CardTitle>
+            <CardDescription>
+              View client workout statistics
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              className="w-full" 
+              onClick={() => navigate('/admin-dashboard/client-stats')}
+            >
+              <BarChart3 className="w-5 h-5 mr-2" />
+              View Statistics
             </Button>
           </CardContent>
         </Card>

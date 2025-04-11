@@ -1,11 +1,12 @@
-import React, { useEffect } from 'react';
+
+import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import LoginPage from './pages/LoginPage';
-import PasswordResetRequestPage from './pages/PasswordResetRequestPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import RegisterPage from './pages/RegisterPage';
-import HomePage from './pages/HomePage';
+import LoginPage from './pages/ClientLogin'; // Fixed path
+import PasswordResetRequestPage from './pages/client/PasswordResetRequestPage';
+import ResetPasswordPage from './pages/ResetPassword'; // Fixed path
+import RegisterPage from './pages/Register'; // Fixed path
+import HomePage from './pages/Index'; // Fixed path
 import ClientDashboard from './pages/client/ClientDashboard';
 import CoachDashboard from './pages/coach/CoachDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -14,17 +15,17 @@ import GroupsPage from './pages/admin/GroupsPage';
 import ClientsPage from './pages/admin/ClientsPage';
 import CoachesPage from './pages/admin/CoachesPage';
 import GroupDetailsPage from './pages/admin/GroupDetailsPage';
-import ClientProfilePage from './pages/client/ClientProfilePage';
-import CoachProfilePage from './pages/coach/CoachProfilePage';
+import ClientProfilePage from './pages/client/ProfileEditor'; // Fixed path
+import CoachProfilePage from './pages/coach/ProfilePage'; // Fixed path
 import ExerciseManagementPage from './pages/admin/ExerciseManagementPage';
-import WorkoutProgramPage from './pages/coach/WorkoutProgramPage';
-import WorkoutProgramDetailsPage from './pages/coach/WorkoutProgramDetailsPage';
-import WorkoutWeekDetailsPage from './pages/coach/WorkoutWeekDetailsPage';
-import WorkoutDetailsPage from './pages/coach/WorkoutDetailsPage';
-import ClientWorkoutHistoryPage from './pages/client/ClientWorkoutHistoryPage';
-import ClientWorkoutDetailsPage from './pages/client/ClientWorkoutDetailsPage';
-import ExerciseImportPage from './pages/admin/ExerciseImportPage';
-import StandaloneWorkoutPage from './pages/coach/StandaloneWorkoutPage';
+import WorkoutProgramPage from './pages/coach/WorkoutProgramsPage'; // Fixed path
+import WorkoutProgramDetailsPage from './pages/coach/WorkoutProgramDetailPage'; // Fixed path
+import WorkoutWeekDetailsPage from './pages/coach/WorkoutWeekDetailPage'; // Fixed path
+import WorkoutDetailsPage from './pages/coach/EditWorkoutPage'; // Fixed path
+import ClientWorkoutHistoryPage from './pages/client/WorkoutsPage'; // Fixed path
+import ClientWorkoutDetailsPage from './pages/client/WorkoutDetailsPage'; // Fixed path
+import ExerciseImportPage from './pages/ExerciseImportPage'; // Fixed path
+import StandaloneWorkoutPage from './pages/coach/StandaloneWorkoutsPage'; // Fixed path
 import StandaloneWorkoutDetailsPage from './pages/coach/StandaloneWorkoutDetailsPage';
 import PublicRoute from './components/PublicRoute';
 import PrivateRoute from './components/PrivateRoute';
@@ -46,31 +47,31 @@ const App: React.FC = () => {
           <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
 
           {/* Admin routes */}
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/admin-dashboard/invitations" element={<InvitationsPage />} />
-          <Route path="/admin-dashboard/groups" element={<GroupsPage />} />
-          <Route path="/admin-dashboard/clients" element={<ClientsPage />} />
-          <Route path="/admin-dashboard/coaches" element={<CoachesPage />} />
-          <Route path="/admin-dashboard/groups/:groupId" element={<GroupDetailsPage />} />
-          <Route path="/admin-dashboard/exercise-management" element={<ExerciseManagementPage />} />
-          <Route path="/admin-dashboard/client-stats" element={<ClientStatsPage />} />
-          <Route path="/exercise-import" element={<ExerciseImportPage />} />
+          <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route path="/admin-dashboard/invitations" element={<AdminRoute><InvitationsPage /></AdminRoute>} />
+          <Route path="/admin-dashboard/groups" element={<AdminRoute><GroupsPage /></AdminRoute>} />
+          <Route path="/admin-dashboard/clients" element={<AdminRoute><ClientsPage /></AdminRoute>} />
+          <Route path="/admin-dashboard/coaches" element={<AdminRoute><CoachesPage /></AdminRoute>} />
+          <Route path="/admin-dashboard/groups/:groupId" element={<AdminRoute><GroupDetailsPage /></AdminRoute>} />
+          <Route path="/admin-dashboard/exercise-management" element={<AdminRoute><ExerciseManagementPage /></AdminRoute>} />
+          <Route path="/admin-dashboard/client-stats" element={<AdminRoute><ClientStatsPage /></AdminRoute>} />
+          <Route path="/exercise-import" element={<AdminRoute><ExerciseImportPage /></AdminRoute>} />
 
           {/* Coach routes */}
-          <Route path="/coach-dashboard" element={<CoachDashboard />} />
-          <Route path="/coach-profile" element={<CoachProfilePage />} />
-          <Route path="/workout-programs" element={<WorkoutProgramPage />} />
-          <Route path="/workout-programs/:programId" element={<WorkoutProgramDetailsPage />} />
-          <Route path="/workout-weeks/:weekId" element={<WorkoutWeekDetailsPage />} />
-          <Route path="/workouts/:workoutId" element={<WorkoutDetailsPage />} />
-          <Route path="/standalone-workouts" element={<StandaloneWorkoutPage />} />
-          <Route path="/standalone-workouts/:workoutId" element={<StandaloneWorkoutDetailsPage />} />
+          <Route path="/coach-dashboard" element={<CoachRoute><CoachDashboard /></CoachRoute>} />
+          <Route path="/coach-profile" element={<CoachRoute><CoachProfilePage /></CoachRoute>} />
+          <Route path="/workout-programs" element={<CoachRoute><WorkoutProgramPage /></CoachRoute>} />
+          <Route path="/workout-programs/:programId" element={<CoachRoute><WorkoutProgramDetailsPage /></CoachRoute>} />
+          <Route path="/workout-weeks/:weekId" element={<CoachRoute><WorkoutWeekDetailsPage /></CoachRoute>} />
+          <Route path="/workouts/:workoutId" element={<CoachRoute><WorkoutDetailsPage /></CoachRoute>} />
+          <Route path="/standalone-workouts" element={<CoachRoute><StandaloneWorkoutPage /></CoachRoute>} />
+          <Route path="/standalone-workouts/:workoutId" element={<CoachRoute><StandaloneWorkoutDetailsPage /></CoachRoute>} />
 
           {/* Client routes */}
-          <Route path="/client-dashboard" element={<ClientDashboard />} />
-          <Route path="/client-profile" element={<ClientProfilePage />} />
-          <Route path="/client-workout-history" element={<ClientWorkoutHistoryPage />} />
-          <Route path="/client-workout-history/:workoutId" element={<ClientWorkoutDetailsPage />} />
+          <Route path="/client-dashboard" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
+          <Route path="/client-profile" element={<ClientRoute><ClientProfilePage /></ClientRoute>} />
+          <Route path="/client-workout-history" element={<ClientRoute><ClientWorkoutHistoryPage /></ClientRoute>} />
+          <Route path="/client-workout-history/:workoutId" element={<ClientRoute><ClientWorkoutDetailsPage /></ClientRoute>} />
 
           {/* Fallback route */}
           <Route path="*" element={<Navigate to="/" />} />

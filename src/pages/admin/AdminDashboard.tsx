@@ -16,7 +16,6 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClientPreview } from '@/components/admin/ClientPreview';
 
 const AdminDashboard: React.FC = () => {
@@ -174,19 +173,13 @@ const AdminDashboard: React.FC = () => {
                   Preview Client View
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+              <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Client View Preview</DialogTitle>
                 </DialogHeader>
-                
-                <Tabs defaultValue="client-view" className="w-full mt-4">
-                  <TabsList className="w-full">
-                    <TabsTrigger value="client-view" className="flex-1">Preview Client View</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="client-view" className="pt-4">
-                    <ClientPreview />
-                  </TabsContent>
-                </Tabs>
+                <div className="mt-4">
+                  <ClientPreview onOpenChange={setIsPreviewDialogOpen} />
+                </div>
               </DialogContent>
             </Dialog>
           </CardContent>

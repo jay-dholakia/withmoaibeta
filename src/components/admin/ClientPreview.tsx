@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, Eye } from 'lucide-react';
 import { ClientLayout } from '@/layouts/ClientLayout';
 import { toast } from 'sonner';
+import { fetchCurrentProgram } from '@/services/program-service';
 
 interface Client {
   id: string;
@@ -14,11 +14,10 @@ interface Client {
   group_name: string | null;
 }
 
-export const ClientPreview = () => {
+export const ClientPreview = ({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<any | null>(null);
 
   // Fetch all clients
@@ -90,12 +89,7 @@ export const ClientPreview = () => {
     setIsLoading(true);
     try {
       // Fetch client's current program
-      const { data: programData, error: programError } = await supabase.rpc(
-        'is_program_assigned_to_user',
-        { program_id_param: null, user_id_param: clientId }
-      );
-
-      if (programError) throw programError;
+      const programData = await fetchCurrentProgram(clientId);
 
       // Fetch client's profile info
       const { data: profileData, error: profileError } = await supabase
@@ -120,10 +114,8 @@ export const ClientPreview = () => {
       setPreviewData({
         profile: profileData || {},
         workoutHistory: workoutHistory || [],
-        hasProgram: programData || false
+        hasProgram: !!programData
       });
-
-      setIsPreviewOpen(true);
     } catch (error) {
       console.error('Error fetching client preview data:', error);
       toast.error('Failed to load client preview data');
@@ -160,95 +152,95 @@ export const ClientPreview = () => {
       </div>
 
       {selectedClientId && (
-        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              className="w-full" 
-              disabled={isLoading || !selectedClientId}
-              onClick={() => fetchClientPreviewData(selectedClientId)}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading Preview...
-                </>
-              ) : (
-                <>
-                  <Eye className="mr-2 h-4 w-4" />
-                  Preview Client View
-                </>
-              )}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-6xl" fullScreen={true} hideClose={false}>
-            <DialogHeader>
-              <DialogTitle className="flex justify-between items-center">
-                <span>
-                  Client Preview: {clients.find(c => c.id === selectedClientId)?.email}
-                </span>
-                <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(false)}>
-                  Exit Preview
-                </Button>
-              </DialogTitle>
-            </DialogHeader>
-            
-            <div className="mt-4">
-              <ClientLayout>
-                <div className="p-4">
-                  <h1 className="text-2xl font-bold mb-4">Client Dashboard</h1>
-                  
-                  {previewData ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="border rounded-lg p-4 shadow-sm">
-                        <h2 className="text-lg font-semibold mb-2">Profile Information</h2>
-                        {previewData.profile ? (
-                          <div className="space-y-2">
-                            <p><strong>Name:</strong> {previewData.profile.first_name || 'N/A'} {previewData.profile.last_name || ''}</p>
-                            <p><strong>Location:</strong> {previewData.profile.city || 'N/A'}{previewData.profile.city && previewData.profile.state ? ', ' : ''}{previewData.profile.state || ''}</p>
-                            <p><strong>Height:</strong> {previewData.profile.height || 'N/A'}</p>
-                            <p><strong>Weight:</strong> {previewData.profile.weight || 'N/A'}</p>
-                            <p><strong>Goals:</strong> {previewData.profile.fitness_goals?.join(', ') || 'N/A'}</p>
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground">No profile information available.</p>
-                        )}
-                      </div>
-                      
-                      <div className="border rounded-lg p-4 shadow-sm">
-                        <h2 className="text-lg font-semibold mb-2">Program Status</h2>
-                        {previewData.hasProgram ? (
-                          <p className="text-green-600">Client has an active program assigned.</p>
-                        ) : (
-                          <p className="text-amber-600">Client does not have any program assigned.</p>
-                        )}
-                      </div>
-                      
-                      <div className="border rounded-lg p-4 shadow-sm md:col-span-2">
-                        <h2 className="text-lg font-semibold mb-2">Recent Workouts</h2>
-                        {previewData.workoutHistory && previewData.workoutHistory.length > 0 ? (
-                          <div className="space-y-2">
-                            {previewData.workoutHistory.map((workout: any) => (
-                              <div key={workout.id} className="border-b pb-2">
-                                <p><strong>Date:</strong> {new Date(workout.completed_at).toLocaleDateString()}</p>
-                                <p><strong>Type:</strong> {workout.workout_type || 'Standard'}</p>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground">No recent workout history found.</p>
-                        )}
-                      </div>
+        <div>
+          <Button 
+            className="w-full mb-4" 
+            disabled={isLoading || !selectedClientId}
+            onClick={() => fetchClientPreviewData(selectedClientId)}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Refreshing Preview...
+              </>
+            ) : (
+              <>
+                <Eye className="mr-2 h-4 w-4" />
+                Refresh Client Data
+              </>
+            )}
+          </Button>
+          
+          <div className="border rounded-lg">
+            <ClientLayout>
+              <div className="p-4">
+                <h1 className="text-2xl font-bold mb-4">Client Dashboard</h1>
+                
+                {previewData ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="border rounded-lg p-4 shadow-sm">
+                      <h2 className="text-lg font-semibold mb-2">Profile Information</h2>
+                      {previewData.profile && Object.keys(previewData.profile).length > 0 ? (
+                        <div className="space-y-2">
+                          <p><strong>Name:</strong> {previewData.profile.first_name || 'N/A'} {previewData.profile.last_name || ''}</p>
+                          <p><strong>Location:</strong> {previewData.profile.city || 'N/A'}{previewData.profile.city && previewData.profile.state ? ', ' : ''}{previewData.profile.state || ''}</p>
+                          <p><strong>Height:</strong> {previewData.profile.height || 'N/A'}</p>
+                          <p><strong>Weight:</strong> {previewData.profile.weight || 'N/A'}</p>
+                          <p><strong>Goals:</strong> {previewData.profile.fitness_goals?.join(', ') || 'N/A'}</p>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No profile information available.</p>
+                      )}
                     </div>
-                  ) : (
-                    <div className="flex justify-center items-center h-64">
+                    
+                    <div className="border rounded-lg p-4 shadow-sm">
+                      <h2 className="text-lg font-semibold mb-2">Program Status</h2>
+                      {previewData.hasProgram ? (
+                        <p className="text-green-600">Client has an active program assigned.</p>
+                      ) : (
+                        <p className="text-amber-600">Client does not have any program assigned.</p>
+                      )}
+                    </div>
+                    
+                    <div className="border rounded-lg p-4 shadow-sm md:col-span-2">
+                      <h2 className="text-lg font-semibold mb-2">Recent Workouts</h2>
+                      {previewData.workoutHistory && previewData.workoutHistory.length > 0 ? (
+                        <div className="space-y-2">
+                          {previewData.workoutHistory.map((workout: any) => (
+                            <div key={workout.id} className="border-b pb-2">
+                              <p><strong>Date:</strong> {new Date(workout.completed_at).toLocaleDateString()}</p>
+                              <p><strong>Type:</strong> {workout.workout_type || 'Standard'}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No recent workout history found.</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-center items-center h-64">
+                    {isLoading ? (
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-              </ClientLayout>
-            </div>
-          </DialogContent>
-        </Dialog>
+                    ) : (
+                      <p className="text-muted-foreground">Select a client to preview their dashboard</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </ClientLayout>
+          </div>
+          
+          {onOpenChange && (
+            <Button 
+              variant="outline" 
+              className="w-full mt-4" 
+              onClick={() => onOpenChange(false)}
+            >
+              Exit Preview
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );

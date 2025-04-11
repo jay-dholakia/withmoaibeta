@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -46,7 +45,6 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile>
  * Create client profile if it doesn't exist
  */
 export const createClientProfile = async (userId: string): Promise<ClientProfile | null> => {
-  // Check if profile exists
   const { data: existingProfile, error: checkError } = await supabase
     .from('client_profiles')
     .select('*')
@@ -58,12 +56,10 @@ export const createClientProfile = async (userId: string): Promise<ClientProfile
     throw checkError;
   }
 
-  // If profile exists, return it
   if (existingProfile) {
     return existingProfile as ClientProfile;
   }
 
-  // Otherwise, create a new profile
   const { data: newProfile, error: createError } = await supabase
     .from('client_profiles')
     .insert([{ id: userId }])
@@ -118,7 +114,6 @@ export const uploadClientAvatar = async (userId: string, file: File): Promise<st
     .from('avatars')
     .getPublicUrl(filePath);
 
-  // Update the user profile with the new avatar URL
   await updateClientProfile(userId, {
     avatar_url: data.publicUrl
   });
@@ -131,15 +126,24 @@ export const uploadClientAvatar = async (userId: string, file: File): Promise<st
  */
 export const deleteUser = async (userId: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.rpc('admin_delete_user', { user_id: userId });
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+    
+    if (profileError) {
+      console.error("Error deleting user profile:", profileError);
+      throw profileError;
+    }
+    
+    const { error } = await supabase.auth.admin.deleteUser(userId);
     
     if (error) {
-      console.error("Error deleting user:", error);
+      console.error("Error deleting user from auth:", error);
       throw error;
     }
     
-    // Return the boolean result directly from the RPC function
-    return data === true;
+    return true;
   } catch (error) {
     console.error("Error in deleteUser:", error);
     throw error;
@@ -178,7 +182,6 @@ export const fetchAllClientProfiles = async () => {
 
 /**
  * Track workout set
- * Updated function signature to match how it's used in ActiveWorkout.tsx
  */
 export const trackWorkoutSet = async (
   exerciseId: string, 

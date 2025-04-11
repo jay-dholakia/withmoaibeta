@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -112,6 +113,7 @@ const ClientsPage: React.FC = () => {
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   useEffect(() => {
     if (userType !== 'admin') {
@@ -146,21 +148,36 @@ const ClientsPage: React.FC = () => {
     if (!clientToDelete) return;
     
     setIsDeleting(true);
+    setErrorMessage(null);
+    
     try {
-      const success = await deleteUser(clientToDelete.id);
-      
-      if (!success) {
-        throw new Error('Failed to delete user');
+      // First, try to delete the client from any groups they might be in
+      try {
+        const { error: groupDeleteError } = await supabase
+          .from('group_members')
+          .delete()
+          .eq('user_id', clientToDelete.id);
+          
+        if (groupDeleteError) {
+          console.log('Note: Error removing user from groups:', groupDeleteError);
+          // Continue anyway as this is not critical
+        }
+      } catch (groupErr) {
+        console.log('Note: Could not remove from groups:', groupErr);
+        // Continue anyway as this is not critical
       }
+      
+      // Now try to delete the user
+      await deleteUser(clientToDelete.id);
       
       toast.success(`User ${clientToDelete.email} was deleted successfully`);
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error in delete process:', err);
+      setErrorMessage(err.message || 'An error occurred while deleting the user');
       toast.error('An error occurred while deleting the user');
     } finally {
       setIsDeleting(false);
-      setClientToDelete(null);
     }
   };
 
@@ -292,6 +309,11 @@ const ClientsPage: React.FC = () => {
               This action is <span className="text-destructive font-semibold">permanent</span> and cannot be undone.
               The user will need to sign up again to create a new account.
             </AlertDialogDescription>
+            {errorMessage && (
+              <div className="mt-3 text-sm bg-destructive/20 text-destructive border border-destructive/30 p-2 rounded">
+                <strong>Error:</strong> {errorMessage}
+              </div>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>

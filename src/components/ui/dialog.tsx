@@ -30,8 +30,8 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { fullScreen?: boolean; hideClose?: boolean }
->(({ className, children, fullScreen = false, hideClose = false, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { fullScreen?: boolean }
+>(({ className, children, fullScreen = false, ...props }, ref) => {
   const [mounted, setMounted] = React.useState(false);
   
   // Use effect to handle mounting state to prevent hydration mismatch
@@ -52,12 +52,10 @@ const DialogContent = React.forwardRef<
         {...props}
       >
         {children}
-        {!hideClose && (
-          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </DialogPortal>
   )

@@ -5,6 +5,7 @@ import { Calendar, CalendarPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useLocation } from 'react-router-dom';
 
 interface AddToGoogleCalendarButtonProps {
   workoutId: string;
@@ -30,6 +31,21 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const location = useLocation();
+
+  // Check for URL parameters that might indicate auth success or failure
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const calendarStatus = searchParams.get('calendar');
+    const errorMessage = searchParams.get('error');
+
+    if (calendarStatus === 'connected') {
+      toast.success('Google Calendar connected successfully!');
+      setIsConnected(true);
+    } else if (errorMessage) {
+      toast.error(`Google Calendar error: ${errorMessage}`);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const checkGoogleCalendarConnection = async () => {

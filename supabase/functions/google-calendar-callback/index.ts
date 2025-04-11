@@ -26,6 +26,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Received callback with code and state:", { codeLength: code.length, state });
+
     // Exchange code for tokens
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
@@ -46,16 +48,52 @@ serve(async (req) => {
       return redirectWithError(`Failed to exchange token: ${tokenData.error}`);
     }
 
-    // Store tokens in Supabase
-    const { error: storageError } = await supabase.from("google_calendar_tokens").upsert(
-      {
-        user_id: state,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        expiry_date: Date.now() + (tokenData.expires_in * 1000),
-      },
-      { onConflict: "user_id" }
-    );
+    console.log("Received token data:", { 
+      accessTokenReceived: !!tokenData.access_token,
+      refreshTokenReceived: !!tokenData.refresh_token,
+      expiresIn: tokenData.expires_in
+    });
+
+    // Check if a record already exists for this user
+    const { data: existingToken, error: checkError } = await supabase
+      .from("google_calendar_tokens")
+      .select("id")
+      .eq("user_id", state)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error("Error checking for existing token:", checkError);
+    }
+
+    let storageError = null;
+    
+    if (existingToken) {
+      // Update existing record
+      const { error } = await supabase
+        .from("google_calendar_tokens")
+        .update({
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token || existingToken.refresh_token, // Keep existing refresh token if not provided
+          expiry_date: Date.now() + (tokenData.expires_in * 1000),
+        })
+        .eq("user_id", state);
+      
+      storageError = error;
+      console.log("Updated existing token record");
+    } else {
+      // Insert new record
+      const { error } = await supabase
+        .from("google_calendar_tokens")
+        .insert({
+          user_id: state,
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expiry_date: Date.now() + (tokenData.expires_in * 1000),
+        });
+      
+      storageError = error;
+      console.log("Inserted new token record");
+    }
 
     if (storageError) {
       console.error("Storage error:", storageError);

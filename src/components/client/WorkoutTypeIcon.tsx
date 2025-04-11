@@ -97,7 +97,6 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
 export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.ReactNode}[] = [
   { value: 'strength', label: 'Strength', icon: '🏋️' },
   { value: 'bodyweight', label: 'Bodyweight', icon: '💪' },
-  { value: 'cardio', label: 'Cardio', icon: '🏃' },
   { value: 'flexibility', label: 'Flexibility', icon: '🧘' },
   { value: 'hiit', label: 'HIIT', icon: '⚡' },
   { value: 'sport', label: 'Sport', icon: '🎾' },

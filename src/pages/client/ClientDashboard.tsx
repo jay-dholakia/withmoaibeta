@@ -8,6 +8,8 @@ import LeaderboardPage from './LeaderboardPage';
 import SettingsPage from './SettingsPage';
 import NotesPage from './NotesPage';
 import ProfileEditor from './ProfileEditor';
+import PrivacyPolicyPage from './PrivacyPolicyPage';
+import TermsOfServicePage from './TermsOfServicePage';
 
 const ClientDashboard = () => {
   const location = useLocation();
@@ -24,6 +26,8 @@ const ClientDashboard = () => {
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="settings/edit-profile" element={<ProfileEditor />} />
+          <Route path="settings/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="settings/terms-of-service" element={<TermsOfServicePage />} />
           <Route path="notes" element={<NotesPage />} />
           <Route path="*" element={<Navigate to="/client-dashboard/moai" replace />} />
         </Routes>

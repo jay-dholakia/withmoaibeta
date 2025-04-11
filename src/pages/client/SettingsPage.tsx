@@ -1,13 +1,13 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchClientProfile } from '@/services/client-service';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Loader2, User, LogOut, Edit } from 'lucide-react';
+import { Loader2, User, LogOut, Edit, FileText, Shield } from 'lucide-react';
 import BetaFeedbackCard from '@/components/client/BetaFeedbackCard';
 
 const SettingsPage = () => {
@@ -113,6 +113,32 @@ const SettingsPage = () => {
             Edit Profile
           </Button>
         </CardFooter>
+      </Card>
+
+      {/* Legal Documents Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Legal</CardTitle>
+          <CardDescription>Privacy Policy and Terms of Service</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-3">
+            <Link 
+              to="/client-dashboard/settings/privacy-policy" 
+              className="flex items-center text-blue-600 hover:underline"
+            >
+              <Shield className="mr-2 h-4 w-4" />
+              Privacy Policy
+            </Link>
+            <Link 
+              to="/client-dashboard/settings/terms-of-service" 
+              className="flex items-center text-blue-600 hover:underline"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Terms of Service
+            </Link>
+          </div>
+        </CardContent>
       </Card>
       
       {/* Beta Feedback Card */}

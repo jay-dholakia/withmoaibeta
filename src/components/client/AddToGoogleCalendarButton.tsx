@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Calendar, CalendarPlus, ExternalLink, Clock } from 'lucide-react';
+import { Calendar, CalendarPlus, ExternalLink, Clock, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -46,6 +46,7 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [eventLink, setEventLink] = useState<string | null>(null);
+  const [isAddedToCalendar, setIsAddedToCalendar] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -185,6 +186,7 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
         // Store the event link for opening later
         if (result.event && result.event.htmlLink) {
           setEventLink(result.event.htmlLink);
+          setIsAddedToCalendar(true); // Set the added to calendar state to true
         }
         
         toast.success('Workout added to Google Calendar', {
@@ -231,11 +233,11 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
     }
     
     if (isConnected) {
-      if (eventLink) {
-        // If we already have an event link, open it
+      if (isAddedToCalendar && eventLink) {
+        // If already added to calendar and we have a link, open it
         window.open(eventLink, '_blank', 'noopener,noreferrer');
-      } else {
-        // Show date picker instead of immediately adding to calendar
+      } else if (!isAddedToCalendar) {
+        // Show date picker only if not added to calendar yet
         setShowDatePicker(true);
       }
     } else {
@@ -257,14 +259,19 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
   return (
     <>
       <Button
-        variant={variant}
+        variant={isAddedToCalendar ? 'secondary' : variant}
         size="sm"
-        className={className}
+        className={`${className} ${isAddedToCalendar ? 'bg-green-100 text-green-800 hover:bg-green-200 border-green-300' : ''}`}
         onClick={handleClick}
         disabled={disabled || isLoading || isConnected === null}
       >
         {isLoading ? (
           <>Loading...</>
+        ) : isAddedToCalendar ? (
+          <>
+            <CheckCircle className="h-3.5 w-3.5 mr-1.5 text-green-600" />
+            Added to Calendar
+          </>
         ) : eventLink ? (
           <>
             <ExternalLink className="h-3.5 w-3.5 mr-1.5" />

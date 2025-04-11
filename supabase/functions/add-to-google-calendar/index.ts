@@ -134,7 +134,7 @@ serve(async (req) => {
     } else {
       // Create an event based on day of week
       const today = new Date();
-      const targetDay = dayOfWeek || today.getDay();
+      const targetDay = dayOfWeek !== undefined ? Number(dayOfWeek) : today.getDay();
       const daysUntilTarget = (targetDay + 7 - today.getDay()) % 7;
       
       eventStart = new Date(today);
@@ -144,6 +144,9 @@ serve(async (req) => {
       eventEnd = new Date(eventStart);
       eventEnd.setHours(eventEnd.getHours() + 1); // Default to 1 hour
     }
+
+    // Get user's timezone or default to their browser timezone
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     // Format dates for Google Calendar API
     const formattedStart = eventStart.toISOString();
@@ -155,11 +158,17 @@ serve(async (req) => {
       description: description || "A workout from your training plan",
       start: {
         dateTime: formattedStart,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timeZone: userTimeZone,
       },
       end: {
         dateTime: formattedEnd,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timeZone: userTimeZone,
+      },
+      reminders: {
+        useDefault: false,
+        overrides: [
+          { method: 'popup', minutes: 30 },
+        ],
       },
     };
 
@@ -229,7 +238,10 @@ serve(async (req) => {
       success: true, 
       event: {
         id: calendarData.id,
-        htmlLink: calendarData.htmlLink
+        htmlLink: calendarData.htmlLink,
+        summary: event.summary,
+        start: event.start.dateTime,
+        end: event.end.dateTime,
       } 
     }), {
       status: 200,

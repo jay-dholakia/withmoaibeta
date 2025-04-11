@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Calendar, CalendarPlus } from 'lucide-react';
+import { Calendar, CalendarPlus, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -34,6 +33,7 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const [eventLink, setEventLink] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -156,7 +156,17 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
       const result = await response.json();
       
       if (response.ok && result.success) {
-        toast.success('Workout added to Google Calendar');
+        // Store the event link for opening later
+        if (result.event && result.event.htmlLink) {
+          setEventLink(result.event.htmlLink);
+        }
+        
+        toast.success('Workout added to Google Calendar', {
+          action: {
+            label: 'View Event',
+            onClick: () => window.open(result.event.htmlLink, '_blank', 'noopener,noreferrer')
+          }
+        });
       } else {
         console.error('Error adding to calendar:', result);
         
@@ -195,7 +205,13 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
     }
     
     if (isConnected) {
-      addToCalendar();
+      if (eventLink) {
+        // If we already have an event link, open it
+        window.open(eventLink, '_blank', 'noopener,noreferrer');
+      } else {
+        // Otherwise add to calendar
+        addToCalendar();
+      }
     } else {
       initiateGoogleAuth();
     }
@@ -211,6 +227,11 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
     >
       {isLoading ? (
         <>Loading...</>
+      ) : eventLink ? (
+        <>
+          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+          View in Calendar
+        </>
       ) : isConnected ? (
         <>
           <Calendar className="h-3.5 w-3.5 mr-1.5" />

@@ -6,7 +6,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { WorkoutTypeIcon } from './WorkoutTypeIcon';
-import { AddToGoogleCalendarButton } from './AddToGoogleCalendarButton';
+// Remove the import for AddToGoogleCalendarButton since we're hiding it
+// import { AddToGoogleCalendarButton } from './AddToGoogleCalendarButton';
 
 interface GroupMember {
   id: string;
@@ -118,15 +119,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
           {isCurrentUserCompleted ? 'Workout Completed' : 'Log Workout'}
         </Button>
         
-        {!isCurrentUserCompleted && (
-          <AddToGoogleCalendarButton
-            workoutId={workoutId}
-            title={title}
-            description={description}
-            dayOfWeek={dayOfWeek}
-            className="w-full h-9 py-1 border-blue-200 text-blue-600 hover:bg-blue-50"
-          />
-        )}
+        {/* Removed the AddToGoogleCalendarButton component */}
       </CardFooter>
     </Card>
   );

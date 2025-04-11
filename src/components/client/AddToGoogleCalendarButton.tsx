@@ -5,7 +5,7 @@ import { Calendar, CalendarPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface AddToGoogleCalendarButtonProps {
   workoutId: string;
@@ -32,6 +32,7 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Check for URL parameters that might indicate auth success or failure
   useEffect(() => {
@@ -42,10 +43,14 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
     if (calendarStatus === 'connected') {
       toast.success('Google Calendar connected successfully!');
       setIsConnected(true);
+      // Clean up URL parameters
+      navigate(location.pathname, { replace: true });
     } else if (errorMessage) {
       toast.error(`Google Calendar error: ${errorMessage}`);
+      // Clean up URL parameters
+      navigate(location.pathname, { replace: true });
     }
-  }, [location.search]);
+  }, [location.search, navigate, location.pathname]);
 
   useEffect(() => {
     const checkGoogleCalendarConnection = async () => {
@@ -85,13 +90,18 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
       }
       
       // Use the serverless function to get the auth URL
-      const response = await fetch(`https://gjrheltyxjilxcphbzdj.supabase.co/functions/v1/google-calendar-auth`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/google-calendar-auth`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${sessionData.session.access_token}`,
           'Content-Type': 'application/json',
         },
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to initiate Google authentication');
+      }
       
       const result = await response.json();
       
@@ -125,7 +135,7 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
         return;
       }
       
-      const response = await fetch(`https://gjrheltyxjilxcphbzdj.supabase.co/functions/v1/add-to-google-calendar`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/add-to-google-calendar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${sessionData.session.access_token}`,
@@ -142,10 +152,10 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
       
       const result = await response.json();
       
-      if (result.success) {
+      if (response.ok && result.success) {
         toast.success('Workout added to Google Calendar');
       } else {
-        console.error('Error adding to calendar:', result.error);
+        console.error('Error adding to calendar:', result);
         if (result.error === 'Google Calendar not connected') {
           setIsConnected(false);
           toast.error('Please connect your Google Calendar first', {
@@ -203,3 +213,6 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
     </Button>
   );
 };
+
+// Add this constant to the top of the file
+const SUPABASE_URL = "https://gjrheltyxjilxcphbzdj.supabase.co";

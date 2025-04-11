@@ -50,6 +50,14 @@ serve(async (req) => {
       });
     }
 
+    console.log("Processing calendar event request:", { 
+      userId: user.id,
+      workoutId,
+      title,
+      dayOfWeek: dayOfWeek || "not provided",
+      startTime: startTime || "not provided"
+    });
+
     // Get user's Google Calendar token
     const { data: tokenData, error: tokenError } = await supabase
       .from("google_calendar_tokens")
@@ -58,14 +66,22 @@ serve(async (req) => {
       .single();
 
     if (tokenError || !tokenData) {
+      console.error("Google Calendar token error:", tokenError);
       return new Response(JSON.stringify({ error: "Google Calendar not connected" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    console.log("Found user token:", { 
+      userId: user.id, 
+      tokenExpiry: new Date(tokenData.expiry_date).toISOString(),
+      isExpired: tokenData.expiry_date < Date.now()
+    });
+
     // Check if token is expired
     if (tokenData.expiry_date < Date.now()) {
+      console.log("Token expired, attempting to refresh");
       // Refresh token
       try {
         const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -82,11 +98,14 @@ serve(async (req) => {
         const refreshData = await refreshResponse.json();
         
         if (refreshData.error) {
-          return new Response(JSON.stringify({ error: "Failed to refresh token" }), {
+          console.error("Token refresh error:", refreshData);
+          return new Response(JSON.stringify({ error: "Failed to refresh token", details: refreshData.error }), {
             status: 401,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+
+        console.log("Token refreshed successfully");
 
         // Update token in database
         await supabase.from("google_calendar_tokens").update({
@@ -96,7 +115,8 @@ serve(async (req) => {
 
         tokenData.access_token = refreshData.access_token;
       } catch (error) {
-        return new Response(JSON.stringify({ error: "Failed to refresh token" }), {
+        console.error("Token refresh error:", error);
+        return new Response(JSON.stringify({ error: "Failed to refresh token", details: error.message }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -143,6 +163,13 @@ serve(async (req) => {
       },
     };
 
+    console.log("Event to be created:", { 
+      summary: event.summary,
+      start: event.start.dateTime,
+      end: event.end.dateTime,
+      timeZone: event.start.timeZone
+    });
+
     // Add to Google Calendar
     const calendarResponse = await fetch(
       "https://www.googleapis.com/calendar/v3/calendars/primary/events",
@@ -156,20 +183,60 @@ serve(async (req) => {
       }
     );
 
-    const calendarData = await calendarResponse.json();
-
-    if (calendarData.error) {
-      return new Response(JSON.stringify({ error: "Failed to add event to calendar", details: calendarData.error }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (!calendarResponse.ok) {
+      const errorText = await calendarResponse.text();
+      console.error("Google Calendar API error:", {
+        status: calendarResponse.status,
+        statusText: calendarResponse.statusText,
+        response: errorText
       });
+      
+      try {
+        // Try to parse the error as JSON
+        const errorJson = JSON.parse(errorText);
+        return new Response(JSON.stringify({ 
+          error: "Failed to add event to calendar", 
+          status: calendarResponse.status,
+          details: errorJson 
+        }), {
+          status: calendarResponse.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        // If parsing fails, return the raw text
+        return new Response(JSON.stringify({ 
+          error: "Failed to add event to calendar", 
+          status: calendarResponse.status,
+          details: errorText 
+        }), {
+          status: calendarResponse.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
+    
+    const calendarData = await calendarResponse.json();
+    console.log("Event created successfully:", {
+      id: calendarData.id,
+      htmlLink: calendarData.htmlLink
+    });
 
-    return new Response(JSON.stringify({ success: true, event: calendarData }), {
+    // Store the calendar event in a table (optional enhancement)
+    // This would allow you to track which workouts have been added to calendars
+    // and potentially update or delete them later
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      event: {
+        id: calendarData.id,
+        htmlLink: calendarData.htmlLink
+      } 
+    }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    console.error("Server error:", error);
     return new Response(JSON.stringify({ error: "Server error", details: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -40,7 +40,9 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ allowedUserTypes, children })
     console.log("RequireAuth: User type mismatch", { userType, allowedUserTypes });
     
     // Redirect based on user type
-    if (userType === 'coach') {
+    if (userType === 'admin') {
+      return <Navigate to="/admin-dashboard" replace />;
+    } else if (userType === 'coach') {
       return <Navigate to="/coach-dashboard" replace />;
     } else if (userType === 'client') {
       return <Navigate to="/client-dashboard" replace />;

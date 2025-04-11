@@ -45,6 +45,20 @@ export const PortalCard: React.FC<PortalCardProps> = ({
     }
   };
 
+  // Define login URLs based on variant
+  const getLoginUrl = () => {
+    switch (variant) {
+      case 'admin':
+        return '/login'; // Using the same login page but with admin variant
+      case 'coach':
+        return '/coach-login'; // Using the coach-specific login page
+      case 'client':
+        return '/login'; // Using client login page
+      default:
+        return '/login';
+    }
+  };
+
   return (
     <motion.div
       whileHover={{ 
@@ -53,7 +67,7 @@ export const PortalCard: React.FC<PortalCardProps> = ({
       }}
       className={`glass-card rounded-xl overflow-hidden ${getGradientClasses()} p-4 transition-all duration-300 w-full`}
     >
-      <Link to={to} className="block h-full">
+      <Link to={getLoginUrl()} className="block h-full">
         <div className="flex flex-col h-full">
           <div className={`${getIconClasses()} w-12 h-12 rounded-lg flex items-center justify-center border mb-4`}>
             <Icon size={24} />

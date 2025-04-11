@@ -18,6 +18,9 @@ interface AddToGoogleCalendarButtonProps {
   disabled?: boolean;
 }
 
+// Add this constant at the top of the file
+const SUPABASE_URL = "https://gjrheltyxjilxcphbzdj.supabase.co";
+
 export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps> = ({
   workoutId,
   title,
@@ -156,7 +159,16 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
         toast.success('Workout added to Google Calendar');
       } else {
         console.error('Error adding to calendar:', result);
-        if (result.error === 'Google Calendar not connected') {
+        
+        // Handle the specific case of Google Calendar API not being enabled
+        if (result.status === 403 && result.details && 
+            (result.details.message?.includes('has not been used') || 
+             result.details.message?.includes('is disabled'))) {
+          toast.error(
+            'The Google Calendar API needs to be enabled in your Google Cloud project. Please check the admin configuration.',
+            { duration: 8000 }
+          );
+        } else if (result.error === 'Google Calendar not connected') {
           setIsConnected(false);
           toast.error('Please connect your Google Calendar first', {
             action: {
@@ -213,6 +225,3 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
     </Button>
   );
 };
-
-// Add this constant to the top of the file
-const SUPABASE_URL = "https://gjrheltyxjilxcphbzdj.supabase.co";

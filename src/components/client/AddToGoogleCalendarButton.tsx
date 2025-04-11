@@ -31,12 +31,11 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const checkGoogleCalendarConnection = async () => {
       if (!user?.id) return;
       
       try {
-        // Query the database directly instead of using a stored procedure
         const { data, error } = await supabase
           .from('google_calendar_tokens')
           .select('id')
@@ -69,7 +68,6 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
         return;
       }
       
-      // Use the full URL with project ID for the function call
       const response = await fetch(`https://gjrheltyxjilxcphbzdj.supabase.co/functions/v1/google-calendar-auth`, {
         method: 'GET',
         headers: {
@@ -108,7 +106,6 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
         return;
       }
       
-      // Use the full URL with project ID for the function call
       const response = await fetch(`https://gjrheltyxjilxcphbzdj.supabase.co/functions/v1/add-to-google-calendar`, {
         method: 'POST',
         headers: {

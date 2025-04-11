@@ -1,61 +1,92 @@
 
 import React from 'react';
-import { Dumbbell, Zap, Fingerprint, Activity, Yoga, Running, Coffee, CirclePlus } from 'lucide-react';
+import { StandardWorkoutType } from '@/types/workout';
 
-export type WorkoutType = 'strength' | 'hiit' | 'mobility' | 'cardio' | 'yoga' | 'running' | 'rest' | 'custom';
+export type WorkoutType = StandardWorkoutType;
 
 interface WorkoutTypeIconProps {
-  type: WorkoutType | null;
+  type: WorkoutType;
   className?: string;
-  colorOverride?: string;
+  size?: 'sm' | 'md' | 'lg'; // Add size prop
+  colorOverride?: string; // Add colorOverride prop
 }
 
 export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({ 
   type, 
-  className = "", 
-  colorOverride 
+  className = '',
+  size = 'md', // Default to medium size
+  colorOverride // Add colorOverride parameter
 }) => {
-  const iconClass = colorOverride || getIconColorForType(type);
-  
-  switch(type) {
-    case 'strength':
-      return <Dumbbell className={`${iconClass} ${className}`} />;
-    case 'hiit':
-      return <Zap className={`${iconClass} ${className}`} />;
-    case 'mobility':
-      return <Fingerprint className={`${iconClass} ${className}`} />;
-    case 'cardio':
-      return <Activity className={`${iconClass} ${className}`} />;
-    case 'yoga':
-      return <Yoga className={`${iconClass} ${className}`} />;
-    case 'running':
-      return <Running className={`${iconClass} ${className}`} />;
-    case 'rest':
-      return <Coffee className={`${iconClass} ${className}`} />;
-    case 'custom':
-    default:
-      return <CirclePlus className={`${iconClass} ${className}`} />;
-  }
+  const getIconForType = () => {
+    switch (type) {
+      case 'strength':
+        return '🏋️'; // Weightlifting emoji
+      case 'bodyweight':
+        return '💪'; // Muscle emoji
+      case 'cardio':
+        return '🏃'; // Running emoji - updated for cardio workouts
+      case 'flexibility':
+        return '🧘'; // Yoga/flexibility emoji
+      case 'rest_day':
+        return '😌'; // Updated Rest day emoji
+      case 'custom':
+        return '✨'; // Custom workout
+      case 'one_off':
+        return '🎯'; // One-off workout
+      case 'hiit':
+        return '⚡'; // HIIT workout
+      case 'sport':
+        return '🎾'; // Sport activity
+      case 'swimming':
+        return '🏊'; // Swimming
+      case 'cycling':
+        return '🚴'; // Cycling
+      case 'dance':
+        return '💃'; // Dance workout
+      default:
+        return '📝'; // Default icon
+    }
+  };
+
+  // Determine font size based on size prop
+  const getFontSize = () => {
+    switch (size) {
+      case 'sm':
+        return '12px';
+      case 'lg':
+        return '18px';
+      case 'md':
+      default:
+        return '14px';
+    }
+  };
+
+  return (
+    <span 
+      className={`workout-type-icon ${className}`} 
+      role="img" 
+      aria-label={`${type} workout`}
+      style={{ 
+        fontSize: getFontSize(), 
+        lineHeight: 1,
+        color: colorOverride // Apply colorOverride if provided
+      }}
+    >
+      {getIconForType()}
+    </span>
+  );
 };
 
-export const getIconColorForType = (type: WorkoutType | null): string => {
-  switch(type) {
-    case 'strength':
-      return 'text-blue-500';
-    case 'hiit':
-      return 'text-orange-500';
-    case 'mobility':
-      return 'text-purple-500';
-    case 'cardio':
-      return 'text-red-500';
-    case 'yoga':
-      return 'text-teal-500';
-    case 'running':
-      return 'text-green-500';
-    case 'rest':
-      return 'text-gray-500';
-    case 'custom':
-    default:
-      return 'text-indigo-500';
-  }
-};
+// Export the workout types with labels for use in dropdowns
+export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.ReactNode}[] = [
+  { value: 'strength', label: 'Strength', icon: '🏋️' },
+  { value: 'bodyweight', label: 'Bodyweight', icon: '💪' },
+  { value: 'cardio', label: 'Cardio', icon: '🏃' }, // Updated icon for cardio
+  { value: 'flexibility', label: 'Flexibility', icon: '🧘' },
+  { value: 'hiit', label: 'HIIT', icon: '⚡' },
+  { value: 'sport', label: 'Sport', icon: '🎾' },
+  { value: 'swimming', label: 'Swimming', icon: '🏊' },
+  { value: 'cycling', label: 'Cycling', icon: '🚴' },
+  { value: 'dance', label: 'Dance', icon: '💃' }
+  // Removed: custom, one_off, rest_day, core as requested
+];

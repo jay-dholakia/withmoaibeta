@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, CalendarPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,9 +36,12 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
       if (!user?.id) return;
       
       try {
-        const { data, error } = await supabase.rpc('has_google_calendar_connection', {
-          user_id_param: user.id
-        });
+        // Query the database directly instead of using a stored procedure
+        const { data, error } = await supabase
+          .from('google_calendar_tokens')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
         
         if (error) throw error;
         setIsConnected(!!data);
@@ -66,7 +69,8 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
         return;
       }
       
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/google-calendar-auth`, {
+      // Use the full URL with project ID for the function call
+      const response = await fetch(`https://gjrheltyxjilxcphbzdj.supabase.co/functions/v1/google-calendar-auth`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${sessionData.session.access_token}`,
@@ -104,7 +108,8 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
         return;
       }
       
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/add-to-google-calendar`, {
+      // Use the full URL with project ID for the function call
+      const response = await fetch(`https://gjrheltyxjilxcphbzdj.supabase.co/functions/v1/add-to-google-calendar`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${sessionData.session.access_token}`,

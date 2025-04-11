@@ -1,10 +1,22 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Calendar, CalendarPlus, ExternalLink } from 'lucide-react';
+import { Calendar, CalendarPlus, ExternalLink, Clock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { format } from 'date-fns';
 
 interface AddToGoogleCalendarButtonProps {
   workoutId: string;
@@ -36,6 +48,11 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
   const [eventLink, setEventLink] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // Date picker state
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedTime, setSelectedTime] = useState('10:00');
 
   // Check for URL parameters that might indicate auth success or failure
   useEffect(() => {
@@ -138,6 +155,15 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
         return;
       }
       
+      // Create a datetime string from the selected date and time
+      let scheduledDateTime: string | undefined;
+      if (selectedDate) {
+        const dateObj = new Date(selectedDate);
+        const [hours, minutes] = selectedTime.split(':').map(Number);
+        dateObj.setHours(hours, minutes, 0, 0);
+        scheduledDateTime = dateObj.toISOString();
+      }
+      
       const response = await fetch(`${SUPABASE_URL}/functions/v1/add-to-google-calendar`, {
         method: 'POST',
         headers: {
@@ -149,7 +175,7 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
           title,
           description,
           dayOfWeek,
-          startTime,
+          startTime: scheduledDateTime || startTime,
         }),
       });
       
@@ -209,40 +235,103 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
         // If we already have an event link, open it
         window.open(eventLink, '_blank', 'noopener,noreferrer');
       } else {
-        // Otherwise add to calendar
-        addToCalendar();
+        // Show date picker instead of immediately adding to calendar
+        setShowDatePicker(true);
       }
     } else {
       initiateGoogleAuth();
     }
   };
 
+  const handleDateTimeSubmit = () => {
+    if (!selectedDate) {
+      toast.error('Please select a date');
+      return;
+    }
+    
+    // Close dialog and continue with adding to calendar
+    setShowDatePicker(false);
+    addToCalendar();
+  };
+
   return (
-    <Button
-      variant={variant}
-      size="sm"
-      className={className}
-      onClick={handleClick}
-      disabled={disabled || isLoading || isConnected === null}
-    >
-      {isLoading ? (
-        <>Loading...</>
-      ) : eventLink ? (
-        <>
-          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-          View in Calendar
-        </>
-      ) : isConnected ? (
-        <>
-          <Calendar className="h-3.5 w-3.5 mr-1.5" />
-          Add to Calendar
-        </>
-      ) : (
-        <>
-          <CalendarPlus className="h-3.5 w-3.5 mr-1.5" />
-          Connect Calendar
-        </>
-      )}
-    </Button>
+    <>
+      <Button
+        variant={variant}
+        size="sm"
+        className={className}
+        onClick={handleClick}
+        disabled={disabled || isLoading || isConnected === null}
+      >
+        {isLoading ? (
+          <>Loading...</>
+        ) : eventLink ? (
+          <>
+            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+            View in Calendar
+          </>
+        ) : isConnected ? (
+          <>
+            <Calendar className="h-3.5 w-3.5 mr-1.5" />
+            Add to Calendar
+          </>
+        ) : (
+          <>
+            <CalendarPlus className="h-3.5 w-3.5 mr-1.5" />
+            Connect Calendar
+          </>
+        )}
+      </Button>
+      
+      <Dialog open={showDatePicker} onOpenChange={setShowDatePicker}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Schedule Workout</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="date">Date</Label>
+              <div className="flex justify-center">
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  className="p-3 pointer-events-auto"
+                  disabled={(date) => date < new Date(Date.now() - 86400000)} // Disable dates in the past (minus 1 day tolerance)
+                  initialFocus
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="time">Time</Label>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 opacity-50" />
+                <Input 
+                  id="time" 
+                  type="time" 
+                  value={selectedTime} 
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              {selectedDate && (
+                <p className="text-sm text-muted-foreground text-center">
+                  Scheduling "{title}" for {format(selectedDate, "EEEE, MMMM d, yyyy")} at {selectedTime}
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDatePicker(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleDateTimeSubmit}>
+              Add to Calendar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

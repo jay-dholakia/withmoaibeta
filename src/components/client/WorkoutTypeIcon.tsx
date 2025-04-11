@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { StandardWorkoutType } from '@/types/workout';
 
@@ -111,5 +110,5 @@ export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.Reac
   { value: 'hiking', label: 'Hiking', icon: '🥾' },
   { value: 'skiing', label: 'Skiing', icon: '⛷️' },
   { value: 'yoga', label: 'Yoga', icon: '🧘' }
-  // Removed: custom, one_off, rest_day as requested
+  // Removed: cardio, custom, one_off, rest_day as requested
 ];

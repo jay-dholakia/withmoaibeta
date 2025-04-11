@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Container } from '@/components/ui/container';
 import { useAuth } from '@/contexts/AuthContext';
@@ -120,7 +119,16 @@ const LeaderboardPage = () => {
           // Get workout type from either direct property or nested workout object
           const workoutType = item.workout_type || item.workout?.workout_type || '';
           
-          if (workoutType.toLowerCase().includes('strength')) typesMap[dateKey] = 'strength';
+          // Map specific workout types
+          if (workoutType.toLowerCase().includes('basketball')) typesMap[dateKey] = 'basketball';
+          else if (workoutType.toLowerCase().includes('golf')) typesMap[dateKey] = 'golf';
+          else if (workoutType.toLowerCase().includes('volleyball')) typesMap[dateKey] = 'volleyball';
+          else if (workoutType.toLowerCase().includes('baseball')) typesMap[dateKey] = 'baseball';
+          else if (workoutType.toLowerCase().includes('tennis')) typesMap[dateKey] = 'tennis';
+          else if (workoutType.toLowerCase().includes('hiking')) typesMap[dateKey] = 'hiking';
+          else if (workoutType.toLowerCase().includes('skiing')) typesMap[dateKey] = 'skiing';
+          else if (workoutType.toLowerCase().includes('yoga')) typesMap[dateKey] = 'yoga';
+          else if (workoutType.toLowerCase().includes('strength')) typesMap[dateKey] = 'strength';
           else if (workoutType.toLowerCase().includes('cardio')) typesMap[dateKey] = 'cardio';
           else if (workoutType.toLowerCase().includes('body') || workoutType.toLowerCase().includes('weight')) typesMap[dateKey] = 'bodyweight';
           else if (workoutType.toLowerCase().includes('flex') || workoutType.toLowerCase().includes('yoga')) typesMap[dateKey] = 'flexibility';

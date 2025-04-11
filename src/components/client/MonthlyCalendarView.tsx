@@ -146,12 +146,15 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
     for (const workout of workoutsForDay) {
       const title = (workout.title || workout.workout?.title || '').toLowerCase();
       
-      if (title.includes('tennis')) return 'sport';
+      if (title.includes('tennis')) return 'tennis';
+      if (title.includes('basketball')) return 'basketball';
+      if (title.includes('golf')) return 'golf';
+      if (title.includes('volleyball')) return 'volleyball';
+      if (title.includes('baseball')) return 'baseball';
+      if (title.includes('hiking')) return 'hiking';
+      if (title.includes('skiing')) return 'skiing';
+      if (title.includes('yoga')) return 'yoga';
       if (title.includes('soccer') || title.includes('football')) return 'sport';
-      if (title.includes('basketball')) return 'sport';
-      if (title.includes('volleyball')) return 'sport';
-      if (title.includes('baseball')) return 'sport';
-      if (title.includes('golf')) return 'sport';
       if (title.includes('game') || title.includes('match') || title.includes('play')) return 'sport';
     }
     
@@ -169,29 +172,34 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
         if (type === 'dance') return 'dance';
         if (type === 'custom') return 'custom';
         if (type === 'one_off') return 'one_off';
-        
-        if (type.includes('tennis') || 
-            type.includes('soccer') || 
-            type.includes('football') || 
-            type.includes('basketball') || 
-            type.includes('sport') || 
-            type.includes('game') || 
-            type.includes('match')) {
-          return 'sport';
-        }
+        if (type === 'basketball') return 'basketball';
+        if (type === 'golf') return 'golf';
+        if (type === 'volleyball') return 'volleyball'; 
+        if (type === 'baseball') return 'baseball';
+        if (type === 'tennis') return 'tennis';
+        if (type === 'hiking') return 'hiking';
+        if (type === 'skiing') return 'skiing';
+        if (type === 'yoga') return 'yoga';
       }
     }
 
     for (const workout of workoutsForDay) {
       if (workout.workout?.workout_type) {
         const workoutType = workout.workout.workout_type.toLowerCase();
-        if (workoutType.includes('sport') || 
-            workoutType.includes('tennis') || 
-            workoutType.includes('soccer') || 
-            workoutType.includes('game') || 
-            workoutType.includes('match')) {
-          return 'sport';
-        }
+        
+        if (workoutType === 'basketball') return 'basketball';
+        if (workoutType === 'golf') return 'golf';
+        if (workoutType === 'volleyball') return 'volleyball';
+        if (workoutType === 'baseball') return 'baseball';
+        if (workoutType === 'tennis') return 'tennis';
+        if (workoutType === 'hiking') return 'hiking';
+        if (workoutType === 'skiing') return 'skiing';
+        if (workoutType === 'yoga') return 'yoga';
+        
+        if (workoutType.includes('sport')) return 'sport';
+        if (workoutType.includes('tennis')) return 'tennis';
+        if (workoutType.includes('soccer')) return 'sport';
+        if (workoutType.includes('game') || workoutType.includes('match')) return 'sport';
         
         if (workoutType === 'strength') return 'strength';
         if (workoutType === 'cardio') return 'cardio';
@@ -209,12 +217,17 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
     for (const workout of workoutsForDay) {
       const description = (workout.description || workout.workout?.description || '').toLowerCase();
       
-      if (description.includes('tennis') || 
-          description.includes('soccer') || 
-          description.includes('basketball') || 
-          description.includes('sport') || 
-          description.includes('game') || 
-          description.includes('match') || 
+      if (description.includes('basketball')) return 'basketball';
+      if (description.includes('golf')) return 'golf';
+      if (description.includes('volleyball')) return 'volleyball';
+      if (description.includes('baseball')) return 'baseball';
+      if (description.includes('tennis')) return 'tennis';
+      if (description.includes('hiking')) return 'hiking';
+      if (description.includes('skiing')) return 'skiing';
+      if (description.includes('yoga')) return 'yoga';
+      
+      if (description.includes('soccer') || description.includes('sport') || 
+          description.includes('game') || description.includes('match') || 
           description.includes('play')) {
         return 'sport';
       }
@@ -342,7 +355,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
     const legendItems = [
       { type: 'strength', label: 'Strength' },
       { type: 'bodyweight', label: 'Bodyweight' },
-      { type: 'cardio', label: 'Cardio' },
       { type: 'flexibility', label: 'Flexibility' },
       { type: 'rest_day', label: 'Rest Day' },
       { type: 'custom', label: 'Custom' },
@@ -352,6 +364,14 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       { type: 'swimming', label: 'Swimming' },
       { type: 'cycling', label: 'Cycling' },
       { type: 'dance', label: 'Dance' },
+      { type: 'basketball', label: 'Basketball' },
+      { type: 'golf', label: 'Golf' },
+      { type: 'volleyball', label: 'Volleyball' },
+      { type: 'baseball', label: 'Baseball' },
+      { type: 'tennis', label: 'Tennis' },
+      { type: 'hiking', label: 'Hiking' },
+      { type: 'skiing', label: 'Skiing' },
+      { type: 'yoga', label: 'Yoga' },
     ] as const;
 
     return (

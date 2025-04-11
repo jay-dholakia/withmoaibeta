@@ -3,12 +3,12 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GroupMember } from '@/services/group-member-service';
-import { WorkoutTypeIcon } from './WorkoutTypeIcon';
+import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
 import { getWorkoutTypeLabel } from '@/utils/workout-utils';
 import { CalendarCheck, CalendarX, ChevronRight, UserCheck } from 'lucide-react';
 import { AddToGoogleCalendarButton } from './AddToGoogleCalendarButton';
 import { useNavigate } from 'react-router-dom';
-import { WorkoutType } from '../../types/workout';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface WorkoutCardProps {
   workoutId: string;
@@ -43,6 +43,11 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   const memberCompletedCount = groupMembers.filter(m => 
     m.completed_workout_ids.includes(workoutId)
   ).length;
+
+  // Show up to 5 profile images
+  const maxProfilesToShow = 5;
+  const membersToShow = groupMembers.slice(0, maxProfilesToShow);
+  const extraMembersCount = Math.max(0, groupMembers.length - maxProfilesToShow);
 
   const cardContent = (
     <Card 
@@ -88,6 +93,38 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
             )}
           </div>
         </div>
+
+        {/* Member profiles/completion circles */}
+        {groupMembers.length > 1 && (
+          <div className="flex -space-x-2 mt-3 overflow-hidden">
+            {membersToShow.map((member) => {
+              const hasCompleted = member.completed_workout_ids.includes(workoutId);
+              
+              return (
+                <div 
+                  key={member.id}
+                  className={`inline-block rounded-full ring-2 ${hasCompleted ? 'ring-green-500' : 'ring-gray-200'}`}
+                >
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage 
+                      src={member.profile_picture_url} 
+                      alt={member.name} 
+                    />
+                    <AvatarFallback className="text-[10px]">
+                      {member.name?.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              );
+            })}
+            
+            {extraMembersCount > 0 && (
+              <div className="flex items-center justify-center h-6 w-6 rounded-full bg-gray-100 text-[10px] text-gray-600">
+                +{extraMembersCount}
+              </div>
+            )}
+          </div>
+        )}
         
         {!completed && (
           <div className="flex items-center justify-between mt-4 gap-2">

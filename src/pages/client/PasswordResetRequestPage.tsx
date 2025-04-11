@@ -10,7 +10,10 @@ const PasswordResetRequestPage: React.FC = () => {
       subtitle="Enter your email to receive a password reset link"
       variant="client"
     >
-      <ForgotPasswordForm userType="client" />
+      <ForgotPasswordForm 
+        onBack={() => window.history.back()}
+        variant="client" 
+      />
     </AuthLayout>
   );
 };

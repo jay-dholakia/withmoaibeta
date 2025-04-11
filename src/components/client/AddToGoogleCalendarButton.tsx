@@ -68,6 +68,7 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
         return;
       }
       
+      // Use the serverless function to get the auth URL
       const response = await fetch(`https://gjrheltyxjilxcphbzdj.supabase.co/functions/v1/google-calendar-auth`, {
         method: 'GET',
         headers: {
@@ -79,7 +80,9 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
       const result = await response.json();
       
       if (result.url) {
-        window.location.href = result.url;
+        // Open the authorization URL in a new window/tab instead of redirecting
+        window.open(result.url, '_blank', 'noopener,noreferrer');
+        toast.info('Please complete the Google authorization in the new tab');
       } else {
         toast.error('Failed to initiate Google authentication');
       }

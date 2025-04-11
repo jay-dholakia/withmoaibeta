@@ -185,6 +185,22 @@ const WorkoutsList = () => {
   }, [navigate]);
 
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const calendarStatus = urlParams.get('calendar');
+    const error = urlParams.get('error');
+    
+    if (calendarStatus === 'connected') {
+      toast.success('Google Calendar connected successfully');
+      // Clean up URL parameters
+      navigate('/client-dashboard/workouts', { replace: true });
+    } else if (error) {
+      toast.error(decodeURIComponent(error));
+      // Clean up URL parameters
+      navigate('/client-dashboard/workouts', { replace: true });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
         closeSelectDropdown();
@@ -304,6 +320,7 @@ const WorkoutsList = () => {
                   currentUserId={user?.id || ''}
                   onStartWorkout={handleStartWorkout}
                   completed={false}
+                  dayOfWeek={workout.workout?.day_of_week}
                 />
               ))}
             </div>
@@ -325,6 +342,7 @@ const WorkoutsList = () => {
                   currentUserId={user?.id || ''}
                   onStartWorkout={handleStartWorkout}
                   completed={true}
+                  dayOfWeek={workout.workout?.day_of_week}
                 />
               ))}
             </div>

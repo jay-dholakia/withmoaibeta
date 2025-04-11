@@ -6,6 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { WorkoutTypeIcon } from './WorkoutTypeIcon';
+import { AddToGoogleCalendarButton } from './AddToGoogleCalendarButton';
 
 interface GroupMember {
   id: string;
@@ -23,6 +24,7 @@ interface WorkoutCardProps {
   currentUserId: string;
   onStartWorkout: (workoutId: string) => void;
   completed?: boolean;
+  dayOfWeek?: number;
 }
 
 // Helper to get initials
@@ -41,7 +43,8 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   groupMembers = [],
   currentUserId,
   onStartWorkout,
-  completed = false
+  completed = false,
+  dayOfWeek
 }) => {
   const isCurrentUserCompleted = completed || 
     groupMembers.find(member => member.id === currentUserId)?.completed_workout_ids.includes(workoutId);
@@ -102,7 +105,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         )}
       </CardContent>
       
-      <CardFooter className="p-3">
+      <CardFooter className="p-3 flex flex-col gap-2">
         <Button 
           className={cn(
             "w-full h-9 py-1",
@@ -114,6 +117,16 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         >
           {isCurrentUserCompleted ? 'Workout Completed' : 'Log Workout'}
         </Button>
+        
+        {!isCurrentUserCompleted && (
+          <AddToGoogleCalendarButton
+            workoutId={workoutId}
+            title={title}
+            description={description}
+            dayOfWeek={dayOfWeek}
+            className="w-full h-9 py-1 border-blue-200 text-blue-600 hover:bg-blue-50"
+          />
+        )}
       </CardFooter>
     </Card>
   );

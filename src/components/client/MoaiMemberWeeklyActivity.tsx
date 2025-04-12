@@ -46,7 +46,34 @@ const MoaiMemberWeeklyActivity: React.FC<MemberWeeklyActivityProps> = ({ userId,
         throw error;
       }
       
-      return data as WorkoutHistoryItem[];
+      // Transform the data to match the WorkoutHistoryItem type
+      return (data || []).map(item => {
+        const transformedItem: WorkoutHistoryItem = {
+          id: item.id,
+          user_id: item.user_id,
+          workout_id: item.workout_id || '',
+          completed_at: item.completed_at,
+          notes: item.notes,
+          rating: item.rating,
+          workout: item.workout ? {
+            id: item.workout_id || '',
+            title: item.workout.title || item.title || 'Workout',
+            description: item.workout.description || item.description,
+            day_of_week: 0, // Default value since we don't have this info
+            week_id: '', // Default value since we don't have this info
+            workout_type: item.workout.workout_type || item.workout_type || 'strength'
+          } : null,
+          title: item.title || (item.workout && item.workout.title) || 'Workout',
+          description: item.description || (item.workout && item.workout.description),
+          workout_type: item.workout_type || (item.workout && item.workout.workout_type),
+          distance: item.distance,
+          duration: item.duration,
+          location: item.location,
+          life_happens_pass: item.life_happens_pass || false,
+          rest_day: item.rest_day || false
+        };
+        return transformedItem;
+      });
     },
     staleTime: 60000 // 1 minute
   });
@@ -77,7 +104,7 @@ const MoaiMemberWeeklyActivity: React.FC<MemberWeeklyActivityProps> = ({ userId,
                 <div className="flex items-center">
                   <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-500" />
                   <span>
-                    {workout.title || workout.workout?.title || "Workout"}
+                    {workout.title || (workout.workout && workout.workout.title) || "Workout"}
                   </span>
                 </div>
                 <div className="text-xs text-muted-foreground">

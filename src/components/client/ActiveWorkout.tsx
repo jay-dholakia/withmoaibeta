@@ -1070,7 +1070,7 @@ const ActiveWorkout = () => {
   const isStrengthWorkout = workoutData.workout?.workout_type === 'strength';
 
   return (
-    <div className="space-y-6 pb-28 flex flex-col items-center mx-auto px-4 w-full max-w-md">
+    <div className="space-y-6 pb-28 w-full max-w-screen-xl mx-auto px-4 md:px-6">
       <div className="flex flex-col items-center gap-2 text-center w-full">
         <Button 
           variant="ghost" 

@@ -5,7 +5,6 @@ interface VideoPlayerProps {
   bucketName?: string;
   filePath?: string;
   youtubeUrl?: string;
-  videoUrl?: string; // Add videoUrl as an alternative to youtubeUrl
   className?: string;
   autoPlay?: boolean;
   controls?: boolean;
@@ -17,14 +16,13 @@ export const VideoPlayer = ({
   bucketName,
   filePath,
   youtubeUrl,
-  videoUrl, // Use the new prop
   className = '',
   autoPlay = false,
   controls = true,
   muted = false,
   loop = false
 }: VideoPlayerProps) => {
-  const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [youtubeEmbedUrl, setYoutubeEmbedUrl] = useState<string | null>(null);
@@ -33,13 +31,6 @@ export const VideoPlayer = ({
     const fetchVideoUrl = async () => {
       try {
         setLoading(true);
-        
-        // If direct videoUrl is provided, use that
-        if (videoUrl) {
-          setYoutubeEmbedUrl(processYouTubeUrl(videoUrl));
-          setLoading(false);
-          return;
-        }
         
         // If YouTube URL is provided, process it to get embed URL
         if (youtubeUrl) {
@@ -57,7 +48,7 @@ export const VideoPlayer = ({
             .getPublicUrl(filePath);
           
           if (data.publicUrl) {
-            setVideoSrc(data.publicUrl);
+            setVideoUrl(data.publicUrl);
           } else {
             throw new Error('Could not get public URL for video');
           }
@@ -73,7 +64,7 @@ export const VideoPlayer = ({
     };
 
     fetchVideoUrl();
-  }, [bucketName, filePath, youtubeUrl, videoUrl]);
+  }, [bucketName, filePath, youtubeUrl]);
 
   // Function to convert YouTube URLs to embed format
   const processYouTubeUrl = (url: string): string => {
@@ -134,7 +125,7 @@ export const VideoPlayer = ({
 
   return (
     <video
-      src={videoSrc || undefined}
+      src={videoUrl || undefined}
       className={`w-full rounded-lg ${className}`}
       controls={controls}
       autoPlay={autoPlay}

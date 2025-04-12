@@ -249,7 +249,7 @@ export const fetchPersonalRecords = async (userId: string) => {
     .from('personal_records')
     .select(`
       *,
-      exercise:exercise_id (name, category)
+      exercise:exercise_id (name, category, equipment)
     `)
     .eq('user_id', userId);
 
@@ -258,11 +258,5 @@ export const fetchPersonalRecords = async (userId: string) => {
     throw error;
   }
 
-  // Transform the data to include exercise_name
-  const transformedData = data.map(record => ({
-    ...record,
-    exercise_name: record.exercise?.name || 'Unknown Exercise'
-  }));
-
-  return transformedData;
+  return data;
 };

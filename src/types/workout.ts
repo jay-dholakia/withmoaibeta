@@ -1,3 +1,4 @@
+
 export interface Exercise {
   id: string;
   name: string;
@@ -148,21 +149,6 @@ export interface WorkoutHistoryItem {
   distance?: string;
   location?: string;
   completed_date?: string;
-}
-
-export interface PersonalRecord {
-  id: string;
-  user_id: string;
-  exercise_id: string;
-  weight: number;
-  reps: number | null;
-  achieved_at: string;
-  workout_completion_id: string | null;
-  exercise?: {
-    name: string;
-    category: string;
-  };
-  exercise_name: string; // Added for compatibility
 }
 
 export const DAYS_OF_WEEK = [

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -100,7 +99,7 @@ export default function MoaiPage() {
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {groupData && (
         <Card className="border-none shadow-none bg-slate-50">
           <CardHeader className="text-center py-2 px-4">
@@ -109,7 +108,7 @@ export default function MoaiPage() {
             </CardTitle>
           </CardHeader>
           {groupData.spotify_playlist_url && (
-            <CardContent className="pt-0 pb-3 text-center">
+            <CardContent className="pt-0 pb-1 text-center">
               <Button 
                 variant="outline"
                 size="sm" 

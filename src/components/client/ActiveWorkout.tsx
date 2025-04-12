@@ -553,7 +553,7 @@ const ActiveWorkout = () => {
               {
                 distance,
                 duration: item.duration || null,
-                location: location || null,
+                location: item.location || null,
                 completed: true
               }
             );
@@ -1646,7 +1646,7 @@ const ActiveWorkout = () => {
               Saving...
             </span>
           )}
-          {saveStatus === 'saved' && (
+          {saveStatus === 'success' && (
             <span className="text-xs text-green-600 mr-2 flex items-center">
               <Save className="h-3 w-3 mr-1" />
               Saved

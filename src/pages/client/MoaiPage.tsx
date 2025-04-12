@@ -8,11 +8,12 @@ import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Music } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { fetchCurrentProgram } from '@/services/program-service';
 import { fetchUserGroups } from '@/services/moai-service';
+import { Button } from '@/components/ui/button';
 
 export default function MoaiPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -80,6 +81,12 @@ export default function MoaiPage() {
     }
   }, [currentProgram]);
   
+  const handleOpenSpotifyPlaylist = () => {
+    if (groupData?.spotify_playlist_url) {
+      window.open(groupData.spotify_playlist_url, '_blank');
+    }
+  };
+  
   if (isLoadingGroup || isLoadingProgram || isLoadingUserGroups) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -100,13 +107,27 @@ export default function MoaiPage() {
   
   return (
     <div className="space-y-6">
-      {currentProgram?.program && (
+      {/* Group name card replacing program name */}
+      {groupData && (
         <Card className="border-none shadow-none bg-slate-50">
           <CardHeader className="text-center py-2 px-4">
             <CardTitle className="text-lg font-medium">
-              {currentProgram.program.title} • Week {currentWeekNumber || 1}
+              {groupData.name}
             </CardTitle>
           </CardHeader>
+          {groupData.spotify_playlist_url && (
+            <CardContent className="pt-0 pb-3 text-center">
+              <Button 
+                variant="outline"
+                size="sm" 
+                onClick={handleOpenSpotifyPlaylist}
+                className="bg-white hover:bg-green-50"
+              >
+                <Music className="h-4 w-4 mr-2 text-green-600" />
+                <span>Team Spotify Playlist</span>
+              </Button>
+            </CardContent>
+          )}
         </Card>
       )}
       

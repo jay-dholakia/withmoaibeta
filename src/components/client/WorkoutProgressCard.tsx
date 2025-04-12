@@ -119,68 +119,80 @@ export function WorkoutProgressCard({
           <Progress value={progressPercentage} className="h-1.5 mb-2" />
         )}
         
-        <div className="grid grid-cols-7 gap-0.5">
-          {daysOfWeek.map((day, columnIndex) => {
-            const hasWorkout = hasWorkoutOnDate(day.dateStr);
-            const restDay = isRestDay(day.dateStr);
-            const workoutType = getWorkoutType(day.dateStr);
-            const workoutTitle = getWorkoutTitle(day.dateStr);
-            
-            return (
-              <div 
-                key={day.dateStr} 
-                className={cn(
-                  "text-center",
-                  day.isToday ? "relative bg-muted/40 py-1 rounded-md" : ""
-                )}
-              >
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className={cn(
-                        "relative mx-auto w-6 h-6 rounded-full flex items-center justify-center", 
-                        hasWorkout || restDay ? "bg-muted" : "bg-muted/30"
-                      )}>
-                        {(hasWorkout || restDay) && workoutType && (
-                          <WorkoutTypeIcon
-                            type={workoutType}
-                            className="h-4 w-4"
-                            colorOverride={hasWorkout ? undefined : "text-muted-foreground"}
-                          />
-                        )}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-[220px]">
-                      <div className="text-xs">
-                        <div className="font-medium">{format(day.date, 'MMM d, yyyy')}</div>
-                        <div>
-                          <span className="font-medium">{displayName}</span>
-                          {isCurrentUser && <span className="text-xs ml-1 text-muted-foreground">(You)</span>}
-                        </div>
-                        {hasWorkout && workoutTitle ? (
-                          <span>{workoutTitle}</span>
-                        ) : restDay ? (
-                          <span>Rest Day</span>
-                        ) : (
-                          <span>No workout completed</span>
-                        )}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            );
-          })}
-          
-          {showLabelsBelow && (
-            <>
-              {daysOfWeek.map((day) => (
-                <div key={`below-label-${day.dateStr}`} className="text-xs text-muted-foreground text-center mt-1">
-                  {day.dayName[0]}
-                </div>
-              ))}
-            </>
+        {/* Add a container with position relative to handle the today's column highlight */}
+        <div className="relative">
+          {/* Today's column highlight */}
+          {todayColumnIndex >= 0 && (
+            <div 
+              className="absolute top-0 bottom-0 bg-slate-100 rounded-md z-0" 
+              style={{
+                left: `${(todayColumnIndex * 100 / 7)}%`,
+                width: `${100 / 7}%`,
+                height: '100%'
+              }}
+            ></div>
           )}
+          
+          <div className="grid grid-cols-7 gap-0.5 relative z-10">
+            {daysOfWeek.map((day, columnIndex) => {
+              const hasWorkout = hasWorkoutOnDate(day.dateStr);
+              const restDay = isRestDay(day.dateStr);
+              const workoutType = getWorkoutType(day.dateStr);
+              const workoutTitle = getWorkoutTitle(day.dateStr);
+              
+              return (
+                <div 
+                  key={day.dateStr} 
+                  className="text-center py-1"
+                >
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className={cn(
+                          "relative mx-auto w-6 h-6 rounded-full flex items-center justify-center", 
+                          hasWorkout || restDay ? "bg-muted" : "bg-muted/30"
+                        )}>
+                          {(hasWorkout || restDay) && workoutType && (
+                            <WorkoutTypeIcon
+                              type={workoutType}
+                              className="h-4 w-4"
+                              colorOverride={hasWorkout ? undefined : "text-muted-foreground"}
+                            />
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[220px]">
+                        <div className="text-xs">
+                          <div className="font-medium">{format(day.date, 'MMM d, yyyy')}</div>
+                          <div>
+                            <span className="font-medium">{displayName}</span>
+                            {isCurrentUser && <span className="text-xs ml-1 text-muted-foreground">(You)</span>}
+                          </div>
+                          {hasWorkout && workoutTitle ? (
+                            <span>{workoutTitle}</span>
+                          ) : restDay ? (
+                            <span>Rest Day</span>
+                          ) : (
+                            <span>No workout completed</span>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              );
+            })}
+            
+            {showLabelsBelow && (
+              <>
+                {daysOfWeek.map((day) => (
+                  <div key={`below-label-${day.dateStr}`} className="text-xs text-muted-foreground text-center mt-1">
+                    {day.dayName[0]}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

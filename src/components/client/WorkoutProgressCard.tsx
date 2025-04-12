@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -81,6 +82,9 @@ export function WorkoutProgressCard({
   const displayName = firstName || userName;
   const initials = firstName ? firstName.charAt(0).toUpperCase() : userName.charAt(0).toUpperCase();
   
+  // Find today's column index
+  const todayColumnIndex = daysOfWeek.findIndex(day => day.isToday);
+  
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <div className="flex-shrink-0">
@@ -116,14 +120,20 @@ export function WorkoutProgressCard({
         )}
         
         <div className="grid grid-cols-7 gap-0.5">
-          {daysOfWeek.map((day) => {
+          {daysOfWeek.map((day, columnIndex) => {
             const hasWorkout = hasWorkoutOnDate(day.dateStr);
             const restDay = isRestDay(day.dateStr);
             const workoutType = getWorkoutType(day.dateStr);
             const workoutTitle = getWorkoutTitle(day.dateStr);
             
             return (
-              <div key={day.dateStr} className="text-center">
+              <div 
+                key={day.dateStr} 
+                className={cn(
+                  "text-center",
+                  day.isToday ? "relative bg-muted/40 py-1 rounded-md" : ""
+                )}
+              >
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -158,10 +168,6 @@ export function WorkoutProgressCard({
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                
-                {day.isToday && (
-                  <div className="h-1 w-1 bg-primary rounded-full mt-1 mx-auto"></div>
-                )}
               </div>
             );
           })}

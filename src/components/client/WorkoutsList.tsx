@@ -13,6 +13,7 @@ import { fetchCurrentProgram } from '@/services/program-service';
 import { ProgramProgressSection } from './ProgramProgressSection';
 import { fetchGroupMembers, GroupMember } from '@/services/group-member-service';
 import { LogActivityButtons } from './LogActivityButtons';
+import LifeHappensButton from './LifeHappensButton';
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
@@ -355,7 +356,9 @@ const WorkoutsList = () => {
         
         <LogActivityButtons />
         
-        <Button asChild variant="outline" className="w-full flex items-center justify-between text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+        <LifeHappensButton />
+        
+        <Button asChild variant="outline" className="w-full mt-4 flex items-center justify-between text-emerald-600 border-emerald-200 hover:bg-emerald-50">
           <Link to="/client-dashboard/workouts/one-off">
             <div className="flex items-center">
               <PlusCircle className="h-4 w-4 mr-2" />

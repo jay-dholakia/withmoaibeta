@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { trackWorkoutSet } from '@/services/client-service';
+import { trackWorkoutSet, completeWorkout, fetchPersonalRecords } from '@/services/client-service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { VideoPlayer } from '@/components/client/VideoPlayer';
 import Stopwatch from './Stopwatch';
+import { PersonalRecord } from '@/components/client/PersonalRecordsTable';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -39,6 +40,9 @@ const ActiveWorkout = () => {
   
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [authStateChanged, setAuthStateChanged] = useState(0);
+  const [stopwatchTime, setStopwatchTime] = useState(0);
+  const [isRunning, setIsRunning] = useState(true);
+  const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
   
   const [exerciseStates, setExerciseStates] = useState<{
     [key: string]: {
@@ -104,6 +108,33 @@ const ActiveWorkout = () => {
   const [currentExercise, setCurrentExercise] = useState<any>(null);
   const [alternativeExercises, setAlternativeExercises] = useState<any[]>([]);
 
+  // Fetch personal records for the current user
+  const { data: userPersonalRecords } = useQuery({
+    queryKey: ['personal-records', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        return await fetchPersonalRecords(user.id);
+      } catch (error) {
+        console.error('Error fetching personal records:', error);
+        return [];
+      }
+    },
+    enabled: !!user?.id,
+  });
+
+  // Update personal records state when data is loaded
+  useEffect(() => {
+    if (userPersonalRecords) {
+      setPersonalRecords(userPersonalRecords);
+    }
+  }, [userPersonalRecords]);
+
+  // Function to get the personal record for a specific exercise
+  const getExercisePersonalRecord = (exerciseId: string): PersonalRecord | undefined => {
+    return personalRecords.find(record => record.exercise_id === exerciseId);
+  };
+
   const formatDurationInput = (value: string): string => {
     let cleaned = value.replace(/[^\d:]/g, '');
     
@@ -145,13 +176,14 @@ const ActiveWorkout = () => {
       if (!workoutCompletionId || !user?.id) return false;
       console.log("Saving workout draft with data:", data);
       return await saveWorkoutDraft(
-        workoutCompletionId || null, 
+        workoutCompletionId, 
         'workout', 
         data
       );
     },
     interval: 3000,
-    disabled: !workoutCompletionId || !user?.id
+    // No enabled property in the useAutosave hook, we handle this in the save function
+    // by checking if workoutCompletionId and user are defined
   });
 
   const { data: workoutData, isLoading } = useQuery({
@@ -406,6 +438,10 @@ const ActiveWorkout = () => {
     onSuccess: (data) => {
       console.log("Successfully tracked set:", data);
       queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
+      // Refresh personal records when a set is completed
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: ['personal-records', user.id] });
+      }
     },
     onError: (error: any) => {
       console.error('Error tracking set:', error);
@@ -562,95 +598,6 @@ const ActiveWorkout = () => {
     },
   });
 
-  useEffect(() => {
-    if (workoutData?.workout?.workout_exercises) {
-      const initialState: any = {};
-      
-      const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
-        ? workoutData.workout.workout_exercises 
-        : [];
-      
-      workoutExercises.forEach((exercise: any) => {
-        const exerciseType = exercise.exercise?.exercise_type || 'strength';
-        const exerciseName = (exercise.exercise?.name || '').toLowerCase();
-        const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
-        
-        if (isRunExercise) {
-          const existingSet = workoutData.workout_set_completions?.find(
-            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
-          );
-          
-          initialState[exercise.id] = {
-            expanded: true,
-            sets: [],
-            runData: {
-              distance: existingSet?.distance || '',
-              duration: existingSet?.duration || '',
-              location: existingSet?.location || '',
-              completed: !!existingSet?.completed
-            }
-          };
-        } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
-          const sets = Array.from({ length: exercise.sets }, (_, i) => {
-            const existingSet = workoutData.workout_set_completions?.find(
-              (set: any) => set.workout_exercise_id === exercise.id && set.set_number === i + 1
-            );
-            
-            let defaultReps = '';
-            if (exercise.reps) {
-              const repsMatch = exercise.reps.match(/^(\d+)$/);
-              if (repsMatch) {
-                defaultReps = repsMatch[1];
-              }
-            }
-            
-            return {
-              setNumber: i + 1,
-              weight: existingSet?.weight?.toString() || '',
-              reps: existingSet?.reps_completed?.toString() || defaultReps,
-              completed: !!existingSet?.completed,
-            };
-          });
-          
-          initialState[exercise.id] = {
-            expanded: true,
-            sets,
-          };
-        } else if (exerciseType === 'cardio') {
-          const existingSet = workoutData.workout_set_completions?.find(
-            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
-          );
-          
-          initialState[exercise.id] = {
-            expanded: true,
-            sets: [],
-            cardioData: {
-              distance: existingSet?.distance || '',
-              duration: existingSet?.duration || '',
-              location: existingSet?.location || '',
-              completed: !!existingSet?.completed
-            }
-          };
-        } else if (exerciseType === 'flexibility') {
-          const existingSet = workoutData.workout_set_completions?.find(
-            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
-          );
-          
-          initialState[exercise.id] = {
-            expanded: true,
-            sets: [],
-            flexibilityData: {
-              duration: existingSet?.duration || '',
-              completed: !!existingSet?.completed
-            }
-          };
-        }
-      });
-      
-      setExerciseStates(initialState);
-    }
-  }, [workoutData]);
-
   const handleSetChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
     setExerciseStates((prev) => {
       if (!prev[exerciseId]) {
@@ -796,7 +743,7 @@ const ActiveWorkout = () => {
         ...prev.filter(c => c.exerciseId !== exerciseId),
         {
           exerciseId,
-          distance: distance,
+          distance: distance || '',
           duration: cardioData.duration,
           location: cardioData.location
         }
@@ -1006,8 +953,8 @@ const ActiveWorkout = () => {
     }
   };
 
-  const isWorkoutComplete = () => {
-    return true;
+  const handleStopwatchTick = (time: number) => {
+    setStopwatchTime(time);
   };
 
   const finishWorkout = async () => {
@@ -1018,412 +965,42 @@ const ActiveWorkout = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-client" />
-      </div>
-    );
-  }
-
-  if (!workoutData) {
-    return (
-      <div className="text-center py-12">
-        <AlertCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
-        <h2 className="text-xl font-medium mb-2">Workout Not Found</h2>
-        <p className="text-muted-foreground mb-6">
-          The workout you're looking for doesn't exist or you don't have permission to view it.
-        </p>
-        <Button onClick={() => navigate('/client-dashboard/workouts')}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Workouts
-        </Button>
-      </div>
-    );
-  }
-
-  const workoutExercises = Array.isArray(workoutData.workout?.workout_exercises) 
-    ? workoutData.workout.workout_exercises 
-    : [];
-    
-  const isStrengthWorkout = workoutData.workout?.workout_type === 'strength';
-
-  return (
-    <div className="space-y-6 pb-28 flex flex-col items-center mx-auto px-4 w-full max-w-md">
-      <div className="flex flex-col items-center gap-2 text-center w-full">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigate('/client-dashboard/workouts')}
-          className="border border-gray-200 hover:border-gray-300 self-start mb-2"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-2xl font-bold">{workoutData?.workout?.title || 'Workout'}</h1>
-        <p className="text-muted-foreground">Track your progress</p>
-        
-        <div className="text-xs text-muted-foreground flex items-center gap-1">
-          {saveStatus === 'saving' && (
-            <>
-              <Loader2 className="h-3 w-3 animate-spin" />
-              <span>Saving...</span>
-            </>
-          )}
-          {saveStatus === 'success' && (
-            <>
-              <Save className="h-3 w-3" />
-              <span>Draft saved</span>
-            </>
-          )}
-          {saveStatus === 'error' && (
-            <>
-              <AlertCircle className="h-3 w-3 text-destructive" />
-              <span className="text-destructive">Save failed</span>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-4 w-full">
-        {workoutExercises.map((exercise: any) => {
-          const exerciseType = exercise.exercise?.exercise_type || 'strength';
-          const exerciseName = (exercise.exercise?.name || '').toLowerCase();
-          const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
-          const exerciseState = exerciseStates[exercise.id];
-          
-          if (!exerciseState) {
-            return null;
-          }
-
-          const hasYoutubeLink = exercise.exercise?.youtube_link && exercise.exercise.youtube_link.trim() !== '';
-          
-          return (
-            <Card key={exercise.id} className="overflow-hidden border-gray-200 w-full">
-              <CardHeader 
-                className="cursor-pointer bg-client/5 text-center relative" 
-                onClick={() => toggleExerciseExpanded(exercise.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg font-medium flex items-center justify-center gap-2">
-                      {exercise.exercise?.name || 'Exercise'}
-                    </CardTitle>
-                    <CardDescription className="text-xs mt-1">
-                      {(exerciseType === 'strength' || exerciseType === 'bodyweight') && (
-                        <>
-                          {`${exercise.sets} sets × ${exercise.reps} reps`}
-                        </>
-                      )}
-                      {exerciseType === 'cardio' && 'Cardio Exercise'}
-                      {exerciseType === 'flexibility' && 'Flexibility Exercise'}
-                      {isRunExercise && 'Running Exercise'}
-                    </CardDescription>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 hover:text-amber-700 mr-2 p-1.5"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openAlternativeDialog(exercise);
-                            }}
-                          >
-                            <ArrowRightLeft className="h-5 w-5" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>See alternative exercises</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    {hasYoutubeLink && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 mr-2 p-1.5"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openVideoDialog(exercise.exercise.youtube_link, exercise.exercise.name);
-                              }}
-                            >
-                              <Youtube className="h-5 w-5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Watch demo video</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                    <div className="text-muted-foreground">
-                      <ChevronRight className={`h-5 w-5 transition-transform ${exerciseState.expanded ? 'rotate-90' : ''}`} />
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-
-              {exerciseState.expanded && (
-                <CardContent className="pt-4 px-4 pb-2">
-                  {(exerciseType === 'strength' || exerciseType === 'bodyweight') && (
-                    <>
-                      <div className="flex items-center mb-3 gap-1 justify-center text-sm text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>Rest between sets: {formatRestTime(exercise.rest_seconds)}</span>
-                      </div>
-                      
-                      <div className="grid grid-cols-4 gap-2 mb-2">
-                        <div className="text-center text-xs font-medium text-muted-foreground">Set</div>
-                        <div className="text-center text-xs font-medium text-muted-foreground">Reps</div>
-                        <div className="text-center text-xs font-medium text-muted-foreground">Weight</div>
-                        <div className="text-center text-xs font-medium text-muted-foreground">Done</div>
-                      </div>
-                      {exerciseState.sets?.map((set, index) => (
-                        <div key={`${exercise.id}-set-${index}`} className="grid grid-cols-4 items-center mb-3 gap-2">
-                          <div className="text-center text-sm">
-                            {index + 1}
-                          </div>
-                          
-                          <div>
-                            <Input 
-                              type="text"
-                              inputMode="numeric"
-                              placeholder="count"
-                              value={set.reps}
-                              onChange={(e) => handleSetChange(exercise.id, index, 'reps', e.target.value)}
-                              className="h-9"
-                            />
-                          </div>
-                          
-                          <div>
-                            <Input 
-                              type="text"
-                              inputMode="decimal"
-                              placeholder="lbs"
-                              value={set.weight}
-                              onChange={(e) => handleSetChange(exercise.id, index, 'weight', e.target.value)}
-                              className="h-9"
-                            />
-                          </div>
-                          
-                          <div className="flex justify-center">
-                            <Checkbox 
-                              id={`set-${exercise.id}-${index}-complete`}
-                              checked={set.completed}
-                              onCheckedChange={(checked) => handleSetCompletion(exercise.id, index, !!checked)}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                  
-                  {exerciseType === 'cardio' && exerciseState.cardioData && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-xs mb-1 block text-muted-foreground">Distance (optional)</label>
-                        <Input 
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="miles, km, etc."
-                          value={exerciseState.cardioData.distance}
-                          onChange={(e) => handleCardioChange(exercise.id, 'distance', e.target.value)}
-                          className="h-9"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1 block text-muted-foreground">Duration</label>
-                        <Input 
-                          type="text"
-                          placeholder="mm:ss"
-                          value={exerciseState.cardioData.duration}
-                          onChange={(e) => handleCardioChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
-                          className="h-9"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1 block text-muted-foreground">Location (optional)</label>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            type="text"
-                            placeholder="gym, park, etc."
-                            value={exerciseState.cardioData.location}
-                            onChange={(e) => handleCardioChange(exercise.id, 'location', e.target.value)}
-                            className="h-9"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between pt-2">
-                        <span className="text-sm">Mark as completed</span>
-                        <Checkbox 
-                          id={`cardio-${exercise.id}-complete`}
-                          checked={exerciseState.cardioData.completed}
-                          onCheckedChange={(checked) => handleCardioCompletion(exercise.id, !!checked)}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  
-                  {exerciseType === 'flexibility' && exerciseState.flexibilityData && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-xs mb-1 block text-muted-foreground">Duration</label>
-                        <Input 
-                          type="text"
-                          placeholder="mm:ss"
-                          value={exerciseState.flexibilityData.duration}
-                          onChange={(e) => handleFlexibilityChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between pt-2">
-                        <span className="text-sm">Mark as completed</span>
-                        <Checkbox 
-                          id={`flexibility-${exercise.id}-complete`}
-                          checked={exerciseState.flexibilityData.completed}
-                          onCheckedChange={(checked) => handleFlexibilityCompletion(exercise.id, !!checked)}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  
-                  {isRunExercise && exerciseState.runData && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-xs mb-1 block text-muted-foreground">Distance</label>
-                        <Input 
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="miles, km, etc."
-                          value={exerciseState.runData.distance}
-                          onChange={(e) => handleRunChange(exercise.id, 'distance', e.target.value)}
-                          className="h-9"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1 block text-muted-foreground">Duration</label>
-                        <Input 
-                          type="text"
-                          placeholder="mm:ss"
-                          value={exerciseState.runData.duration}
-                          onChange={(e) => handleRunChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
-                          className="h-9"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1 block text-muted-foreground">Location (optional)</label>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            type="text"
-                            placeholder="track, park, etc."
-                            value={exerciseState.runData.location}
-                            onChange={(e) => handleRunChange(exercise.id, 'location', e.target.value)}
-                            className="h-9"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between pt-2">
-                        <span className="text-sm">Mark as completed</span>
-                        <Checkbox 
-                          id={`run-${exercise.id}-complete`}
-                          checked={exerciseState.runData.completed}
-                          onCheckedChange={(checked) => handleRunCompletion(exercise.id, !!checked)}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              )}
-            </Card>
-          );
-        })}
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t shadow-md flex flex-col justify-center z-10 gap-3">
-        {isStrengthWorkout && (
-          <Stopwatch className="w-full mb-2" />
-        )}
-        <Button 
-          onClick={finishWorkout}
-          className="bg-client hover:bg-client/90 min-w-[200px]"
-          disabled={saveAllSetsMutation.isPending}
-        >
-          {saveAllSetsMutation.isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Complete Workout
-            </>
-          )}
-        </Button>
-      </div>
+  useEffect(() => {
+    if (workoutData?.workout?.workout_exercises) {
+      const initialState: any = {};
       
-      <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{currentExerciseName}</DialogTitle>
-          </DialogHeader>
-          <div className="aspect-video w-full overflow-hidden rounded-md">
-            {currentVideoUrl && <VideoPlayer youtubeUrl={currentVideoUrl} />}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={alternativeDialogOpen} onOpenChange={setAlternativeDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Alternative Exercises</DialogTitle>
-            <DialogDescription>
-              Choose an alternative exercise to replace {currentExercise?.exercise?.name}
-            </DialogDescription>
-          </DialogHeader>
+      const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
+        ? workoutData.workout.workout_exercises 
+        : [];
+      
+      workoutExercises.forEach((exercise: any) => {
+        const exerciseType = exercise.exercise?.exercise_type || 'strength';
+        const exerciseName = (exercise.exercise?.name || '').toLowerCase();
+        const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
+        
+        if (isRunExercise) {
+          const existingSet = workoutData.workout_set_completions?.find(
+            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
+          );
           
-          <div className="space-y-4 my-2 max-h-[60vh] overflow-y-auto">
-            {alternativeExercises.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No alternative exercises available</p>
-            ) : (
-              alternativeExercises.map((alt) => (
-                <Card 
-                  key={alt.alternative_id} 
-                  className="cursor-pointer hover:bg-accent/20 transition-colors"
-                  onClick={() => handleAlternativeSelection(alt.alternative_id, alt.alternative_name)}
-                >
-                  <CardHeader className="py-3">
-                    <CardTitle className="text-base">{alt.alternative_name}</CardTitle>
-                    <CardDescription className="text-xs">
-                      {alt.alternative_type.replace('_', ' ')}
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              ))
-            )}
-          </div>
-          
-          <DialogFooter className="sm:justify-between">
-            <Button 
-              variant="secondary" 
-              onClick={() => setAlternativeDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default ActiveWorkout;
+          initialState[exercise.id] = {
+            expanded: true,
+            sets: [],
+            runData: {
+              distance: existingSet?.distance || '',
+              duration: existingSet?.duration || '',
+              location: existingSet?.location || '',
+              completed: !!existingSet?.completed
+            }
+          };
+        } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+          const sets = Array.from({ length: exercise.sets }, (_, i) => {
+            const existingSet = workoutData.workout_set_completions?.find(
+              (set: any) => set.workout_exercise_id === exercise.id && set.set_number === i + 1
+            );
+            
+            let defaultReps = '';
+            if (exercise.reps) {
+              const repsMatch = exercise.reps.match(/^(\d+)$/);
+              if (repsMatch) {
+                defaultR

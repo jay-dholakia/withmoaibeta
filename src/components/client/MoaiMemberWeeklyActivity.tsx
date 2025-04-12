@@ -1,48 +1,86 @@
 
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
-import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
-import { WorkoutProgressCard } from './WorkoutProgressCard';
-import { WorkoutType } from './WorkoutTypeIcon';
-import { format, isThisWeek } from 'date-fns';
-import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
+import { useQuery } from '@tanstack/react-query';
+import { Loader2, Calendar, CheckCircle2, Clock, Map } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { WorkoutHistoryItem } from '@/types/workout';
 
-interface MoaiMemberWeeklyActivityProps {
+interface MemberWeeklyActivityProps {
   userId: string;
   userName: string;
 }
 
-const MoaiMemberWeeklyActivity: React.FC<MoaiMemberWeeklyActivityProps> = ({ userId, userName }) => {
-  const { user } = useAuth();
-  const isCurrentUser = userId === user?.id;
+const MoaiMemberWeeklyActivity: React.FC<MemberWeeklyActivityProps> = ({ userId, userName }) => {
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
   
   const { data: workouts, isLoading } = useQuery({
-    queryKey: ['member-workouts-weekly', userId],
+    queryKey: ['member-weekly-workouts', userId, format(weekStart, 'yyyy-MM-dd')],
     queryFn: async () => {
-      if (isCurrentUser) {
-        // Use the client workout history service for current user
-        return fetchClientWorkoutHistory(userId);
-      } else {
-        // Fetch directly from the database for other members
-        const { data, error } = await supabase
-          .from('workout_completions')
-          .select('*, workout:workout_id(*)')
-          .eq('user_id', userId)
-          .order('completed_at', { ascending: false });
-          
-        if (error) throw error;
-        return data;
+      const { data, error } = await supabase
+        .from('workout_completions')
+        .select(`
+          *,
+          workout:workout_id (
+            title,
+            description,
+            workout_type
+          )
+        `)
+        .eq('user_id', userId)
+        .gte('completed_at', weekStart.toISOString())
+        .lte('completed_at', weekEnd.toISOString())
+        .order('completed_at', { ascending: false });
+        
+      if (error) {
+        console.error('Error fetching member workouts:', error);
+        throw error;
       }
+      
+      // Transform the data to match the WorkoutHistoryItem type
+      return (data || []).map(item => {
+        const transformedItem: WorkoutHistoryItem = {
+          id: item.id,
+          user_id: item.user_id,
+          workout_id: item.workout_id || '',
+          completed_at: item.completed_at,
+          notes: item.notes,
+          rating: item.rating,
+          workout: item.workout ? {
+            id: item.workout_id || '',
+            title: item.workout.title || item.title || 'Workout',
+            description: item.workout.description || item.description,
+            day_of_week: 0, // Default value since we don't have this info
+            week_id: '', // Default value since we don't have this info
+            workout_type: item.workout.workout_type || item.workout_type || 'strength'
+          } : null,
+          title: item.title || (item.workout && item.workout.title) || 'Workout',
+          description: item.description || (item.workout && item.workout.description),
+          workout_type: item.workout_type || (item.workout && item.workout.workout_type),
+          distance: item.distance,
+          duration: item.duration,
+          location: item.location,
+          life_happens_pass: item.life_happens_pass || false,
+          rest_day: item.rest_day || false
+        };
+        return transformedItem;
+      });
     },
-    enabled: !!userId,
+    staleTime: 60000 // 1 minute
   });
   
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-3">
+      <div className="flex items-center justify-center py-4">
         <Loader2 className="h-5 w-5 animate-spin text-client" />
       </div>
     );
@@ -50,89 +88,62 @@ const MoaiMemberWeeklyActivity: React.FC<MoaiMemberWeeklyActivityProps> = ({ use
   
   if (!workouts || workouts.length === 0) {
     return (
-      <div className="p-3 text-center">
-        <p className="text-sm text-muted-foreground">No workout data available</p>
+      <div className="text-center py-3 text-sm text-muted-foreground">
+        No workouts completed this week
       </div>
     );
   }
   
-  // Process workouts data
-  const completedDates: Date[] = [];
-  const lifeHappensDates: Date[] = [];
-  const typesMap: Record<string, WorkoutType> = {};
-  const titlesMap: Record<string, string> = {};
-  
-  workouts.forEach(workout => {
-    if (workout.completed_at) {
-      try {
-        const completionDate = typeof workout.completed_at === 'string' 
-          ? new Date(workout.completed_at) 
-          : workout.completed_at;
-          
-        const dateKey = format(completionDate, 'yyyy-MM-dd');
-        
-        if (workout.life_happens_pass || workout.rest_day) {
-          lifeHappensDates.push(completionDate);
-          typesMap[dateKey] = 'rest_day';
-          return;
-        }
-        
-        completedDates.push(completionDate);
-        
-        if (workout.title) {
-          titlesMap[dateKey] = workout.title;
-        } else if (workout.workout?.title) {
-          titlesMap[dateKey] = workout.workout.title;
-        }
-        
-        if (workout.workout_type) {
-          typesMap[dateKey] = workout.workout_type as WorkoutType;
-        } else if (workout.workout?.workout_type) {
-          const type = String(workout.workout.workout_type).toLowerCase();
-          if (type.includes('strength')) typesMap[dateKey] = 'strength';
-          else if (type.includes('cardio') || type.includes('run')) typesMap[dateKey] = 'cardio';
-          else if (type.includes('body') || type.includes('weight')) typesMap[dateKey] = 'bodyweight';
-          else if (type.includes('flex') || type.includes('yoga') || type.includes('stretch')) typesMap[dateKey] = 'flexibility';
-          else if (type.includes('hiit')) typesMap[dateKey] = 'hiit';
-          else if (type.includes('sport')) typesMap[dateKey] = 'sport';
-          else if (type.includes('swim')) typesMap[dateKey] = 'swimming';
-          else if (type.includes('cycle') || type.includes('bike')) typesMap[dateKey] = 'cycling';
-          else if (type.includes('dance')) typesMap[dateKey] = 'dance';
-          else if (titlesMap[dateKey]) {
-            typesMap[dateKey] = detectWorkoutTypeFromText(titlesMap[dateKey]);
-          } else {
-            typesMap[dateKey] = 'strength';
-          }
-        } else if (titlesMap[dateKey]) {
-          typesMap[dateKey] = detectWorkoutTypeFromText(titlesMap[dateKey]);
-        } else {
-          typesMap[dateKey] = 'strength';
-        }
-      } catch (error) {
-        console.error("Error processing workout completion:", error);
-      }
-    }
-  });
-  
-  // Calculate completed workouts this week
-  const completedThisWeek = completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
-  const lifeHappensThisWeek = lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
-  
-  // Estimate total workouts (using 6 as default if not available)
-  const totalWorkouts = 6;
-  
   return (
-    <div className="py-2 px-1">
-      <WorkoutProgressCard 
-        userName={userName}
-        completedDates={completedDates}
-        lifeHappensDates={lifeHappensDates}
-        count={completedThisWeek}
-        total={totalWorkouts}
-        workoutTypesMap={typesMap}
-        workoutTitlesMap={titlesMap}
-        isCurrentUser={isCurrentUser}
-      />
+    <div className="pt-1">
+      <Accordion type="single" collapsible className="w-full">
+        {workouts.map((workout) => (
+          <AccordionItem key={workout.id} value={workout.id} className="border-b border-b-slate-200">
+            <AccordionTrigger className="py-2 text-sm hover:no-underline">
+              <div className="flex items-center justify-between w-full pr-2">
+                <div className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-500" />
+                  <span>
+                    {workout.title || (workout.workout && workout.workout.title) || "Workout"}
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {format(new Date(workout.completed_at), 'E, MMM d')}
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-2 pb-3 text-sm">
+              <div className="flex flex-col space-y-2">
+                {workout.workout_type && (
+                  <Badge variant="outline" className="self-start">
+                    {workout.workout_type.charAt(0).toUpperCase() + workout.workout_type.slice(1)}
+                  </Badge>
+                )}
+                
+                {workout.notes && (
+                  <div className="italic text-muted-foreground border-l-2 border-slate-200 pl-3 mt-2">
+                    "{workout.notes}"
+                  </div>
+                )}
+
+                {workout.duration && (
+                  <div className="flex items-center text-xs text-muted-foreground mt-1">
+                    <Clock className="h-3.5 w-3.5 mr-1" />
+                    <span>{workout.duration}</span>
+                  </div>
+                )}
+
+                {workout.distance && (
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <Map className="h-3.5 w-3.5 mr-1" />
+                    <span>{workout.distance}</span>
+                  </div>
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
     </div>
   );
 };

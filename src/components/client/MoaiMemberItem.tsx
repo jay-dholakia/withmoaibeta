@@ -43,7 +43,7 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
         onClick={handleClick}
       >
         <div className="flex items-center gap-2.5 flex-1">
-          <Avatar className="h-8 w-8 border">
+          <Avatar className="h-10 w-10 border">
             <AvatarImage 
               src={member.profileData?.avatar_url || ''} 
               alt={displayName} 
@@ -61,7 +61,7 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
         </div>
         
         <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
-          <CollapsibleTrigger className="collapsible-trigger ml-auto flex items-center justify-center h-7 w-7 rounded-full hover:bg-slate-100" onClick={(e) => e.stopPropagation()}>
+          <CollapsibleTrigger className="collapsible-trigger ml-auto flex items-center justify-center h-8 w-8 rounded-full hover:bg-slate-100" onClick={(e) => e.stopPropagation()}>
             {isOpen ? (
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             ) : (

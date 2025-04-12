@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { WeekProgressBar } from './WeekProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +9,7 @@ import { WorkoutType } from './WorkoutTypeIcon';
 import { WorkoutProgressCard } from './WorkoutProgressCard';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -209,6 +209,7 @@ export const WeekProgressSection = ({
           avatarUrl={userProfile?.avatar_url}
           firstName={userProfile?.first_name}
           lastName={userProfile?.last_name}
+          showLabelsBelow={true}
         />
       </CardContent>
     </Card>

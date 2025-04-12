@@ -26,6 +26,7 @@ interface WorkoutProgressCardProps {
   firstName?: string | null;
   lastName?: string | null;
   showWeekdayLabels?: boolean;
+  showLabelsBelow?: boolean;
 }
 
 export function WorkoutProgressCard({ 
@@ -44,7 +45,8 @@ export function WorkoutProgressCard({
   avatarUrl,
   firstName,
   lastName,
-  showWeekdayLabels = false
+  showWeekdayLabels = false,
+  showLabelsBelow = false
 }: WorkoutProgressCardProps) {
   // Always use Monday as the first day of the week
   const today = new Date();
@@ -117,10 +119,21 @@ export function WorkoutProgressCard({
       </div>
       
       <div className="flex-1">
-        {!showWeekdayLabels && (
+        {!showWeekdayLabels && !showLabelsBelow && (
           <Progress value={progressPercentage} className="h-1.5 mb-2" />
         )}
+        
         <div className="grid grid-cols-7 gap-0.5">
+          {showWeekdayLabels && !showLabelsBelow && (
+            <>
+              {daysOfWeek.map((day) => (
+                <div key={`label-${day.dateStr}`} className="text-xs text-muted-foreground text-center mb-1">
+                  {day.dayName[0]}
+                </div>
+              ))}
+            </>
+          )}
+          
           {daysOfWeek.map((day) => {
             const hasWorkout = hasWorkoutOnDate(day.dateStr);
             const restDay = isRestDay(day.dateStr);
@@ -129,18 +142,11 @@ export function WorkoutProgressCard({
             
             return (
               <div key={day.dateStr} className="text-center">
-                {showWeekdayLabels && (
-                  <div className="text-xs text-muted-foreground mb-1">
-                    {day.dayName[0]}
-                  </div>
-                )}
-                
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className={cn(
                         "relative mx-auto w-6 h-6 rounded-full flex items-center justify-center", 
-                        day.isToday ? "ring-1 ring-primary ring-offset-1" : "",
                         hasWorkout || restDay ? "bg-muted" : "bg-muted/30"
                       )}>
                         {(hasWorkout || restDay) && workoutType && (
@@ -170,9 +176,23 @@ export function WorkoutProgressCard({
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+                
+                {showLabelsBelow && day.isToday && (
+                  <div className="h-1 w-1 bg-primary rounded-full mt-1 mx-auto"></div>
+                )}
               </div>
             );
           })}
+          
+          {showLabelsBelow && (
+            <>
+              {daysOfWeek.map((day) => (
+                <div key={`below-label-${day.dateStr}`} className="text-xs text-muted-foreground text-center mt-1">
+                  {day.dayName[0]}
+                </div>
+              ))}
+            </>
+          )}
         </div>
       </div>
     </div>

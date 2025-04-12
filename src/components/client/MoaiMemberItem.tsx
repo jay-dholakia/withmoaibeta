@@ -82,7 +82,7 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
             )}
           </CollapsibleTrigger>
           <CollapsibleContent className="border-t mt-1">
-            <MoaiMemberWeeklyActivity userId={member.userId} userName={displayName} />
+            <MoaiMemberWeeklyActivity userId={member.userId} userName={displayName} showLabelsBelow={true} />
           </CollapsibleContent>
         </Collapsible>
       </div>

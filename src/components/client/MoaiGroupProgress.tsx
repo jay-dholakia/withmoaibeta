@@ -433,6 +433,7 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
                 avatarUrl={member.profileData?.avatar_url}
                 firstName={member.profileData?.first_name}
                 lastName={member.profileData?.last_name}
+                showLabelsBelow={true}
               />
             );
           })}

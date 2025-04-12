@@ -1205,17 +1205,19 @@ const ActiveWorkout = () => {
                 <CardContent className="pt-4 px-4 pb-2">
                   {(exerciseType === 'strength' || exerciseType === 'bodyweight') && (
                     <>
-                      <div className="flex items-center mb-3 gap-1 justify-center text-sm text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>Rest between sets: {formatRestTime(exercise.rest_seconds)}</span>
-                      </div>
-                      
-                      {personalRecord && (
-                        <div className="flex items-center mb-3 gap-1 justify-center text-sm text-emerald-600">
-                          <Trophy className="h-3 w-3" />
-                          <span>Your PR: {personalRecord.weight} lbs × {personalRecord.reps} reps</span>
+                      <div className="flex flex-col gap-0.5 items-center mb-2">
+                        <div className="flex items-center gap-1 justify-center text-sm text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          <span>Rest between sets: {formatRestTime(exercise.rest_seconds)}</span>
                         </div>
-                      )}
+                        
+                        {personalRecord && (
+                          <div className="flex items-center gap-1 justify-center text-sm text-emerald-600">
+                            <Trophy className="h-3 w-3" />
+                            <span>Your PR: {personalRecord.weight} lbs</span>
+                          </div>
+                        )}
+                      </div>
                       
                       <div className="grid grid-cols-4 gap-2 mb-2">
                         <div className="text-center text-xs font-medium text-muted-foreground">Set</div>

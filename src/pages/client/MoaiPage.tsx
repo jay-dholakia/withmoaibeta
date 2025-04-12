@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,12 +8,13 @@ import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Music } from 'lucide-react';
+import { Loader2, Music, Dumbbell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { fetchCurrentProgram } from '@/services/program-service';
 import { fetchUserGroups } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 export default function MoaiPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -137,6 +139,19 @@ export default function MoaiPage() {
             ))}
           </select>
         </div>
+      )}
+      
+      {/* Log Workout Button - moved above the progress card */}
+      {user && (
+        <Button 
+          asChild 
+          className="w-full flex items-center justify-center gap-2 bg-client hover:bg-client/90"
+        >
+          <Link to="/client-dashboard/workouts">
+            <Dumbbell className="h-4 w-4" />
+            Log a Workout
+          </Link>
+        </Button>
       )}
       
       <Card>

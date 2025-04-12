@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Container } from '@/components/ui/container';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,16 +7,19 @@ import { fetchClientWorkoutHistory } from '@/services/client-workout-history-ser
 import { startOfWeek, format, isValid, isFuture } from 'date-fns';
 import { getWeeklyAssignedWorkoutsCount, countCompletedWorkoutsForWeek } from '@/services/workout-history-service';
 import { fetchClientProfile } from '@/services/client-service';
-import { Loader2, CalendarDays, User } from 'lucide-react';
+import { Loader2, CalendarDays, User, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
 import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import { WorkoutHistoryItem } from '@/types/workout';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedDayWorkouts, setSelectedDayWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const workoutDetailsRef = useRef<HTMLDivElement>(null);
@@ -166,6 +170,10 @@ const LeaderboardPage = () => {
     refetchWorkouts();
   };
   
+  const handleLogWorkoutClick = () => {
+    navigate('/client-dashboard/workouts');
+  };
+  
   const isLoading = isLoadingProfile || isLoadingWorkouts || isLoadingCount || isLoadingCompleted;
   
   if (isLoading) {
@@ -219,6 +227,15 @@ const LeaderboardPage = () => {
             )}
           </CardContent>
         </Card>
+        
+        {/* Log Workout Button - Matching the one from WorkoutsList */}
+        <Button 
+          onClick={handleLogWorkoutClick}
+          className="w-full mt-4 bg-[#33C3F0] hover:bg-[#33C3F0]/90 text-white flex items-center justify-center gap-2"
+        >
+          <PlusCircle className="h-4 w-4" />
+          Log a Workout
+        </Button>
         
         {selectedDayWorkouts.length > 0 && (
           <div className="mt-6" ref={workoutDetailsRef}>

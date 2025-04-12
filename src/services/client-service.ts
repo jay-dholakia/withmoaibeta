@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -286,7 +285,7 @@ export const fetchHighestPersonalRecords = async (userId: string) => {
   if (data) {
     data.forEach(record => {
       const existingRecord = exerciseMap.get(record.exercise_id);
-      if (!existingRecord || parseFloat(record.weight) > parseFloat(existingRecord.weight)) {
+      if (!existingRecord || parseFloat(String(record.weight)) > parseFloat(String(existingRecord.weight))) {
         exerciseMap.set(record.exercise_id, record);
       }
     });

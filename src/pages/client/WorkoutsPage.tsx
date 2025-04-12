@@ -41,11 +41,11 @@ const WorkoutsPage = () => {
     <div className="w-full">
       <Routes>
         <Route index element={<WorkoutsList />} />
-        <Route path="active/:workoutCompletionId" element={<ActiveWorkout key={user?.id} />} />
-        <Route path="complete/:workoutCompletionId" element={<WorkoutComplete key={user?.id} />} />
+        <Route path="active/:workoutCompletionId" element={<ActiveWorkout />} />
+        <Route path="complete/:workoutCompletionId" element={<WorkoutComplete />} />
         <Route path="create" element={<CreateCustomWorkout />} />
         <Route path="custom/:workoutId" element={<CustomWorkoutDetail />} />
-        <Route path="one-off" element={<EnterOneOffWorkout key={user?.id} />} />
+        <Route path="one-off" element={<EnterOneOffWorkout />} />
         <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
     </div>

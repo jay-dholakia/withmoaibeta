@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Container } from '@/components/ui/container';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +6,7 @@ import { fetchClientWorkoutHistory } from '@/services/client-workout-history-ser
 import { startOfWeek, format, isValid, isFuture } from 'date-fns';
 import { getWeeklyAssignedWorkoutsCount, countCompletedWorkoutsForWeek } from '@/services/workout-history-service';
 import { fetchClientProfile } from '@/services/client-service';
-import { Loader2, CalendarDays, User, PlusCircle } from 'lucide-react';
+import { Loader2, CalendarDays, User, Dumbbell } from 'lucide-react';
 import { toast } from 'sonner';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -114,16 +113,13 @@ const LeaderboardPage = () => {
           
           const dateKey = format(date, 'yyyy-MM-dd');
           
-          // Determine workout type
           if (item.life_happens_pass || item.rest_day) {
             typesMap[dateKey] = 'rest_day';
             return;
           }
           
-          // Get workout type from either direct property or nested workout object
           const workoutType = item.workout_type || item.workout?.workout_type || '';
           
-          // Map specific workout types
           if (workoutType.toLowerCase().includes('basketball')) typesMap[dateKey] = 'basketball';
           else if (workoutType.toLowerCase().includes('golf')) typesMap[dateKey] = 'golf';
           else if (workoutType.toLowerCase().includes('volleyball')) typesMap[dateKey] = 'volleyball';
@@ -141,7 +137,7 @@ const LeaderboardPage = () => {
           else if (workoutType.toLowerCase().includes('dance')) typesMap[dateKey] = 'dance';
           else if (workoutType.toLowerCase().includes('cycl') || workoutType.toLowerCase().includes('bike')) typesMap[dateKey] = 'cycling';
           else if (workoutType.toLowerCase().includes('custom')) typesMap[dateKey] = 'custom';
-          else typesMap[dateKey] = 'custom'; // Default changed from one_off to custom
+          else typesMap[dateKey] = 'custom';
         } catch (err) {
           console.error('Error processing workout date:', err, item.completed_at);
         }
@@ -228,12 +224,11 @@ const LeaderboardPage = () => {
           </CardContent>
         </Card>
         
-        {/* Log Workout Button - Matching the one from WorkoutsList */}
         <Button 
           onClick={handleLogWorkoutClick}
-          className="w-full mt-4 bg-[#33C3F0] hover:bg-[#33C3F0]/90 text-white flex items-center justify-center gap-2"
+          className="w-full mt-4 rounded-full bg-[#3B5EE8] hover:bg-[#3B5EE8]/90 text-white flex items-center justify-center gap-2"
         >
-          <PlusCircle className="h-4 w-4" />
+          <Dumbbell className="h-5 w-5" />
           Log a Workout
         </Button>
         

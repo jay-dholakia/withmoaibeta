@@ -1,16 +1,15 @@
 
 import React from 'react';
 import { ClientLayout } from '@/layouts/ClientLayout';
-import ActiveWorkout from '@/components/client/ActiveWorkout'; 
-import { useParams } from 'react-router-dom';
 
 const ClientWorkoutDetailsPage: React.FC = () => {
-  const { workoutId } = useParams<{ workoutId: string }>();
-  
   return (
     <ClientLayout>
       <div className="container mx-auto py-6">
-        <ActiveWorkout />
+        <h1 className="text-2xl font-bold mb-6">Workout Details</h1>
+        <div className="bg-white rounded-lg shadow p-6">
+          <p>Client workout details will be displayed here.</p>
+        </div>
       </div>
     </ClientLayout>
   );

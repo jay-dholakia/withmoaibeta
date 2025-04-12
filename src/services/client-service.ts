@@ -249,7 +249,7 @@ export const fetchPersonalRecords = async (userId: string) => {
     .from('personal_records')
     .select(`
       *,
-      exercise:exercise_id (name, category, exercise_type)
+      exercise:exercise_id (name, category, equipment)
     `)
     .eq('user_id', userId);
 
@@ -259,38 +259,4 @@ export const fetchPersonalRecords = async (userId: string) => {
   }
 
   return data;
-};
-
-/**
- * Fetch the highest personal record for each exercise a user has performed
- */
-export const fetchHighestPersonalRecords = async (userId: string) => {
-  // Using RPC would be more efficient but for now we'll use client-side filtering
-  const { data, error } = await supabase
-    .from('personal_records')
-    .select(`
-      *,
-      exercise:exercise_id (name, category, exercise_type)
-    `)
-    .eq('user_id', userId);
-
-  if (error) {
-    console.error("Error fetching personal records:", error);
-    throw error;
-  }
-
-  // Group by exercise_id and find the highest weight for each
-  const exerciseMap = new Map();
-  
-  if (data) {
-    data.forEach(record => {
-      const existingRecord = exerciseMap.get(record.exercise_id);
-      if (!existingRecord || parseFloat(String(record.weight)) > parseFloat(String(existingRecord.weight))) {
-        exerciseMap.set(record.exercise_id, record);
-      }
-    });
-  }
-  
-  // Convert map back to array
-  return Array.from(exerciseMap.values());
 };

@@ -8,11 +8,9 @@ import { WorkoutType } from './WorkoutTypeIcon';
 import { WorkoutProgressCard } from './WorkoutProgressCard';
 import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Dumbbell } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
 
 interface MoaiGroupProgressProps {
   groupId: string;
@@ -362,34 +360,21 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
   }
   
   return (
-    <div className="space-y-4 px-[10px]">
+    <div className="space-y-3 px-[10px]">
       {user && (
-        <>
-          <WorkoutProgressCard 
-            label="Your Workouts"
-            completedDates={completedDates}
-            lifeHappensDates={lifeHappensDates}
-            count={totalCompletedThisWeek}
-            total={totalWorkouts}
-            workoutTypesMap={workoutTypesMap}
-            workoutTitlesMap={workoutTitlesMap}
-            userName={getCurrentUserDisplayName()}
-            isCurrentUser={true}
-            currentWeek={currentWeek}
-            currentProgram={currentProgram}
-          />
-          
-          {/* Log Workout Button - only shown for current user */}
-          <Button 
-            asChild 
-            className="w-full flex items-center justify-center gap-2 bg-client hover:bg-client/90"
-          >
-            <Link to="/client-dashboard/workouts">
-              <Dumbbell className="h-4 w-4" />
-              Log a Workout
-            </Link>
-          </Button>
-        </>
+        <WorkoutProgressCard 
+          label="Your Workouts"
+          completedDates={completedDates}
+          lifeHappensDates={lifeHappensDates}
+          count={totalCompletedThisWeek}
+          total={totalWorkouts}
+          workoutTypesMap={workoutTypesMap}
+          workoutTitlesMap={workoutTitlesMap}
+          userName={getCurrentUserDisplayName()}
+          isCurrentUser={true}
+          currentWeek={currentWeek}
+          currentProgram={currentProgram}
+        />
       )}
       
       {groupMembers && groupMembers.filter(m => !m.isCurrentUser).map(member => {

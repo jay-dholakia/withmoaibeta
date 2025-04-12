@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { useQuery } from '@tanstack/react-query';
 import { isThisWeek, format } from 'date-fns';
@@ -359,71 +359,92 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
     );
   }
   
+  const allMembers = [
+    ...(user ? [{
+      userId: user.id,
+      email: user.email || '',
+      isCurrentUser: true,
+      profileData: {
+        first_name: currentUserProfile?.first_name || null,
+        last_name: currentUserProfile?.last_name || null,
+        avatar_url: currentUserProfile?.avatar_url || null
+      }
+    }] : []),
+    ...(groupMembers?.filter(m => !m.isCurrentUser) || [])
+  ];
+  
   return (
-    <div className="space-y-3 px-[10px]">
-      {user && (
-        <WorkoutProgressCard 
-          label="Your Workouts"
-          completedDates={completedDates}
-          lifeHappensDates={lifeHappensDates}
-          count={totalCompletedThisWeek}
-          total={totalWorkouts}
-          workoutTypesMap={workoutTypesMap}
-          workoutTitlesMap={workoutTitlesMap}
-          userName={getCurrentUserDisplayName()}
-          isCurrentUser={true}
-          currentWeek={currentWeek}
-          currentProgram={currentProgram}
-        />
-      )}
-      
-      {groupMembers && groupMembers.filter(m => !m.isCurrentUser).map(member => {
-        const memberData = memberWorkouts[member.userId];
-        
-        if (!memberData) {
-          return (
-            <Card key={member.userId} className="p-4 animate-pulse">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 bg-slate-200 rounded-full"></div>
-                <div className="h-4 w-36 bg-slate-200 rounded"></div>
-              </div>
-              <div className="mt-3 h-2 bg-slate-200 rounded-full"></div>
-            </Card>
-          );
-        }
-        
-        const memberCompletedThisWeek = memberData.completedDates
-          .filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
-        
-        const memberLifeHappensThisWeek = memberData.lifeHappensDates
-          .filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
-        
-        const memberTotalCompletedThisWeek = memberCompletedThisWeek;
-        
-        return (
+    <Card className="border shadow-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-medium">Weekly Progress</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0 px-4">
+        <div className="ml-11 mb-2">
           <WorkoutProgressCard 
-            key={member.userId}
-            label=""
-            completedDates={memberData.completedDates}
-            lifeHappensDates={memberData.lifeHappensDates}
-            count={memberTotalCompletedThisWeek}
-            total={totalWorkouts}
-            workoutTypesMap={memberData.workoutTypesMap}
-            workoutTitlesMap={memberData.workoutTitlesMap}
-            userName={getDisplayName(member)}
+            completedDates={[]}
+            lifeHappensDates={[]}
+            count={0}
+            total={0}
+            workoutTypesMap={{}}
+            workoutTitlesMap={{}}
+            userName=""
             isCurrentUser={false}
-            currentWeek={currentWeek}
-            currentProgram={currentProgram}
+            showWeekdayLabels={true}
+            className="opacity-70"
           />
-        );
-      })}
-      
-      {(!groupMembers || groupMembers.filter(m => !m.isCurrentUser).length === 0) && (
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          Other group members' progress will appear here soon.
-        </p>
-      )}
-    </div>
+        </div>
+        
+        <div className="space-y-3">
+          {allMembers.map((member) => {
+            const isCurrentUser = member.isCurrentUser;
+            const memberData = isCurrentUser 
+              ? { 
+                  completedDates, 
+                  lifeHappensDates, 
+                  workoutTypesMap, 
+                  workoutTitlesMap 
+                } 
+              : memberWorkouts[member.userId];
+            
+            if (!memberData && !isCurrentUser) {
+              return (
+                <div key={member.userId} className="flex items-center gap-3 animate-pulse">
+                  <div className="h-8 w-8 bg-slate-200 rounded-full"></div>
+                  <div className="flex-1 h-6 bg-slate-200 rounded"></div>
+                </div>
+              );
+            }
+            
+            const memberCompletedThisWeek = isCurrentUser
+              ? totalCompletedThisWeek
+              : memberData.completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
+            
+            return (
+              <WorkoutProgressCard 
+                key={member.userId}
+                completedDates={isCurrentUser ? completedDates : memberData.completedDates}
+                lifeHappensDates={isCurrentUser ? lifeHappensDates : memberData.lifeHappensDates}
+                count={memberCompletedThisWeek}
+                total={totalWorkouts}
+                workoutTypesMap={isCurrentUser ? workoutTypesMap : memberData.workoutTypesMap}
+                workoutTitlesMap={isCurrentUser ? workoutTitlesMap : memberData.workoutTitlesMap}
+                userName={isCurrentUser ? getCurrentUserDisplayName() : getDisplayName(member)}
+                isCurrentUser={isCurrentUser}
+                avatarUrl={member.profileData?.avatar_url}
+                firstName={member.profileData?.first_name}
+                lastName={member.profileData?.last_name}
+              />
+            );
+          })}
+          
+          {(!allMembers || allMembers.length === 0) && (
+            <p className="text-center text-sm text-muted-foreground py-4">
+              No group members found.
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

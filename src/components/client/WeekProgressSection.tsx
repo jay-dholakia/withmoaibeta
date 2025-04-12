@@ -9,6 +9,7 @@ import { format, isThisWeek } from 'date-fns';
 import { WorkoutType } from './WorkoutTypeIcon';
 import { WorkoutProgressCard } from './WorkoutProgressCard';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -29,7 +30,7 @@ export const WeekProgressSection = ({
   showGroupMembers = false,
   enableMemberClick = false
 }: WeekProgressSectionProps) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [completedDates, setCompletedDates] = useState<Date[]>([]);
   const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
   const [typesMap, setTypesMap] = useState<Record<string, WorkoutType>>(workoutTypesMap);
@@ -60,6 +61,27 @@ export const WeekProgressSection = ({
       }
     },
     enabled: !!user?.id && assignedWorkoutsCount === undefined,
+  });
+  
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile-week-progress', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('client_profiles')
+        .select('first_name, last_name, avatar_url')
+        .eq('id', user.id)
+        .maybeSingle();
+        
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!user?.id,
   });
   
   const finalAssignedWorkoutsCount = assignedWorkoutsCount !== undefined ? 
@@ -152,11 +174,30 @@ export const WeekProgressSection = ({
   
   const userDisplayName = user?.email ? user.email.split('@')[0] : 'You';
   
+  if (!showPersonal) return null;
+  
   return (
-    <div className="w-full">
-      {showPersonal && (
+    <Card className="border shadow-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-medium">Your Progress</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0 px-4">
+        <div className="ml-11 mb-2">
+          <WorkoutProgressCard 
+            completedDates={[]}
+            lifeHappensDates={[]}
+            count={0}
+            total={0}
+            workoutTypesMap={{}}
+            workoutTitlesMap={{}}
+            userName=""
+            isCurrentUser={false}
+            showWeekdayLabels={true}
+            className="opacity-70"
+          />
+        </div>
+        
         <WorkoutProgressCard 
-          label="Your Workouts"
           completedDates={completedDates}
           lifeHappensDates={lifeHappensDates}
           count={totalCompletedThisWeek}
@@ -165,14 +206,11 @@ export const WeekProgressSection = ({
           workoutTitlesMap={titlesMap}
           userName={userDisplayName}
           isCurrentUser={true}
+          avatarUrl={userProfile?.avatar_url}
+          firstName={userProfile?.first_name}
+          lastName={userProfile?.last_name}
         />
-      )}
-      
-      {showGroupMembers && (
-        <div className="mt-4">
-          <p className="text-center text-sm text-slate-500">Group members progress would appear here</p>
-        </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 };

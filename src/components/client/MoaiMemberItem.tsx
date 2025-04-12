@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import MoaiMemberWeeklyActivity from './MoaiMemberWeeklyActivity';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MemberProps {
   member: {
@@ -43,15 +44,27 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
         onClick={handleClick}
       >
         <div className="flex items-center gap-2.5 flex-1">
-          <Avatar className="h-10 w-10 border">
-            <AvatarImage 
-              src={member.profileData?.avatar_url || ''} 
-              alt={displayName} 
-            />
-            <AvatarFallback className="bg-client/80 text-white">
-              {firstName.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Avatar className="h-10 w-10 border">
+                  <AvatarImage 
+                    src={member.profileData?.avatar_url || ''} 
+                    alt={displayName} 
+                  />
+                  <AvatarFallback className="bg-client/80 text-white">
+                    {firstName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <span className="font-medium whitespace-nowrap">
+                  {displayName}
+                  {member.isCurrentUser && <span className="text-xs ml-1.5 text-muted-foreground">(You)</span>}
+                </span>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <div>
             <span className="font-medium whitespace-nowrap">
               {displayName}

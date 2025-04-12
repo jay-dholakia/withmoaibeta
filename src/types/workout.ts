@@ -49,6 +49,18 @@ export interface Workout {
   priority: number;
 }
 
+// New interface for personal records
+export interface PersonalRecord {
+  id: string;
+  user_id: string;
+  exercise_id: string;
+  weight: number;
+  reps?: number;
+  achieved_at: string;
+  workout_completion_id?: string;
+  exercise_name?: string;
+}
+
 export interface StandaloneWorkout {
   id: string;
   title: string;

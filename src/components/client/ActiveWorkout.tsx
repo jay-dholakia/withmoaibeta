@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { trackWorkoutSet } from '@/services/client-service';
+import { trackWorkoutSet, fetchPersonalRecords } from '@/services/client-service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
+import { PersonalRecord } from '@/types/workout';
 import { 
   Tooltip,
   TooltipContent,
@@ -39,6 +40,7 @@ const ActiveWorkout = () => {
   
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [authStateChanged, setAuthStateChanged] = useState(0);
+  const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
   
   const [exerciseStates, setExerciseStates] = useState<{
     [key: string]: {
@@ -130,6 +132,26 @@ const ActiveWorkout = () => {
       setAuthStateChanged(prev => prev + 1);
     }
   }, [user]);
+
+  useEffect(() => {
+    const loadPersonalRecords = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const records = await fetchPersonalRecords(user.id);
+        console.log("Loaded personal records:", records);
+        setPersonalRecords(records);
+      } catch (error) {
+        console.error("Error loading personal records:", error);
+      }
+    };
+    
+    loadPersonalRecords();
+  }, [user?.id]);
+
+  const getExercisePR = (exerciseId: string): PersonalRecord | undefined => {
+    return personalRecords.find(record => record.exercise_id === exerciseId);
+  };
 
   const draftData = {
     exerciseStates,
@@ -1094,6 +1116,8 @@ const ActiveWorkout = () => {
             return null;
           }
 
+          const personalRecord = getExercisePR(exercise.exercise?.id);
+          
           const hasYoutubeLink = exercise.exercise?.youtube_link && exercise.exercise.youtube_link.trim() !== '';
           
           return (
@@ -1178,6 +1202,12 @@ const ActiveWorkout = () => {
                         <Clock className="h-3 w-3" />
                         <span>Rest between sets: {formatRestTime(exercise.rest_seconds)}</span>
                       </div>
+                      
+                      {personalRecord && (
+                        <div className="text-center text-xs text-muted-foreground mb-3">
+                          <span>PR Weight: {personalRecord.weight} lbs</span>
+                        </div>
+                      )}
                       
                       <div className="grid grid-cols-4 gap-2 mb-2">
                         <div className="text-center text-xs font-medium text-muted-foreground">Set</div>

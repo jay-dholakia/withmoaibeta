@@ -10,6 +10,7 @@ import { WorkoutProgressCard } from './WorkoutProgressCard';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -223,6 +224,7 @@ export const WeekProgressSection = ({
           firstName={userProfile?.first_name}
           lastName={userProfile?.last_name}
           showLabelsBelow={false}
+          className="py-2"
         />
       </CardContent>
     </Card>

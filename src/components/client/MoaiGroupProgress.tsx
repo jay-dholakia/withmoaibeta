@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -449,9 +450,12 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
                   firstName={member.profileData?.first_name}
                   lastName={member.profileData?.last_name}
                   showLabelsBelow={false}
+                  className="py-2"
                 />
                 {index < allMembers.length - 1 && (
-                  <Separator className="my-2 opacity-30" />
+                  <div className="py-2">
+                    <Separator className="opacity-30" />
+                  </div>
                 )}
               </React.Fragment>
             );

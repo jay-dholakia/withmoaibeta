@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save, HelpCircle, Info, Youtube, Clock, ArrowRightLeft } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, MapPin, Save, HelpCircle, Info, Youtube, Clock, ArrowRightLeft, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
@@ -260,6 +260,29 @@ const ActiveWorkout = () => {
       }
     },
     enabled: !!workoutCompletionId && !!user?.id,
+  });
+
+  const { data: personalRecords } = useQuery({
+    queryKey: ['personal-records', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('personal_records')
+        .select(`
+          *,
+          exercise:exercise_id (*)
+        `)
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error("Error fetching personal records:", error);
+        return [];
+      }
+      
+      return data || [];
+    },
+    enabled: !!user?.id,
   });
 
   useEffect(() => {
@@ -650,6 +673,12 @@ const ActiveWorkout = () => {
       setExerciseStates(initialState);
     }
   }, [workoutData]);
+
+  const getPersonalRecordForExercise = (exerciseId: string) => {
+    if (!personalRecords || personalRecords.length === 0) return null;
+    
+    return personalRecords.find(record => record.exercise_id === exerciseId);
+  };
 
   const handleSetChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
     setExerciseStates((prev) => {
@@ -1096,6 +1125,8 @@ const ActiveWorkout = () => {
 
           const hasYoutubeLink = exercise.exercise?.youtube_link && exercise.exercise.youtube_link.trim() !== '';
           
+          const personalRecord = getPersonalRecordForExercise(exercise.exercise?.id);
+          
           return (
             <Card key={exercise.id} className="overflow-hidden border-gray-200 w-full">
               <CardHeader 
@@ -1178,6 +1209,13 @@ const ActiveWorkout = () => {
                         <Clock className="h-3 w-3" />
                         <span>Rest between sets: {formatRestTime(exercise.rest_seconds)}</span>
                       </div>
+                      
+                      {personalRecord && (
+                        <div className="flex items-center mb-3 gap-1 justify-center text-sm text-emerald-600">
+                          <Trophy className="h-3 w-3" />
+                          <span>Your PR: {personalRecord.weight} lbs × {personalRecord.reps} reps</span>
+                        </div>
+                      )}
                       
                       <div className="grid grid-cols-4 gap-2 mb-2">
                         <div className="text-center text-xs font-medium text-muted-foreground">Set</div>

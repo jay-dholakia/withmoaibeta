@@ -478,7 +478,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
   }
   
   return (
-    <div className="space-y-1.5 mt-4">
+    <div className="space-y-3 mt-4">
       {members.map(member => (
         <MoaiMemberItem 
           key={member.userId} 

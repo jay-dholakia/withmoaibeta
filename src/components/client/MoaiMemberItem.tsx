@@ -1,82 +1,79 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { ChevronDown, ChevronRight, UserRound } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import MoaiMemberWeeklyActivity from './MoaiMemberWeeklyActivity';
 
-interface MemberItemProps {
+interface MemberProps {
   member: {
     userId: string;
     email: string;
     isCurrentUser: boolean;
     profileData?: {
-      first_name?: string | null;
-      last_name?: string | null;
-      avatar_url?: string | null;
+      first_name: string | null;
+      last_name: string | null;
+      avatar_url: string | null;
     };
   };
   onClick: () => void;
 }
 
-const MoaiMemberItem: React.FC<MemberItemProps> = ({ member, onClick }) => {
-  // Format the display name to show first name and first initial of last name
-  const getDisplayName = () => {
-    const firstName = member.profileData?.first_name;
-    const lastName = member.profileData?.last_name;
-    
-    if (firstName) {
-      const lastInitial = lastName ? `${lastName.charAt(0)}.` : '';
-      return `${firstName} ${lastInitial}`.trim();
+const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const firstName = member.profileData?.first_name || member.email.split('@')[0];
+  const lastName = member.profileData?.last_name || '';
+  const displayName = `${firstName} ${lastName ? lastName.charAt(0) + '.' : ''}`.trim();
+  
+  const handleClick = (e: React.MouseEvent) => {
+    // If we're clicking on the collapsible trigger or its children, do nothing
+    if ((e.target as HTMLElement).closest('.collapsible-trigger')) {
+      return;
     }
-    
-    // Fallback to email username if no first name is available
-    return member.email.split('@')[0];
+    onClick();
   };
-  
-  const displayName = getDisplayName();
-  
-  // Get the initials from first and last name
-  const getInitials = (): string => {
-    const firstName = member.profileData?.first_name;
-    const lastName = member.profileData?.last_name;
-    
-    if (firstName && lastName) {
-      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-    } else if (firstName) {
-      return firstName.charAt(0).toUpperCase();
-    } else if (lastName) {
-      return lastName.charAt(0).toUpperCase();
-    }
-    
-    // Fallback to first two letters of display name
-    return displayName.substring(0, 2).toUpperCase();
-  };
-  
-  const initials = getInitials();
-  
+
   return (
-    <Card 
-      className="hover:bg-accent cursor-pointer transition-colors duration-200"
-      onClick={onClick}
+    <div 
+      className="flex flex-col border rounded-lg shadow-sm bg-white"
     >
-      <CardContent className="p-4 flex items-center space-x-3">
-        <Avatar>
-          <AvatarImage src={member.profileData?.avatar_url || ''} alt={displayName} />
-          <AvatarFallback className="bg-client/80 text-white">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        
-        <div className="flex-1">
-          <div className="flex items-center space-x-2">
-            <span className="font-medium">{displayName}</span>
-            {member.isCurrentUser && (
-              <Badge variant="outline" className="text-xs">You</Badge>
-            )}
+      <div 
+        className="flex items-center justify-between p-3 cursor-pointer"
+        onClick={handleClick}
+      >
+        <div className="flex items-center gap-2.5 flex-1">
+          <Avatar className="h-10 w-10 border">
+            <AvatarImage 
+              src={member.profileData?.avatar_url || ''} 
+              alt={displayName} 
+            />
+            <AvatarFallback className="bg-client/80 text-white">
+              {firstName.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <div className="font-medium">
+              {displayName}
+              {member.isCurrentUser && <span className="text-xs ml-1.5 text-muted-foreground">(You)</span>}
+            </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+        
+        <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
+          <CollapsibleTrigger className="collapsible-trigger ml-auto flex items-center justify-center h-8 w-8 rounded-full hover:bg-slate-100" onClick={(e) => e.stopPropagation()}>
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="border-t mt-1">
+            <MoaiMemberWeeklyActivity userId={member.userId} userName={displayName} />
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+    </div>
   );
 };
 

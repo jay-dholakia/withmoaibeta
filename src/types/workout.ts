@@ -1,4 +1,3 @@
-
 export interface Exercise {
   id: string;
   name: string;
@@ -161,6 +160,18 @@ export interface WorkoutHistoryItem {
   distance?: string;
   location?: string;
   completed_date?: string;
+}
+
+export interface WorkoutActivityType {
+  id: string;
+  type: StandardWorkoutType;
+  title: string; 
+  description?: string;
+  date: Date;
+  notes?: string;
+  distance?: string;
+  duration?: string;
+  location?: string;
 }
 
 export const DAYS_OF_WEEK = [

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -559,7 +560,7 @@ const ActiveWorkout = () => {
               {
                 distance,
                 duration: item.duration || null,
-                location: item.location || null,
+                location: location || null,
                 completed: true
               }
             );
@@ -1003,4 +1004,755 @@ const ActiveWorkout = () => {
             if (exercise.reps) {
               const repsMatch = exercise.reps.match(/^(\d+)$/);
               if (repsMatch) {
-                defaultR
+                defaultReps = repsMatch[1];
+              } else {
+                const rangeMatch = exercise.reps.match(/^(\d+)-(\d+)$/);
+                if (rangeMatch) {
+                  defaultReps = rangeMatch[2]; // Use the higher end of the range
+                }
+              }
+            }
+            
+            return {
+              setNumber: i + 1,
+              weight: existingSet?.weight?.toString() || '',
+              reps: existingSet?.reps_completed?.toString() || defaultReps,
+              completed: !!existingSet?.completed
+            };
+          });
+          
+          initialState[exercise.id] = {
+            expanded: false,
+            sets
+          };
+        } else if (exerciseType === 'cardio') {
+          const existingSet = workoutData.workout_set_completions?.find(
+            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
+          );
+          
+          initialState[exercise.id] = {
+            expanded: false,
+            sets: [],
+            cardioData: {
+              distance: existingSet?.distance || '',
+              duration: existingSet?.duration || '',
+              location: existingSet?.location || '',
+              completed: !!existingSet?.completed
+            }
+          };
+        } else if (exerciseType === 'flexibility') {
+          const existingSet = workoutData.workout_set_completions?.find(
+            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
+          );
+          
+          initialState[exercise.id] = {
+            expanded: false,
+            sets: [],
+            flexibilityData: {
+              duration: existingSet?.duration || '',
+              completed: !!existingSet?.completed
+            }
+          };
+        }
+      });
+      
+      if (Object.keys(initialState).length > 0) {
+        setExerciseStates((prev) => ({
+          ...initialState,
+          ...prev // Merge with any existing states (e.g., from draft)
+        }));
+      }
+    }
+  }, [workoutData]);
+
+  // Render functions
+  const renderExerciseCard = (exercise: any) => {
+    const exerciseType = exercise.exercise?.exercise_type || 'strength';
+    const exerciseName = (exercise.exercise?.name || '').toLowerCase();
+    const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
+    
+    // Get personal record for this exercise
+    const pr = exercise.exercise?.id ? getExercisePersonalRecord(exercise.exercise.id) : undefined;
+    const prDisplay = pr ? `${pr.weight} lbs × ${pr.reps} reps` : 'Unavailable (Your First Time!)';
+    
+    if (isRunExercise) {
+      return renderRunExercise(exercise, prDisplay);
+    } else if (exerciseType === 'cardio') {
+      return renderCardioExercise(exercise, prDisplay);
+    } else if (exerciseType === 'flexibility') {
+      return renderFlexibilityExercise(exercise, prDisplay);
+    } else {
+      return renderStrengthExercise(exercise, prDisplay);
+    }
+  };
+  
+  const renderRunExercise = (exercise: any, prDisplay: string) => {
+    if (!exerciseStates[exercise.id]?.runData) {
+      return null;
+    }
+    
+    const { runData } = exerciseStates[exercise.id];
+    
+    return (
+      <Card key={exercise.id} className="mb-4">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg">{exercise.exercise?.name}</CardTitle>
+            <div className="flex space-x-2">
+              {exercise.exercise?.youtube_link && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="p-1 h-8 w-8" 
+                  onClick={() => openVideoDialog(exercise.exercise.youtube_link, exercise.exercise.name)}
+                >
+                  <Youtube className="h-5 w-5 text-red-500" />
+                </Button>
+              )}
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-1 h-8 w-8" 
+                onClick={() => toggleExerciseExpanded(exercise.id)}
+              >
+                <ChevronRight className={`h-5 w-5 transition-transform ${exerciseStates[exercise.id]?.expanded ? 'rotate-90' : ''}`} />
+              </Button>
+            </div>
+          </div>
+          <CardDescription>
+            {exercise.notes}
+          </CardDescription>
+          <p className="text-xs text-muted-foreground mt-1">PR: {prDisplay}</p>
+        </CardHeader>
+        
+        {exerciseStates[exercise.id]?.expanded && (
+          <CardContent>
+            <div className="space-y-3">
+              <div>
+                <label htmlFor={`run-distance-${exercise.id}`} className="text-sm font-medium">
+                  Distance (miles)
+                </label>
+                <Input
+                  id={`run-distance-${exercise.id}`}
+                  type="text"
+                  inputMode="decimal"
+                  value={runData.distance}
+                  onChange={(e) => handleRunChange(exercise.id, 'distance', e.target.value)}
+                  placeholder="0.0"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor={`run-duration-${exercise.id}`} className="text-sm font-medium">
+                  Duration (hh:mm:ss)
+                </label>
+                <Input
+                  id={`run-duration-${exercise.id}`}
+                  type="text"
+                  value={runData.duration}
+                  onChange={(e) => handleRunChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
+                  placeholder="00:00:00"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor={`run-location-${exercise.id}`} className="text-sm font-medium">
+                  Location
+                </label>
+                <div className="flex items-center mt-1">
+                  <MapPin className="h-4 w-4 text-gray-500 mr-2" />
+                  <Input
+                    id={`run-location-${exercise.id}`}
+                    type="text"
+                    value={runData.location}
+                    onChange={(e) => handleRunChange(exercise.id, 'location', e.target.value)}
+                    placeholder="Outdoor, treadmill, etc."
+                  />
+                </div>
+              </div>
+              
+              {exercise.exercise?.description && (
+                <div className="pt-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="p-0 h-auto text-xs text-muted-foreground flex items-center" 
+                    onClick={() => toggleDescriptionExpanded(exercise.id)}
+                  >
+                    <Info className="h-3 w-3 mr-1" />
+                    {expandedDescriptions[exercise.id] ? 'Hide details' : 'Show details'}
+                  </Button>
+                  
+                  {expandedDescriptions[exercise.id] && (
+                    <div className="text-sm mt-2 text-muted-foreground">
+                      {exercise.exercise.description}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <div className="pt-3">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Checkbox
+                      id={`complete-run-${exercise.id}`}
+                      checked={runData.completed}
+                      onCheckedChange={(checked) => handleRunCompletion(exercise.id, checked === true)}
+                      className="mr-2"
+                    />
+                    <label
+                      htmlFor={`complete-run-${exercise.id}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Mark as completed
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    );
+  };
+  
+  const renderCardioExercise = (exercise: any, prDisplay: string) => {
+    if (!exerciseStates[exercise.id]?.cardioData) {
+      return null;
+    }
+    
+    const { cardioData } = exerciseStates[exercise.id];
+    
+    return (
+      <Card key={exercise.id} className="mb-4">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg">{exercise.exercise?.name}</CardTitle>
+            <div className="flex space-x-2">
+              {exercise.exercise?.youtube_link && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="p-1 h-8 w-8" 
+                  onClick={() => openVideoDialog(exercise.exercise.youtube_link, exercise.exercise.name)}
+                >
+                  <Youtube className="h-5 w-5 text-red-500" />
+                </Button>
+              )}
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-1 h-8 w-8" 
+                onClick={() => toggleExerciseExpanded(exercise.id)}
+              >
+                <ChevronRight className={`h-5 w-5 transition-transform ${exerciseStates[exercise.id]?.expanded ? 'rotate-90' : ''}`} />
+              </Button>
+            </div>
+          </div>
+          <CardDescription>
+            {exercise.notes}
+          </CardDescription>
+          <p className="text-xs text-muted-foreground mt-1">PR: {prDisplay}</p>
+        </CardHeader>
+        
+        {exerciseStates[exercise.id]?.expanded && (
+          <CardContent>
+            <div className="space-y-3">
+              <div>
+                <label htmlFor={`cardio-duration-${exercise.id}`} className="text-sm font-medium">
+                  Duration (mm:ss)
+                </label>
+                <Input
+                  id={`cardio-duration-${exercise.id}`}
+                  type="text"
+                  value={cardioData.duration}
+                  onChange={(e) => handleCardioChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
+                  placeholder="00:00"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor={`cardio-distance-${exercise.id}`} className="text-sm font-medium">
+                  Distance (optional)
+                </label>
+                <Input
+                  id={`cardio-distance-${exercise.id}`}
+                  type="text"
+                  inputMode="decimal"
+                  value={cardioData.distance}
+                  onChange={(e) => handleCardioChange(exercise.id, 'distance', e.target.value)}
+                  placeholder="Miles, steps, etc."
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor={`cardio-location-${exercise.id}`} className="text-sm font-medium">
+                  Location
+                </label>
+                <div className="flex items-center mt-1">
+                  <MapPin className="h-4 w-4 text-gray-500 mr-2" />
+                  <Input
+                    id={`cardio-location-${exercise.id}`}
+                    type="text"
+                    value={cardioData.location}
+                    onChange={(e) => handleCardioChange(exercise.id, 'location', e.target.value)}
+                    placeholder="Gym, outdoors, etc."
+                  />
+                </div>
+              </div>
+              
+              {exercise.exercise?.description && (
+                <div className="pt-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="p-0 h-auto text-xs text-muted-foreground flex items-center" 
+                    onClick={() => toggleDescriptionExpanded(exercise.id)}
+                  >
+                    <Info className="h-3 w-3 mr-1" />
+                    {expandedDescriptions[exercise.id] ? 'Hide details' : 'Show details'}
+                  </Button>
+                  
+                  {expandedDescriptions[exercise.id] && (
+                    <div className="text-sm mt-2 text-muted-foreground">
+                      {exercise.exercise.description}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <div className="pt-3">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Checkbox
+                      id={`complete-cardio-${exercise.id}`}
+                      checked={cardioData.completed}
+                      onCheckedChange={(checked) => handleCardioCompletion(exercise.id, checked === true)}
+                      className="mr-2"
+                    />
+                    <label
+                      htmlFor={`complete-cardio-${exercise.id}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Mark as completed
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    );
+  };
+  
+  const renderFlexibilityExercise = (exercise: any, prDisplay: string) => {
+    if (!exerciseStates[exercise.id]?.flexibilityData) {
+      return null;
+    }
+    
+    const { flexibilityData } = exerciseStates[exercise.id];
+    
+    return (
+      <Card key={exercise.id} className="mb-4">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg">{exercise.exercise?.name}</CardTitle>
+            <div className="flex space-x-2">
+              {exercise.exercise?.youtube_link && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="p-1 h-8 w-8" 
+                  onClick={() => openVideoDialog(exercise.exercise.youtube_link, exercise.exercise.name)}
+                >
+                  <Youtube className="h-5 w-5 text-red-500" />
+                </Button>
+              )}
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-1 h-8 w-8" 
+                onClick={() => toggleExerciseExpanded(exercise.id)}
+              >
+                <ChevronRight className={`h-5 w-5 transition-transform ${exerciseStates[exercise.id]?.expanded ? 'rotate-90' : ''}`} />
+              </Button>
+            </div>
+          </div>
+          <CardDescription>
+            {exercise.notes}
+          </CardDescription>
+          <p className="text-xs text-muted-foreground mt-1">PR: {prDisplay}</p>
+        </CardHeader>
+        
+        {exerciseStates[exercise.id]?.expanded && (
+          <CardContent>
+            <div className="space-y-3">
+              <div>
+                <label htmlFor={`flexibility-duration-${exercise.id}`} className="text-sm font-medium">
+                  Duration (mm:ss)
+                </label>
+                <Input
+                  id={`flexibility-duration-${exercise.id}`}
+                  type="text"
+                  value={flexibilityData.duration}
+                  onChange={(e) => handleFlexibilityChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
+                  placeholder="00:00"
+                  className="mt-1"
+                />
+              </div>
+              
+              {exercise.exercise?.description && (
+                <div className="pt-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="p-0 h-auto text-xs text-muted-foreground flex items-center" 
+                    onClick={() => toggleDescriptionExpanded(exercise.id)}
+                  >
+                    <Info className="h-3 w-3 mr-1" />
+                    {expandedDescriptions[exercise.id] ? 'Hide details' : 'Show details'}
+                  </Button>
+                  
+                  {expandedDescriptions[exercise.id] && (
+                    <div className="text-sm mt-2 text-muted-foreground">
+                      {exercise.exercise.description}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <div className="pt-3">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Checkbox
+                      id={`complete-flexibility-${exercise.id}`}
+                      checked={flexibilityData.completed}
+                      onCheckedChange={(checked) => handleFlexibilityCompletion(exercise.id, checked === true)}
+                      className="mr-2"
+                    />
+                    <label
+                      htmlFor={`complete-flexibility-${exercise.id}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Mark as completed
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    );
+  };
+  
+  const renderStrengthExercise = (exercise: any, prDisplay: string) => {
+    if (!exerciseStates[exercise.id]?.sets) {
+      return null;
+    }
+    
+    const { sets } = exerciseStates[exercise.id];
+    
+    return (
+      <Card key={exercise.id} className="mb-4">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg">{exercise.exercise?.name}</CardTitle>
+            <div className="flex space-x-2">
+              {exercise.exercise?.youtube_link && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="p-1 h-8 w-8" 
+                  onClick={() => openVideoDialog(exercise.exercise.youtube_link, exercise.exercise.name)}
+                >
+                  <Youtube className="h-5 w-5 text-red-500" />
+                </Button>
+              )}
+              
+              {exercise.exercise?.id && exercise.exercise?.alternative_exercise_1_id && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-1 h-8 w-8"
+                        onClick={() => openAlternativeDialog(exercise)}
+                      >
+                        <ArrowRightLeft className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p className="text-xs">Alternative exercises</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-1 h-8 w-8" 
+                onClick={() => toggleExerciseExpanded(exercise.id)}
+              >
+                <ChevronRight className={`h-5 w-5 transition-transform ${exerciseStates[exercise.id]?.expanded ? 'rotate-90' : ''}`} />
+              </Button>
+            </div>
+          </div>
+          
+          <CardDescription className="flex items-center">
+            <span className="mr-4">{exercise.sets} sets × {exercise.reps} {exercise.reps === '1' ? 'rep' : 'reps'}</span>
+            {exercise.rest_seconds && (
+              <span className="text-xs text-muted-foreground flex items-center">
+                <Clock className="h-3 w-3 mr-1 inline" /> Rest: {formatRestTime(exercise.rest_seconds)}
+              </span>
+            )}
+          </CardDescription>
+          <p className="text-xs text-muted-foreground mt-1">PR: {prDisplay}</p>
+        </CardHeader>
+        
+        {exerciseStates[exercise.id]?.expanded && (
+          <CardContent className="pt-2">
+            <div className="space-y-4">
+              {sets.map((set, setIndex) => (
+                <div key={setIndex} className="border rounded-md p-3">
+                  <div className="text-sm font-medium mb-2">Set {set.setNumber}</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor={`weight-${exercise.id}-${setIndex}`} className="text-xs font-medium">
+                        Weight (lbs)
+                      </label>
+                      <Input
+                        id={`weight-${exercise.id}-${setIndex}`}
+                        type="text"
+                        inputMode="decimal"
+                        value={set.weight}
+                        onChange={(e) => handleSetChange(exercise.id, setIndex, 'weight', e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor={`reps-${exercise.id}-${setIndex}`} className="text-xs font-medium">
+                        Reps
+                      </label>
+                      <Input
+                        id={`reps-${exercise.id}-${setIndex}`}
+                        type="text"
+                        inputMode="numeric"
+                        value={set.reps}
+                        onChange={(e) => handleSetChange(exercise.id, setIndex, 'reps', e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3">
+                    <div className="flex items-center">
+                      <Checkbox
+                        id={`complete-set-${exercise.id}-${setIndex}`}
+                        checked={set.completed}
+                        onCheckedChange={(checked) => handleSetCompletion(exercise.id, setIndex, checked === true)}
+                        className="mr-2"
+                      />
+                      <label
+                        htmlFor={`complete-set-${exercise.id}-${setIndex}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Mark as completed
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {exercise.notes && (
+                <div className="text-sm text-muted-foreground px-1 pt-1">
+                  <span className="font-medium text-foreground">Note: </span>
+                  {exercise.notes}
+                </div>
+              )}
+              
+              {exercise.exercise?.description && (
+                <div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="p-0 h-auto text-xs text-muted-foreground flex items-center" 
+                    onClick={() => toggleDescriptionExpanded(exercise.id)}
+                  >
+                    <Info className="h-3 w-3 mr-1" />
+                    {expandedDescriptions[exercise.id] ? 'Hide details' : 'Show details'}
+                  </Button>
+                  
+                  {expandedDescriptions[exercise.id] && (
+                    <div className="text-sm mt-2 text-muted-foreground">
+                      {exercise.exercise.description}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container max-w-3xl mx-auto py-6 px-4 sm:px-6">
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!workoutData) {
+    return (
+      <div className="container max-w-3xl mx-auto py-6 px-4 sm:px-6">
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Workout not found</h2>
+          <p className="text-center text-gray-600 mb-4">
+            The workout you're looking for doesn't exist or you don't have permission to view it.
+          </p>
+          <Button onClick={() => navigate('/client-dashboard/workouts')}>
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const workoutExercises = workoutData.workout?.workout_exercises || [];
+
+  return (
+    <div className="container max-w-3xl mx-auto py-6 px-4 sm:px-6">
+      <div className="flex items-center justify-between mb-5">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => navigate('/client-dashboard/workouts')}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" /> 
+          Back
+        </Button>
+        
+        <div className="flex items-center">
+          {saveStatus === 'saving' && (
+            <span className="text-xs text-muted-foreground mr-2 flex items-center">
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              Saving...
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="text-xs text-green-600 mr-2 flex items-center">
+              <Save className="h-3 w-3 mr-1" />
+              Saved
+            </span>
+          )}
+          <Stopwatch 
+            onTick={handleStopwatchTick}
+            isRunning={isRunning}
+          />
+        </div>
+      </div>
+
+      <h1 className="text-2xl font-bold mb-1">
+        {workoutData.workout?.title || 'Workout'}
+      </h1>
+      
+      {workoutData.workout?.description && (
+        <p className="text-gray-600 mb-6">{workoutData.workout.description}</p>
+      )}
+
+      <div className="mb-8">
+        {Array.isArray(workoutExercises) && workoutExercises.length > 0 ? (
+          workoutExercises
+            .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+            .map(exercise => renderExerciseCard(exercise))
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No exercises found for this workout</p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-center mb-12">
+        <Button 
+          size="lg" 
+          disabled={saveAllSetsMutation.isPending}
+          onClick={finishWorkout}
+          className="w-full max-w-xs"
+        >
+          {saveAllSetsMutation.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="h-5 w-5 mr-2" />
+              Finish Workout
+            </>
+          )}
+        </Button>
+      </div>
+
+      <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{currentExerciseName}</DialogTitle>
+            <DialogDescription>Exercise Demonstration</DialogDescription>
+          </DialogHeader>
+          <div className="aspect-video w-full">
+            <VideoPlayer videoUrl={currentVideoUrl || ''} />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={alternativeDialogOpen} onOpenChange={setAlternativeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Alternative Exercises</DialogTitle>
+            <DialogDescription>Choose an alternative for {currentExercise?.exercise?.name}</DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 my-3">
+            {alternativeExercises.map(alt => (
+              <Button
+                key={alt.alternative_id}
+                variant="outline"
+                className="w-full justify-start text-left h-auto py-3"
+                onClick={() => handleAlternativeSelection(alt.alternative_id, alt.alternative_name)}
+              >
+                <div>
+                  <div className="font-medium">{alt.alternative_name}</div>
+                  <div className="text-xs text-muted-foreground">{alt.alternative_type.replace(/_/g, ' ')}</div>
+                </div>
+              </Button>
+            ))}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setAlternativeDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ActiveWorkout;

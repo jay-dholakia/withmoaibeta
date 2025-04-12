@@ -24,7 +24,7 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
   
   const firstName = member.profileData?.first_name || member.email.split('@')[0];
   const lastName = member.profileData?.last_name || '';
-  const displayName = `${firstName} ${lastName ? lastName.charAt(0) + '.' : ''}`.trim();
+  const displayName = firstName + (lastName ? ` ${lastName.charAt(0)}.` : '');
   
   const handleClick = (e: React.MouseEvent) => {
     // If we're clicking on the collapsible trigger or its children, do nothing
@@ -53,7 +53,7 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
             </AvatarFallback>
           </Avatar>
           <div>
-            <span className="font-medium">
+            <span className="font-medium whitespace-nowrap">
               {displayName}
               {member.isCurrentUser && <span className="text-xs ml-1.5 text-muted-foreground">(You)</span>}
             </span>

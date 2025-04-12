@@ -356,8 +356,6 @@ const WorkoutsList = () => {
         
         <LogActivityButtons />
         
-        <LifeHappensButton />
-        
         <Button asChild variant="outline" className="w-full mt-4 flex items-center justify-between text-emerald-600 border-emerald-200 hover:bg-emerald-50">
           <Link to="/client-dashboard/workouts/one-off">
             <div className="flex items-center">
@@ -366,6 +364,8 @@ const WorkoutsList = () => {
             </div>
           </Link>
         </Button>
+        
+        <LifeHappensButton />
       </div>
     </div>
   );

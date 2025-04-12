@@ -80,7 +80,11 @@ export function WorkoutProgressCard({
   const progressPercentage = total > 0 ? Math.min(Math.round((count / total) * 100), 100) : 0;
   
   const displayName = firstName || userName;
-  const initials = firstName ? firstName.charAt(0).toUpperCase() : userName.charAt(0).toUpperCase();
+  
+  // Generate initials for avatar - now using both first and last name initials
+  const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : userName.charAt(0).toUpperCase();
+  const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+  const initials = `${firstInitial}${lastInitial}`;
   
   // Find today's column index
   const todayColumnIndex = daysOfWeek.findIndex(day => day.isToday);

@@ -27,6 +27,11 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
   const lastName = member.profileData?.last_name || '';
   const displayName = firstName + (lastName ? ` ${lastName.charAt(0)}.` : '');
   
+  // Create initials from first and last name
+  const firstInitial = firstName.charAt(0).toUpperCase();
+  const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+  const initials = `${firstInitial}${lastInitial}`;
+  
   const handleClick = (e: React.MouseEvent) => {
     // If we're clicking on the collapsible trigger or its children, do nothing
     if ((e.target as HTMLElement).closest('.collapsible-trigger')) {
@@ -53,7 +58,7 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
                     alt={displayName} 
                   />
                   <AvatarFallback className="bg-client/80 text-white">
-                    {firstName.charAt(0).toUpperCase()}
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
               </TooltipTrigger>

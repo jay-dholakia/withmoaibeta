@@ -1203,11 +1203,13 @@ const ActiveWorkout = () => {
                         <span>Rest between sets: {formatRestTime(exercise.rest_seconds)}</span>
                       </div>
                       
-                      {personalRecord && (
-                        <div className="text-center text-xs text-muted-foreground mb-3">
+                      <div className="text-center text-xs text-muted-foreground mb-3">
+                        {personalRecord ? (
                           <span>PR Weight: {personalRecord.weight} lbs</span>
-                        </div>
-                      )}
+                        ) : (
+                          <span>No PR Weight Set</span>
+                        )}
+                      </div>
                       
                       <div className="grid grid-cols-4 gap-2 mb-2">
                         <div className="text-center text-xs font-medium text-muted-foreground">Set</div>

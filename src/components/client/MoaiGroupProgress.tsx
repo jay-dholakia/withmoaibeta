@@ -348,13 +348,13 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
   
   const lifeHappensThisWeek = lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   
-  const totalCompletedThisWeek = completedThisWeek + lifeHappensThisWeek;
+  const totalCompletedThisWeek = completedThisWeek;
   
   const totalWorkouts = assignedWorkoutsCount || 6;
   
   if (isLoadingCurrentUser || isLoadingMembers || isLoadingCurrentUserProfile) {
     return (
-      <div className="flex justify-center items-center py-4">
+      <div className="flex items-center justify-center py-4">
         <Loader2 className="h-6 w-6 animate-spin text-client mr-2" />
         <p className="text-sm text-muted-foreground">Loading your progress...</p>
       </div>
@@ -413,7 +413,7 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
         const memberLifeHappensThisWeek = memberData.lifeHappensDates
           .filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
         
-        const memberTotalCompletedThisWeek = memberCompletedThisWeek + memberLifeHappensThisWeek;
+        const memberTotalCompletedThisWeek = memberCompletedThisWeek;
         
         return (
           <WorkoutProgressCard 

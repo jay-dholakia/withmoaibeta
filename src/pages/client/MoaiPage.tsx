@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,7 +20,6 @@ export default function MoaiPage() {
   const [currentWeekNumber, setCurrentWeekNumber] = useState<number>(1);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   
-  // Fetch user's groups
   const { data: userGroups, isLoading: isLoadingUserGroups } = useQuery({
     queryKey: ['user-groups', user?.id],
     queryFn: async () => {
@@ -34,7 +32,6 @@ export default function MoaiPage() {
     enabled: !!user?.id,
   });
   
-  // Set active group ID based on URL param or first available group
   useEffect(() => {
     if (groupId) {
       setActiveGroupId(groupId);
@@ -44,7 +41,6 @@ export default function MoaiPage() {
     }
   }, [groupId, userGroups]);
   
-  // Fetch group data
   const { data: groupData, isLoading: isLoadingGroup } = useQuery({
     queryKey: ['moai-group', activeGroupId],
     queryFn: async () => {
@@ -62,7 +58,6 @@ export default function MoaiPage() {
     enabled: !!activeGroupId,
   });
   
-  // Fetch current program
   const { data: currentProgram, isLoading: isLoadingProgram } = useQuery({
     queryKey: ['current-program', user?.id],
     queryFn: async () => {
@@ -72,7 +67,6 @@ export default function MoaiPage() {
     enabled: !!user?.id,
   });
   
-  // Set current week number based on program start date
   useEffect(() => {
     if (currentProgram?.start_date) {
       const startDate = new Date(currentProgram.start_date);
@@ -95,7 +89,6 @@ export default function MoaiPage() {
     );
   }
   
-  // No groups found
   if ((!activeGroupId || !groupData) && (!userGroups || userGroups.length === 0)) {
     return (
       <div className="flex flex-col justify-center items-center h-64 space-y-4">
@@ -107,11 +100,10 @@ export default function MoaiPage() {
   
   return (
     <div className="space-y-6">
-      {/* Group name card replacing program name */}
       {groupData && (
         <Card className="border-none shadow-none bg-slate-50">
           <CardHeader className="text-center py-2 px-4">
-            <CardTitle className="text-lg font-medium">
+            <CardTitle className="text-2xl md:text-3xl font-semibold">
               {groupData.name}
             </CardTitle>
           </CardHeader>
@@ -131,7 +123,6 @@ export default function MoaiPage() {
         </Card>
       )}
       
-      {/* Group selector if multiple groups */}
       {userGroups && userGroups.length > 1 && (
         <div className="flex justify-center">
           <select

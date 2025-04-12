@@ -8,13 +8,13 @@ import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Music, Dumbbell } from 'lucide-react';
+import { Loader2, Music } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { fetchCurrentProgram } from '@/services/program-service';
 import { fetchUserGroups } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { LogActivityButtons } from '@/components/client/LogActivityButtons';
 
 export default function MoaiPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -141,42 +141,33 @@ export default function MoaiPage() {
         </div>
       )}
       
-      {/* Log Workout Button - moved above the progress card */}
-      {user && (
-        <Button 
-          asChild 
-          className="w-full flex items-center justify-center gap-2 bg-client hover:bg-client/90"
-        >
-          <Link to="/client-dashboard/workouts">
-            <Dumbbell className="h-4 w-4" />
-            Log a Workout
-          </Link>
-        </Button>
-      )}
-      
-      <Card>
-        <CardContent className="p-0">
-          <Tabs defaultValue="progress" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="progress">Progress</TabsTrigger>
-              <TabsTrigger value="members">Members</TabsTrigger>
-              <TabsTrigger value="coach">Coach</TabsTrigger>
-            </TabsList>
-            <TabsContent value="progress" className="pt-4">
-              <MoaiGroupProgress 
-                groupId={activeGroupId || ''} 
-                currentProgram={currentProgram}
-              />
-            </TabsContent>
-            <TabsContent value="members">
-              <MoaiMembersTab groupId={activeGroupId || ''} />
-            </TabsContent>
-            <TabsContent value="coach">
-              <MoaiCoachTab groupId={activeGroupId || ''} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        <LogActivityButtons />
+        
+        <Card>
+          <CardContent className="p-0">
+            <Tabs defaultValue="progress" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="progress">Progress</TabsTrigger>
+                <TabsTrigger value="members">Members</TabsTrigger>
+                <TabsTrigger value="coach">Coach</TabsTrigger>
+              </TabsList>
+              <TabsContent value="progress" className="pt-4">
+                <MoaiGroupProgress 
+                  groupId={activeGroupId || ''} 
+                  currentProgram={currentProgram}
+                />
+              </TabsContent>
+              <TabsContent value="members">
+                <MoaiMembersTab groupId={activeGroupId || ''} />
+              </TabsContent>
+              <TabsContent value="coach">
+                <MoaiCoachTab groupId={activeGroupId || ''} />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

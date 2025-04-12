@@ -6,12 +6,21 @@ import { cn } from '@/lib/utils';
 
 interface StopwatchProps {
   className?: string;
+  onTick?: (time: number) => void;
+  isRunning?: boolean;
 }
 
-const Stopwatch: React.FC<StopwatchProps> = ({ className }) => {
+const Stopwatch: React.FC<StopwatchProps> = ({ className, onTick, isRunning: externalIsRunning }) => {
   const [time, setTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // If external running state is provided, use it
+  useEffect(() => {
+    if (externalIsRunning !== undefined) {
+      setIsRunning(externalIsRunning);
+    }
+  }, [externalIsRunning]);
 
   // Start or stop the stopwatch
   const toggleTimer = () => {
@@ -29,7 +38,14 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className }) => {
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = setInterval(() => {
-        setTime(prevTime => prevTime + 1);
+        setTime(prevTime => {
+          const newTime = prevTime + 1;
+          // Call onTick if provided
+          if (onTick) {
+            onTick(newTime);
+          }
+          return newTime;
+        });
       }, 1000);
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -40,7 +56,7 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className }) => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning]);
+  }, [isRunning, onTick]);
 
   // Format time as MM:SS
   const formatTime = (timeInSeconds: number) => {

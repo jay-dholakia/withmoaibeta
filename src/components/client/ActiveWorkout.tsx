@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -109,7 +108,6 @@ const ActiveWorkout = () => {
   const [currentExercise, setCurrentExercise] = useState<any>(null);
   const [alternativeExercises, setAlternativeExercises] = useState<any[]>([]);
 
-  // Fetch personal records for the current user
   const { data: userPersonalRecords } = useQuery({
     queryKey: ['personal-records', user?.id],
     queryFn: async () => {
@@ -124,14 +122,12 @@ const ActiveWorkout = () => {
     enabled: !!user?.id,
   });
 
-  // Update personal records state when data is loaded
   useEffect(() => {
     if (userPersonalRecords) {
       setPersonalRecords(userPersonalRecords);
     }
   }, [userPersonalRecords]);
 
-  // Function to get the personal record for a specific exercise
   const getExercisePersonalRecord = (exerciseId: string): PersonalRecord | undefined => {
     return personalRecords.find(record => record.exercise_id === exerciseId);
   };
@@ -182,9 +178,7 @@ const ActiveWorkout = () => {
         data
       );
     },
-    interval: 3000,
-    // No enabled property in the useAutosave hook, we handle this in the save function
-    // by checking if workoutCompletionId and user are defined
+    interval: 3000
   });
 
   const { data: workoutData, isLoading } = useQuery({
@@ -439,7 +433,6 @@ const ActiveWorkout = () => {
     onSuccess: (data) => {
       console.log("Successfully tracked set:", data);
       queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
-      // Refresh personal records when a set is completed
       if (user?.id) {
         queryClient.invalidateQueries({ queryKey: ['personal-records', user.id] });
       }
@@ -1065,15 +1058,13 @@ const ActiveWorkout = () => {
     }
   }, [workoutData]);
 
-  // Render functions
   const renderExerciseCard = (exercise: any) => {
     const exerciseType = exercise.exercise?.exercise_type || 'strength';
     const exerciseName = (exercise.exercise?.name || '').toLowerCase();
     const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
     
-    // Get personal record for this exercise
     const pr = exercise.exercise?.id ? getExercisePersonalRecord(exercise.exercise.id) : undefined;
-    const prDisplay = pr ? `${pr.weight} lbs × ${pr.reps} reps` : 'Unavailable (Your First Time!)';
+    const prDisplay = pr ? `${pr.weight} lbs �� ${pr.reps} reps` : 'Unavailable (Your First Time!)';
     
     if (isRunExercise) {
       return renderRunExercise(exercise, prDisplay);
@@ -1662,6 +1653,7 @@ const ActiveWorkout = () => {
             </span>
           )}
           <Stopwatch 
+            className="ml-2" 
             onTick={handleStopwatchTick}
             isRunning={isRunning}
           />

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -250,7 +249,7 @@ export const fetchPersonalRecords = async (userId: string) => {
     .from('personal_records')
     .select(`
       *,
-      exercise:exercise_id (name, category, equipment)
+      exercise:exercise_id (name, category)
     `)
     .eq('user_id', userId);
 
@@ -259,5 +258,11 @@ export const fetchPersonalRecords = async (userId: string) => {
     throw error;
   }
 
-  return data;
+  // Transform the data to include exercise_name
+  const transformedData = data.map(record => ({
+    ...record,
+    exercise_name: record.exercise?.name || 'Unknown Exercise'
+  }));
+
+  return transformedData;
 };

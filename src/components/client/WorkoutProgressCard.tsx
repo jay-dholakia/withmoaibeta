@@ -46,7 +46,7 @@ export function WorkoutProgressCard({
     const date = addDays(startDate, i);
     return {
       date,
-      dayName: format(date, 'EEE'),
+      dayName: format(date, 'EEE')[0], // Just get the first letter
       isToday: format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'),
       dateStr: format(date, 'yyyy-MM-dd'),
     };
@@ -77,67 +77,77 @@ export function WorkoutProgressCard({
   
   return (
     <Card className={cn("w-full overflow-hidden border bg-transparent shadow-none", className)}>
-      <CardHeader className="pt-4 pb-2">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-base font-medium">
+      <CardContent className="p-3">
+        <div className="flex justify-between items-center mb-2">
+          <div className="text-sm font-medium">
+            {count}/{total}
+          </div>
+          <Progress value={progressPercentage} className="h-1.5 flex-grow mx-3 max-w-[100px]" />
+        </div>
+        
+        <div className="grid grid-cols-[auto,1fr] gap-2">
+          <div className="flex items-center">
+            <span className="text-sm font-medium truncate pr-2 w-16">
               {label ? label : userName}
             </span>
           </div>
-          <span className="text-sm font-normal text-muted-foreground">
-            {count}/{total}
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <Progress value={progressPercentage} className="h-2 mb-4" />
-        <div className="grid grid-cols-7 gap-0.5">
-          {daysOfWeek.map((day) => {
-            const hasWorkout = hasWorkoutOnDate(day.dateStr);
-            const restDay = isRestDay(day.dateStr);
-            const workoutType = getWorkoutType(day.dateStr);
-            const workoutTitle = getWorkoutTitle(day.dateStr);
-            
-            return (
-              <div key={day.dateStr} className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">
-                  {day.dayName}
+          
+          <div>
+            {/* Days of week labels - shown only once at the top */}
+            <div className="grid grid-cols-7 gap-0.5 mb-1">
+              {daysOfWeek.map((day) => (
+                <div key={`day-${day.dateStr}`} className="text-center">
+                  <div className="text-[10px] text-muted-foreground font-medium">
+                    {day.dayName}
+                  </div>
                 </div>
+              ))}
+            </div>
+            
+            {/* Progress circles */}
+            <div className="grid grid-cols-7 gap-0.5">
+              {daysOfWeek.map((day) => {
+                const hasWorkout = hasWorkoutOnDate(day.dateStr);
+                const restDay = isRestDay(day.dateStr);
+                const workoutType = getWorkoutType(day.dateStr);
+                const workoutTitle = getWorkoutTitle(day.dateStr);
                 
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className={cn(
-                        "relative mx-auto w-8 h-8 rounded-full flex items-center justify-center", 
-                        day.isToday ? "ring-1 ring-primary ring-offset-1" : "",
-                        hasWorkout || restDay ? "bg-muted" : "bg-muted/30"
-                      )}>
-                        {(hasWorkout || restDay) && workoutType && (
-                          <WorkoutTypeIcon
-                            type={workoutType}
-                            className="h-5 w-5"
-                            colorOverride={hasWorkout ? undefined : "text-muted-foreground"}
-                          />
-                        )}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-[220px]">
-                      <div className="text-xs">
-                        <div className="font-medium">{format(day.date, 'MMM d, yyyy')}</div>
-                        {hasWorkout && workoutTitle ? (
-                          <span>{workoutTitle}</span>
-                        ) : restDay ? (
-                          <span>Rest Day</span>
-                        ) : (
-                          <span>No workout completed</span>
-                        )}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            );
-          })}
+                return (
+                  <TooltipProvider key={`circle-${day.dateStr}`}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className={cn(
+                          "relative mx-auto w-6 h-6 rounded-full flex items-center justify-center", 
+                          day.isToday ? "ring-1 ring-primary ring-offset-1" : "",
+                          hasWorkout || restDay ? "bg-muted" : "bg-muted/30"
+                        )}>
+                          {(hasWorkout || restDay) && workoutType && (
+                            <WorkoutTypeIcon
+                              type={workoutType}
+                              className="h-4 w-4"
+                              colorOverride={hasWorkout ? undefined : "text-muted-foreground"}
+                            />
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[220px]">
+                        <div className="text-xs">
+                          <div className="font-medium">{format(day.date, 'MMM d, yyyy')}</div>
+                          {hasWorkout && workoutTitle ? (
+                            <span>{workoutTitle}</span>
+                          ) : restDay ? (
+                            <span>Rest Day</span>
+                          ) : (
+                            <span>No workout completed</span>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

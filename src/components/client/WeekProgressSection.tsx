@@ -1,6 +1,5 @@
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { WeekProgressBar } from './WeekProgressBar';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
@@ -36,7 +35,6 @@ export const WeekProgressSection = ({
   const [titlesMap, setTitlesMap] = useState<Record<string, string>>({});
   
   const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  console.log(`User timezone in WeekProgressSection: ${userTimeZone}`);
   
   const { data: clientWorkouts, isLoading: isLoadingWorkouts } = useQuery({
     queryKey: ['client-workouts-week-progress', user?.id],
@@ -81,7 +79,6 @@ export const WeekProgressSection = ({
               : workout.completed_at;
               
             const dateKey = format(completionDate, 'yyyy-MM-dd');
-            console.log(`Processing workout for date: ${dateKey} in timezone ${userTimeZone}`);
             
             if (workout.life_happens_pass || workout.rest_day) {
               newLifeHappensDates.push(completionDate);
@@ -169,10 +166,10 @@ export const WeekProgressSection = ({
       )}
       
       {showGroupMembers && (
-        <div className="mt-4">
+        <div className="mt-2">
           <p className="text-center text-sm text-slate-500">Group members progress would appear here</p>
         </div>
       )}
     </div>
   );
-};
+}

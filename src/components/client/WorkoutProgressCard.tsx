@@ -129,10 +129,7 @@ export function WorkoutProgressCard({
             return (
               <div 
                 key={day.dateStr} 
-                className={cn(
-                  "text-center",
-                  day.isToday ? "relative bg-muted/40 py-1 rounded-md" : ""
-                )}
+                className="text-center"
               >
                 <TooltipProvider>
                   <Tooltip>

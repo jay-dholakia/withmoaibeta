@@ -12,6 +12,7 @@ import { Loader2 } from 'lucide-react';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface MoaiGroupProgressProps {
   groupId: string;
@@ -374,6 +375,9 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
     ...(groupMembers?.filter(m => !m.isCurrentUser) || [])
   ];
   
+  const today = new Date();
+  const todayIndex = (today.getDay() === 0 ? 6 : today.getDay() - 1);
+  
   return (
     <Card className="border shadow-sm">
       <CardHeader className="pb-2">
@@ -384,9 +388,21 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
           <div className="grid grid-cols-7 gap-0.5">
             {Array.from({ length: 7 }).map((_, i) => {
               const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+              const isToday = i === todayIndex;
+              
               return (
-                <div key={`day-${i}`} className="text-xs text-muted-foreground text-center">
-                  {days[i]}
+                <div key={`day-${i}`} className={cn(
+                  "text-xs text-center px-1 py-0.5",
+                  isToday 
+                    ? "text-client font-medium" 
+                    : "text-muted-foreground"
+                )}>
+                  <span className={cn(
+                    "inline-flex items-center justify-center w-5 h-5 rounded-full",
+                    isToday ? "border-2 border-client" : ""
+                  )}>
+                    {days[i]}
+                  </span>
                 </div>
               );
             })}

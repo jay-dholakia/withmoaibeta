@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { WeekProgressBar } from './WeekProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -176,6 +175,9 @@ export const WeekProgressSection = ({
   const userDisplayName = user?.email ? user.email.split('@')[0] : 'You';
   
   if (!showPersonal) return null;
+
+  const today = new Date();
+  const todayIndex = (today.getDay() === 0 ? 6 : today.getDay() - 1); // Convert Sunday as 0 to Sunday as 6
   
   return (
     <Card className="border shadow-sm">
@@ -183,14 +185,25 @@ export const WeekProgressSection = ({
         <CardTitle className="text-base font-medium">Your Progress</CardTitle>
       </CardHeader>
       <CardContent className="pt-0 px-4">
-        {/* Weekday labels row */}
         <div className="ml-11 mb-2">
           <div className="grid grid-cols-7 gap-0.5">
             {Array.from({ length: 7 }).map((_, i) => {
               const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+              const isToday = i === todayIndex;
+              
               return (
-                <div key={`day-${i}`} className="text-xs text-muted-foreground text-center">
-                  {days[i]}
+                <div key={`day-${i}`} className={cn(
+                  "text-xs text-center px-1 py-0.5",
+                  isToday 
+                    ? "text-client font-medium" 
+                    : "text-muted-foreground"
+                )}>
+                  <span className={cn(
+                    "inline-flex items-center justify-center w-5 h-5 rounded-full",
+                    isToday ? "border-2 border-client" : ""
+                  )}>
+                    {days[i]}
+                  </span>
                 </div>
               );
             })}

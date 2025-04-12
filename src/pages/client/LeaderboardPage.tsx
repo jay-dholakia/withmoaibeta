@@ -226,7 +226,7 @@ const LeaderboardPage = () => {
         
         <Button 
           onClick={handleLogWorkoutClick}
-          className="w-full mt-4 rounded-full bg-client hover:bg-client/90 text-white flex items-center justify-center gap-2"
+          className="w-full mt-4 rounded-md bg-client hover:bg-client/90 text-white flex items-center justify-center gap-2"
         >
           <Dumbbell className="h-5 w-5" />
           Log a Workout

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,6 +32,30 @@ import {
 import { VideoPlayer } from '@/components/client/VideoPlayer';
 import Stopwatch from './Stopwatch';
 
+// Function to complete a workout
+const completeWorkout = async (workoutCompletionId: string) => {
+  const { data, error } = await supabase
+    .from('workout_completions')
+    .update({ completed_at: new Date().toISOString() })
+    .eq('id', workoutCompletionId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error completing workout:", error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Define interfaces for props
+interface StopwatchProps {
+  className?: string;
+  isRunning?: boolean;
+  onTick?: (time: number) => void;
+}
+
 const ActiveWorkout: React.FC = () => {
   // State variables
   const [workout, setWorkout] = useState<any>(null);
@@ -55,9 +80,36 @@ const ActiveWorkout: React.FC = () => {
   const queryClient = useQueryClient();
   const autosaveIntervalRef = useRef<number | null>(null);
 
-  // Fetch workout and completion data
+  // Fetch workout completion data
+  const { data: workoutCompletionData, isLoading: isCompletionLoading, error: completionError } = useQuery({
+    queryKey: ['workoutCompletion', workoutCompletionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('workout_completions')
+        .select('*')
+        .eq('id', workoutCompletionId || '')
+        .single();
+
+      if (error) {
+        console.error("Error fetching workout completion:", error);
+        throw error;
+      }
+
+      return data;
+    },
+    enabled: !!workoutCompletionId
+  });
+
+  // When workoutCompletionData is fetched successfully, update the state
+  useEffect(() => {
+    if (workoutCompletionData) {
+      setWorkoutCompletion(workoutCompletionData);
+    }
+  }, [workoutCompletionData]);
+
+  // Fetch workout data
   const { data: workoutData, isLoading: isWorkoutLoading, error: workoutError } = useQuery({
-    queryKey: ['workout', workoutCompletionId],
+    queryKey: ['workout', workoutCompletion?.workout_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('workouts')
@@ -73,7 +125,7 @@ const ActiveWorkout: React.FC = () => {
             )
           )
         `)
-        .eq('id', workoutCompletion?.workout_id)
+        .eq('id', workoutCompletion?.workout_id || '')
         .single();
 
       if (error) {
@@ -83,37 +135,17 @@ const ActiveWorkout: React.FC = () => {
 
       return data;
     },
-    enabled: !!workoutCompletion?.workout_id,
+    enabled: !!workoutCompletion?.workout_id
   });
 
-  const { data: workoutCompletionData, isLoading: isCompletionLoading, error: completionError } = useQuery({
-    queryKey: ['workoutCompletion', workoutCompletionId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('workout_completions')
-        .select('*')
-        .eq('id', workoutCompletionId)
-        .single();
-
-      if (error) {
-        console.error("Error fetching workout completion:", error);
-        throw error;
-      }
-
-      return data;
-    },
-    onSuccess: (data) => {
-      setWorkoutCompletion(data);
-    },
-  });
-
+  // Fetch exercise completions
   const { data: exerciseCompletionData, isLoading: isExerciseCompletionsLoading, error: exerciseCompletionsError } = useQuery({
     queryKey: ['exerciseCompletions', workoutCompletionId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('workout_exercise_completions')
         .select('*')
-        .eq('workout_completion_id', workoutCompletionId)
+        .eq('workout_completion_id', workoutCompletionId || '')
         .order('exercise_order', { ascending: true });
 
       if (error) {
@@ -123,11 +155,14 @@ const ActiveWorkout: React.FC = () => {
 
       return data;
     },
-    onSuccess: (data) => {
-      setExerciseCompletions(data || []);
-    },
-    enabled: !!workoutCompletionId,
+    enabled: !!workoutCompletionId
   });
+
+  useEffect(() => {
+    if (exerciseCompletionData) {
+      setExerciseCompletions(exerciseCompletionData || []);
+    }
+  }, [exerciseCompletionData]);
 
   useEffect(() => {
     if (workoutData) {
@@ -248,13 +283,16 @@ const ActiveWorkout: React.FC = () => {
 
           toast.success('Workout saved!');
           setIsDirty(false);
-          queryClient.invalidateQueries(['exerciseCompletions', workoutCompletionId]);
-          queryClient.invalidateQueries(['workoutCompletion', workoutCompletionId]);
+          queryClient.invalidateQueries({queryKey: ['exerciseCompletions', workoutCompletionId]});
+          queryClient.invalidateQueries({queryKey: ['workoutCompletion', workoutCompletionId]});
+          return true;
         } catch (error) {
           console.error("Error during autosave:", error);
           toast.error('Failed to save workout.');
+          return false;
         }
       }
+      return false;
     },
     saveInterval: 60000, // 60 seconds
   });
@@ -312,6 +350,8 @@ const ActiveWorkout: React.FC = () => {
   };
 
   const handleCompleteWorkout = async () => {
+    if (!workoutCompletionId) return;
+    
     try {
       await completeWorkout(workoutCompletionId);
       toast.success('Workout completed!');
@@ -462,7 +502,6 @@ const ActiveWorkout: React.FC = () => {
               onClick={() => setActiveExerciseIndex(activeExerciseIndex - 1)}
               disabled={activeExerciseIndex === 0}
             >
-              <ChevronLeft className="h-4 w-4 mr-2" />
               Previous
             </Button>
             <Button
@@ -503,7 +542,7 @@ const ActiveWorkout: React.FC = () => {
               </Tooltip>
             </TooltipProvider>
             
-            <Stopwatch isRunning={isStopwatchRunning} onTick={handleStopwatchTick} />
+            <Stopwatch className={undefined} isRunning={isStopwatchRunning} onTick={handleStopwatchTick} />
           </div>
           <Button onClick={handleCompleteWorkout} disabled={isWorkoutComplete}>
             {isWorkoutComplete ? (
@@ -527,7 +566,7 @@ const ActiveWorkout: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            {videoUrl && <VideoPlayer videoUrl={videoUrl} />}
+            {videoUrl && <VideoPlayer youtubeUrl={videoUrl} />}
           </div>
           <DialogFooter>
             <Button type="button" onClick={handleCloseVideo}>

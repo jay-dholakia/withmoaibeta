@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -48,11 +47,9 @@ export function WorkoutProgressCard({
   showWeekdayLabels = false,
   showLabelsBelow = false
 }: WorkoutProgressCardProps) {
-  // Always use Monday as the first day of the week
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
   
-  // Generate array of the 7 days in the current week
   const daysOfWeek = Array.from({ length: 7 }, (_, i) => {
     const date = addDays(startDate, i);
     return {
@@ -63,34 +60,29 @@ export function WorkoutProgressCard({
     };
   });
   
-  // Function to get workout type for a specific date
   const getWorkoutType = (dateStr: string): WorkoutType => {
     return workoutTypesMap[dateStr] || null;
   };
   
-  // Function to get workout title for a specific date
   const getWorkoutTitle = (dateStr: string): string => {
     return workoutTitlesMap[dateStr] || '';
   };
   
-  // Check if a specific date has a workout
   const hasWorkoutOnDate = (dateStr: string): boolean => {
     return completedDates.some(date => format(date, 'yyyy-MM-dd') === dateStr);
   };
   
-  // Check if a specific date is a rest day
   const isRestDay = (dateStr: string): boolean => {
     return lifeHappensDates.some(date => format(date, 'yyyy-MM-dd') === dateStr);
   };
   
-  // Calculate progress percentage safely
   const progressPercentage = total > 0 ? Math.min(Math.round((count / total) * 100), 100) : 0;
   
   const displayName = firstName || userName;
   const initials = firstName ? firstName.charAt(0).toUpperCase() : userName.charAt(0).toUpperCase();
   
   return (
-    <div className={cn("flex items-center gap-3 pb-2", className)}>
+    <div className={cn("flex items-center gap-3", className)}>
       <div className="flex-shrink-0">
         <TooltipProvider>
           <Tooltip>
@@ -124,16 +116,6 @@ export function WorkoutProgressCard({
         )}
         
         <div className="grid grid-cols-7 gap-0.5">
-          {showWeekdayLabels && !showLabelsBelow && (
-            <>
-              {daysOfWeek.map((day) => (
-                <div key={`label-${day.dateStr}`} className="text-xs text-muted-foreground text-center mb-1">
-                  {day.dayName[0]}
-                </div>
-              ))}
-            </>
-          )}
-          
           {daysOfWeek.map((day) => {
             const hasWorkout = hasWorkoutOnDate(day.dateStr);
             const restDay = isRestDay(day.dateStr);
@@ -177,7 +159,7 @@ export function WorkoutProgressCard({
                   </Tooltip>
                 </TooltipProvider>
                 
-                {showLabelsBelow && day.isToday && (
+                {day.isToday && (
                   <div className="h-1 w-1 bg-primary rounded-full mt-1 mx-auto"></div>
                 )}
               </div>

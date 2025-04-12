@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
+import { Separator } from '@/components/ui/separator';
 
 interface MoaiGroupProgressProps {
   groupId: string;
@@ -380,22 +381,20 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
       </CardHeader>
       <CardContent className="pt-0 px-4">
         <div className="ml-11 mb-2">
-          <WorkoutProgressCard 
-            completedDates={[]}
-            lifeHappensDates={[]}
-            count={0}
-            total={0}
-            workoutTypesMap={{}}
-            workoutTitlesMap={{}}
-            userName=""
-            isCurrentUser={false}
-            showWeekdayLabels={true}
-            className="opacity-70"
-          />
+          <div className="grid grid-cols-7 gap-0.5">
+            {Array.from({ length: 7 }).map((_, i) => {
+              const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+              return (
+                <div key={`day-${i}`} className="text-xs text-muted-foreground text-center">
+                  {days[i]}
+                </div>
+              );
+            })}
+          </div>
         </div>
         
-        <div className="space-y-3">
-          {allMembers.map((member) => {
+        <div className="space-y-0.5">
+          {allMembers.map((member, index) => {
             const isCurrentUser = member.isCurrentUser;
             const memberData = isCurrentUser 
               ? { 
@@ -420,21 +419,25 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
               : memberData.completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
             
             return (
-              <WorkoutProgressCard 
-                key={member.userId}
-                completedDates={isCurrentUser ? completedDates : memberData.completedDates}
-                lifeHappensDates={isCurrentUser ? lifeHappensDates : memberData.lifeHappensDates}
-                count={memberCompletedThisWeek}
-                total={totalWorkouts}
-                workoutTypesMap={isCurrentUser ? workoutTypesMap : memberData.workoutTypesMap}
-                workoutTitlesMap={isCurrentUser ? workoutTitlesMap : memberData.workoutTitlesMap}
-                userName={isCurrentUser ? getCurrentUserDisplayName() : getDisplayName(member)}
-                isCurrentUser={isCurrentUser}
-                avatarUrl={member.profileData?.avatar_url}
-                firstName={member.profileData?.first_name}
-                lastName={member.profileData?.last_name}
-                showLabelsBelow={true}
-              />
+              <React.Fragment key={member.userId}>
+                <WorkoutProgressCard 
+                  completedDates={isCurrentUser ? completedDates : memberData.completedDates}
+                  lifeHappensDates={isCurrentUser ? lifeHappensDates : memberData.lifeHappensDates}
+                  count={memberCompletedThisWeek}
+                  total={totalWorkouts}
+                  workoutTypesMap={isCurrentUser ? workoutTypesMap : memberData.workoutTypesMap}
+                  workoutTitlesMap={isCurrentUser ? workoutTitlesMap : memberData.workoutTitlesMap}
+                  userName={isCurrentUser ? getCurrentUserDisplayName() : getDisplayName(member)}
+                  isCurrentUser={isCurrentUser}
+                  avatarUrl={member.profileData?.avatar_url}
+                  firstName={member.profileData?.first_name}
+                  lastName={member.profileData?.last_name}
+                  showLabelsBelow={false}
+                />
+                {index < allMembers.length - 1 && (
+                  <Separator className="my-2 opacity-30" />
+                )}
+              </React.Fragment>
             );
           })}
           

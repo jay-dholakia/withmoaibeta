@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { WeekProgressBar } from './WeekProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -182,19 +183,18 @@ export const WeekProgressSection = ({
         <CardTitle className="text-base font-medium">Your Progress</CardTitle>
       </CardHeader>
       <CardContent className="pt-0 px-4">
+        {/* Weekday labels row */}
         <div className="ml-11 mb-2">
-          <WorkoutProgressCard 
-            completedDates={[]}
-            lifeHappensDates={[]}
-            count={0}
-            total={0}
-            workoutTypesMap={{}}
-            workoutTitlesMap={{}}
-            userName=""
-            isCurrentUser={false}
-            showWeekdayLabels={true}
-            className="opacity-70"
-          />
+          <div className="grid grid-cols-7 gap-0.5">
+            {Array.from({ length: 7 }).map((_, i) => {
+              const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+              return (
+                <div key={`day-${i}`} className="text-xs text-muted-foreground text-center">
+                  {days[i]}
+                </div>
+              );
+            })}
+          </div>
         </div>
         
         <WorkoutProgressCard 
@@ -209,7 +209,7 @@ export const WeekProgressSection = ({
           avatarUrl={userProfile?.avatar_url}
           firstName={userProfile?.first_name}
           lastName={userProfile?.last_name}
-          showLabelsBelow={true}
+          showLabelsBelow={false}
         />
       </CardContent>
     </Card>

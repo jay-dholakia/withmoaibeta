@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ChevronDown, ChevronRight, UserRound } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import MoaiMemberWeeklyActivity from './MoaiMemberWeeklyActivity';
 
@@ -52,11 +52,11 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
               {firstName.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="flex flex-col">
-            <div className="font-medium">
+          <div>
+            <span className="font-medium">
               {displayName}
               {member.isCurrentUser && <span className="text-xs ml-1.5 text-muted-foreground">(You)</span>}
-            </div>
+            </span>
           </div>
         </div>
         

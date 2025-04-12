@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -209,8 +208,7 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
   
   const formatDisplayName = (firstName: string | null, lastName: string | null): string => {
     if (!firstName) return '';
-    const formattedLastName = lastName ? `${lastName.charAt(0)}.` : '';
-    return `${firstName} ${formattedLastName}`.trim();
+    return `${firstName} ${lastName ? lastName.charAt(0) + '.' : ''}`.trim();
   };
 
   const formatEventDate = (dateString: string | null): string => {

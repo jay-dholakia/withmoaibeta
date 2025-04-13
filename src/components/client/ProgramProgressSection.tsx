@@ -60,7 +60,7 @@ export const ProgramProgressSection: React.FC = () => {
   // Listen for refresh events from other components
   useEffect(() => {
     const handleRefresh = () => {
-      console.log("Refreshing weekly progress data");
+      console.log("Refreshing weekly progress data (Pacific Time)");
       refetch();
     };
     
@@ -68,7 +68,7 @@ export const ProgramProgressSection: React.FC = () => {
     
     // Also listen for workout completion events
     const handleWorkoutCompleted = () => {
-      console.log("Workout completed, refreshing progress data");
+      console.log("Workout completed, refreshing progress data (Pacific Time)");
       refetch();
     };
     
@@ -110,7 +110,7 @@ export const ProgramProgressSection: React.FC = () => {
   const isRunProgram = weeklyProgress?.program_type === 'moai_run';
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-timezone="America/Los_Angeles">
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-lg">
@@ -155,3 +155,4 @@ export const ProgramProgressSection: React.FC = () => {
     </div>
   );
 };
+

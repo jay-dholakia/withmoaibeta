@@ -1,7 +1,7 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { startOfWeek, endOfWeek } from "https://esm.sh/date-fns@2.30.0";
+import { formatInTimeZone } from "https://esm.sh/date-fns-tz@3.0.0";
 
 // Configure CORS headers for the function
 const corsHeaders = {
@@ -83,15 +83,25 @@ serve(async (req) => {
     client_id = client_id || user.id;
     console.log("Using client_id:", client_id);
 
-    // 1. Get current date info
+    // 1. Get current date info in Pacific Time
     const today = new Date();
-    const weekStart = startOfWeek(today, { weekStartsOn: 0 });
-    const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
+    // Convert to Pacific Time
+    const todayPT = formatInTimeZone(today, "America/Los_Angeles", "yyyy-MM-dd");
+    const todayDate = new Date(todayPT);
+    
+    // Calculate week boundaries in PT
+    const weekDay = todayDate.getDay(); // 0 = Sunday, 1 = Monday, ...
+    const weekStart = new Date(todayDate);
+    weekStart.setDate(todayDate.getDate() - (weekDay === 0 ? 6 : weekDay - 1)); // Monday
+    weekStart.setHours(0, 0, 0, 0);
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7); // Next Monday
     
     // ISO format for database queries
     const weekStartISO = weekStart.toISOString();
     const weekEndISO = weekEnd.toISOString();
-    console.log(`Week range: ${weekStartISO} to ${weekEndISO}`);
+    console.log(`Week range (Pacific Time): ${weekStartISO} to ${weekEndISO}`);
     
     // 2. Get client's current active program
     console.log("Fetching program assignment");
@@ -153,10 +163,13 @@ serve(async (req) => {
     console.log("Found program assignment:", programAssignment.id);
     console.log("Program:", programAssignment.program?.title);
     
-    // 3. Calculate which program week we're in
-    const programStartDate = new Date(programAssignment.start_date);
+    // 3. Calculate which program week we're in (using Pacific Time)
+    // Convert program start date to Pacific Time for consistent calculation
+    const programStartDatePT = formatInTimeZone(new Date(programAssignment.start_date), "America/Los_Angeles", "yyyy-MM-dd");
+    const programStartDate = new Date(programStartDatePT);
+    
     const millisecondsPerWeek = 7 * 24 * 60 * 60 * 1000;
-    const weeksSinceStart = Math.floor((today.getTime() - programStartDate.getTime()) / millisecondsPerWeek) + 1;
+    const weeksSinceStart = Math.floor((todayDate.getTime() - programStartDate.getTime()) / millisecondsPerWeek) + 1;
     
     // Ensure week number is within program bounds
     const currentWeekNumber = Math.min(
@@ -164,7 +177,7 @@ serve(async (req) => {
       programAssignment.program?.weeks || 4
     );
     
-    console.log("Current week number:", currentWeekNumber);
+    console.log("Current week number (Pacific Time):", currentWeekNumber);
 
     // 4. Get workouts for the specific week from program_weeks and workouts tables
     console.log(`Fetching workouts for week ${currentWeekNumber} of program ${programAssignment.program_id}`);
@@ -238,7 +251,7 @@ serve(async (req) => {
       }
     }
     
-    // 5. Fetch completed workouts for the week
+    // 5. Fetch completed workouts for the week (using the Pacific Time week boundaries)
     console.log("Fetching workout completions");
     const { data: workoutCompletions, error: workoutsError } = await supabaseClient
       .from('workout_completions')
@@ -262,7 +275,7 @@ serve(async (req) => {
       console.error("Error fetching workout completions:", workoutsError);
     }
     
-    console.log(`Found ${workoutCompletions?.length || 0} workout completions`);
+    console.log(`Found ${workoutCompletions?.length || 0} workout completions for week (Pacific Time)`);
     
     // Get run logs from workout completions with workout_type = 'running'
     console.log("Extracting run data from workout completions");

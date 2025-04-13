@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { formatInTimeZone } from "date-fns-tz";
 
 export interface WeeklyProgressMetric {
   target: number;
@@ -97,14 +98,23 @@ async function updateStrengthWorkoutsCount(
   clientId: string
 ): Promise<void> {
   try {
-    // Get the current week's start and end dates
+    // Get the current week's start and end dates in Pacific Time
     const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Monday of this week
+    
+    // Convert to Pacific Time
+    const todayPT = formatInTimeZone(now, 'America/Los_Angeles', 'yyyy-MM-dd');
+    const today = new Date(todayPT);
+    
+    // Calculate start of week (Monday) in Pacific Time
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)); // Adjust to Monday
     startOfWeek.setHours(0, 0, 0, 0);
     
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+    console.log(`Calculating workout counts for week of ${startOfWeek.toISOString()} to ${endOfWeek.toISOString()} (Pacific Time)`);
 
     // Query for completed strength workouts in this week
     const { data: completions, error } = await supabase
@@ -141,7 +151,7 @@ async function updateStrengthWorkoutsCount(
         return workoutType === 'strength';
       }).length;
       
-      console.log(`Found ${strengthCount} completed strength workouts this week`);
+      console.log(`Found ${strengthCount} completed strength workouts this week (Pacific Time)`);
       
       // Update the data object with the actual count
       if (data && data.metrics && data.metrics.strength_workouts) {

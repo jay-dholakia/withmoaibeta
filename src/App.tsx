@@ -4,6 +4,7 @@ import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/ClientLogin'; 
 import CoachLogin from './pages/CoachLogin';
+import AdminLogin from './pages/AdminLogin';
 import PasswordResetRequestPage from './pages/client/PasswordResetRequestPage';
 import ResetPasswordPage from './pages/ResetPassword';
 import RegisterPage from './pages/Register';
@@ -51,6 +52,7 @@ const App: React.FC = () => {
       {/* Public routes accessible to everyone */}
       <Route path="/" element={<PublicRoute><HomePage /></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/admin-login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
       <Route path="/coach-login" element={<PublicRoute><CoachLogin /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
       <Route path="/password-reset-request" element={<PublicRoute><PasswordResetRequestPage /></PublicRoute>} />

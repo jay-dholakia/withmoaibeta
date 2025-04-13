@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { LucideIcon } from 'lucide-react';
@@ -47,15 +46,14 @@ export const PortalCard: React.FC<PortalCardProps> = ({
     }
   };
 
-  // Define login URLs based on variant - direct to login pages, not dashboards
   const getLoginUrl = () => {
     switch (variant) {
       case 'admin':
-        return '/login?type=admin'; // Use login page with admin parameter
+        return '/admin-login';
       case 'coach':
-        return '/coach-login'; // Use coach login page
+        return '/coach-login';
       case 'client':
-        return '/login'; // Use default login page for clients
+        return '/login';
       default:
         return '/login';
     }

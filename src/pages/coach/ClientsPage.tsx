@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -16,7 +15,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { ClientData, fetchCoachClients } from '@/services/coach-service';
+import { fetchCoachClients } from '@/services/coach-clients-service';
 import { fetchCoachGroups } from '@/services/coach-group-service';
 import { ClientDetailView } from '@/components/coach/ClientDetailView';
 import ClientMessageForm from '@/components/coach/ClientMessageForm';
@@ -71,11 +70,12 @@ const ClientsPage = () => {
         return clientData;
       } catch (error) {
         console.error('Error in client fetch query function:', error);
-        toast('Failed to load clients. Please try again later.');
+        toast.error('Failed to load clients. Please try again later.');
         return [];
       }
     },
     enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const { data: groups, isLoading: isLoadingGroups, error: groupsError } = useQuery({
@@ -88,11 +88,12 @@ const ClientsPage = () => {
         return groupData;
       } catch (error) {
         console.error('Error in group fetch query function:', error);
-        toast('Failed to load groups. Please try again later.');
+        toast.error('Failed to load groups. Please try again later.');
         return [];
       }
     },
     enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const filteredClients = clients?.filter(client => 
@@ -172,7 +173,7 @@ const ClientsPage = () => {
       setEditMessage(messageStatus[clientId].message);
       setSheetOpen(true);
     } else {
-      toast("No message found to edit");
+      toast.error("No message found to edit");
     }
   };
 
@@ -190,7 +191,7 @@ const ClientsPage = () => {
     setSelectedClientId(null);
     setSelectedClientEmail(null);
     setEditMessage(undefined);
-    toast("Your message has been sent to the client.");
+    toast.success("Your message has been sent to the client.");
   };
 
   const getWorkoutStatusClass = (days: number | null) => {

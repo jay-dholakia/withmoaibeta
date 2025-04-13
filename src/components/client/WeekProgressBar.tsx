@@ -35,16 +35,18 @@ export const WeekProgressBar = ({
   compact = false,
 }: WeekProgressBarProps) => {
   const { weekStart, weekDays } = useMemo(() => {
+    // Ensure week starts on Monday (weekStartsOn: 1)
     const start = startOfWeek(new Date(), { weekStartsOn: 1 });
     const days = [];
     
+    // Generate 7 days starting from Monday
     for (let i = 0; i < 7; i++) {
       days.push(addDays(start, i));
     }
     
     return {
       weekStart: start,
-      weekDays: days,
+      weekDays: days, // Monday to Sunday
     };
   }, []);
   
@@ -113,6 +115,7 @@ export const WeekProgressBar = ({
     return (
       <div className="flex justify-between items-center mt-3 px-1">
         {dayStatus.map((day, index) => {
+          // Use Mon, Tue, Wed format for days - consistent with Monday first week start
           const dayName = format(day.date, 'E')[0];
           const isToday = isSameDay(today, day.date);
           

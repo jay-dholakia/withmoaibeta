@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,7 +12,7 @@ import {
   getClientRestDays,
 } from '@/services/activity-logging-service';
 import { Badge } from '@/components/ui/badge';
-import { format, subDays } from 'date-fns';
+import { format, subDays, startOfWeek } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { LogActivityButtons } from './LogActivityButtons';
 
@@ -52,10 +53,15 @@ const WorkoutHistoryTab = () => {
     const fetchRecentActivities = async () => {
       if (!user?.id) return;
       
-      // Convert date range to Pacific Time
-      const pacificNow = new Date();
-      const todayPT = formatInTimeZone(pacificNow, 'America/Los_Angeles', 'yyyy-MM-dd');
+      // Convert date range to Pacific Time and ensure week starts on Monday
+      const now = new Date();
+      const todayPT = formatInTimeZone(now, 'America/Los_Angeles', 'yyyy-MM-dd');
       const today = new Date(todayPT);
+      
+      // Get start of week (Monday) in Pacific Time
+      const weekStartPT = startOfWeek(today, { weekStartsOn: 1 });
+      
+      // Go back 7 days from today for recent activities
       const sevenDaysAgo = subDays(today, 7);
       
       try {

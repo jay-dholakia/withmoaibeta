@@ -1,16 +1,18 @@
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { WeekProgressBar } from './WeekProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
 import { useQuery } from '@tanstack/react-query';
-import { format, isThisWeek } from 'date-fns';
+import { format, isThisWeek, startOfWeek } from 'date-fns';
 import { WorkoutType } from './WorkoutTypeIcon';
 import { WorkoutProgressCard } from './WorkoutProgressCard';
 import { detectWorkoutTypeFromText } from '@/services/workout-edit-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -103,7 +105,8 @@ export const WeekProgressSection = ({
               ? new Date(workout.completed_at) 
               : workout.completed_at;
               
-            const dateKey = format(completionDate, 'yyyy-MM-dd');
+            // Format date using Pacific Time for consistent date keys
+            const dateKey = formatInTimeZone(completionDate, "America/Los_Angeles", "yyyy-MM-dd");
             console.log(`Processing workout for date: ${dateKey} in timezone ${userTimeZone}`);
             
             if (workout.life_happens_pass || workout.rest_day) {
@@ -159,12 +162,14 @@ export const WeekProgressSection = ({
   const completedThisWeek = useMemo(() => {
     if (!completedDates.length) return 0;
     
+    // Use weekStartsOn: 1 to make weeks start on Monday
     return completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   }, [completedDates]);
   
   const lifeHappensThisWeek = useMemo(() => {
     if (!lifeHappensDates.length) return 0;
     
+    // Use weekStartsOn: 1 to make weeks start on Monday
     return lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
   }, [lifeHappensDates]);
   
@@ -178,7 +183,8 @@ export const WeekProgressSection = ({
   if (!showPersonal) return null;
 
   const today = new Date();
-  const todayIndex = (today.getDay() === 0 ? 6 : today.getDay() - 1); // Convert Sunday as 0 to Sunday as 6
+  // Convert Sunday as 0 to Sunday as 6, with Monday as 0
+  const todayIndex = (today.getDay() === 0 ? 6 : today.getDay() - 1); 
   
   return (
     <Card className="border shadow-sm">
@@ -189,6 +195,7 @@ export const WeekProgressSection = ({
         <div className="ml-11 mb-2">
           <div className="grid grid-cols-7 gap-0.5">
             {Array.from({ length: 7 }).map((_, i) => {
+              // Show days in order: M T W T F S S
               const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
               const isToday = i === todayIndex;
               

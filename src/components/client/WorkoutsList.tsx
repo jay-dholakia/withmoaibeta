@@ -15,7 +15,7 @@ import { fetchGroupMembers, GroupMember } from '@/services/group-member-service'
 import { LogActivityButtons } from './LogActivityButtons';
 import LifeHappensButton from './LifeHappensButton';
 import { formatInTimeZone } from 'date-fns-tz';
-import { addDays } from 'date-fns';
+import { addDays, startOfWeek } from 'date-fns';
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
@@ -100,12 +100,36 @@ const WorkoutsList = () => {
           if (program && program.start_date) {
             // Use Pacific Time to calculate current week
             const nowPT = new Date();
+            
+            // Get program start date in Pacific Time
             const startDatePT = new Date(formatInTimeZone(new Date(program.start_date), 'America/Los_Angeles', 'yyyy-MM-dd'));
-            const msInDay = 1000 * 60 * 60 * 24;
-            const daysElapsed = Math.floor((nowPT.getTime() - startDatePT.getTime()) / msInDay);
-            currentWeekNumber = Math.max(1, Math.floor(daysElapsed / 7) + 1);
-            console.log(`WorkoutsList: Program start date: ${startDatePT}, days elapsed: ${daysElapsed}, current week: ${currentWeekNumber}`);
+            
+            // Adjust program start to nearest Monday (week start)
+            const programStartDay = startDatePT.getDay();
+            const daysUntilFirstMonday = programStartDay === 0 ? 1 : (programStartDay === 1 ? 0 : 8 - programStartDay);
+            const firstProgramMonday = new Date(startDatePT);
+            firstProgramMonday.setDate(startDatePT.getDate() + daysUntilFirstMonday);
+            firstProgramMonday.setHours(0, 0, 0, 0);
+            
+            // Calculate weeks since first Monday
+            const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+            let weeksSinceStart = 0;
+            
+            // If program hasn't reached first Monday yet, we're in week 1
+            if (nowPT >= firstProgramMonday) {
+              weeksSinceStart = Math.floor((nowPT.getTime() - firstProgramMonday.getTime()) / msPerWeek);
+            }
+            
+            currentWeekNumber = weeksSinceStart + 1;
+            
+            console.log(`WorkoutsList: Program start date: ${startDatePT.toISOString()}, first Monday: ${firstProgramMonday.toISOString()}, current week: ${currentWeekNumber}`);
           }
+          
+          // Ensure week number is within program bounds
+          currentWeekNumber = Math.min(
+            Math.max(1, currentWeekNumber),
+            program?.weeks || 4
+          );
           
           const weekExists = sortedWeeks.includes(currentWeekNumber);
           const initialWeek = weekExists ? currentWeekNumber : sortedWeeks[0];

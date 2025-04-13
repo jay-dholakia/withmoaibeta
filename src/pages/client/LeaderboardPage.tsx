@@ -15,6 +15,7 @@ import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { formatInTimeZone } from 'date-fns-tz';
 
 const LeaderboardPage = () => {
   const { user } = useAuth();
@@ -73,7 +74,10 @@ const LeaderboardPage = () => {
       if (!user?.id) return 0;
       
       try {
-        const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+        const nowPT = new Date();
+        const todayPT = formatInTimeZone(nowPT, 'America/Los_Angeles', 'yyyy-MM-dd');
+        const today = new Date(todayPT);
+        const monday = startOfWeek(today, { weekStartsOn: 1 });
         return await countCompletedWorkoutsForWeek(user.id, monday);
       } catch (error) {
         console.error("Error counting completed workouts:", error);
@@ -111,7 +115,7 @@ const LeaderboardPage = () => {
           const date = new Date(item.completed_at);
           if (!isValid(date) || isFuture(date)) return;
           
-          const dateKey = format(date, 'yyyy-MM-dd');
+          const dateKey = formatInTimeZone(date, 'America/Los_Angeles', 'yyyy-MM-dd');
           
           if (item.life_happens_pass || item.rest_day) {
             typesMap[dateKey] = 'rest_day';

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -16,6 +17,7 @@ import {
   createWorkout,
   updateWorkout
 } from '@/services/workout-service';
+import { deleteWorkout } from '@/services/workout-delete-service';
 import { Workout } from '@/types/workout';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';

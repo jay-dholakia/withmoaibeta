@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -26,6 +25,7 @@ import WorkoutProgramDetailsPage from './pages/coach/WorkoutProgramDetailPage';
 import WorkoutWeekDetailsPage from './pages/coach/WorkoutWeekDetailPage';
 import WorkoutDetailsPage from './pages/coach/EditWorkoutPage';
 import EditWorkoutPage from './pages/coach/EditWorkoutPage';
+import WorkoutExercisesPage from './pages/coach/WorkoutExercisesPage';
 import ClientWorkoutHistoryPage from './pages/client/WorkoutsPage';
 import ClientWorkoutDetailsPage from './pages/client/WorkoutDetailsPage';
 import ExerciseImportPage from './pages/ExerciseImportPage';

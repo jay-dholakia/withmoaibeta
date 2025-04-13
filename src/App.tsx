@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -36,6 +37,7 @@ import AdminRoute from './components/AdminRoute';
 import CoachRoute from './components/CoachRoute';
 import ClientRoute from './components/ClientRoute';
 import ClientStatsPage from './pages/admin/ClientStatsPage';
+import CoachClientStatsPage from './pages/coach/ClientStatsPage';
 import CreateWorkoutWeekPage from './pages/coach/CreateWorkoutWeekPage';
 
 const App: React.FC = () => {
@@ -79,26 +81,21 @@ const App: React.FC = () => {
       <Route path="/coach-dashboard/workouts/:programId" element={<CoachRoute><WorkoutProgramDetailsPage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts/week/:weekId" element={<CoachRoute><WorkoutWeekDetailsPage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts/:programId/create-week" element={<CoachRoute><CreateWorkoutWeekPage /></CoachRoute>} />
-      <Route path="/coach-dashboard/workouts/workout/:workoutId" element={<CoachRoute><WorkoutDetailsPage /></CoachRoute>} />
-      <Route path="/coach-dashboard/workouts/workout/:workoutId/edit" element={<CoachRoute><EditWorkoutPage /></CoachRoute>} />
-      <Route path="/coach-dashboard/workouts/workout/:workoutId/exercises" element={<CoachRoute><WorkoutExercisesPage /></CoachRoute>} />
-      <Route path="/coach-dashboard/workout-templates" element={<CoachRoute><StandaloneWorkoutPage /></CoachRoute>} />
-      <Route path="/coach-dashboard/workout-templates/:workoutId" element={<CoachRoute><StandaloneWorkoutDetailsPage /></CoachRoute>} />
-      <Route path="/coach-dashboard/exercise-management" element={<CoachRoute><CoachExerciseManagementPage /></CoachRoute>} />
-      <Route path="/coach-dashboard/clients" element={<CoachRoute><ClientsPage /></CoachRoute>} />
-
-      {/* Legacy workout routes to maintain compatibility */}
-      <Route path="/workouts/:workoutId" element={<CoachRoute><WorkoutDetailsPage /></CoachRoute>} />
+      <Route path="/workout-weeks/:weekId" element={<CoachRoute><WorkoutWeekDetailsPage /></CoachRoute>} />
       <Route path="/workouts/:workoutId/edit" element={<CoachRoute><EditWorkoutPage /></CoachRoute>} />
       <Route path="/workouts/:workoutId/exercises" element={<CoachRoute><WorkoutExercisesPage /></CoachRoute>} />
-      <Route path="/workout-weeks/:weekId" element={<CoachRoute><WorkoutWeekDetailsPage /></CoachRoute>} />
+      <Route path="/coach-dashboard/standalone-workouts" element={<CoachRoute><StandaloneWorkoutPage /></CoachRoute>} />
+      <Route path="/coach-dashboard/standalone-workouts/:workoutId" element={<CoachRoute><StandaloneWorkoutDetailsPage /></CoachRoute>} />
+      <Route path="/coach-dashboard/exercise-management" element={<CoachRoute><CoachExerciseManagementPage /></CoachRoute>} />
+      <Route path="/coach-dashboard/clients" element={<CoachRoute><ClientsPage /></CoachRoute>} />
+      <Route path="/coach-dashboard/client-stats" element={<CoachRoute><CoachClientStatsPage /></CoachRoute>} />
 
       {/* Client routes */}
-      <Route path="/client-dashboard/*" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
-      <Route path="/client-profile" element={<ClientRoute><ClientProfilePage /></ClientRoute>} />
-      <Route path="/client-workout-history" element={<ClientRoute><ClientWorkoutHistoryPage /></ClientRoute>} />
-      <Route path="/client-workout-history/:workoutId" element={<ClientRoute><ClientWorkoutDetailsPage /></ClientRoute>} />
-
+      <Route path="/dashboard" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
+      <Route path="/profile" element={<ClientRoute><ClientProfilePage /></ClientRoute>} />
+      <Route path="/workouts" element={<ClientRoute><ClientWorkoutHistoryPage /></ClientRoute>} />
+      <Route path="/workouts/:workoutId" element={<ClientRoute><ClientWorkoutDetailsPage /></ClientRoute>} />
+      
       {/* Fallback route */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

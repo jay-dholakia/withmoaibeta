@@ -10,8 +10,10 @@ interface PublicRouteProps {
 const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   const { user, userType, loading } = useAuth();
   const location = useLocation();
-
-  // Wait for authentication to complete before redirecting
+  
+  // Get the intended destination from location state or use default
+  const from = location.state?.from || '/';
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -21,22 +23,20 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
     );
   }
 
-  // If user is already authenticated, redirect to their appropriate dashboard
-  if (user && userType) {
+  // If user is authenticated, redirect to appropriate dashboard
+  if (user) {
     console.log("PublicRoute: Redirecting authenticated user to dashboard", { userType });
     
-    // Redirect based on user type
     if (userType === 'admin') {
-      return <Navigate to="/admin-dashboard" replace state={{ from: location }} />;
+      return <Navigate to="/admin-dashboard" replace />;
     } else if (userType === 'coach') {
-      return <Navigate to="/coach-dashboard" replace state={{ from: location }} />;
+      return <Navigate to="/coach-dashboard" replace />;
     } else if (userType === 'client') {
-      return <Navigate to="/client-dashboard" replace state={{ from: location }} />;
+      return <Navigate to="/client-dashboard/moai" replace />;
     }
   }
 
-  // Not authenticated or loading, show the public content
-  console.log("PublicRoute: Showing public content", { user, userType, loading });
+  // If not authenticated, show the requested public route
   return <>{children}</>;
 };
 

@@ -29,7 +29,7 @@ const ClientDashboard = () => {
           <Route path="settings/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="settings/terms-of-service" element={<TermsOfServicePage />} />
           <Route path="notes" element={<NotesPage />} />
-          <Route path="*" element={<Navigate to="/client-dashboard/moai" replace />} />
+          <Route path="*" element={<Navigate to="moai" replace />} />
         </Routes>
       </div>
     </ClientLayout>

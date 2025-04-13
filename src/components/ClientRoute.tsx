@@ -23,7 +23,7 @@ const ClientRoute: React.FC<ClientRouteProps> = ({ children }) => {
   if (!user || userType !== 'client') {
     console.log("ClientRoute: Access denied, redirecting to login", { userType });
     // Remember the current location so we can redirect back after login
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   return <>{children}</>;

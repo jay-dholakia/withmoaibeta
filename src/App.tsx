@@ -92,6 +92,7 @@ const App: React.FC = () => {
 
       {/* Client routes */}
       <Route path="/dashboard" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
+      <Route path="/client-dashboard/*" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
       <Route path="/profile" element={<ClientRoute><ClientProfilePage /></ClientRoute>} />
       <Route path="/workouts" element={<ClientRoute><ClientWorkoutHistoryPage /></ClientRoute>} />
       <Route path="/workouts/:workoutId" element={<ClientRoute><ClientWorkoutDetailsPage /></ClientRoute>} />

@@ -4,7 +4,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { PageTransition } from '@/components/PageTransition';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, User, Home, Dumbbell, Users, BarChart3, Award, Heart, FileText, LayoutTemplate } from 'lucide-react';
+import { LogOut, User, Home, Dumbbell, Users, BarChart3, Award, Heart, FileText, LayoutTemplate, Database } from 'lucide-react';
 
 interface CoachLayoutProps {
   children: React.ReactNode;
@@ -30,6 +30,7 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
     { icon: <Dumbbell className="w-5 h-5" />, label: 'Programs', path: '/coach-dashboard/workouts' },
     { icon: <LayoutTemplate className="w-5 h-5" />, label: 'Workout Templates', path: '/coach-dashboard/workout-templates' },
     { icon: <Users className="w-5 h-5" />, label: 'Clients', path: '/coach-dashboard/clients' },
+    { icon: <Database className="w-5 h-5" />, label: 'Manage Exercises', path: '/coach-dashboard/exercise-management' },
     { icon: <BarChart3 className="w-5 h-5" />, label: 'Performance', path: '/coach-dashboard/performance' },
     { icon: <Award className="w-5 h-5" />, label: 'Leaderboards', path: '/coach-dashboard/leaderboards' },
     { icon: <Heart className="w-5 h-5" />, label: 'Health', path: '/coach-dashboard/health' },

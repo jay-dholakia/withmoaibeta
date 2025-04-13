@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -19,7 +18,8 @@ import CoachesPage from './pages/admin/CoachesPage';
 import GroupDetailsPage from './pages/admin/GroupDetailsPage';
 import ClientProfilePage from './pages/client/ProfileEditor';
 import CoachProfilePage from './pages/coach/ProfilePage';
-import ExerciseManagementPage from './pages/admin/ExerciseManagementPage';
+import AdminExerciseManagementPage from './pages/admin/ExerciseManagementPage';
+import CoachExerciseManagementPage from './pages/coach/ExerciseManagementPage';
 import WorkoutProgramPage from './pages/coach/WorkoutProgramsPage';
 import WorkoutProgramDetailsPage from './pages/coach/WorkoutProgramDetailPage';
 import WorkoutWeekDetailsPage from './pages/coach/WorkoutWeekDetailPage';
@@ -67,7 +67,7 @@ const App: React.FC = () => {
       <Route path="/admin-dashboard/clients" element={<AdminRoute><ClientsPage /></AdminRoute>} />
       <Route path="/admin-dashboard/coaches" element={<AdminRoute><CoachesPage /></AdminRoute>} />
       <Route path="/admin-dashboard/groups/:groupId" element={<AdminRoute><GroupDetailsPage /></AdminRoute>} />
-      <Route path="/admin-dashboard/exercise-management" element={<AdminRoute><ExerciseManagementPage /></AdminRoute>} />
+      <Route path="/admin-dashboard/exercise-management" element={<AdminRoute><AdminExerciseManagementPage /></AdminRoute>} />
       <Route path="/admin-dashboard/client-stats" element={<AdminRoute><ClientStatsPage /></AdminRoute>} />
       <Route path="/exercise-import" element={<AdminRoute><ExerciseImportPage /></AdminRoute>} />
 
@@ -82,7 +82,7 @@ const App: React.FC = () => {
       <Route path="/workouts/:workoutId/edit" element={<CoachRoute><EditWorkoutPage /></CoachRoute>} />
       <Route path="/coach-dashboard/workout-templates" element={<CoachRoute><StandaloneWorkoutPage /></CoachRoute>} />
       <Route path="/standalone-workouts/:workoutId" element={<CoachRoute><StandaloneWorkoutDetailsPage /></CoachRoute>} />
-      <Route path="/coach-dashboard/exercise-management" element={<CoachRoute><ExerciseManagementPage /></CoachRoute>} />
+      <Route path="/coach-dashboard/exercise-management" element={<CoachRoute><CoachExerciseManagementPage /></CoachRoute>} />
 
       {/* Client routes */}
       <Route path="/client-dashboard/*" element={<ClientRoute><ClientDashboard /></ClientRoute>} />

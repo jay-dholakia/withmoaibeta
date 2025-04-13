@@ -11,6 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import MoaiMemberItem from './MoaiMemberItem';
 import { format } from 'date-fns';
+import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
+import { MonthlyCalendarView } from './MonthlyCalendarView';
+import { WorkoutType } from './WorkoutTypeIcon';
 
 interface MemberProfile {
   id: string;
@@ -71,19 +74,6 @@ const movementEmojis: Record<string, string> = {
   'Diving': '🤿',
   'Fencing': '🤺',
 };
-
-interface MemberWorkout {
-  id: string;
-  workout_id: string;
-  completed_at: string;
-  rating: number | null;
-  notes: string | null;
-  title?: string;
-  workout: {
-    title: string;
-    description: string | null;
-  } | null;
-}
 
 interface MoaiMembersTabProps {
   groupId: string;
@@ -183,29 +173,57 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
     queryFn: async () => {
       if (!selectedMember) throw new Error('No member selected');
       
-      const { data, error } = await supabase
-        .from('workout_completions')
-        .select(`
-          *,
-          workout:workout_id (
-            title,
-            description
-          )
-        `)
-        .eq('user_id', selectedMember)
-        .order('completed_at', { ascending: false })
-        .limit(10);
-        
-      if (error) {
-        console.error('Error fetching member workouts:', error);
+      try {
+        const workouts = await fetchClientWorkoutHistory(selectedMember);
+        console.log("Fetched workouts for member:", workouts);
+        return workouts;
+      } catch (error) {
+        console.error('Error fetching workouts:', error);
         throw error;
       }
-      
-      return data as MemberWorkout[];
     },
     enabled: !!selectedMember
   });
   
+  const generateWorkoutTypesMap = (workouts: any[] = []) => {
+    const typesMap: Record<string, WorkoutType> = {};
+    
+    workouts.forEach(workout => {
+      if (workout.completed_at) {
+        try {
+          const dateKey = format(new Date(workout.completed_at), 'yyyy-MM-dd');
+          
+          if (workout.life_happens_pass || workout.rest_day) {
+            typesMap[dateKey] = 'rest_day';
+            return;
+          }
+          
+          const workoutType = workout.workout_type || workout.workout?.workout_type;
+          if (workoutType) {
+            const type = workoutType.toLowerCase();
+            if (type.includes('strength')) typesMap[dateKey] = 'strength';
+            else if (type.includes('cardio') || type.includes('run')) typesMap[dateKey] = 'cardio';
+            else if (type.includes('body') || type.includes('weight')) typesMap[dateKey] = 'bodyweight';
+            else if (type.includes('flex') || type.includes('yoga')) typesMap[dateKey] = 'flexibility';
+            else if (type.includes('basketball')) typesMap[dateKey] = 'basketball';
+            else if (type.includes('golf')) typesMap[dateKey] = 'golf';
+            else if (type.includes('tennis')) typesMap[dateKey] = 'tennis';
+            else if (type.includes('hiking')) typesMap[dateKey] = 'hiking';
+            else if (type.includes('swimming')) typesMap[dateKey] = 'swimming';
+            else if (type.includes('cycling')) typesMap[dateKey] = 'cycling';
+            else typesMap[dateKey] = 'custom';
+          } else {
+            typesMap[dateKey] = 'strength';
+          }
+        } catch (error) {
+          console.error('Error processing workout date:', error);
+        }
+      }
+    });
+    
+    return typesMap;
+  };
+
   const formatDisplayName = (firstName: string | null, lastName: string | null): string => {
     if (!firstName) return '';
     return `${firstName} ${lastName ? lastName.charAt(0) + '.' : ''}`.trim();
@@ -286,9 +304,9 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                 <UserRound className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Profile</span>
               </TabsTrigger>
-              <TabsTrigger value="workouts">
+              <TabsTrigger value="calendar">
                 <Calendar className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Workouts</span>
+                <span className="hidden sm:inline">Calendar</span>
               </TabsTrigger>
               <TabsTrigger value="progress">
                 <Trophy className="h-4 w-4 mr-2" />
@@ -400,10 +418,10 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
               </Card>
             </TabsContent>
             
-            <TabsContent value="workouts">
+            <TabsContent value="calendar">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Recent Workouts</CardTitle>
+                  <CardTitle className="text-lg">Workout Calendar</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isLoadingWorkouts ? (
@@ -411,50 +429,16 @@ const MoaiMembersTab: React.FC<MoaiMembersTabProps> = ({ groupId }) => {
                       <Loader2 className="w-6 h-6 animate-spin text-client" />
                     </div>
                   ) : memberWorkouts && memberWorkouts.length > 0 ? (
-                    <div className="space-y-3">
-                      {memberWorkouts.map(workout => (
-                        <Card key={workout.id} className="overflow-hidden">
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h4 className="font-medium">
-                                  {workout.title || (workout.workout && workout.workout.title) || "Untitled Workout"}
-                                </h4>
-                                <p className="text-sm text-muted-foreground">
-                                  {new Date(workout.completed_at).toLocaleDateString(undefined, {
-                                    weekday: 'short',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
-                                </p>
-                              </div>
-                              
-                              {workout.rating && (
-                                <div>
-                                  {isOwnProfile ? (
-                                    <div className="text-lg">
-                                      {getRatingEmoji(workout.rating)}
-                                    </div>
-                                  ) : (
-                                    <Badge variant="outline">
-                                      Completed
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            
-                            {workout.notes && (
-                              <div className="mt-2 text-sm border-l-2 border-client/30 pl-3 italic text-left">
-                                {workout.notes}
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+                    <MonthlyCalendarView 
+                      workouts={memberWorkouts}
+                      workoutTypesMap={generateWorkoutTypesMap(memberWorkouts)}
+                      showWorkoutTooltips={true}
+                    />
                   ) : (
-                    <p className="text-center text-muted-foreground py-6">No workout history available.</p>
+                    <div className="text-center py-8">
+                      <Calendar className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                      <p className="text-muted-foreground">No workout history available</p>
+                    </div>
                   )}
                 </CardContent>
               </Card>

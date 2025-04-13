@@ -49,11 +49,11 @@ export const PortalCard: React.FC<PortalCardProps> = ({
   const getLoginUrl = () => {
     switch (variant) {
       case 'admin':
-        return '/login'; // Using the same login page but with admin variant
+        return '/login?type=admin'; // Use admin-specific login page
       case 'coach':
-        return '/coach-login'; // Using the coach-specific login page
+        return '/coach-login'; // Use the coach-specific login page
       case 'client':
-        return '/login'; // Using client login page
+        return '/login'; // Use client login page
       default:
         return '/login';
     }

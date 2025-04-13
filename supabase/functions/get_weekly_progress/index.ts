@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { startOfWeek, endOfWeek } from "https://esm.sh/date-fns@2.30.0";
@@ -89,19 +90,23 @@ serve(async (req) => {
     const todayPT = formatInTimeZone(today, "America/Los_Angeles", "yyyy-MM-dd");
     const todayDate = new Date(todayPT);
     
-    // Calculate week boundaries in PT
-    const weekDay = todayDate.getDay(); // 0 = Sunday, 1 = Monday, ...
+    // Calculate week boundaries in PT - ENSURE week starts on Monday (1) and ends on Sunday
+    // Using startOfWeek with weekStartsOn: 1 (Monday)
     const weekStart = new Date(todayDate);
-    weekStart.setDate(todayDate.getDate() - (weekDay === 0 ? 6 : weekDay - 1)); // Monday
-    weekStart.setHours(0, 0, 0, 0);
+    const dayOfWeek = weekStart.getDay(); // 0 = Sunday, 1 = Monday, ...
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // If today is Sunday, it's 6 days from Monday, otherwise dayOfWeek - 1
+    weekStart.setDate(todayDate.getDate() - daysFromMonday); // Go back to the most recent Monday
+    weekStart.setHours(0, 0, 0, 0); // Set to midnight (start of day)
     
+    // End of week is Sunday night at 11:59:59 PM (or Monday at 00:00:00, which is the start of the next week)
     const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 7); // Next Monday
+    weekEnd.setDate(weekStart.getDate() + 7); // Add 7 days to get to next Monday at 12:00 AM
     
     // ISO format for database queries
     const weekStartISO = weekStart.toISOString();
     const weekEndISO = weekEnd.toISOString();
     console.log(`Week range (Pacific Time): ${weekStartISO} to ${weekEndISO}`);
+    console.log(`Day of week: ${dayOfWeek}, Days from Monday: ${daysFromMonday}`);
     
     // 2. Get client's current active program
     console.log("Fetching program assignment");
@@ -168,16 +173,35 @@ serve(async (req) => {
     const programStartDatePT = formatInTimeZone(new Date(programAssignment.start_date), "America/Los_Angeles", "yyyy-MM-dd");
     const programStartDate = new Date(programStartDatePT);
     
-    const millisecondsPerWeek = 7 * 24 * 60 * 60 * 1000;
-    const weeksSinceStart = Math.floor((todayDate.getTime() - programStartDate.getTime()) / millisecondsPerWeek) + 1;
+    // Calculate full weeks (Monday to Sunday) since program start
+    // Align to Monday-based weeks
+    const programStartDay = programStartDate.getDay(); // 0 = Sunday, 1 = Monday, ...
+    const daysUntilFirstMonday = programStartDay === 0 ? 1 : (programStartDay === 1 ? 0 : 8 - programStartDay);
+    
+    // Adjust program start date to the first Monday (for week calculation purposes)
+    const firstProgramMonday = new Date(programStartDate);
+    firstProgramMonday.setDate(programStartDate.getDate() + daysUntilFirstMonday);
+    firstProgramMonday.setHours(0, 0, 0, 0); // Start of day
+    
+    console.log(`Program start: ${programStartDate.toISOString()}, First Monday: ${firstProgramMonday.toISOString()}`);
+    
+    // If the program hasn't reached its first Monday yet, we're in week 1
+    let currentWeekNumber = 1;
+    if (todayDate >= firstProgramMonday) {
+      // Calculate full weeks since the first Monday
+      const millisecondsPerWeek = 7 * 24 * 60 * 60 * 1000;
+      const weeksSinceFirstMonday = Math.floor((todayDate.getTime() - firstProgramMonday.getTime()) / millisecondsPerWeek);
+      currentWeekNumber = weeksSinceFirstMonday + 1; // +1 because we're in the first week even with 0 full weeks passed
+    }
     
     // Ensure week number is within program bounds
-    const currentWeekNumber = Math.min(
-      Math.max(1, weeksSinceStart), 
+    currentWeekNumber = Math.min(
+      Math.max(1, currentWeekNumber), 
       programAssignment.program?.weeks || 4
     );
     
-    console.log("Current week number (Pacific Time):", currentWeekNumber);
+    console.log("Current week number (Pacific Time):", currentWeekNumber, "/ Total weeks:", programAssignment.program?.weeks || 4);
+    console.log(`Today's date (PT): ${todayDate.toISOString()}`);
 
     // 4. Get workouts for the specific week from program_weeks and workouts tables
     console.log(`Fetching workouts for week ${currentWeekNumber} of program ${programAssignment.program_id}`);
@@ -268,7 +292,7 @@ serve(async (req) => {
       `)
       .eq('user_id', client_id)
       .gte('completed_at', weekStartISO)
-      .lte('completed_at', weekEndISO)
+      .lt('completed_at', weekEndISO)
       .not('completed_at', 'is', null); // Only include workouts that have a completion date
     
     if (workoutsError) {

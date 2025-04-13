@@ -101,18 +101,20 @@ async function updateStrengthWorkoutsCount(
     // Get the current week's start and end dates in Pacific Time
     const now = new Date();
     
-    // Convert to Pacific Time
+    // Calculate week boundaries - Monday to Sunday (Monday 12am)
     const todayPT = formatInTimeZone(now, 'America/Los_Angeles', 'yyyy-MM-dd');
     const today = new Date(todayPT);
     
     // Calculate start of week (Monday) in Pacific Time
     const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // If today is Sunday, it's 6 days from Monday
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)); // Adjust to Monday
-    startOfWeek.setHours(0, 0, 0, 0);
+    startOfWeek.setDate(today.getDate() - daysFromMonday); // Go back to the most recent Monday
+    startOfWeek.setHours(0, 0, 0, 0); // Start of day
     
+    // End of week is Sunday night, which is the start of next Monday
     const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 7);
+    endOfWeek.setDate(startOfWeek.getDate() + 7); // Add 7 days to get to next Monday at 12:00 AM
 
     console.log(`Calculating workout counts for week of ${startOfWeek.toISOString()} to ${endOfWeek.toISOString()} (Pacific Time)`);
 
@@ -162,4 +164,3 @@ async function updateStrengthWorkoutsCount(
     console.error("Error updating strength workout count:", err);
   }
 }
-

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { WorkoutProgram } from '@/types/workout';
 import { Button } from '@/components/ui/button';
@@ -25,10 +24,7 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
       if (programs.length === 0) return;
       
       try {
-        // Extract all program IDs
         const programIds = programs.map(program => program.id);
-        
-        // Fetch counts for all programs at once
         const counts = await getWorkoutProgramAssignmentCount(programIds);
         setAssignmentCounts(counts || {});
       } catch (error) {
@@ -80,7 +76,6 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
       {programs.map((program) => (
         <div key={program.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
           <h3 className="font-medium text-lg text-left">{program.title}</h3>
-          {/* Description is now hidden */}
           <div className="flex flex-wrap gap-2 mb-4">
             <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
               <Calendar className="h-3 w-3" />

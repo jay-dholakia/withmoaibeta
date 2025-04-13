@@ -450,7 +450,7 @@ const CoachDashboard = () => {
                 <Button 
                   variant="default" 
                   className="bg-coach hover:bg-coach/90"
-                  onClick={() => navigate('/coach-dashboard/workouts/new')}
+                  onClick={() => navigate('/coach-dashboard/workouts/create')}
                 >
                   Create program
                 </Button>
@@ -459,7 +459,7 @@ const CoachDashboard = () => {
           ) : (
             <div className="flex flex-col items-center py-6 bg-muted/30 rounded-lg">
               <p className="mb-4">You haven't created any workout programs yet.</p>
-              <Button onClick={() => navigate('/coach-dashboard/workouts/new')}>
+              <Button onClick={() => navigate('/coach-dashboard/workouts/create')}>
                 Create Your First Program
               </Button>
             </div>

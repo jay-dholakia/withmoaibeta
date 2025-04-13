@@ -47,15 +47,15 @@ export const PortalCard: React.FC<PortalCardProps> = ({
     }
   };
 
-  // Define login URLs based on variant
+  // Define login URLs based on variant - direct to login pages, not dashboards
   const getLoginUrl = () => {
     switch (variant) {
       case 'admin':
-        return '/admin-dashboard'; // Use admin dashboard route
+        return '/login?type=admin'; // Use login page with admin parameter
       case 'coach':
-        return '/coach-dashboard'; // Use coach dashboard route
+        return '/coach-login'; // Use coach login page
       case 'client':
-        return '/client-dashboard'; // Use client dashboard route
+        return '/login'; // Use default login page for clients
       default:
         return '/login';
     }

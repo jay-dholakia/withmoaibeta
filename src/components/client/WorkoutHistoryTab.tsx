@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +12,7 @@ import {
 } from '@/services/activity-logging-service';
 import { Badge } from '@/components/ui/badge';
 import { format, subDays } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { LogActivityButtons } from './LogActivityButtons';
 
 const WorkoutHistoryTab = () => {
@@ -52,7 +52,10 @@ const WorkoutHistoryTab = () => {
     const fetchRecentActivities = async () => {
       if (!user?.id) return;
       
-      const today = new Date();
+      // Convert date range to Pacific Time
+      const pacificNow = new Date();
+      const todayPT = formatInTimeZone(pacificNow, 'America/Los_Angeles', 'yyyy-MM-dd');
+      const today = new Date(todayPT);
       const sevenDaysAgo = subDays(today, 7);
       
       try {

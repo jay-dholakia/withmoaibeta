@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { useQuery } from '@tanstack/react-query';
 import { isThisWeek, format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { WorkoutType } from './WorkoutTypeIcon';
 import { WorkoutProgressCard } from './WorkoutProgressCard';
 import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
@@ -41,10 +41,13 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
   
   useEffect(() => {
     if (currentProgram?.start_date) {
-      const startDate = new Date(currentProgram.start_date);
-      const weekNumber = getCurrentWeekNumber(startDate);
+      const startDatePT = new Date(formatInTimeZone(new Date(currentProgram.start_date), 'America/Los_Angeles', 'yyyy-MM-dd'));
+      const nowPT = new Date();
+      const msInDay = 1000 * 60 * 60 * 24;
+      const daysElapsed = Math.floor((nowPT.getTime() - startDatePT.getTime()) / msInDay);
+      const weekNumber = Math.max(1, Math.floor(daysElapsed / 7) + 1);
       setCurrentWeek(weekNumber);
-      console.log(`Current program week: ${weekNumber} (start date: ${startDate})`);
+      console.log(`Current program week: ${weekNumber} (start date: ${startDatePT})`);
     }
   }, [currentProgram]);
   
@@ -65,6 +68,12 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
     },
     enabled: !!user?.id,
   });
+
+  const isThisWeekPT = (date: Date) => {
+    const ptDateStr = formatInTimeZone(date, 'America/Los_Angeles', 'yyyy-MM-dd');
+    const ptDate = new Date(ptDateStr);
+    return isThisWeek(ptDate, { weekStartsOn: 1 });
+  };
   
   const { data: currentUserProfile, isLoading: isLoadingCurrentUserProfile } = useQuery({
     queryKey: ['current-user-profile', user?.id],
@@ -177,7 +186,7 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
               : workout.completed_at;
               
             if (!isNaN(completionDate.getTime())) {
-              const dateKey = format(completionDate, 'yyyy-MM-dd');
+              const dateKey = formatInTimeZone(completionDate, 'America/Los_Angeles', 'yyyy-MM-dd');
               
               if (workout.life_happens_pass || workout.rest_day) {
                 newLifeHappensDates.push(completionDate);
@@ -257,7 +266,7 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
                     : workout.completed_at;
                     
                   if (!isNaN(completionDate.getTime())) {
-                    const dateKey = format(completionDate, 'yyyy-MM-dd');
+                    const dateKey = formatInTimeZone(completionDate, 'America/Los_Angeles', 'yyyy-MM-dd');
                     
                     if (workout.life_happens_pass || workout.rest_day) {
                       lifeHappensDates.push(completionDate);
@@ -345,9 +354,9 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
     return "You";
   };
   
-  const completedThisWeek = completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
+  const completedThisWeek = completedDates.filter(date => isThisWeekPT(date)).length;
   
-  const lifeHappensThisWeek = lifeHappensDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
+  const lifeHappensThisWeek = lifeHappensDates.filter(date => isThisWeekPT(date)).length;
   
   const totalCompletedThisWeek = completedThisWeek;
   
@@ -433,7 +442,7 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
             
             const memberCompletedThisWeek = isCurrentUser
               ? totalCompletedThisWeek
-              : memberData.completedDates.filter(date => isThisWeek(date, { weekStartsOn: 1 })).length;
+              : memberData.completedDates.filter(date => isThisWeekPT(date)).length;
             
             return (
               <React.Fragment key={member.userId}>

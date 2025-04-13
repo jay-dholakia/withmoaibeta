@@ -14,6 +14,8 @@ import { ProgramProgressSection } from './ProgramProgressSection';
 import { fetchGroupMembers, GroupMember } from '@/services/group-member-service';
 import { LogActivityButtons } from './LogActivityButtons';
 import LifeHappensButton from './LifeHappensButton';
+import { formatInTimeZone } from 'date-fns-tz';
+import { addDays } from 'date-fns';
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
@@ -96,11 +98,13 @@ const WorkoutsList = () => {
           
           let currentWeekNumber = 1;
           if (program && program.start_date) {
-            const startDate = new Date(program.start_date);
-            const now = new Date(); // Use local time
+            // Use Pacific Time to calculate current week
+            const nowPT = new Date();
+            const startDatePT = new Date(formatInTimeZone(new Date(program.start_date), 'America/Los_Angeles', 'yyyy-MM-dd'));
             const msInDay = 1000 * 60 * 60 * 24;
-            const daysElapsed = Math.floor((now.getTime() - startDate.getTime()) / msInDay);
+            const daysElapsed = Math.floor((nowPT.getTime() - startDatePT.getTime()) / msInDay);
             currentWeekNumber = Math.max(1, Math.floor(daysElapsed / 7) + 1);
+            console.log(`WorkoutsList: Program start date: ${startDatePT}, days elapsed: ${daysElapsed}, current week: ${currentWeekNumber}`);
           }
           
           const weekExists = sortedWeeks.includes(currentWeekNumber);

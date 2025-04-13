@@ -243,7 +243,7 @@ const EditWorkoutPage = () => {
             )}
           </CardContent>
           <CardFooter className="flex justify-end">
-            <Button onClick={() => navigate(`/workouts/${workoutId}/exercises`)}>
+            <Button onClick={() => navigate(`/coach-dashboard/workouts/workout/${workoutId}/exercises`)}>
               Manage Exercises
             </Button>
           </CardFooter>

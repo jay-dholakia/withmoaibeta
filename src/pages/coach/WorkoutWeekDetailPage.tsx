@@ -66,7 +66,6 @@ const WorkoutWeekDetailPage = () => {
 
       setIsLoading(true);
       try {
-        // Updated to include the program relationship
         const { data: week } = await supabase
           .from('workout_weeks')
           .select(`
@@ -83,7 +82,6 @@ const WorkoutWeekDetailPage = () => {
         setWeekData(week);
         console.log("Week data loaded:", week);
         
-        // Determine program type based on the week's associated program
         if (week && week.program) {
           setProgramType(week.program.program_type === 'run' ? 'run' : 'strength');
         }
@@ -107,7 +105,6 @@ const WorkoutWeekDetailPage = () => {
 
     setIsSaving(true);
     try {
-      // Only include fields relevant to the program type
       const updateData = programType === 'run' 
         ? {
             title: weekData.title,
@@ -119,7 +116,6 @@ const WorkoutWeekDetailPage = () => {
             title: weekData.title,
             description: weekData.description,
             target_cardio_minutes: weekData.target_cardio_minutes
-            // Strength workouts are auto-calculated based on assigned workouts
           };
 
       await updateWorkoutWeek(weekId, updateData);
@@ -194,7 +190,7 @@ const WorkoutWeekDetailPage = () => {
     if (!deleteWorkoutId) return;
     
     try {
-      // await deleteWorkout(deleteWorkoutId); // Assuming you have a deleteWorkout function
+      await deleteWorkout(deleteWorkoutId);
       setWorkouts(prev => prev.filter(workout => workout.id !== deleteWorkoutId));
       setDeleteWorkoutId(null);
       toast.success('Workout deleted successfully');
@@ -205,7 +201,6 @@ const WorkoutWeekDetailPage = () => {
   };
 
   const handleMetricsUpdate = () => {
-    // Refresh the week data
     if (weekId) {
       setIsEditingMetrics(false);
       const loadWeekDetails = async () => {
@@ -234,7 +229,7 @@ const WorkoutWeekDetailPage = () => {
   };
 
   const navigateToWorkoutEdit = (workoutId: string) => {
-    navigate(`/coach-dashboard/workouts/workout/${workoutId}/edit`);
+    navigate(`/workouts/${workoutId}/edit`);
   };
 
   if (isLoading) {
@@ -311,7 +306,6 @@ const WorkoutWeekDetailPage = () => {
                   />
                 </div>
                 
-                {/* Metrics display section */}
                 <div className="mt-4 space-y-2">
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-medium">Weekly Targets</h3>
@@ -335,7 +329,6 @@ const WorkoutWeekDetailPage = () => {
                     </>
                   )}
                   
-                  {/* Always show cardio minutes for both program types */}
                   <div>
                     <span className="text-sm font-medium">Target Cardio Minutes:</span>
                     <div className="mt-1">{weekData.target_cardio_minutes || 0}</div>
@@ -385,14 +378,6 @@ const WorkoutWeekDetailPage = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => navigateToWorkoutEdit(workout.id)}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit Workout
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditWorkoutId(workout.id)}
                       >
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
@@ -475,7 +460,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({ weekId, workoutId, onCreate, 
   useEffect(() => {
     const loadWorkoutDetails = async () => {
       if (workoutId) {
-        // const workout = await fetchWorkout(workoutId); // Assuming you have a fetchWorkout function
+        // const workout = await fetchWorkout(workoutId);
         // if (workout) {
         //   setTitle(workout.title);
         //   setDescription(workout.description || '');

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -99,6 +98,16 @@ const EditWorkoutPage = () => {
     }
   };
 
+  const handleBackClick = () => {
+    // If we have a week_id, navigate directly to that page
+    if (workout?.week_id) {
+      navigate(`/workout-weeks/${workout.week_id}`);
+    } else {
+      // Otherwise, try to go back in history
+      navigate(-1);
+    }
+  };
+
   if (isLoading) {
     return (
       <CoachLayout>
@@ -118,7 +127,7 @@ const EditWorkoutPage = () => {
           variant="outline" 
           size="sm" 
           className="mb-6 gap-1" 
-          onClick={() => navigate(-1)}
+          onClick={handleBackClick}
         >
           <ChevronLeft className="h-4 w-4" />
           Back
@@ -204,7 +213,7 @@ const EditWorkoutPage = () => {
           <CardFooter className="flex justify-end gap-2">
             <Button
               variant="outline"
-              onClick={() => navigate(-1)}
+              onClick={handleBackClick}
             >
               Cancel
             </Button>
@@ -243,7 +252,7 @@ const EditWorkoutPage = () => {
             )}
           </CardContent>
           <CardFooter className="flex justify-end">
-            <Button onClick={() => navigate(`/coach-dashboard/workouts/workout/${workoutId}/exercises`)}>
+            <Button onClick={() => navigate(`/workouts/${workoutId}/exercises`)}>
               Manage Exercises
             </Button>
           </CardFooter>

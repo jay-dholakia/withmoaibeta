@@ -157,7 +157,7 @@ const ProgramDetailPage = () => {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => navigate(`/coach-dashboard/workouts/week/${weekEntry.id}`)}
+                        onClick={() => navigate(`/workout-weeks/${weekEntry.id}`)}
                       >
                         View Details
                         <ArrowRight className="ml-2 h-4 w-4" />

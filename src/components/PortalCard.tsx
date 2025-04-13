@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { LucideIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface PortalCardProps {
   title: string;
@@ -19,6 +19,8 @@ export const PortalCard: React.FC<PortalCardProps> = ({
   to,
   variant
 }) => {
+  const navigate = useNavigate();
+  
   const getGradientClasses = () => {
     switch (variant) {
       case 'admin':
@@ -49,14 +51,18 @@ export const PortalCard: React.FC<PortalCardProps> = ({
   const getLoginUrl = () => {
     switch (variant) {
       case 'admin':
-        return '/admin'; // Direct to admin portal entry point
+        return '/admin-dashboard'; // Use admin dashboard route
       case 'coach':
-        return '/coach-login'; // Use the coach-specific login page
+        return '/coach-dashboard'; // Use coach dashboard route
       case 'client':
-        return '/client'; // Direct to client portal entry point
+        return '/client-dashboard'; // Use client dashboard route
       default:
         return '/login';
     }
+  };
+  
+  const handlePortalClick = () => {
+    navigate(getLoginUrl());
   };
 
   return (
@@ -66,41 +72,40 @@ export const PortalCard: React.FC<PortalCardProps> = ({
         transition: { duration: 0.2 }
       }}
       className={`glass-card rounded-xl overflow-hidden ${getGradientClasses()} p-4 transition-all duration-300 w-full`}
+      onClick={handlePortalClick}
     >
-      <Link to={getLoginUrl()} className="block h-full">
-        <div className="flex flex-col h-full">
-          <div className={`${getIconClasses()} w-12 h-12 rounded-lg flex items-center justify-center border mb-4`}>
-            <Icon size={24} />
-          </div>
-          
-          <h3 className="text-xl font-medium mb-2">{title}</h3>
-          <p className="text-sm text-muted-foreground flex-grow">{description}</p>
-          
-          <div className="mt-6 pt-4 border-t border-border flex justify-between items-center">
-            <span className="text-sm font-medium">Login</span>
-            <motion.div
-              whileHover={{ x: 5 }}
-              className="w-6 h-6 flex items-center justify-center rounded-full"
-            >
-              <svg 
-                width="20" 
-                height="20" 
-                viewBox="0 0 16 16" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path 
-                  d="M3.33337 8H12.6667M12.6667 8L8.00004 3.33333M12.6667 8L8.00004 12.6667" 
-                  stroke="currentColor" 
-                  strokeWidth="1.5" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </motion.div>
-          </div>
+      <div className="flex flex-col h-full">
+        <div className={`${getIconClasses()} w-12 h-12 rounded-lg flex items-center justify-center border mb-4`}>
+          <Icon size={24} />
         </div>
-      </Link>
+        
+        <h3 className="text-xl font-medium mb-2">{title}</h3>
+        <p className="text-sm text-muted-foreground flex-grow">{description}</p>
+        
+        <div className="mt-6 pt-4 border-t border-border flex justify-between items-center">
+          <span className="text-sm font-medium">Login</span>
+          <motion.div
+            whileHover={{ x: 5 }}
+            className="w-6 h-6 flex items-center justify-center rounded-full"
+          >
+            <svg 
+              width="20" 
+              height="20" 
+              viewBox="0 0 16 16" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path 
+                d="M3.33337 8H12.6667M12.6667 8L8.00004 3.33333M12.6667 8L8.00004 12.6667" 
+                stroke="currentColor" 
+                strokeWidth="1.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              />
+            </svg>
+          </motion.div>
+        </div>
+      </div>
     </motion.div>
   );
 };

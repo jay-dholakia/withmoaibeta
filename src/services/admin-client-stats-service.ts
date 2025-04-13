@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface ClientStat {
   id: string;
@@ -16,10 +17,18 @@ interface ClientStat {
 export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
   try {
     const today = new Date();
-    // Get the start of the current week (Sunday)
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
+    // Get the start of the current week (Sunday) in Pacific Time
+    const pacificTimeStartOfWeek = formatInTimeZone(today, 'America/Los_Angeles', 'yyyy-MM-dd');
+    
+    // Create a Date object for the start of week in Pacific Time
+    const startOfWeekPT = new Date(pacificTimeStartOfWeek);
+    startOfWeekPT.setDate(startOfWeekPT.getDate() - startOfWeekPT.getDay());
+    startOfWeekPT.setHours(0, 0, 0, 0);
+    
+    // Format the startOfWeek in ISO format to use in queries
+    const startOfWeekISO = startOfWeekPT.toISOString();
+    
+    console.log('Using Pacific Time week starting:', startOfWeekISO);
     
     // Get all clients
     const { data: profiles, error: profilesError } = await supabase
@@ -92,7 +101,7 @@ export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
         .eq('user_id', clientId)
         .not('workout_id', 'is', null)
         .not('completed_at', 'is', null)
-        .gte('completed_at', startOfWeek.toISOString());
+        .gte('completed_at', startOfWeekISO);
         
       if (assignedError) {
         console.error(`Error fetching assigned workouts for client ${clientId}:`, assignedError);
@@ -104,7 +113,7 @@ export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', clientId)
         .not('completed_at', 'is', null)
-        .gte('completed_at', startOfWeek.toISOString());
+        .gte('completed_at', startOfWeekISO);
         
       if (activitiesWeekError) {
         console.error(`Error fetching weekly activities for client ${clientId}:`, activitiesWeekError);

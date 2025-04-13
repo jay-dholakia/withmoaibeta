@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { CoachLayout } from '@/layouts/CoachLayout';
-import { ExerciseManagementPage as AdminExerciseManagementPage } from '@/pages/admin/ExerciseManagementPage';
+import AdminExerciseManagementPage from '@/pages/admin/ExerciseManagementPage';
 
 const ExerciseManagementPage: React.FC = () => {
   return (

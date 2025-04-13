@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { Workout } from '@/types/workout';
 const EditWorkoutPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [exercises, setExercises] = useState<any[]>([]);
@@ -86,7 +87,7 @@ const EditWorkoutPage = () => {
       
       // Navigate back to the week page
       if (workout?.week_id) {
-        navigate(`/coach-dashboard/workouts/week/${workout.week_id}`);
+        navigate(`/workout-weeks/${workout.week_id}`);
       } else {
         navigate(-1);
       }
@@ -242,7 +243,7 @@ const EditWorkoutPage = () => {
             )}
           </CardContent>
           <CardFooter className="flex justify-end">
-            <Button onClick={() => navigate(`/coach-dashboard/workouts/workout/${workoutId}/exercises`)}>
+            <Button onClick={() => navigate(`/workouts/${workoutId}/exercises`)}>
               Manage Exercises
             </Button>
           </CardFooter>

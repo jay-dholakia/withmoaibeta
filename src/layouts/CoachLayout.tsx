@@ -33,7 +33,7 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
     { icon: <BarChart3 className="w-5 h-5" />, label: 'Performance', path: '/coach-dashboard/performance' },
     { icon: <Award className="w-5 h-5" />, label: 'Leaderboards', path: '/coach-dashboard/leaderboards' },
     { icon: <Heart className="w-5 h-5" />, label: 'Health', path: '/coach-dashboard/health' },
-    { icon: <FileText className="w-5 h-5" />, label: 'Profile', path: '/coach-dashboard/profile' },
+    { icon: <FileText className="w-5 h-5" />, label: 'Profile', path: '/coach-profile' },
   ];
 
   return (

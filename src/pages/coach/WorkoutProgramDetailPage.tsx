@@ -221,7 +221,7 @@ const WorkoutProgramDetailPage = () => {
                           variant="ghost" 
                           size="sm"
                           className="mt-2"
-                          onClick={() => navigate(`/coach-dashboard/workouts/week/${weekEntry.id}`)}
+                          onClick={() => navigate(`/workout-weeks/${weekEntry.id}`)}
                         >
                           View Details
                         </Button>

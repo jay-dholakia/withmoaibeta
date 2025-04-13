@@ -81,6 +81,7 @@ const WorkoutWeekDetailPage = () => {
           .single();
             
         setWeekData(week);
+        console.log("Week data loaded:", week);
         
         // Determine program type based on the week's associated program
         if (week && week.program) {
@@ -259,7 +260,18 @@ const WorkoutWeekDetailPage = () => {
   return (
     <CoachLayout>
       <div className="container mx-auto p-4">
-        <Button variant="ghost" onClick={() => navigate(-1)}>Back</Button>
+        <Button 
+          variant="ghost" 
+          onClick={() => {
+            if (weekData?.program?.id) {
+              navigate(`/coach-dashboard/workouts/${weekData.program.id}`);
+            } else {
+              navigate('/coach-dashboard/workouts');
+            }
+          }}
+        >
+          Back to Program
+        </Button>
 
         <Card>
           <CardHeader>

@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { WeekProgressBar } from './WeekProgressBar';
 import { useAuth } from '@/contexts/AuthContext';

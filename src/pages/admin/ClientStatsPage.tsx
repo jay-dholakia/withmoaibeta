@@ -1,11 +1,10 @@
-
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Search, UserSquare, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { RefreshCw, Search, UserSquare, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Filter, CalendarDays } from 'lucide-react';
 import { fetchAllClients } from '@/services/workout-service';
 import { fetchClientWorkoutStats } from '@/services/admin-client-stats-service';
 import { format, isValid } from 'date-fns';
@@ -18,6 +17,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { debounce } from '@/lib/utils';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface ClientStats {
   id: string;
@@ -66,7 +66,6 @@ const ClientStatsPage = () => {
     refetchStats();
   };
 
-  // Combine client data with stats
   const combinedData: ClientStats[] = useMemo(() => {
     if (!clients || !clientStats) return [];
     
@@ -93,7 +92,6 @@ const ClientStatsPage = () => {
     });
   }, [clients, clientStats]);
 
-  // Extract all unique group names for the filter dropdown
   const allGroups = useMemo(() => {
     if (!combinedData) return [];
     
@@ -105,12 +103,10 @@ const ClientStatsPage = () => {
     return Array.from(groupSet);
   }, [combinedData]);
 
-  // Handle search input with debounce
   const handleSearchChange = debounce((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   }, 300);
 
-  // Handle sort toggle for a column
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -120,7 +116,6 @@ const ClientStatsPage = () => {
     }
   };
 
-  // Get sort indicator icon for a column
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) {
       return <ArrowUpDown className="ml-1 h-4 w-4" />;
@@ -130,7 +125,6 @@ const ClientStatsPage = () => {
       : <ArrowDown className="ml-1 h-4 w-4" />;
   };
 
-  // Toggle group filter
   const toggleGroupFilter = (groupName: string) => {
     setGroupFilter(prev => 
       prev.includes(groupName) 
@@ -139,11 +133,9 @@ const ClientStatsPage = () => {
     );
   };
 
-  // Filter and sort clients
   const filteredAndSortedClients = useMemo(() => {
     let result = [...combinedData];
     
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(client => 
@@ -153,14 +145,12 @@ const ClientStatsPage = () => {
       );
     }
     
-    // Apply group filter
     if (groupFilter.length > 0) {
       result = result.filter(client => 
         client.groups.some(group => groupFilter.includes(group.name))
       );
     }
     
-    // Apply activity filter
     if (activityFilter !== 'all') {
       result = result.filter(client => {
         const isActive = client.last_workout_date && 
@@ -170,7 +160,6 @@ const ClientStatsPage = () => {
       });
     }
     
-    // Apply sorting
     result.sort((a, b) => {
       let comparison = 0;
       
@@ -206,7 +195,6 @@ const ClientStatsPage = () => {
     return result;
   }, [combinedData, searchQuery, sortField, sortDirection, groupFilter, activityFilter]);
 
-  // Format date for display
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Never";
     
@@ -215,6 +203,26 @@ const ClientStatsPage = () => {
     
     return format(date, "MMM d, yyyy");
   };
+
+  const weekDateRange = useMemo(() => {
+    const now = new Date();
+    const todayPT = formatInTimeZone(now, 'America/Los_Angeles', 'yyyy-MM-dd');
+    const datePT = new Date(todayPT + 'T00:00:00');
+    
+    const dayOfWeek = datePT.getDay(); 
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    
+    const startOfWeekPT = new Date(datePT);
+    startOfWeekPT.setDate(datePT.getDate() - daysFromMonday);
+    
+    const endOfWeekPT = new Date(startOfWeekPT);
+    endOfWeekPT.setDate(startOfWeekPT.getDate() + 6);
+    
+    return {
+      start: format(startOfWeekPT, 'MMM d, yyyy'),
+      end: format(endOfWeekPT, 'MMM d, yyyy')
+    };
+  }, []);
 
   return (
     <AdminDashboardLayout title="Client Statistics">
@@ -292,6 +300,12 @@ const ClientStatsPage = () => {
         </div>
 
         <div className="rounded-md border">
+          <div className="bg-muted/50 px-4 py-2.5 flex items-center border-b">
+            <CalendarDays className="h-4 w-4 mr-2" />
+            <span className="text-sm font-medium">
+              Current Week: {weekDateRange.start} - {weekDateRange.end} (Pacific Time)
+            </span>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -351,7 +365,6 @@ const ClientStatsPage = () => {
             </TableHeader>
             <TableBody>
               {isLoadingClients || isLoadingStats ? (
-                // Loading state
                 Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`loading-${index}`}>
                     {Array.from({ length: 6 }).map((_, cellIndex) => (

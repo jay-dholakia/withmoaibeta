@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Exercise } from '@/types/workout';
 import { fetchExercisesByCategory, ExtendedExercise } from '@/services/workout-service';
@@ -31,8 +32,12 @@ export const ExerciseSelector = ({
   const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, ExtendedExercise[]>>({});
   const [filteredExercises, setFilteredExercises] = useState<ExtendedExercise[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [hasFetched, setHasFetched] = useState<boolean>(false);
 
   useEffect(() => {
+    // Only fetch exercises if we haven't already
+    if (hasFetched) return;
+    
     const getExercises = async () => {
       setIsLoading(true);
       setError(null);
@@ -59,6 +64,7 @@ export const ExerciseSelector = ({
         
         setExercisesByCategory(categorized);
         updateFilteredExercises(categorized, selectedCategory, searchQuery, excludeIds);
+        setHasFetched(true);
       } catch (error) {
         console.error('Error fetching exercises:', error);
         setError("Failed to load exercises. Please try again.");
@@ -68,11 +74,13 @@ export const ExerciseSelector = ({
     };
 
     getExercises();
-  }, [excludeIds]);
+  }, [excludeIds, hasFetched]);
 
   useEffect(() => {
-    updateFilteredExercises(exercisesByCategory, selectedCategory, searchQuery, excludeIds);
-  }, [selectedCategory, searchQuery, excludeIds, exercisesByCategory]);
+    if (hasFetched) {
+      updateFilteredExercises(exercisesByCategory, selectedCategory, searchQuery, excludeIds);
+    }
+  }, [selectedCategory, searchQuery, excludeIds, exercisesByCategory, hasFetched]);
 
   const updateFilteredExercises = (
     allExercises: Record<string, ExtendedExercise[]>,
@@ -110,6 +118,10 @@ export const ExerciseSelector = ({
               exercise.alternative_exercise_3_id);
   };
 
+  const handleRetry = () => {
+    setHasFetched(false);
+  };
+
   return (
     <div className="w-full">
       <div className="mb-4 relative">
@@ -123,8 +135,11 @@ export const ExerciseSelector = ({
       </div>
 
       {error ? (
-        <div className="text-center py-8 text-destructive">
-          {error}
+        <div className="text-center py-8">
+          <p className="text-destructive mb-4">{error}</p>
+          <Button onClick={handleRetry} variant="outline">
+            Retry
+          </Button>
         </div>
       ) : (
         <Tabs defaultValue="All" value={selectedCategory} onValueChange={setSelectedCategory}>

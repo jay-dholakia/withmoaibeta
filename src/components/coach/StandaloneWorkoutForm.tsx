@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
+import { Trash2, Plus, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 import { DAYS_OF_WEEK } from "@/types/workout";
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
@@ -51,18 +52,21 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEdit);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   
   useEffect(() => {
     if (workoutId && isEdit) {
       loadWorkoutDetails();
     }
-  }, [workoutId, isEdit]);
+  }, [workoutId, isEdit, retryCount]);
   
   const loadWorkoutDetails = async () => {
     if (!workoutId) return;
     
     try {
       setIsLoading(true);
+      setLoadError(null);
       
       const workout = await fetchStandaloneWorkout(workoutId);
       setTitle(workout.title);
@@ -83,17 +87,19 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
         else setWorkoutType('strength');
       }
       
-      if (workout.workout_exercises && workout.workout_exercises.length > 0) {
-        setExercises(workout.workout_exercises);
-      } else {
+      try {
         const workoutExercises = await fetchStandaloneWorkoutExercises(workoutId);
         setExercises(workoutExercises);
+      } catch (exerciseError) {
+        console.error('Error loading workout exercises:', exerciseError);
+        // Still continue with the form even if exercises couldn't be loaded
+        setExercises([]);
       }
       
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading workout details:', error);
-      toast.error('Failed to load workout details');
+      setLoadError('Failed to load workout details. Please try again.');
       setIsLoading(false);
     }
   };
@@ -164,8 +170,14 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
         order_index: exercises.length
       });
       
-      const updatedExercises = await fetchStandaloneWorkoutExercises(workoutId);
-      setExercises(updatedExercises);
+      try {
+        const updatedExercises = await fetchStandaloneWorkoutExercises(workoutId);
+        setExercises(updatedExercises);
+      } catch (fetchError) {
+        console.error('Error fetching updated exercises:', fetchError);
+        // Try reloading all workout details as a fallback
+        await loadWorkoutDetails();
+      }
       
       setIsAddingExercise(false);
       toast.success('Exercise added successfully');
@@ -260,8 +272,28 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
     console.log("Exercise selected:", exercise);
   };
   
+  const handleRetryLoad = () => {
+    setRetryCount(prev => prev + 1);
+  };
+  
   if (isLoading) {
-    return <div className="py-6">Loading workout details...</div>;
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span className="ml-3">Loading workout details...</span>
+      </div>
+    );
+  }
+  
+  if (loadError) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-destructive mb-4">{loadError}</p>
+        <Button onClick={handleRetryLoad} variant="outline">
+          Retry
+        </Button>
+      </div>
+    );
   }
   
   return (

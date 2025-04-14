@@ -17,12 +17,19 @@ interface ClientStat {
 export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
   try {
     const today = new Date();
-    // Get the start of the current week (Sunday) in Pacific Time
-    const pacificTimeStartOfWeek = formatInTimeZone(today, 'America/Los_Angeles', 'yyyy-MM-dd');
+    // Get the date in Pacific Time
+    const todayPT = formatInTimeZone(today, 'America/Los_Angeles', 'yyyy-MM-dd');
+    
+    // Create a Date object for the current date in Pacific Time
+    const datePT = new Date(todayPT);
+    
+    // Calculate Monday of the current week (weekStartsOn: 1 for Monday)
+    const dayOfWeek = datePT.getDay(); 
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // If today is Sunday, it's 6 days from Monday
     
     // Create a Date object for the start of week in Pacific Time
-    const startOfWeekPT = new Date(pacificTimeStartOfWeek);
-    startOfWeekPT.setDate(startOfWeekPT.getDate() - startOfWeekPT.getDay());
+    const startOfWeekPT = new Date(datePT);
+    startOfWeekPT.setDate(datePT.getDate() - daysFromMonday);
     startOfWeekPT.setHours(0, 0, 0, 0);
     
     // Format the startOfWeek in ISO format to use in queries
@@ -94,7 +101,7 @@ export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
         ? workoutCompletions[0].completed_at 
         : null;
       
-      // Get assigned workouts completed this week
+      // Get assigned workouts completed this week - using Pacific Time week boundaries
       const { count: assignedWorkoutsThisWeek, error: assignedError } = await supabase
         .from('workout_completions')
         .select('*', { count: 'exact', head: true })
@@ -107,7 +114,7 @@ export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
         console.error(`Error fetching assigned workouts for client ${clientId}:`, assignedError);
       }
       
-      // Get activities logged this week (including custom workouts, runs, etc.)
+      // Get activities logged this week - using Pacific Time week boundaries
       const { count: activitiesThisWeek, error: activitiesWeekError } = await supabase
         .from('workout_completions')
         .select('*', { count: 'exact', head: true })

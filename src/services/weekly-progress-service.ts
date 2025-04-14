@@ -105,9 +105,19 @@ async function updateStrengthWorkoutsCount(
     const today = parseISO(todayPT);
     
     // Calculate week boundaries - Monday to Sunday
-    // Use startOfWeek with weekStartsOn: 1 to start weeks on Monday
-    const weekStartDate = startOfWeek(today, { weekStartsOn: 1 });
-    const weekEndDate = addDays(weekStartDate, 7); // End of week is start of next week
+    // Calculate the day of week (0-6, where 0 is Sunday)
+    const dayOfWeek = today.getDay();
+    // Calculate days from Monday (if today is Sunday, it's 6 days from Monday)
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    
+    // Set the week start to Monday
+    const weekStartDate = new Date(today);
+    weekStartDate.setDate(today.getDate() - daysFromMonday);
+    weekStartDate.setHours(0, 0, 0, 0); // Start of day
+    
+    // End of week is Sunday (start of week + 7 days)
+    const weekEndDate = new Date(weekStartDate);
+    weekEndDate.setDate(weekStartDate.getDate() + 7);
     
     // Format dates to ISO strings for database queries
     const weekStart = weekStartDate.toISOString();

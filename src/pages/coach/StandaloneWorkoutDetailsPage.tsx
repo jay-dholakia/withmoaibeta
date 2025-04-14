@@ -4,10 +4,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ChevronLeft, Loader2 } from 'lucide-react';
+import { ChevronLeft, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { fetchStandaloneWorkout } from '@/services/workout-service';
+import { 
+  fetchStandaloneWorkout, 
+  fetchStandaloneWorkoutExercises,
+  createStandaloneWorkoutExercise,
+  deleteStandaloneWorkoutExercise,
+  moveStandaloneWorkoutExerciseUp,
+  moveStandaloneWorkoutExerciseDown
+} from '@/services/workout-service';
 import StandaloneWorkoutForm from '@/components/coach/StandaloneWorkoutForm';
+import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
+import { WorkoutExerciseForm } from '@/components/coach/WorkoutExerciseForm';
+import { Exercise } from '@/types/workout';
 import { 
   Dialog,
   DialogContent,
@@ -23,6 +33,9 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [workout, setWorkout] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isAddingExercise, setIsAddingExercise] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [exercises, setExercises] = useState<any[]>([]);
 
   useEffect(() => {
     const loadWorkout = async () => {
@@ -37,6 +50,10 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
         setError(null);
         const data = await fetchStandaloneWorkout(workoutId);
         setWorkout(data);
+        
+        // Fetch exercises separately
+        const workoutExercises = await fetchStandaloneWorkoutExercises(workoutId);
+        setExercises(workoutExercises);
       } catch (err) {
         console.error('Error loading workout:', err);
         setError("Failed to load workout details. Please try again.");
@@ -72,6 +89,99 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
   const handleCancelEdit = () => {
     setIsEditing(false);
   };
+  
+  const handleAddExercise = () => {
+    setIsAddingExercise(true);
+  };
+
+  const handleSelectExercise = (exercise: Exercise) => {
+    console.log("Exercise selected:", exercise);
+  };
+
+  const handleSaveExercise = async (exerciseId: string, data: any) => {
+    if (!workoutId) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      await createStandaloneWorkoutExercise({
+        workout_id: workoutId,
+        exercise_id: exerciseId,
+        sets: data.sets || 3,
+        reps: data.reps || "8-12",
+        rest_seconds: data.rest_seconds || 60,
+        notes: data.notes || "",
+        order_index: exercises.length
+      });
+      
+      // Refresh the exercises list
+      const updatedExercises = await fetchStandaloneWorkoutExercises(workoutId);
+      setExercises(updatedExercises);
+      
+      setIsAddingExercise(false);
+      toast.success('Exercise added successfully');
+    } catch (error) {
+      console.error('Error adding exercise:', error);
+      toast.error('Failed to add exercise');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteExercise = async (exerciseId: string) => {
+    if (!workoutId) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      await deleteStandaloneWorkoutExercise(exerciseId);
+      
+      // Refresh the exercises list
+      const updatedExercises = await fetchStandaloneWorkoutExercises(workoutId);
+      setExercises(updatedExercises);
+      
+      toast.success('Exercise removed from workout');
+    } catch (error) {
+      console.error('Error deleting exercise:', error);
+      toast.error('Failed to remove exercise');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMoveExerciseUp = async (exerciseId: string) => {
+    if (!workoutId) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      const updatedExercises = await moveStandaloneWorkoutExerciseUp(exerciseId, workoutId);
+      setExercises(updatedExercises);
+      
+    } catch (error) {
+      console.error('Error moving exercise up:', error);
+      toast.error('Failed to reorder exercise');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMoveExerciseDown = async (exerciseId: string) => {
+    if (!workoutId) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      const updatedExercises = await moveStandaloneWorkoutExerciseDown(exerciseId, workoutId);
+      setExercises(updatedExercises);
+      
+    } catch (error) {
+      console.error('Error moving exercise down:', error);
+      toast.error('Failed to reorder exercise');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const loadWorkout = async () => {
     if (!workoutId) return;
@@ -81,6 +191,10 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
       setError(null);
       const data = await fetchStandaloneWorkout(workoutId);
       setWorkout(data);
+      
+      // Fetch exercises separately
+      const workoutExercises = await fetchStandaloneWorkoutExercises(workoutId);
+      setExercises(workoutExercises);
     } catch (err) {
       console.error('Error loading workout:', err);
       setError("Failed to load workout details. Please try again.");
@@ -143,11 +257,22 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
                 <p className="mt-1 capitalize">{workout.workout_type}</p>
               </div>
               
-              <div className="mt-4">
-                <h3 className="font-medium">Exercises</h3>
-                {workout.workout_exercises && workout.workout_exercises.length > 0 ? (
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium">Exercises</h3>
+                  <Button 
+                    onClick={handleAddExercise} 
+                    size="sm"
+                    className="gap-1"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Exercise
+                  </Button>
+                </div>
+                
+                {exercises.length > 0 ? (
                   <div className="space-y-3 mt-2">
-                    {workout.workout_exercises.map((exercise: any, index: number) => (
+                    {exercises.map((exercise: any, index: number) => (
                       <div key={exercise.id} className="border p-3 rounded-md">
                         <div className="font-medium">{index + 1}. {exercise.exercise?.name || 'Exercise'}</div>
                         <div className="text-sm text-muted-foreground mt-1">
@@ -157,6 +282,32 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
                         {exercise.notes && (
                           <div className="text-sm mt-1">{exercise.notes}</div>
                         )}
+                        <div className="flex justify-end gap-2 mt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleMoveExerciseUp(exercise.id)}
+                            disabled={index === 0 || isSubmitting}
+                          >
+                            Move Up
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleMoveExerciseDown(exercise.id)}
+                            disabled={index === exercises.length - 1 || isSubmitting}
+                          >
+                            Move Down
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleDeleteExercise(exercise.id)}
+                            disabled={isSubmitting}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -188,6 +339,21 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
                 mode="edit"
               />
             )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isAddingExercise} onOpenChange={(open) => !open && setIsAddingExercise(false)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Add Exercise to Workout</DialogTitle>
+            </DialogHeader>
+            <ExerciseSelector
+              onSelectExercise={handleSelectExercise}
+              onSelect={handleSaveExercise}
+              onCancel={() => setIsAddingExercise(false)}
+              isSubmitting={isSubmitting}
+              buttonText="Add Exercise"
+            />
           </DialogContent>
         </Dialog>
       </div>

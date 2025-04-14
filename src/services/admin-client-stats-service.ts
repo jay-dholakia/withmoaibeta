@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { formatInTimeZone } from 'date-fns-tz';
+import { startOfWeek, addDays, format } from 'date-fns';
 
 interface ClientStat {
   id: string;
@@ -16,18 +17,21 @@ interface ClientStat {
  */
 export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
   try {
-    const today = new Date();
-    // Get the date in Pacific Time
-    const todayPT = formatInTimeZone(today, 'America/Los_Angeles', 'yyyy-MM-dd');
+    // Get today's date in Pacific Time
+    const now = new Date();
+    const todayPT = formatInTimeZone(now, 'America/Los_Angeles', 'yyyy-MM-dd');
+    console.log('Today in Pacific Time:', todayPT);
     
     // Create a Date object for the current date in Pacific Time
-    const datePT = new Date(todayPT);
+    const datePT = new Date(todayPT + 'T00:00:00');
     
-    // Calculate Monday of the current week (weekStartsOn: 1 for Monday)
+    // Calculate the day of week in Pacific Time (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
     const dayOfWeek = datePT.getDay(); 
-    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // If today is Sunday, it's 6 days from Monday
     
-    // Create a Date object for the start of week in Pacific Time
+    // Calculate days from Monday (if today is Sunday, it's 6 days from Monday)
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    
+    // Calculate the Monday of the current week
     const startOfWeekPT = new Date(datePT);
     startOfWeekPT.setDate(datePT.getDate() - daysFromMonday);
     startOfWeekPT.setHours(0, 0, 0, 0);
@@ -35,7 +39,14 @@ export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
     // Format the startOfWeek in ISO format to use in queries
     const startOfWeekISO = startOfWeekPT.toISOString();
     
-    console.log('Using Pacific Time week starting:', startOfWeekISO);
+    // Calculate end of week (Sunday)
+    const endOfWeekPT = new Date(startOfWeekPT);
+    endOfWeekPT.setDate(startOfWeekPT.getDate() + 7);
+    const endOfWeekISO = endOfWeekPT.toISOString();
+    
+    console.log('Week (Pacific Time):', format(startOfWeekPT, 'yyyy-MM-dd'), 'to', format(endOfWeekPT, 'yyyy-MM-dd'));
+    console.log('Week start ISO:', startOfWeekISO);
+    console.log('Week end ISO:', endOfWeekISO);
     
     // Get all clients
     const { data: profiles, error: profilesError } = await supabase
@@ -108,7 +119,8 @@ export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
         .eq('user_id', clientId)
         .not('workout_id', 'is', null)
         .not('completed_at', 'is', null)
-        .gte('completed_at', startOfWeekISO);
+        .gte('completed_at', startOfWeekISO)
+        .lt('completed_at', endOfWeekISO);
         
       if (assignedError) {
         console.error(`Error fetching assigned workouts for client ${clientId}:`, assignedError);
@@ -120,7 +132,8 @@ export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', clientId)
         .not('completed_at', 'is', null)
-        .gte('completed_at', startOfWeekISO);
+        .gte('completed_at', startOfWeekISO)
+        .lt('completed_at', endOfWeekISO);
         
       if (activitiesWeekError) {
         console.error(`Error fetching weekly activities for client ${clientId}:`, activitiesWeekError);

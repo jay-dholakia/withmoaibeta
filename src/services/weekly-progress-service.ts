@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatInTimeZone } from "date-fns-tz";
+import { startOfWeek, addDays, format, parseISO } from "date-fns";
 
 export interface WeeklyProgressMetric {
   target: number;
@@ -98,27 +99,25 @@ async function updateStrengthWorkoutsCount(
   clientId: string
 ): Promise<void> {
   try {
-    // Get the current week's start and end dates in Pacific Time
+    // Get the current date in Pacific Time
     const now = new Date();
-    
-    // Calculate week boundaries - Monday to Sunday (Monday 12am)
     const todayPT = formatInTimeZone(now, 'America/Los_Angeles', 'yyyy-MM-dd');
-    const today = new Date(todayPT);
+    const today = parseISO(todayPT);
     
-    // Calculate start of week (Monday) in Pacific Time
-    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // If today is Sunday, it's 6 days from Monday
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - daysFromMonday); // Go back to the most recent Monday
-    startOfWeek.setHours(0, 0, 0, 0); // Start of day
+    // Calculate week boundaries - Monday to Sunday
+    // Use startOfWeek with weekStartsOn: 1 to start weeks on Monday
+    const weekStartDate = startOfWeek(today, { weekStartsOn: 1 });
+    const weekEndDate = addDays(weekStartDate, 7); // End of week is start of next week
     
-    // End of week is Sunday night, which is the start of next Monday
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 7); // Add 7 days to get to next Monday at 12:00 AM
+    // Format dates to ISO strings for database queries
+    const weekStart = weekStartDate.toISOString();
+    const weekEnd = weekEndDate.toISOString();
+    
+    console.log(`Calculating workout counts for week of ${format(weekStartDate, 'yyyy-MM-dd')} to ${format(weekEndDate, 'yyyy-MM-dd')} (Pacific Time)`);
+    console.log(`Week start ISO: ${weekStart}`);
+    console.log(`Week end ISO: ${weekEnd}`);
 
-    console.log(`Calculating workout counts for week of ${startOfWeek.toISOString()} to ${endOfWeek.toISOString()} (Pacific Time)`);
-
-    // Query for completed strength workouts in this week
+    // Query for completed strength workouts in this week only
     const { data: completions, error } = await supabase
       .from('workout_completions')
       .select(`
@@ -131,8 +130,8 @@ async function updateStrengthWorkoutsCount(
         workout_type
       `)
       .eq('user_id', clientId)
-      .gte('completed_at', startOfWeek.toISOString())
-      .lt('completed_at', endOfWeek.toISOString())
+      .gte('completed_at', weekStart)
+      .lt('completed_at', weekEnd)
       .not('completed_at', 'is', null);
 
     if (error) {
@@ -140,17 +139,24 @@ async function updateStrengthWorkoutsCount(
       return;
     }
 
-    // Count strength workouts
+    // Count strength workouts within the current week only
     let strengthCount = 0;
     
     if (completions && completions.length > 0) {
+      // Log all found completions to help debug
+      console.log("All workout completions found:", JSON.stringify(completions.map(c => ({
+        id: c.id,
+        completed_at: c.completed_at,
+        workout_type: c.workout_type || (c.workout && c.workout.workout_type)
+      })), null, 2));
+      
       strengthCount = completions.filter(completion => {
         // Check workout type from either the completion itself or the associated workout
         const workoutType = (completion.workout_type || 
-                             (completion.workout && completion.workout.workout_type) || 
-                             '').toLowerCase();
+                           (completion.workout && completion.workout.workout_type) || 
+                           '').toLowerCase();
         
-        return workoutType === 'strength';
+        return workoutType === 'strength' || workoutType === 'bodyweight';
       }).length;
       
       console.log(`Found ${strengthCount} completed strength workouts this week (Pacific Time)`);
@@ -158,6 +164,12 @@ async function updateStrengthWorkoutsCount(
       // Update the data object with the actual count
       if (data && data.metrics && data.metrics.strength_workouts) {
         data.metrics.strength_workouts.actual = strengthCount;
+      }
+    } else {
+      console.log("No workout completions found for the current week");
+      // Reset strength workout count to 0 when no completions are found
+      if (data && data.metrics && data.metrics.strength_workouts) {
+        data.metrics.strength_workouts.actual = 0;
       }
     }
   } catch (err) {

@@ -66,11 +66,15 @@ const WorkoutComplete = () => {
         console.warn("Failed to save draft to sessionStorage:", e);
       }
       
-      return await saveWorkoutDraft(
+      const savedToDb = await saveWorkoutDraft(
         workoutCompletionId, 
         'completion', 
         data
       );
+      
+      console.log(`Database save for workout ${workoutCompletionId} ${savedToDb ? 'succeeded' : 'failed'}`);
+      
+      return savedToDb;
     },
     debounce: 1000,
     disabled: !workoutCompletionId || !user?.id || !draftLoaded

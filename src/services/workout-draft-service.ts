@@ -29,70 +29,75 @@ export const saveWorkoutDraft = async (
     return false;
   }
 
-  // Delay saving to ensure any draft loading operations have completed
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    console.error("User auth error:", authError);
-    return false;
-  }
-
-  // Ensure workout_type is a string, not null
-  const workoutTypeValue = workoutType || 'workout';
-
-  // Create a complete payload
-  const payload = {
-    user_id: user.id,
-    workout_id: workoutId,
-    workout_type: workoutTypeValue,
-    draft_data: draftData,
-    updated_at: new Date().toISOString(),
-  };
-
-  console.log(">>> SAVING DRAFT PAYLOAD:", payload);
-
-  // Make sure we're inserting draft_data as JSON object, not a string
-  const draftDataToStore = typeof draftData === 'string' 
-    ? JSON.parse(draftData) 
-    : draftData;
-
-  // Perform the database operation
-  const { data, error } = await supabase
-    .from("workout_drafts")
-    .upsert([{
-      ...payload,
-      draft_data: draftDataToStore
-    }], { 
-      onConflict: "user_id,workout_id" 
-    })
-    .select("id");
-
-  if (error) {
-    console.error(">>> UPSERT ERROR:", error);
-    return false;
-  }
-
-  console.log(">>> UPSERT SUCCESS:", data);
+  console.log(`Attempting to save draft for workout ${workoutId} of type ${workoutType}`);
 
   try {
-    // Store the complete payload in sessionStorage with consistent format
-    const sessionPayload = {
-      ...payload,
-      draft_data: draftDataToStore,
-      id: data?.[0]?.id
-    };
+    // Ensure we have an authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.error("User auth error:", authError);
+      return false;
+    }
     
-    sessionStorage.setItem(
-      `workout_draft_${workoutId}`,
-      JSON.stringify(sessionPayload)
-    );
-    console.log(">>> Draft also saved to sessionStorage:", sessionPayload);
-  } catch (e) {
-    console.warn(">>> sessionStorage save failed:", e);
-  }
+    // Ensure workout_type is a string, not null
+    const workoutTypeValue = workoutType || 'workout';
 
-  return true;
+    // Create a complete payload
+    const payload = {
+      user_id: user.id,
+      workout_id: workoutId,
+      workout_type: workoutTypeValue,
+      draft_data: draftData,
+      updated_at: new Date().toISOString(),
+    };
+
+    console.log(">>> SAVING DRAFT PAYLOAD:", payload);
+
+    // Make sure we're inserting draft_data as JSON object, not a string
+    const draftDataToStore = typeof draftData === 'string' 
+      ? JSON.parse(draftData) 
+      : draftData;
+
+    // Perform the database operation
+    const { data, error } = await supabase
+      .from("workout_drafts")
+      .upsert([{
+        ...payload,
+        draft_data: draftDataToStore
+      }], { 
+        onConflict: "user_id,workout_id" 
+      })
+      .select("id");
+
+    if (error) {
+      console.error(">>> UPSERT ERROR:", error);
+      return false;
+    }
+
+    console.log(">>> UPSERT SUCCESS:", data);
+
+    try {
+      // Store the complete payload in sessionStorage with consistent format
+      const sessionPayload = {
+        ...payload,
+        draft_data: draftDataToStore,
+        id: data?.[0]?.id
+      };
+      
+      sessionStorage.setItem(
+        `workout_draft_${workoutId}`,
+        JSON.stringify(sessionPayload)
+      );
+      console.log(">>> Draft also saved to sessionStorage:", sessionPayload);
+    } catch (e) {
+      console.warn(">>> sessionStorage save failed:", e);
+    }
+
+    return true;
+  } catch (err) {
+    console.error(">>> UNEXPECTED ERROR DURING DRAFT SAVE:", err);
+    return false;
+  }
 };
 
 export const getWorkoutDraft = async (
@@ -104,69 +109,74 @@ export const getWorkoutDraft = async (
 
   console.log(`Attempting to get workout draft for workoutId: ${workoutId}`);
   
-  // Add a delay to ensure we're not racing with other operations
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // First try getting from session storage for better performance
   try {
+    // First check sessionStorage for immediate access
     const cached = sessionStorage.getItem(`workout_draft_${workoutId}`);
     if (cached) {
-      console.log("Found draft in sessionStorage");
-      const parsedCache = JSON.parse(cached);
-      console.log("Parsed sessionStorage draft:", parsedCache);
-      
-      // Ensure consistent format
-      if (parsedCache && typeof parsedCache === 'object') {
-        return parsedCache;
-      }
-    }
-  } catch (e) {
-    console.error("Cache parse error:", e);
-  }
-
-  // If not in session storage, try from database with retries
-  for (let i = 0; i <= maxRetries; i++) {
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.log(`Auth error (attempt ${i+1}/${maxRetries+1}):`, authError);
-      if (i === maxRetries) return null;
-      await new Promise(res => setTimeout(res, retryInterval));
-      continue;
-    }
-
-    console.log(`Querying database for draft (attempt ${i+1}/${maxRetries+1})`);
-    const { data, error } = await supabase
-      .from("workout_drafts")
-      .select("*")  // Select all columns to see complete record
-      .eq("user_id", user.id)
-      .eq("workout_id", workoutId)
-      .maybeSingle();
-
-    if (error) {
-      console.error(`Fetch error (attempt ${i+1}/${maxRetries+1}):`, error);
-      if (i === maxRetries) return null;
-      await new Promise(res => setTimeout(res, retryInterval));
-    } else {
-      if (data) {
-        console.log("Retrieved draft from database:", data);
-        // Ensure draft_data is properly formatted
-        const formattedData = {
-          ...data,
-          draft_data: safeParseDraftData(data.draft_data)
-        };
+      try {
+        console.log("Found draft in sessionStorage");
+        const parsedCache = JSON.parse(cached);
+        console.log("Parsed sessionStorage draft:", parsedCache);
         
-        try {
-          // Store complete retrieved data in sessionStorage
-          sessionStorage.setItem(`workout_draft_${workoutId}`, JSON.stringify(formattedData));
-          console.log("Saved retrieved draft to sessionStorage:", formattedData);
-        } catch (e) {
-          console.warn("Failed to save to sessionStorage:", e);
+        // Ensure consistent format
+        if (parsedCache && typeof parsedCache === 'object') {
+          return parsedCache;
         }
-        return formattedData;
+      } catch (e) {
+        console.error("Error parsing sessionStorage draft:", e);
       }
-      console.log("No draft found in database");
-      return null;
     }
+
+    // If not in sessionStorage, fetch from database with retries
+    // Important: For active workouts, we need to wait for user authentication
+    for (let i = 0; i <= maxRetries; i++) {
+      // Ensure we have the authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        console.log(`Auth error (attempt ${i+1}/${maxRetries+1}):`, authError);
+        if (i === maxRetries) return null;
+        await new Promise(res => setTimeout(res, retryInterval));
+        continue;
+      }
+
+      console.log(`Querying database for draft (attempt ${i+1}/${maxRetries+1})`);
+      console.log(`Looking for draft with user_id=${user.id}, workout_id=${workoutId}`);
+      
+      const { data, error } = await supabase
+        .from("workout_drafts")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("workout_id", workoutId)
+        .maybeSingle();
+
+      if (error) {
+        console.error(`Fetch error (attempt ${i+1}/${maxRetries+1}):`, error);
+        if (i === maxRetries) return null;
+        await new Promise(res => setTimeout(res, retryInterval));
+      } else {
+        if (data) {
+          console.log("Retrieved draft from database:", data);
+          // Ensure draft_data is properly formatted
+          const formattedData = {
+            ...data,
+            draft_data: safeParseDraftData(data.draft_data)
+          };
+          
+          try {
+            // Store complete retrieved data in sessionStorage
+            sessionStorage.setItem(`workout_draft_${workoutId}`, JSON.stringify(formattedData));
+            console.log("Saved retrieved draft to sessionStorage:", formattedData);
+          } catch (e) {
+            console.warn("Failed to save to sessionStorage:", e);
+          }
+          return formattedData;
+        }
+        console.log("No draft found in database");
+        return null;
+      }
+    }
+  } catch (err) {
+    console.error("Unexpected error fetching draft:", err);
   }
   
   return null;
@@ -189,23 +199,28 @@ export const deleteWorkoutDraft = async (
     console.warn("Error removing from sessionStorage:", e);
   }
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    console.error("Auth error when deleting draft:", authError);
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.error("Auth error when deleting draft:", authError);
+      return false;
+    }
+
+    const { error } = await supabase
+      .from("workout_drafts")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("workout_id", workoutId);
+
+    if (error) {
+      console.error("Delete error:", error);
+      return false;
+    }
+
+    console.log("Successfully deleted draft from database");
+    return true;
+  } catch (err) {
+    console.error("Unexpected error deleting draft:", err);
     return false;
   }
-
-  const { error } = await supabase
-    .from("workout_drafts")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("workout_id", workoutId);
-
-  if (error) {
-    console.error("Delete error:", error);
-    return false;
-  }
-
-  console.log("Successfully deleted draft from database");
-  return true;
 };

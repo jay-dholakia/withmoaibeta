@@ -31,18 +31,41 @@ const WorkoutsPage = () => {
     enabled: !!user?.id,
   });
 
-  // Use separate keys for routes with workout completion to force re-mount on navigation
+  // Use separate keys for routes with timestamps to force re-mount on navigation
+  // This is particularly important for active workout paths to ensure drafts are loaded fresh
   const timestamp = Date.now();
+  const workoutCompletionId = location.pathname.split('/').pop();
 
   return (
     <div className="w-full">
       <Routes>
         <Route index element={<WorkoutsList />} />
-        <Route path="active/:workoutCompletionId" element={<ActiveWorkout key={`active-${user?.id}-${timestamp}`} />} />
-        <Route path="complete/:workoutCompletionId" element={<WorkoutComplete key={`complete-${user?.id}-${timestamp}`} />} />
+        <Route 
+          path="active/:workoutCompletionId" 
+          element={
+            <ActiveWorkout 
+              key={`active-${user?.id}-${workoutCompletionId}-${timestamp}`} 
+            />
+          } 
+        />
+        <Route 
+          path="complete/:workoutCompletionId" 
+          element={
+            <WorkoutComplete 
+              key={`complete-${user?.id}-${workoutCompletionId}-${timestamp}`} 
+            />
+          } 
+        />
         <Route path="create" element={<CreateCustomWorkout />} />
         <Route path="custom/:workoutId" element={<CustomWorkoutDetail />} />
-        <Route path="one-off" element={<EnterOneOffWorkout key={`one-off-${user?.id}-${timestamp}`} />} />
+        <Route 
+          path="one-off" 
+          element={
+            <EnterOneOffWorkout 
+              key={`one-off-${user?.id}-${timestamp}`} 
+            />
+          } 
+        />
         <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
     </div>

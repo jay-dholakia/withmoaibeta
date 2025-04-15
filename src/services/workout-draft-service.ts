@@ -75,14 +75,16 @@ export const saveWorkoutDraft = async (
     
     if (existingDraft) {
       // Update existing draft
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('workout_drafts')
         .update({ 
           draft_data: draftData,
           workout_type: workoutType,
           updated_at: new Date().toISOString()
         })
-        .eq('id', existingDraft.id);
+        .eq('id', existingDraft.id)
+        .select('id')
+        .maybeSingle();
         
       if (error) {
         console.error("Error updating workout draft:", {
@@ -92,8 +94,22 @@ export const saveWorkoutDraft = async (
           timestamp: new Date().toISOString()
         });
       } else {
-        console.log(`Successfully updated draft for workout ${workoutId}`);
+        console.log(`Successfully updated draft for workout ${workoutId}`, data);
         success = true;
+        
+        // Double check that the data was saved
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('workout_drafts')
+          .select('draft_data')
+          .eq('id', existingDraft.id)
+          .maybeSingle();
+          
+        if (verifyError || !verifyData) {
+          console.error("Failed to verify updated draft data", verifyError);
+          success = false;
+        } else {
+          console.log("Draft verification successful", verifyData);
+        }
       }
     } else {
       // Create new draft
@@ -118,6 +134,22 @@ export const saveWorkoutDraft = async (
       } else {
         console.log(`Successfully created new draft for workout ${workoutId}`, data);
         success = true;
+        
+        // Double check that the data was saved
+        if (data?.id) {
+          const { data: verifyData, error: verifyError } = await supabase
+            .from('workout_drafts')
+            .select('draft_data')
+            .eq('id', data.id)
+            .maybeSingle();
+            
+          if (verifyError || !verifyData) {
+            console.error("Failed to verify inserted draft data", verifyError);
+            success = false;
+          } else {
+            console.log("Draft verification successful", verifyData);
+          }
+        }
       }
     }
     

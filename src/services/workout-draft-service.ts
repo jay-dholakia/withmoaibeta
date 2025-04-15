@@ -142,6 +142,15 @@ export const getWorkoutDraft = async (
       console.log(`Querying database for draft (attempt ${i+1}/${maxRetries+1})`);
       console.log(`Looking for draft with user_id=${user.id}, workout_id=${workoutId}`);
       
+      // IMPORTANT DEBUG: List all drafts for this user
+      const { data: allDrafts } = await supabase
+        .from("workout_drafts")
+        .select("*")
+        .eq("user_id", user.id);
+        
+      console.log(`Found ${allDrafts?.length || 0} total drafts for user:`, allDrafts);
+      
+      // Now get the specific draft
       const { data, error } = await supabase
         .from("workout_drafts")
         .select("*")
@@ -171,7 +180,7 @@ export const getWorkoutDraft = async (
           }
           return formattedData;
         }
-        console.log("No draft found in database");
+        console.log("No draft found in database for this specific workout ID");
         return null;
       }
     }

@@ -31,10 +31,11 @@ const WorkoutsPage = () => {
     enabled: !!user?.id,
   });
 
-  // Use separate keys for routes with timestamps to force re-mount on navigation
-  // This is particularly important for active workout paths to ensure drafts are loaded fresh
+  // IMPORTANT: Use timestamp AND workout ID together to force remount 
+  // This ensures the ActiveWorkout component loads fresh every time
   const timestamp = Date.now();
   const workoutCompletionId = location.pathname.split('/').pop();
+  const forceReloadKey = `${workoutCompletionId}-${timestamp}-${user?.id || 'no-user'}`;
 
   return (
     <div className="w-full">
@@ -44,7 +45,7 @@ const WorkoutsPage = () => {
           path="active/:workoutCompletionId" 
           element={
             <ActiveWorkout 
-              key={`active-${user?.id}-${workoutCompletionId}-${timestamp}`} 
+              key={forceReloadKey} 
             />
           } 
         />
@@ -52,7 +53,7 @@ const WorkoutsPage = () => {
           path="complete/:workoutCompletionId" 
           element={
             <WorkoutComplete 
-              key={`complete-${user?.id}-${workoutCompletionId}-${timestamp}`} 
+              key={`complete-${forceReloadKey}`} 
             />
           } 
         />
@@ -62,7 +63,7 @@ const WorkoutsPage = () => {
           path="one-off" 
           element={
             <EnterOneOffWorkout 
-              key={`one-off-${user?.id}-${timestamp}`} 
+              key={`one-off-${forceReloadKey}`} 
             />
           } 
         />

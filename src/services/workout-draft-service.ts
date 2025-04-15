@@ -38,6 +38,7 @@ export const saveWorkoutDraft = async (
   // Ensure workout_type is a string, not null
   const workoutTypeValue = workoutType || 'workout';
 
+  // Create a complete payload
   const payload = {
     user_id: user.id,
     workout_id: workoutId,
@@ -53,6 +54,7 @@ export const saveWorkoutDraft = async (
     ? JSON.parse(draftData) 
     : draftData;
 
+  // Perform the database operation
   const { data, error } = await supabase
     .from("workout_drafts")
     .upsert([{
@@ -71,15 +73,18 @@ export const saveWorkoutDraft = async (
   console.log(">>> UPSERT SUCCESS:", data);
 
   try {
-    // Store the complete payload in sessionStorage for faster retrieval
+    // Store the complete payload in sessionStorage with consistent format
+    const sessionPayload = {
+      ...payload,
+      draft_data: draftDataToStore,
+      id: data?.[0]?.id
+    };
+    
     sessionStorage.setItem(
       `workout_draft_${workoutId}`,
-      JSON.stringify({
-        ...payload,
-        draft_data: draftDataToStore
-      })
+      JSON.stringify(sessionPayload)
     );
-    console.log(">>> Draft also saved to sessionStorage");
+    console.log(">>> Draft also saved to sessionStorage:", sessionPayload);
   } catch (e) {
     console.warn(">>> sessionStorage save failed:", e);
   }
@@ -103,7 +108,11 @@ export const getWorkoutDraft = async (
       console.log("Found draft in sessionStorage");
       const parsedCache = JSON.parse(cached);
       console.log("Parsed sessionStorage draft:", parsedCache);
-      return parsedCache;
+      
+      // Ensure consistent format
+      if (parsedCache && typeof parsedCache === 'object') {
+        return parsedCache;
+      }
     }
   } catch (e) {
     console.error("Cache parse error:", e);

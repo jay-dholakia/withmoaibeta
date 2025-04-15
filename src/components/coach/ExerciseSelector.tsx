@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Exercise } from '@/types/workout';
 import { fetchExercisesByCategory, ExtendedExercise } from '@/services/workout-service';
@@ -33,45 +32,46 @@ export const ExerciseSelector = ({
   const [filteredExercises, setFilteredExercises] = useState<ExtendedExercise[]>([]);
   const [error, setError] = useState<string | null>(null);
   
-  // Use a single flag to track if initial fetch was completed
-  const [dataInitialized, setDataInitialized] = useState(false);
+  const fetchCompletedRef = useRef(false);
+  const excludeIdsRef = useRef(excludeIds);
+  useEffect(() => {
+    excludeIdsRef.current = excludeIds;
+  }, [excludeIds]);
   
-  // Memoize the filter function to prevent recreation on every render
   const filterExercises = useCallback((
-    allExercises: Record<string, ExtendedExercise[]>,
+    exercises: Record<string, ExtendedExercise[]>,
     category: string,
-    query: string,
-    excluded: string[]
+    query: string
   ): ExtendedExercise[] => {
     let filtered: ExtendedExercise[] = [];
-
+    
     if (category === 'All') {
-      filtered = Object.values(allExercises).flat();
-    } else if (allExercises[category]) {
-      filtered = [...allExercises[category]];
+      filtered = Object.values(exercises).flat();
+    } else if (exercises[category]) {
+      filtered = [...exercises[category]];
     }
-
+    
     if (query) {
       const lowerQuery = query.toLowerCase();
       filtered = filtered.filter(exercise => 
         exercise.name.toLowerCase().includes(lowerQuery)
       );
     }
-
-    if (excluded.length > 0) {
-      filtered = filtered.filter(exercise => !excluded.includes(exercise.id));
+    
+    if (excludeIdsRef.current.length > 0) {
+      filtered = filtered.filter(exercise => !excludeIdsRef.current.includes(exercise.id));
     }
-
+    
     return filtered;
   }, []);
 
-  // Fetch exercises only once when component mounts
   useEffect(() => {
-    const getExercises = async () => {
-      if (dataInitialized) return;
+    const fetchExercises = async () => {
+      if (fetchCompletedRef.current) return;
       
       setIsLoading(true);
       setError(null);
+      
       try {
         console.log("Fetching exercises by category");
         const exercises = await fetchExercisesByCategory();
@@ -80,7 +80,9 @@ export const ExerciseSelector = ({
         if (!exercises || exercises.length === 0) {
           setError("No exercises found. Please add exercises to the system first.");
           setExercisesByCategory({});
-          setDataInitialized(true);
+          setFilteredExercises([]);
+          fetchCompletedRef.current = true;
+          setIsLoading(false);
           return;
         }
         
@@ -94,7 +96,11 @@ export const ExerciseSelector = ({
         });
         
         setExercisesByCategory(categorized);
-        setDataInitialized(true);
+        
+        const initialFiltered = filterExercises(categorized, selectedCategory, searchQuery);
+        setFilteredExercises(initialFiltered);
+        
+        fetchCompletedRef.current = true;
       } catch (error) {
         console.error('Error fetching exercises:', error);
         setError("Failed to load exercises. Please try again.");
@@ -103,18 +109,20 @@ export const ExerciseSelector = ({
       }
     };
 
-    getExercises();
-  }, [dataInitialized]); // Only depend on dataInitialized
+    fetchExercises();
+  }, [filterExercises, selectedCategory, searchQuery]);
 
-  // Apply filtering in a separate effect with stable dependencies
-  useEffect(() => {
-    if (!dataInitialized) return;
-    
-    const filtered = filterExercises(exercisesByCategory, selectedCategory, searchQuery, excludeIds);
-    setFilteredExercises(filtered);
-  }, [dataInitialized, selectedCategory, searchQuery, excludeIds, exercisesByCategory, filterExercises]);
+  const handleCategoryChange = useCallback((category: string) => {
+    setSelectedCategory(category);
+    const newFiltered = filterExercises(exercisesByCategory, category, searchQuery);
+    setFilteredExercises(newFiltered);
+  }, [exercisesByCategory, searchQuery, filterExercises]);
 
-  const categories = ['All', ...Object.keys(exercisesByCategory).sort()];
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQuery(query);
+    const newFiltered = filterExercises(exercisesByCategory, selectedCategory, query);
+    setFilteredExercises(newFiltered);
+  }, [exercisesByCategory, selectedCategory, filterExercises]);
 
   const hasAlternatives = (exercise: ExtendedExercise) => {
     return !!(exercise.alternative_exercise_1_id || 
@@ -123,8 +131,45 @@ export const ExerciseSelector = ({
   };
 
   const handleRetry = () => {
-    setDataInitialized(false); // Reset to trigger a new fetch
+    fetchCompletedRef.current = false;
+    const fetchExercises = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const exercises = await fetchExercisesByCategory();
+        
+        if (!exercises || exercises.length === 0) {
+          setError("No exercises found. Please add exercises to the system first.");
+          setExercisesByCategory({});
+          setFilteredExercises([]);
+          return;
+        }
+        
+        const categorized: Record<string, ExtendedExercise[]> = {};
+        exercises.forEach(exercise => {
+          const category = exercise.category || 'Uncategorized';
+          if (!categorized[category]) {
+            categorized[category] = [];
+          }
+          categorized[category].push(exercise as ExtendedExercise);
+        });
+        
+        setExercisesByCategory(categorized);
+        const initialFiltered = filterExercises(categorized, selectedCategory, searchQuery);
+        setFilteredExercises(initialFiltered);
+      } catch (error) {
+        console.error('Error fetching exercises:', error);
+        setError("Failed to load exercises. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchExercises();
   };
+
+  const categories = ['All', ...Object.keys(exercisesByCategory).sort()];
 
   return (
     <div className="w-full">
@@ -134,7 +179,7 @@ export const ExerciseSelector = ({
           placeholder="Search exercises..."
           className="pl-9"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
         />
       </div>
 
@@ -146,7 +191,7 @@ export const ExerciseSelector = ({
           </Button>
         </div>
       ) : (
-        <Tabs defaultValue="All" value={selectedCategory} onValueChange={setSelectedCategory}>
+        <Tabs value={selectedCategory} onValueChange={handleCategoryChange}>
           <TabsList className="mb-4 flex flex-wrap h-auto">
             {categories.map((category) => (
               <TabsTrigger key={category} value={category} className="text-xs">

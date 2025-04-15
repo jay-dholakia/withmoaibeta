@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
@@ -12,6 +11,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Save, Loader2, Calendar } from 'lucide-react';
 import { createOneOffWorkoutCompletion } from '@/services/workout-history-service';
 import { supabase } from '@/integrations/supabase/client';
+import { getWorkoutDraft, saveWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
 import {
   Select,
   SelectContent,
@@ -48,8 +48,81 @@ const EnterOneOffWorkout = () => {
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
   const [location, setLocation] = useState<string>('');
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(true);
   
   const { user } = useAuth();
+  const workoutDraftId = 'one-off-workout-draft';
+
+  useEffect(() => {
+    const loadDraft = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setIsLoadingDraft(true);
+        console.log('Attempting to load one-off workout draft');
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const draft = await getWorkoutDraft(workoutDraftId);
+        
+        if (draft && draft.draft_data) {
+          console.log('Retrieved draft data:', draft.draft_data);
+          
+          if (draft.draft_data.title) setTitle(draft.draft_data.title);
+          if (draft.draft_data.description) setDescription(draft.draft_data.description);
+          if (draft.draft_data.notes) setNotes(draft.draft_data.notes);
+          if (draft.draft_data.workoutType) setWorkoutType(draft.draft_data.workoutType as WorkoutType);
+          
+          if (draft.draft_data.date) {
+            const draftDate = new Date(draft.draft_data.date);
+            if (!isNaN(draftDate.getTime())) {
+              setDate(draftDate);
+            }
+          }
+          
+          if (draft.draft_data.distance) setDistance(draft.draft_data.distance);
+          if (draft.draft_data.duration) setDuration(draft.draft_data.duration);
+          if (draft.draft_data.location) setLocation(draft.draft_data.location);
+          
+          toast.success('Recovered your workout draft');
+        }
+      } catch (error) {
+        console.error('Error loading draft:', error);
+      } finally {
+        setDraftLoaded(true);
+        setIsLoadingDraft(false);
+      }
+    };
+    
+    loadDraft();
+  }, [user]);
+
+  useEffect(() => {
+    if (!draftLoaded || !user?.id) return;
+    
+    const draftTimer = setTimeout(async () => {
+      try {
+        const draftData = {
+          title,
+          description,
+          notes,
+          workoutType,
+          date: date?.toISOString(),
+          distance,
+          duration,
+          location
+        };
+        
+        await saveWorkoutDraft(workoutDraftId, 'one-off', draftData);
+        console.log('Autosaved workout draft');
+      } catch (error) {
+        console.error('Error saving draft:', error);
+      }
+    }, 2000);
+    
+    return () => clearTimeout(draftTimer);
+  }, [title, description, notes, workoutType, date, distance, duration, location, draftLoaded, user]);
 
   const addToJournal = async (workoutTitle: string, notes: string, journalDate: Date) => {
     try {
@@ -86,6 +159,8 @@ const EnterOneOffWorkout = () => {
     setIsSubmitting(true);
     
     try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const workoutData: any = {
         title,
         description: description.trim() || undefined,
@@ -105,6 +180,8 @@ const EnterOneOffWorkout = () => {
       }
       
       await createOneOffWorkoutCompletion(workoutData);
+      
+      await deleteWorkoutDraft(workoutDraftId);
       
       toast.success('Workout logged successfully!');
       navigate('/client-dashboard/workouts');
@@ -127,6 +204,21 @@ const EnterOneOffWorkout = () => {
     
     return cleaned;
   };
+
+  if (isLoadingDraft) {
+    return (
+      <div className="max-w-3xl mx-auto pt-8">
+        <Card className="border border-gray-200">
+          <CardContent className="pt-6 flex justify-center items-center min-h-[300px]">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-client" />
+              <p className="text-muted-foreground">Loading your workout draft...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto">

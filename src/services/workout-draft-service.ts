@@ -29,6 +29,9 @@ export const saveWorkoutDraft = async (
     return false;
   }
 
+  // Delay saving to ensure any draft loading operations have completed
+  await new Promise(resolve => setTimeout(resolve, 500));
+
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     console.error("User auth error:", authError);
@@ -100,6 +103,9 @@ export const getWorkoutDraft = async (
   if (!workoutId) return null;
 
   console.log(`Attempting to get workout draft for workoutId: ${workoutId}`);
+  
+  // Add a delay to ensure we're not racing with other operations
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
   // First try getting from session storage for better performance
   try {

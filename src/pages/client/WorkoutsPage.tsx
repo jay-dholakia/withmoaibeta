@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
 import ActiveWorkout from '@/components/client/ActiveWorkout';
@@ -31,21 +31,18 @@ const WorkoutsPage = () => {
     enabled: !!user?.id,
   });
 
-  useEffect(() => {
-    console.log("WorkoutsPage: Auth state changed, user:", user?.id);
-  }, [user]);
-  
-  console.log("WorkoutsPage: About to render routes");
-  
+  // Use separate keys for routes with workout completion to force re-mount on navigation
+  const timestamp = Date.now();
+
   return (
     <div className="w-full">
       <Routes>
         <Route index element={<WorkoutsList />} />
-        <Route path="active/:workoutCompletionId" element={<ActiveWorkout key={user?.id} />} />
-        <Route path="complete/:workoutCompletionId" element={<WorkoutComplete key={user?.id} />} />
+        <Route path="active/:workoutCompletionId" element={<ActiveWorkout key={`active-${user?.id}-${timestamp}`} />} />
+        <Route path="complete/:workoutCompletionId" element={<WorkoutComplete key={`complete-${user?.id}-${timestamp}`} />} />
         <Route path="create" element={<CreateCustomWorkout />} />
         <Route path="custom/:workoutId" element={<CustomWorkoutDetail />} />
-        <Route path="one-off" element={<EnterOneOffWorkout key={user?.id} />} />
+        <Route path="one-off" element={<EnterOneOffWorkout key={`one-off-${user?.id}-${timestamp}`} />} />
         <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
     </div>

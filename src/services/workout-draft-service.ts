@@ -47,6 +47,9 @@ export const saveWorkoutDraft = async (
       console.warn(`Draft data size is large: ${dataSize} bytes. Consider optimizing.`);
     }
     
+    // Add log to verify the data being saved
+    console.log("Saving workout draft with data:", draftData);
+    
     // Check if a draft already exists for this workout
     const { data: existingDraft, error: queryError } = await supabase
       .from('workout_drafts')
@@ -65,6 +68,11 @@ export const saveWorkoutDraft = async (
       return false;
     }
       
+    // Log to debug
+    console.log(`Existing draft check result:`, existingDraft);
+    
+    let success = false;
+    
     if (existingDraft) {
       // Update existing draft
       const { error } = await supabase
@@ -83,20 +91,22 @@ export const saveWorkoutDraft = async (
           draftId: existingDraft.id,
           timestamp: new Date().toISOString()
         });
-        return false;
+      } else {
+        console.log(`Successfully updated draft for workout ${workoutId}`);
+        success = true;
       }
-      
-      console.log(`Successfully updated draft for workout ${workoutId}`);
     } else {
       // Create new draft
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('workout_drafts')
         .insert({
           user_id: user.id,
           workout_id: workoutId,
           workout_type: workoutType,
           draft_data: draftData
-        });
+        })
+        .select('id')
+        .single();
         
       if (error) {
         console.error("Error creating workout draft:", {
@@ -105,13 +115,25 @@ export const saveWorkoutDraft = async (
           userId: user.id,
           timestamp: new Date().toISOString()
         });
-        return false;
+      } else {
+        console.log(`Successfully created new draft for workout ${workoutId}`, data);
+        success = true;
       }
-      
-      console.log(`Successfully created new draft for workout ${workoutId}`);
     }
     
-    return true;
+    // Also store in sessionStorage for immediate access
+    try {
+      sessionStorage.setItem(`workout_draft_${workoutId}`, JSON.stringify({
+        draft_data: draftData,
+        workout_type: workoutType,
+        updated_at: new Date().toISOString()
+      }));
+      console.log(`Successfully saved draft to sessionStorage for workout ${workoutId}`);
+    } catch (e) {
+      console.warn("Failed to save draft to sessionStorage:", e);
+    }
+    
+    return success;
   } catch (error) {
     console.error("Error in saveWorkoutDraft:", {
       error,
@@ -201,6 +223,8 @@ export const getWorkoutDraft = async (
         await new Promise(resolve => setTimeout(resolve, retryInterval));
         continue;
       }
+      
+      console.log("Database query result:", data);
       
       if (data) {
         // Ensure draft data is properly parsed

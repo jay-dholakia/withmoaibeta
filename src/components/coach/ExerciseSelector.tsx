@@ -32,12 +32,11 @@ export const ExerciseSelector = ({
   const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, ExtendedExercise[]>>({});
   const [filteredExercises, setFilteredExercises] = useState<ExtendedExercise[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [hasFetched, setHasFetched] = useState<boolean>(false);
   
-  // Use a ref to track initial mount and prevent unnecessary updates
-  const initialMount = useRef(true);
-
-  // Memoize the filter function to prevent it from being recreated on every render
+  // Use a single flag to track if initial fetch was completed
+  const [dataInitialized, setDataInitialized] = useState(false);
+  
+  // Memoize the filter function to prevent recreation on every render
   const filterExercises = useCallback((
     allExercises: Record<string, ExtendedExercise[]>,
     category: string,
@@ -66,11 +65,11 @@ export const ExerciseSelector = ({
     return filtered;
   }, []);
 
-  // Fetch exercises only once when the component mounts
+  // Fetch exercises only once when component mounts
   useEffect(() => {
-    if (hasFetched) return;
-    
     const getExercises = async () => {
+      if (dataInitialized) return;
+      
       setIsLoading(true);
       setError(null);
       try {
@@ -81,7 +80,7 @@ export const ExerciseSelector = ({
         if (!exercises || exercises.length === 0) {
           setError("No exercises found. Please add exercises to the system first.");
           setExercisesByCategory({});
-          setFilteredExercises([]);
+          setDataInitialized(true);
           return;
         }
         
@@ -95,8 +94,7 @@ export const ExerciseSelector = ({
         });
         
         setExercisesByCategory(categorized);
-        // Let the next effect handle filtering
-        setHasFetched(true);
+        setDataInitialized(true);
       } catch (error) {
         console.error('Error fetching exercises:', error);
         setError("Failed to load exercises. Please try again.");
@@ -106,34 +104,15 @@ export const ExerciseSelector = ({
     };
 
     getExercises();
-  }, []);
+  }, [dataInitialized]); // Only depend on dataInitialized
 
-  // Apply filtering when relevant dependencies change
+  // Apply filtering in a separate effect with stable dependencies
   useEffect(() => {
-    // Skip first render to avoid double filtering
-    if (initialMount.current) {
-      initialMount.current = false;
-      return;
-    }
+    if (!dataInitialized) return;
     
-    // Only proceed if we have exercises to filter
-    if (!hasFetched || Object.keys(exercisesByCategory).length === 0) {
-      return;
-    }
-
-    // Filter exercises and update state
     const filtered = filterExercises(exercisesByCategory, selectedCategory, searchQuery, excludeIds);
     setFilteredExercises(filtered);
-  }, [selectedCategory, searchQuery, excludeIds, exercisesByCategory, hasFetched, filterExercises]);
-
-  // Initial filtering after exercises are fetched
-  useEffect(() => {
-    if (hasFetched && Object.keys(exercisesByCategory).length > 0 && initialMount.current) {
-      const filtered = filterExercises(exercisesByCategory, selectedCategory, searchQuery, excludeIds);
-      setFilteredExercises(filtered);
-      initialMount.current = false;
-    }
-  }, [hasFetched, exercisesByCategory, selectedCategory, searchQuery, excludeIds, filterExercises]);
+  }, [dataInitialized, selectedCategory, searchQuery, excludeIds, exercisesByCategory, filterExercises]);
 
   const categories = ['All', ...Object.keys(exercisesByCategory).sort()];
 
@@ -144,8 +123,7 @@ export const ExerciseSelector = ({
   };
 
   const handleRetry = () => {
-    setHasFetched(false);
-    initialMount.current = true;
+    setDataInitialized(false); // Reset to trigger a new fetch
   };
 
   return (

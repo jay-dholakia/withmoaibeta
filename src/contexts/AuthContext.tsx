@@ -239,24 +239,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       
-      // Try to sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('Error during sign out:', error);
-        toast.error('An error occurred while signing out');
-      } else {
-        console.log('Successfully signed out from Supabase');
+      try {
+        // Try to sign out from Supabase
+        const { error } = await supabase.auth.signOut();
         
-        // Reset auth state
-        setSession(null);
-        setUser(null);
-        setProfile(null);
-        setUserType(null);
-        
-        navigate('/');
-        toast.success('Logged out successfully');
+        if (error) {
+          console.error('Error during sign out:', error);
+          // Don't throw the error, just log it and continue with reset
+        }
+      } catch (error) {
+        // Catch any errors with the signOut call
+        console.error('Exception during sign out:', error);
+        // Continue with local state reset even if the API call fails
       }
+      
+      // Always reset auth state regardless of API success
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setUserType(null);
+      
+      navigate('/');
+      toast.success('Logged out successfully');
       
       setLoading(false);
     } catch (error) {

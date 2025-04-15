@@ -303,12 +303,14 @@ const ActiveWorkout = () => {
           console.log("Workout draft data received:", draft.draft_data);
           
           if (typeof draft.draft_data === 'object' && draft.draft_data !== null) {
+            let newExerciseStates = {...exerciseStates};
+            
             if (draft.draft_data.exerciseStates && Object.keys(draft.draft_data.exerciseStates).length > 0) {
               console.log(`Loading ${Object.keys(draft.draft_data.exerciseStates).length} exercise states from draft`);
-              setExerciseStates(prevStates => ({
-                ...prevStates,
+              newExerciseStates = {
+                ...newExerciseStates,
                 ...draft.draft_data.exerciseStates
-              }));
+              };
             }
             
             if (Array.isArray(draft.draft_data.pendingSets) && draft.draft_data.pendingSets.length > 0) {
@@ -339,10 +341,9 @@ const ActiveWorkout = () => {
         } else {
           console.log("No valid draft data found for this workout");
         }
-        
-        setDraftLoaded(true);
       } catch (error) {
         console.error("Error loading workout draft:", error);
+      } finally {
         setDraftLoaded(true);
       }
     };
@@ -368,224 +369,8 @@ const ActiveWorkout = () => {
     };
   }, [workoutCompletionId, user, draftLoaded, authStateChanged]);
 
-  const trackSetMutation = useMutation({
-    mutationFn: async ({
-      exerciseId,
-      setNumber,
-      weight,
-      reps,
-      notes,
-      distance,
-      duration,
-      location
-    }: {
-      exerciseId: string;
-      setNumber: number;
-      weight: string | null;
-      reps: string | null;
-      notes?: string | null;
-      distance?: string | null;
-      duration?: string | null;
-      location?: string | null;
-    }) => {
-      if (!workoutCompletionId) {
-        toast.error("Missing workout completion ID");
-        return null;
-      }
-      
-      console.log("Tracking set:", {
-        workoutCompletionId,
-        exerciseId,
-        setNumber,
-        weight: weight ? parseFloat(weight) : null,
-        reps: reps ? parseInt(reps, 10) : null,
-        notes,
-        distance,
-        duration,
-        location
-      });
-      
-      try {
-        return await trackWorkoutSet(
-          exerciseId,
-          workoutCompletionId,
-          setNumber,
-          {
-            weight: weight ? parseFloat(weight) : null,
-            reps_completed: reps ? parseInt(reps, 10) : null,
-            notes: notes || null,
-            distance: distance || null,
-            duration: duration || null,
-            location: location || null,
-            completed: true
-          }
-        );
-      } catch (error) {
-        console.error("Error in trackSetMutation:", error);
-        throw error;
-      }
-    },
-    onSuccess: (data) => {
-      console.log("Successfully tracked set:", data);
-      queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
-    },
-    onError: (error: any) => {
-      console.error('Error tracking set:', error);
-      toast.error(`Failed to save set: ${error?.message || 'Unknown error'}`);
-    },
-  });
-
-  const saveAllSetsMutation = useMutation({
-    mutationFn: async () => {
-      if (!workoutCompletionId || !user?.id) {
-        toast.error("Missing workout or user information");
-        return null;
-      }
-      
-      try {
-        const { data: existingCompletion, error: checkError } = await supabase
-          .from('workout_completions')
-          .select('id')
-          .eq('workout_id', workoutCompletionId)
-          .eq('user_id', user.id)
-          .maybeSingle();
-          
-        if (checkError) {
-          console.error("Error checking for existing completion:", checkError);
-        }
-        
-        let completionId = existingCompletion?.id;
-        
-        if (!completionId) {
-          console.log("Creating new workout completion record");
-          const { data: newCompletion, error: insertError } = await supabase
-            .from('workout_completions')
-            .insert({
-              workout_id: workoutData?.workout_id || workoutCompletionId,
-              user_id: user.id,
-              completed_at: new Date().toISOString()
-            })
-            .select('id')
-            .single();
-            
-          if (insertError) {
-            console.error("Error creating workout completion:", insertError);
-            throw insertError;
-          }
-          
-          completionId = newCompletion.id;
-        } else {
-          console.log("Using existing workout completion record:", completionId);
-        }
-        
-        const promises = [];
-        
-        if (pendingSets.length > 0) {
-          const setPromises = pendingSets.map(set => 
-            trackWorkoutSet(
-              set.exerciseId,
-              completionId!,
-              set.setNumber,
-              {
-                weight: set.weight ? parseFloat(set.weight) : null,
-                reps_completed: set.reps ? parseInt(set.reps, 10) : null,
-                completed: true
-              }
-            )
-          );
-          promises.push(...setPromises);
-        }
-        
-        if (pendingCardio.length > 0) {
-          const cardioPromises = pendingCardio.map(item => {
-            const distance = item.distance && item.distance.trim() !== '' 
-              ? item.distance
-              : null;
-              
-            return trackWorkoutSet(
-              item.exerciseId,
-              completionId!,
-              1,
-              {
-                distance,
-                duration: item.duration || null,
-                location: item.location || null,
-                completed: true
-              }
-            );
-          });
-          promises.push(...cardioPromises);
-        }
-        
-        if (pendingFlexibility.length > 0) {
-          const flexibilityPromises = pendingFlexibility.map(item => {
-            return trackWorkoutSet(
-              item.exerciseId,
-              completionId!,
-              1,
-              {
-                duration: item.duration || null,
-                completed: true
-              }
-            );
-          });
-          promises.push(...flexibilityPromises);
-        }
-        
-        if (pendingRuns.length > 0) {
-          const runPromises = pendingRuns.map(item => {
-            const distance = item.distance && item.distance.trim() !== '' 
-              ? item.distance
-              : null;
-              
-            return trackWorkoutSet(
-              item.exerciseId,
-              completionId!,
-              1,
-              {
-                distance,
-                duration: item.duration || null,
-                location: item.location || null,
-                completed: true
-              }
-            );
-          });
-          promises.push(...runPromises);
-        }
-        
-        if (promises.length > 0) {
-          await Promise.allSettled(promises);
-        } else {
-          console.log("No sets were completed, just marking workout as completed");
-        }
-        
-        return completionId;
-      } catch (error) {
-        console.error("Error in saveAllSetsMutation:", error);
-        throw error;
-      }
-    },
-    onSuccess: (completionId) => {
-      if (completionId) {
-        queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
-        queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
-        setPendingSets([]);
-        setPendingCardio([]);
-        setPendingFlexibility([]);
-        setPendingRuns([]);
-        navigate(`/client-dashboard/workouts/complete/${completionId}`);
-      } else {
-        toast.error("Failed to save workout");
-      }
-    },
-    onError: (error: any) => {
-      console.error('Error saving workout data:', error);
-      toast.error(`Failed to save workout: ${error?.message || 'Unknown error'}`);
-    },
-  });
-
   useEffect(() => {
-    if (workoutData?.workout?.workout_exercises) {
+    if (workoutData?.workout?.workout_exercises && !draftLoaded) {
       const initialState: any = {};
       
       const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
@@ -671,7 +456,7 @@ const ActiveWorkout = () => {
       
       setExerciseStates(initialState);
     }
-  }, [workoutData]);
+  }, [workoutData, draftLoaded]);
 
   const handleSetChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
     setExerciseStates((prev) => {

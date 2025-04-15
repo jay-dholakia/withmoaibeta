@@ -122,7 +122,6 @@ export const getWorkoutDraft = async (
     }
 
     // If not in sessionStorage, fetch from database with retries
-    // Important: For active workouts, we need to wait for user authentication
     for (let i = 0; i <= maxRetries; i++) {
       // Ensure we have the authenticated user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -136,15 +135,7 @@ export const getWorkoutDraft = async (
       console.log(`Querying database for draft (attempt ${i+1}/${maxRetries+1})`);
       console.log(`Looking for draft with user_id=${user.id}, workout_id=${workoutId}`);
       
-      // IMPORTANT DEBUG: List all drafts for this user
-      const { data: allDrafts } = await supabase
-        .from("workout_drafts")
-        .select("*")
-        .eq("user_id", user.id);
-        
-      console.log(`Found ${allDrafts?.length || 0} total drafts for user:`, allDrafts);
-      
-      // Now get the specific draft
+      // Get the specific draft with direct query
       const { data, error } = await supabase
         .from("workout_drafts")
         .select("*")

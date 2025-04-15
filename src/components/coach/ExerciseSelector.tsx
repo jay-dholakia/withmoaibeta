@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Loader2, ArrowRightLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { WorkoutExerciseForm } from '@/components/coach/WorkoutExerciseForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface ExerciseSelectorProps {
   onSelectExercise: (exercise: Exercise) => void;
@@ -31,9 +33,12 @@ export const ExerciseSelector = ({
   const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, ExtendedExercise[]>>({});
   const [filteredExercises, setFilteredExercises] = useState<ExtendedExercise[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selectedExerciseForForm, setSelectedExerciseForForm] = useState<Exercise | null>(null);
+  const [showExerciseForm, setShowExerciseForm] = useState<boolean>(false);
   
-  const fetchCompletedRef = useRef(false);
+  const dataFetchedRef = useRef(false);
   const excludeIdsRef = useRef(excludeIds);
+
   useEffect(() => {
     excludeIdsRef.current = excludeIds;
   }, [excludeIds]);
@@ -66,9 +71,9 @@ export const ExerciseSelector = ({
   }, []);
 
   useEffect(() => {
+    if (dataFetchedRef.current) return;
+    
     const fetchExercises = async () => {
-      if (fetchCompletedRef.current) return;
-      
       setIsLoading(true);
       setError(null);
       
@@ -81,8 +86,7 @@ export const ExerciseSelector = ({
           setError("No exercises found. Please add exercises to the system first.");
           setExercisesByCategory({});
           setFilteredExercises([]);
-          fetchCompletedRef.current = true;
-          setIsLoading(false);
+          dataFetchedRef.current = true;
           return;
         }
         
@@ -99,8 +103,7 @@ export const ExerciseSelector = ({
         
         const initialFiltered = filterExercises(categorized, selectedCategory, searchQuery);
         setFilteredExercises(initialFiltered);
-        
-        fetchCompletedRef.current = true;
+        dataFetchedRef.current = true;
       } catch (error) {
         console.error('Error fetching exercises:', error);
         setError("Failed to load exercises. Please try again.");
@@ -112,17 +115,17 @@ export const ExerciseSelector = ({
     fetchExercises();
   }, [filterExercises, selectedCategory, searchQuery]);
 
-  const handleCategoryChange = useCallback((category: string) => {
+  const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
     const newFiltered = filterExercises(exercisesByCategory, category, searchQuery);
     setFilteredExercises(newFiltered);
-  }, [exercisesByCategory, searchQuery, filterExercises]);
+  };
 
-  const handleSearchChange = useCallback((query: string) => {
+  const handleSearchChange = (query: string) => {
     setSearchQuery(query);
     const newFiltered = filterExercises(exercisesByCategory, selectedCategory, query);
     setFilteredExercises(newFiltered);
-  }, [exercisesByCategory, selectedCategory, filterExercises]);
+  };
 
   const hasAlternatives = (exercise: ExtendedExercise) => {
     return !!(exercise.alternative_exercise_1_id || 
@@ -131,7 +134,7 @@ export const ExerciseSelector = ({
   };
 
   const handleRetry = () => {
-    fetchCompletedRef.current = false;
+    dataFetchedRef.current = false;
     const fetchExercises = async () => {
       setIsLoading(true);
       setError(null);
@@ -167,6 +170,24 @@ export const ExerciseSelector = ({
     };
     
     fetchExercises();
+  };
+
+  const handleExerciseClick = (exercise: Exercise) => {
+    console.log("Exercise clicked:", exercise);
+    if (onSelect) {
+      setSelectedExerciseForForm(exercise);
+      setShowExerciseForm(true);
+    } else {
+      onSelectExercise(exercise);
+    }
+  };
+
+  const handleFormSubmit = async (formData: any) => {
+    if (selectedExerciseForForm && onSelect) {
+      await onSelect(selectedExerciseForForm.id, formData);
+      setShowExerciseForm(false);
+      setSelectedExerciseForForm(null);
+    }
   };
 
   const categories = ['All', ...Object.keys(exercisesByCategory).sort()];
@@ -212,7 +233,7 @@ export const ExerciseSelector = ({
                     key={exercise.id}
                     variant="outline"
                     className="justify-start h-auto py-3 px-4"
-                    onClick={() => onSelectExercise(exercise as Exercise)}
+                    onClick={() => handleExerciseClick(exercise as Exercise)}
                   >
                     <div className="text-left flex-1">
                       <div className="font-medium flex items-center">
@@ -240,7 +261,7 @@ export const ExerciseSelector = ({
         </Tabs>
       )}
       
-      {onSelect && onCancel && (
+      {onSelect && onCancel && !showExerciseForm && (
         <div className="mt-4 flex justify-end space-x-2">
           <Button 
             variant="ghost" 
@@ -249,13 +270,40 @@ export const ExerciseSelector = ({
           >
             Cancel
           </Button>
-          {buttonText && (
-            <Button disabled={isSubmitting}>
-              {isSubmitting ? 'Processing...' : buttonText}
-            </Button>
-          )}
         </div>
       )}
+
+      <Dialog open={showExerciseForm} onOpenChange={(open) => !open && setShowExerciseForm(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedExerciseForForm?.name || 'Configure Exercise'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedExerciseForForm && (
+            <WorkoutExerciseForm
+              initialData={{ exercise: selectedExerciseForForm }}
+              onSubmit={handleFormSubmit}
+              isSubmitting={isSubmitting}
+            />
+          )}
+          
+          <div className="mt-4 flex justify-end space-x-2">
+            <Button 
+              variant="ghost" 
+              onClick={() => {
+                setShowExerciseForm(false);
+                setSelectedExerciseForForm(null);
+                if (onCancel) onCancel();
+              }}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

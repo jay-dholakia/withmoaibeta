@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/dialog';
 import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
 import { Exercise } from '@/types/workout';
-import { WorkoutExerciseForm } from '@/components/coach/WorkoutExerciseForm';
 
 const EditWorkoutPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -125,7 +124,7 @@ const EditWorkoutPage = () => {
 
   const handleSelectExercise = (exercise: Exercise) => {
     console.log("Exercise selected:", exercise);
-    setSelectedExercise(exercise);
+    // This is no longer used as we're using the legacy flow
   };
 
   const handleSaveExercise = async (exerciseId: string, data: any) => {
@@ -408,7 +407,7 @@ const EditWorkoutPage = () => {
             <DialogTitle>Add Exercise to Workout</DialogTitle>
           </DialogHeader>
           <ExerciseSelector
-            onSelectExercise={handleSelectExercise}
+            onSelectExercise={() => {}} // We're using the legacy onSelect flow
             onSelect={handleSaveExercise}
             onCancel={() => setIsAddingExercise(false)}
             isSubmitting={isSubmitting}

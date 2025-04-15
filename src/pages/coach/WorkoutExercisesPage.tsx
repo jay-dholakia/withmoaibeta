@@ -31,7 +31,6 @@ const WorkoutExercisesPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
 
   useEffect(() => {
     const loadWorkoutDetails = async () => {
@@ -68,11 +67,6 @@ const WorkoutExercisesPage = () => {
 
   const handleBackClick = () => {
     navigate(`/workouts/${workoutId}/edit`);
-  };
-
-  const handleSelectExercise = (exercise: Exercise) => {
-    console.log("Exercise selected:", exercise);
-    setSelectedExercise(exercise);
   };
 
   const handleSaveExercise = async (exerciseId: string, data: any) => {
@@ -269,7 +263,7 @@ const WorkoutExercisesPage = () => {
             <DialogTitle>Add Exercise to Workout</DialogTitle>
           </DialogHeader>
           <ExerciseSelector
-            onSelectExercise={handleSelectExercise}
+            onSelectExercise={() => {}} // We're using the legacy onSelect flow
             onSelect={handleSaveExercise}
             onCancel={() => setIsAddingExercise(false)}
             isSubmitting={isSubmitting}

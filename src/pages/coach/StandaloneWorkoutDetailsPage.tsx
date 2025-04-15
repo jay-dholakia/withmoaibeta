@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -16,7 +15,6 @@ import {
 } from '@/services/workout-service';
 import StandaloneWorkoutForm from '@/components/coach/StandaloneWorkoutForm';
 import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
-import { WorkoutExerciseForm } from '@/components/coach/WorkoutExerciseForm';
 import { Exercise } from '@/types/workout';
 import { 
   Dialog,
@@ -92,10 +90,6 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
   
   const handleAddExercise = () => {
     setIsAddingExercise(true);
-  };
-
-  const handleSelectExercise = (exercise: Exercise) => {
-    console.log("Exercise selected:", exercise);
   };
 
   const handleSaveExercise = async (exerciseId: string, data: any) => {
@@ -348,7 +342,7 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
               <DialogTitle>Add Exercise to Workout</DialogTitle>
             </DialogHeader>
             <ExerciseSelector
-              onSelectExercise={handleSelectExercise}
+              onSelectExercise={() => {}}
               onSelect={handleSaveExercise}
               onCancel={() => setIsAddingExercise(false)}
               isSubmitting={isSubmitting}

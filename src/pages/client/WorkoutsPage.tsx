@@ -31,11 +31,11 @@ const WorkoutsPage = () => {
     enabled: !!user?.id,
   });
 
-  // IMPORTANT: Use timestamp AND workout ID together to force remount 
-  // This ensures the ActiveWorkout component loads fresh every time
+  // Force a different key whenever navigating to ensure components fully remount
+  // Use both timestamp, workout ID, and user ID to ensure it's always unique
   const timestamp = Date.now();
   const workoutCompletionId = location.pathname.split('/').pop();
-  const forceReloadKey = `${workoutCompletionId}-${timestamp}-${user?.id || 'no-user'}`;
+  const forceReloadKey = `${workoutCompletionId}-${timestamp}-${user?.id || 'no-user'}-${Math.random().toString(36).substring(7)}`;
 
   return (
     <div className="w-full">

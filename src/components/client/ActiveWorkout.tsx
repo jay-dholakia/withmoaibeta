@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { VideoPlayer } from '@/components/client/VideoPlayer';
 import Stopwatch from './Stopwatch';
+import { updateWorkoutCompletion } from '@/services/workout-edit-service';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -824,6 +825,83 @@ const ActiveWorkout = () => {
       console.error("Error saving workout data:", error);
     }
   };
+
+  const saveAllSetsMutation = useMutation({
+    mutationFn: async () => {
+      if (!workoutCompletionId || !user?.id) {
+        throw new Error("Missing workout completion ID or user ID");
+      }
+      
+      try {
+        await updateWorkoutCompletion(workoutCompletionId, {
+          completed_at: new Date().toISOString()
+        });
+        
+        for (const pendingSet of pendingSets) {
+          await trackWorkoutSet({
+            workoutCompletionId,
+            exerciseId: pendingSet.exerciseId,
+            setNumber: pendingSet.setNumber,
+            weight: pendingSet.weight,
+            repsCompleted: pendingSet.reps,
+            completed: true
+          });
+        }
+        
+        for (const cardio of pendingCardio) {
+          await trackWorkoutSet({
+            workoutCompletionId,
+            exerciseId: cardio.exerciseId,
+            setNumber: 1,
+            distance: cardio.distance,
+            duration: cardio.duration,
+            location: cardio.location,
+            completed: true
+          });
+        }
+        
+        for (const flexibility of pendingFlexibility) {
+          await trackWorkoutSet({
+            workoutCompletionId,
+            exerciseId: flexibility.exerciseId,
+            setNumber: 1,
+            duration: flexibility.duration,
+            completed: true
+          });
+        }
+        
+        for (const run of pendingRuns) {
+          await trackWorkoutSet({
+            workoutCompletionId,
+            exerciseId: run.exerciseId,
+            setNumber: 1,
+            distance: run.distance,
+            duration: run.duration,
+            location: run.location,
+            completed: true
+          });
+        }
+        
+        await deleteWorkoutDraft(workoutCompletionId);
+        
+        navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
+        
+        return true;
+      } catch (error) {
+        console.error("Error saving workout data:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workout-history'] });
+      queryClient.invalidateQueries({ queryKey: ['personal-records'] });
+      toast.success('Workout completed successfully!');
+    },
+    onError: (error) => {
+      console.error("Error completing workout:", error);
+      toast.error('Failed to complete workout. Please try again.');
+    }
+  });
 
   if (isLoading) {
     return (

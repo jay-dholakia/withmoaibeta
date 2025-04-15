@@ -42,7 +42,6 @@ const EditWorkoutPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
 
-  // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dayOfWeek, setDayOfWeek] = useState(1);
@@ -68,7 +67,6 @@ const EditWorkoutPage = () => {
           setWorkoutType(workoutData.workout_type as any || 'strength');
           setPriority(workoutData.priority || 0);
           
-          // Also fetch any exercises for this workout
           const exercisesData = await fetchWorkoutExercises(workoutId);
           console.log("Exercises data received:", exercisesData);
           setExercises(exercisesData || []);
@@ -104,7 +102,6 @@ const EditWorkoutPage = () => {
 
       toast.success('Workout updated successfully');
       
-      // Navigate back to the week page
       if (workout?.week_id) {
         navigate(`/workout-weeks/${workout.week_id}`);
       } else {
@@ -119,11 +116,9 @@ const EditWorkoutPage = () => {
   };
 
   const handleBackClick = () => {
-    // If we have a week_id, navigate directly to that page
     if (workout?.week_id) {
       navigate(`/workout-weeks/${workout.week_id}`);
     } else {
-      // Otherwise, try to go back in history
       navigate(-1);
     }
   };
@@ -149,7 +144,6 @@ const EditWorkoutPage = () => {
         order_index: exercises.length
       });
       
-      // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
@@ -171,7 +165,6 @@ const EditWorkoutPage = () => {
       
       await deleteWorkoutExercise(exerciseId);
       
-      // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
@@ -184,15 +177,14 @@ const EditWorkoutPage = () => {
     }
   };
 
-  const handleMoveExerciseUp = async (exerciseId: string, workoutId: string) => {
+  const handleMoveExerciseUp = async (exerciseId: string) => {
     if (!workoutId) return;
     
     try {
       setIsSubmitting(true);
       
-      await moveWorkoutExerciseUp(exerciseId);
+      await moveWorkoutExerciseUp(exerciseId, workoutId);
       
-      // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
@@ -204,15 +196,14 @@ const EditWorkoutPage = () => {
     }
   };
 
-  const handleMoveExerciseDown = async (exerciseId: string, workoutId: string) => {
+  const handleMoveExerciseDown = async (exerciseId: string) => {
     if (!workoutId) return;
     
     try {
       setIsSubmitting(true);
       
-      await moveWorkoutExerciseDown(exerciseId);
+      await moveWorkoutExerciseDown(exerciseId, workoutId);
       
-      // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
@@ -375,7 +366,7 @@ const EditWorkoutPage = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleMoveExerciseUp(exercise.id, workoutId as string)}
+                          onClick={() => handleMoveExerciseUp(exercise.id)}
                           disabled={index === 0 || isSubmitting}
                         >
                           Move Up
@@ -383,7 +374,7 @@ const EditWorkoutPage = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleMoveExerciseDown(exercise.id, workoutId as string)}
+                          onClick={() => handleMoveExerciseDown(exercise.id)}
                           disabled={index === exercises.length - 1 || isSubmitting}
                         >
                           Move Down

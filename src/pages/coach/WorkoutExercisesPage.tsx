@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -127,13 +126,13 @@ const WorkoutExercisesPage = () => {
     }
   };
 
-  const handleMoveExerciseUp = async (exerciseId: string, workoutId: string) => {
+  const handleMoveExerciseUp = async (exerciseId: string) => {
     if (!workoutId) return;
     
     try {
       setIsSubmitting(true);
       
-      await moveWorkoutExerciseUp(exerciseId);
+      await moveWorkoutExerciseUp(exerciseId, workoutId);
       
       // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
@@ -147,13 +146,13 @@ const WorkoutExercisesPage = () => {
     }
   };
 
-  const handleMoveExerciseDown = async (exerciseId: string, workoutId: string) => {
+  const handleMoveExerciseDown = async (exerciseId: string) => {
     if (!workoutId) return;
     
     try {
       setIsSubmitting(true);
       
-      await moveWorkoutExerciseDown(exerciseId);
+      await moveWorkoutExerciseDown(exerciseId, workoutId);
       
       // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
@@ -228,7 +227,7 @@ const WorkoutExercisesPage = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleMoveExerciseUp(exercise.id, workoutId as string)}
+                          onClick={() => handleMoveExerciseUp(exercise.id)}
                           disabled={index === 0 || isSubmitting}
                         >
                           Move Up
@@ -236,7 +235,7 @@ const WorkoutExercisesPage = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleMoveExerciseDown(exercise.id, workoutId as string)}
+                          onClick={() => handleMoveExerciseDown(exercise.id)}
                           disabled={index === exercises.length - 1 || isSubmitting}
                         >
                           Move Down

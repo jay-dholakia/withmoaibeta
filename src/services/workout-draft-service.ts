@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -35,9 +34,7 @@ export const saveWorkoutDraft = async (
     return false;
   }
 
-  // Ensure draft_data is converted to JSON string for storage
-  const jsonData = typeof draftData === 'string' ? draftData : JSON.stringify(draftData);
-
+  // Ensure draft_data is stored as a JSONB object, not as a string
   const payload = {
     user_id: user.id,
     workout_id: workoutId,

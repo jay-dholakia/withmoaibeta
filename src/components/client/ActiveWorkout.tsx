@@ -41,6 +41,7 @@ const ActiveWorkout = () => {
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [authStateChanged, setAuthStateChanged] = useState(0);
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
+  const [workoutDataInitialized, setWorkoutDataInitialized] = useState(false);
   
   const [exerciseStates, setExerciseStates] = useState<{
     [key: string]: {
@@ -285,6 +286,101 @@ const ActiveWorkout = () => {
   });
 
   useEffect(() => {
+    if (workoutData?.workout?.workout_exercises && !workoutDataInitialized) {
+      console.log("Initializing workout exercise states from workout data");
+      
+      const initialState: any = {};
+      
+      const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
+        ? workoutData.workout.workout_exercises 
+        : [];
+      
+      workoutExercises.forEach((exercise: any) => {
+        const exerciseType = exercise.exercise?.exercise_type || 'strength';
+        const exerciseName = (exercise.exercise?.name || '').toLowerCase();
+        const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
+        
+        if (isRunExercise) {
+          const existingSet = workoutData.workout_set_completions?.find(
+            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
+          );
+          
+          initialState[exercise.id] = {
+            expanded: true,
+            sets: [],
+            runData: {
+              distance: existingSet?.distance || '',
+              duration: existingSet?.duration || '',
+              location: existingSet?.location || '',
+              completed: !!existingSet?.completed
+            }
+          };
+        } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+          console.log(`Initializing exercise ${exercise.id}: ${exercise.exercise?.name} with ${exercise.sets} sets`);
+          const sets = Array.from({ length: exercise.sets || 1 }, (_, i) => {
+            const existingSet = workoutData.workout_set_completions?.find(
+              (set: any) => set.workout_exercise_id === exercise.id && set.set_number === i + 1
+            );
+            
+            let defaultReps = '';
+            if (exercise.reps) {
+              const repsMatch = exercise.reps.match(/^(\d+)$/);
+              if (repsMatch) {
+                defaultReps = repsMatch[1];
+              }
+            }
+            
+            return {
+              setNumber: i + 1,
+              weight: existingSet?.weight?.toString() || '',
+              reps: existingSet?.reps_completed?.toString() || defaultReps,
+              completed: !!existingSet?.completed,
+            };
+          });
+          
+          initialState[exercise.id] = {
+            expanded: true,
+            sets,
+          };
+          console.log(`Created ${sets.length} sets for exercise ${exercise.id}`);
+        } else if (exerciseType === 'cardio') {
+          const existingSet = workoutData.workout_set_completions?.find(
+            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
+          );
+          
+          initialState[exercise.id] = {
+            expanded: true,
+            sets: [],
+            cardioData: {
+              distance: existingSet?.distance || '',
+              duration: existingSet?.duration || '',
+              location: existingSet?.location || '',
+              completed: !!existingSet?.completed
+            }
+          };
+        } else if (exerciseType === 'flexibility') {
+          const existingSet = workoutData.workout_set_completions?.find(
+            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
+          );
+          
+          initialState[exercise.id] = {
+            expanded: true,
+            sets: [],
+            flexibilityData: {
+              duration: existingSet?.duration || '',
+              completed: !!existingSet?.completed
+            }
+          };
+        }
+      });
+      
+      console.log("Initialized exercise states:", initialState);
+      setExerciseStates(initialState);
+      setWorkoutDataInitialized(true);
+    }
+  }, [workoutData, workoutDataInitialized]);
+
+  useEffect(() => {
     let mounted = true;
     
     const loadDraftData = async () => {
@@ -301,9 +397,24 @@ const ActiveWorkout = () => {
           console.log("Workout draft data received:", draft.draft_data);
           
           if (typeof draft.draft_data === 'object' && draft.draft_data !== null) {
-            if (draft.draft_data.exerciseStates) {
-              console.log("Loading exercise states from draft:", draft.draft_data.exerciseStates);
-              setExerciseStates(draft.draft_data.exerciseStates);
+            if (workoutDataInitialized) {
+              if (draft.draft_data.exerciseStates) {
+                console.log("Loading exercise states from draft:", draft.draft_data.exerciseStates);
+                setExerciseStates(prevStates => {
+                  const mergedStates = { ...prevStates };
+                  
+                  Object.keys(draft.draft_data.exerciseStates).forEach(exerciseId => {
+                    if (mergedStates[exerciseId]) {
+                      mergedStates[exerciseId] = draft.draft_data.exerciseStates[exerciseId];
+                    }
+                  });
+                  
+                  return mergedStates;
+                });
+              }
+            } else {
+              console.log("Workout data not initialized yet, waiting to apply draft");
+              return; // Don't mark as loaded until we can actually apply it
             }
             
             if (Array.isArray(draft.draft_data.pendingSets)) {
@@ -341,15 +452,15 @@ const ActiveWorkout = () => {
       }
     };
     
-    if (user && workoutCompletionId && !draftLoaded) {
-      console.log("User authenticated, loading draft data");
+    if (user && workoutCompletionId && !draftLoaded && workoutDataInitialized) {
+      console.log("User authenticated and workout data initialized, loading draft data");
       loadDraftData();
     }
     
     return () => {
       mounted = false;
     };
-  }, [workoutCompletionId, user, draftLoaded]);
+  }, [workoutCompletionId, user, draftLoaded, workoutDataInitialized]);
 
   const trackSetMutation = useMutation({
     mutationFn: async ({
@@ -550,6 +661,8 @@ const ActiveWorkout = () => {
     },
     onSuccess: (completionId) => {
       if (completionId) {
+        deleteWorkoutDraft(workoutCompletionId);
+        
         queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
         queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
         setPendingSets([]);

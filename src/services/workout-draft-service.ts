@@ -117,7 +117,10 @@ export const getWorkoutDraft = async (
         // Ensure consistent format
         if (parsedCache && typeof parsedCache === 'object') {
           if (parsedCache.draft_data) {
-            return parsedCache;
+            return {
+              ...parsedCache,
+              draft_data: safeParseDraftData(parsedCache.draft_data)
+            };
           }
         }
       } catch (e) {
@@ -126,7 +129,6 @@ export const getWorkoutDraft = async (
     }
 
     // If not in sessionStorage, fetch from database with retries
-    // Important: For active workouts, we need to wait for user authentication
     for (let i = 0; i <= maxRetries; i++) {
       // Ensure we have the authenticated user
       const { data: { user }, error: authError } = await supabase.auth.getUser();

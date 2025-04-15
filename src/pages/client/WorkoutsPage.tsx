@@ -44,7 +44,7 @@ const WorkoutsPage = () => {
           path="active/:workoutCompletionId" 
           element={
             <ActiveWorkout 
-              key={forceReloadKey} 
+              key={`active-${forceReloadKey}`} 
             />
           } 
         />

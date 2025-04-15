@@ -61,57 +61,97 @@ export const saveWorkoutDraft = async (
       console.warn("Failed to save draft to sessionStorage:", e);
     }
     
-    // IMPORTANT: Try direct upsert first without checking for existence
-    // This is more reliable and avoids race conditions
-    console.log(`Attempting direct upsert for draft of workout ${workoutId}`);
+    // MODIFIED: Changed approach to check first, then update or insert as appropriate
+    // This avoids the need for an ON CONFLICT constraint in the database
+    console.log(`Checking if draft exists for workout ${workoutId}`);
     
-    const { error: upsertError, data: upsertData } = await supabase
+    // Check if a draft already exists for this user and workout
+    const { data: existingDraft, error: queryError } = await supabase
       .from('workout_drafts')
-      .upsert({
-        user_id: user.id,
-        workout_id: workoutId,
-        workout_type: workoutType,
-        draft_data: draftData,
-        updated_at: new Date().toISOString()
-      }, { 
-        onConflict: 'user_id,workout_id' 
-      })
       .select('id')
+      .eq('user_id', user.id)
+      .eq('workout_id', workoutId)
       .maybeSingle();
     
-    if (upsertError) {
-      console.error("Error with direct upsert of workout draft:", {
-        error: upsertError,
+    if (queryError) {
+      console.error("Error checking for existing workout draft:", {
+        error: queryError,
         workoutId,
         userId: user.id,
         timestamp: new Date().toISOString()
       });
-      
-      // Fall back to the separate check-then-update flow
-      console.log("Falling back to check-then-update flow");
-      return await fallbackDraftSave(workoutId, workoutType, draftData, user.id);
+      return false;
     }
     
-    console.log(`Successfully upserted draft for workout ${workoutId}`, upsertData);
+    // Log to debug
+    console.log(`Existing draft check result:`, existingDraft);
     
-    // Double check that the data was saved
-    if (upsertData?.id) {
-      const { data: verifyData, error: verifyError } = await supabase
+    let result;
+    
+    if (existingDraft) {
+      // Update existing draft
+      console.log(`Updating existing draft for workout ${workoutId}`, existingDraft);
+      const { error, data } = await supabase
         .from('workout_drafts')
-        .select('draft_data')
-        .eq('id', upsertData.id)
+        .update({ 
+          draft_data: draftData,
+          workout_type: workoutType,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingDraft.id)
+        .select('id')
         .maybeSingle();
         
-      if (verifyError || !verifyData) {
-        console.error("Failed to verify upserted draft data", verifyError);
-        return await fallbackDraftSave(workoutId, workoutType, draftData, user.id);
-      } else {
-        console.log("Draft verification successful", verifyData);
-        return true;
+      if (error) {
+        console.error("Error updating workout draft:", {
+          error,
+          workoutId,
+          draftId: existingDraft.id,
+          timestamp: new Date().toISOString()
+        });
+        return false;
       }
+      
+      console.log(`Successfully updated draft for workout ${workoutId}`, data);
+      result = data;
+    } else {
+      // Create new draft
+      console.log(`Creating new draft for workout ${workoutId}`);
+      const { error, data } = await supabase
+        .from('workout_drafts')
+        .insert({
+          user_id: user.id,
+          workout_id: workoutId,
+          workout_type: workoutType,
+          draft_data: draftData,
+          updated_at: new Date().toISOString()
+        })
+        .select('id')
+        .maybeSingle();
+        
+      if (error) {
+        console.error("Error creating workout draft:", {
+          error,
+          workoutId,
+          userId: user.id,
+          errorCode: error.code,
+          errorMessage: error.message,
+          timestamp: new Date().toISOString()
+        });
+        return false;
+      }
+      
+      console.log(`Successfully created new draft for workout ${workoutId}`, data);
+      result = data;
     }
     
-    return !!upsertData;
+    // Verify the data was saved
+    if (result?.id) {
+      console.log(`Draft save confirmed for workout ${workoutId} with ID ${result.id}`);
+      return true;
+    }
+    
+    return false;
   } catch (error) {
     console.error("Error in saveWorkoutDraft:", {
       error,

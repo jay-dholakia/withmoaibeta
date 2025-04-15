@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -42,29 +41,21 @@ export const saveWorkoutDraft = async (
     // Ensure workout_type is a string, not null
     const workoutTypeValue = workoutType || 'workout';
 
-    // Create a complete payload
-    const payload = {
-      user_id: user.id,
-      workout_id: workoutId,
-      workout_type: workoutTypeValue,
-      draft_data: draftData,
-      updated_at: new Date().toISOString(),
-    };
-
-    console.log(">>> SAVING DRAFT PAYLOAD:", payload);
-
-    // Make sure we're inserting draft_data as JSON object, not a string
+    // Prepare the draft data to store
     const draftDataToStore = typeof draftData === 'string' 
       ? JSON.parse(draftData) 
       : draftData;
 
-    // Perform the database operation
+    // Perform the upsert operation - this will replace any existing draft for this workout
     const { data, error } = await supabase
       .from("workout_drafts")
-      .upsert([{
-        ...payload,
-        draft_data: draftDataToStore
-      }], { 
+      .upsert({
+        user_id: user.id,
+        workout_id: workoutId,
+        workout_type: workoutTypeValue,
+        draft_data: draftDataToStore,
+        updated_at: new Date().toISOString()
+      }, { 
         onConflict: "user_id,workout_id" 
       })
       .select("id");
@@ -77,11 +68,14 @@ export const saveWorkoutDraft = async (
     console.log(">>> UPSERT SUCCESS:", data);
 
     try {
-      // Store the complete payload in sessionStorage with consistent format
+      // Store the complete payload in sessionStorage
       const sessionPayload = {
-        ...payload,
+        user_id: user.id,
+        workout_id: workoutId,
+        workout_type: workoutTypeValue,
         draft_data: draftDataToStore,
-        id: data?.[0]?.id
+        id: data?.[0]?.id,
+        updated_at: new Date().toISOString()
       };
       
       sessionStorage.setItem(

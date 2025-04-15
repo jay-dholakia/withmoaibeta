@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Exercise } from '@/types/workout';
 import { fetchExercisesByCategory, ExtendedExercise } from '@/services/workout-service';
 import { Input } from '@/components/ui/input';
@@ -33,14 +33,17 @@ export const ExerciseSelector = ({
   const [filteredExercises, setFilteredExercises] = useState<ExtendedExercise[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState<boolean>(false);
+  
+  // Use a ref to track initial mount and prevent unnecessary updates
+  const initialMount = useRef(true);
 
   // Memoize the filter function to prevent it from being recreated on every render
-  const updateFilteredExercises = useCallback((
+  const filterExercises = useCallback((
     allExercises: Record<string, ExtendedExercise[]>,
     category: string,
     query: string,
     excluded: string[]
-  ) => {
+  ): ExtendedExercise[] => {
     let filtered: ExtendedExercise[] = [];
 
     if (category === 'All') {
@@ -60,7 +63,7 @@ export const ExerciseSelector = ({
       filtered = filtered.filter(exercise => !excluded.includes(exercise.id));
     }
 
-    setFilteredExercises(filtered);
+    return filtered;
   }, []);
 
   // Fetch exercises only once when the component mounts
@@ -92,7 +95,7 @@ export const ExerciseSelector = ({
         });
         
         setExercisesByCategory(categorized);
-        // Initial filtering will be done in the separate effect
+        // Let the next effect handle filtering
         setHasFetched(true);
       } catch (error) {
         console.error('Error fetching exercises:', error);
@@ -103,14 +106,34 @@ export const ExerciseSelector = ({
     };
 
     getExercises();
-  }, [hasFetched]); // Only depend on hasFetched
+  }, []);
 
-  // Separate effect for filtering that runs when filter criteria change
+  // Apply filtering when relevant dependencies change
   useEffect(() => {
-    if (hasFetched && Object.keys(exercisesByCategory).length > 0) {
-      updateFilteredExercises(exercisesByCategory, selectedCategory, searchQuery, excludeIds);
+    // Skip first render to avoid double filtering
+    if (initialMount.current) {
+      initialMount.current = false;
+      return;
     }
-  }, [selectedCategory, searchQuery, excludeIds, exercisesByCategory, hasFetched, updateFilteredExercises]);
+    
+    // Only proceed if we have exercises to filter
+    if (!hasFetched || Object.keys(exercisesByCategory).length === 0) {
+      return;
+    }
+
+    // Filter exercises and update state
+    const filtered = filterExercises(exercisesByCategory, selectedCategory, searchQuery, excludeIds);
+    setFilteredExercises(filtered);
+  }, [selectedCategory, searchQuery, excludeIds, exercisesByCategory, hasFetched, filterExercises]);
+
+  // Initial filtering after exercises are fetched
+  useEffect(() => {
+    if (hasFetched && Object.keys(exercisesByCategory).length > 0 && initialMount.current) {
+      const filtered = filterExercises(exercisesByCategory, selectedCategory, searchQuery, excludeIds);
+      setFilteredExercises(filtered);
+      initialMount.current = false;
+    }
+  }, [hasFetched, exercisesByCategory, selectedCategory, searchQuery, excludeIds, filterExercises]);
 
   const categories = ['All', ...Object.keys(exercisesByCategory).sort()];
 
@@ -122,6 +145,7 @@ export const ExerciseSelector = ({
 
   const handleRetry = () => {
     setHasFetched(false);
+    initialMount.current = true;
   };
 
   return (

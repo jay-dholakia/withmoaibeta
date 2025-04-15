@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Exercise } from '@/types/workout';
 import { fetchExercisesByCategory, ExtendedExercise } from '@/services/workout-service';
 import { Input } from '@/components/ui/input';
@@ -34,8 +34,37 @@ export const ExerciseSelector = ({
   const [error, setError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState<boolean>(false);
 
+  // Memoize the filter function to prevent it from being recreated on every render
+  const updateFilteredExercises = useCallback((
+    allExercises: Record<string, ExtendedExercise[]>,
+    category: string,
+    query: string,
+    excluded: string[]
+  ) => {
+    let filtered: ExtendedExercise[] = [];
+
+    if (category === 'All') {
+      filtered = Object.values(allExercises).flat();
+    } else if (allExercises[category]) {
+      filtered = [...allExercises[category]];
+    }
+
+    if (query) {
+      const lowerQuery = query.toLowerCase();
+      filtered = filtered.filter(exercise => 
+        exercise.name.toLowerCase().includes(lowerQuery)
+      );
+    }
+
+    if (excluded.length > 0) {
+      filtered = filtered.filter(exercise => !excluded.includes(exercise.id));
+    }
+
+    setFilteredExercises(filtered);
+  }, []);
+
+  // Fetch exercises only once when the component mounts
   useEffect(() => {
-    // Only fetch exercises if we haven't already
     if (hasFetched) return;
     
     const getExercises = async () => {
@@ -63,7 +92,7 @@ export const ExerciseSelector = ({
         });
         
         setExercisesByCategory(categorized);
-        updateFilteredExercises(categorized, selectedCategory, searchQuery, excludeIds);
+        // Initial filtering will be done in the separate effect
         setHasFetched(true);
       } catch (error) {
         console.error('Error fetching exercises:', error);
@@ -74,41 +103,14 @@ export const ExerciseSelector = ({
     };
 
     getExercises();
-  }, [excludeIds, hasFetched]);
+  }, [hasFetched]); // Only depend on hasFetched
 
+  // Separate effect for filtering that runs when filter criteria change
   useEffect(() => {
-    if (hasFetched) {
+    if (hasFetched && Object.keys(exercisesByCategory).length > 0) {
       updateFilteredExercises(exercisesByCategory, selectedCategory, searchQuery, excludeIds);
     }
-  }, [selectedCategory, searchQuery, excludeIds, exercisesByCategory, hasFetched]);
-
-  const updateFilteredExercises = (
-    allExercises: Record<string, ExtendedExercise[]>,
-    category: string,
-    query: string,
-    excluded: string[]
-  ) => {
-    let filtered: ExtendedExercise[] = [];
-
-    if (category === 'All') {
-      filtered = Object.values(allExercises).flat();
-    } else if (allExercises[category]) {
-      filtered = [...allExercises[category]];
-    }
-
-    if (query) {
-      const lowerQuery = query.toLowerCase();
-      filtered = filtered.filter(exercise => 
-        exercise.name.toLowerCase().includes(lowerQuery)
-      );
-    }
-
-    if (excluded.length > 0) {
-      filtered = filtered.filter(exercise => !excluded.includes(exercise.id));
-    }
-
-    setFilteredExercises(filtered);
-  };
+  }, [selectedCategory, searchQuery, excludeIds, exercisesByCategory, hasFetched, updateFilteredExercises]);
 
   const categories = ['All', ...Object.keys(exercisesByCategory).sort()];
 

@@ -34,7 +34,6 @@ export const saveWorkoutDraft = async (
     return false;
   }
 
-  // Ensure draft_data is stored as a JSONB object, not as a string
   const payload = {
     user_id: user.id,
     workout_id: workoutId,
@@ -43,44 +42,33 @@ export const saveWorkoutDraft = async (
     updated_at: new Date().toISOString(),
   };
 
-  try {
-    console.log("Attempting to save workout draft with payload:", payload);
-    
-    // Use the correct upsert syntax that matches our unique constraint
-    const { error, data } = await supabase
-      .from("workout_drafts")
-      .upsert(payload, { onConflict: 'user_id,workout_id' });
+  console.log(">>> SAVING DRAFT PAYLOAD:", payload);
 
-    if (error) {
-      console.error("Error saving workout draft:", error);
-      return false;
-    }
+  const { data, error } = await supabase
+    .from("workout_drafts")
+    .upsert([payload], { onConflict: "user_id,workout_id" })
+    .select("id");
 
-    console.log("Workout draft saved successfully to database:", data);
-
-    try {
-      sessionStorage.setItem(
-        `workout_draft_${workoutId}`,
-        JSON.stringify(payload)
-      );
-      console.log("Workout draft saved to sessionStorage");
-    } catch (e) {
-      console.warn("Failed to save to sessionStorage:", e);
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Unexpected error saving workout draft:", error);
+  if (error) {
+    console.error(">>> UPSERT ERROR:", error);
     return false;
   }
+
+  console.log(">>> UPSERT SUCCESS:", data);
+
+  try {
+    sessionStorage.setItem(
+      `workout_draft_${workoutId}`,
+      JSON.stringify(payload)
+    );
+    console.log(">>> Draft also saved to sessionStorage");
+  } catch (e) {
+    console.warn(">>> sessionStorage save failed:", e);
+  }
+
+  return true;
 };
 
-/**
- * Retrieves a workout draft from the server with improved reliability and added caching
- * @param workoutId The workout ID
- * @param maxRetries Maximum number of retries (default: 5)
- * @param retryInterval Interval between retries in ms (default: 300)
- */
 export const getWorkoutDraft = async (
   workoutId: string | null,
   maxRetries = 5,

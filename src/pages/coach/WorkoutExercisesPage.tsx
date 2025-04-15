@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -20,21 +21,29 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
+import { useAuth } from '@/contexts/AuthContext';
 
 const WorkoutExercisesPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const [workout, setWorkout] = useState<any>(null);
   const [exercises, setExercises] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pageLoaded, setPageLoaded] = useState(false);
+
+  // Use useEffect with an empty dependency array to track initial page load
+  useEffect(() => {
+    setPageLoaded(true);
+  }, []);
 
   useEffect(() => {
     const loadWorkoutDetails = async () => {
-      if (!workoutId) return;
+      if (!workoutId || !user) return;
 
       try {
         setIsLoading(true);
@@ -62,8 +71,10 @@ const WorkoutExercisesPage = () => {
       }
     };
 
-    loadWorkoutDetails();
-  }, [workoutId, navigate]);
+    if (pageLoaded && user) {
+      loadWorkoutDetails();
+    }
+  }, [workoutId, navigate, user, pageLoaded]);
 
   const handleBackClick = () => {
     navigate(`/workouts/${workoutId}/edit`);

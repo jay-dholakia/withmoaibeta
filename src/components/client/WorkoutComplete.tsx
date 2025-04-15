@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -36,6 +35,7 @@ const WorkoutComplete = () => {
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [isLoadingDraft, setIsLoadingDraft] = useState(true);
   const [userTimeout, setUserTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [draftLoadAttempted, setDraftLoadAttempted] = useState(false);
 
   const isMountedRef = React.useRef(true);
   
@@ -55,6 +55,17 @@ const WorkoutComplete = () => {
     onSave: async (data) => {
       if (!workoutCompletionId || !user?.id) return false;
       console.log("Saving workout completion draft with data:", data);
+      
+      try {
+        sessionStorage.setItem(`workout_draft_${workoutCompletionId}`, JSON.stringify({
+          draft_data: data,
+          workout_type: 'completion',
+          updated_at: new Date().toISOString()
+        }));
+      } catch (e) {
+        console.warn("Failed to save draft to sessionStorage:", e);
+      }
+      
       return await saveWorkoutDraft(
         workoutCompletionId, 
         'completion', 
@@ -215,19 +226,33 @@ const WorkoutComplete = () => {
 
   useEffect(() => {
     const loadDraft = async () => {
-      if (!workoutCompletionId || !user?.id) {
-        console.log("Cannot load draft: missing workout ID or user");
+      if (!workoutCompletionId || !user?.id || draftLoadAttempted) {
+        console.log("Cannot load draft: missing workout ID, user, or already attempted");
         setIsLoadingDraft(false);
         return;
       }
 
+      setDraftLoadAttempted(true);
       if (!isMountedRef.current) return;
 
       try {
         setIsLoadingDraft(true);
         console.log(`Attempting to load draft for workout ${workoutCompletionId}`);
         
-        const draft = await getWorkoutDraft(workoutCompletionId);
+        let draft = null;
+        try {
+          const cachedDraft = sessionStorage.getItem(`workout_draft_${workoutCompletionId}`);
+          if (cachedDraft) {
+            draft = JSON.parse(cachedDraft);
+            console.log("Retrieved draft from sessionStorage:", draft);
+          }
+        } catch (e) {
+          console.warn("Failed to retrieve draft from sessionStorage:", e);
+        }
+        
+        if (!draft || !draft.draft_data) {
+          draft = await getWorkoutDraft(workoutCompletionId);
+        }
         
         if (!isMountedRef.current) return;
         
@@ -282,7 +307,7 @@ const WorkoutComplete = () => {
         clearTimeout(userTimeout);
       }
     };
-  }, [workoutCompletionId, user, draftLoaded, userTimeout]);
+  }, [workoutCompletionId, user, draftLoaded, userTimeout, draftLoadAttempted]);
 
   useEffect(() => {
     if (workoutData && !shareMessage) {
@@ -388,6 +413,12 @@ const WorkoutComplete = () => {
     onSuccess: (completionId) => {
       if (completionId) {
         deleteWorkoutDraft(workoutCompletionId);
+        try {
+          sessionStorage.removeItem(`workout_draft_${workoutCompletionId}`);
+        } catch (e) {
+          console.warn("Failed to remove draft from sessionStorage:", e);
+        }
+        
         queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
         queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
         

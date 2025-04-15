@@ -29,6 +29,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   const [distance, setDistance] = useState(initialData?.distance || '');
   const [location, setLocation] = useState(initialData?.location || '');
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [draftLoadAttempted, setDraftLoadAttempted] = useState(false);
   const [date, setDate] = useState<Date | undefined>(
     initialData?.completed_date ? new Date(initialData.completed_date) : new Date()
   );
@@ -58,12 +59,25 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       if (!exerciseFormDraftId || !user) return false;
       
       console.log(`Saving draft data for exercise form ${exerciseFormDraftId}`);
+      
+      // Save to sessionStorage first for immediate access on page reload
+      try {
+        sessionStorage.setItem(`workout_draft_${exerciseFormDraftId}`, JSON.stringify({
+          draft_data: data,
+          workout_type: 'exercise_form',
+          updated_at: new Date().toISOString()
+        }));
+      } catch (e) {
+        console.warn("Failed to save draft to sessionStorage:", e);
+      }
+      
       return await saveWorkoutDraft(
         exerciseFormDraftId,
         'exercise_form',
         data
       );
     },
+    debounce: 1000,
     disabled: !exerciseFormDraftId || !user
   });
 
@@ -82,20 +96,36 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
   }, [saveStatus, errorCount]);
 
   const loadDraftData = async () => {
-    if (!exerciseFormDraftId || draftLoaded || authLoading) return;
+    if (!exerciseFormDraftId || draftLoaded || draftLoadAttempted) return;
     
+    setDraftLoadAttempted(true);
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
     
     try {
       console.log(`Attempting to load draft data for ${exerciseFormDraftId}, user:`, user?.id);
       
-      if (!user) {
-        console.log("User not available yet, will retry when authenticated");
-        return;
+      // First try to get draft from sessionStorage for faster loading
+      let draft = null;
+      try {
+        const cachedDraft = sessionStorage.getItem(`workout_draft_${exerciseFormDraftId}`);
+        if (cachedDraft) {
+          draft = JSON.parse(cachedDraft);
+          console.log("Retrieved draft from sessionStorage:", draft);
+        }
+      } catch (e) {
+        console.warn("Failed to retrieve draft from sessionStorage:", e);
       }
       
-      const draft = await getWorkoutDraft(exerciseFormDraftId, 5, 500);
+      // If not in sessionStorage or user is not available yet, get from Supabase
+      if (!draft || !draft.draft_data) {
+        if (!user) {
+          console.log("User not available yet, will retry when authenticated");
+          return;
+        }
+        
+        draft = await getWorkoutDraft(exerciseFormDraftId, 5, 500);
+      }
       
       if (!isMounted.current || signal.aborted) return;
       
@@ -154,10 +184,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
       
       return () => {
         clearTimeout(timer);
-        isMounted.current = false;
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
       };
     }
     
@@ -167,13 +193,31 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
         abortControllerRef.current.abort();
       }
     };
-  }, [exerciseFormDraftId, draftLoaded, user, authLoading]);
+  }, [exerciseFormDraftId, draftLoaded, user, authLoading, draftLoadAttempted]);
+
+  // Ensure draft is loaded when component mounts
+  useEffect(() => {
+    isMounted.current = true;
+    
+    return () => {
+      isMounted.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (exerciseFormDraftId) {
       deleteWorkoutDraft(exerciseFormDraftId);
+      // Also remove from sessionStorage
+      try {
+        sessionStorage.removeItem(`workout_draft_${exerciseFormDraftId}`);
+      } catch (e) {
+        console.warn("Failed to remove draft from sessionStorage:", e);
+      }
     }
     
     onSubmit({

@@ -124,7 +124,7 @@ export const saveWorkoutDraft = async (
 };
 
 /**
- * Retrieves a workout draft from the server with improved reliability
+ * Retrieves a workout draft from the server with improved reliability and added caching
  * @param workoutId The workout ID
  * @param maxRetries Maximum number of retries (default: 5)
  * @param retryInterval Interval between retries in ms (default: 300)
@@ -138,6 +138,19 @@ export const getWorkoutDraft = async (
   if (!workoutId) {
     console.log("No workout ID provided to getWorkoutDraft");
     return null;
+  }
+  
+  // Look for cached draft first
+  const cachedDraft = sessionStorage.getItem(`workout_draft_${workoutId}`);
+  if (cachedDraft) {
+    try {
+      const parsedCache = JSON.parse(cachedDraft);
+      console.log(`Using cached draft for workout ${workoutId}`);
+      return parsedCache;
+    } catch (error) {
+      console.error("Error parsing cached draft:", error);
+      // Continue to fetch from server if cache parsing fails
+    }
   }
   
   let retries = 0;
@@ -219,12 +232,19 @@ export const getWorkoutDraft = async (
           }
         }
         
+        // Cache the draft in sessionStorage for faster access on reloads
+        try {
+          sessionStorage.setItem(`workout_draft_${workoutId}`, JSON.stringify(parsedData));
+        } catch (e) {
+          console.warn("Failed to cache draft in sessionStorage:", e);
+        }
+        
         return parsedData;
       } else {
         console.log(`No draft data found for workout ${workoutId}`);
       }
       
-      return data;
+      return null;
     } catch (error) {
       console.error("Error in getWorkoutDraft:", {
         error,
@@ -255,6 +275,13 @@ export const deleteWorkoutDraft = async (
     if (!workoutId) {
       console.warn("No workout ID provided to deleteWorkoutDraft");
       return false;
+    }
+
+    // Also clear from sessionStorage
+    try {
+      sessionStorage.removeItem(`workout_draft_${workoutId}`);
+    } catch (e) {
+      console.warn("Failed to remove draft from sessionStorage:", e);
     }
 
     const { data: { user } } = await supabase.auth.getUser();

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -41,7 +40,7 @@ export const saveWorkoutDraft = async (
     // Convert data to string to accurately measure size
     const stringifiedData = JSON.stringify(draftData);
     const dataSize = stringifiedData.length;
-    console.log(`Saving draft for workout ${workoutId}, size: ${dataSize} bytes`);
+    console.log(`Saving draft for workout ${workoutId}, size: ${dataSize} bytes, user: ${user.id}`);
     
     if (dataSize > 100000) {
       console.warn(`Draft data size is large: ${dataSize} bytes. Consider optimizing.`);
@@ -65,7 +64,10 @@ export const saveWorkoutDraft = async (
         userId: user.id,
         timestamp: new Date().toISOString()
       });
-      return false;
+      
+      // Failed to query, try to insert anyway as fallback
+      console.log("Attempting fallback insert since query failed");
+      return await attemptInsertDraft(workoutId, workoutType, draftData, user.id);
     }
       
     // Log to debug
@@ -93,6 +95,10 @@ export const saveWorkoutDraft = async (
           draftId: existingDraft.id,
           timestamp: new Date().toISOString()
         });
+        
+        // If update fails, try inserting a new record
+        console.log("Update failed, attempting to insert new record instead");
+        return await attemptInsertDraft(workoutId, workoutType, draftData, user.id);
       } else {
         console.log(`Successfully updated draft for workout ${workoutId}`, data);
         success = true;
@@ -112,45 +118,8 @@ export const saveWorkoutDraft = async (
         }
       }
     } else {
-      // Create new draft
-      const { error, data } = await supabase
-        .from('workout_drafts')
-        .insert({
-          user_id: user.id,
-          workout_id: workoutId,
-          workout_type: workoutType,
-          draft_data: draftData
-        })
-        .select('id')
-        .single();
-        
-      if (error) {
-        console.error("Error creating workout draft:", {
-          error,
-          workoutId,
-          userId: user.id,
-          timestamp: new Date().toISOString()
-        });
-      } else {
-        console.log(`Successfully created new draft for workout ${workoutId}`, data);
-        success = true;
-        
-        // Double check that the data was saved
-        if (data?.id) {
-          const { data: verifyData, error: verifyError } = await supabase
-            .from('workout_drafts')
-            .select('draft_data')
-            .eq('id', data.id)
-            .maybeSingle();
-            
-          if (verifyError || !verifyData) {
-            console.error("Failed to verify inserted draft data", verifyError);
-            success = false;
-          } else {
-            console.log("Draft verification successful", verifyData);
-          }
-        }
-      }
+      // No existing draft found, create new one
+      success = await attemptInsertDraft(workoutId, workoutType, draftData, user.id);
     }
     
     // Also store in sessionStorage for immediate access
@@ -173,6 +142,65 @@ export const saveWorkoutDraft = async (
       workoutType,
       timestamp: new Date().toISOString()
     });
+    return false;
+  }
+};
+
+/**
+ * Helper function to attempt inserting a new draft record
+ */
+const attemptInsertDraft = async (
+  workoutId: string,
+  workoutType: string | null,
+  draftData: any,
+  userId: string
+): Promise<boolean> => {
+  try {
+    // Always use UPSERT to ensure we either insert or update
+    const { error, data } = await supabase
+      .from('workout_drafts')
+      .upsert({
+        user_id: userId,
+        workout_id: workoutId,
+        workout_type: workoutType,
+        draft_data: draftData,
+        updated_at: new Date().toISOString()
+      })
+      .select('id')
+      .maybeSingle();
+      
+    if (error) {
+      console.error("Error creating workout draft:", {
+        error,
+        workoutId,
+        userId,
+        timestamp: new Date().toISOString()
+      });
+      return false;
+    } 
+    
+    console.log(`Successfully created new draft for workout ${workoutId}`, data);
+    
+    // Double check that the data was saved
+    if (data?.id) {
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('workout_drafts')
+        .select('draft_data')
+        .eq('id', data.id)
+        .maybeSingle();
+        
+      if (verifyError || !verifyData) {
+        console.error("Failed to verify inserted draft data", verifyError);
+        return false;
+      } else {
+        console.log("Draft verification successful", verifyData);
+        return true;
+      }
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error("Error in attemptInsertDraft:", error);
     return false;
   }
 };

@@ -47,18 +47,6 @@ export const saveWorkoutDraft = async (
       console.warn(`Draft data size is large: ${dataSize} bytes. Consider optimizing.`);
     }
     
-    // Always try to save to sessionStorage first for faster access
-    try {
-      sessionStorage.setItem(`workout_draft_${workoutId}`, JSON.stringify({
-        draft_data: draftData,
-        workout_type: workoutType,
-        updated_at: new Date().toISOString()
-      }));
-      console.log(`Draft saved to sessionStorage for workout ${workoutId}`);
-    } catch (e) {
-      console.warn("Failed to save draft to sessionStorage:", e);
-    }
-    
     // Check if a draft already exists for this workout
     const { data: existingDraft, error: queryError } = await supabase
       .from('workout_drafts')
@@ -121,39 +109,6 @@ export const saveWorkoutDraft = async (
       }
       
       console.log(`Successfully created new draft for workout ${workoutId}`);
-    }
-    
-    // If this is a workout completion, also update the workout_completions table
-    if (workoutType === 'completion') {
-      try {
-        // Check if the workout completion exists
-        const { data: existingCompletion, error: completionQueryError } = await supabase
-          .from('workout_completions')
-          .select('id')
-          .eq('id', workoutId)
-          .maybeSingle();
-          
-        if (!completionQueryError && existingCompletion) {
-          // Update the existing completion
-          const { error: updateError } = await supabase
-            .from('workout_completions')
-            .update({
-              notes: draftData.notes,
-              rating: draftData.rating
-            })
-            .eq('id', workoutId);
-            
-          if (updateError) {
-            console.error("Error updating workout completion:", updateError);
-          } else {
-            console.log(`Updated workout_completions table for ID ${workoutId}`);
-          }
-        } else if (!existingCompletion) {
-          console.log(`No completion record found for ID ${workoutId}, will be created when workout is submitted`);
-        }
-      } catch (error) {
-        console.error("Error handling workout completion in draft service:", error);
-      }
     }
     
     return true;
@@ -282,32 +237,6 @@ export const getWorkoutDraft = async (
           sessionStorage.setItem(`workout_draft_${workoutId}`, JSON.stringify(parsedData));
         } catch (e) {
           console.warn("Failed to cache draft in sessionStorage:", e);
-        }
-
-        // For workout completions, check if we need to also get data from workout_completions table
-        if (parsedData.workout_type === 'completion' && parsedData.draft_data) {
-          try {
-            const { data: completionData, error: completionError } = await supabase
-              .from('workout_completions')
-              .select('notes, rating')
-              .eq('id', workoutId)
-              .maybeSingle();
-              
-            if (!completionError && completionData) {
-              // Merge data from workout_completions table with draft data
-              if (!parsedData.draft_data.notes && completionData.notes) {
-                parsedData.draft_data.notes = completionData.notes;
-              }
-              
-              if (parsedData.draft_data.rating === undefined && completionData.rating !== null) {
-                parsedData.draft_data.rating = completionData.rating;
-              }
-              
-              console.log(`Merged data from workout_completions table for ${workoutId}`);
-            }
-          } catch (error) {
-            console.warn("Error fetching from workout_completions table:", error);
-          }
         }
         
         return parsedData;

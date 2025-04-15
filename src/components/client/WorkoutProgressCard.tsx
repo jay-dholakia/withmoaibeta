@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatWeekDateRange } from '@/services/assigned-workouts-service';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Superscript } from 'lucide-react';
 
 interface WorkoutProgressCardProps {
   label?: string;
@@ -69,8 +70,19 @@ export function WorkoutProgressCard({
     return workoutTitlesMap[dateStr] || '';
   };
   
+  // Count workouts per day to detect multiple workouts on the same day
+  const workoutsPerDay: Record<string, number> = {};
+  completedDates.forEach(date => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    workoutsPerDay[dateStr] = (workoutsPerDay[dateStr] || 0) + 1;
+  });
+  
   const hasWorkoutOnDate = (dateStr: string): boolean => {
     return completedDates.some(date => format(date, 'yyyy-MM-dd') === dateStr);
+  };
+  
+  const getWorkoutCountForDate = (dateStr: string): number => {
+    return workoutsPerDay[dateStr] || 0;
   };
   
   const isRestDay = (dateStr: string): boolean => {
@@ -129,6 +141,8 @@ export function WorkoutProgressCard({
             const restDay = isRestDay(day.dateStr);
             const workoutType = getWorkoutType(day.dateStr);
             const workoutTitle = getWorkoutTitle(day.dateStr);
+            const workoutCount = getWorkoutCountForDate(day.dateStr);
+            const hasMultipleWorkouts = workoutCount > 1;
             
             return (
               <div 
@@ -138,16 +152,25 @@ export function WorkoutProgressCard({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className={cn(
-                        "relative mx-auto w-6 h-6 rounded-full flex items-center justify-center", 
-                        hasWorkout || restDay ? "bg-muted" : "bg-muted/30"
-                      )}>
-                        {(hasWorkout || restDay) && workoutType && (
-                          <WorkoutTypeIcon
-                            type={workoutType}
-                            className="h-4 w-4"
-                            colorOverride={hasWorkout ? undefined : "text-muted-foreground"}
-                          />
+                      <div className="relative mx-auto">
+                        <div className={cn(
+                          "w-6 h-6 rounded-full flex items-center justify-center", 
+                          hasWorkout || restDay ? "bg-muted" : "bg-muted/30"
+                        )}>
+                          {(hasWorkout || restDay) && workoutType && (
+                            <WorkoutTypeIcon
+                              type={workoutType}
+                              className="h-4 w-4"
+                              colorOverride={hasWorkout ? undefined : "text-muted-foreground"}
+                            />
+                          )}
+                        </div>
+                        
+                        {/* Superscript indicator for multiple workouts */}
+                        {hasMultipleWorkouts && (
+                          <span className="absolute -top-1 -right-1 bg-client text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-medium">
+                            {workoutCount > 9 ? '9+' : workoutCount}
+                          </span>
                         )}
                       </div>
                     </TooltipTrigger>
@@ -159,7 +182,14 @@ export function WorkoutProgressCard({
                           {isCurrentUser && <span className="text-xs ml-1 text-muted-foreground">(You)</span>}
                         </div>
                         {hasWorkout && workoutTitle ? (
-                          <span>{workoutTitle}</span>
+                          <>
+                            <span>{workoutTitle}</span>
+                            {hasMultipleWorkouts && (
+                              <div className="font-medium text-client mt-1">
+                                {workoutCount} workouts completed this day
+                              </div>
+                            )}
+                          </>
                         ) : restDay ? (
                           <span>Rest Day</span>
                         ) : (

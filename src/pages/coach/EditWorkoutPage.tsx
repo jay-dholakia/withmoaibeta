@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -28,6 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
 import { Exercise } from '@/types/workout';
+import { WorkoutExerciseForm } from '@/components/coach/WorkoutExerciseForm';
 
 const EditWorkoutPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -40,6 +40,7 @@ const EditWorkoutPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -129,6 +130,7 @@ const EditWorkoutPage = () => {
 
   const handleSelectExercise = (exercise: Exercise) => {
     console.log("Exercise selected:", exercise);
+    setSelectedExercise(exercise);
   };
 
   const handleSaveExercise = async (exerciseId: string, data: any) => {
@@ -161,7 +163,7 @@ const EditWorkoutPage = () => {
     }
   };
 
-  const handleDeleteExercise = async (exerciseId: string) => {
+  const handleDeleteExercise = async (exerciseId: string, workoutId: string) => {
     if (!workoutId) return;
     
     try {
@@ -182,7 +184,7 @@ const EditWorkoutPage = () => {
     }
   };
 
-  const handleMoveExerciseUp = async (exerciseId: string) => {
+  const handleMoveExerciseUp = async (exerciseId: string, workoutId: string) => {
     if (!workoutId) return;
     
     try {
@@ -202,7 +204,7 @@ const EditWorkoutPage = () => {
     }
   };
 
-  const handleMoveExerciseDown = async (exerciseId: string) => {
+  const handleMoveExerciseDown = async (exerciseId: string, workoutId: string) => {
     if (!workoutId) return;
     
     try {
@@ -373,7 +375,7 @@ const EditWorkoutPage = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleMoveExerciseUp(exercise.id)}
+                          onClick={() => handleMoveExerciseUp(exercise.id, workoutId as string)}
                           disabled={index === 0 || isSubmitting}
                         >
                           Move Up
@@ -381,7 +383,7 @@ const EditWorkoutPage = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleMoveExerciseDown(exercise.id)}
+                          onClick={() => handleMoveExerciseDown(exercise.id, workoutId as string)}
                           disabled={index === exercises.length - 1 || isSubmitting}
                         >
                           Move Down
@@ -389,7 +391,7 @@ const EditWorkoutPage = () => {
                         <Button 
                           variant="destructive" 
                           size="sm"
-                          onClick={() => handleDeleteExercise(exercise.id)}
+                          onClick={() => handleDeleteExercise(exercise.id, workoutId as string)}
                           disabled={isSubmitting}
                         >
                           Delete

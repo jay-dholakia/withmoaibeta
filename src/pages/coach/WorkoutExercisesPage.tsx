@@ -32,6 +32,7 @@ const WorkoutExercisesPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
 
   useEffect(() => {
     const loadWorkoutDetails = async () => {
@@ -72,6 +73,7 @@ const WorkoutExercisesPage = () => {
 
   const handleSelectExercise = (exercise: Exercise) => {
     console.log("Exercise selected:", exercise);
+    setSelectedExercise(exercise);
   };
 
   const handleSaveExercise = async (exerciseId: string, data: any) => {
@@ -104,7 +106,7 @@ const WorkoutExercisesPage = () => {
     }
   };
 
-  const handleDeleteExercise = async (exerciseId: string) => {
+  const handleDeleteExercise = async (exerciseId: string, workoutId: string) => {
     if (!workoutId) return;
     
     try {
@@ -125,7 +127,7 @@ const WorkoutExercisesPage = () => {
     }
   };
 
-  const handleMoveExerciseUp = async (exerciseId: string) => {
+  const handleMoveExerciseUp = async (exerciseId: string, workoutId: string) => {
     if (!workoutId) return;
     
     try {
@@ -145,7 +147,7 @@ const WorkoutExercisesPage = () => {
     }
   };
 
-  const handleMoveExerciseDown = async (exerciseId: string) => {
+  const handleMoveExerciseDown = async (exerciseId: string, workoutId: string) => {
     if (!workoutId) return;
     
     try {
@@ -226,7 +228,7 @@ const WorkoutExercisesPage = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleMoveExerciseUp(exercise.id)}
+                          onClick={() => handleMoveExerciseUp(exercise.id, workoutId as string)}
                           disabled={index === 0 || isSubmitting}
                         >
                           Move Up
@@ -234,7 +236,7 @@ const WorkoutExercisesPage = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleMoveExerciseDown(exercise.id)}
+                          onClick={() => handleMoveExerciseDown(exercise.id, workoutId as string)}
                           disabled={index === exercises.length - 1 || isSubmitting}
                         >
                           Move Down
@@ -242,7 +244,7 @@ const WorkoutExercisesPage = () => {
                         <Button 
                           variant="destructive" 
                           size="sm"
-                          onClick={() => handleDeleteExercise(exercise.id)}
+                          onClick={() => handleDeleteExercise(exercise.id, workoutId as string)}
                           disabled={isSubmitting}
                         >
                           Delete

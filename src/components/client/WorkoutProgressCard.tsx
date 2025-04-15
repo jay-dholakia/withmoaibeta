@@ -69,6 +69,10 @@ export function WorkoutProgressCard({
     return workoutTitlesMap[dateStr] || '';
   };
   
+  const getWorkoutsOnDate = (dateStr: string): Date[] => {
+    return completedDates.filter(date => format(date, 'yyyy-MM-dd') === dateStr);
+  };
+  
   const hasWorkoutOnDate = (dateStr: string): boolean => {
     return completedDates.some(date => format(date, 'yyyy-MM-dd') === dateStr);
   };
@@ -129,6 +133,8 @@ export function WorkoutProgressCard({
             const restDay = isRestDay(day.dateStr);
             const workoutType = getWorkoutType(day.dateStr);
             const workoutTitle = getWorkoutTitle(day.dateStr);
+            const workoutsOnDate = getWorkoutsOnDate(day.dateStr);
+            const workoutCount = workoutsOnDate.length;
             
             return (
               <div 
@@ -138,17 +144,26 @@ export function WorkoutProgressCard({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className={cn(
-                        "relative mx-auto w-6 h-6 rounded-full flex items-center justify-center", 
-                        hasWorkout || restDay ? "bg-muted" : "bg-muted/30"
-                      )}>
-                        {(hasWorkout || restDay) && workoutType && (
-                          <WorkoutTypeIcon
-                            type={workoutType}
-                            className="h-4 w-4"
-                            colorOverride={hasWorkout ? undefined : "text-muted-foreground"}
-                          />
-                        )}
+                      <div className="relative">
+                        <div className={cn(
+                          "mx-auto w-6 h-6 rounded-full flex items-center justify-center", 
+                          hasWorkout || restDay ? "bg-muted" : "bg-muted/30"
+                        )}>
+                          {(hasWorkout || restDay) && workoutType && (
+                            <WorkoutTypeIcon
+                              type={workoutType}
+                              className="h-4 w-4"
+                              colorOverride={hasWorkout ? undefined : "text-muted-foreground"}
+                            />
+                          )}
+                          
+                          {/* Show superscript when more than 2 workouts on same day */}
+                          {workoutCount > 2 && (
+                            <span className="absolute -top-2 -right-2 bg-client text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                              {workoutCount}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-[220px]">
@@ -159,7 +174,12 @@ export function WorkoutProgressCard({
                           {isCurrentUser && <span className="text-xs ml-1 text-muted-foreground">(You)</span>}
                         </div>
                         {hasWorkout && workoutTitle ? (
-                          <span>{workoutTitle}</span>
+                          <>
+                            <span>{workoutTitle}</span>
+                            {workoutCount > 1 && (
+                              <div className="mt-1 font-medium text-client">{workoutCount} workouts completed</div>
+                            )}
+                          </>
                         ) : restDay ? (
                           <span>Rest Day</span>
                         ) : (

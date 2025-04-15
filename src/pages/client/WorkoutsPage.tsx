@@ -31,8 +31,7 @@ const WorkoutsPage = () => {
     enabled: !!user?.id,
   });
 
-  // Force a different key whenever navigating to ensure components fully remount
-  // Use both timestamp, workout ID, and user ID to ensure it's always unique
+  // Enhanced key generation to ensure component fully remounts
   const timestamp = Date.now();
   const workoutCompletionId = location.pathname.split('/').pop();
   const forceReloadKey = `${workoutCompletionId}-${timestamp}-${user?.id || 'no-user'}-${Math.random().toString(36).substring(7)}`;

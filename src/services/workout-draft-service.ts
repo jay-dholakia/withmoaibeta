@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -29,6 +30,7 @@ export const saveWorkoutDraft = async (
   }
 
   console.log(`Attempting to save draft for workout ${workoutId} of type ${workoutType}`);
+  console.log("Draft data to save:", draftData);
 
   try {
     // Ensure we have an authenticated user
@@ -114,7 +116,9 @@ export const getWorkoutDraft = async (
         
         // Ensure consistent format
         if (parsedCache && typeof parsedCache === 'object') {
-          return parsedCache;
+          if (parsedCache.draft_data) {
+            return parsedCache;
+          }
         }
       } catch (e) {
         console.error("Error parsing sessionStorage draft:", e);

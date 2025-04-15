@@ -44,9 +44,10 @@ export const saveWorkoutDraft = async (
   };
 
   try {
+    // Fix the onConflict parameter to use the correct syntax
     const { error } = await supabase
       .from("workout_drafts")
-      .upsert(payload, { onConflict: ["user_id", "workout_id"] });
+      .upsert(payload, { onConflict: 'user_id,workout_id' });
 
     if (error) {
       console.error("Error saving workout draft:", error);

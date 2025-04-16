@@ -79,6 +79,14 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
     }
     onOpenChange(open);
   };
+
+  // Handle date selection safely
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+      setDate(selectedDate);
+      setDatePickerOpen(false);
+    }
+  };
   
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
@@ -113,21 +121,16 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent 
-                  className="w-auto p-0 z-50" 
+                  className="w-auto p-0" 
                   align="start"
+                  sideOffset={4}
                 >
                   <Calendar
                     mode="single"
                     selected={date}
-                    onSelect={(selectedDate) => {
-                      if (selectedDate) {
-                        setDate(selectedDate);
-                        setDatePickerOpen(false);
-                      }
-                    }}
+                    onSelect={handleDateSelect}
                     initialFocus
                     disabled={(date) => date > new Date()}
-                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
               </Popover>

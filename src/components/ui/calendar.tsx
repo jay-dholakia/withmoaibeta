@@ -1,65 +1,70 @@
+import React, { useState, useEffect } from "react";
+import { isMobile } from "react-device-detect"; // npm install react-device-detect
+import { format, parseISO } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent
+} from "@/components/ui/popover";
 
-import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker } from "react-day-picker";
+export const DatePicker = ({
+  date,
+  setDate
+}: {
+  date: Date;
+  setDate: (date: Date) => void;
+}) => {
+  const [open, setOpen] = useState(false);
 
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
+  const handleNativeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = parseISO(e.target.value);
+    setDate(newDate);
+  };
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+  if (isMobile) {
+    // Native HTML5 date input on mobile
+    return (
+      <input
+        type="date"
+        value={format(date, "yyyy-MM-dd")}
+        onChange={handleNativeChange}
+        className="w-full rounded-md border px-3 py-2 text-sm"
+        max={format(new Date(), "yyyy-MM-dd")}
+      />
+    );
+  }
 
-function Calendar({
-  className,
-  classNames,
-  showOutsideDays = true,
-  ...props
-}: CalendarProps) {
   return (
-    <DayPicker
-      showOutsideDays={showOutsideDays}
-      className={cn("p-3 pointer-events-auto", className)}
-      classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
-        nav: "space-x-1 flex items-center",
-        nav_button: cn(
-          buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
-        ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-y-1",
-        head_row: "flex",
-        head_cell:
-          "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-        row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-        day: cn(
-          buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
-        ),
-        day_range_end: "day-range-end",
-        day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
-        day_outside:
-          "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
-        day_disabled: "text-muted-foreground opacity-50",
-        day_range_middle:
-          "aria-selected:bg-accent aria-selected:text-accent-foreground",
-        day_hidden: "invisible",
-        ...classNames,
-      }}
-      components={{
-        IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
-        IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
-      }}
-      {...props}
-    />
+    <Popover open={open} onOpenChange={setOpen} modal={false} trapFocus={false}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          onClick={() => setOpen((prev) => !prev)}
+          className="w-full justify-start text-left font-normal"
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {date ? format(date, "PPP") : "Select date"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start" forceMount>
+        <div onMouseDown={(e) => e.preventDefault()}>
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(selected) => {
+              if (selected) {
+                setDate(selected);
+                setOpen(false);
+              }
+            }}
+            initialFocus
+            disabled={(d) => d > new Date()}
+          />
+        </div>
+      </PopoverContent>
+    </Popover>
   );
-}
-Calendar.displayName = "Calendar";
-
-export { Calendar };
+};

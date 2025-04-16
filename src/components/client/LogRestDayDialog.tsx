@@ -72,7 +72,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" disableAutoFocus>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-700">
             <Armchair className="h-5 w-5" />
@@ -113,6 +113,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                     onSelect={handleDateSelect}
                     initialFocus
                     disabled={(date) => date > new Date()}
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>

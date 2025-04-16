@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -146,7 +145,7 @@ const GroupList: React.FC = () => {
         return;
       }
       
-      // Generate buddies with upsert approach to handle conflicts
+      // Generate buddies with force regenerate set to true
       const result = await generateWeeklyBuddies(groupId, true);
       
       if (result) {
@@ -156,12 +155,7 @@ const GroupList: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error generating accountability buddies:', error);
-      
-      if (error.code === '23505' || error.message?.includes('duplicate key value')) {
-        toast.error('Accountability buddies already exist for this week. They have been updated.');
-      } else {
-        toast.error('An error occurred while generating accountability buddies');
-      }
+      toast.error('An error occurred while generating accountability buddies');
     } finally {
       setIsGeneratingBuddies(prev => ({ ...prev, [groupId]: false }));
     }

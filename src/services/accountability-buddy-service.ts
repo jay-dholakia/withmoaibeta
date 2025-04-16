@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, format } from 'date-fns';
 
@@ -213,17 +212,16 @@ export const generateWeeklyBuddies = async (
       }
     }
     
-    // Insert new pairings with upsert (merge) for conflict resolution
-    const { error: insertError } = await supabase
-      .from('accountability_buddies')
-      .upsert(pairings, {
-        onConflict: 'group_id,week_start',
-        ignoreDuplicates: false
-      });
-      
-    if (insertError) {
-      console.error('Error creating buddy pairings:', insertError);
-      return false;
+    // Insert new pairings - Use a simple insert since we've already deleted any previous pairings
+    if (pairings.length > 0) {
+      const { error: insertError } = await supabase
+        .from('accountability_buddies')
+        .insert(pairings);
+        
+      if (insertError) {
+        console.error('Error creating buddy pairings:', insertError);
+        return false;
+      }
     }
     
     console.log('Successfully created buddy pairings for the week');

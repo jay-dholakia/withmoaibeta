@@ -34,36 +34,10 @@ export function AccountabilityBuddyCard({
     try {
       if (onRefresh) {
         await onRefresh();
-
-        // Use upsert approach to handle conflicts
-        const response = await fetch(
-          `https://gjrheltyxjilxcphbzdj.supabase.co/rest/v1/accountability_buddies`,
-          {
-            method: 'POST',
-            headers: {
-              apikey: import.meta.env.VITE_SUPABASE_API_KEY!,
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_API_KEY!}`,
-              'Content-Type': 'application/json',
-              Prefer: 'resolution=merge-duplicates'
-            },
-            body: JSON.stringify({
-              group_id: groupId,
-              user_id_1: buddies[0]?.userId || null,
-              user_id_2: buddies[1]?.userId || null,
-              user_id_3: buddies[2]?.userId || null,
-              week_start: new Date().toISOString().split('T')[0]
-            })
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`Supabase error: ${response.statusText}`);
-        }
-
         toast.success('Accountability Buddies Updated');
       }
     } catch (error) {
-      console.error('Error creating buddy pairings:', error);
+      console.error('Error refreshing buddy pairings:', error);
       toast.error('Could not refresh buddy pairings. Please try again later.');
     }
   };

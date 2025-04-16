@@ -76,6 +76,11 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
       setCalendarOpen(false);
     }
   };
+  
+  // Stop propagation to prevent the dialog from closing the calendar popup
+  const handleCalendarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -115,6 +120,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                 <PopoverContent
                   className="w-auto p-0"
                   align="start"
+                  onClick={handleCalendarClick}
                 >
                   <div className="p-0">
                     <Calendar

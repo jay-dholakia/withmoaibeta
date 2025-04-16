@@ -108,6 +108,11 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
     }
   };
   
+  // Stop propagation to prevent the dialog from closing the calendar popup
+  const handleCalendarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+  
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -125,7 +130,10 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="cardio-date">Date</Label>
-              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+              <Popover 
+                open={datePickerOpen} 
+                onOpenChange={setDatePickerOpen}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     id="cardio-date"
@@ -144,6 +152,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                   className="w-auto p-0" 
                   align="start"
                   sideOffset={4}
+                  onClick={handleCalendarClick}
                 >
                   <div className="p-0">
                     <Calendar

@@ -35,7 +35,7 @@ export function AccountabilityBuddyCard({
     if (onRefresh) {
       await onRefresh();
       toast({
-        title: "Accountability Buddies Updated"
+        description: "Accountability Buddies Updated"
       });
     }
   };

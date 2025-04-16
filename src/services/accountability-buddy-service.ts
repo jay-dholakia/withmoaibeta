@@ -118,8 +118,12 @@ export const getUserBuddies = async (
 /**
  * Create or update weekly accountability buddy pairings for a group
  * @param groupId The ID of the group
+ * @param forceRegenerate If true, will delete existing pairings for this week and regenerate
  */
-export const generateWeeklyBuddies = async (groupId: string): Promise<boolean> => {
+export const generateWeeklyBuddies = async (
+  groupId: string, 
+  forceRegenerate: boolean = true
+): Promise<boolean> => {
   try {
     // Get the start of the current week (Monday)
     const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -137,9 +141,26 @@ export const generateWeeklyBuddies = async (groupId: string): Promise<boolean> =
       return false;
     }
     
+    // If pairings exist and we don't want to force regeneration, return early
     if (existingPairings && existingPairings.length > 0) {
-      console.log('Weekly pairings already exist for this group');
-      return true;
+      if (!forceRegenerate) {
+        console.log('Weekly pairings already exist for this group');
+        return true;
+      }
+      
+      // Delete existing pairings for this week and group
+      const { error: deleteError } = await supabase
+        .from('accountability_buddies')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('week_start', weekStartDate);
+        
+      if (deleteError) {
+        console.error('Error deleting existing buddy pairings:', deleteError);
+        return false;
+      }
+      
+      console.log('Deleted existing buddy pairings for regeneration');
     }
     
     // Get all group members

@@ -111,7 +111,7 @@ export const checkAndGenerateBuddies = async (groupId: string): Promise<boolean>
     // If pairings don't exist for this week, generate them
     if (!existingPairings || existingPairings.length === 0) {
       console.log('No buddy pairings found for this week, generating new ones');
-      return await generateWeeklyBuddies(groupId);
+      return await generateWeeklyBuddies(groupId, false); // Don't force regenerate if called from initialization
     }
     
     console.log('Weekly buddy pairings already exist');

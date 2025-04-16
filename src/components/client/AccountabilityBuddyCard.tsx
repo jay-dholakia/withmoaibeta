@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,7 +35,6 @@ export function AccountabilityBuddyCard({
       if (onRefresh) {
         await onRefresh();
 
-        // Send upsert to Supabase
         const response = await fetch(
           `https://gjrheltyxjilxcphbzdj.supabase.co/rest/v1/accountability_buddies?on_conflict=group_id,week_start`,
           {
@@ -52,7 +50,7 @@ export function AccountabilityBuddyCard({
               user_id_1: buddies[0]?.userId || null,
               user_id_2: buddies[1]?.userId || null,
               user_id_3: buddies[2]?.userId || null,
-              week_start: new Date().toISOString().split('T')[0] // ISO date, only the date part
+              week_start: new Date().toISOString().split('T')[0]
             })
           }
         );
@@ -61,16 +59,20 @@ export function AccountabilityBuddyCard({
           throw new Error(`Supabase error: ${response.statusText}`);
         }
 
-        toast({
-          description: 'Accountability Buddies Updated'
-        });
+        toast(
+          <div>
+            <strong className="block">Accountability Buddies Updated</strong>
+          </div>
+        );
       }
     } catch (error) {
       console.error('Error creating buddy pairings:', error);
-      toast({
-        variant: "destructive",
-        description: 'Could not refresh buddy pairings. Please try again later.'
-      });
+      toast(
+        <div>
+          <strong className="block">Error</strong>
+          <span>Could not refresh buddy pairings. Please try again later.</span>
+        </div>
+      );
     }
   };
 
@@ -83,7 +85,7 @@ export function AccountabilityBuddyCard({
             <h3 className="font-medium text-sm">This Week's Accountability Buddy</h3>
           </div>
 
-          <Badge variant="outline" className="text-xs bg-white">
+          <Badge className="text-xs bg-white">
             Refreshes Monday
           </Badge>
 

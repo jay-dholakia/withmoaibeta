@@ -32,7 +32,7 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
   const [location, setLocation] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [calendarOpen, setCalendarOpen] = useState<boolean>(false);
+  const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,23 +70,6 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
     setDuration("");
     setLocation("");
     setNotes("");
-    setCalendarOpen(false);
-  };
-  
-  // Handle calendar open event explicitly
-  const handleCalendarOpen = (event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setCalendarOpen(true);
-  };
-  
-  // Handle date selection with proper event handling
-  const handleDateSelect = (newDate: Date | undefined) => {
-    if (newDate) {
-      setDate(newDate);
-      // Use a short timeout to prevent UI issues during state transition
-      setTimeout(() => setCalendarOpen(false), 150);
-    }
   };
   
   // Reset form when dialog is closed
@@ -114,10 +97,7 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="run-date">Date</Label>
-              <Popover 
-                open={calendarOpen} 
-                onOpenChange={setCalendarOpen}
-              >
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     id="run-date"
@@ -127,7 +107,6 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
                       "w-full justify-start text-left font-normal",
                       !date && "text-muted-foreground"
                     )}
-                    onClick={handleCalendarOpen}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {date ? format(date, "PPP") : <span>Select date</span>}
@@ -136,16 +115,19 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
                 <PopoverContent 
                   className="w-auto p-0 z-50" 
                   align="start"
-                  onInteractOutside={(e) => {
-                    e.preventDefault();
-                  }}
                 >
                   <Calendar
                     mode="single"
                     selected={date}
-                    onSelect={handleDateSelect}
+                    onSelect={(selectedDate) => {
+                      if (selectedDate) {
+                        setDate(selectedDate);
+                        setDatePickerOpen(false);
+                      }
+                    }}
                     initialFocus
                     disabled={(date) => date > new Date()}
+                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
               </Popover>

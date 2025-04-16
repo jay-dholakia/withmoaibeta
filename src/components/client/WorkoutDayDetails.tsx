@@ -15,6 +15,7 @@ import { updateWorkoutCompletion } from '@/services/workout-edit-service';
 import { deleteWorkoutCompletion } from '@/services/workout-delete-service';
 import EditWorkoutSetCompletions from './EditWorkoutSetCompletions';
 import { supabase } from '@/integrations/supabase/client';
+import { getExerciseInfoByWorkoutExerciseId } from '@/services/workout-edit-service';
 import {
   Table, 
   TableBody, 
@@ -75,22 +76,32 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           const exerciseId = setCompletion.workout_exercise_id;
           
           if (!groups[exerciseId]) {
-            const { data: exerciseInfo, error } = await supabase
-              .from('workout_exercises')
-              .select('*, exercise:exercises(name, exercise_type)')
-              .eq('id', exerciseId)
-              .single();
+            const exerciseInfo = await getExerciseInfoByWorkoutExerciseId(exerciseId);
+            
+            if (exerciseInfo) {
+              groups[exerciseId] = {
+                name: exerciseInfo.name,
+                type: exerciseInfo.type,
+                sets: []
+              };
+            } else {
+              const { data: exerciseInfo, error } = await supabase
+                .from('workout_exercises')
+                .select('*, exercise:exercises(name, exercise_type)')
+                .eq('id', exerciseId)
+                .single();
 
-            if (error) {
-              console.error("Error fetching exercise info:", error);
-              continue;
+              if (error) {
+                console.error("Error fetching exercise info:", error);
+                continue;
+              }
+
+              groups[exerciseId] = {
+                name: exerciseInfo.exercise ? exerciseInfo.exercise.name : 'Unknown Exercise',
+                type: exerciseInfo.exercise ? exerciseInfo.exercise.exercise_type : 'strength',
+                sets: []
+              };
             }
-
-            groups[exerciseId] = {
-              name: exerciseInfo.exercise ? exerciseInfo.exercise.name : 'Unknown Exercise',
-              type: exerciseInfo.exercise ? exerciseInfo.exercise.exercise_type : 'strength',
-              sets: []
-            };
           }
           
           groups[exerciseId].sets.push(setCompletion);

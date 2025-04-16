@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { format, isThisWeek, startOfWeek, endOfWeek, addDays, isSameDay } from 'date-fns';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -35,24 +34,21 @@ export const WeekProgressBar = ({
   compact = false,
 }: WeekProgressBarProps) => {
   const { weekStart, weekDays } = useMemo(() => {
-    // Ensure week starts on Monday (weekStartsOn: 1)
     const start = startOfWeek(new Date(), { weekStartsOn: 1 });
     const days = [];
     
-    // Generate 7 days starting from Monday
     for (let i = 0; i < 7; i++) {
       days.push(addDays(start, i));
     }
     
     return {
       weekStart: start,
-      weekDays: days, // Monday to Sunday
+      weekDays: days,
     };
   }, []);
   
   const dayStatus = useMemo(() => {
     return weekDays.map(day => {
-      // Count workouts completed for this day
       const workoutsCompletedToday = completedDates.filter(date => {
         if (typeof date === 'string') {
           return isSameDay(new Date(date), day);
@@ -115,7 +111,6 @@ export const WeekProgressBar = ({
     return (
       <div className="flex justify-between items-center mt-3 px-1">
         {dayStatus.map((day, index) => {
-          // Use Mon, Tue, Wed format for days - consistent with Monday first week start
           const dayName = format(day.date, 'E')[0];
           const isToday = isSameDay(today, day.date);
           
@@ -135,7 +130,7 @@ export const WeekProgressBar = ({
           }
           
           return (
-            <div key={index} className="flex flex-col items-center">
+            <div key={index} className="flex flex-col items-center relative">
               <div
                 className={`relative w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${border} transition-all duration-200`}
               >
@@ -145,9 +140,8 @@ export const WeekProgressBar = ({
                   <span></span>
                 )}
                 
-                {/* Add superscript for multiple workouts - make sure this is visible by improving the styling */}
-                {day.workoutsCount > 1 && (
-                  <div className="absolute -top-1.5 -right-1.5 bg-client text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm z-10 font-bold">
+                {day.workoutsCount >= 2 && (
+                  <div className="absolute -top-0.5 -right-0.5 bg-client text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-sm z-10 font-bold">
                     {day.workoutsCount}
                   </div>
                 )}

@@ -15,6 +15,7 @@ import { CalendarIcon, Timer, Activity } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CardioLog, logCardioActivity } from "@/services/activity-logging-service";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CARDIO_TYPES = [
   'Cycling',
@@ -44,6 +45,9 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
   const [duration, setDuration] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false);
+  const [tempSelectedDate, setTempSelectedDate] = useState<Date | undefined>(new Date());
+  const isMobile = useIsMobile();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,10 +83,38 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
     setActivityType("");
     setDuration("");
     setNotes("");
+    setTempSelectedDate(new Date());
+  };
+  
+  // Reset form when dialog is closed
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      resetForm();
+    }
+    onOpenChange(open);
+  };
+
+  // Handle date selection safely
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+      setTempSelectedDate(selectedDate);
+    }
+  };
+  
+  const confirmDateSelection = () => {
+    if (tempSelectedDate) {
+      setDate(tempSelectedDate);
+      setDatePickerOpen(false);
+    }
+  };
+  
+  // Stop propagation to prevent the dialog from closing the calendar popup
+  const handleCalendarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
   };
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-purple-700">
@@ -98,10 +130,14 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="cardio-date">Date</Label>
-              <Popover>
+              <Popover 
+                open={datePickerOpen} 
+                onOpenChange={setDatePickerOpen}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     id="cardio-date"
+                    type="button"
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
@@ -112,14 +148,39 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                     {date ? format(date, "PPP") : <span>Select date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={(date) => date && setDate(date)}
-                    initialFocus
-                    disabled={(date) => date > new Date()}
-                  />
+                <PopoverContent 
+                  className="w-auto p-0" 
+                  align="start"
+                  sideOffset={4}
+                  onClick={handleCalendarClick}
+                >
+                  <div className="p-0">
+                    <Calendar
+                      mode="single"
+                      selected={tempSelectedDate}
+                      onSelect={handleDateSelect}
+                      initialFocus
+                      disabled={(date) => date > new Date()}
+                      className="pointer-events-auto"
+                    />
+                    <div className="flex justify-end gap-2 p-2 border-t">
+                      <Button
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setDatePickerOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="button" 
+                        size="sm" 
+                        onClick={confirmDateSelection}
+                      >
+                        Confirm
+                      </Button>
+                    </div>
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>

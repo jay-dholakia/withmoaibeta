@@ -35,8 +35,9 @@ export function AccountabilityBuddyCard({
       if (onRefresh) {
         await onRefresh();
 
+        // Use upsert approach to handle conflicts
         const response = await fetch(
-          `https://gjrheltyxjilxcphbzdj.supabase.co/rest/v1/accountability_buddies?on_conflict=group_id,week_start`,
+          `https://gjrheltyxjilxcphbzdj.supabase.co/rest/v1/accountability_buddies`,
           {
             method: 'POST',
             headers: {

@@ -146,7 +146,7 @@ const GroupList: React.FC = () => {
         return;
       }
       
-      // Force regenerate even if buddies already exist for this week
+      // Generate buddies with upsert approach to handle conflicts
       const result = await generateWeeklyBuddies(groupId, true);
       
       if (result) {
@@ -154,9 +154,14 @@ const GroupList: React.FC = () => {
       } else {
         toast.error('Failed to generate accountability buddies');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating accountability buddies:', error);
-      toast.error('An error occurred while generating accountability buddies');
+      
+      if (error.code === '23505' || error.message?.includes('duplicate key value')) {
+        toast.error('Accountability buddies already exist for this week. They have been updated.');
+      } else {
+        toast.error('An error occurred while generating accountability buddies');
+      }
     } finally {
       setIsGeneratingBuddies(prev => ({ ...prev, [groupId]: false }));
     }

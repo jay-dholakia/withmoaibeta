@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, format } from 'date-fns';
 
@@ -124,6 +125,7 @@ export const generateWeeklyBuddies = async (
     const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
     const weekStartDate = format(monday, 'yyyy-MM-dd');
     
+    // Check if pairings already exist for this week
     const { data: existingPairings, error: checkError } = await supabase
       .from('accountability_buddies')
       .select('id')
@@ -135,12 +137,14 @@ export const generateWeeklyBuddies = async (
       return false;
     }
     
+    // If pairings exist and we're not forcing regeneration, return success
     if (existingPairings && existingPairings.length > 0) {
       if (!forceRegenerate) {
         console.log('Weekly pairings already exist for this group');
         return true;
       }
       
+      // Delete existing pairings if forceRegenerate is true
       const { error: deleteError } = await supabase
         .from('accountability_buddies')
         .delete()
@@ -155,6 +159,7 @@ export const generateWeeklyBuddies = async (
       console.log('Deleted existing buddy pairings for regeneration');
     }
     
+    // Fetch group members
     const { data: groupMembers, error: membersError } = await supabase
       .from('group_members')
       .select('user_id')
@@ -170,6 +175,7 @@ export const generateWeeklyBuddies = async (
       return false;
     }
     
+    // Create pairings
     const memberIds = groupMembers.map(member => member.user_id);
     const shuffledMembers = [...memberIds].sort(() => Math.random() - 0.5);
     
@@ -207,9 +213,13 @@ export const generateWeeklyBuddies = async (
       }
     }
     
+    // Insert new pairings with upsert (merge) for conflict resolution
     const { error: insertError } = await supabase
       .from('accountability_buddies')
-      .insert(pairings);
+      .upsert(pairings, {
+        onConflict: 'group_id,week_start',
+        ignoreDuplicates: false
+      });
       
     if (insertError) {
       console.error('Error creating buddy pairings:', insertError);

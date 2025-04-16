@@ -85,12 +85,10 @@ export function WorkoutProgressCard({
   
   const displayName = firstName || userName;
   
-  // Generate initials for avatar - now using both first and last name initials
   const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : userName.charAt(0).toUpperCase();
   const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
   const initials = `${firstInitial}${lastInitial}`;
   
-  // Find today's column index
   const todayColumnIndex = daysOfWeek.findIndex(day => day.isToday);
   
   return (
@@ -143,7 +141,7 @@ export function WorkoutProgressCard({
                       <div className="relative">
                         <div className={cn(
                           "mx-auto w-6 h-6 rounded-full flex items-center justify-center", 
-                          hasWorkout || restDay ? "bg-muted" : "bg-muted/30"
+                          hasWorkout || restDay ? "bg-muted" : "bg-gray-300/50 border border-gray-400/30"
                         )}>
                           {(hasWorkout || restDay) && workoutType && (
                             <WorkoutTypeIcon
@@ -153,7 +151,6 @@ export function WorkoutProgressCard({
                             />
                           )}
                           
-                          {/* Show superscript when more than 2 workouts on same day */}
                           {workoutCount > 2 && (
                             <span className="absolute -top-2 -right-2 bg-client text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                               {workoutCount}

@@ -28,7 +28,6 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
   const [date, setDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,24 +57,8 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
     setNotes("");
   };
   
-  // Reset form when dialog is closed
-  const handleDialogOpenChange = (open: boolean) => {
-    if (!open) {
-      resetForm();
-    }
-    onOpenChange(open);
-  };
-
-  // Handle date selection safely
-  const handleDateSelect = (selectedDate: Date | undefined) => {
-    if (selectedDate) {
-      setDate(selectedDate);
-      setDatePickerOpen(false);
-    }
-  };
-  
   return (
-    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-700">
@@ -91,11 +74,10 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="rest-date">Date</Label>
-              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+              <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     id="rest-date"
-                    type="button"
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
@@ -106,18 +88,14 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                     {date ? format(date, "PPP") : <span>Select date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent 
-                  className="w-auto p-0" 
-                  align="start"
-                  sideOffset={4}
-                >
-                  <Calendar
+                <PopoverContent className="w-auto p-0" align="start">
+                  {* <Calendar
                     mode="single"
                     selected={date}
-                    onSelect={handleDateSelect}
+                    onSelect={(date) => date && setDate(date)}
                     initialFocus
                     disabled={(date) => date > new Date()}
-                  />
+                  /> *}
                 </PopoverContent>
               </Popover>
             </div>

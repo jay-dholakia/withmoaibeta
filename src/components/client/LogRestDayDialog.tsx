@@ -89,13 +89,13 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  {* <Calendar
+                  {/* <Calendar
                     mode="single"
                     selected={date}
                     onSelect={(date) => date && setDate(date)}
                     initialFocus
                     disabled={(date) => date > new Date()}
-                  /> *}
+                  />*/}
                 </PopoverContent>
               </Popover>
             </div>

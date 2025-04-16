@@ -152,7 +152,7 @@ export function WorkoutProgressCard({
                           )}
                           
                           {workoutCount >= 2 && (
-                            <div className="absolute -top-1 -right-1 bg-client text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-sm">
+                            <div className="absolute -top-0.5 -right-0.5 bg-client text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold shadow-sm">
                               {workoutCount}
                             </div>
                           )}

@@ -7,6 +7,9 @@ import WorkoutComplete from '@/components/client/WorkoutComplete';
 import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
 import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
+import LogRunPage from '@/pages/client/LogRunPage';
+import LogCardioPage from '@/pages/client/LogCardioPage';
+import LogRestDayPage from '@/pages/client/LogRestDayPage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCurrentProgram } from '@/services/program-service';
@@ -66,6 +69,9 @@ const WorkoutsPage = () => {
             />
           } 
         />
+        <Route path="log-run" element={<LogRunPage />} />
+        <Route path="log-cardio" element={<LogCardioPage />} />
+        <Route path="log-rest" element={<LogRestDayPage />} />
         <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
     </div>

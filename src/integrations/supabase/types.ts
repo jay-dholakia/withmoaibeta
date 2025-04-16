@@ -9,47 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      accountability_buddies: {
-        Row: {
-          created_at: string
-          group_id: string
-          id: string
-          updated_at: string
-          user_id_1: string
-          user_id_2: string
-          user_id_3: string | null
-          week_start: string
-        }
-        Insert: {
-          created_at?: string
-          group_id: string
-          id?: string
-          updated_at?: string
-          user_id_1: string
-          user_id_2: string
-          user_id_3?: string | null
-          week_start: string
-        }
-        Update: {
-          created_at?: string
-          group_id?: string
-          id?: string
-          updated_at?: string
-          user_id_1?: string
-          user_id_2?: string
-          user_id_3?: string | null
-          week_start?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "accountability_buddies_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       beta_feedback: {
         Row: {
           created_at: string

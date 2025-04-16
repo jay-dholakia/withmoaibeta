@@ -12,12 +12,18 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription 
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Users, UserPlus, Edit, Trash, Shuffle } from 'lucide-react';
+import { Users, UserPlus, Edit, Trash } from 'lucide-react';
 import GroupCoachesDialog from './GroupCoachesDialog';
 import GroupMembersDialog from './GroupMembersDialog';
 import EditGroupDialog from './EditGroupDialog';
-import { generateWeeklyBuddies } from '@/services/accountability-buddy-service';
 
 interface Group {
   id: string;
@@ -32,6 +38,7 @@ interface Group {
 }
 
 const fetchGroups = async (): Promise<Group[]> => {
+  // Fetch groups
   const { data: groups, error } = await supabase
     .from('groups')
     .select('*')
@@ -41,13 +48,16 @@ const fetchGroups = async (): Promise<Group[]> => {
     throw error;
   }
 
+  // For each group, fetch coach and member counts
   const enhancedGroups = await Promise.all(
     groups.map(async (group) => {
+      // Fetch coach count
       const { count: coachCount, error: coachError } = await supabase
         .from('group_coaches')
         .select('*', { count: 'exact', head: true })
         .eq('group_id', group.id);
       
+      // Fetch member count
       const { count: memberCount, error: memberError } = await supabase
         .from('group_members')
         .select('*', { count: 'exact', head: true })
@@ -75,7 +85,6 @@ const GroupList: React.FC = () => {
   const [isCoachDialogOpen, setIsCoachDialogOpen] = useState(false);
   const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isGeneratingBuddies, setIsGeneratingBuddies] = useState<Record<string, boolean>>({});
 
   const { data: groups, isLoading, error, refetch } = useQuery({
     queryKey: ['groups'],
@@ -124,46 +133,6 @@ const GroupList: React.FC = () => {
     } catch (error) {
       console.error('Error deleting group:', error);
       toast.error('Failed to delete group');
-    }
-  };
-
-  const handleGenerateAccountabilityBuddies = async (groupId: string) => {
-    try {
-      setIsGeneratingBuddies(prev => ({ ...prev, [groupId]: true }));
-      
-      // First check if the group has enough members
-      const { count: memberCount, error: countError } = await supabase
-        .from('group_members')
-        .select('*', { count: 'exact', head: true })
-        .eq('group_id', groupId);
-        
-      if (countError) {
-        throw countError;
-      }
-      
-      if (!memberCount || memberCount < 2) {
-        toast.error('Group needs at least 2 members to generate accountability buddies');
-        return;
-      }
-      
-      // Generate buddies with upsert approach to handle conflicts
-      const result = await generateWeeklyBuddies(groupId, true);
-      
-      if (result) {
-        toast.success('Accountability buddies generated successfully for this group');
-      } else {
-        toast.error('Failed to generate accountability buddies');
-      }
-    } catch (error: any) {
-      console.error('Error generating accountability buddies:', error);
-      
-      if (error.code === '23505' || error.message?.includes('duplicate key value')) {
-        toast.error('Accountability buddies already exist for this week. They have been updated.');
-      } else {
-        toast.error('An error occurred while generating accountability buddies');
-      }
-    } finally {
-      setIsGeneratingBuddies(prev => ({ ...prev, [groupId]: false }));
     }
   };
 
@@ -226,15 +195,6 @@ const GroupList: React.FC = () => {
                         >
                           <Trash className="h-4 w-4 mr-1" />
                           Delete
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleGenerateAccountabilityBuddies(group.id)}
-                          disabled={isGeneratingBuddies[group.id]}
-                        >
-                          <Shuffle className={`h-4 w-4 mr-1 ${isGeneratingBuddies[group.id] ? 'animate-spin' : ''}`} />
-                          {isGeneratingBuddies[group.id] ? 'Generating...' : 'Generate Buddies'}
                         </Button>
                       </div>
                     </TableCell>

@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
@@ -15,16 +14,12 @@ import { fetchCurrentProgram } from '@/services/program-service';
 import { fetchUserGroups } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { getUserBuddies, generateWeeklyBuddies } from '@/services/accountability-buddy-service';
-import { AccountabilityBuddyCard } from '@/components/client/AccountabilityBuddyCard';
-import { BuddyDisplayInfo } from '@/services/accountability-buddy-service';
 
 export default function MoaiPage() {
   const { groupId } = useParams<{ groupId: string }>();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [currentWeekNumber, setCurrentWeekNumber] = useState<number>(1);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
-  const [isGeneratingBuddies, setIsGeneratingBuddies] = useState(false);
   
   const { data: userGroups, isLoading: isLoadingUserGroups } = useQuery({
     queryKey: ['user-groups', user?.id],
@@ -73,17 +68,6 @@ export default function MoaiPage() {
     enabled: !!user?.id,
   });
   
-  const { data: buddies, isLoading: isLoadingBuddies, refetch: refetchBuddies } = useQuery({
-    queryKey: ['accountability-buddies', activeGroupId, user?.id],
-    queryFn: async () => {
-      if (!activeGroupId || !user?.id) return [];
-      return await getUserBuddies(activeGroupId, user.id);
-    },
-    enabled: !!activeGroupId && !!user?.id,
-  });
-  
-  const isAdmin = profile?.user_type === 'admin';
-  
   useEffect(() => {
     if (currentProgram?.start_date) {
       const startDate = new Date(currentProgram.start_date);
@@ -97,20 +81,6 @@ export default function MoaiPage() {
       window.open(groupData.spotify_playlist_url, '_blank');
     }
   };
-  
-  const refreshBuddies = useCallback(async () => {
-    if (!activeGroupId) return;
-    
-    setIsGeneratingBuddies(true);
-    try {
-      await generateWeeklyBuddies(activeGroupId);
-      await refetchBuddies();
-    } catch (error) {
-      console.error('Error refreshing accountability buddies:', error);
-    } finally {
-      setIsGeneratingBuddies(false);
-    }
-  }, [activeGroupId, refetchBuddies]);
   
   if (isLoadingGroup || isLoadingProgram || isLoadingUserGroups) {
     return (
@@ -138,30 +108,19 @@ export default function MoaiPage() {
               {groupData.name}
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 pb-1 text-center">
-            {groupData.spotify_playlist_url && (
+          {groupData.spotify_playlist_url && (
+            <CardContent className="pt-0 pb-1 text-center">
               <Button 
                 variant="outline"
                 size="sm" 
                 onClick={handleOpenSpotifyPlaylist}
-                className="bg-white hover:bg-green-50 mb-3"
+                className="bg-white hover:bg-green-50"
               >
                 <Music className="h-4 w-4 mr-2 text-green-600" />
                 <span>Team Spotify Playlist</span>
               </Button>
-            )}
-            
-            {/* Accountability Buddy Card */}
-            {activeGroupId && (
-              <AccountabilityBuddyCard
-                buddies={buddies || []}
-                isAdmin={isAdmin}
-                groupId={activeGroupId}
-                onRefresh={refreshBuddies}
-                loading={isGeneratingBuddies || isLoadingBuddies}
-              />
-            )}
-          </CardContent>
+            </CardContent>
+          )}
         </Card>
       )}
       

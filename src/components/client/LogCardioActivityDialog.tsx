@@ -44,6 +44,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
   const [duration, setDuration] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [calendarOpen, setCalendarOpen] = useState<boolean>(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,10 +99,11 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="cardio-date">Date</Label>
-              <Popover>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     id="cardio-date"
+                    type="button"
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
@@ -112,11 +114,16 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                     {date ? format(date, "PPP") : <span>Select date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-50" align="start">
                   <Calendar
                     mode="single"
                     selected={date}
-                    onSelect={(date) => date && setDate(date)}
+                    onSelect={(newDate) => {
+                      if (newDate) {
+                        setDate(newDate);
+                        setCalendarOpen(false);
+                      }
+                    }}
                     initialFocus
                     disabled={(date) => date > new Date()}
                   />

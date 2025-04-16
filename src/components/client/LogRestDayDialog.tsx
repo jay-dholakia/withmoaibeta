@@ -28,6 +28,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
   const [date, setDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [calendarOpen, setCalendarOpen] = useState<boolean>(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,10 +75,11 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="rest-date">Date</Label>
-              <Popover>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     id="rest-date"
+                    type="button"
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
@@ -88,11 +90,16 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                     {date ? format(date, "PPP") : <span>Select date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-50" align="start">
                   <Calendar
                     mode="single"
                     selected={date}
-                    onSelect={(date) => date && setDate(date)}
+                    onSelect={(newDate) => {
+                      if (newDate) {
+                        setDate(newDate);
+                        setCalendarOpen(false);
+                      }
+                    }}
                     initialFocus
                     disabled={(date) => date > new Date()}
                   />

@@ -56,11 +56,27 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
   const resetForm = () => {
     setDate(new Date());
     setNotes("");
+    setCalendarOpen(false);
+  };
+  
+  // Close dialog and calendar when ESC is pressed
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setCalendarOpen(false);
+    }
+  };
+  
+  // Reset form when dialog is closed
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      resetForm();
+    }
+    onOpenChange(open);
   };
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent className="sm:max-w-md" onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-700">
             <Armchair className="h-5 w-5" />
@@ -85,6 +101,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                       "w-full justify-start text-left font-normal",
                       !date && "text-muted-foreground"
                     )}
+                    onClick={() => setCalendarOpen(true)}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {date ? format(date, "PPP") : <span>Select date</span>}
@@ -97,7 +114,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                     onSelect={(newDate) => {
                       if (newDate) {
                         setDate(newDate);
-                        setCalendarOpen(false);
+                        setTimeout(() => setCalendarOpen(false), 100);
                       }
                     }}
                     initialFocus

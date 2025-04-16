@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, 
@@ -69,11 +70,27 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
     setDuration("");
     setLocation("");
     setNotes("");
+    setCalendarOpen(false);
+  };
+  
+  // Close dialog and calendar when ESC is pressed
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setCalendarOpen(false);
+    }
+  };
+  
+  // Reset form when dialog is closed
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      resetForm();
+    }
+    onOpenChange(open);
   };
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent className="sm:max-w-md" onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-blue-700">
             <span role="img" aria-label="running" className="text-lg">🏃</span>
@@ -98,19 +115,20 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
                       "w-full justify-start text-left font-normal",
                       !date && "text-muted-foreground"
                     )}
+                    onClick={() => setCalendarOpen(true)}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {date ? format(date, "PPP") : <span>Select date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 z-50" align="start">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={date}
                     onSelect={(newDate) => {
                       if (newDate) {
                         setDate(newDate);
-                        setCalendarOpen(false);
+                        setTimeout(() => setCalendarOpen(false), 100);
                       }
                     }}
                     initialFocus

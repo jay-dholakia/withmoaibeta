@@ -80,11 +80,27 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
     setActivityType("");
     setDuration("");
     setNotes("");
+    setCalendarOpen(false);
+  };
+  
+  // Close dialog and calendar when ESC is pressed
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setCalendarOpen(false);
+    }
+  };
+  
+  // Reset form when dialog is closed
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      resetForm();
+    }
+    onOpenChange(open);
   };
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent className="sm:max-w-md" onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-purple-700">
             <Activity className="h-5 w-5" />
@@ -109,6 +125,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                       "w-full justify-start text-left font-normal",
                       !date && "text-muted-foreground"
                     )}
+                    onClick={() => setCalendarOpen(true)}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {date ? format(date, "PPP") : <span>Select date</span>}
@@ -121,7 +138,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                     onSelect={(newDate) => {
                       if (newDate) {
                         setDate(newDate);
-                        setCalendarOpen(false);
+                        setTimeout(() => setCalendarOpen(false), 100);
                       }
                     }}
                     initialFocus

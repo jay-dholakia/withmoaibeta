@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,18 +11,12 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription 
-} from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Users, UserPlus, Edit, Trash } from 'lucide-react';
+import { Users, UserPlus, Edit, Trash, Shuffle } from 'lucide-react';
 import GroupCoachesDialog from './GroupCoachesDialog';
 import GroupMembersDialog from './GroupMembersDialog';
 import EditGroupDialog from './EditGroupDialog';
+import { generateWeeklyBuddies } from '@/services/accountability-buddy-service';
 
 interface Group {
   id: string;
@@ -38,7 +31,6 @@ interface Group {
 }
 
 const fetchGroups = async (): Promise<Group[]> => {
-  // Fetch groups
   const { data: groups, error } = await supabase
     .from('groups')
     .select('*')
@@ -48,16 +40,13 @@ const fetchGroups = async (): Promise<Group[]> => {
     throw error;
   }
 
-  // For each group, fetch coach and member counts
   const enhancedGroups = await Promise.all(
     groups.map(async (group) => {
-      // Fetch coach count
       const { count: coachCount, error: coachError } = await supabase
         .from('group_coaches')
         .select('*', { count: 'exact', head: true })
         .eq('group_id', group.id);
       
-      // Fetch member count
       const { count: memberCount, error: memberError } = await supabase
         .from('group_members')
         .select('*', { count: 'exact', head: true })
@@ -136,6 +125,21 @@ const GroupList: React.FC = () => {
     }
   };
 
+  const handleGenerateAccountabilityBuddies = async (groupId: string) => {
+    try {
+      const result = await generateWeeklyBuddies(groupId);
+      
+      if (result) {
+        toast.success('Accountability buddies generated successfully for this group');
+      } else {
+        toast.error('Failed to generate accountability buddies');
+      }
+    } catch (error) {
+      console.error('Error generating accountability buddies:', error);
+      toast.error('An error occurred while generating accountability buddies');
+    }
+  };
+
   if (isLoading) {
     return <div className="flex justify-center p-8">Loading groups...</div>;
   }
@@ -195,6 +199,14 @@ const GroupList: React.FC = () => {
                         >
                           <Trash className="h-4 w-4 mr-1" />
                           Delete
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleGenerateAccountabilityBuddies(group.id)}
+                        >
+                          <Shuffle className="h-4 w-4 mr-1" />
+                          Generate Buddies
                         </Button>
                       </div>
                     </TableCell>

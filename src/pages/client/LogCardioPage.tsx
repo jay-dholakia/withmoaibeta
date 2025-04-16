@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -34,6 +33,10 @@ const LogCardioPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false);
   
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -54,7 +57,6 @@ const LogCardioPage: React.FC = () => {
       const result = await logCardioActivity(cardioData);
       
       if (result) {
-        // Navigate back to workouts page on success
         navigate('/client-dashboard/workouts');
       }
     } catch (error) {
@@ -64,7 +66,6 @@ const LogCardioPage: React.FC = () => {
     }
   };
   
-  // Handle date selection directly
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
       setDate(selectedDate);

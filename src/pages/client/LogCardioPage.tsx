@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, Timer, Activity } from 'lucide-react';
+import { CalendarIcon, Timer, Activity, ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { CardioLog, logCardioActivity } from '@/services/activity-logging-service';
@@ -74,9 +74,17 @@ const LogCardioPage: React.FC = () => {
   
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Log Cardio Activity</h1>
-        <p className="text-muted-foreground">Record your cardio workout details</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate('/client-dashboard/workouts')}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">Log Cardio Activity</h1>
+        </div>
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-6">

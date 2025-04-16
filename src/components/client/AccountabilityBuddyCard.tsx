@@ -35,8 +35,7 @@ export function AccountabilityBuddyCard({
     if (onRefresh) {
       await onRefresh();
       toast({
-        title: "Accountability buddies updated",
-        description: "New pairings have been generated for this week.",
+        description: "Accountability buddies updated. New pairings have been generated for this week."
       });
     }
   };

@@ -83,10 +83,19 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
     setCalendarOpen(false);
   };
   
-  // Close dialog and calendar when ESC is pressed
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      setCalendarOpen(false);
+  // Handle calendar open event explicitly
+  const handleCalendarOpen = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setCalendarOpen(true);
+  };
+  
+  // Handle date selection with proper event handling
+  const handleDateSelect = (newDate: Date | undefined) => {
+    if (newDate) {
+      setDate(newDate);
+      // Use a short timeout to prevent UI issues during state transition
+      setTimeout(() => setCalendarOpen(false), 150);
     }
   };
   
@@ -100,7 +109,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
   
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className="sm:max-w-md" onKeyDown={handleKeyDown}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-purple-700">
             <Activity className="h-5 w-5" />
@@ -115,7 +124,10 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="cardio-date">Date</Label>
-              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <Popover 
+                open={calendarOpen} 
+                onOpenChange={setCalendarOpen}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     id="cardio-date"
@@ -125,22 +137,23 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                       "w-full justify-start text-left font-normal",
                       !date && "text-muted-foreground"
                     )}
-                    onClick={() => setCalendarOpen(true)}
+                    onClick={handleCalendarOpen}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {date ? format(date, "PPP") : <span>Select date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 z-50" align="start">
+                <PopoverContent 
+                  className="w-auto p-0 z-50" 
+                  align="start"
+                  onInteractOutside={(e) => {
+                    e.preventDefault();
+                  }}
+                >
                   <Calendar
                     mode="single"
                     selected={date}
-                    onSelect={(newDate) => {
-                      if (newDate) {
-                        setDate(newDate);
-                        setTimeout(() => setCalendarOpen(false), 100);
-                      }
-                    }}
+                    onSelect={handleDateSelect}
                     initialFocus
                     disabled={(date) => date > new Date()}
                   />

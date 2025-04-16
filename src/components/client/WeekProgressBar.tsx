@@ -135,7 +135,7 @@ export const WeekProgressBar = ({
           }
           
           return (
-            <div key={index} className="flex flex-col items-center">
+            <div key={index} className="flex flex-col items-center relative">
               <div
                 className={`relative w-7 h-7 rounded-full flex items-center justify-center ${bgColor} ${border} transition-all duration-200`}
               >
@@ -146,7 +146,7 @@ export const WeekProgressBar = ({
                 )}
                 
                 {day.workoutsCount >= 2 && (
-                  <div className="absolute -top-1.5 -right-1.5 bg-client text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm z-10 font-medium">
+                  <div className="absolute -top-1 -right-1 bg-client text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm z-10 font-bold">
                     {day.workoutsCount}
                   </div>
                 )}

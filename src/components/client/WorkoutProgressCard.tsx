@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -7,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatWeekDateRange } from '@/services/assigned-workouts-service';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Superscript } from 'lucide-react';
 
 interface WorkoutProgressCardProps {
   label?: string;
@@ -154,7 +152,7 @@ export function WorkoutProgressCard({
                           )}
                           
                           {workoutCount >= 2 && (
-                            <div className="absolute -top-2 -right-2 bg-client text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-medium shadow-sm">
+                            <div className="absolute -top-1 -right-1 bg-client text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-sm">
                               {workoutCount}
                             </div>
                           )}

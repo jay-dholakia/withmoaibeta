@@ -1,10 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
 import { format, isThisWeek, addDays, startOfWeek } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatWeekDateRange } from '@/services/assigned-workouts-service';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,6 +25,7 @@ interface WorkoutProgressCardProps {
   lastName?: string | null;
   showWeekdayLabels?: boolean;
   showLabelsBelow?: boolean;
+  showProgressBar?: boolean;
 }
 
 export function WorkoutProgressCard({ 
@@ -46,7 +45,8 @@ export function WorkoutProgressCard({
   firstName,
   lastName,
   showWeekdayLabels = false,
-  showLabelsBelow = false
+  showLabelsBelow = false,
+  showProgressBar = false
 }: WorkoutProgressCardProps) {
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
@@ -123,10 +123,6 @@ export function WorkoutProgressCard({
       </div>
       
       <div className="flex-1">
-        {!showWeekdayLabels && !showLabelsBelow && (
-          <Progress value={progressPercentage} className="h-1.5 mb-2" />
-        )}
-        
         <div className="grid grid-cols-7 gap-0.5">
           {daysOfWeek.map((day, columnIndex) => {
             const hasWorkout = hasWorkoutOnDate(day.dateStr);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, 
@@ -116,7 +115,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
     }
   };
   
-  // Stop propagation to prevent the dialog from closing the calendar popup
+  // Stop propagation to prevent dialog closing when interacting with inner components
   const handlePopoverInteraction = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
@@ -162,7 +161,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                   sideOffset={4}
                   onClick={handlePopoverInteraction}
                 >
-                  <div className="p-0">
+                  <div className="p-0" onClick={handlePopoverInteraction}>
                     <Calendar
                       mode="single"
                       selected={tempSelectedDate}

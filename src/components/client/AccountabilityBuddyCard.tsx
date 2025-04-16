@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,7 +35,7 @@ export function AccountabilityBuddyCard({
       if (onRefresh) {
         await onRefresh();
 
-        // Optional: trigger an upsert to Supabase directly from here
+        // Send upsert to Supabase
         const response = await fetch(
           `https://gjrheltyxjilxcphbzdj.supabase.co/rest/v1/accountability_buddies?on_conflict=group_id,week_start`,
           {
@@ -52,13 +51,13 @@ export function AccountabilityBuddyCard({
               user_id_1: buddies[0]?.userId || null,
               user_id_2: buddies[1]?.userId || null,
               user_id_3: buddies[2]?.userId || null,
-              week_start: new Date().toISOString().split('T')[0] // or your own logic
+              week_start: new Date().toISOString().split('T')[0] // ISO date, only the date part
             })
           }
         );
 
         if (!response.ok) {
-          throw new Error(`Failed to update: ${response.statusText}`);
+          throw new Error(`Supabase error: ${response.statusText}`);
         }
 
         toast({
@@ -66,9 +65,10 @@ export function AccountabilityBuddyCard({
         });
       }
     } catch (error) {
-      console.error('Error refreshing buddy data:', error);
+      console.error('Error creating buddy pairings:', error);
       toast({
-        title: 'Error updating buddies'
+        title: 'Error',
+        description: 'Could not refresh buddy pairings. Please try again later.'
       });
     }
   };
@@ -127,3 +127,5 @@ export function AccountabilityBuddyCard({
     </Card>
   );
 }
+
+

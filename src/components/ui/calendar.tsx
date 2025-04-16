@@ -14,6 +14,12 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
+  // Add a click handler to prevent propagation
+  const handleCalendarClick = (e: React.MouseEvent) => {
+    // This prevents the click from propagating to parent elements
+    e.stopPropagation();
+  };
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -57,6 +63,7 @@ function Calendar({
         IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
       }}
       {...props}
+      onClick={handleCalendarClick}
     />
   );
 }

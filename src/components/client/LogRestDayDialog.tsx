@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,13 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [tempSelectedDate, setTempSelectedDate] = useState<Date | undefined>(new Date());
 
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -62,6 +69,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
     setDate(new Date());
     setNotes("");
     setTempSelectedDate(new Date());
+    setCalendarOpen(false);
   };
 
   const handleDateSelect = (selected: Date | undefined) => {
@@ -78,13 +86,13 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
   };
   
   // Stop propagation to prevent the dialog from closing the calendar popup
-  const handleCalendarClick = (e: React.MouseEvent) => {
+  const handlePopoverInteraction = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onClick={handlePopoverInteraction}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-700">
             <Armchair className="h-5 w-5" />
@@ -120,7 +128,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                 <PopoverContent
                   className="w-auto p-0"
                   align="start"
-                  onClick={handleCalendarClick}
+                  onClick={handlePopoverInteraction}
                 >
                   <div className="p-0">
                     <Calendar
@@ -129,21 +137,26 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                       onSelect={handleDateSelect}
                       initialFocus
                       disabled={(date) => date > new Date()}
-                      className="pointer-events-auto"
                     />
                     <div className="flex justify-end gap-2 p-2 border-t">
                       <Button
                         type="button" 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => setCalendarOpen(false)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCalendarOpen(false);
+                        }}
                       >
                         Cancel
                       </Button>
                       <Button 
                         type="button" 
                         size="sm" 
-                        onClick={confirmDateSelection}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          confirmDateSelection();
+                        }}
                       >
                         Confirm
                       </Button>
@@ -159,6 +172,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                 id="notes"
                 placeholder="What did you do on your rest day? How are you feeling?"
                 value={notes}
+                onClick={(e) => e.stopPropagation()}
                 onChange={(e) => setNotes(e.target.value)}
                 className="min-h-[100px]"
               />

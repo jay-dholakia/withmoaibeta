@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, 
   DialogDescription, DialogFooter 
@@ -49,6 +49,13 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
   const [tempSelectedDate, setTempSelectedDate] = useState<Date | undefined>(new Date());
   const isMobile = useIsMobile();
   
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -84,6 +91,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
     setDuration("");
     setNotes("");
     setTempSelectedDate(new Date());
+    setDatePickerOpen(false);
   };
   
   // Reset form when dialog is closed
@@ -109,13 +117,13 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
   };
   
   // Stop propagation to prevent the dialog from closing the calendar popup
-  const handleCalendarClick = (e: React.MouseEvent) => {
+  const handlePopoverInteraction = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
   
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onClick={handlePopoverInteraction}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-purple-700">
             <Activity className="h-5 w-5" />
@@ -152,7 +160,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                   className="w-auto p-0" 
                   align="start"
                   sideOffset={4}
-                  onClick={handleCalendarClick}
+                  onClick={handlePopoverInteraction}
                 >
                   <div className="p-0">
                     <Calendar
@@ -161,21 +169,26 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                       onSelect={handleDateSelect}
                       initialFocus
                       disabled={(date) => date > new Date()}
-                      className="pointer-events-auto"
                     />
                     <div className="flex justify-end gap-2 p-2 border-t">
                       <Button
                         type="button" 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => setDatePickerOpen(false)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDatePickerOpen(false);
+                        }}
                       >
                         Cancel
                       </Button>
                       <Button 
                         type="button" 
                         size="sm" 
-                        onClick={confirmDateSelection}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          confirmDateSelection();
+                        }}
                       >
                         Confirm
                       </Button>
@@ -195,7 +208,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                 <SelectTrigger>
                   <SelectValue placeholder="Select activity type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent onClick={handlePopoverInteraction}>
                   {CARDIO_TYPES.map((type) => (
                     <SelectItem key={type} value={type}>
                       {type}
@@ -216,6 +229,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                   placeholder="30"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
                   className="pl-10"
                   required
                 />
@@ -229,6 +243,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                 placeholder="How was your workout?"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
                 className="min-h-[80px]"
               />
             </div>

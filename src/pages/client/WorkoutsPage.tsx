@@ -10,9 +10,6 @@ import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCurrentProgram } from '@/services/program-service';
-import LogRunPage from './LogRunPage';
-import LogCardioPage from './LogCardioPage';
-import LogRestPage from './LogRestPage';
 
 const WorkoutsPage = () => {
   const location = useLocation();
@@ -69,9 +66,6 @@ const WorkoutsPage = () => {
             />
           } 
         />
-        <Route path="log-run" element={<LogRunPage />} />
-        <Route path="log-cardio" element={<LogCardioPage />} />
-        <Route path="log-rest" element={<LogRestPage />} />
         <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
       </Routes>
     </div>

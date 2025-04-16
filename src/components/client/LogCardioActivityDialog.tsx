@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, 
@@ -116,9 +115,14 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
     }
   };
   
+  // Stop propagation to prevent dialog closing when interacting with inner components
+  const handlePopoverInteraction = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+  
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onClick={handlePopoverInteraction}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-purple-700">
             <Activity className="h-5 w-5" />
@@ -155,8 +159,9 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                   className="w-auto p-0" 
                   align="start"
                   sideOffset={4}
+                  onClick={handlePopoverInteraction}
                 >
-                  <div className="p-0">
+                  <div className="p-0" onClick={handlePopoverInteraction}>
                     <Calendar
                       mode="single"
                       selected={tempSelectedDate}
@@ -169,14 +174,20 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                         type="button" 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => setDatePickerOpen(false)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDatePickerOpen(false);
+                        }}
                       >
                         Cancel
                       </Button>
                       <Button 
                         type="button" 
                         size="sm" 
-                        onClick={confirmDateSelection}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          confirmDateSelection();
+                        }}
                       >
                         Confirm
                       </Button>
@@ -196,7 +207,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                 <SelectTrigger>
                   <SelectValue placeholder="Select activity type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent onClick={handlePopoverInteraction}>
                   {CARDIO_TYPES.map((type) => (
                     <SelectItem key={type} value={type}>
                       {type}
@@ -217,6 +228,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                   placeholder="30"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
                   className="pl-10"
                   required
                 />
@@ -230,6 +242,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                 placeholder="How was your workout?"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
                 className="min-h-[80px]"
               />
             </div>

@@ -12,11 +12,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { fetchCurrentProgram } from '@/services/program-service';
 import { ProgramProgressSection } from './ProgramProgressSection';
 import { fetchGroupMembers, GroupMember } from '@/services/group-member-service';
-import { InPageActivityLogger } from './InPageActivityLogger';
+import { LogActivityButtons } from './LogActivityButtons';
 import LifeHappensButton from './LifeHappensButton';
 import { formatInTimeZone } from 'date-fns-tz';
 import { addDays, startOfWeek } from 'date-fns';
-import { LogActivityButtons } from './LogActivityButtons';
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
@@ -31,13 +30,7 @@ const WorkoutsList = () => {
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0);
   const selectRef = useRef<HTMLDivElement>(null);
-
-  const refreshData = useCallback(() => {
-    setRefreshKey(prev => prev + 1);
-    document.dispatchEvent(new Event('refresh-weekly-progress'));
-  }, []);
 
   useEffect(() => {
     const loadWorkoutsAndProgram = async () => {
@@ -157,7 +150,7 @@ const WorkoutsList = () => {
     };
 
     loadWorkoutsAndProgram();
-  }, [user, refreshKey]);
+  }, [user]);
 
   const filteredWorkouts = React.useMemo(() => {
     if (!weekFilter) {
@@ -227,9 +220,11 @@ const WorkoutsList = () => {
     
     if (calendarStatus === 'connected') {
       toast.success('Google Calendar connected successfully');
+      // Clean up URL parameters
       navigate('/client-dashboard/workouts', { replace: true });
     } else if (error) {
       toast.error(decodeURIComponent(error));
+      // Clean up URL parameters
       navigate('/client-dashboard/workouts', { replace: true });
     }
   }, [navigate]);
@@ -387,7 +382,7 @@ const WorkoutsList = () => {
       <div className="mt-8 border-t pt-6">
         <h3 className="text-lg font-medium mb-4">Add Other Activity</h3>
         
-        <LogActivityButtons onActivityLogged={refreshData} />
+        <LogActivityButtons />
         
         <Button asChild variant="outline" className="w-full mt-4 flex items-center justify-between text-emerald-600 border-emerald-200 hover:bg-emerald-50">
           <Link to="/client-dashboard/workouts/one-off">

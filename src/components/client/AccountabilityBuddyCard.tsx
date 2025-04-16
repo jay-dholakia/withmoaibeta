@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -26,20 +25,53 @@ export function AccountabilityBuddyCard({
 }: AccountabilityBuddyCardProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const handleClick = (buddyId: string) => {
     navigate(`/client-dashboard/moai/members/${buddyId}`);
   };
-  
+
   const handleRefresh = async () => {
-    if (onRefresh) {
-      await onRefresh();
+    try {
+      if (onRefresh) {
+        await onRefresh();
+
+        // Optional: trigger an upsert to Supabase directly from here
+        const response = await fetch(
+          `https://gjrheltyxjilxcphbzdj.supabase.co/rest/v1/accountability_buddies?on_conflict=group_id,week_start`,
+          {
+            method: 'POST',
+            headers: {
+              apikey: import.meta.env.VITE_SUPABASE_API_KEY!,
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_API_KEY!}`,
+              'Content-Type': 'application/json',
+              Prefer: 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify({
+              group_id: groupId,
+              user_id_1: buddies[0]?.userId || null,
+              user_id_2: buddies[1]?.userId || null,
+              user_id_3: buddies[2]?.userId || null,
+              week_start: new Date().toISOString().split('T')[0] // or your own logic
+            })
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to update: ${response.statusText}`);
+        }
+
+        toast({
+          title: 'Accountability Buddies Updated'
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing buddy data:', error);
       toast({
-        title: "Accountability Buddies Updated"
+        title: 'Error updating buddies'
       });
     }
   };
-  
+
   return (
     <Card className="border-none shadow-none bg-slate-50 mt-3">
       <CardContent className="p-4 space-y-3">
@@ -48,11 +80,11 @@ export function AccountabilityBuddyCard({
             <UserCheck className="h-4 w-4 mr-2 text-client" />
             <h3 className="font-medium text-sm">This Week's Accountability Buddy</h3>
           </div>
-          
+
           <Badge variant="outline" className="text-xs bg-white">
             Refreshes Monday
           </Badge>
-          
+
           {isAdmin && (
             <Button
               variant="ghost"
@@ -65,11 +97,11 @@ export function AccountabilityBuddyCard({
             </Button>
           )}
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {buddies.length > 0 ? (
             buddies.map((buddy) => (
-              <div 
+              <div
                 key={buddy.userId}
                 className="flex items-center p-2 rounded-md bg-white border cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={() => handleClick(buddy.userId)}
@@ -94,3 +126,4 @@ export function AccountabilityBuddyCard({
     </Card>
   );
 }
+

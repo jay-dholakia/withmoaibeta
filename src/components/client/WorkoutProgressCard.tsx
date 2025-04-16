@@ -141,13 +141,13 @@ export function WorkoutProgressCard({
                       <div className="relative">
                         <div className={cn(
                           "mx-auto w-6 h-6 rounded-full flex items-center justify-center", 
-                          hasWorkout || restDay ? "bg-muted" : "bg-gray-300/50 border border-gray-400/30"
+                          "bg-gray-300/50 border border-gray-400/30"
                         )}>
                           {(hasWorkout || restDay) && workoutType && (
                             <WorkoutTypeIcon
                               type={workoutType}
                               className="h-4 w-4"
-                              colorOverride={hasWorkout ? undefined : "text-muted-foreground"}
+                              colorOverride="text-muted-foreground"
                             />
                           )}
                           

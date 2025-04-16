@@ -98,11 +98,11 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle>Edit Workout: {workout.workout?.title || workout.title || "Completed Workout"}</DialogTitle>
+          <DialogTitle>Edit Workout: {workout.workout?.title || "Completed Workout"}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
-          {Object.entries(exerciseGroups).map(([exerciseId, group]: [string, any]) => (
+          {Object.entries(exerciseGroups).map(([exerciseId, group]) => (
             <div key={exerciseId} className="border rounded-md p-3">
               <h3 className="font-medium mb-2">{group.name}</h3>
               

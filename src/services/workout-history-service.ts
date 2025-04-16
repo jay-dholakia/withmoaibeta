@@ -1,63 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
-import { WorkoutHistoryItem } from "@/types/workout";
-
-/**
- * Fetches the workout history for the current user
- */
-export const fetchWorkoutHistory = async (userId: string): Promise<WorkoutHistoryItem[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('workout_completions')
-      .select(`
-        id, workout_id, title, description, workout_type,
-        completed_at, notes, rating, rest_day, life_happens_pass,
-        duration, distance, location,
-        workout_set_completions (*)
-      `)
-      .eq('user_id', userId)
-      .order('completed_at', { ascending: false });
-      
-    if (error) {
-      console.error("Error fetching workout history:", error);
-      return [];
-    }
-    
-    return data as WorkoutHistoryItem[];
-  } catch (error) {
-    console.error("Error in fetchWorkoutHistory:", error);
-    return [];
-  }
-};
-
-/**
- * Fetches details for a specific workout completion
- */
-export const fetchWorkoutCompletionDetails = async (
-  completionId: string
-): Promise<WorkoutHistoryItem | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('workout_completions')
-      .select(`
-        id, workout_id, user_id, title, description, workout_type,
-        completed_at, notes, rating, rest_day, life_happens_pass,
-        duration, distance, location,
-        workout_set_completions (*)
-      `)
-      .eq('id', completionId)
-      .single();
-      
-    if (error) {
-      console.error("Error fetching workout completion details:", error);
-      return null;
-    }
-    
-    return data as WorkoutHistoryItem;
-  } catch (error) {
-    console.error("Error in fetchWorkoutCompletionDetails:", error);
-    return null;
-  }
-};
+import { fetchCurrentProgram } from "./program-service";
+import { startOfWeek, endOfWeek, format, addDays } from "date-fns";
+import { WorkoutHistoryItem, WorkoutBasic, WorkoutSetCompletion, StandardWorkoutType } from "@/types/workout";
 
 /**
  * Gets the weekly assigned workouts count for a user

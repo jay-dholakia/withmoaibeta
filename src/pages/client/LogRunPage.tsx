@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -50,7 +51,7 @@ const LogRunPage = () => {
     
     const runData: RunLog = {
       distance: parseFloat(distance),
-      duration: duration,
+      duration: duration, // This is correct if the API accepts string durations
       location: location || undefined,
       notes: notes.trim() || undefined,
       log_date: date

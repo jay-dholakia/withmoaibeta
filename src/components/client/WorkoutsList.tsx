@@ -16,6 +16,7 @@ import { InPageActivityLogger } from './InPageActivityLogger';
 import LifeHappensButton from './LifeHappensButton';
 import { formatInTimeZone } from 'date-fns-tz';
 import { addDays, startOfWeek } from 'date-fns';
+import { LogActivityButtons } from './LogActivityButtons';
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");

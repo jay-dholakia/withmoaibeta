@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Running, Dumbbell, Armchair } from 'lucide-react';
+import { Run, Dumbbell, Armchair } from 'lucide-react';
 
 interface LogActivityButtonsProps {
   onActivityLogged?: () => void;
@@ -14,7 +14,7 @@ export const LogActivityButtons: React.FC<LogActivityButtonsProps> = () => {
       <Button asChild variant="outline" className="w-full flex items-center justify-between text-blue-600 border-blue-200 hover:bg-blue-50">
         <Link to="/client-dashboard/workouts/log-run">
           <div className="flex items-center">
-            <Running className="h-4 w-4 mr-2" />
+            <Run className="h-4 w-4 mr-2" />
             <span>Log Run</span>
           </div>
         </Link>

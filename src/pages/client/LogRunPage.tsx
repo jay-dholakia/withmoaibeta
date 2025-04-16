@@ -20,7 +20,6 @@ const LogRunPage: React.FC = () => {
   const [location, setLocation] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [tempSelectedDate, setTempSelectedDate] = useState<Date>(new Date());
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,15 +53,11 @@ const LogRunPage: React.FC = () => {
     }
   };
   
-  const handleDateSelect = (selected: Date | undefined) => {
-    if (selected) {
-      setTempSelectedDate(selected);
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+      setDate(selectedDate);
+      setDatePickerOpen(false);
     }
-  };
-  
-  const confirmDateSelection = () => {
-    setDate(tempSelectedDate);
-    setDatePickerOpen(false);
   };
   
   return (
@@ -81,7 +76,6 @@ const LogRunPage: React.FC = () => {
                 <Button
                   id="run-date"
                   variant="outline"
-                  onClick={() => setDatePickerOpen((prev) => !prev)}
                   className={cn(
                     "w-full justify-start text-left font-normal",
                     !date && "text-muted-foreground"
@@ -92,32 +86,13 @@ const LogRunPage: React.FC = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <div>
-                  <Calendar
-                    mode="single"
-                    selected={tempSelectedDate}
-                    onSelect={handleDateSelect}
-                    initialFocus
-                    disabled={(d) => d > new Date()}
-                  />
-                </div>
-                <div className="flex justify-end gap-2 p-2 border-t">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setDatePickerOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={confirmDateSelection}
-                  >
-                    Confirm
-                  </Button>
-                </div>
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={handleDateSelect}
+                  initialFocus
+                  disabled={(d) => d > new Date()}
+                />
               </PopoverContent>
             </Popover>
           </div>

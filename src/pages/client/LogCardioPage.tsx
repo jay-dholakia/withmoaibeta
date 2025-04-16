@@ -33,7 +33,6 @@ const LogCardioPage: React.FC = () => {
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false);
-  const [tempSelectedDate, setTempSelectedDate] = useState<Date>(new Date());
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,16 +64,12 @@ const LogCardioPage: React.FC = () => {
     }
   };
   
-  // Handle date selection safely
+  // Handle date selection directly
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
-      setTempSelectedDate(selectedDate);
+      setDate(selectedDate);
+      setDatePickerOpen(false);
     }
-  };
-  
-  const confirmDateSelection = () => {
-    setDate(tempSelectedDate);
-    setDatePickerOpen(false);
   };
   
   return (
@@ -111,32 +106,13 @@ const LogCardioPage: React.FC = () => {
                 align="start"
                 sideOffset={4}
               >
-                <div>
-                  <Calendar
-                    mode="single"
-                    selected={tempSelectedDate}
-                    onSelect={handleDateSelect}
-                    initialFocus
-                    disabled={(date) => date > new Date()}
-                  />
-                </div>
-                <div className="flex justify-end gap-2 p-2 border-t">
-                  <Button
-                    type="button" 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setDatePickerOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="button" 
-                    size="sm" 
-                    onClick={confirmDateSelection}
-                  >
-                    Confirm
-                  </Button>
-                </div>
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={handleDateSelect}
+                  initialFocus
+                  disabled={(date) => date > new Date()}
+                />
               </PopoverContent>
             </Popover>
           </div>

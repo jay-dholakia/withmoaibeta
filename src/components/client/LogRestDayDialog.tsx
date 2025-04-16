@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -65,17 +66,14 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
   const handleDateSelect = (selected: Date | undefined) => {
     if (selected) {
       setTempSelectedDate(selected); // do not commit yet
+      setDate(selected); // Instead, commit right away
+      setDatePickerOpen(false); // Close the popover
     }
-  };
-
-  const confirmDateSelection = () => {
-    setDate(tempSelectedDate);
-    setDatePickerOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" disableAutoFocus>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-700">
             <Armchair className="h-5 w-5" />
@@ -102,41 +100,22 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(tempSelectedDate, "PPP")}
+                    {format(date, "PPP")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
                   className="w-auto p-3"
                   align="start"
-                  forceMount
-                  onOpenAutoFocus={(e) => e.preventDefault()}
                 >
-                  <div onMouseDown={(e) => e.preventDefault()}>
+                  <div>
                     <Calendar
                       mode="single"
-                      selected={tempSelectedDate}
+                      selected={date}
                       onSelect={handleDateSelect}
                       initialFocus
                       disabled={(d) => d > new Date()}
                       className="pointer-events-auto"
                     />
-                  </div>
-                  <div className="flex justify-end gap-2 mt-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setDatePickerOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={confirmDateSelection}
-                    >
-                      Confirm
-                    </Button>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -176,4 +155,3 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
     </Dialog>
   );
 };
-

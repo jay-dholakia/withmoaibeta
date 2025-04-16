@@ -15,6 +15,7 @@ import { CalendarIcon, Timer, Activity } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CardioLog, logCardioActivity } from "@/services/activity-logging-service";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CARDIO_TYPES = [
   'Cycling',
@@ -45,6 +46,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false);
+  const isMobile = useIsMobile();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,6 +143,7 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
                     onSelect={handleDateSelect}
                     initialFocus
                     disabled={(date) => date > new Date()}
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>

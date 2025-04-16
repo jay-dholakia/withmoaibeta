@@ -14,6 +14,7 @@ import { CalendarIcon, MapPin, Timer } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { RunLog, logRunActivity } from "@/services/activity-logging-service";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface LogRunActivityDialogProps {
   open: boolean;
@@ -33,6 +34,7 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false);
+  const isMobile = useIsMobile();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +133,7 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
                     onSelect={handleDateSelect}
                     initialFocus
                     disabled={(date) => date > new Date()}
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>

@@ -17,6 +17,7 @@ import { CalendarIcon, Armchair } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { RestLog, logRestDay } from "@/services/activity-logging-service";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface LogRestDayDialogProps {
   open: boolean;
@@ -33,6 +34,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false);
+  const isMobile = useIsMobile();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

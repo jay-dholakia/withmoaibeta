@@ -60,28 +60,28 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className }) => {
     <div className={cn("flex items-center justify-between p-4 bg-gray-100 rounded-lg", className)}>
       <Button 
         variant="outline" 
-        size="sm" 
+        size="lg" 
         onClick={resetTimer} 
-        className="h-8 w-8 p-0"
+        className="h-12 w-12 p-0"
       >
-        <RefreshCw className="h-4 w-4" />
+        <RefreshCw className="h-6 w-6" />
         <span className="sr-only">Reset</span>
       </Button>
       
-      <div className={cn("text-xl font-mono font-bold flex-1 text-center", getTimeColor())}>
+      <div className={cn("text-4xl font-mono font-bold flex-1 text-center", getTimeColor())}>
         {formatTime(time)}
       </div>
       
       <Button 
         variant="outline" 
-        size="sm" 
+        size="lg" 
         onClick={toggleTimer} 
         className={cn(
-          "h-8 w-8 p-0",
+          "h-12 w-12 p-0",
           isRunning ? "bg-gray-200" : "bg-white"
         )}
       >
-        {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+        {isRunning ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
         <span className="sr-only">{isRunning ? 'Pause' : 'Play'}</span>
       </Button>
     </div>

@@ -1482,17 +1482,17 @@ const ActiveWorkout = () => {
         )}
         <Button 
           onClick={finishWorkout}
-          className="bg-client hover:bg-client/90 min-w-[200px]"
+          className="bg-client hover:bg-client/90 min-w-[200px] h-14 text-lg"
           disabled={saveAllSetsMutation.isPending}
         >
           {saveAllSetsMutation.isPending ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-6 w-6 animate-spin" />
               Saving...
             </>
           ) : (
             <>
-              <CheckCircle2 className="mr-2 h-4 w-4" />
+              <CheckCircle2 className="mr-2 h-6 w-6" />
               Complete Workout
             </>
           )}

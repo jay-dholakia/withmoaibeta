@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -31,6 +32,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
   const [date, setDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,8 +62,24 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
     setNotes("");
   };
 
+  // Handle date selection safely
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+      setDate(selectedDate);
+      setDatePickerOpen(false);
+    }
+  };
+
+  // Reset form when dialog is closed
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      resetForm();
+    }
+    onOpenChange(open);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-700">
@@ -74,5 +92,71 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <div className="grid gap
-
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="rest-date">Date</Label>
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="rest-date"
+                    type="button"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : <span>Select date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent 
+                  className="w-auto p-0" 
+                  align="start"
+                  sideOffset={4}
+                >
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={handleDateSelect}
+                    initialFocus
+                    disabled={(date) => date > new Date()}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Notes (optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="How was your rest day?"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {isSubmitting ? "Saving..." : "Save Rest Day"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};

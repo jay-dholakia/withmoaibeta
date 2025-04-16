@@ -14,30 +14,29 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
-  // Create a ref for the container instead of adding onClick directly to DayPicker
-  const calendarRef = React.useRef<HTMLDivElement>(null);
+  // Create a container ref for handling click events
+  const containerRef = React.useRef<HTMLDivElement>(null);
   
-  // Add effect to handle clicks on the calendar container
+  // Use useEffect to set up the event listener for stopping propagation
   React.useEffect(() => {
-    if (!calendarRef.current) return;
+    const currentRef = containerRef.current;
+    if (!currentRef) return;
     
-    const handleClick = (e: MouseEvent) => {
-      // This prevents the click from propagating to parent elements
-      e.stopPropagation();
+    const handleClick = (event: MouseEvent) => {
+      event.stopPropagation();
     };
     
-    const calendarElement = calendarRef.current;
-    calendarElement.addEventListener('click', handleClick);
-    
-    // Cleanup
+    currentRef.addEventListener("click", handleClick);
     return () => {
-      calendarElement.removeEventListener('click', handleClick);
+      currentRef.removeEventListener("click", handleClick);
     };
   }, []);
 
   return (
-    // Wrap the DayPicker in a div that has the click handler
-    <div ref={calendarRef} className="calendar-container">
+    <div 
+      ref={containerRef} 
+      className="calendar-wrapper"
+    >
       <DayPicker
         showOutsideDays={showOutsideDays}
         className={cn("p-3 pointer-events-auto", className)}

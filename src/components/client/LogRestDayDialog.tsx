@@ -84,15 +84,10 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
       setCalendarOpen(false);
     }
   };
-  
-  // Stop propagation to prevent dialog closing when interacting with inner components
-  const handlePopoverInteraction = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" onClick={handlePopoverInteraction}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-700">
             <Armchair className="h-5 w-5" />
@@ -128,9 +123,8 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                 <PopoverContent
                   className="w-auto p-0"
                   align="start"
-                  onClick={handlePopoverInteraction}
                 >
-                  <div className="p-0" onClick={handlePopoverInteraction}>
+                  <div className="p-0">
                     <Calendar
                       mode="single"
                       selected={tempSelectedDate}
@@ -143,20 +137,14 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                         type="button" 
                         variant="outline" 
                         size="sm" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCalendarOpen(false);
-                        }}
+                        onClick={() => setCalendarOpen(false)}
                       >
                         Cancel
                       </Button>
                       <Button 
                         type="button" 
                         size="sm" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          confirmDateSelection();
-                        }}
+                        onClick={confirmDateSelection}
                       >
                         Confirm
                       </Button>
@@ -172,7 +160,6 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                 id="notes"
                 placeholder="What did you do on your rest day? How are you feeling?"
                 value={notes}
-                onClick={(e) => e.stopPropagation()}
                 onChange={(e) => setNotes(e.target.value)}
                 className="min-h-[100px]"
               />

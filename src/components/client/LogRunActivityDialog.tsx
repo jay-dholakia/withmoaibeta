@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, 
@@ -105,14 +106,9 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
     }
   };
   
-  // Stop propagation to prevent dialog closing when interacting with inner components
-  const handlePopoverInteraction = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-  
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className="sm:max-w-md" onClick={handlePopoverInteraction}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-blue-700">
             <span role="img" aria-label="running" className="text-lg">🏃</span>
@@ -149,9 +145,8 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
                   className="w-auto p-0" 
                   align="start"
                   sideOffset={4}
-                  onClick={handlePopoverInteraction}
                 >
-                  <div className="p-0" onClick={handlePopoverInteraction}>
+                  <div className="p-0">
                     <Calendar
                       mode="single"
                       selected={tempSelectedDate}
@@ -164,20 +159,14 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
                         type="button" 
                         variant="outline" 
                         size="sm" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDatePickerOpen(false);
-                        }}
+                        onClick={() => setDatePickerOpen(false)}
                       >
                         Cancel
                       </Button>
                       <Button 
                         type="button" 
                         size="sm" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          confirmDateSelection();
-                        }}
+                        onClick={confirmDateSelection}
                       >
                         Confirm
                       </Button>
@@ -199,7 +188,6 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
                   placeholder="3.1"
                   value={distance}
                   onChange={(e) => setDistance(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
                   className="pl-10"
                   required
                 />
@@ -217,7 +205,6 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
                   placeholder="30"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
                   className="pl-10"
                   required
                 />
@@ -233,7 +220,6 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
                   placeholder="Park, trail, etc."
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
                   className="pl-10"
                 />
               </div>
@@ -246,7 +232,6 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
                 placeholder="How was your run?"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
                 className="min-h-[80px]"
               />
             </div>

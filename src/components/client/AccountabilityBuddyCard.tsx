@@ -1,0 +1,97 @@
+
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { UserCheck, RefreshCw } from 'lucide-react';
+import { BuddyDisplayInfo } from '@/services/accountability-buddy-service';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/components/ui/use-toast';
+
+interface AccountabilityBuddyCardProps {
+  buddies: BuddyDisplayInfo[];
+  isAdmin?: boolean;
+  groupId: string;
+  onRefresh?: () => Promise<void>;
+  loading?: boolean;
+}
+
+export function AccountabilityBuddyCard({
+  buddies,
+  isAdmin = false,
+  groupId,
+  onRefresh,
+  loading = false
+}: AccountabilityBuddyCardProps) {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  const handleClick = (buddyId: string) => {
+    navigate(`/client-dashboard/moai/members/${buddyId}`);
+  };
+  
+  const handleRefresh = async () => {
+    if (onRefresh) {
+      await onRefresh();
+      toast({
+        title: "Accountability buddies updated",
+        description: "New pairings have been generated for this week.",
+      });
+    }
+  };
+  
+  return (
+    <Card className="border-none shadow-none bg-slate-50 mt-3">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center">
+            <UserCheck className="h-4 w-4 mr-2 text-client" />
+            <h3 className="font-medium text-sm">This Week's Accountability Buddy</h3>
+          </div>
+          
+          <Badge variant="outline" className="text-xs bg-white">
+            Refreshes Monday
+          </Badge>
+          
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? 'animate-spin' : ''}`} />
+              <span className="text-xs">Refresh</span>
+            </Button>
+          )}
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {buddies.length > 0 ? (
+            buddies.map((buddy) => (
+              <div 
+                key={buddy.userId}
+                className="flex items-center p-2 rounded-md bg-white border cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => handleClick(buddy.userId)}
+              >
+                <Avatar className="h-8 w-8 mr-2">
+                  <AvatarImage src={buddy.avatarUrl || ''} />
+                  <AvatarFallback className="bg-client/80 text-white text-xs">
+                    {buddy.firstName ? buddy.firstName.charAt(0).toUpperCase() : ''}
+                    {buddy.lastName ? buddy.lastName.charAt(0).toUpperCase() : ''}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="font-medium text-sm">{buddy.name}</span>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-2 p-3 bg-white border rounded-md text-center text-sm text-muted-foreground">
+              No accountability buddy assigned yet for this week.
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

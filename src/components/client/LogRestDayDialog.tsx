@@ -1,17 +1,14 @@
+
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter
+import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, 
+  DialogDescription, DialogFooter 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Armchair } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -29,23 +26,22 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
   onSuccess
 }) => {
   const [date, setDate] = useState<Date>(new Date());
-  const [tempSelectedDate, setTempSelectedDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     setIsSubmitting(true);
-
+    
     const restData: RestLog = {
       log_date: date,
       notes
     };
-
+    
     try {
       const result = await logRestDay(restData);
-
+      
       if (result) {
         resetForm();
         onOpenChange(false);
@@ -55,27 +51,15 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
       setIsSubmitting(false);
     }
   };
-
+  
   const resetForm = () => {
     setDate(new Date());
-    setTempSelectedDate(new Date());
     setNotes("");
   };
-
-  const handleDateSelect = (selected: Date | undefined) => {
-    if (selected) {
-      setTempSelectedDate(selected); // do not commit yet
-    }
-  };
-
-  const confirmDateSelection = () => {
-    setDate(tempSelectedDate);
-    setDatePickerOpen(false);
-  };
-
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" disableAutoFocus>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-700">
             <Armchair className="h-5 w-5" />
@@ -85,63 +69,37 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
             Record your rest day and any notes.
           </DialogDescription>
         </DialogHeader>
-
+        
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="rest-date">Date</Label>
-              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+              <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     id="rest-date"
                     variant="outline"
-                    onClick={() => setDatePickerOpen((prev) => !prev)}
                     className={cn(
                       "w-full justify-start text-left font-normal",
                       !date && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(tempSelectedDate, "PPP")}
+                    {date ? format(date, "PPP") : <span>Select date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent
-                  className="w-auto p-3"
-                  align="start"
-                  forceMount
-                  onOpenAutoFocus={(e) => e.preventDefault()}
-                >
-                  <div onMouseDown={(e) => e.preventDefault()}>
-                    <Calendar
-                      mode="single"
-                      selected={tempSelectedDate}
-                      onSelect={handleDateSelect}
-                      initialFocus
-                      disabled={(d) => d > new Date()}
-                      className="pointer-events-auto"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2 mt-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setDatePickerOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={confirmDateSelection}
-                    >
-                      Confirm
-                    </Button>
-                  </div>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(date) => date && setDate(date)}
+                    initialFocus
+                    disabled={(date) => date > new Date()}
+                  />
                 </PopoverContent>
               </Popover>
             </div>
-
+            
             <div className="grid gap-2">
               <Label htmlFor="notes">Notes (optional)</Label>
               <Textarea
@@ -153,17 +111,17 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
               />
             </div>
           </div>
-
+          
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
+            <Button 
+              type="button" 
+              variant="outline" 
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button
+            <Button 
               type="submit"
               disabled={isSubmitting}
               className="bg-amber-600 hover:bg-amber-700"
@@ -176,4 +134,3 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
     </Dialog>
   );
 };
-

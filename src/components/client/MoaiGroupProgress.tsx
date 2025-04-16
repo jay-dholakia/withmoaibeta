@@ -445,7 +445,7 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
               : memberData.completedDates.filter(date => isThisWeekPT(date)).length;
             
             return (
-              <div key={member.userId}>
+              <React.Fragment key={member.userId}>
                 <WorkoutProgressCard 
                   completedDates={isCurrentUser ? completedDates : memberData.completedDates}
                   lifeHappensDates={isCurrentUser ? lifeHappensDates : memberData.lifeHappensDates}
@@ -466,7 +466,7 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
                     <Separator className="opacity-30" />
                   </div>
                 )}
-              </div>
+              </React.Fragment>
             );
           })}
           

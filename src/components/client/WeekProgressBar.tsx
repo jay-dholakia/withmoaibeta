@@ -145,9 +145,8 @@ export const WeekProgressBar = ({
                   <span></span>
                 )}
                 
-                {/* Add superscript for multiple workouts - make sure this is visible by improving the styling */}
-                {day.workoutsCount > 1 && (
-                  <div className="absolute -top-1.5 -right-1.5 bg-client text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm z-10 font-bold">
+                {day.workoutsCount >= 2 && (
+                  <div className="absolute -top-1.5 -right-1.5 bg-client text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm z-10 font-medium">
                     {day.workoutsCount}
                   </div>
                 )}

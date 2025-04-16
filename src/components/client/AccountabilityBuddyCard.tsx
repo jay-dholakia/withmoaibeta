@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -6,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { UserCheck, RefreshCw } from 'lucide-react';
 import { BuddyDisplayInfo } from '@/services/accountability-buddy-service';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 interface AccountabilityBuddyCardProps {
   buddies: BuddyDisplayInfo[];
@@ -24,7 +25,6 @@ export function AccountabilityBuddyCard({
   loading = false
 }: AccountabilityBuddyCardProps) {
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const handleClick = (buddyId: string) => {
     navigate(`/client-dashboard/moai/members/${buddyId}`);
@@ -59,20 +59,11 @@ export function AccountabilityBuddyCard({
           throw new Error(`Supabase error: ${response.statusText}`);
         }
 
-        toast(
-          <div>
-            <strong className="block">Accountability Buddies Updated</strong>
-          </div>
-        );
+        toast.success('Accountability Buddies Updated');
       }
     } catch (error) {
       console.error('Error creating buddy pairings:', error);
-      toast(
-        <div>
-          <strong className="block">Error</strong>
-          <span>Could not refresh buddy pairings. Please try again later.</span>
-        </div>
-      );
+      toast.error('Could not refresh buddy pairings. Please try again later.');
     }
   };
 

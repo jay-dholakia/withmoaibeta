@@ -30,7 +30,13 @@ const WorkoutsList = () => {
   const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   const selectRef = useRef<HTMLDivElement>(null);
+
+  const refreshData = useCallback(() => {
+    setRefreshKey(prev => prev + 1);
+    document.dispatchEvent(new Event('refresh-weekly-progress'));
+  }, []);
 
   useEffect(() => {
     const loadWorkoutsAndProgram = async () => {
@@ -150,7 +156,7 @@ const WorkoutsList = () => {
     };
 
     loadWorkoutsAndProgram();
-  }, [user]);
+  }, [user, refreshKey]);
 
   const filteredWorkouts = React.useMemo(() => {
     if (!weekFilter) {
@@ -220,11 +226,9 @@ const WorkoutsList = () => {
     
     if (calendarStatus === 'connected') {
       toast.success('Google Calendar connected successfully');
-      // Clean up URL parameters
       navigate('/client-dashboard/workouts', { replace: true });
     } else if (error) {
       toast.error(decodeURIComponent(error));
-      // Clean up URL parameters
       navigate('/client-dashboard/workouts', { replace: true });
     }
   }, [navigate]);

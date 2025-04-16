@@ -12,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { fetchCurrentProgram } from '@/services/program-service';
 import { ProgramProgressSection } from './ProgramProgressSection';
 import { fetchGroupMembers, GroupMember } from '@/services/group-member-service';
-import { LogActivityButtons } from './LogActivityButtons';
+import { InPageActivityLogger } from './InPageActivityLogger';
 import LifeHappensButton from './LifeHappensButton';
 import { formatInTimeZone } from 'date-fns-tz';
 import { addDays, startOfWeek } from 'date-fns';
@@ -382,7 +382,7 @@ const WorkoutsList = () => {
       <div className="mt-8 border-t pt-6">
         <h3 className="text-lg font-medium mb-4">Add Other Activity</h3>
         
-        <LogActivityButtons />
+        <InPageActivityLogger onActivityLogged={refreshData} />
         
         <Button asChild variant="outline" className="w-full mt-4 flex items-center justify-between text-emerald-600 border-emerald-200 hover:bg-emerald-50">
           <Link to="/client-dashboard/workouts/one-off">

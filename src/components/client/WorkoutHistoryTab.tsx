@@ -14,7 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { format, subDays, startOfWeek } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { LogActivityButtons } from './LogActivityButtons';
+import { InPageActivityLogger } from './InPageActivityLogger';
 
 const WorkoutHistoryTab = () => {
   const { user } = useAuth();
@@ -104,11 +104,11 @@ const WorkoutHistoryTab = () => {
   return (
     <div>
       <div className="mt-8 border-t pt-6">
-        <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
+        <h3 className="text-lg font-medium mb-4">Log Activity</h3>
         
-        <LogActivityButtons onActivityLogged={refreshData} />
+        <InPageActivityLogger onActivityLogged={refreshData} />
         
-        <Button asChild variant="outline" className="w-full mb-4 flex items-center justify-between text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+        <Button asChild variant="outline" className="w-full mt-4 flex items-center justify-between text-emerald-600 border-emerald-200 hover:bg-emerald-50">
           <Link to="/client-dashboard/workouts/one-off">
             <div className="flex items-center">
               <PlusCircle className="h-4 w-4 mr-2" />

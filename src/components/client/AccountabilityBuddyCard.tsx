@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -61,13 +62,13 @@ export function AccountabilityBuddyCard({
         }
 
         toast({
-          title: 'Accountability Buddies Updated'
+          description: 'Accountability Buddies Updated'
         });
       }
     } catch (error) {
       console.error('Error creating buddy pairings:', error);
       toast({
-        title: 'Error',
+        variant: "destructive",
         description: 'Could not refresh buddy pairings. Please try again later.'
       });
     }
@@ -127,5 +128,3 @@ export function AccountabilityBuddyCard({
     </Card>
   );
 }
-
-

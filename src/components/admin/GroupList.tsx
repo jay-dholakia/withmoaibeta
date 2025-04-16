@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,6 +75,7 @@ const GroupList: React.FC = () => {
   const [isCoachDialogOpen, setIsCoachDialogOpen] = useState(false);
   const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isGeneratingBuddies, setIsGeneratingBuddies] = useState<Record<string, boolean>>({});
 
   const { data: groups, isLoading, error, refetch } = useQuery({
     queryKey: ['groups'],
@@ -127,6 +129,8 @@ const GroupList: React.FC = () => {
 
   const handleGenerateAccountabilityBuddies = async (groupId: string) => {
     try {
+      setIsGeneratingBuddies(prev => ({ ...prev, [groupId]: true }));
+      
       // First check if the group has enough members
       const { count: memberCount, error: countError } = await supabase
         .from('group_members')
@@ -153,6 +157,8 @@ const GroupList: React.FC = () => {
     } catch (error) {
       console.error('Error generating accountability buddies:', error);
       toast.error('An error occurred while generating accountability buddies');
+    } finally {
+      setIsGeneratingBuddies(prev => ({ ...prev, [groupId]: false }));
     }
   };
 
@@ -220,9 +226,10 @@ const GroupList: React.FC = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handleGenerateAccountabilityBuddies(group.id)}
+                          disabled={isGeneratingBuddies[group.id]}
                         >
-                          <Shuffle className="h-4 w-4 mr-1" />
-                          Generate Buddies
+                          <Shuffle className={`h-4 w-4 mr-1 ${isGeneratingBuddies[group.id] ? 'animate-spin' : ''}`} />
+                          {isGeneratingBuddies[group.id] ? 'Generating...' : 'Generate Buddies'}
                         </Button>
                       </div>
                     </TableCell>

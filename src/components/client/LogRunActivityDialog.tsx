@@ -34,6 +34,7 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false);
+  const [tempSelectedDate, setTempSelectedDate] = useState<Date | undefined>(new Date());
   const isMobile = useIsMobile();
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,6 +73,7 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
     setDuration("");
     setLocation("");
     setNotes("");
+    setTempSelectedDate(new Date());
   };
   
   // Reset form when dialog is closed
@@ -85,7 +87,13 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
   // Handle date selection safely
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
-      setDate(selectedDate);
+      setTempSelectedDate(selectedDate);
+    }
+  };
+  
+  const confirmDateSelection = () => {
+    if (tempSelectedDate) {
+      setDate(tempSelectedDate);
       setDatePickerOpen(false);
     }
   };
@@ -127,14 +135,33 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
                   align="start"
                   sideOffset={4}
                 >
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={handleDateSelect}
-                    initialFocus
-                    disabled={(date) => date > new Date()}
-                    className="pointer-events-auto"
-                  />
+                  <div className="p-0">
+                    <Calendar
+                      mode="single"
+                      selected={tempSelectedDate}
+                      onSelect={handleDateSelect}
+                      initialFocus
+                      disabled={(date) => date > new Date()}
+                      className="pointer-events-auto"
+                    />
+                    <div className="flex justify-end gap-2 p-2 border-t">
+                      <Button
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setDatePickerOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="button" 
+                        size="sm" 
+                        onClick={confirmDateSelection}
+                      >
+                        Confirm
+                      </Button>
+                    </div>
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>

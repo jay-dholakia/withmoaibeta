@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -31,7 +32,8 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
   const [date, setDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [calendarOpen, setCalendarOpen] = useState(false); // control popover
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [tempSelectedDate, setTempSelectedDate] = useState<Date | undefined>(new Date());
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,18 +61,25 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
   const resetForm = () => {
     setDate(new Date());
     setNotes("");
+    setTempSelectedDate(new Date());
   };
 
   const handleDateSelect = (selected: Date | undefined) => {
     if (selected) {
-      setDate(selected);
-      setCalendarOpen(false); // auto-close popover after selection
+      setTempSelectedDate(selected);
+    }
+  };
+
+  const confirmDateSelection = () => {
+    if (tempSelectedDate) {
+      setDate(tempSelectedDate);
+      setCalendarOpen(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" disableAutoFocus>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-700">
             <Armchair className="h-5 w-5" />
@@ -86,8 +95,6 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
             <div className="grid gap-2">
               <Label htmlFor="rest-date">Date</Label>
               <Popover
-                modal={false}
-                trapFocus={false}
                 open={calendarOpen}
                 onOpenChange={setCalendarOpen}
               >
@@ -95,7 +102,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                   <Button
                     id="rest-date"
                     variant="outline"
-                    onClick={() => setCalendarOpen((prev) => !prev)}
+                    type="button"
                     className={cn(
                       "w-full justify-start text-left font-normal",
                       !date && "text-muted-foreground"
@@ -108,17 +115,33 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                 <PopoverContent
                   className="w-auto p-0"
                   align="start"
-                  forceMount
-                  onOpenAutoFocus={(e) => e.preventDefault()} // prevent auto-focus stealing
                 >
-                  <div onMouseDown={(e) => e.preventDefault()}>
+                  <div className="p-0">
                     <Calendar
                       mode="single"
-                      selected={date}
+                      selected={tempSelectedDate}
                       onSelect={handleDateSelect}
                       initialFocus
                       disabled={(date) => date > new Date()}
+                      className="pointer-events-auto"
                     />
+                    <div className="flex justify-end gap-2 p-2 border-t">
+                      <Button
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setCalendarOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="button" 
+                        size="sm" 
+                        onClick={confirmDateSelection}
+                      >
+                        Confirm
+                      </Button>
+                    </div>
                   </div>
                 </PopoverContent>
               </Popover>

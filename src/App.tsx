@@ -79,7 +79,7 @@ const App: React.FC = () => {
       <Route path="/coach-profile" element={<CoachRoute><CoachProfilePage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts" element={<CoachRoute><WorkoutProgramPage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts/create" element={<CreateWorkoutProgramPage />} />
-      <Route path="/coach-dashboard/workouts/:programId" element={<WorkoutProgramDetailPage />} />
+      <Route path="/coach-dashboard/workouts/:programId" element={<WorkoutProgramDetailsPage />} />
       <Route path="/coach-dashboard/workouts/week/:weekId" element={<CoachRoute><WorkoutWeekDetailsPage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts/:programId/create-week" element={<CoachRoute><CreateWorkoutWeekPage /></CoachRoute>} />
       <Route path="/workout-weeks/:weekId" element={<CoachRoute><WorkoutWeekDetailsPage /></CoachRoute>} />

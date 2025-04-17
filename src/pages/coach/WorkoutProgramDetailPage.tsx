@@ -41,6 +41,13 @@ const WorkoutProgramDetailPage = () => {
         return;
       }
       
+      if (programId === 'create') {
+        console.error("Invalid program ID: 'create' is not a valid UUID");
+        setError("Invalid program ID");
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         console.log("Fetching program details for ID:", programId);
         setIsLoading(true);
@@ -135,7 +142,7 @@ const WorkoutProgramDetailPage = () => {
     );
   }
 
-  const ProgramTypeIcon = program.program_type === 'run' ? '🏃' : <Dumbbell className="h-3.5 w-3.5" />;
+  const ProgramTypeIcon = program?.program_type === 'run' ? '🏃' : <Dumbbell className="h-3.5 w-3.5" />;
 
   return (
     <CoachLayout>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -39,6 +38,7 @@ import ClientRoute from './components/ClientRoute';
 import ClientStatsPage from './pages/admin/ClientStatsPage';
 import CoachClientStatsPage from './pages/coach/ClientStatsPage';
 import CreateWorkoutWeekPage from './pages/coach/CreateWorkoutWeekPage';
+import CreateWorkoutProgramPage from './pages/coach/CreateWorkoutProgramPage';
 
 const App: React.FC = () => {
   const { loading } = useAuth();
@@ -78,7 +78,8 @@ const App: React.FC = () => {
       <Route path="/coach-dashboard" element={<CoachRoute><CoachDashboard /></CoachRoute>} />
       <Route path="/coach-profile" element={<CoachRoute><CoachProfilePage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts" element={<CoachRoute><WorkoutProgramPage /></CoachRoute>} />
-      <Route path="/coach-dashboard/workouts/:programId" element={<CoachRoute><WorkoutProgramDetailsPage /></CoachRoute>} />
+      <Route path="/coach-dashboard/workouts/create" element={<CreateWorkoutProgramPage />} />
+      <Route path="/coach-dashboard/workouts/:programId" element={<WorkoutProgramDetailPage />} />
       <Route path="/coach-dashboard/workouts/week/:weekId" element={<CoachRoute><WorkoutWeekDetailsPage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts/:programId/create-week" element={<CoachRoute><CreateWorkoutWeekPage /></CoachRoute>} />
       <Route path="/workout-weeks/:weekId" element={<CoachRoute><WorkoutWeekDetailsPage /></CoachRoute>} />

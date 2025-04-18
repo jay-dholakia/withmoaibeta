@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { formatInTimeZone } from "https://esm.sh/date-fns-tz@3.0.0";
@@ -231,17 +232,35 @@ serve(async (req) => {
       console.log("Program type set to run based on program settings");
     }
 
+    // Count assigned strength workouts for the current week
+    const { data: assignedWorkouts, error: assignedWorkoutsError } = await supabaseClient
+      .from('workouts')
+      .select('id, workout_type')
+      .eq('week_id', weekData?.id)
+      .in('workout_type', ['strength', 'bodyweight']);
+      
+    if (assignedWorkoutsError) {
+      console.error("Error fetching assigned workouts:", assignedWorkoutsError);
+    }
+    
+    const assignedStrengthWorkoutsCount = assignedWorkouts?.length || 0;
+    console.log(`Found ${assignedStrengthWorkoutsCount} assigned strength workouts for week ${currentWeekNumber}`);
+
     // Get target metrics from workout_weeks - ensure we use actual values
     let targetMilesRun = weekData?.target_miles_run || 0;
     let targetCardioMinutes = weekData?.target_cardio_minutes || 60;
-    let targetStrengthWorkouts = weekData?.target_strength_workouts || 3; // Default to 3 strength workouts
+    // Use assigned workout count if available, otherwise fallback to week data or default
+    let targetStrengthWorkouts = assignedStrengthWorkoutsCount > 0 
+      ? assignedStrengthWorkoutsCount 
+      : (weekData?.target_strength_workouts || 0);
     let targetMobilityWorkouts = weekData?.target_strength_mobility_workouts || 0;
     
     console.log("Program targets:", {
       targetMilesRun,
       targetCardioMinutes,
       targetStrengthWorkouts,
-      targetMobilityWorkouts
+      targetMobilityWorkouts,
+      assignedStrengthWorkoutsCount
     });
     
     // 5. Fetch completed workouts for the week (using the Pacific Time week boundaries)

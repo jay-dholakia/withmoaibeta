@@ -230,6 +230,16 @@ const CoachClientStatsPage = () => {
     };
   }, []);
 
+  const isWorkoutStale = (lastWorkoutDate: string | null) => {
+    if (!lastWorkoutDate) return false;
+    const date = new Date(lastWorkoutDate);
+    if (!isValid(date)) return false;
+    
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    return date < twoDaysAgo;
+  };
+
   const isLoading = isLoadingCoachClients || isLoadingStats;
 
   return (
@@ -422,7 +432,9 @@ const CoachClientStatsPage = () => {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className={cn(
+                            isWorkoutStale(client.last_workout_date) && "text-red-500 font-medium"
+                          )}>
                             {formatDate(client.last_workout_date)}
                           </TableCell>
                           <TableCell>

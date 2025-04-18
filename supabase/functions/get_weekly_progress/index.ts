@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { startOfWeek, endOfWeek } from "https://esm.sh/date-fns@2.30.0";
@@ -120,7 +121,8 @@ serve(async (req) => {
           id,
           title,
           weeks,
-          description
+          description,
+          program_type
         )
       `)
       .eq('user_id', client_id)
@@ -213,10 +215,7 @@ serve(async (req) => {
         target_miles_run, 
         target_cardio_minutes, 
         target_strength_workouts, 
-        target_strength_mobility_workouts,
-        program:program_id (
-          program_type
-        )
+        target_strength_mobility_workouts
       `)
       .eq('program_id', programAssignment.program_id)
       .eq('week_number', currentWeekNumber)
@@ -226,10 +225,10 @@ serve(async (req) => {
       console.error(`Error fetching week ${currentWeekNumber}:`, weekError);
     }
 
-    // Determine program type from the program itself, not the week
+    // Determine program type directly from the program record
     let programType = "moai_strength"; // Default
     
-    if (weekData?.program?.program_type === "run") {
+    if (programAssignment.program?.program_type === "run") {
       programType = "moai_run";
       console.log("Program type set to run based on program settings");
     }
@@ -239,6 +238,13 @@ serve(async (req) => {
     let targetCardioMinutes = weekData?.target_cardio_minutes || 60;
     let targetStrengthWorkouts = weekData?.target_strength_workouts || 0;
     let targetMobilityWorkouts = weekData?.target_strength_mobility_workouts || 0;
+    
+    console.log("Program targets:", {
+      targetMilesRun,
+      targetCardioMinutes,
+      targetStrengthWorkouts,
+      targetMobilityWorkouts
+    });
     
     // 5. Fetch completed workouts for the week (using the Pacific Time week boundaries)
     console.log("Fetching workout completions");
@@ -298,14 +304,11 @@ serve(async (req) => {
     
     console.log("Total cardio minutes this week:", cardioMinutes);
     
-    // 9. Determine program type (default to strength if not specified)
-    // We can check the workout types or other factors to determine this
-    // If program has significant run targets or run workouts, consider it a running program
-    if (targetMilesRun > 0) {
-      programType = "moai_run";
+    // If this is a running program but the miles target is missing, set a default
+    if (programType === "moai_run" && targetMilesRun === 0) {
+      targetMilesRun = 5; // Default value for running programs
+      console.log("Setting default miles target of 5 for running program");
     }
-    
-    console.log("Program type:", programType);
     
     // 10. Build the response object
     const response = {

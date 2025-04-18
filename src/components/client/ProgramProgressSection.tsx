@@ -121,7 +121,7 @@ export const ProgramProgressSection: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* For Run programs, miles_run is always shown */}
+          {/* Always show miles run for running programs or if target exists */}
           {(isRunProgram || (weeklyProgress?.metrics.miles_run.target || 0) > 0) && (
             <ProgressBar 
               label="Miles Run" 
@@ -155,4 +155,3 @@ export const ProgramProgressSection: React.FC = () => {
     </div>
   );
 };
-

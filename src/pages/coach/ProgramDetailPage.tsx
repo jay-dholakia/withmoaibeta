@@ -49,6 +49,12 @@ const ProgramDetailPage = () => {
     fetchData();
   }, [id]);
 
+  const handleEditClick = () => {
+    if (id) {
+      navigate(`/coach-dashboard/workouts/${id}/edit`);
+    }
+  };
+
   if (isLoading) {
     return (
       <CoachLayout>
@@ -112,7 +118,7 @@ const ProgramDetailPage = () => {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => navigate(`/coach-dashboard/workouts/${id}/edit`)}
+              onClick={handleEditClick}
             >
               <Edit className="h-4 w-4 mr-2" />
               Edit

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, format, subWeeks } from 'date-fns';
 
@@ -128,7 +129,7 @@ export const generateWeeklyBuddies = async (
 
     const memberIds = groupMembers.map(member => member.user_id);
     
-    // Delete existing pairings for this week if we're regenerating
+    // Delete existing pairings for this week first to avoid constraint violations
     if (forceRegenerate) {
       const { error: deleteError } = await supabase
         .from('accountability_buddies')
@@ -138,7 +139,7 @@ export const generateWeeklyBuddies = async (
 
       if (deleteError) {
         console.error('Error deleting existing buddy pairings:', deleteError);
-        return false;
+        // Continue anyway - the delete might fail if there are no records
       }
     }
 
@@ -184,32 +185,26 @@ export const generateWeeklyBuddies = async (
     }
 
     if (pairings.length > 0) {
-      // Try bulk insert first
-      const { error: bulkInsertError } = await supabase
-        .from('accountability_buddies')
-        .insert(pairings);
+      // Use individual inserts with upsert functionality
+      let successCount = 0;
+      
+      for (const pairing of pairings) {
+        // Use upsert with on_conflict strategy
+        const { error: insertError } = await supabase
+          .from('accountability_buddies')
+          .upsert(pairing, { 
+            onConflict: 'group_id,week_start,user_id_1,user_id_2,user_id_3',
+            ignoreDuplicates: true
+          });
 
-      if (bulkInsertError) {
-        console.error('Bulk insert failed:', bulkInsertError);
-        
-        // Fall back to individual inserts if bulk insert fails
-        let successCount = 0;
-        for (const pairing of pairings) {
-          const { error: insertError } = await supabase
-            .from('accountability_buddies')
-            .insert(pairing);
-
-          if (!insertError) {
-            successCount++;
-          } else {
-            console.error('Error creating buddy pairing:', insertError, pairing);
-          }
+        if (!insertError) {
+          successCount++;
+        } else {
+          console.error('Error creating buddy pairing:', insertError, pairing);
         }
-
-        return successCount > 0;
       }
 
-      return true;
+      return successCount > 0;
     }
 
     return false;

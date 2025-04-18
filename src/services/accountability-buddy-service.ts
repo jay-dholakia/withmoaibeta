@@ -1,6 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { startOfWeek, format, subWeeks } from 'date-fns';
+import { startOfWeek, format } from 'date-fns';
 
 export interface AccountabilityBuddy {
   id: string;
@@ -111,7 +110,6 @@ export const generateWeeklyBuddies = async (
     const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
     const weekStartDate = format(monday, 'yyyy-MM-dd');
 
-    // Get all members of this group
     const { data: groupMembers, error: membersError } = await supabase
       .from('group_members')
       .select('user_id')
@@ -128,8 +126,7 @@ export const generateWeeklyBuddies = async (
     }
 
     const memberIds = groupMembers.map(member => member.user_id);
-    
-    // Delete existing pairings for this week first to avoid constraint violations
+
     if (forceRegenerate) {
       const { error: deleteError } = await supabase
         .from('accountability_buddies')
@@ -139,19 +136,16 @@ export const generateWeeklyBuddies = async (
 
       if (deleteError) {
         console.error('Error deleting existing buddy pairings:', deleteError);
-        // Continue anyway - the delete might fail if there are no records
       }
     }
 
-    // Shuffle members and create pairings
     const shuffled = [...memberIds].sort(() => Math.random() - 0.5);
     const pairings = [];
 
-    // Handle odd number of members - create one trio and pairs
     if (shuffled.length % 2 !== 0) {
       const trio = shuffled.slice(0, 3);
       const rest = shuffled.slice(3);
-      
+
       pairings.push({
         group_id: groupId,
         user_id_1: trio[0],
@@ -172,7 +166,6 @@ export const generateWeeklyBuddies = async (
         }
       }
     } else {
-      // Handle even number of members - create pairs
       for (let i = 0; i < shuffled.length; i += 2) {
         pairings.push({
           group_id: groupId,
@@ -185,31 +178,20 @@ export const generateWeeklyBuddies = async (
     }
 
     if (pairings.length > 0) {
-      // Use individual inserts with upsert functionality
-      let successCount = 0;
-      
-      for (const pairing of pairings) {
-        // Use upsert with on_conflict strategy
-        const { error: insertError } = await supabase
-          .from('accountability_buddies')
-          .upsert(pairing, { 
-            onConflict: 'group_id,week_start,user_id_1,user_id_2,user_id_3',
-            ignoreDuplicates: true
-          });
+      const { error: insertError } = await supabase
+        .from('accountability_buddies')
+        .insert(pairings);
 
-        if (!insertError) {
-          successCount++;
-        } else {
-          console.error('Error creating buddy pairing:', insertError, pairing);
-        }
+      if (insertError) {
+        console.error('Error inserting buddy pairings:', insertError);
+        return false;
       }
-
-      return successCount > 0;
     }
 
-    return false;
+    return true;
   } catch (err) {
     console.error('Unexpected error in generateWeeklyBuddies:', err);
     return false;
   }
 };
+

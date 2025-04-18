@@ -168,7 +168,6 @@ export const generateWeeklyBuddies = async (
       .eq('week_start', lastWeekStartDate);
 
     if (lastWeekError) {
-      // Fixed the apostrophe issue by using double quotes instead
       console.error("Error fetching last week's pairings:", lastWeekError);
       return false;
     }
@@ -189,6 +188,7 @@ export const generateWeeklyBuddies = async (
 
     let attempts = 0;
     let pairings: any[] = [];
+    
     while (attempts < 10) {
       attempts++;
       const shuffled = [...memberIds].sort(() => Math.random() - 0.5);
@@ -231,18 +231,20 @@ export const generateWeeklyBuddies = async (
           });
 
           for (let i = 0; i < rest.length; i += 2) {
-            const ids = [rest[i], rest[i + 1]].sort();
-            if (lastWeekPairs.has(ids.join('-'))) {
-              repeatFound = true;
-              break;
+            if (i + 1 < rest.length) {
+              const ids = [rest[i], rest[i + 1]].sort();
+              if (lastWeekPairs.has(ids.join('-'))) {
+                repeatFound = true;
+                break;
+              }
+              tempPairs.push({
+                group_id: groupId,
+                user_id_1: ids[0],
+                user_id_2: ids[1],
+                user_id_3: null,
+                week_start: weekStartDate
+              });
             }
-            tempPairs.push({
-              group_id: groupId,
-              user_id_1: ids[0],
-              user_id_2: ids[1],
-              user_id_3: null,
-              week_start: weekStartDate
-            });
           }
         }
       }
@@ -254,13 +256,31 @@ export const generateWeeklyBuddies = async (
     }
 
     if (pairings.length > 0) {
-      // Fix: Use a simple insert instead of upsert to avoid duplicate update issues
-      const { error: insertError } = await supabase
+      // Insert each pairing separately to handle errors individually
+      for (const pairing of pairings) {
+        try {
+          const { error: insertError } = await supabase
+            .from('accountability_buddies')
+            .insert(pairing);
+            
+          if (insertError) {
+            // Log the error but continue with other pairings
+            console.error('Error creating buddy pairing:', insertError, pairing);
+          }
+        } catch (err) {
+          console.error('Unexpected error inserting pairing:', err);
+        }
+      }
+      
+      // Check if we were able to insert at least one pairing
+      const { data: checkPairings } = await supabase
         .from('accountability_buddies')
-        .insert(pairings);
-
-      if (insertError) {
-        console.error('Error creating buddy pairings:', insertError);
+        .select('id')
+        .eq('group_id', groupId)
+        .eq('week_start', weekStartDate);
+        
+      if (!checkPairings || checkPairings.length === 0) {
+        console.error('No buddy pairings were created');
         return false;
       }
     }

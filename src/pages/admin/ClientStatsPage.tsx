@@ -19,6 +19,7 @@ import {
 import { debounce } from '@/lib/utils';
 import { formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/lib/hooks';
 
 interface ClientStats {
   id: string;
@@ -235,6 +236,8 @@ const ClientStatsPage = () => {
     };
   }, []);
 
+  const isMobile = useIsMobile();
+
   return (
     <AdminDashboardLayout title="Client Statistics">
       <div className="space-y-4">
@@ -345,24 +348,28 @@ const ClientStatsPage = () => {
                     {getSortIcon('lastWorkout')}
                   </div>
                 </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-muted/40 transition-colors"
-                  onClick={() => toggleSort('assignedWorkouts')}
-                >
-                  <div className="flex items-center">
-                    This Week's Workouts
-                    {getSortIcon('assignedWorkouts')}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-muted/40 transition-colors"
-                  onClick={() => toggleSort('activitiesWeek')}
-                >
-                  <div className="flex items-center">
-                    This Week's Activities
-                    {getSortIcon('activitiesWeek')}
-                  </div>
-                </TableHead>
+                {!isMobile && (
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() => toggleSort('assignedWorkouts')}
+                  >
+                    <div className="flex items-center">
+                      This Week's Workouts
+                      {getSortIcon('assignedWorkouts')}
+                    </div>
+                  </TableHead>
+                )}
+                {!isMobile && (
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() => toggleSort('activitiesWeek')}
+                  >
+                    <div className="flex items-center">
+                      This Week's Activities
+                      {getSortIcon('activitiesWeek')}
+                    </div>
+                  </TableHead>
+                )}
                 <TableHead
                   className="cursor-pointer hover:bg-muted/40 transition-colors"
                   onClick={() => toggleSort('totalActivities')}
@@ -378,7 +385,7 @@ const ClientStatsPage = () => {
               {isLoadingClients || isLoadingStats ? (
                 Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`loading-${index}`}>
-                    {Array.from({ length: 6 }).map((_, cellIndex) => (
+                    {Array.from({ length: isMobile ? 4 : 6 }).map((_, cellIndex) => (
                       <TableCell key={`loading-cell-${index}-${cellIndex}`}>
                         <Skeleton className="h-5 w-full" />
                       </TableCell>
@@ -387,7 +394,7 @@ const ClientStatsPage = () => {
                 ))
               ) : filteredAndSortedClients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={isMobile ? 4 : 6} className="text-center py-8 text-muted-foreground">
                     No clients found
                   </TableCell>
                 </TableRow>
@@ -424,12 +431,16 @@ const ClientStatsPage = () => {
                     )}>
                       {formatDate(client.last_workout_date)}
                     </TableCell>
-                    <TableCell>
-                      {client.assigned_workouts_this_week}
-                    </TableCell>
-                    <TableCell>
-                      {client.activities_this_week}
-                    </TableCell>
+                    {!isMobile && (
+                      <TableCell>
+                        {client.assigned_workouts_this_week}
+                      </TableCell>
+                    )}
+                    {!isMobile && (
+                      <TableCell>
+                        {client.activities_this_week}
+                      </TableCell>
+                    )}
                     <TableCell>
                       {client.total_activities}
                     </TableCell>

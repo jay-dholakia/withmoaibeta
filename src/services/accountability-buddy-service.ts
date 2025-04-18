@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, format, subWeeks } from 'date-fns';
 
@@ -167,7 +168,7 @@ export const generateWeeklyBuddies = async (
       .eq('week_start', lastWeekStartDate);
 
     if (lastWeekError) {
-      console.error('Error fetching last week’s pairings:', lastWeekError);
+      console.error('Error fetching last week's pairings:', lastWeekError);
       return false;
     }
 
@@ -252,9 +253,10 @@ export const generateWeeklyBuddies = async (
     }
 
     if (pairings.length > 0) {
+      // Fix: Use a simple insert instead of upsert to avoid duplicate update issues
       const { error: insertError } = await supabase
         .from('accountability_buddies')
-        .upsert(pairings, { onConflict: ['group_id', 'week_start'] });
+        .insert(pairings);
 
       if (insertError) {
         console.error('Error creating buddy pairings:', insertError);
@@ -269,4 +271,3 @@ export const generateWeeklyBuddies = async (
     return false;
   }
 };
-

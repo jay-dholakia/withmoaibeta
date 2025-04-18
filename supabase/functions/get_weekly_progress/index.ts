@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { formatInTimeZone } from "https://esm.sh/date-fns-tz@3.0.0";
@@ -263,7 +262,7 @@ serve(async (req) => {
       assignedStrengthWorkoutsCount
     });
     
-    // 5. Fetch completed workouts for the week (using the Pacific Time week boundaries)
+    // 5. Fetch completed workouts for the week
     console.log("Fetching workout completions");
     const { data: workoutCompletions, error: workoutsError } = await supabaseClient
       .from('workout_completions')
@@ -281,7 +280,7 @@ serve(async (req) => {
       .eq('user_id', client_id)
       .gte('completed_at', weekStartISO)
       .lt('completed_at', weekEndISO)
-      .not('completed_at', 'is', null); // Only include workouts that have a completion date
+      .not('completed_at', 'is', null);
     
     if (workoutsError) {
       console.error("Error fetching workout completions:", workoutsError);

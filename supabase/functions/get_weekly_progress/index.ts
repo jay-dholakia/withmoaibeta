@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { formatInTimeZone } from "https://esm.sh/date-fns-tz@3.0.0";
@@ -259,6 +258,18 @@ serve(async (req) => {
         ? assignedStrengthWorkoutsCount 
         : (weekData?.target_strength_workouts || 5); // Default to 5 if no other values available
       let targetMobilityWorkouts = weekData?.target_strength_mobility_workouts || 0;
+      
+      console.log("Week Data Details:", {
+        weekData: weekData,
+        assignedStrengthWorkoutsCount: assignedStrengthWorkoutsCount,
+      });
+
+      console.log("Target Strength Workouts Calculation:", {
+        finalTarget: targetStrengthWorkouts,
+        fromAssignedCount: assignedStrengthWorkoutsCount,
+        fromWeekData: weekData?.target_strength_workouts,
+        usingDefaultValue: targetStrengthWorkouts === 5
+      });
       
       console.log("Program targets:", {
         targetMilesRun,

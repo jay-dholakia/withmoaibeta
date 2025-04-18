@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, format } from 'date-fns';
 
@@ -125,8 +126,7 @@ export const generateWeeklyBuddies = async (
       return false;
     }
 
-    const memberIds = groupMembers.map(member => member.user_id);
-
+    // Delete existing pairings for this week if forceRegenerate is true
     if (forceRegenerate) {
       const { error: deleteError } = await supabase
         .from('accountability_buddies')
@@ -136,12 +136,15 @@ export const generateWeeklyBuddies = async (
 
       if (deleteError) {
         console.error('Error deleting existing buddy pairings:', deleteError);
+        return false;
       }
     }
 
+    const memberIds = groupMembers.map(member => member.user_id);
     const shuffled = [...memberIds].sort(() => Math.random() - 0.5);
-    const pairings = [];
+    const pairings: any[] = [];
 
+    // Handle groups with odd number of members
     if (shuffled.length % 2 !== 0) {
       const trio = shuffled.slice(0, 3);
       const rest = shuffled.slice(3);
@@ -166,6 +169,7 @@ export const generateWeeklyBuddies = async (
         }
       }
     } else {
+      // Even number of members - create pairs
       for (let i = 0; i < shuffled.length; i += 2) {
         pairings.push({
           group_id: groupId,
@@ -177,14 +181,23 @@ export const generateWeeklyBuddies = async (
       }
     }
 
-    if (pairings.length > 0) {
-      const { error: insertError } = await supabase
-        .from('accountability_buddies')
-        .insert(pairings);
+    // Insert pairings one by one to handle potential conflicts
+    for (const pairing of pairings) {
+      try {
+        const { error: insertError } = await supabase
+          .from('accountability_buddies')
+          .insert([pairing])
+          .select();
 
-      if (insertError) {
-        console.error('Error inserting buddy pairings:', insertError);
-        return false;
+        if (insertError) {
+          console.error('Error inserting buddy pairing:', insertError);
+          // Continue with next pairing even if this one fails
+          continue;
+        }
+      } catch (insertErr) {
+        console.error('Unexpected error inserting buddy pairing:', insertErr);
+        // Continue with next pairing even if this one fails
+        continue;
       }
     }
 
@@ -194,4 +207,3 @@ export const generateWeeklyBuddies = async (
     return false;
   }
 };
-

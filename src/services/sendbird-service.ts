@@ -1,6 +1,6 @@
 
 import SendbirdChat from '@sendbird/chat';
-import { GroupChannelModule } from '@sendbird/chat/groupChannel';
+import { GroupChannelModule, GroupChannelCreateParams } from '@sendbird/chat/groupChannel';
 
 // Initialize the Sendbird SDK
 const sb = SendbirdChat.init({
@@ -36,10 +36,13 @@ export const connectToSendbird = async (userId: string, nickname?: string) => {
 
 export const createGroupChannel = async (userIds: string[], channelName: string) => {
   try {
-    const groupChannel = await sb.groupChannel.createChannel({
-      userIds: userIds,
+    // Create params object according to Sendbird's API requirements
+    const params: GroupChannelCreateParams = {
+      invitedUserIds: userIds,
       name: channelName
-    });
+    };
+    
+    const groupChannel = await sb.groupChannel.createChannel(params);
     return groupChannel;
   } catch (error) {
     console.error('Error creating group channel:', error);

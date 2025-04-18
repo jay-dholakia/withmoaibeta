@@ -208,7 +208,16 @@ serve(async (req) => {
     // First get the week ID for the current week number
     const { data: weekData, error: weekError } = await supabaseClient
       .from('workout_weeks')
-      .select('id, target_miles_run, target_cardio_minutes, target_strength_workouts, target_strength_mobility_workouts')
+      .select(`
+        id, 
+        target_miles_run, 
+        target_cardio_minutes, 
+        target_strength_workouts, 
+        target_strength_mobility_workouts,
+        program:program_id (
+          program_type
+        )
+      `)
       .eq('program_id', programAssignment.program_id)
       .eq('week_number', currentWeekNumber)
       .maybeSingle();
@@ -216,12 +225,16 @@ serve(async (req) => {
     if (weekError) {
       console.error(`Error fetching week ${currentWeekNumber}:`, weekError);
     }
+
+    // Determine program type from the program itself, not the week
+    let programType = "moai_strength"; // Default
     
-    if (!weekData) {
-      console.error(`Week ${currentWeekNumber} not found in program ${programAssignment.program_id}`);
+    if (weekData?.program?.program_type === "run") {
+      programType = "moai_run";
+      console.log("Program type set to run based on program settings");
     }
 
-    // Get target metrics from workout_weeks
+    // Get target metrics from workout_weeks - ensure we use actual values
     let targetMilesRun = weekData?.target_miles_run || 0;
     let targetCardioMinutes = weekData?.target_cardio_minutes || 60;
     let targetStrengthWorkouts = weekData?.target_strength_workouts || 0;
@@ -287,8 +300,6 @@ serve(async (req) => {
     
     // 9. Determine program type (default to strength if not specified)
     // We can check the workout types or other factors to determine this
-    let programType = "moai_strength";
-    
     // If program has significant run targets or run workouts, consider it a running program
     if (targetMilesRun > 0) {
       programType = "moai_run";

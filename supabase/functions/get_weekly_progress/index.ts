@@ -1,7 +1,5 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-import { startOfWeek, endOfWeek } from "https://esm.sh/date-fns@2.30.0";
 import { formatInTimeZone } from "https://esm.sh/date-fns-tz@3.0.0";
 
 // Configure CORS headers for the function
@@ -236,7 +234,7 @@ serve(async (req) => {
     // Get target metrics from workout_weeks - ensure we use actual values
     let targetMilesRun = weekData?.target_miles_run || 0;
     let targetCardioMinutes = weekData?.target_cardio_minutes || 60;
-    let targetStrengthWorkouts = weekData?.target_strength_workouts || 0;
+    let targetStrengthWorkouts = weekData?.target_strength_workouts || 3; // Default to 3 strength workouts
     let targetMobilityWorkouts = weekData?.target_strength_mobility_workouts || 0;
     
     console.log("Program targets:", {

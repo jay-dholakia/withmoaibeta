@@ -168,7 +168,8 @@ export const generateWeeklyBuddies = async (
       .eq('week_start', lastWeekStartDate);
 
     if (lastWeekError) {
-      console.error('Error fetching last week's pairings:', lastWeekError);
+      // Fixed the apostrophe issue by using double quotes instead
+      console.error("Error fetching last week's pairings:", lastWeekError);
       return false;
     }
 

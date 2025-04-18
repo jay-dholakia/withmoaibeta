@@ -20,6 +20,7 @@ import { debounce } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchCoachClients } from '@/services/coach-clients-service';
 import { formatInTimeZone } from 'date-fns-tz';
+import { cn } from '@/lib/utils';
 
 interface ClientStats {
   id: string;

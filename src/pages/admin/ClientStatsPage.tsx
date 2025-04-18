@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { debounce } from '@/lib/utils';
 import { formatInTimeZone } from 'date-fns-tz';
+import { cn } from '@/lib/utils';
 
 interface ClientStats {
   id: string;

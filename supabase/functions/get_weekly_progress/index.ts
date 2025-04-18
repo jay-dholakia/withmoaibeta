@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { startOfWeek, endOfWeek } from "https://esm.sh/date-fns@2.30.0";
@@ -209,7 +208,7 @@ serve(async (req) => {
     // First get the week ID for the current week number
     const { data: weekData, error: weekError } = await supabaseClient
       .from('workout_weeks')
-      .select('id')
+      .select('id, target_miles_run, target_cardio_minutes, target_strength_workouts, target_strength_mobility_workouts')
       .eq('program_id', programAssignment.program_id)
       .eq('week_number', currentWeekNumber)
       .maybeSingle();
@@ -221,59 +220,12 @@ serve(async (req) => {
     if (!weekData) {
       console.error(`Week ${currentWeekNumber} not found in program ${programAssignment.program_id}`);
     }
-    
-    // Now get workouts for this specific week
-    let assignedWorkouts = [];
-    let strengthWorkoutsCount = 0;
-    let mobilityWorkoutsCount = 0;
-    
-    if (weekData?.id) {
-      const { data: workouts, error: workoutsError } = await supabaseClient
-        .from('workouts')
-        .select(`
-          id, 
-          workout_type
-        `)
-        .eq('week_id', weekData.id);
-      
-      if (workoutsError) {
-        console.error("Error fetching workouts for week:", workoutsError);
-      } else {
-        assignedWorkouts = workouts || [];
-        // Count specific workout types
-        strengthWorkoutsCount = assignedWorkouts.filter(
-          workout => workout.workout_type === 'strength' || workout.workout_type === 'bodyweight'
-        ).length;
-        
-        mobilityWorkoutsCount = assignedWorkouts.filter(
-          workout => workout.workout_type === 'flexibility'
-        ).length;
-        
-        console.log(`Found ${assignedWorkouts.length} total assigned workouts for week ${currentWeekNumber}`);
-        console.log(`Found ${strengthWorkoutsCount} strength workouts and ${mobilityWorkoutsCount} mobility workouts`);
-      }
-    }
-    
-    // Fetch target metrics from workout_weeks table if available
-    let targetMilesRun = 0;
-    let targetCardioMinutes = 60; // Default value
-    
-    if (weekData?.id) {
-      console.log(`Fetching target metrics for week ${currentWeekNumber}`);
-      const { data: weekMetrics, error: metricsError } = await supabaseClient
-        .from('workout_weeks')
-        .select('target_miles_run, target_cardio_minutes')
-        .eq('id', weekData.id)
-        .maybeSingle();
-        
-      if (metricsError) {
-        console.error("Error fetching week metrics:", metricsError);
-      } else if (weekMetrics) {
-        console.log("Found week metrics:", weekMetrics);
-        targetMilesRun = Number(weekMetrics.target_miles_run) || 0;
-        targetCardioMinutes = Number(weekMetrics.target_cardio_minutes) || 60;
-      }
-    }
+
+    // Get target metrics from workout_weeks
+    let targetMilesRun = weekData?.target_miles_run || 0;
+    let targetCardioMinutes = weekData?.target_cardio_minutes || 60;
+    let targetStrengthWorkouts = weekData?.target_strength_workouts || 0;
+    let targetMobilityWorkouts = weekData?.target_strength_mobility_workouts || 0;
     
     // 5. Fetch completed workouts for the week (using the Pacific Time week boundaries)
     console.log("Fetching workout completions");
@@ -301,23 +253,6 @@ serve(async (req) => {
     
     console.log(`Found ${workoutCompletions?.length || 0} workout completions for week (Pacific Time)`);
     
-    // Get run logs from workout completions with workout_type = 'running'
-    console.log("Extracting run data from workout completions");
-    const runLogs = (workoutCompletions || []).filter(
-      wc => wc.workout_type === 'running' && wc.user_id === client_id
-    );
-    
-    console.log(`Found ${runLogs?.length || 0} run logs from workout completions`);
-    
-    // Extract cardio logs from workout completions with workout_type = 'cardio'
-    console.log("Extracting cardio data from workout completions");
-    const cardioLogs = (workoutCompletions || []).filter(
-      wc => wc.workout_type === 'cardio' && wc.user_id === client_id
-    );
-    
-    console.log(`Found ${cardioLogs?.length || 0} cardio logs from workout completions`);
-    
-    // 8. Calculate actual progress metrics
     // Count completed strength workouts for this specific user
     const strengthWorkouts = (workoutCompletions || []).filter(
       wc => (wc.workout_type === 'strength' || wc.workout_type === 'bodyweight') && wc.user_id === client_id
@@ -328,50 +263,34 @@ serve(async (req) => {
       wc => wc.workout_type === 'flexibility' && wc.user_id === client_id
     ).length;
     
-    // Sum run distances - these are already filtered by client_id
-    const milesRun = runLogs.reduce(
-      (sum, log) => sum + (Number(log.distance) || 0), 
-      0
-    );
+    // Sum run distances from workout completions with workout_type = 'running'
+    const milesRun = (workoutCompletions || [])
+      .filter(wc => wc.workout_type === 'running')
+      .reduce((sum, wc) => {
+        // Convert distance to number and add to sum, treat invalid values as 0
+        const distance = Number(wc.distance) || 0;
+        return sum + distance;
+      }, 0);
     
-    // Sum cardio minutes from cardio logs - these are already filtered by client_id
-    const cardioMinutesFromLogs = cardioLogs.reduce(
-      (sum, log) => sum + (Number(log.duration) || 0), 
-      0
-    );
+    console.log("Total miles run this week:", milesRun);
     
-    // Get additional cardio minutes from running workouts - already filtered by client_id
-    const cardioWorkoutsDetails = runLogs.map(wc => ({
-      id: wc.id,
-      type: wc.workout_type,
-      duration: Number(wc.duration) || 0,
-      distance: wc.distance,
-      completed_at: wc.completed_at
-    }));
-      
-    console.log("Cardio workouts contributing to the total:");
-    console.log(JSON.stringify(cardioWorkoutsDetails, null, 2));
+    // Calculate cardio minutes from all cardio activities (running and cardio)
+    const cardioMinutes = (workoutCompletions || [])
+      .filter(wc => wc.workout_type === 'cardio' || wc.workout_type === 'running')
+      .reduce((sum, wc) => {
+        // Convert duration to number and add to sum, treat invalid values as 0
+        const duration = Number(wc.duration) || 0;
+        return sum + duration;
+      }, 0);
     
-    // Calculate cardio minutes from running workouts using duration
-    const cardioMinutesFromRunning = runLogs.reduce(
-      (sum, log) => sum + (Number(log.duration) || 0), 
-      0
-    );
-    
-    // Total cardio minutes (now including run minutes)
-    const cardioMinutes = cardioMinutesFromLogs + cardioMinutesFromRunning;
-    
-    console.log("Cardio minutes breakdown:");
-    console.log("- From cardio logs:", cardioMinutesFromLogs);
-    console.log("- From running logs:", cardioMinutesFromRunning);
-    console.log("- Total:", cardioMinutes);
+    console.log("Total cardio minutes this week:", cardioMinutes);
     
     // 9. Determine program type (default to strength if not specified)
     // We can check the workout types or other factors to determine this
     let programType = "moai_strength";
     
     // If program has significant run targets or run workouts, consider it a running program
-    if (assignedWorkouts && assignedWorkouts.some(w => w.workout_type === 'running')) {
+    if (targetMilesRun > 0) {
       programType = "moai_run";
     }
     
@@ -386,11 +305,11 @@ serve(async (req) => {
       program_type: programType,
       metrics: {
         strength_workouts: { 
-          target: strengthWorkoutsCount, 
+          target: targetStrengthWorkouts, 
           actual: strengthWorkouts 
         },
         strength_mobility: { 
-          target: mobilityWorkoutsCount, 
+          target: targetMobilityWorkouts, 
           actual: mobilityWorkouts 
         },
         miles_run: { 

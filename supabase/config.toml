@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.add-to-google-calendar]
 verify_jwt = true
+
+[functions.send-sms]
+verify_jwt = true

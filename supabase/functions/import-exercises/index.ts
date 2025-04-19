@@ -18,11 +18,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Create the Supabase client
-const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -40,14 +35,15 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Create Supabase client with service role key
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     const formData = await req.formData();
     const file = formData.get('file');
     const fileType = formData.get('fileType')?.toString() || '';
-    const shouldCheckExisting = formData.get('checkExisting')?.toString() === 'true';
+    const checkExisting = formData.get('checkExisting')?.toString() === 'true';
 
     if (!file || !(file instanceof File)) {
       return new Response(JSON.stringify({ error: 'No file uploaded' }), {
@@ -75,7 +71,7 @@ Deno.serve(async (req) => {
         });
       }
       
-      // Parse headers (now including muscle_group)
+      // Parse headers
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
       
       // Check for required columns
@@ -93,6 +89,7 @@ Deno.serve(async (req) => {
       const exerciseTypeIndex = headers.indexOf('exercise_type');
       const muscleGroupIndex = headers.indexOf('muscle_group');
       
+      // Parse each line into an exercise object
       for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
         
@@ -142,7 +139,7 @@ Deno.serve(async (req) => {
     let updatedCount = 0;
     let skippedCount = 0;
 
-    if (shouldCheckExisting) {
+    if (checkExisting) {
       for (const exercise of exercises) {
         // Check if exercise with same name exists
         const { data: existingExercises, error: searchError } = await supabase
@@ -156,41 +153,22 @@ Deno.serve(async (req) => {
         }
 
         if (existingExercises && existingExercises.length > 0) {
-          const existingId = existingExercises[0].id;
-          
-          // Check if exercise is referenced in personal_records
-          const { count, error: refError } = await supabase
-            .from('personal_records')
-            .select('*', { count: 'exact', head: true })
-            .eq('exercise_id', existingId);
+          // Update existing exercise
+          const { error: updateError } = await supabase
+            .from('exercises')
+            .update({
+              category: exercise.category,
+              description: exercise.description,
+              exercise_type: exercise.exercise_type || 'strength',
+              muscle_group: exercise.muscle_group
+            })
+            .eq('id', existingExercises[0].id);
             
-          if (refError) {
-            console.error('Error checking exercise references:', refError);
+          if (updateError) {
+            console.error('Error updating exercise:', updateError);
             skippedCount++;
-            continue;
-          }
-
-          // If not referenced in personal_records, update it
-          if (count === 0) {
-            const { error: updateError } = await supabase
-              .from('exercises')
-              .update({
-                category: exercise.category,
-                description: exercise.description,
-                exercise_type: exercise.exercise_type || 'strength',
-                muscle_group: exercise.muscle_group
-              })
-              .eq('id', existingId);
-              
-            if (updateError) {
-              console.error('Error updating exercise:', updateError);
-              skippedCount++;
-            } else {
-              updatedCount++;
-            }
           } else {
-            console.log(`Skipping exercise '${exercise.name}' as it's referenced in personal records`);
-            skippedCount++;
+            updatedCount++;
           }
         } else {
           // Exercise doesn't exist, insert it

@@ -213,8 +213,8 @@ const WorkoutExercisesPage = () => {
               <div className="space-y-4">
                 {exercises.map((exercise: any, index: number) => (
                   <div key={exercise.id} className="bg-transparent p-4">
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1 min-w-0 overflow-hidden">
+                    <div className="flex flex-col">
+                      <div className="flex-1 min-w-0 overflow-hidden mb-4">
                         <h3 className="font-medium text-base truncate">
                           {index + 1}. {exercise.exercise?.name || 'Exercise'}
                         </h3>
@@ -226,13 +226,13 @@ const WorkoutExercisesPage = () => {
                           <div className="text-sm mt-2 pl-2">{exercise.notes}</div>
                         )}
                       </div>
-                      <div className="flex flex-col gap-2 w-[100px] shrink-0">
+                      <div className="flex justify-end gap-2">
                         <Button 
                           variant="ghost" 
                           size="sm"
                           onClick={() => handleMoveExerciseUp(exercise.id)}
                           disabled={index === 0 || isSubmitting}
-                          className="w-full py-1 h-7 text-xs hover:bg-accent/50 shadow-none border-none"
+                          className="py-1 h-7 text-xs hover:bg-accent/50 shadow-none border-none"
                         >
                           Move Up
                         </Button>
@@ -241,7 +241,7 @@ const WorkoutExercisesPage = () => {
                           size="sm"
                           onClick={() => handleMoveExerciseDown(exercise.id)}
                           disabled={index === exercises.length - 1 || isSubmitting}
-                          className="w-full py-1 h-7 text-xs hover:bg-accent/50 shadow-none border-none"
+                          className="py-1 h-7 text-xs hover:bg-accent/50 shadow-none border-none"
                         >
                           Move Down
                         </Button>
@@ -250,7 +250,7 @@ const WorkoutExercisesPage = () => {
                           size="sm"
                           onClick={() => handleDeleteExercise(exercise.id, workoutId as string)}
                           disabled={isSubmitting}
-                          className="w-full py-1 h-7 text-xs text-destructive hover:bg-destructive/10 shadow-none border-none"
+                          className="py-1 h-7 text-xs text-destructive hover:bg-destructive/10 shadow-none border-none"
                         >
                           Delete
                         </Button>

@@ -40,6 +40,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import WorkoutJournalSection from './WorkoutJournalSection';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -637,6 +638,8 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           onSave={handleExercisesSaved}
         />
       )}
+
+      <WorkoutJournalSection date={date} />
     </div>
   );
 };

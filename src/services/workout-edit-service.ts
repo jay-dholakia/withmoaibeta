@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutSetCompletion, StandardWorkoutType } from "@/types/workout";
 
@@ -244,75 +243,99 @@ export const getExerciseInfoByWorkoutExerciseId = async (
   workoutExerciseId: string
 ): Promise<{ name: string; type: string } | null> => {
   try {
-    // First try to get the exercise_id from the workout_exercises table
-    const { data: workoutExercise, error: workoutExerciseError } = await supabase
-      .from('workout_exercises')
-      .select('exercise_id')
-      .eq('id', workoutExerciseId)
-      .maybeSingle();
-      
-    if (!workoutExerciseError && workoutExercise && workoutExercise.exercise_id) {
-      // Then get the exercise details from the exercises table
-      const { data: exercise, error: exerciseError } = await supabase
-        .from('exercises')
-        .select('name, exercise_type')
-        .eq('id', workoutExercise.exercise_id)
-        .maybeSingle();
-        
-      if (!exerciseError && exercise) {
-        return {
-          name: exercise.name,
-          type: exercise.exercise_type
-        };
-      }
-    }
-    
-    // If the first approach fails, try with standalone_workout_exercises
-    const { data: standaloneExercise, error: standaloneError } = await supabase
-      .from('standalone_workout_exercises')
-      .select('exercise_id')
-      .eq('id', workoutExerciseId)
-      .maybeSingle();
-      
-    if (!standaloneError && standaloneExercise && standaloneExercise.exercise_id) {
-      const { data: exercise, error: exerciseError } = await supabase
-        .from('exercises')
-        .select('name, exercise_type')
-        .eq('id', standaloneExercise.exercise_id)
-        .maybeSingle();
-        
-      if (!exerciseError && exercise) {
-        return {
-          name: exercise.name,
-          type: exercise.exercise_type
-        };
-      }
-    }
-    
-    // If all direct approaches fail, try a more generic approach
-    // Look at the workout_set_completions to determine exercise type
+    // First try to get the exercise info from workout_set_completions
     const { data: setCompletions, error: setCompletionsError } = await supabase
       .from('workout_set_completions')
-      .select('*')
+      .select('workout_exercise_id, weight, duration, distance')
       .eq('workout_exercise_id', workoutExerciseId)
       .limit(1)
       .maybeSingle();
       
-    if (!setCompletionsError && setCompletions) {
-      // Try to determine exercise type from the set data
-      if (setCompletions.distance) {
-        return { name: "Running Exercise", type: "cardio" };
-      } else if (setCompletions.duration && !setCompletions.weight) {
-        return { name: "Cardio Exercise", type: "cardio" };
-      } else if (setCompletions.weight) {
-        return { name: "Strength Exercise", type: "strength" };
+    // Then try to get exercise info from multiple possible tables
+    const lookupExerciseInfo = async () => {
+      // Try workout_exercises first
+      const { data: workoutExercise } = await supabase
+        .from('workout_exercises')
+        .select('exercise:exercises(name, exercise_type)')
+        .eq('id', workoutExerciseId)
+        .maybeSingle();
+
+      if (workoutExercise?.exercise) {
+        return {
+          name: workoutExercise.exercise.name,
+          type: workoutExercise.exercise.exercise_type
+        };
       }
-    }
-    
-    // Last resort fallback
-    return { name: "Exercise", type: "strength" };
+
+      // Try standalone_workout_exercises next
+      const { data: standaloneExercise } = await supabase
+        .from('standalone_workout_exercises')
+        .select('exercise:exercises(name, exercise_type)')
+        .eq('id', workoutExerciseId)
+        .maybeSingle();
+
+      if (standaloneExercise?.exercise) {
+        return {
+          name: standaloneExercise.exercise.name,
+          type: standaloneExercise.exercise.exercise_type
+        };
+      }
+
+      // Try client_custom_workout_exercises
+      const { data: customExercise } = await supabase
+        .from('client_custom_workout_exercises')
+        .select('custom_exercise_name, exercise:exercises(name, exercise_type)')
+        .eq('id', workoutExerciseId)
+        .maybeSingle();
+
+      if (customExercise) {
+        if (customExercise.custom_exercise_name) {
+          return {
+            name: customExercise.custom_exercise_name,
+            type: 'strength' // Default to strength for custom exercises
+          };
+        } else if (customExercise.exercise) {
+          return {
+            name: customExercise.exercise.name,
+            type: customExercise.exercise.exercise_type
+          };
+        }
+      }
+
+      // If we have set completion data, use it to infer the type
+      if (setCompletions) {
+        let inferredType = 'strength';
+        let inferredName = 'Exercise';
+
+        if (setCompletions.distance) {
+          inferredType = 'cardio';
+          inferredName = 'Running Exercise';
+        } else if (setCompletions.duration && !setCompletions.weight) {
+          inferredType = 'cardio';
+          inferredName = 'Cardio Exercise';
+        }
+
+        return {
+          name: inferredName,
+          type: inferredType
+        };
+      }
+
+      // Last resort fallback
+      return {
+        name: "Exercise",
+        type: "strength"
+      };
+    };
+
+    const exerciseInfo = await lookupExerciseInfo();
+    return exerciseInfo;
+
   } catch (error) {
     console.error("Error in getExerciseInfoByWorkoutExerciseId:", error);
-    return null;
+    return {
+      name: "Exercise",
+      type: "strength"
+    };
   }
 };

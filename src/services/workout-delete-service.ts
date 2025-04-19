@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -8,7 +7,18 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const deleteWorkout = async (workoutId: string): Promise<boolean> => {
   try {
-    // First delete any exercise associations
+    // First delete any personal records
+    const { error: prError } = await supabase
+      .from('personal_records')
+      .delete()
+      .eq('workout_completion_id', workoutId);
+    
+    if (prError) {
+      console.error("Error deleting personal records:", prError);
+      // Continue anyway as this is not critical
+    }
+    
+    // Delete any exercise associations
     const { error: exercisesError } = await supabase
       .from('workout_exercises')
       .delete()

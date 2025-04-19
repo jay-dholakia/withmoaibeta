@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -22,11 +23,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const WorkoutExercisesPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   
   const [workout, setWorkout] = useState<any>(null);
   const [exercises, setExercises] = useState<any[]>([]);
@@ -221,31 +224,31 @@ const WorkoutExercisesPage = () => {
                           <div className="text-sm mt-2 border-l-2 pl-2 border-muted">{exercise.notes}</div>
                         )}
                       </div>
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="flex flex-col items-end gap-2 self-start">
                         <Button 
                           variant="outline" 
-                          size="xs"
+                          size="sm"
                           onClick={() => handleMoveExerciseUp(exercise.id)}
                           disabled={index === 0 || isSubmitting}
-                          className="w-24 whitespace-nowrap"
+                          className="w-24 py-1 h-7 text-xs whitespace-nowrap"
                         >
                           Move Up
                         </Button>
                         <Button 
                           variant="outline" 
-                          size="xs"
+                          size="sm"
                           onClick={() => handleMoveExerciseDown(exercise.id)}
                           disabled={index === exercises.length - 1 || isSubmitting}
-                          className="w-24 whitespace-nowrap"
+                          className="w-24 py-1 h-7 text-xs whitespace-nowrap"
                         >
                           Move Down
                         </Button>
                         <Button 
                           variant="destructive" 
-                          size="xs"
+                          size="sm"
                           onClick={() => handleDeleteExercise(exercise.id, workoutId as string)}
                           disabled={isSubmitting}
-                          className="w-24 whitespace-nowrap"
+                          className="w-24 py-1 h-7 text-xs whitespace-nowrap"
                         >
                           Delete
                         </Button>

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Exercise } from '@/types/workout';
-import { fetchExercisesByCategory, ExtendedExercise } from '@/services/workout-service';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Loader2, ArrowRightLeft } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { WorkoutExerciseForm } from '@/components/coach/WorkoutExerciseForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { fetchMuscleGroups, fetchExercisesByMuscleGroup } from '@/services/exercise-service';
 
 interface ExerciseSelectorProps {
   onSelectExercise: (exercise: Exercise) => void;
@@ -28,10 +28,11 @@ export const ExerciseSelector = ({
   isSubmitting
 }: ExerciseSelectorProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [exercisesByCategory, setExercisesByCategory] = useState<Record<string, ExtendedExercise[]>>({});
-  const [filteredExercises, setFilteredExercises] = useState<ExtendedExercise[]>([]);
+  const [muscleGroups, setMuscleGroups] = useState<string[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedExerciseForForm, setSelectedExerciseForForm] = useState<Exercise | null>(null);
   const [showExerciseForm, setShowExerciseForm] = useState<boolean>(false);
@@ -44,17 +45,10 @@ export const ExerciseSelector = ({
   }, [excludeIds]);
   
   const filterExercises = useCallback((
-    exercises: Record<string, ExtendedExercise[]>,
-    category: string,
+    exercises: Exercise[],
     query: string
-  ): ExtendedExercise[] => {
-    let filtered: ExtendedExercise[] = [];
-    
-    if (category === 'All') {
-      filtered = Object.values(exercises).flat();
-    } else if (exercises[category]) {
-      filtered = [...exercises[category]];
-    }
+  ): Exercise[] => {
+    let filtered: Exercise[] = [...exercises];
     
     if (query) {
       const lowerQuery = query.toLowerCase();
@@ -73,103 +67,73 @@ export const ExerciseSelector = ({
   useEffect(() => {
     if (dataFetchedRef.current) return;
     
-    const fetchExercises = async () => {
+    const loadMuscleGroupsAndExercises = async () => {
       setIsLoading(true);
       setError(null);
       
       try {
-        console.log("Fetching exercises by category");
-        const exercises = await fetchExercisesByCategory();
-        console.log("Received exercises:", exercises);
+        const groups = await fetchMuscleGroups();
+        setMuscleGroups(groups);
         
-        if (!exercises || exercises.length === 0) {
-          setError("No exercises found. Please add exercises to the system first.");
-          setExercisesByCategory({});
-          setFilteredExercises([]);
-          dataFetchedRef.current = true;
-          return;
+        // Initially load all exercises
+        const allExercises: Exercise[] = [];
+        for (const group of groups) {
+          const groupExercises = await fetchExercisesByMuscleGroup(group);
+          allExercises.push(...groupExercises);
         }
         
-        const categorized: Record<string, ExtendedExercise[]> = {};
-        exercises.forEach(exercise => {
-          const category = exercise.category || 'Uncategorized';
-          if (!categorized[category]) {
-            categorized[category] = [];
-          }
-          categorized[category].push(exercise as ExtendedExercise);
-        });
-        
-        setExercisesByCategory(categorized);
-        
-        const initialFiltered = filterExercises(categorized, selectedCategory, searchQuery);
-        setFilteredExercises(initialFiltered);
+        setExercises(allExercises);
+        setFilteredExercises(allExercises.filter(ex => !excludeIds.includes(ex.id)));
         dataFetchedRef.current = true;
       } catch (error) {
-        console.error('Error fetching exercises:', error);
-        setError("Failed to load exercises. Please try again.");
+        console.error('Error loading muscle groups and exercises:', error);
+        setError('Failed to load exercises. Please try again.');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchExercises();
-  }, [filterExercises, selectedCategory, searchQuery]);
+    loadMuscleGroupsAndExercises();
+  }, [excludeIds]);
 
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
-    const newFiltered = filterExercises(exercisesByCategory, category, searchQuery);
-    setFilteredExercises(newFiltered);
+  const handleMuscleGroupChange = async (muscleGroup: string) => {
+    setIsLoading(true);
+    setSelectedMuscleGroup(muscleGroup);
+    
+    try {
+      let filtered: Exercise[];
+      if (muscleGroup === 'all') {
+        filtered = exercises;
+      } else {
+        const groupExercises = await fetchExercisesByMuscleGroup(muscleGroup);
+        filtered = groupExercises;
+      }
+      
+      // Apply search filter if exists
+      if (searchQuery) {
+        filtered = filtered.filter(ex => 
+          ex.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      
+      // Filter out excluded IDs
+      filtered = filtered.filter(ex => !excludeIds.includes(ex.id));
+      
+      setFilteredExercises(filtered);
+    } catch (error) {
+      console.error('Error fetching exercises for muscle group:', error);
+      setError('Failed to load exercises for this muscle group');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
-    const newFiltered = filterExercises(exercisesByCategory, selectedCategory, query);
-    setFilteredExercises(newFiltered);
-  };
-
-  const hasAlternatives = (exercise: ExtendedExercise) => {
-    return !!(exercise.alternative_exercise_1_id || 
-              exercise.alternative_exercise_2_id || 
-              exercise.alternative_exercise_3_id);
-  };
-
-  const handleRetry = () => {
-    dataFetchedRef.current = false;
-    const fetchExercises = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const exercises = await fetchExercisesByCategory();
-        
-        if (!exercises || exercises.length === 0) {
-          setError("No exercises found. Please add exercises to the system first.");
-          setExercisesByCategory({});
-          setFilteredExercises([]);
-          return;
-        }
-        
-        const categorized: Record<string, ExtendedExercise[]> = {};
-        exercises.forEach(exercise => {
-          const category = exercise.category || 'Uncategorized';
-          if (!categorized[category]) {
-            categorized[category] = [];
-          }
-          categorized[category].push(exercise as ExtendedExercise);
-        });
-        
-        setExercisesByCategory(categorized);
-        const initialFiltered = filterExercises(categorized, selectedCategory, searchQuery);
-        setFilteredExercises(initialFiltered);
-      } catch (error) {
-        console.error('Error fetching exercises:', error);
-        setError("Failed to load exercises. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
     
-    fetchExercises();
+    // Apply search filter to the current exercises
+    const newFiltered = filterExercises(exercises, query);
+    setFilteredExercises(newFiltered);
   };
 
   const handleExerciseClick = (exercise: Exercise) => {
@@ -190,8 +154,6 @@ export const ExerciseSelector = ({
     }
   };
 
-  const categories = ['All', ...Object.keys(exercisesByCategory).sort()];
-
   return (
     <div className="w-full">
       <div className="mb-4 relative">
@@ -207,21 +169,26 @@ export const ExerciseSelector = ({
       {error ? (
         <div className="text-center py-8">
           <p className="text-destructive mb-4">{error}</p>
-          <Button onClick={handleRetry} variant="outline">
+          <Button onClick={() => {
+            dataFetchedRef.current = false;
+          }} variant="outline">
             Retry
           </Button>
         </div>
       ) : (
-        <Tabs value={selectedCategory} onValueChange={handleCategoryChange}>
+        <Tabs value={selectedMuscleGroup} onValueChange={handleMuscleGroupChange}>
           <TabsList className="mb-4 flex flex-wrap h-auto">
-            {categories.map((category) => (
-              <TabsTrigger key={category} value={category} className="text-xs">
-                {category}
+            <TabsTrigger value="all" className="text-xs">
+              All Exercises
+            </TabsTrigger>
+            {muscleGroups.map((group) => (
+              <TabsTrigger key={group} value={group} className="text-xs">
+                {group}
               </TabsTrigger>
             ))}
           </TabsList>
 
-          <TabsContent value={selectedCategory} className="mt-0">
+          <TabsContent value={selectedMuscleGroup} className="mt-0">
             {isLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -238,12 +205,6 @@ export const ExerciseSelector = ({
                     <div className="text-left flex-1">
                       <div className="font-medium flex items-center">
                         {exercise.name}
-                        {hasAlternatives(exercise) && (
-                          <Badge variant="outline" className="ml-2 flex items-center">
-                            <ArrowRightLeft className="h-3 w-3 mr-1" />
-                            <span className="text-xs">Has alternatives</span>
-                          </Badge>
-                        )}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         {exercise.category} • {exercise.exercise_type}

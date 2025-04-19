@@ -472,6 +472,7 @@ export type Database = {
           exercise_type: string
           id: string
           log_type: string | null
+          muscle_group: string | null
           name: string
           youtube_link: string | null
         }
@@ -485,6 +486,7 @@ export type Database = {
           exercise_type?: string
           id?: string
           log_type?: string | null
+          muscle_group?: string | null
           name: string
           youtube_link?: string | null
         }
@@ -498,6 +500,7 @@ export type Database = {
           exercise_type?: string
           id?: string
           log_type?: string | null
+          muscle_group?: string | null
           name?: string
           youtube_link?: string | null
         }
@@ -1718,63 +1721,33 @@ export type Database = {
       }
       exercises_with_alternatives: {
         Row: {
-          alternative_exercise_1_id: string | null
-          alternative_exercise_1_name: string | null
-          alternative_exercise_2_id: string | null
-          alternative_exercise_2_name: string | null
-          alternative_exercise_3_id: string | null
-          alternative_exercise_3_name: string | null
           category: string | null
           description: string | null
           exercise_type: string | null
           id: string | null
+          muscle_group: string | null
           name: string | null
           youtube_link: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "exercises_alternative_exercise_1_id_fkey"
-            columns: ["alternative_exercise_1_id"]
-            isOneToOne: false
-            referencedRelation: "exercises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_alternative_exercise_1_id_fkey"
-            columns: ["alternative_exercise_1_id"]
-            isOneToOne: false
-            referencedRelation: "exercises_with_alternatives"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_alternative_exercise_2_id_fkey"
-            columns: ["alternative_exercise_2_id"]
-            isOneToOne: false
-            referencedRelation: "exercises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_alternative_exercise_2_id_fkey"
-            columns: ["alternative_exercise_2_id"]
-            isOneToOne: false
-            referencedRelation: "exercises_with_alternatives"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_alternative_exercise_3_id_fkey"
-            columns: ["alternative_exercise_3_id"]
-            isOneToOne: false
-            referencedRelation: "exercises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_alternative_exercise_3_id_fkey"
-            columns: ["alternative_exercise_3_id"]
-            isOneToOne: false
-            referencedRelation: "exercises_with_alternatives"
-            referencedColumns: ["id"]
-          },
-        ]
+        Insert: {
+          category?: string | null
+          description?: string | null
+          exercise_type?: string | null
+          id?: string | null
+          muscle_group?: string | null
+          name?: string | null
+          youtube_link?: string | null
+        }
+        Update: {
+          category?: string | null
+          description?: string | null
+          exercise_type?: string | null
+          id?: string | null
+          muscle_group?: string | null
+          name?: string | null
+          youtube_link?: string | null
+        }
+        Relationships: []
       }
       type_refresh_helper: {
         Row: {
@@ -1832,6 +1805,18 @@ export type Database = {
           alternative_id: string
           alternative_name: string
           alternative_type: string
+        }[]
+      }
+      get_exercises_by_muscle_group: {
+        Args: { muscle_group_param: string }
+        Returns: {
+          id: string
+          name: string
+          category: string
+          description: string
+          exercise_type: string
+          youtube_link: string
+          muscle_group: string
         }[]
       }
       get_group_monthly_leaderboard: {

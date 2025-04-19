@@ -3,9 +3,10 @@ export interface Exercise {
   name: string;
   category: string;
   description: string | null;
-  created_at?: string; // Make this optional to accommodate ExtendedExercise
+  created_at?: string;
   exercise_type: string; 
   youtube_link?: string;
+  muscle_group: string | null;
 }
 
 export interface WorkoutProgram {
@@ -16,8 +17,7 @@ export interface WorkoutProgram {
   coach_id: string;
   created_at: string;
   updated_at: string;
-  program_type: string; // Ensure this field exists
-  // Add a field to store the actual weeks data when needed
+  program_type: string;
   weekData?: WorkoutWeek[];
 }
 
@@ -31,7 +31,7 @@ export interface WorkoutWeek {
   program?: {
     title: string;
     id: string;
-    program_type?: string; // Added to match parent program type
+    program_type?: string;
   } | null;
   workouts?: Workout[];
 }
@@ -48,7 +48,6 @@ export interface Workout {
   priority: number;
 }
 
-// New interface for personal records
 export interface PersonalRecord {
   id: string;
   user_id: string;
@@ -84,12 +83,12 @@ export interface WorkoutBasic {
     program?: {
       id: string;
       title: string;
-      program_type?: string; // Added to match program type
+      program_type?: string;
     }
   } | null;
   workout_exercises?: WorkoutExercise[];
   workout_type: string;
-  custom_workout?: boolean; // Added field to identify custom workouts
+  custom_workout?: boolean;
 }
 
 export interface WorkoutExercise {
@@ -102,12 +101,10 @@ export interface WorkoutExercise {
   notes: string | null;
   order_index: number;
   created_at: string;
-  // Optional joined data
   exercise?: Exercise;
   workout?: Workout;
-  title?: string; 
+  title?: string;
   workout_type?: string;
-  // Add running-specific fields
   distance?: string;
   duration?: string;
   location?: string;

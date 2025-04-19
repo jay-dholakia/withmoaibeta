@@ -210,8 +210,8 @@ const WorkoutExercisesPage = () => {
               <div className="space-y-4">
                 {exercises.map((exercise: any, index: number) => (
                   <div key={exercise.id} className="border p-4 rounded-md shadow-sm">
-                    <div className="flex flex-col gap-4">
-                      <div>
+                    <div className="flex justify-between gap-4">
+                      <div className="flex-1">
                         <h3 className="font-medium">{index + 1}. {exercise.exercise?.name || 'Exercise'}</h3>
                         <div className="text-sm text-muted-foreground mt-1">
                           {exercise.sets} sets × {exercise.reps} reps
@@ -221,31 +221,31 @@ const WorkoutExercisesPage = () => {
                           <div className="text-sm mt-2 border-l-2 pl-2 border-muted">{exercise.notes}</div>
                         )}
                       </div>
-                      <div className="flex flex-col gap-2 w-full sm:w-40">
+                      <div className="flex flex-col items-end gap-2">
                         <Button 
                           variant="outline" 
-                          size="sm"
+                          size="xs"
                           onClick={() => handleMoveExerciseUp(exercise.id)}
                           disabled={index === 0 || isSubmitting}
-                          className="w-full"
+                          className="w-24 whitespace-nowrap"
                         >
                           Move Up
                         </Button>
                         <Button 
                           variant="outline" 
-                          size="sm"
+                          size="xs"
                           onClick={() => handleMoveExerciseDown(exercise.id)}
                           disabled={index === exercises.length - 1 || isSubmitting}
-                          className="w-full"
+                          className="w-24 whitespace-nowrap"
                         >
                           Move Down
                         </Button>
                         <Button 
                           variant="destructive" 
-                          size="sm"
+                          size="xs"
                           onClick={() => handleDeleteExercise(exercise.id, workoutId as string)}
                           disabled={isSubmitting}
-                          className="w-full"
+                          className="w-24 whitespace-nowrap"
                         >
                           Delete
                         </Button>

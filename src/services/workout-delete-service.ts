@@ -44,18 +44,7 @@ export const deleteWorkout = async (workoutId: string): Promise<boolean> => {
  */
 export const deleteWorkoutCompletion = async (completionId: string): Promise<boolean> => {
   try {
-    // First delete the associated workout set completions
-    const { error: setsError } = await supabase
-      .from('workout_set_completions')
-      .delete()
-      .eq('workout_completion_id', completionId);
-    
-    if (setsError) {
-      console.error("Error deleting workout set completions:", setsError);
-      return false;
-    }
-    
-    // Delete any personal records associated with this completion
+    // First delete the associated personal records
     const { error: prError } = await supabase
       .from('personal_records')
       .delete()
@@ -64,6 +53,17 @@ export const deleteWorkoutCompletion = async (completionId: string): Promise<boo
     if (prError) {
       console.error("Error deleting personal records:", prError);
       // Continue anyway as this is not critical
+    }
+    
+    // Delete the associated workout set completions
+    const { error: setsError } = await supabase
+      .from('workout_set_completions')
+      .delete()
+      .eq('workout_completion_id', completionId);
+    
+    if (setsError) {
+      console.error("Error deleting workout set completions:", setsError);
+      return false;
     }
     
     // Then delete the workout completion itself

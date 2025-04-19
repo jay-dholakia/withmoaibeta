@@ -81,31 +81,74 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           const exerciseId = setCompletion.workout_exercise_id;
           
           if (!groups[exerciseId]) {
-            const { data: exerciseInfo, error } = await supabase
+            // First try to get info from workout_exercises table
+            const { data: workoutExercise, error: workoutExerciseError } = await supabase
               .from('workout_exercises')
               .select('*, exercise:exercises(name, exercise_type)')
               .eq('id', exerciseId)
-              .single();
+              .maybeSingle();
 
-            if (error) {
-              console.error("Error fetching exercise info:", error);
-              continue;
+            if (workoutExerciseError) {
+              console.error("Error fetching workout exercise info:", workoutExerciseError);
             }
-
-            groups[exerciseId] = {
-              name: exerciseInfo.exercise ? exerciseInfo.exercise.name : 'Unknown Exercise',
-              type: exerciseInfo.exercise ? exerciseInfo.exercise.exercise_type : 'strength',
-              sets: []
-            };
+            
+            // If not found in workout_exercises, try standalone_workout_exercises
+            if (!workoutExercise) {
+              const { data: standaloneExercise, error: standaloneError } = await supabase
+                .from('standalone_workout_exercises')
+                .select('*, exercise:exercises(name, exercise_type)')
+                .eq('id', exerciseId)
+                .maybeSingle();
+                
+              if (standaloneError) {
+                console.error("Error fetching standalone exercise info:", standaloneError);
+              }
+              
+              if (standaloneExercise && standaloneExercise.exercise) {
+                groups[exerciseId] = {
+                  name: standaloneExercise.exercise.name,
+                  type: standaloneExercise.exercise.exercise_type,
+                  sets: []
+                };
+              } else {
+                // Fallback if we can't find the exercise
+                console.log("Using fallback for exercise ID:", exerciseId);
+                groups[exerciseId] = {
+                  name: "Exercise",
+                  type: setCompletion.distance ? "cardio" : "strength",
+                  sets: []
+                };
+              }
+            } else if (workoutExercise && workoutExercise.exercise) {
+              groups[exerciseId] = {
+                name: workoutExercise.exercise.name,
+                type: workoutExercise.exercise.exercise_type,
+                sets: []
+              };
+            } else {
+              // Fallback if we found the workout exercise but no exercise details
+              console.log("Using fallback for workout exercise with no exercise details:", exerciseId);
+              groups[exerciseId] = {
+                name: "Exercise",
+                type: setCompletion.distance ? "cardio" : "strength",
+                sets: []
+              };
+            }
           }
           
-          groups[exerciseId].sets.push(setCompletion);
+          // Add set completion to the appropriate group
+          const group = groups[exerciseId];
+          if (group) {
+            group.sets.push(setCompletion);
+          }
         }
         
+        // Set the exercise groups for this workout
         setExerciseGroups(prev => ({
           ...prev,
           [workout.id]: groups
         }));
+        console.log(`Exercise groups loaded for workout ${workout.id}:`, groups);
       } catch (error) {
         console.error("Error fetching workout exercise details:", error);
       }
@@ -117,7 +160,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
         fetchWorkoutExerciseDetails(workout);
       }
     }
-  }, [expandedWorkoutId, displayedWorkouts]);
+  }, [expandedWorkoutId, displayedWorkouts, exerciseGroups]);
 
   if (!date || !isValid(date)) {
     return (
@@ -217,6 +260,20 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
         setDisplayedWorkouts(currentWorkouts => 
           currentWorkouts.filter(workout => workout.id !== workoutId)
         );
+        
+        // Also remove from exercise groups if it exists
+        if (exerciseGroups[workoutId]) {
+          setExerciseGroups(prev => {
+            const updated = { ...prev };
+            delete updated[workoutId];
+            return updated;
+          });
+        }
+        
+        // If this was the expanded workout, collapse it
+        if (expandedWorkoutId === workoutId) {
+          setExpandedWorkoutId(null);
+        }
         
         toast.success('Workout deleted successfully');
         
@@ -489,12 +546,21 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                       <div className="space-y-3">
                         {Object.entries(exerciseGroups[workout.id]).map(([exerciseId, group]: [string, any]) => (
                           <div key={exerciseId} className="bg-muted/50 p-2 rounded-md">
-                            <div className="font-medium">{group.name}</div>
+                            <div className="font-medium">
+                              {group.name || "Unknown Exercise"}
+                            </div>
                             
                             {group.type === 'cardio' ? (
                               <div className="text-sm mt-1">
                                 <span className="text-muted-foreground">Duration: </span>
                                 {group.sets[0]?.duration || 'Not recorded'}
+                                
+                                {group.sets[0]?.distance && (
+                                  <div className="mt-1">
+                                    <span className="text-muted-foreground">Distance: </span>
+                                    {group.sets[0].distance}
+                                  </div>
+                                )}
                                 
                                 {group.sets[0]?.notes && (
                                   <div className="mt-1">
@@ -513,7 +579,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {group.type !== 'cardio' && group.sets.sort((a: any, b: any) => a.set_number - b.set_number).map((set: any) => (
+                                  {group.sets.sort((a: any, b: any) => a.set_number - b.set_number).map((set: any) => (
                                     <TableRow key={set.id}>
                                       <TableCell className="py-1 px-2">{set.set_number}</TableCell>
                                       <TableCell className="py-1 px-2">{set.reps_completed || '-'}</TableCell>

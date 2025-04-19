@@ -213,7 +213,7 @@ const WorkoutExercisesPage = () => {
               <div className="space-y-4">
                 {exercises.map((exercise: any, index: number) => (
                   <div key={exercise.id} className="border p-4 rounded-md shadow-sm">
-                    <div className="flex justify-between gap-4">
+                    <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h3 className="font-medium">{index + 1}. {exercise.exercise?.name || 'Exercise'}</h3>
                         <div className="text-sm text-muted-foreground mt-1">
@@ -224,13 +224,13 @@ const WorkoutExercisesPage = () => {
                           <div className="text-sm mt-2 border-l-2 pl-2 border-muted">{exercise.notes}</div>
                         )}
                       </div>
-                      <div className="flex flex-col items-end gap-2 self-start">
+                      <div className="flex flex-col items-end gap-2 min-w-[100px]">
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => handleMoveExerciseUp(exercise.id)}
                           disabled={index === 0 || isSubmitting}
-                          className="w-24 py-1 h-7 text-xs whitespace-nowrap"
+                          className="w-24 py-1 h-7 text-xs"
                         >
                           Move Up
                         </Button>
@@ -239,7 +239,7 @@ const WorkoutExercisesPage = () => {
                           size="sm"
                           onClick={() => handleMoveExerciseDown(exercise.id)}
                           disabled={index === exercises.length - 1 || isSubmitting}
-                          className="w-24 py-1 h-7 text-xs whitespace-nowrap"
+                          className="w-24 py-1 h-7 text-xs"
                         >
                           Move Down
                         </Button>
@@ -248,7 +248,7 @@ const WorkoutExercisesPage = () => {
                           size="sm"
                           onClick={() => handleDeleteExercise(exercise.id, workoutId as string)}
                           disabled={isSubmitting}
-                          className="w-24 py-1 h-7 text-xs whitespace-nowrap"
+                          className="w-24 py-1 h-7 text-xs"
                         >
                           Delete
                         </Button>

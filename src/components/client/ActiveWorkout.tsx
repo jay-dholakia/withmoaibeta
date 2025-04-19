@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1427,7 +1427,7 @@ const ActiveWorkout = () => {
   });
 
   return (
-    <div className="pb-20">
+    <div className="pb-32">
       {/* Header */}
       <div className="sticky top-0 bg-background z-10 p-4 border-b shadow-sm">
         <div className="flex justify-between items-center">
@@ -1461,7 +1461,7 @@ const ActiveWorkout = () => {
         )}
         
         {/* Complete Workout Button */}
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t">
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-50 pb-16">
           <div className="p-4">
             <Stopwatch className="mb-4" />
             <Button 

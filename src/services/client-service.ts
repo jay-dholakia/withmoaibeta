@@ -198,6 +198,14 @@ export const trackWorkoutSet = async (
     completed?: boolean;
   }
 ) => {
+  // Get the current user ID
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData.user?.id;
+
+  if (!userId) {
+    throw new Error("User must be authenticated to track workout sets");
+  }
+
   const { data: result, error } = await supabase
     .from('workout_set_completions')
     .insert([{
@@ -210,7 +218,8 @@ export const trackWorkoutSet = async (
       distance: data.distance,
       duration: data.duration,
       location: data.location,
-      completed: data.completed || false
+      completed: data.completed || false,
+      user_id: userId // Always include the user ID
     }])
     .select()
     .single();

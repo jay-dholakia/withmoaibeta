@@ -10,10 +10,22 @@ export const updateWorkoutSetCompletion = async (
   data: Partial<WorkoutSetCompletion>
 ): Promise<boolean> => {
   try {
+    // Get current user ID to ensure it's always included
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData.user?.id;
+
+    if (!userId) {
+      throw new Error("User must be authenticated to update workout sets");
+    }
+
+    // Ensure user_id is always included
+    const updateData = { ...data };
+    
     const { error } = await supabase
       .from('workout_set_completions')
-      .update(data)
-      .eq('id', completionId);
+      .update(updateData)
+      .eq('id', completionId)
+      .eq('user_id', userId); // Add user_id check for security
       
     if (error) {
       console.error("Error updating workout set completion:", error);
@@ -73,6 +85,14 @@ export const batchUpdateWorkoutSetCompletions = async (
   try {
     let successCount = 0;
     
+    // Get current user ID to ensure updates only affect user's own records
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData.user?.id;
+
+    if (!userId) {
+      throw new Error("User must be authenticated to update workout sets");
+    }
+    
     // Process updates in batches of 10 to avoid overwhelming the database
     const batchSize = 10;
     for (let i = 0; i < updates.length; i += batchSize) {
@@ -84,6 +104,7 @@ export const batchUpdateWorkoutSetCompletions = async (
           .from('workout_set_completions')
           .update(changes)
           .eq('id', id)
+          .eq('user_id', userId) // Add user_id check for security
       );
       
       // Execute all promises in this batch

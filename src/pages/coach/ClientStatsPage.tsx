@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -400,78 +401,79 @@ const CoachClientStatsPage = () => {
                         </TableHead>
                       </>
                     )}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    Array.from({ length: 5 }).map((_, index) => (
-                      <TableRow key={`loading-${index}`}>
-                        {Array.from({ length: isMobile ? 2 : 6 }).map((_, cellIndex) => (
-                          <TableCell key={`loading-cell-${index}-${cellIndex}`}>
-                            <Skeleton className="h-5 w-full" />
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : filteredAndSortedClients.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={isMobile ? 2 : 6} className="text-center py-8 text-muted-foreground">
-                        No clients found
-                      </TableCell>
                     </TableRow>
-                  ) : (
-                    filteredAndSortedClients.map((client) => (
-                      <TableRow key={client.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">
-                              {formatDisplayName(client.first_name, client.last_name, client.email)}
-                            </div>
-                          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      Array.from({ length: 5 }).map((_, index) => (
+                        <TableRow key={`loading-${index}`}>
+                          {Array.from({ length: isMobile ? 2 : 6 }).map((_, cellIndex) => (
+                            <TableCell key={`loading-cell-${index}-${cellIndex}`}>
+                              <Skeleton className="h-5 w-full" />
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    ) : filteredAndSortedClients.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={isMobile ? 2 : 6} className="text-center py-8 text-muted-foreground">
+                          No clients found
                         </TableCell>
-                        
-                        {!isMobile && (
+                      </TableRow>
+                    ) : (
+                      filteredAndSortedClients.map((client) => (
+                        <TableRow key={client.id}>
                           <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {client.groups.length === 0 ? (
-                                <span className="text-muted-foreground text-sm">None</span>
-                              ) : (
-                                client.groups.map((group) => (
-                                  <Badge key={group.id} variant="outline" className="bg-muted/30">
-                                    {group.name}
-                                  </Badge>
-                                ))
-                              )}
+                            <div>
+                              <div className="font-medium">
+                                {formatDisplayName(client.first_name, client.last_name, client.email)}
+                              </div>
                             </div>
                           </TableCell>
-                        )}
-                        
-                        <TableCell className={cn(
-                          isWorkoutStale(client.last_workout_date) && "text-red-500 font-medium"
-                        )}>
-                          {formatDate(client.last_workout_date)}
-                        </TableCell>
-                        {!isMobile && (
-                          <>
+                          
+                          {!isMobile && (
                             <TableCell>
-                              {client.assigned_workouts_this_week}
+                              <div className="flex flex-wrap gap-1">
+                                {client.groups.length === 0 ? (
+                                  <span className="text-muted-foreground text-sm">None</span>
+                                ) : (
+                                  client.groups.map((group) => (
+                                    <Badge key={group.id} variant="outline" className="bg-muted/30">
+                                      {group.name}
+                                    </Badge>
+                                  ))
+                                )}
+                              </div>
                             </TableCell>
-                            <TableCell>
-                              {client.activities_this_week}
-                            </TableCell>
-                            <TableCell>
-                              {client.total_activities}
-                            </TableCell>
-                          </>
-                        )}
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                          )}
+                          
+                          <TableCell className={cn(
+                            isWorkoutStale(client.last_workout_date) && "text-red-500 font-medium"
+                          )}>
+                            {formatDate(client.last_workout_date)}
+                          </TableCell>
+                          {!isMobile && (
+                            <>
+                              <TableCell>
+                                {client.assigned_workouts_this_week}
+                              </TableCell>
+                              <TableCell>
+                                {client.activities_this_week}
+                              </TableCell>
+                              <TableCell>
+                                {client.total_activities}
+                              </TableCell>
+                            </>
+                          )}
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </CoachLayout>
   );

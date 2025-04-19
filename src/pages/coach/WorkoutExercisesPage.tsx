@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -36,7 +35,6 @@ const WorkoutExercisesPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pageLoaded, setPageLoaded] = useState(false);
 
-  // Use useEffect with an empty dependency array to track initial page load
   useEffect(() => {
     setPageLoaded(true);
   }, []);
@@ -55,7 +53,6 @@ const WorkoutExercisesPage = () => {
           console.log("Workout data received:", workoutData);
           setWorkout(workoutData);
           
-          // Also fetch any exercises for this workout
           const exercisesData = await fetchWorkoutExercises(workoutId);
           console.log("Exercises data received:", exercisesData);
           setExercises(exercisesData || []);
@@ -96,7 +93,6 @@ const WorkoutExercisesPage = () => {
         order_index: exercises.length
       });
       
-      // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
@@ -118,7 +114,6 @@ const WorkoutExercisesPage = () => {
       
       await deleteWorkoutExercise(exerciseId);
       
-      // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
@@ -139,7 +134,6 @@ const WorkoutExercisesPage = () => {
       
       await moveWorkoutExerciseUp(exerciseId, workoutId);
       
-      // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
@@ -159,7 +153,6 @@ const WorkoutExercisesPage = () => {
       
       await moveWorkoutExerciseDown(exerciseId, workoutId);
       
-      // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
@@ -217,7 +210,7 @@ const WorkoutExercisesPage = () => {
               <div className="space-y-4">
                 {exercises.map((exercise: any, index: number) => (
                   <div key={exercise.id} className="border p-4 rounded-md shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                       <div>
                         <h3 className="font-medium">{index + 1}. {exercise.exercise?.name || 'Exercise'}</h3>
                         <div className="text-sm text-muted-foreground mt-1">
@@ -228,12 +221,13 @@ const WorkoutExercisesPage = () => {
                           <div className="text-sm mt-2 border-l-2 pl-2 border-muted">{exercise.notes}</div>
                         )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => handleMoveExerciseUp(exercise.id)}
                           disabled={index === 0 || isSubmitting}
+                          className="justify-center"
                         >
                           Move Up
                         </Button>
@@ -242,6 +236,7 @@ const WorkoutExercisesPage = () => {
                           size="sm"
                           onClick={() => handleMoveExerciseDown(exercise.id)}
                           disabled={index === exercises.length - 1 || isSubmitting}
+                          className="justify-center"
                         >
                           Move Down
                         </Button>
@@ -250,6 +245,7 @@ const WorkoutExercisesPage = () => {
                           size="sm"
                           onClick={() => handleDeleteExercise(exercise.id, workoutId as string)}
                           disabled={isSubmitting}
+                          className="justify-center"
                         >
                           Delete
                         </Button>

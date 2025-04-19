@@ -6,12 +6,13 @@ import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import { Card, CardContent } from '@/components/ui/card';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { useAuth } from '@/contexts/AuthContext';
+import { WorkoutHistoryItem } from '@/types/workout';
 
 const ClientWorkoutDetailsPage: React.FC = () => {
   const { user } = useAuth();
   const { workoutId } = useParams<{ workoutId: string }>();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [workouts, setWorkouts] = useState([]);
+  const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {

@@ -88,14 +88,15 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
         const processedExercises = new Set<string>();
 
         exerciseSets.forEach(set => {
-          const exerciseDetails = set.workout_exercise?.exercise || set.standalone_exercise?.exercise;
-          const exerciseId = set.workout_exercise_id || set.standalone_exercise_id;
+          // Make sure we're only accessing workout_exercise as that's what our updated query returns
+          const exerciseDetails = set.workout_exercise?.exercise;
+          const exerciseId = set.workout_exercise_id;
           
           if (exerciseId && !processedExercises.has(exerciseId)) {
             processedExercises.add(exerciseId);
             
             const exerciseSetsForId = exerciseSets.filter(
-              s => s.workout_exercise_id === exerciseId || s.standalone_exercise_id === exerciseId
+              s => s.workout_exercise_id === exerciseId
             );
 
             if (exerciseDetails) {

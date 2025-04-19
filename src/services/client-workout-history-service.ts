@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistoryItem, WorkoutSetCompletion, WorkoutBasic } from "@/types/workout";
 
@@ -266,19 +265,11 @@ export const fetchWorkoutExercises = async (workoutId: string) => {
   try {
     console.log(`Fetching exercises for workout: ${workoutId}`);
     
-    const { data: setCompletions, error: setCompletionsError } = await supabase
+    const { data: setCompletions, error } = await supabase
       .from('workout_set_completions')
       .select(`
         *,
         workout_exercise:workout_exercises(
-          *,
-          exercise:exercises(
-            id,
-            name,
-            exercise_type
-          )
-        ),
-        standalone_exercise:standalone_workout_exercises(
           *,
           exercise:exercises(
             id,
@@ -290,13 +281,12 @@ export const fetchWorkoutExercises = async (workoutId: string) => {
       .eq('workout_completion_id', workoutId)
       .order('set_number');
       
-    if (setCompletionsError) {
-      console.error("Error fetching set completions:", setCompletionsError);
+    if (error) {
+      console.error("Error fetching set completions:", error);
       return null;
     }
 
     console.log(`Found ${setCompletions?.length || 0} set completions`);
-    console.log('Set completions:', setCompletions);
     
     return setCompletions;
   } catch (error) {

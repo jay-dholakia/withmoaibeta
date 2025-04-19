@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose
@@ -46,7 +47,8 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
   const handleSetChange = (setId: string, field: keyof WorkoutSetCompletion, value: any) => {
     setEditedSets(prev => {
       const updatedSet = { ...prev[setId] };
-      updatedSet[field] = value;
+      // Use type assertion to avoid the 'never' type error
+      (updatedSet[field] as any) = value;
       
       if (field === 'weight' && value !== '') {
         updatedSet.completed = true;

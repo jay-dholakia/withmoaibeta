@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
-import { PersonalRecord } from '@/types/workout';
+import { PersonalRecord, Exercise } from '@/types/workout';
 import { 
   Tooltip,
   TooltipContent,
@@ -1092,24 +1092,33 @@ const ActiveWorkout = () => {
     
     // Update workout data to reflect the swap
     if (workoutData?.workout?.workout_exercises) {
-      const updatedExercises = workoutData.workout.workout_exercises.map(ex => {
-        if (ex.id === originalExerciseId) {
-          return {
-            ...ex,
-            exercise: newExercise,
-            exercise_id: newExercise.id
-          };
-        }
-        return ex;
-      });
+      const exercises = workoutData.workout.workout_exercises;
       
-      queryClient.setQueryData(['active-workout', workoutCompletionId], old => ({
-        ...old,
-        workout: {
-          ...old.workout,
-          workout_exercises: updatedExercises
-        }
-      }));
+      // Check if workout_exercises is an array before using map
+      if (Array.isArray(exercises)) {
+        const updatedExercises = exercises.map(ex => {
+          if (ex.id === originalExerciseId) {
+            return {
+              ...ex,
+              exercise: newExercise,
+              exercise_id: newExercise.id
+            };
+          }
+          return ex;
+        });
+        
+        queryClient.setQueryData(['active-workout', workoutCompletionId], (oldData: any) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            workout: {
+              ...oldData.workout,
+              workout_exercises: updatedExercises
+            }
+          };
+        });
+      }
     }
     
     closeAlternativeDialog();

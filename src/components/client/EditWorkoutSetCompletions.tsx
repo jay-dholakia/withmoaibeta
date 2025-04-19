@@ -34,6 +34,7 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
   const [editedSets, setEditedSets] = useState<Record<string, WorkoutSetCompletion>>({});
   const [saving, setSaving] = useState(false);
 
+  // Initialize edited sets from workout data
   React.useEffect(() => {
     if (open && workout.workout_set_completions) {
       const initialEdits: Record<string, WorkoutSetCompletion> = {};
@@ -44,26 +45,22 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
     }
   }, [open, workout]);
 
+  // Handle form input changes
   const handleSetChange = (setId: string, field: keyof WorkoutSetCompletion, value: any) => {
-    setEditedSets(prev => {
-      const updatedSet = { ...prev[setId] };
-      // Use type assertion to avoid the 'never' type error
-      (updatedSet[field] as any) = value;
-      
-      if (field === 'weight' && value !== '') {
-        updatedSet.completed = true;
+    setEditedSets(prev => ({
+      ...prev,
+      [setId]: {
+        ...prev[setId],
+        [field]: value
       }
-      
-      return {
-        ...prev,
-        [setId]: updatedSet
-      };
-    });
+    }));
   };
 
+  // Save changes to the database
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Prepare updates for all modified sets
       const updates = Object.entries(editedSets).map(([id, set]) => ({
         id,
         changes: {
@@ -74,6 +71,7 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
         }
       }));
       
+      // Use our batch update service
       const successCount = await batchUpdateWorkoutSetCompletions(updates);
       
       if (successCount === 0) {
@@ -109,6 +107,7 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
               <h3 className="font-medium mb-2">{group.name}</h3>
               
               {group.type === 'cardio' ? (
+                // Duration only for cardio exercises
                 <div className="mb-3">
                   <label className="text-sm font-medium block mb-1">Duration</label>
                   <Input 
@@ -123,6 +122,7 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                   />
                 </div>
               ) : (
+                // Sets, reps, weight for strength exercises
                 <div className="space-y-3">
                   {group.sets.sort((a, b) => a.set_number - b.set_number).map(set => (
                     <div key={set.id} className="grid grid-cols-3 gap-2">
@@ -161,11 +161,13 @@ const EditWorkoutSetCompletions: React.FC<EditWorkoutSetCompletionsProps> = ({
                 </div>
               )}
               
+              {/* Notes for all exercise types */}
               <div className="mt-2">
                 <label className="text-xs text-muted-foreground block mb-1">Notes</label>
                 <Input
                   value={editedSets[group.sets[0]?.id]?.notes || ''}
                   onChange={(e) => {
+                    // Apply notes to all sets of this exercise
                     group.sets.forEach(set => {
                       handleSetChange(set.id, 'notes', e.target.value);
                     });

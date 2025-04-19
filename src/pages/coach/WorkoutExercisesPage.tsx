@@ -210,7 +210,7 @@ const WorkoutExercisesPage = () => {
               <div className="space-y-4">
                 {exercises.map((exercise: any, index: number) => (
                   <div key={exercise.id} className="border p-4 rounded-md shadow-sm">
-                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                    <div className="flex flex-col gap-4">
                       <div>
                         <h3 className="font-medium">{index + 1}. {exercise.exercise?.name || 'Exercise'}</h3>
                         <div className="text-sm text-muted-foreground mt-1">
@@ -221,13 +221,13 @@ const WorkoutExercisesPage = () => {
                           <div className="text-sm mt-2 border-l-2 pl-2 border-muted">{exercise.notes}</div>
                         )}
                       </div>
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                      <div className="flex flex-col gap-2 w-full sm:w-40">
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => handleMoveExerciseUp(exercise.id)}
                           disabled={index === 0 || isSubmitting}
-                          className="justify-center"
+                          className="w-full"
                         >
                           Move Up
                         </Button>
@@ -236,7 +236,7 @@ const WorkoutExercisesPage = () => {
                           size="sm"
                           onClick={() => handleMoveExerciseDown(exercise.id)}
                           disabled={index === exercises.length - 1 || isSubmitting}
-                          className="justify-center"
+                          className="w-full"
                         >
                           Move Down
                         </Button>
@@ -245,7 +245,7 @@ const WorkoutExercisesPage = () => {
                           size="sm"
                           onClick={() => handleDeleteExercise(exercise.id, workoutId as string)}
                           disabled={isSubmitting}
-                          className="justify-center"
+                          className="w-full"
                         >
                           Delete
                         </Button>

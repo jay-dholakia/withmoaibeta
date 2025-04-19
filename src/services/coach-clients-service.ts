@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -46,7 +47,8 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       const workoutCounts = await fetchAccurateWorkoutCounts(clientIds);
       
       // Update the total_workouts_completed value with the accurate count
-      return rpcData.map(client => ({
+      // Cast each row to ClientData after ensuring first_name and last_name are present
+      return rpcData.map((client: any) => ({
         ...client,
         // Ensure first_name and last_name are present even if null
         first_name: client.first_name || null,

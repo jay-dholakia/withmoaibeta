@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Exercise } from '@/types/workout';
 
@@ -36,3 +35,20 @@ export const fetchMuscleGroups = async (): Promise<string[]> => {
   return [...new Set(data.map(e => e.muscle_group).filter(Boolean))];
 };
 
+/**
+ * Get similar exercises by muscle group
+ */
+export const fetchSimilarExercises = async (muscleGroup: string): Promise<Exercise[]> => {
+  const { data, error } = await supabase
+    .from('exercises')
+    .select('*')
+    .eq('muscle_group', muscleGroup)
+    .order('name');
+
+  if (error) {
+    console.error('Error fetching similar exercises:', error);
+    throw error;
+  }
+
+  return data;
+};

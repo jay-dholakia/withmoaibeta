@@ -32,6 +32,7 @@ import {
 import { VideoPlayer } from '@/components/client/VideoPlayer';
 import Stopwatch from './Stopwatch';
 import { cn } from '@/lib/utils';
+import { fetchSimilarExercises } from '@/services/exercise-service';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -107,6 +108,7 @@ const ActiveWorkout = () => {
   const [alternativeDialogOpen, setAlternativeDialogOpen] = useState(false);
   const [currentExercise, setCurrentExercise] = useState<any>(null);
   const [alternativeExercises, setAlternativeExercises] = useState<any[]>([]);
+  const [isLoadingAlternatives, setIsLoadingAlternatives] = useState(false);
 
   const formatDurationInput = (value: string): string => {
     let cleaned = value.replace(/[^\d:]/g, '');
@@ -1041,11 +1043,23 @@ const ActiveWorkout = () => {
     setCurrentVideoUrl(null);
   };
 
-  const openAlternativeDialog = (exercise: any) => {
+  const openAlternativeDialog = async (exercise: any) => {
     setCurrentExercise(exercise);
-    // In a real app, you would fetch alternatives here
-    setAlternativeExercises([]);
     setAlternativeDialogOpen(true);
+    setIsLoadingAlternatives(true);
+    
+    try {
+      if (exercise.exercise?.muscle_group) {
+        const alternatives = await fetchSimilarExercises(exercise.exercise.muscle_group);
+        const filteredAlternatives = alternatives.filter(alt => alt.id !== exercise.exercise.id);
+        setAlternativeExercises(filteredAlternatives);
+      }
+    } catch (error) {
+      console.error('Error fetching alternative exercises:', error);
+      toast.error('Failed to load alternative exercises');
+    } finally {
+      setIsLoadingAlternatives(false);
+    }
   };
 
   const closeAlternativeDialog = () => {
@@ -1502,16 +1516,24 @@ const ActiveWorkout = () => {
               These exercises target similar muscle groups and can be substituted if needed.
             </DialogDescription>
           </DialogHeader>
-          {alternativeExercises.length === 0 ? (
-            <div className="py-4 text-center">
-              <p>Loading alternatives...</p>
+          
+          {isLoadingAlternatives ? (
+            <div className="py-8 text-center">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+              <p className="mt-2">Loading alternatives...</p>
+            </div>
+          ) : alternativeExercises.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <p>No alternative exercises found for this muscle group.</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {alternativeExercises.map(alt => (
                 <Card key={alt.id} className="p-3">
                   <h4 className="font-medium">{alt.name}</h4>
-                  <p className="text-sm text-gray-600">{alt.description}</p>
+                  {alt.description && (
+                    <p className="text-sm text-muted-foreground mt-1">{alt.description}</p>
+                  )}
                 </Card>
               ))}
             </div>

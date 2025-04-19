@@ -1,5 +1,6 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { WorkoutHistoryItem } from "@/types/workout";
+import { WorkoutHistoryItem, WorkoutSetCompletion, WorkoutBasic } from "@/types/workout";
 
 export const fetchClientWorkoutHistory = async (clientId: string): Promise<WorkoutHistoryItem[]> => {
   try {

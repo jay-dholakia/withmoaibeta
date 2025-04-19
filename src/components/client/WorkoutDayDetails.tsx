@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -13,6 +14,7 @@ import { toast } from 'sonner';
 import { updateCustomWorkout } from '@/services/client-custom-workout-service';
 import { updateWorkoutCompletion } from '@/services/workout-edit-service';
 import { deleteWorkoutCompletion } from '@/services/workout-delete-service';
+import { fetchWorkoutExercises } from '@/services/client-workout-history-service';
 import EditWorkoutSetCompletions from './EditWorkoutSetCompletions';
 import { supabase } from '@/integrations/supabase/client';
 import {

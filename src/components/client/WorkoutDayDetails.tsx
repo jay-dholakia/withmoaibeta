@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -76,95 +75,82 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       }
 
       try {
-        const groups: Record<string, any> = {};
+        const newExerciseGroups: Record<string, any> = {};
+        console.log(`Fetching exercise details for workout ${workout.id} with ${workout.workout_set_completions.length} set completions`);
         
-        // Create a Set to track unique exercise IDs we've processed
-        const processedExerciseIds = new Set<string>();
+        const exerciseIds = [...new Set(
+          workout.workout_set_completions.map(set => set.workout_exercise_id)
+        )];
         
-        for (const setCompletion of workout.workout_set_completions) {
-          const exerciseId = setCompletion.workout_exercise_id;
+        console.log(`Found ${exerciseIds.length} unique exercises in this workout`);
+        
+        for (const exerciseId of exerciseIds) {
+          console.log(`Processing exercise ID: ${exerciseId}`);
           
-          // Skip if we've already processed this exercise ID
-          if (processedExerciseIds.has(exerciseId)) {
-            // If the exercise already exists in groups, just add this set to its sets array
-            if (groups[exerciseId]) {
-              groups[exerciseId].sets.push(setCompletion);
-            }
-            continue;
+          const exerciseSets = workout.workout_set_completions.filter(
+            set => set.workout_exercise_id === exerciseId
+          );
+          
+          console.log(`Found ${exerciseSets.length} sets for exercise ${exerciseId}`);
+          
+          const { data: workoutExercise, error: workoutExerciseError } = await supabase
+            .from('workout_exercises')
+            .select('*, exercise:exercises(name, exercise_type)')
+            .eq('id', exerciseId)
+            .maybeSingle();
+
+          if (workoutExerciseError) {
+            console.error("Error fetching workout exercise info:", workoutExerciseError);
           }
           
-          // Mark this exercise ID as processed
-          processedExerciseIds.add(exerciseId);
-          
-          if (!groups[exerciseId]) {
-            // First try to get info from workout_exercises table
-            const { data: workoutExercise, error: workoutExerciseError } = await supabase
-              .from('workout_exercises')
+          if (!workoutExercise) {
+            const { data: standaloneExercise, error: standaloneError } = await supabase
+              .from('standalone_workout_exercises')
               .select('*, exercise:exercises(name, exercise_type)')
               .eq('id', exerciseId)
               .maybeSingle();
-
-            if (workoutExerciseError) {
-              console.error("Error fetching workout exercise info:", workoutExerciseError);
+              
+            if (standaloneError) {
+              console.error("Error fetching standalone exercise info:", standaloneError);
             }
             
-            // If not found in workout_exercises, try standalone_workout_exercises
-            if (!workoutExercise) {
-              const { data: standaloneExercise, error: standaloneError } = await supabase
-                .from('standalone_workout_exercises')
-                .select('*, exercise:exercises(name, exercise_type)')
-                .eq('id', exerciseId)
-                .maybeSingle();
-                
-              if (standaloneError) {
-                console.error("Error fetching standalone exercise info:", standaloneError);
-              }
-              
-              if (standaloneExercise && standaloneExercise.exercise) {
-                groups[exerciseId] = {
-                  name: standaloneExercise.exercise.name,
-                  type: standaloneExercise.exercise.exercise_type,
-                  sets: []
-                };
-              } else {
-                // Fallback if we can't find the exercise
-                console.log("Using fallback for exercise ID:", exerciseId);
-                groups[exerciseId] = {
-                  name: "Exercise",
-                  type: setCompletion.distance ? "cardio" : "strength",
-                  sets: []
-                };
-              }
-            } else if (workoutExercise && workoutExercise.exercise) {
-              groups[exerciseId] = {
-                name: workoutExercise.exercise.name,
-                type: workoutExercise.exercise.exercise_type,
-                sets: []
+            if (standaloneExercise && standaloneExercise.exercise) {
+              newExerciseGroups[exerciseId] = {
+                name: standaloneExercise.exercise.name,
+                type: standaloneExercise.exercise.exercise_type,
+                sets: exerciseSets
               };
+              console.log(`Added standalone exercise: ${standaloneExercise.exercise.name}`);
             } else {
-              // Fallback if we found the workout exercise but no exercise details
-              console.log("Using fallback for workout exercise with no exercise details:", exerciseId);
-              groups[exerciseId] = {
+              console.log("Using fallback for exercise ID:", exerciseId);
+              newExerciseGroups[exerciseId] = {
                 name: "Exercise",
-                type: setCompletion.distance ? "cardio" : "strength",
-                sets: []
+                type: exerciseSets[0]?.distance ? "cardio" : "strength",
+                sets: exerciseSets
               };
             }
-          }
-          
-          // Add set completion to the appropriate group
-          const group = groups[exerciseId];
-          if (group) {
-            group.sets.push(setCompletion);
+          } else if (workoutExercise && workoutExercise.exercise) {
+            newExerciseGroups[exerciseId] = {
+              name: workoutExercise.exercise.name,
+              type: workoutExercise.exercise.exercise_type,
+              sets: exerciseSets
+            };
+            console.log(`Added workout exercise: ${workoutExercise.exercise.name}`);
+          } else {
+            console.log("Using fallback for workout exercise with no exercise details:", exerciseId);
+            newExerciseGroups[exerciseId] = {
+              name: "Exercise",
+              type: exerciseSets[0]?.distance ? "cardio" : "strength",
+              sets: exerciseSets
+            };
           }
         }
         
-        // Set the exercise groups for this workout
         setExerciseGroups(prev => ({
           ...prev,
-          [workout.id]: groups
+          [workout.id]: newExerciseGroups
         }));
-        console.log(`Exercise groups loaded for workout ${workout.id}:`, groups);
+        console.log(`Exercise groups loaded for workout ${workout.id}:`, newExerciseGroups);
       } catch (error) {
         console.error("Error fetching workout exercise details:", error);
       }
@@ -172,11 +158,11 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
 
     if (expandedWorkoutId) {
       const workout = displayedWorkouts.find(w => w.id === expandedWorkoutId);
-      if (workout && !exerciseGroups[expandedWorkoutId]) {
+      if (workout) {
         fetchWorkoutExerciseDetails(workout);
       }
     }
-  }, [expandedWorkoutId, displayedWorkouts, exerciseGroups]);
+  }, [expandedWorkoutId, displayedWorkouts]);
 
   if (!date || !isValid(date)) {
     return (
@@ -277,7 +263,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           currentWorkouts.filter(workout => workout.id !== workoutId)
         );
         
-        // Also remove from exercise groups if it exists
         if (exerciseGroups[workoutId]) {
           setExerciseGroups(prev => {
             const updated = { ...prev };
@@ -286,7 +271,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           });
         }
         
-        // If this was the expanded workout, collapse it
         if (expandedWorkoutId === workoutId) {
           setExpandedWorkoutId(null);
         }

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -246,7 +245,7 @@ const CoachClientStatsPage = () => {
   const isLoading = isLoadingCoachClients || isLoadingStats;
   const isMobile = useIsMobile();
 
-  const formatDisplayName = (firstName: string | null, lastName: string | null, email: string): string => {
+  const formatDisplayName = (firstName: string | null, lastName: string | null): string => {
     if (!firstName) return '';
     return `${firstName} ${lastName ? lastName.charAt(0) + '.' : ''}`.trim();
   };
@@ -426,7 +425,7 @@ const CoachClientStatsPage = () => {
                           <TableCell>
                             <div>
                               <div className="font-medium">
-                                {formatDisplayName(client.first_name, client.last_name, client.email)}
+                                {formatDisplayName(client.first_name, client.last_name)}
                               </div>
                             </div>
                           </TableCell>

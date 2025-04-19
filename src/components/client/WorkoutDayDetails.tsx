@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -77,8 +78,23 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       try {
         const groups: Record<string, any> = {};
         
+        // Create a Set to track unique exercise IDs we've processed
+        const processedExerciseIds = new Set<string>();
+        
         for (const setCompletion of workout.workout_set_completions) {
           const exerciseId = setCompletion.workout_exercise_id;
+          
+          // Skip if we've already processed this exercise ID
+          if (processedExerciseIds.has(exerciseId)) {
+            // If the exercise already exists in groups, just add this set to its sets array
+            if (groups[exerciseId]) {
+              groups[exerciseId].sets.push(setCompletion);
+            }
+            continue;
+          }
+          
+          // Mark this exercise ID as processed
+          processedExerciseIds.add(exerciseId);
           
           if (!groups[exerciseId]) {
             // First try to get info from workout_exercises table

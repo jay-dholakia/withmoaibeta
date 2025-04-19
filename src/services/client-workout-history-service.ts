@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   WorkoutBasic, 
@@ -145,6 +146,7 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
         if (setCompletionsError) {
           console.error("Error fetching workout set completions:", setCompletionsError);
         } else if (setCompletions && setCompletions.length > 0) {
+          // Group set completions by their workout_completion_id
           setCompletions.forEach((setCompletion) => {
             const completionId = setCompletion.workout_completion_id;
             if (!setCompletionsMap.has(completionId)) {
@@ -154,6 +156,12 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
             if (completionsArray) {
               completionsArray.push(setCompletion as WorkoutSetCompletion);
             }
+          });
+          
+          // Log the number of set completions found for each workout
+          completionIds.forEach(id => {
+            const sets = setCompletionsMap.get(id) || [];
+            console.log(`Found ${sets.length} set completions for workout ${id}`);
           });
         }
       } catch (err) {

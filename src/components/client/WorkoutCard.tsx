@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { WorkoutTypeIcon } from './WorkoutTypeIcon';
+// Remove the import for AddToGoogleCalendarButton since we're hiding it
+// import { AddToGoogleCalendarButton } from './AddToGoogleCalendarButton';
 
 interface GroupMember {
   id: string;
@@ -25,6 +28,7 @@ interface WorkoutCardProps {
   dayOfWeek?: number;
 }
 
+// Helper to get initials
 const getMemberInitials = (name: string): string => {
   const parts = name.split(' ').filter(Boolean);
   if (parts.length === 0) return '?';
@@ -54,11 +58,10 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 
   return (
     <Card className={cn(
-      "overflow-hidden transition-all rounded-lg border-none shadow-none",
-      "bg-transparent",
-      isCurrentUserCompleted ? "opacity-80" : ""
+      "overflow-hidden transition-all",
+      isCurrentUserCompleted ? "bg-gray-50 border-gray-100" : "bg-white"
     )}>
-      <CardHeader className="px-2 py-2 flex flex-row items-start justify-between">
+      <CardHeader className="px-4 py-3 flex flex-row items-start justify-between">
         <div className="flex items-center gap-2">
           <div className="text-client text-lg">
             <WorkoutTypeIcon type={type as any} />
@@ -75,7 +78,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
                   <Tooltip key={member.id}>
                     <TooltipTrigger>
                       <Avatar className={cn(
-                        "h-7 w-7 border-none",
+                        "h-7 w-7 border-2 border-white",
                         !hasCompleted && "grayscale opacity-60"
                       )}>
                         {member.profile_picture_url && (
@@ -97,17 +100,17 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         )}
       </CardHeader>
       
-      <CardContent className="px-2 py-1">
+      <CardContent className="px-4 py-2">
         {description && (
           <p className="text-sm text-muted-foreground">{description}</p>
         )}
       </CardContent>
       
-      <CardFooter className="p-2 flex flex-col gap-2">
+      <CardFooter className="p-3 flex flex-col gap-2">
         <Button 
           className={cn(
-            "w-full h-9 py-1 border-none shadow-none",
-            isCurrentUserCompleted ? "bg-gray-400 hover:bg-gray-500" : "bg-transparent"
+            "w-full h-9 py-1",
+            isCurrentUserCompleted ? "bg-gray-400 hover:bg-gray-500" : ""
           )}
           size="sm"
           onClick={handleStartWorkout}
@@ -115,6 +118,8 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         >
           {isCurrentUserCompleted ? 'Workout Completed' : 'Log Workout'}
         </Button>
+        
+        {/* Removed the AddToGoogleCalendarButton component */}
       </CardFooter>
     </Card>
   );

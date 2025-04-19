@@ -23,13 +23,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from '@/contexts/AuthContext';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const WorkoutExercisesPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isMobile = useIsMobile();
   
   const [workout, setWorkout] = useState<any>(null);
   const [exercises, setExercises] = useState<any[]>([]);
@@ -38,6 +36,7 @@ const WorkoutExercisesPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pageLoaded, setPageLoaded] = useState(false);
 
+  // Use useEffect with an empty dependency array to track initial page load
   useEffect(() => {
     setPageLoaded(true);
   }, []);
@@ -56,6 +55,7 @@ const WorkoutExercisesPage = () => {
           console.log("Workout data received:", workoutData);
           setWorkout(workoutData);
           
+          // Also fetch any exercises for this workout
           const exercisesData = await fetchWorkoutExercises(workoutId);
           console.log("Exercises data received:", exercisesData);
           setExercises(exercisesData || []);
@@ -96,6 +96,7 @@ const WorkoutExercisesPage = () => {
         order_index: exercises.length
       });
       
+      // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
@@ -117,6 +118,7 @@ const WorkoutExercisesPage = () => {
       
       await deleteWorkoutExercise(exerciseId);
       
+      // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
@@ -137,6 +139,7 @@ const WorkoutExercisesPage = () => {
       
       await moveWorkoutExerciseUp(exerciseId, workoutId);
       
+      // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
@@ -156,6 +159,7 @@ const WorkoutExercisesPage = () => {
       
       await moveWorkoutExerciseDown(exerciseId, workoutId);
       
+      // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
@@ -183,9 +187,9 @@ const WorkoutExercisesPage = () => {
     <CoachLayout>
       <div className="container mx-auto px-4 py-6">
         <Button 
-          variant="ghost" 
+          variant="outline" 
           size="sm" 
-          className="mb-6 gap-1 hover:bg-transparent" 
+          className="mb-6 gap-1" 
           onClick={handleBackClick}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -196,61 +200,56 @@ const WorkoutExercisesPage = () => {
           Manage Exercises for {workout?.title || 'Workout'}
         </h1>
 
-        <Card className="bg-transparent border-none shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between p-0 pb-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Exercises</CardTitle>
             <Button 
               onClick={() => setIsAddingExercise(true)}
               size="sm"
-              className="gap-1 shadow-none border-none hover:bg-accent/50"
+              className="gap-1"
             >
               <Plus className="h-4 w-4" />
               Add Exercise
             </Button>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent>
             {exercises.length > 0 ? (
               <div className="space-y-4">
                 {exercises.map((exercise: any, index: number) => (
-                  <div key={exercise.id} className="bg-transparent p-4">
-                    <div className="flex flex-col">
-                      <div className="flex-1 min-w-0 overflow-hidden mb-4">
-                        <h3 className="font-medium text-base truncate">
-                          {index + 1}. {exercise.exercise?.name || 'Exercise'}
-                        </h3>
+                  <div key={exercise.id} className="border p-4 rounded-md shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-medium">{index + 1}. {exercise.exercise?.name || 'Exercise'}</h3>
                         <div className="text-sm text-muted-foreground mt-1">
                           {exercise.sets} sets × {exercise.reps} reps
                           {exercise.rest_seconds ? ` (${exercise.rest_seconds}s rest)` : ''}
                         </div>
                         {exercise.notes && (
-                          <div className="text-sm mt-2 pl-2">{exercise.notes}</div>
+                          <div className="text-sm mt-2 border-l-2 pl-2 border-muted">{exercise.notes}</div>
                         )}
                       </div>
-                      <div className="flex justify-end gap-2">
+                      <div className="flex gap-2">
                         <Button 
-                          variant="ghost" 
+                          variant="outline" 
                           size="sm"
                           onClick={() => handleMoveExerciseUp(exercise.id)}
                           disabled={index === 0 || isSubmitting}
-                          className="py-1 h-7 text-xs hover:bg-accent/50 shadow-none border-none"
                         >
                           Move Up
                         </Button>
                         <Button 
-                          variant="ghost" 
+                          variant="outline" 
                           size="sm"
                           onClick={() => handleMoveExerciseDown(exercise.id)}
                           disabled={index === exercises.length - 1 || isSubmitting}
-                          className="py-1 h-7 text-xs hover:bg-accent/50 shadow-none border-none"
                         >
                           Move Down
                         </Button>
                         <Button 
-                          variant="ghost" 
+                          variant="destructive" 
                           size="sm"
                           onClick={() => handleDeleteExercise(exercise.id, workoutId as string)}
                           disabled={isSubmitting}
-                          className="py-1 h-7 text-xs text-destructive hover:bg-destructive/10 shadow-none border-none"
                         >
                           Delete
                         </Button>
@@ -270,12 +269,12 @@ const WorkoutExercisesPage = () => {
       </div>
 
       <Dialog open={isAddingExercise} onOpenChange={(open) => !open && setIsAddingExercise(false)}>
-        <DialogContent className="max-w-3xl border-none shadow-none bg-background">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Add Exercise to Workout</DialogTitle>
           </DialogHeader>
           <ExerciseSelector
-            onSelectExercise={() => {}}
+            onSelectExercise={() => {}} // We're using the legacy onSelect flow
             onSelect={handleSaveExercise}
             onCancel={() => setIsAddingExercise(false)}
             isSubmitting={isSubmitting}

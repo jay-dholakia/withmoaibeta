@@ -492,8 +492,8 @@ const WorkoutComplete = () => {
   ];
 
   return (
-    <div className="space-y-4 pb-24"> {/* Reduced vertical spacing and added bottom padding */}
-      <div className="flex items-center gap-2"> {/* Reduced gap */}
+    <div className="space-y-4 pb-24"> /* Reduced vertical spacing and added bottom padding */
+      <div className="flex items-center gap-2"> /* Reduced gap */
         <Button 
           variant="ghost" 
           size="icon" 
@@ -507,12 +507,12 @@ const WorkoutComplete = () => {
         </div>
       </div>
 
-      <div className="flex justify-center py-4"> {/* Reduced vertical padding */}
+      <div className="flex justify-center py-4"> /* Reduced vertical padding */
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-2 border border-green-200"> {/* Smaller size, reduced margin */}
-            <CheckCircle2 className="w-10 h-10 text-green-600" /> {/* Smaller icon */}
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-2 border border-green-200"> /* Smaller size, reduced margin */
+            <CheckCircle2 className="w-10 h-10 text-green-600" /> /* Smaller icon */
           </div>
-          <p className="text-xs text-muted-foreground"> {/* Smaller text */}
+          <p className="text-xs text-muted-foreground"> /* Smaller text */
             {new Date().toLocaleDateString(undefined, {
               weekday: 'long',
               year: 'numeric',
@@ -523,17 +523,17 @@ const WorkoutComplete = () => {
         </div>
       </div>
 
-      <div className="space-y-3"> {/* Reduced vertical spacing */}
+      <div className="space-y-3"> /* Reduced vertical spacing */
         <div>
           <h3 className="text-xs font-medium mb-1 text-center">How do you feel after this workout?</h3>
-          <div className="flex justify-center gap-1"> {/* Reduced gap */}
+          <div className="flex justify-center gap-1"> /* Reduced gap */
             {feelingOptions.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => setRating(option.value)}
                 className={cn(
-                  "flex flex-col items-center rounded-lg p-1 transition-colors border-2", // Reduced padding
+                  "flex flex-col items-center rounded-lg p-1 transition-colors border-2", /* Reduced padding */
                   rating === option.value 
                     ? "border-primary bg-primary/10" 
                     : "border-gray-200 hover:bg-gray-100"
@@ -554,8 +554,8 @@ const WorkoutComplete = () => {
               placeholder="How did this workout feel? What went well? What was challenging?"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              rows={3} {/* Reduced rows */}
-              className="border border-gray-200 text-sm" {/* Smaller text */}
+              rows={3} /* Reduced rows */
+              className="border border-gray-200 text-sm" /* Smaller text */
             />
             <div className="absolute right-2 top-2 text-xs text-muted-foreground">
               {saveStatus === 'saving' && (
@@ -578,7 +578,7 @@ const WorkoutComplete = () => {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 pt-2"> {/* Reduced vertical spacing and padding */}
+      <div className="flex flex-col gap-2 pt-2"> /* Reduced vertical spacing and padding */
         <Button
           onClick={() => completeMutation.mutate()}
           disabled={completeMutation.isPending}

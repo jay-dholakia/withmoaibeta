@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6';
 
 // Define exercise interface
@@ -9,6 +8,7 @@ interface Exercise {
   exercise_type?: string;
   muscle_group?: string;
   youtube_link?: string;
+  log_type?: string;
 }
 
 // Setup CORS headers
@@ -158,15 +158,17 @@ Deno.serve(async (req) => {
         }
 
         if (existingExercises && existingExercises.length > 0) {
-          // Update existing exercise
+          // Update existing exercise with ALL fields
           const { error: updateError } = await supabase
             .from('exercises')
             .update({
+              name: exercise.name,
               category: exercise.category,
               description: exercise.description,
               exercise_type: exercise.exercise_type || 'strength',
               muscle_group: exercise.muscle_group,
-              youtube_link: exercise.youtube_link
+              youtube_link: exercise.youtube_link,
+              log_type: exercise.log_type || 'weight_reps'
             })
             .eq('id', existingExercises[0].id);
             
@@ -174,18 +176,28 @@ Deno.serve(async (req) => {
             console.error('Error updating exercise:', updateError);
             skippedCount++;
           } else {
+            console.log(`Updated exercise: ${exercise.name}`);
             updatedCount++;
           }
         } else {
-          // Exercise doesn't exist, insert it
+          // Exercise doesn't exist, insert it with all fields
           const { error: insertError } = await supabase
             .from('exercises')
-            .insert([exercise]);
+            .insert([{
+              name: exercise.name,
+              category: exercise.category,
+              description: exercise.description,
+              exercise_type: exercise.exercise_type || 'strength',
+              muscle_group: exercise.muscle_group,
+              youtube_link: exercise.youtube_link,
+              log_type: exercise.log_type || 'weight_reps'
+            }]);
             
           if (insertError) {
             console.error('Error inserting exercise:', insertError);
             skippedCount++;
           } else {
+            console.log(`Inserted exercise: ${exercise.name}`);
             insertedCount++;
           }
         }

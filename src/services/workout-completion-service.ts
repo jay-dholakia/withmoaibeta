@@ -27,12 +27,16 @@ export const fetchWorkoutCompletion = async (completionId: string) => {
 };
 
 /**
- * Update workout completion progress
+ * Update workout completion progress - we use a field in the component but track in metadata
  */
 export const updateWorkoutCompletion = async (completionId: string, updates: { progress: number }) => {
+  // Since the workout_completions table doesn't have a progress field,
+  // we'll update the notes field to include progress information
   const { error } = await supabase
     .from('workout_completions')
-    .update(updates)
+    .update({
+      notes: `Progress: ${updates.progress.toFixed(0)}%`
+    })
     .eq('id', completionId);
 
   if (error) {
@@ -51,7 +55,7 @@ export const completeWorkoutCompletion = async (completionId: string) => {
     .from('workout_completions')
     .update({
       completed_at: new Date().toISOString(),
-      progress: 100
+      notes: 'Completed 100%'
     })
     .eq('id', completionId);
 

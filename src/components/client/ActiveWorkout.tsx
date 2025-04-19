@@ -51,8 +51,9 @@ const ActiveWorkout = () => {
         const exercisesData = await fetchWorkoutExercises(completionData.workout_id);
         setExercises(exercisesData || []);
         
-        // Calculate initial progress
-        setProgress(completionData.progress || 0);
+        // Initialize progress to 0 by default
+        // We can't store progress in the database directly, so we'll track it in component state
+        setProgress(0);
       } catch (error) {
         console.error('Error loading workout details:', error);
         toast.error('Failed to load workout details');

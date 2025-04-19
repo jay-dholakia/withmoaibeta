@@ -238,6 +238,11 @@ const ClientStatsPage = () => {
 
   const isMobile = useIsMobile();
 
+  const formatDisplayName = (firstName: string | null, lastName: string | null, email: string): string => {
+    if (!firstName) return email;
+    return `${firstName} ${lastName ? lastName.charAt(0) + '.' : ''}`.trim();
+  };
+
   return (
     <AdminDashboardLayout title="Client Statistics">
       <div className="space-y-4">
@@ -406,13 +411,9 @@ const ClientStatsPage = () => {
                     <TableCell>
                       <div>
                         <div className="font-medium">
-                          {client.first_name && client.last_name
-                            ? `${client.first_name} ${client.last_name}`
-                            : client.email}
+                          {formatDisplayName(client.first_name, client.last_name, client.email)}
                         </div>
-                        {client.first_name && client.last_name && (
-                          <div className="text-sm text-muted-foreground">{client.email}</div>
-                        )}
+                        <div className="text-sm text-muted-foreground">{client.email}</div>
                       </div>
                     </TableCell>
                     {!isMobile && (

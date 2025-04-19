@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -1010,3 +1011,522 @@ const ActiveWorkout = () => {
       }
 
       return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          expanded: !prev[exerciseId].expanded,
+        },
+      };
+    });
+  };
+
+  const toggleDescriptionExpanded = (exerciseId: string) => {
+    setExpandedDescriptions(prev => ({
+      ...prev,
+      [exerciseId]: !prev[exerciseId]
+    }));
+  };
+
+  const openVideoDialog = (url: string, exerciseName: string) => {
+    if (url) {
+      setCurrentVideoUrl(url);
+      setCurrentExerciseName(exerciseName);
+      setVideoDialogOpen(true);
+    } else {
+      toast.error("No video available for this exercise");
+    }
+  };
+
+  const closeVideoDialog = () => {
+    setVideoDialogOpen(false);
+    setCurrentVideoUrl(null);
+  };
+
+  const openAlternativeDialog = (exercise: any) => {
+    setCurrentExercise(exercise);
+    // In a real app, you would fetch alternatives here
+    setAlternativeExercises([]);
+    setAlternativeDialogOpen(true);
+  };
+
+  const closeAlternativeDialog = () => {
+    setAlternativeDialogOpen(false);
+    setCurrentExercise(null);
+    setAlternativeExercises([]);
+  };
+
+  const renderExerciseCard = (exercise: any) => {
+    const exerciseType = exercise.exercise?.exercise_type || 'strength';
+    const exerciseName = exercise.exercise?.name || '';
+    const isRunExercise = exerciseName.toLowerCase().includes('run') || exerciseName.toLowerCase().includes('running');
+    const exerciseDescription = exercise.exercise?.description;
+    const exerciseNotes = exercise.notes;
+    const youtubeLink = exercise.exercise?.youtube_link;
+    const personalRecord = getExercisePR(exercise.exercise?.id);
+
+    if (!exerciseStates[exercise.id]) {
+      return null;
+    }
+
+    const { expanded } = exerciseStates[exercise.id];
+
+    return (
+      <Card key={exercise.id} className="mb-6">
+        <CardHeader className="p-3">
+          <div className="flex justify-between items-center">
+            <div className="flex-1">
+              <CardTitle className="text-lg font-semibold">
+                {exerciseName}
+              </CardTitle>
+              {exercise.reps && !isRunExercise && exerciseType !== 'cardio' && exerciseType !== 'flexibility' && (
+                <CardDescription>
+                  {exercise.sets} {exercise.sets > 1 ? 'sets' : 'set'} x {exercise.reps} reps
+                  {exercise.rest_seconds && ` • Rest: ${formatRestTime(exercise.rest_seconds)}`}
+                </CardDescription>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => toggleExerciseExpanded(exercise.id)}
+              className="h-8 w-8"
+              aria-label={expanded ? "Collapse exercise" : "Expand exercise"}
+            >
+              <ChevronRight className={cn("h-5 w-5 transition-transform", expanded ? "rotate-90" : "")} />
+            </Button>
+          </div>
+        </CardHeader>
+
+        {expanded && (
+          <>
+            <CardContent className="pt-0 px-3 pb-2">
+              {(exerciseDescription || exerciseNotes) && (
+                <div className="mb-3 text-sm">
+                  {expandedDescriptions[exercise.id] ? (
+                    <div>
+                      {exerciseDescription && <div className="mb-2">{exerciseDescription}</div>}
+                      {exerciseNotes && (
+                        <div className="mt-2">
+                          <span className="font-semibold">Coach's notes:</span> {exerciseNotes}
+                        </div>
+                      )}
+                      {(exerciseDescription || exerciseNotes) && (
+                        <Button 
+                          variant="link" 
+                          className="p-0 h-auto text-xs" 
+                          onClick={() => toggleDescriptionExpanded(exercise.id)}
+                        >
+                          Show Less
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-xs" 
+                      onClick={() => toggleDescriptionExpanded(exercise.id)}
+                    >
+                      Show Description
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {isRunExercise && exerciseStates[exercise.id].runData && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs mb-1">Distance (miles)</label>
+                      <Input 
+                        type="number" 
+                        placeholder="Enter distance"
+                        value={exerciseStates[exercise.id].runData?.distance || ''}
+                        onChange={(e) => handleRunChange(exercise.id, 'distance', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">Duration (hh:mm:ss)</label>
+                      <Input 
+                        type="text"
+                        placeholder="00:30:00"
+                        value={exerciseStates[exercise.id].runData?.duration || ''}
+                        onChange={(e) => handleRunChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1">Location (optional)</label>
+                    <Input 
+                      type="text" 
+                      placeholder="e.g., Central Park"
+                      value={exerciseStates[exercise.id].runData?.location || ''}
+                      onChange={(e) => handleRunChange(exercise.id, 'location', e.target.value)}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center">
+                            <Checkbox 
+                              id={`run-done-${exercise.id}`}
+                              checked={exerciseStates[exercise.id].runData?.completed}
+                              onCheckedChange={(checked) => handleRunCompletion(exercise.id, checked === true)}
+                              className="h-6 w-6 rounded-full border-2 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                            />
+                            <label htmlFor={`run-done-${exercise.id}`} className="ml-2 cursor-pointer">
+                              Mark as Done
+                            </label>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Mark this run as completed</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    {youtubeLink && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => openVideoDialog(youtubeLink, exerciseName)}
+                      >
+                        <Youtube className="h-4 w-4 mr-1" /> Demo
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {exerciseType === 'cardio' && !isRunExercise && exerciseStates[exercise.id].cardioData && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs mb-1">Distance (optional)</label>
+                      <Input 
+                        type="text" 
+                        placeholder="e.g., 5 miles"
+                        value={exerciseStates[exercise.id].cardioData?.distance || ''}
+                        onChange={(e) => handleCardioChange(exercise.id, 'distance', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">Duration (hh:mm:ss)</label>
+                      <Input 
+                        type="text"
+                        placeholder="00:30:00"
+                        value={exerciseStates[exercise.id].cardioData?.duration || ''}
+                        onChange={(e) => handleCardioChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1">Location (optional)</label>
+                    <Input 
+                      type="text" 
+                      placeholder="e.g., Gym"
+                      value={exerciseStates[exercise.id].cardioData?.location || ''}
+                      onChange={(e) => handleCardioChange(exercise.id, 'location', e.target.value)}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center">
+                            <Checkbox 
+                              id={`cardio-done-${exercise.id}`}
+                              checked={exerciseStates[exercise.id].cardioData?.completed}
+                              onCheckedChange={(checked) => handleCardioCompletion(exercise.id, checked === true)}
+                              className="h-6 w-6 rounded-full border-2 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                            />
+                            <label htmlFor={`cardio-done-${exercise.id}`} className="ml-2 cursor-pointer">
+                              Mark as Done
+                            </label>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Mark this cardio session as completed</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    {youtubeLink && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => openVideoDialog(youtubeLink, exerciseName)}
+                      >
+                        <Youtube className="h-4 w-4 mr-1" /> Demo
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {exerciseType === 'flexibility' && exerciseStates[exercise.id].flexibilityData && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs mb-1">Duration (mm:ss)</label>
+                    <Input 
+                      type="text"
+                      placeholder="05:00"
+                      value={exerciseStates[exercise.id].flexibilityData?.duration || ''}
+                      onChange={(e) => handleFlexibilityChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center">
+                            <Checkbox 
+                              id={`flexibility-done-${exercise.id}`}
+                              checked={exerciseStates[exercise.id].flexibilityData?.completed}
+                              onCheckedChange={(checked) => handleFlexibilityCompletion(exercise.id, checked === true)}
+                              className="h-6 w-6 rounded-full border-2 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                            />
+                            <label htmlFor={`flexibility-done-${exercise.id}`} className="ml-2 cursor-pointer">
+                              Mark as Done
+                            </label>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Mark this flexibility exercise as completed</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    {youtubeLink && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => openVideoDialog(youtubeLink, exerciseName)}
+                      >
+                        <Youtube className="h-4 w-4 mr-1" /> Demo
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {(exerciseType === 'strength' || exerciseType === 'bodyweight') && !isRunExercise && (
+                <div className="space-y-3">
+                  {personalRecord && (
+                    <div className="bg-gray-50 p-2 rounded-md text-xs flex items-center mb-2">
+                      <Info className="h-4 w-4 mr-1.5 text-blue-500" />
+                      <span>
+                        <span className="font-semibold">PR:</span> {personalRecord.weight} lbs x {personalRecord.reps || 1} {personalRecord.reps !== 1 ? 'reps' : 'rep'}
+                      </span>
+                    </div>
+                  )}
+
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-xs text-gray-500">
+                        <th className="text-left font-normal">Set</th>
+                        <th className="text-left font-normal">Weight</th>
+                        <th className="text-left font-normal">Reps</th>
+                        <th className="text-center font-normal w-12">Done</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {exerciseStates[exercise.id].sets.map((set, index) => (
+                        <tr key={`${exercise.id}-set-${index}`} className="h-10">
+                          <td className="pl-1 w-8 text-sm">{set.setNumber}</td>
+                          <td className="pr-1 w-24">
+                            <Input
+                              type="number"
+                              placeholder="lbs"
+                              value={set.weight}
+                              onChange={(e) => handleSetChange(exercise.id, index, 'weight', e.target.value)}
+                              className="h-8 text-sm"
+                            />
+                          </td>
+                          <td className="pr-1 w-24">
+                            <Input
+                              type="number"
+                              placeholder="reps"
+                              value={set.reps}
+                              onChange={(e) => handleSetChange(exercise.id, index, 'reps', e.target.value)}
+                              className="h-8 text-sm"
+                            />
+                          </td>
+                          <td className="text-center">
+                            <Checkbox 
+                              id={`set-${exercise.id}-${index}`}
+                              checked={set.completed}
+                              onCheckedChange={(checked) => handleSetCompletion(exercise.id, index, checked === true)}
+                              className="h-6 w-6 rounded-full border-2 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  
+                  <div className="flex justify-end mt-2">
+                    {youtubeLink && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => openVideoDialog(youtubeLink, exerciseName)}
+                      >
+                        <Youtube className="h-4 w-4 mr-1" /> Demo
+                      </Button>
+                    )}
+                    {exercise.exercise?.alternatives_available && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => openAlternativeDialog(exercise)}
+                      >
+                        <ArrowRightLeft className="h-4 w-4 mr-1" /> Alternatives
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </>
+        )}
+      </Card>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+        <p className="text-lg font-medium">Loading workout...</p>
+      </div>
+    );
+  }
+
+  if (!workoutData || !workoutData.workout) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <h2 className="text-xl font-bold mb-2">Workout Not Found</h2>
+        <p className="text-gray-500 text-center mb-6">Could not load the requested workout.</p>
+        <Button onClick={() => navigate('/client-dashboard/workouts')}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
+        </Button>
+      </div>
+    );
+  }
+
+  const workout = workoutData.workout;
+  const exercises = Array.isArray(workout.workout_exercises) ? workout.workout_exercises : [];
+  
+  // Sort exercises by their order_index if available
+  const sortedExercises = [...exercises].sort((a, b) => {
+    return (a.order_index || 0) - (b.order_index || 0);
+  });
+
+  // Workout completion state
+  const hasCompletedWorkout = Object.values(exerciseStates).some(state => {
+    if (state.cardioData?.completed) return true;
+    if (state.flexibilityData?.completed) return true;
+    if (state.runData?.completed) return true;
+    return state.sets?.some(set => set.completed);
+  });
+
+  return (
+    <div className="pb-20">
+      {/* Header */}
+      <div className="sticky top-0 bg-background z-10 p-4 border-b shadow-sm">
+        <div className="flex justify-between items-center">
+          <div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mb-2 pl-0"
+              onClick={() => navigate('/client-dashboard/workouts')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" /> Back
+            </Button>
+            <h1 className="text-2xl font-bold">{workout.title}</h1>
+            {workout.description && (
+              <p className="text-gray-600 text-sm mt-1">{workout.description}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="p-4">
+        {/* Timer */}
+        <Stopwatch className="mb-6 mx-auto max-w-sm" />
+        
+        {/* Exercises */}
+        {sortedExercises.length === 0 ? (
+          <div className="text-center py-8">
+            <AlertCircle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+            <p>No exercises found for this workout.</p>
+          </div>
+        ) : (
+          sortedExercises.map(exercise => renderExerciseCard(exercise))
+        )}
+        
+        {/* Complete Workout Button */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
+          <Button 
+            disabled={!hasCompletedWorkout || saveAllSetsMutation.isPending}
+            onClick={() => saveAllSetsMutation.mutate()}
+            className="w-full h-12"
+          >
+            {saveAllSetsMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+      
+      {/* Video Demo Dialog */}
+      <Dialog open={videoDialogOpen} onOpenChange={closeVideoDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{currentExerciseName} Demo</DialogTitle>
+          </DialogHeader>
+          {currentVideoUrl && <VideoPlayer videoUrl={currentVideoUrl} />}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Alternative Exercises Dialog */}
+      <Dialog open={alternativeDialogOpen} onOpenChange={closeAlternativeDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Alternative Exercises</DialogTitle>
+            <DialogDescription>
+              These exercises target similar muscle groups and can be substituted if needed.
+            </DialogDescription>
+          </DialogHeader>
+          {alternativeExercises.length === 0 ? (
+            <div className="py-4 text-center">
+              <p>Loading alternatives...</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {alternativeExercises.map(alt => (
+                <Card key={alt.id} className="p-3">
+                  <h4 className="font-medium">{alt.name}</h4>
+                  <p className="text-sm text-gray-600">{alt.description}</p>
+                </Card>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={closeAlternativeDialog}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ActiveWorkout;

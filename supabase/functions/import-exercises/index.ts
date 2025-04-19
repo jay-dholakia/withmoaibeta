@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6';
 
 // Define exercise interface
@@ -243,4 +244,3 @@ Deno.serve(async (req) => {
       }
     );
   }
-});

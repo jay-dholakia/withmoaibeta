@@ -35,3 +35,4 @@ export const fetchMuscleGroups = async (): Promise<string[]> => {
   // Remove duplicates and null values
   return [...new Set(data.map(e => e.muscle_group).filter(Boolean))];
 };
+

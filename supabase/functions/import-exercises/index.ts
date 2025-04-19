@@ -1,5 +1,4 @@
 
-// Follow Deno Edge Function conventions
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6';
 
 // Define exercise interface
@@ -9,6 +8,7 @@ interface Exercise {
   description?: string;
   exercise_type?: string;
   muscle_group?: string;
+  youtube_link?: string;
 }
 
 // Setup CORS headers
@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
       const descriptionIndex = headers.indexOf('description');
       const exerciseTypeIndex = headers.indexOf('exercise_type');
       const muscleGroupIndex = headers.indexOf('muscle_group');
+      const youtubeLinkIndex = headers.indexOf('youtube_link');
       
       // Parse each line into an exercise object
       for (let i = 1; i < lines.length; i++) {
@@ -114,6 +115,10 @@ Deno.serve(async (req) => {
 
         if (muscleGroupIndex >= 0 && values[muscleGroupIndex]) {
           exercise.muscle_group = values[muscleGroupIndex];
+        }
+
+        if (youtubeLinkIndex >= 0 && values[youtubeLinkIndex]) {
+          exercise.youtube_link = values[youtubeLinkIndex];
         }
         
         exercises.push(exercise);
@@ -160,7 +165,8 @@ Deno.serve(async (req) => {
               category: exercise.category,
               description: exercise.description,
               exercise_type: exercise.exercise_type || 'strength',
-              muscle_group: exercise.muscle_group
+              muscle_group: exercise.muscle_group,
+              youtube_link: exercise.youtube_link
             })
             .eq('id', existingExercises[0].id);
             

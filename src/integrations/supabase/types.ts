@@ -463,9 +463,6 @@ export type Database = {
       }
       exercises: {
         Row: {
-          alternative_exercise_1_id: string | null
-          alternative_exercise_2_id: string | null
-          alternative_exercise_3_id: string | null
           category: string
           created_at: string
           description: string | null
@@ -477,9 +474,6 @@ export type Database = {
           youtube_link: string | null
         }
         Insert: {
-          alternative_exercise_1_id?: string | null
-          alternative_exercise_2_id?: string | null
-          alternative_exercise_3_id?: string | null
           category: string
           created_at?: string
           description?: string | null
@@ -491,9 +485,6 @@ export type Database = {
           youtube_link?: string | null
         }
         Update: {
-          alternative_exercise_1_id?: string | null
-          alternative_exercise_2_id?: string | null
-          alternative_exercise_3_id?: string | null
           category?: string
           created_at?: string
           description?: string | null
@@ -504,50 +495,7 @@ export type Database = {
           name?: string
           youtube_link?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "exercises_alternative_exercise_1_id_fkey"
-            columns: ["alternative_exercise_1_id"]
-            isOneToOne: false
-            referencedRelation: "exercises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_alternative_exercise_1_id_fkey"
-            columns: ["alternative_exercise_1_id"]
-            isOneToOne: false
-            referencedRelation: "exercises_with_alternatives"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_alternative_exercise_2_id_fkey"
-            columns: ["alternative_exercise_2_id"]
-            isOneToOne: false
-            referencedRelation: "exercises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_alternative_exercise_2_id_fkey"
-            columns: ["alternative_exercise_2_id"]
-            isOneToOne: false
-            referencedRelation: "exercises_with_alternatives"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_alternative_exercise_3_id_fkey"
-            columns: ["alternative_exercise_3_id"]
-            isOneToOne: false
-            referencedRelation: "exercises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_alternative_exercise_3_id_fkey"
-            columns: ["alternative_exercise_3_id"]
-            isOneToOne: false
-            referencedRelation: "exercises_with_alternatives"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       exercises_backup: {
         Row: {

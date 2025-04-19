@@ -55,6 +55,17 @@ export const deleteWorkoutCompletion = async (completionId: string): Promise<boo
       return false;
     }
     
+    // Delete any personal records associated with this completion
+    const { error: prError } = await supabase
+      .from('personal_records')
+      .delete()
+      .eq('workout_completion_id', completionId);
+      
+    if (prError) {
+      console.error("Error deleting personal records:", prError);
+      // Continue anyway as this is not critical
+    }
+    
     // Then delete the workout completion itself
     const { error } = await supabase
       .from('workout_completions')

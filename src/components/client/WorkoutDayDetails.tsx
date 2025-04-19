@@ -54,6 +54,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   const [editingExercises, setEditingExercises] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
+  const [displayedWorkouts, setDisplayedWorkouts] = useState<WorkoutHistoryItem[]>(workouts);
   
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -61,6 +62,10 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   const [editWorkoutType, setEditWorkoutType] = useState<string>('strength');
   const [editNotes, setEditNotes] = useState('');
   const [editCompletedDate, setEditCompletedDate] = useState<Date | undefined>(undefined);
+
+  useEffect(() => {
+    setDisplayedWorkouts(workouts);
+  }, [workouts]);
 
   useEffect(() => {
     const fetchWorkoutExerciseDetails = async (workout: WorkoutHistoryItem) => {
@@ -106,12 +111,12 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     };
 
     if (expandedWorkoutId) {
-      const workout = workouts.find(w => w.id === expandedWorkoutId);
+      const workout = displayedWorkouts.find(w => w.id === expandedWorkoutId);
       if (workout && !exerciseGroups[expandedWorkoutId]) {
         fetchWorkoutExerciseDetails(workout);
       }
     }
-  }, [expandedWorkoutId, workouts]);
+  }, [expandedWorkoutId, displayedWorkouts]);
 
   if (!date || !isValid(date)) {
     return (
@@ -208,6 +213,10 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       const success = await deleteWorkoutCompletion(workoutId);
       
       if (success) {
+        setDisplayedWorkouts(currentWorkouts => 
+          currentWorkouts.filter(workout => workout.id !== workoutId)
+        );
+        
         toast.success('Workout deleted successfully');
         
         document.getElementById('refresh-workout-history')?.click();
@@ -261,7 +270,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     setEditingExercises(false);
   };
 
-  if (workouts.length === 0) {
+  if (displayedWorkouts.length === 0) {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -276,7 +285,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
 
   return (
     <div>
-      {workouts.map((workout) => (
+      {displayedWorkouts.map((workout) => (
         <Card key={workout.id} className="mb-4">
           <CardContent className="p-4">
             {editingWorkoutId === workout.id ? (
@@ -623,7 +632,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
         <EditWorkoutSetCompletions
           open={editingExercises}
           onOpenChange={setEditingExercises}
-          workout={workouts.find(w => w.id === expandedWorkoutId)!}
+          workout={displayedWorkouts.find(w => w.id === expandedWorkoutId)!}
           exerciseGroups={exerciseGroups[expandedWorkoutId] || {}}
           onSave={handleExercisesSaved}
         />

@@ -8,8 +8,23 @@ interface ClientRouteProps {
 }
 
 const ClientRoute: React.FC<ClientRouteProps> = ({ children }) => {
+  // Wrap the useLocation hook in a try/catch block to prevent errors
+  // when the component is rendered outside of a Router context
+  let location;
+  try {
+    location = useLocation();
+  } catch (error) {
+    console.error("ClientRoute: Router context not available", error);
+    // Return loading state instead of crashing when no router context is available
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <span className="animate-spin rounded-full h-12 w-12 border-b-2 border-client"></span>
+        <span className="ml-3">Initializing...</span>
+      </div>
+    );
+  }
+  
   const { user, userType, loading } = useAuth();
-  const location = useLocation();
   
   if (loading) {
     return (

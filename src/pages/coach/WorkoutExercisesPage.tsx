@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -212,8 +213,8 @@ const WorkoutExercisesPage = () => {
               <div className="space-y-4">
                 {exercises.map((exercise: any, index: number) => (
                   <div key={exercise.id} className="border p-4 rounded-md shadow-sm">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
                         <h3 className="font-medium">{index + 1}. {exercise.exercise?.name || 'Exercise'}</h3>
                         <div className="text-sm text-muted-foreground mt-1">
                           {exercise.sets} sets × {exercise.reps} reps
@@ -223,7 +224,7 @@ const WorkoutExercisesPage = () => {
                           <div className="text-sm mt-2 border-l-2 pl-2 border-muted">{exercise.notes}</div>
                         )}
                       </div>
-                      <div className="flex flex-col gap-2" style={{width: '96px'}}>
+                      <div className="flex flex-col gap-2 w-24 shrink-0">
                         <Button 
                           variant="outline" 
                           size="sm"

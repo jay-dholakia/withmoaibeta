@@ -8,13 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Pencil, Save, Plus, X, Loader2 } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface JournalEntry {
   id: string;
@@ -22,30 +15,20 @@ interface JournalEntry {
   created_at: string;
   updated_at?: string;
   entry_date?: string;
-  emoji?: string;
 }
 
-const MOOD_EMOJIS = [
-  { value: '😊', label: 'Happy' },
-  { value: '💪', label: 'Strong' },
-  { value: '😴', label: 'Tired' },
-  { value: '🤔', label: 'Thoughtful' },
-  { value: '😤', label: 'Determined' },
-  { value: '🏃', label: 'Energetic' },
-  { value: '😫', label: 'Exhausted' },
-  { value: '🎯', label: 'Focused' }
-];
+interface WorkoutJournalSectionProps {
+  date: Date;
+}
 
-const WorkoutJournalSection: React.FC<{ date: Date }> = ({ date }) => {
+const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
-  const [editEmoji, setEditEmoji] = useState<string>('😊');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newContent, setNewContent] = useState('');
-  const [newEmoji, setNewEmoji] = useState<string>('😊');
   const { user } = useAuth();
 
   useEffect(() => {
@@ -82,14 +65,12 @@ const WorkoutJournalSection: React.FC<{ date: Date }> = ({ date }) => {
 
   const handleStartEdit = (entry: JournalEntry) => {
     setEditContent(entry.content);
-    setEditEmoji(entry.emoji || '😊');
     setEditingId(entry.id);
     setIsEditing(true);
   };
 
   const handleCancelEdit = () => {
     setEditContent('');
-    setEditEmoji('😊');
     setEditingId(null);
     setIsEditing(false);
   };
@@ -102,7 +83,6 @@ const WorkoutJournalSection: React.FC<{ date: Date }> = ({ date }) => {
         .from('client_notes')
         .update({
           content: editContent,
-          emoji: editEmoji,
           updated_at: new Date().toISOString()
         })
         .eq('id', editingId);
@@ -111,12 +91,11 @@ const WorkoutJournalSection: React.FC<{ date: Date }> = ({ date }) => {
 
       setEntries(entries.map(entry =>
         entry.id === editingId
-          ? { ...entry, content: editContent, emoji: editEmoji, updated_at: new Date().toISOString() }
+          ? { ...entry, content: editContent, updated_at: new Date().toISOString() }
           : entry
       ));
       
       setEditContent('');
-      setEditEmoji('😊');
       setEditingId(null);
       setIsEditing(false);
       toast.success('Journal entry updated');
@@ -129,13 +108,11 @@ const WorkoutJournalSection: React.FC<{ date: Date }> = ({ date }) => {
   const handleStartCreate = () => {
     setIsCreating(true);
     setNewContent('');
-    setNewEmoji('😊');
   };
 
   const handleCancelCreate = () => {
     setIsCreating(false);
     setNewContent('');
-    setNewEmoji('😊');
   };
 
   const handleCreate = async () => {
@@ -146,7 +123,6 @@ const WorkoutJournalSection: React.FC<{ date: Date }> = ({ date }) => {
         .from('client_notes')
         .insert({
           content: newContent,
-          emoji: newEmoji,
           user_id: user.id,
           entry_date: date.toISOString()
         })
@@ -158,7 +134,6 @@ const WorkoutJournalSection: React.FC<{ date: Date }> = ({ date }) => {
       setEntries([data, ...entries]);
       setIsCreating(false);
       setNewContent('');
-      setNewEmoji('😊');
       toast.success('Journal entry added');
     } catch (error) {
       console.error('Error creating journal entry:', error);
@@ -186,22 +161,6 @@ const WorkoutJournalSection: React.FC<{ date: Date }> = ({ date }) => {
           <div className="space-y-4">
             {isCreating && (
               <div className="space-y-2">
-                <div className="flex items-center gap-4 mb-2">
-                  <Select value={newEmoji} onValueChange={setNewEmoji}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select mood" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MOOD_EMOJIS.map((emoji) => (
-                        <SelectItem key={emoji.value} value={emoji.value}>
-                          <span className="flex items-center gap-2">
-                            {emoji.value} {emoji.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <Textarea
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
@@ -225,22 +184,6 @@ const WorkoutJournalSection: React.FC<{ date: Date }> = ({ date }) => {
               <div key={entry.id} className="border rounded-lg p-4">
                 {editingId === entry.id ? (
                   <div className="space-y-2">
-                    <div className="flex items-center gap-4 mb-2">
-                      <Select value={editEmoji} onValueChange={setEditEmoji}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Select mood" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MOOD_EMOJIS.map((emoji) => (
-                            <SelectItem key={emoji.value} value={emoji.value}>
-                              <span className="flex items-center gap-2">
-                                {emoji.value} {emoji.label}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
                     <Textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
@@ -260,11 +203,8 @@ const WorkoutJournalSection: React.FC<{ date: Date }> = ({ date }) => {
                 ) : (
                   <>
                     <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{entry.emoji || '😊'}</span>
-                        <div className="text-sm text-muted-foreground">
-                          {format(new Date(entry.created_at), 'h:mm a')}
-                        </div>
+                      <div className="text-sm text-muted-foreground">
+                        {format(new Date(entry.created_at), 'h:mm a')}
                       </div>
                       <Button
                         variant="ghost"

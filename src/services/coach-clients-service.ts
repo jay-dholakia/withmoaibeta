@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -46,31 +45,13 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       // Get accurate workout counts
       const workoutCounts = await fetchAccurateWorkoutCounts(clientIds);
       
-      // Get client profile information for first and last names
-      const { data: profilesData } = await supabase
-        .from('client_profiles')
-        .select('id, first_name, last_name')
-        .in('id', clientIds);
-        
-      const profilesMap = new Map();
-      if (profilesData) {
-        profilesData.forEach(profile => {
-          profilesMap.set(profile.id, {
-            first_name: profile.first_name,
-            last_name: profile.last_name
-          });
-        });
-      }
-      
       // Update the total_workouts_completed value with the accurate count
-      // and add first_name and last_name from client_profiles
       return rpcData.map(client => {
-        const profile = profilesMap.get(client.id) || { first_name: null, last_name: null };
-        
         return {
           ...client,
-          first_name: profile.first_name,
-          last_name: profile.last_name,
+          // Ensure first_name and last_name are present even if null
+          first_name: client.first_name || null,
+          last_name: client.last_name || null,
           total_workouts_completed: workoutCounts.get(client.id) || 0
         };
       });
@@ -240,6 +221,10 @@ const fetchCoachClientsDirect = async (coachId: string): Promise<ClientData[]> =
   }
 };
 
+/**
+ * Fetches accurate workout completion counts for clients
+ * Ensures only legitimate completed workouts are counted (not rest days, life happens passes)
+ */
 const fetchAccurateWorkoutCounts = async (clientIds: string[]): Promise<Map<string, number>> => {
   // Create a map of id -> workout completion count
   const workoutCountMap = new Map<string, number>();

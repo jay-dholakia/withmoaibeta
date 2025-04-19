@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -692,8 +691,8 @@ const ActiveWorkout = () => {
       
       workoutExercises.forEach((exercise: any) => {
         const exerciseType = exercise.exercise?.exercise_type || 'strength';
-        const exerciseName = (exercise.exercise?.name || '').toLowerCase();
-        const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
+        const exerciseName = exercise.exercise?.name || '';
+        const isRunExercise = exerciseName.toLowerCase().includes('run') || exerciseName.toLowerCase().includes('running');
         
         if (isRunExercise) {
           const existingSet = workoutData.workout_set_completions?.find(
@@ -1322,8 +1321,8 @@ const ActiveWorkout = () => {
                     <thead>
                       <tr className="text-xs text-gray-500">
                         <th className="text-left font-normal">Set</th>
-                        <th className="text-left font-normal">Weight</th>
                         <th className="text-left font-normal">Reps</th>
+                        <th className="text-left font-normal">Weight</th>
                         <th className="text-center font-normal w-12">Done</th>
                       </tr>
                     </thead>
@@ -1334,18 +1333,18 @@ const ActiveWorkout = () => {
                           <td className="pr-1 w-24">
                             <Input
                               type="number"
-                              placeholder="lbs"
-                              value={set.weight}
-                              onChange={(e) => handleSetChange(exercise.id, index, 'weight', e.target.value)}
+                              placeholder="reps"
+                              value={set.reps}
+                              onChange={(e) => handleSetChange(exercise.id, index, 'reps', e.target.value)}
                               className="h-8 text-sm"
                             />
                           </td>
                           <td className="pr-1 w-24">
                             <Input
                               type="number"
-                              placeholder="reps"
-                              value={set.reps}
-                              onChange={(e) => handleSetChange(exercise.id, index, 'reps', e.target.value)}
+                              placeholder="lbs"
+                              value={set.weight}
+                              onChange={(e) => handleSetChange(exercise.id, index, 'weight', e.target.value)}
                               className="h-8 text-sm"
                             />
                           </td>
@@ -1362,7 +1361,7 @@ const ActiveWorkout = () => {
                     </tbody>
                   </table>
                   
-                  <div className="flex justify-end mt-2">
+                  <div className="flex justify-end mt-2 space-x-2">
                     {youtubeLink && (
                       <Button 
                         variant="outline" 
@@ -1372,16 +1371,13 @@ const ActiveWorkout = () => {
                         <Youtube className="h-4 w-4 mr-1" /> Demo
                       </Button>
                     )}
-                    {exercise.exercise?.alternatives_available && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="ml-2"
-                        onClick={() => openAlternativeDialog(exercise)}
-                      >
-                        <ArrowRightLeft className="h-4 w-4 mr-1" /> Alternatives
-                      </Button>
-                    )}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => openAlternativeDialog(exercise)}
+                    >
+                      <ArrowRightLeft className="h-4 w-4 mr-1" /> Swap
+                    </Button>
                   </div>
                 </div>
               )}
@@ -1453,10 +1449,7 @@ const ActiveWorkout = () => {
       </div>
 
       {/* Main Content */}
-      <div className="p-4">
-        {/* Timer */}
-        <Stopwatch className="mb-6 mx-auto max-w-sm" />
-        
+      <div className="p-4 pb-32">
         {/* Exercises */}
         {sortedExercises.length === 0 ? (
           <div className="text-center py-8">
@@ -1468,22 +1461,25 @@ const ActiveWorkout = () => {
         )}
         
         {/* Complete Workout Button */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
-          <Button 
-            disabled={!hasCompletedWorkout || saveAllSetsMutation.isPending}
-            onClick={() => saveAllSetsMutation.mutate()}
-            className="w-full h-12"
-          >
-            {saveAllSetsMutation.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
-              </>
-            )}
-          </Button>
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t">
+          <div className="p-4">
+            <Stopwatch className="mb-4" />
+            <Button 
+              disabled={!hasCompletedWorkout || saveAllSetsMutation.isPending}
+              onClick={() => saveAllSetsMutation.mutate()}
+              className="w-full h-12"
+            >
+              {saveAllSetsMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
       
@@ -1493,7 +1489,7 @@ const ActiveWorkout = () => {
           <DialogHeader>
             <DialogTitle>{currentExerciseName} Demo</DialogTitle>
           </DialogHeader>
-          {currentVideoUrl && <VideoPlayer videoUrl={currentVideoUrl} />}
+          {currentVideoUrl && <VideoPlayer url={currentVideoUrl} />}
         </DialogContent>
       </Dialog>
       

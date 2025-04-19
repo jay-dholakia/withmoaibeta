@@ -4,30 +4,35 @@
     "name": "Barbell Bench Press",
     "category": "Chest",
     "description": "Lie on a flat bench and press a barbell upward from chest level.",
-    "exercise_type": "strength"
+    "exercise_type": "strength",
+    "muscle_group": "chest"
   },
   {
     "name": "Squat",
     "category": "Legs",
     "description": "Lower your body by bending your knees while keeping your back straight.",
-    "exercise_type": "strength"
+    "exercise_type": "strength",
+    "muscle_group": "legs"
   },
   {
     "name": "Pull-up",
     "category": "Back",
     "description": "Hang from a bar and pull your body up until chin is over the bar.",
-    "exercise_type": "bodyweight"
+    "exercise_type": "bodyweight",
+    "muscle_group": "back"
   },
   {
     "name": "Running",
     "category": "Conditioning",
     "description": "Cardiovascular exercise at various intensities.",
-    "exercise_type": "cardio"
+    "exercise_type": "cardio",
+    "muscle_group": "cardio"
   },
   {
     "name": "Yoga Stretch",
     "category": "Mobility",
     "description": "Stretching routine to improve flexibility and balance.",
-    "exercise_type": "flexibility"
+    "exercise_type": "flexibility",
+    "muscle_group": "mobility"
   }
 ]

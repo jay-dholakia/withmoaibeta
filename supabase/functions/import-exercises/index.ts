@@ -8,6 +8,7 @@ interface Exercise {
   category: string;
   description?: string;
   exercise_type?: string;
+  muscle_group?: string;
 }
 
 // Setup CORS headers
@@ -39,11 +40,10 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Create Supabase client with service role key (admin rights)
+  // Create Supabase client with service role key
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    // Parse the request body
     const formData = await req.formData();
     const file = formData.get('file');
     const fileType = formData.get('fileType')?.toString() || '';
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
         });
       }
       
-      // Assuming first line is header
+      // Parse headers (now including muscle_group)
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
       
       // Check for required columns
@@ -86,18 +86,18 @@ Deno.serve(async (req) => {
         });
       }
       
-      // Map indexes for required fields
+      // Map indexes for all possible fields
       const nameIndex = headers.indexOf('name');
       const categoryIndex = headers.indexOf('category');
       const descriptionIndex = headers.indexOf('description');
       const exerciseTypeIndex = headers.indexOf('exercise_type');
+      const muscleGroupIndex = headers.indexOf('muscle_group');
       
       for (let i = 1; i < lines.length; i++) {
-        if (!lines[i].trim()) continue; // Skip empty lines
+        if (!lines[i].trim()) continue;
         
         const values = lines[i].split(',').map(v => v.trim());
         
-        // Skip if we don't have at least enough values for the required fields
         if (values.length <= Math.max(nameIndex, categoryIndex)) continue;
         
         const exercise: Exercise = {
@@ -112,7 +112,11 @@ Deno.serve(async (req) => {
         if (exerciseTypeIndex >= 0 && values[exerciseTypeIndex]) {
           exercise.exercise_type = values[exerciseTypeIndex];
         } else {
-          exercise.exercise_type = 'strength'; // Default value
+          exercise.exercise_type = 'strength';
+        }
+
+        if (muscleGroupIndex >= 0 && values[muscleGroupIndex]) {
+          exercise.muscle_group = values[muscleGroupIndex];
         }
         
         exercises.push(exercise);
@@ -132,23 +136,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Log the parsed exercises
     console.log(`Found ${exercises.length} exercises to import`);
 
     let insertedCount = 0;
     let updatedCount = 0;
     let skippedCount = 0;
 
-    // If we should check for existing exercises
     if (shouldCheckExisting) {
-      // For each exercise, check if it exists and update or insert accordingly
       for (const exercise of exercises) {
-        // Check if exercise with same name and category exists
+        // Check if exercise with same name exists
         const { data: existingExercises, error: searchError } = await supabase
           .from('exercises')
-          .select('id, name, category')
-          .eq('name', exercise.name)
-          .eq('category', exercise.category);
+          .select('id, name')
+          .eq('name', exercise.name);
 
         if (searchError) {
           console.error('Error checking existing exercises:', searchError);
@@ -172,11 +172,13 @@ Deno.serve(async (req) => {
 
           // If not referenced in personal_records, update it
           if (count === 0) {
-            const { data: updatedData, error: updateError } = await supabase
+            const { error: updateError } = await supabase
               .from('exercises')
               .update({
+                category: exercise.category,
                 description: exercise.description,
-                exercise_type: exercise.exercise_type || 'strength'
+                exercise_type: exercise.exercise_type || 'strength',
+                muscle_group: exercise.muscle_group
               })
               .eq('id', existingId);
               
@@ -187,13 +189,12 @@ Deno.serve(async (req) => {
               updatedCount++;
             }
           } else {
-            // Exercise is referenced, skip it
             console.log(`Skipping exercise '${exercise.name}' as it's referenced in personal records`);
             skippedCount++;
           }
         } else {
           // Exercise doesn't exist, insert it
-          const { data: insertedData, error: insertError } = await supabase
+          const { error: insertError } = await supabase
             .from('exercises')
             .insert([exercise]);
             
@@ -207,10 +208,11 @@ Deno.serve(async (req) => {
       }
     } else {
       // Bulk insert all exercises
-      const { data, error } = await supabase.from('exercises').insert(exercises);
+      const { error } = await supabase
+        .from('exercises')
+        .insert(exercises);
 
       if (error) {
-        console.error('Error inserting exercises:', error);
         return new Response(JSON.stringify({ error: error.message }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -234,6 +236,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
+
   } catch (error) {
     console.error('Error processing import:', error);
     return new Response(

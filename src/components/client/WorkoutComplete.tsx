@@ -36,6 +36,7 @@ const WorkoutComplete = () => {
   const [isLoadingDraft, setIsLoadingDraft] = useState(true);
   const [userTimeout, setUserTimeout] = useState<NodeJS.Timeout | null>(null);
   const [draftLoadAttempted, setDraftLoadAttempted] = useState(false);
+  const [emoji, setEmoji] = useState<string | null>(null);
 
   const isMountedRef = React.useRef(true);
   
@@ -331,11 +332,12 @@ const WorkoutComplete = () => {
     }
   }, [workoutData, personalRecords, shareMessage]);
 
-  const addToJournal = async (notes: string) => {
+  const handleSaveJournalWithEmoji = async (notes: string) => {
     if (!user?.id || !notes.trim() || !workoutData) return;
     
     const workoutTitle = workoutData.workout?.title || 'Workout';
-    const journalContent = `🏋️‍♀️ ${workoutTitle}:\n\n${notes}`;
+    const emojiPrefix = emoji ? `${emoji} ` : '';
+    const journalContent = `${emojiPrefix}🏋️‍♀️ ${workoutTitle}:\n\n${notes}`;
     const completionDate = workoutData.completed_at ? new Date(workoutData.completed_at) : new Date();
     
     try {
@@ -344,7 +346,8 @@ const WorkoutComplete = () => {
         .insert({
           user_id: user.id,
           content: journalContent,
-          entry_date: completionDate.toISOString()
+          entry_date: completionDate.toISOString(),
+          emoji: emoji
         });
         
       if (error) throw error;
@@ -353,6 +356,10 @@ const WorkoutComplete = () => {
     } catch (error) {
       console.error('Error adding workout notes to journal:', error);
     }
+  };
+
+  const addToJournal = async (notes: string) => {
+    await handleSaveJournalWithEmoji(notes);
   };
 
   const completeMutation = useMutation({
@@ -531,7 +538,10 @@ const WorkoutComplete = () => {
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setRating(option.value)}
+                onClick={() => {
+                  setRating(option.value);
+                  setEmoji(option.emoji);
+                }}
                 className={cn(
                   "flex flex-col items-center rounded-lg p-2 transition-colors border-2",
                   rating === option.value 

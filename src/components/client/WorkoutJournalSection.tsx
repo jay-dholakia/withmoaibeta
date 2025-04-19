@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,7 @@ interface JournalEntry {
   created_at: string;
   updated_at?: string;
   entry_date?: string;
+  emoji?: string;
 }
 
 interface WorkoutJournalSectionProps {
@@ -181,43 +181,22 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
             )}
 
             {entries.map((entry) => (
-              <div key={entry.id} className="border rounded-lg p-4">
-                {editingId === entry.id ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="min-h-[150px]"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={handleCancelEdit}>
-                        <X className="h-4 w-4 mr-1" />
-                        Cancel
-                      </Button>
-                      <Button onClick={handleSaveEdit}>
-                        <Save className="h-4 w-4 mr-1" />
-                        Save
-                      </Button>
-                    </div>
+              <div key={entry.id} className="border rounded-lg p-4 mb-2">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="text-sm text-muted-foreground flex items-center">
+                    {entry.emoji && <span className="mr-2 text-lg">{entry.emoji}</span>}
+                    {format(new Date(entry.created_at), 'h:mm a')}
                   </div>
-                ) : (
-                  <>
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="text-sm text-muted-foreground">
-                        {format(new Date(entry.created_at), 'h:mm a')}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleStartEdit(entry)}
-                        className="h-8 px-2"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <p className="whitespace-pre-wrap">{entry.content}</p>
-                  </>
-                )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleStartEdit(entry)}
+                    className="h-8 px-2"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="whitespace-pre-wrap">{entry.content}</p>
               </div>
             ))}
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -16,12 +17,20 @@ import { CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ExerciseSwapDialog } from './ExerciseSwapDialog';
 
+interface WorkoutExerciseWithExercise {
+  id: string;
+  exercise: Exercise;
+  sets: number;
+  reps: string;
+  notes?: string;
+}
+
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  const [exercises, setExercises] = useState<any[]>([]);
+  const [exercises, setExercises] = useState<WorkoutExerciseWithExercise[]>([]);
   const [workoutCompletion, setWorkoutCompletion] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -103,7 +112,7 @@ const ActiveWorkout = () => {
     try {
       // Update the exercise in the workout
       const updatedExercises = exercises.map(ex =>
-        ex.id === selectedExerciseForSwap.id ? { ...ex, exercise: newExercise } : ex
+        ex.exercise.id === selectedExerciseForSwap.id ? { ...ex, exercise: newExercise } : ex
       );
       setExercises(updatedExercises);
       
@@ -137,7 +146,7 @@ const ActiveWorkout = () => {
         <Progress value={progress} className="mb-4" />
         
         <div className="space-y-4">
-          {exercises.map((exercise: any) => (
+          {exercises.map((exercise) => (
             <Card key={exercise.id}>
               <CardHeader>
                 <CardTitle>{exercise.exercise?.name || 'Exercise'}</CardTitle>
@@ -155,7 +164,7 @@ const ActiveWorkout = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleSwapClick(exercise)}
+                  onClick={() => handleSwapClick(exercise.exercise)}
                 >
                   Swap
                 </Button>
@@ -184,7 +193,7 @@ const ActiveWorkout = () => {
         <ExerciseSwapDialog
           open={showSwapDialog}
           onOpenChange={setShowSwapDialog}
-          currentExercise={selectedExerciseForSwap.exercise}
+          currentExercise={selectedExerciseForSwap}
           onSwapSelect={handleSwapSelect}
         />
       )}

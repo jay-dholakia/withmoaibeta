@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -1427,7 +1428,7 @@ const ActiveWorkout = () => {
   });
 
   return (
-    <div className="pb-32">
+    <div className="pb-24"> {/* Reduced bottom padding */}
       {/* Header */}
       <div className="sticky top-0 bg-background z-10 p-4 border-b shadow-sm">
         <div className="flex justify-between items-center">
@@ -1435,24 +1436,24 @@ const ActiveWorkout = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              className="mb-2 pl-0"
+              className="mb-1 pl-0" {/* Reduced margin */}
               onClick={() => navigate('/client-dashboard/workouts')}
             >
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
             </Button>
-            <h1 className="text-2xl font-bold">{workout.title}</h1>
+            <h1 className="text-xl font-bold">{workout.title}</h1> {/* Slightly smaller text */}
             {workout.description && (
-              <p className="text-gray-600 text-sm mt-1">{workout.description}</p>
+              <p className="text-gray-600 text-xs mt-1">{workout.description}</p> {/* Smaller description */}
             )}
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="p-4 pb-32">
+      <div className="p-4 pb-24"> {/* Reduced padding */}
         {/* Exercises */}
         {sortedExercises.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-4"> {/* Reduced vertical spacing */}
             <AlertCircle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
             <p>No exercises found for this workout.</p>
           </div>

@@ -332,12 +332,14 @@ const ClientStatsPage = () => {
                     {getSortIcon('name')}
                   </div>
                 </TableHead>
-                <TableHead>
-                  <div className="flex items-center">
-                    <UserSquare className="h-4 w-4 mr-1" />
-                    Groups
-                  </div>
-                </TableHead>
+                {!isMobile && (
+                  <TableHead>
+                    <div className="flex items-center">
+                      <UserSquare className="h-4 w-4 mr-1" />
+                      Groups
+                    </div>
+                  </TableHead>
+                )}
                 <TableHead 
                   className="cursor-pointer hover:bg-muted/40 transition-colors"
                   onClick={() => toggleSort('lastWorkout')}
@@ -349,43 +351,43 @@ const ClientStatsPage = () => {
                   </div>
                 </TableHead>
                 {!isMobile && (
-                  <TableHead
-                    className="cursor-pointer hover:bg-muted/40 transition-colors"
-                    onClick={() => toggleSort('assignedWorkouts')}
-                  >
-                    <div className="flex items-center">
-                      This Week's Workouts
-                      {getSortIcon('assignedWorkouts')}
-                    </div>
-                  </TableHead>
+                  <>
+                    <TableHead
+                      className="cursor-pointer hover:bg-muted/40 transition-colors"
+                      onClick={() => toggleSort('assignedWorkouts')}
+                    >
+                      <div className="flex items-center">
+                        This Week's Workouts
+                        {getSortIcon('assignedWorkouts')}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer hover:bg-muted/40 transition-colors"
+                      onClick={() => toggleSort('activitiesWeek')}
+                    >
+                      <div className="flex items-center">
+                        This Week's Activities
+                        {getSortIcon('activitiesWeek')}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer hover:bg-muted/40 transition-colors"
+                      onClick={() => toggleSort('totalActivities')}
+                    >
+                      <div className="flex items-center">
+                        Total Activities
+                        {getSortIcon('totalActivities')}
+                      </div>
+                    </TableHead>
+                  </>
                 )}
-                {!isMobile && (
-                  <TableHead
-                    className="cursor-pointer hover:bg-muted/40 transition-colors"
-                    onClick={() => toggleSort('activitiesWeek')}
-                  >
-                    <div className="flex items-center">
-                      This Week's Activities
-                      {getSortIcon('activitiesWeek')}
-                    </div>
-                  </TableHead>
-                )}
-                <TableHead
-                  className="cursor-pointer hover:bg-muted/40 transition-colors"
-                  onClick={() => toggleSort('totalActivities')}
-                >
-                  <div className="flex items-center">
-                    Total Activities
-                    {getSortIcon('totalActivities')}
-                  </div>
-                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoadingClients || isLoadingStats ? (
                 Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`loading-${index}`}>
-                    {Array.from({ length: isMobile ? 4 : 6 }).map((_, cellIndex) => (
+                    {Array.from({ length: isMobile ? 2 : 6 }).map((_, cellIndex) => (
                       <TableCell key={`loading-cell-${index}-${cellIndex}`}>
                         <Skeleton className="h-5 w-full" />
                       </TableCell>
@@ -394,7 +396,7 @@ const ClientStatsPage = () => {
                 ))
               ) : filteredAndSortedClients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isMobile ? 4 : 6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={isMobile ? 2 : 6} className="text-center py-8 text-muted-foreground">
                     No clients found
                   </TableCell>
                 </TableRow>
@@ -413,37 +415,33 @@ const ClientStatsPage = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {client.groups.length === 0 ? (
-                          <span className="text-muted-foreground text-sm">None</span>
-                        ) : (
-                          client.groups.map((group) => (
-                            <Badge key={group.id} variant="outline" className="bg-muted/30">
-                              {group.name}
-                            </Badge>
-                          ))
-                        )}
-                      </div>
-                    </TableCell>
+                    {!isMobile && (
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {client.groups.length === 0 ? (
+                            <span className="text-muted-foreground text-sm">None</span>
+                          ) : (
+                            client.groups.map((group) => (
+                              <Badge key={group.id} variant="outline" className="bg-muted/30">
+                                {group.name}
+                              </Badge>
+                            ))
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
                     <TableCell className={cn(
                       isWorkoutStale(client.last_workout_date) && "text-red-500 font-medium"
                     )}>
                       {formatDate(client.last_workout_date)}
                     </TableCell>
                     {!isMobile && (
-                      <TableCell>
-                        {client.assigned_workouts_this_week}
-                      </TableCell>
+                      <>
+                        <TableCell>{client.assigned_workouts_this_week}</TableCell>
+                        <TableCell>{client.activities_this_week}</TableCell>
+                        <TableCell>{client.total_activities}</TableCell>
+                      </>
                     )}
-                    {!isMobile && (
-                      <TableCell>
-                        {client.activities_this_week}
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      {client.total_activities}
-                    </TableCell>
                   </TableRow>
                 ))
               )}

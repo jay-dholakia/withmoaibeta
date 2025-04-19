@@ -1461,7 +1461,7 @@ const ActiveWorkout = () => {
         )}
         
         {/* Complete Workout Button */}
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-50 pb-16">
+        <div className="fixed bottom-16 left-0 right-0 bg-background border-t z-50">
           <div className="p-4">
             <Stopwatch className="mb-4" />
             <Button 

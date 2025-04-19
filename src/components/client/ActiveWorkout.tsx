@@ -1068,6 +1068,54 @@ const ActiveWorkout = () => {
     setAlternativeExercises([]);
   };
 
+  const handleExerciseSwap = (newExercise: Exercise, originalExerciseId: string) => {
+    setExerciseStates(prev => {
+      const updatedStates = { ...prev };
+      
+      // Find the exercise state to update
+      const originalState = updatedStates[originalExerciseId];
+      if (!originalState) return prev;
+      
+      // Create a new state for the swapped exercise with the same structure
+      updatedStates[originalExerciseId] = {
+        ...originalState,
+        sets: originalState.sets.map(set => ({
+          ...set,
+          weight: '',
+          reps: '',
+          completed: false
+        }))
+      };
+      
+      return updatedStates;
+    });
+    
+    // Update workout data to reflect the swap
+    if (workoutData?.workout?.workout_exercises) {
+      const updatedExercises = workoutData.workout.workout_exercises.map(ex => {
+        if (ex.id === originalExerciseId) {
+          return {
+            ...ex,
+            exercise: newExercise,
+            exercise_id: newExercise.id
+          };
+        }
+        return ex;
+      });
+      
+      queryClient.setQueryData(['active-workout', workoutCompletionId], old => ({
+        ...old,
+        workout: {
+          ...old.workout,
+          workout_exercises: updatedExercises
+        }
+      }));
+    }
+    
+    closeAlternativeDialog();
+    toast.success(`Swapped to ${newExercise.name}`);
+  };
+
   const renderExerciseCard = (exercise: any) => {
     const exerciseType = exercise.exercise?.exercise_type || 'strength';
     const exerciseName = exercise.exercise?.name || '';
@@ -1513,7 +1561,7 @@ const ActiveWorkout = () => {
           <DialogHeader>
             <DialogTitle>Alternative Exercises</DialogTitle>
             <DialogDescription>
-              These exercises target similar muscle groups and can be substituted if needed.
+              Click on an exercise to swap it with {currentExercise?.exercise?.name}. This will reset any logged sets.
             </DialogDescription>
           </DialogHeader>
           
@@ -1529,7 +1577,11 @@ const ActiveWorkout = () => {
           ) : (
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {alternativeExercises.map(alt => (
-                <Card key={alt.id} className="p-3">
+                <Card 
+                  key={alt.id} 
+                  className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                  onClick={() => handleExerciseSwap(alt, currentExercise?.id)}
+                >
                   <h4 className="font-medium">{alt.name}</h4>
                   {alt.description && (
                     <p className="text-sm text-muted-foreground mt-1">{alt.description}</p>
@@ -1539,7 +1591,7 @@ const ActiveWorkout = () => {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={closeAlternativeDialog}>Close</Button>
+            <Button variant="outline" onClick={closeAlternativeDialog}>Cancel</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

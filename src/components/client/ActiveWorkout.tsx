@@ -45,15 +45,34 @@ const ActiveWorkout = () => {
       try {
         setIsLoading(true);
         
+        console.log(`Loading workout completion: ${workoutCompletionId}`);
         const completionData = await fetchWorkoutCompletion(workoutCompletionId);
+        console.log('Completion data:', completionData);
         setWorkoutCompletion(completionData);
         
+        if (!completionData.workout_id) {
+          console.error('No workout_id found in completion data');
+          toast.error('Invalid workout data');
+          navigate('/client-dashboard/workouts');
+          return;
+        }
+        
+        console.log(`Loading workout exercises for: ${completionData.workout_id}`);
         const exercisesData = await fetchWorkoutExercises(completionData.workout_id);
+        console.log('Exercises data:', exercisesData);
         setExercises(exercisesData || []);
         
         // Initialize progress to 0 by default
         // We can't store progress in the database directly, so we'll track it in component state
-        setProgress(0);
+        // Try to parse progress from notes if available
+        if (completionData.notes && completionData.notes.includes('Progress:')) {
+          const progressMatch = completionData.notes.match(/Progress: (\d+)%/);
+          if (progressMatch && progressMatch[1]) {
+            setProgress(parseInt(progressMatch[1], 10));
+          }
+        } else {
+          setProgress(0);
+        }
       } catch (error) {
         console.error('Error loading workout details:', error);
         toast.error('Failed to load workout details');

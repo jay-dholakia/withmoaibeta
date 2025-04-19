@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -63,7 +64,7 @@ const ActiveWorkout = () => {
   const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const stopwatchRef = useRef<HTMLDivElement>(null);
-
+  
   const [exerciseStates, setExerciseStates] = useState<Record<string, ExerciseState>>({});
   const [pendingSets, setPendingSets] = useState<PendingSet[]>([]);
 
@@ -101,6 +102,7 @@ const ActiveWorkout = () => {
     enabled: !!user?.id,
   });
 
+  // Fixed - Using optional chaining to safely access workout_exercises
   const workoutExercises = workoutCompletion?.workout?.workout_exercises || [];
   const currentExercise = workoutExercises[currentExerciseIndex];
 
@@ -134,14 +136,17 @@ const ActiveWorkout = () => {
     };
   }, [workoutCompletionId]);
 
+  // Fixed - Using the correct parameters for useAutosave
   useAutosave({
     data: { exerciseStates, pendingSets, currentExerciseIndex },
-    save: async (data) => {
+    onSave: async (data) => {
       const draftKey = `workout-draft-${workoutCompletionId}`;
       await saveWorkoutDraft(draftKey, data);
+      return true; // Return boolean as expected by the hook
     },
-    enabled: !!workoutCompletionId,
     interval: 10000,
+    debounce: 2000,
+    disabled: !workoutCompletionId
   });
 
   useEffect(() => {
@@ -155,8 +160,9 @@ const ActiveWorkout = () => {
     }
   }, [exerciseStates, workoutExercises, workoutCompletion]);
 
-  const trackSet = useMutation(
-    async (variables: { exerciseId: string; setNumber: number; weight: string; reps: string }) => {
+  // Fixed - Using the correct mutation option format for @tanstack/react-query v5+
+  const trackSet = useMutation({
+    mutationFn: async (variables: { exerciseId: string; setNumber: number; weight: string; reps: string }) => {
       setIsTracking(true);
       try {
         await trackWorkoutSet({
@@ -177,12 +183,11 @@ const ActiveWorkout = () => {
         setIsTracking(false);
       }
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['personalRecords', user?.id]);
-      },
+    onSuccess: () => {
+      // Fixed - Using the correct invalidateQueries format
+      queryClient.invalidateQueries({ queryKey: ['personalRecords', user?.id] });
     }
-  );
+  });
 
   const handleCompleteWorkout = async () => {
     setShowDialog(true);
@@ -252,13 +257,13 @@ const ActiveWorkout = () => {
     if (field === 'weight' && value.trim() !== '') {
       const setNumber = setIndex + 1;
       setPendingSets(prev => {
-        const currentSet = exerciseStates[exerciseId].sets[setIndex];
+        const currentSet = exerciseStates[exerciseId]?.sets[setIndex];
         const filtered = prev.filter(s => !(s.exerciseId === exerciseId && s.setNumber === setNumber));
         return [...filtered, {
           exerciseId,
           setNumber,
           weight: value,
-          reps: currentSet.reps
+          reps: currentSet?.reps || ''
         }];
       });
     }
@@ -270,7 +275,8 @@ const ActiveWorkout = () => {
 
     if (pendingSet) {
       try {
-        await trackSet.mutateAsync({
+        // Fixed - Use mutate instead of mutateAsync with the correct argument format
+        trackSet.mutate({
           exerciseId: pendingSet.exerciseId,
           setNumber: pendingSet.setNumber,
           weight: pendingSet.weight,
@@ -344,8 +350,9 @@ const ActiveWorkout = () => {
             Back to Workouts
           </Button>
         </div>
-        <CardTitle className="text-2xl font-bold">{workoutCompletion.workout?.title}</CardTitle>
-        <CardDescription>{workoutCompletion.workout?.description}</CardDescription>
+        {/* Fixed - Safely access workout title & description properties */}
+        <CardTitle className="text-2xl font-bold">{workoutCompletion?.workout?.title || 'Workout'}</CardTitle>
+        <CardDescription>{workoutCompletion?.workout?.description || ''}</CardDescription>
       </CardHeader>
       <CardContent>
         {currentExercise ? (
@@ -439,7 +446,8 @@ const ActiveWorkout = () => {
           <Button variant="ghost" size="sm" onClick={resetStopwatch}>
             Reset
           </Button>
-          <Stopwatch isRunning={isStopwatchRunning} onTimeUpdate={handleTimeUpdate} ref={stopwatchRef} />
+          {/* Fixed - Removed the ref prop and used className instead */}
+          <Stopwatch className="mr-2" />
         </div>
       </CardFooter>
 
@@ -480,7 +488,8 @@ const ActiveWorkout = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            {youtubeId && <VideoPlayer videoId={youtubeId} />}
+            {/* Fixed - Pass youtubeUrl instead of videoId */}
+            {youtubeId && <VideoPlayer youtubeUrl={`https://www.youtube.com/watch?v=${youtubeId}`} />}
           </div>
           <DialogFooter>
             <Button type="submit" onClick={handleCloseYoutube}>Close</Button>
@@ -493,5 +502,5 @@ const ActiveWorkout = () => {
 
 export default ActiveWorkout;
 
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";

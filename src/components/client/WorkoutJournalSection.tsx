@@ -203,14 +203,6 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
             {!isCreating && entries.length === 0 && (
               <div className="text-center text-muted-foreground py-8">
                 No journal entries for this date.
-                <br />
-                <Button
-                  variant="link"
-                  onClick={handleStartCreate}
-                  className="mt-2"
-                >
-                  Add your first entry
-                </Button>
               </div>
             )}
           </div>

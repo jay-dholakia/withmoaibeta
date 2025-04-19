@@ -492,27 +492,27 @@ const WorkoutComplete = () => {
   ];
 
   return (
-    <div className="space-y-4 pb-24"> /* Reduced vertical spacing and added bottom padding */
-      <div className="flex items-center gap-2"> /* Reduced gap */
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={() => navigate('/client-dashboard/workouts')}
           className="border border-gray-200 hover:border-gray-300"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold">{workoutData?.workout?.title || 'Workout'}</h1>
+          <h1 className="text-2xl font-bold">{workoutData?.workout?.title || 'Workout'}</h1>
         </div>
       </div>
 
-      <div className="flex justify-center py-4"> /* Reduced vertical padding */
+      <div className="flex justify-center py-6">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-2 border border-green-200"> /* Smaller size, reduced margin */
-            <CheckCircle2 className="w-10 h-10 text-green-600" /> /* Smaller icon */
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 mb-4 border border-green-200">
+            <CheckCircle2 className="w-12 h-12 text-green-600" />
           </div>
-          <p className="text-xs text-muted-foreground"> /* Smaller text */
+          <p className="text-muted-foreground">
             {new Date().toLocaleDateString(undefined, {
               weekday: 'long',
               year: 'numeric',
@@ -523,39 +523,39 @@ const WorkoutComplete = () => {
         </div>
       </div>
 
-      <div className="space-y-3"> /* Reduced vertical spacing */
+      <div className="space-y-4">
         <div>
-          <h3 className="text-xs font-medium mb-1 text-center">How do you feel after this workout?</h3>
-          <div className="flex justify-center gap-1"> /* Reduced gap */
+          <h3 className="text-sm font-medium mb-2 text-center">How do you feel after this workout?</h3>
+          <div className="flex justify-center gap-2">
             {feelingOptions.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => setRating(option.value)}
                 className={cn(
-                  "flex flex-col items-center rounded-lg p-1 transition-colors border-2", /* Reduced padding */
+                  "flex flex-col items-center rounded-lg p-2 transition-colors border-2",
                   rating === option.value 
                     ? "border-primary bg-primary/10" 
                     : "border-gray-200 hover:bg-gray-100"
                 )}
                 title={option.label}
               >
-                <span className="text-xl mb-0.5">{option.emoji}</span>
-                <span className="text-[10px]">{option.label}</span>
+                <span className="text-2xl mb-1">{option.emoji}</span>
+                <span className="text-xs">{option.label}</span>
               </button>
             ))}
           </div>
         </div>
 
         <div>
-          <h3 className="text-xs font-medium mb-1">Add notes</h3>
+          <h3 className="text-sm font-medium mb-2">Add notes</h3>
           <div className="relative">
             <Textarea
               placeholder="How did this workout feel? What went well? What was challenging?"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              rows={3} /* Reduced rows */
-              className="border border-gray-200 text-sm" /* Smaller text */
+              rows={4}
+              className="border border-gray-200"
             />
             <div className="absolute right-2 top-2 text-xs text-muted-foreground">
               {saveStatus === 'saving' && (
@@ -572,13 +572,13 @@ const WorkoutComplete = () => {
               )}
             </div>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-0.5 text-center">
+          <p className="text-xs text-muted-foreground mt-1 text-center">
             Your notes will be saved to your journal with this workout's title.
           </p>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 pt-2"> /* Reduced vertical spacing and padding */
+      <div className="flex flex-col gap-3 pt-4">
         <Button
           onClick={() => completeMutation.mutate()}
           disabled={completeMutation.isPending}

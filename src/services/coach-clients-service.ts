@@ -8,6 +8,8 @@ export interface ClientData {
   id: string;
   email: string;
   user_type: string;
+  first_name: string | null;
+  last_name: string | null;
   last_workout_at: string | null;
   total_workouts_completed: number;
   current_program_id: string | null;
@@ -44,11 +46,34 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       // Get accurate workout counts
       const workoutCounts = await fetchAccurateWorkoutCounts(clientIds);
       
+      // Get client profile information for first and last names
+      const { data: profilesData } = await supabase
+        .from('client_profiles')
+        .select('id, first_name, last_name')
+        .in('id', clientIds);
+        
+      const profilesMap = new Map();
+      if (profilesData) {
+        profilesData.forEach(profile => {
+          profilesMap.set(profile.id, {
+            first_name: profile.first_name,
+            last_name: profile.last_name
+          });
+        });
+      }
+      
       // Update the total_workouts_completed value with the accurate count
-      return rpcData.map(client => ({
-        ...client,
-        total_workouts_completed: workoutCounts.get(client.id) || 0
-      }));
+      // and add first_name and last_name from client_profiles
+      return rpcData.map(client => {
+        const profile = profilesMap.get(client.id) || { first_name: null, last_name: null };
+        
+        return {
+          ...client,
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          total_workouts_completed: workoutCounts.get(client.id) || 0
+        };
+      });
     }
     
     return rpcData || [];
@@ -151,8 +176,15 @@ const fetchCoachClientsDirect = async (coachId: string): Promise<ClientData[]> =
       user_ids: clientIds
     });
     
+    // Get client profile info (first_name, last_name)
+    const { data: clientProfilesData } = await supabase
+      .from('client_profiles')
+      .select('id, first_name, last_name')
+      .in('id', clientIds);
+    
     // Create various mappings for efficient lookups
     const emailMap = new Map(emails ? emails.map(e => [e.id, e.email]) : []);
+    const clientProfilesMap = new Map(clientProfilesData ? clientProfilesData.map(cp => [cp.id, cp]) : []);
     
     const groupMap = new Map();
     for (const member of groupMembers) {
@@ -169,6 +201,9 @@ const fetchCoachClientsDirect = async (coachId: string): Promise<ClientData[]> =
     return clientProfiles.map(client => {
       // Get workout info from map
       const clientWorkoutInfo = workoutInfoMap.get(client.id);
+      
+      // Get profile info from map
+      const clientProfileInfo = clientProfilesMap.get(client.id);
       
       // Get program info if available
       const program = clientWorkoutInfo?.current_program_id 
@@ -188,6 +223,8 @@ const fetchCoachClientsDirect = async (coachId: string): Promise<ClientData[]> =
         id: client.id,
         email: emailMap.get(client.id) || 'Unknown',
         user_type: client.user_type,
+        first_name: clientProfileInfo?.first_name || null,
+        last_name: clientProfileInfo?.last_name || null,
         last_workout_at: clientWorkoutInfo?.last_workout_at || null,
         // Use the accurate count from actually completed workouts
         total_workouts_completed: workoutCounts.get(client.id) || 0,
@@ -203,10 +240,6 @@ const fetchCoachClientsDirect = async (coachId: string): Promise<ClientData[]> =
   }
 };
 
-/**
- * Fetches accurate workout completion counts for clients
- * Ensures only legitimate completed workouts are counted (not rest days, life happens passes)
- */
 const fetchAccurateWorkoutCounts = async (clientIds: string[]): Promise<Map<string, number>> => {
   // Create a map of id -> workout completion count
   const workoutCountMap = new Map<string, number>();

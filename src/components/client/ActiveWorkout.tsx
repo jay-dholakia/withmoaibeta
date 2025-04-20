@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
@@ -193,13 +194,13 @@ const ActiveWorkout: React.FC = () => {
     if (!workoutExercises) return { strength: [], cardio: [], flexibility: [], running: [] };
     
     return workoutExercises.reduce((acc, item) => {
-      if (!item.workout_exercise) {
-        console.warn('Item missing workout_exercise data:', item);
+      if (!item.exercise) {
+        console.warn('Item missing exercise data:', item);
         return acc;
       }
       
-      const exerciseType = item.workout_exercise?.exercise?.exercise_type || 'strength';
-      const exerciseName = (item.workout_exercise?.exercise?.name || '').toLowerCase();
+      const exerciseType = item.exercise?.exercise_type || 'strength';
+      const exerciseName = (item.exercise?.name || '').toLowerCase();
       const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
       
       if (isRunExercise) {
@@ -264,15 +265,15 @@ const ActiveWorkout: React.FC = () => {
             <h3 className="text-lg font-medium mb-3">Strength Exercises</h3>
             <div className="space-y-4">
               {groupedExercises.strength.map((exerciseData) => {
-                if (!exerciseData.workout_exercise) return null;
+                if (!exerciseData.exercise) return null;
                 return (
                   <div key={exerciseData.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                     <h4 className="font-medium mb-2">
-                      {exerciseData.workout_exercise?.exercise?.name || "Unknown Exercise"}
+                      {exerciseData.exercise?.name || "Unknown Exercise"}
                     </h4>
                     <StrengthExercise 
-                      exercise={exerciseData.workout_exercise}
-                      exerciseState={exerciseStates[exerciseData.workout_exercise_id] || {}}
+                      exercise={exerciseData}
+                      exerciseState={exerciseStates[exerciseData.id] || {}}
                       personalRecord={null}
                       onSetChange={onSetChange}
                       onSetCompletion={onSetCompletion}
@@ -291,15 +292,15 @@ const ActiveWorkout: React.FC = () => {
             <h3 className="text-lg font-medium mb-3">Cardio Exercises</h3>
             <div className="space-y-4">
               {groupedExercises.cardio.map((exerciseData) => {
-                if (!exerciseData.workout_exercise) return null;
+                if (!exerciseData.exercise) return null;
                 return (
                   <div key={exerciseData.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                     <h4 className="font-medium mb-2">
-                      {exerciseData.workout_exercise?.exercise?.name || "Unknown Exercise"}
+                      {exerciseData.exercise?.name || "Unknown Exercise"}
                     </h4>
                     <CardioExercise 
-                      exercise={exerciseData.workout_exercise}
-                      exerciseState={exerciseStates[exerciseData.workout_exercise_id] || {}}
+                      exercise={exerciseData}
+                      exerciseState={exerciseStates[exerciseData.id] || {}}
                       formatDurationInput={formatDurationInput}
                       onCardioChange={onCardioChange}
                       onCardioCompletion={onCardioCompletion}
@@ -317,15 +318,15 @@ const ActiveWorkout: React.FC = () => {
             <h3 className="text-lg font-medium mb-3">Flexibility Exercises</h3>
             <div className="space-y-4">
               {groupedExercises.flexibility.map((exerciseData) => {
-                if (!exerciseData.workout_exercise) return null;
+                if (!exerciseData.exercise) return null;
                 return (
                   <div key={exerciseData.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                     <h4 className="font-medium mb-2">
-                      {exerciseData.workout_exercise?.exercise?.name || "Unknown Exercise"}
+                      {exerciseData.exercise?.name || "Unknown Exercise"}
                     </h4>
                     <FlexibilityExercise 
-                      exercise={exerciseData.workout_exercise}
-                      exerciseState={exerciseStates[exerciseData.workout_exercise_id] || {}}
+                      exercise={exerciseData}
+                      exerciseState={exerciseStates[exerciseData.id] || {}}
                       formatDurationInput={formatDurationInput}
                       onFlexibilityChange={onFlexibilityChange}
                       onFlexibilityCompletion={onFlexibilityCompletion}
@@ -343,15 +344,15 @@ const ActiveWorkout: React.FC = () => {
             <h3 className="text-lg font-medium mb-3">Running</h3>
             <div className="space-y-4">
               {groupedExercises.running.map((exerciseData) => {
-                if (!exerciseData.workout_exercise) return null;
+                if (!exerciseData.exercise) return null;
                 return (
                   <div key={exerciseData.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                     <h4 className="font-medium mb-2">
-                      {exerciseData.workout_exercise?.exercise?.name || "Unknown Exercise"}
+                      {exerciseData.exercise?.name || "Unknown Exercise"}
                     </h4>
                     <RunExercise 
-                      exercise={exerciseData.workout_exercise}
-                      exerciseState={exerciseStates[exerciseData.workout_exercise_id] || {}}
+                      exercise={exerciseData}
+                      exerciseState={exerciseStates[exerciseData.id] || {}}
                       formatDurationInput={formatDurationInput}
                       onRunChange={onRunChange}
                       onRunCompletion={onRunCompletion}
@@ -403,3 +404,4 @@ const ActiveWorkout: React.FC = () => {
 };
 
 export default ActiveWorkout;
+

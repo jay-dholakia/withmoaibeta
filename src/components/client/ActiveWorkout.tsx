@@ -90,7 +90,7 @@ const ActiveWorkout = () => {
         const { data: workoutOnlyData, error: workoutError } = await supabase
           .from('workouts')
           .select(`
-            *,
+            *,\
             workout_exercises (
               *,
               exercise:exercise_id (*)
@@ -1016,4 +1016,4 @@ const ActiveWorkout = () => {
                 exerciseState={exerciseStates[exercise.id]}
                 formatDurationInput={formatDurationInput}
                 onFlexibilityChange={handleFlexibilityChange}
-                onFlexibilityCompletion={handleFlexibility
+                onFlexibilityCompletion={handleFlexibilityCompletion

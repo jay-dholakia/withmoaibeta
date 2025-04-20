@@ -1016,7 +1016,7 @@ const ActiveWorkout = () => {
             ? workoutData.workout.workout_exercises.map(renderExerciseCard) 
             : null}
           
-          <div className="fixed bottom-[4.5rem] left-0 right-0 bg-white dark:bg-background pb-2 pt-2 z-10">
+          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-background pb-2 pt-2 z-10">
             <div className="container max-w-3xl px-4">
               <div className="flex justify-center items-center mb-2">
                 <Stopwatch />

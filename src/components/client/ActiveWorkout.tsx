@@ -79,7 +79,28 @@ const ActiveWorkout = () => {
     enabled: !!workoutCompletionId && !!user,
   });
 
-  // Set up workout state manager
+  // Get workout exercises safely, ensuring we always have an array
+  const getWorkoutExercises = (): WorkoutExercise[] => {
+    if (!workoutCompletion?.workout?.workout_exercises) {
+      return [];
+    }
+    
+    // Check if workout_exercises is an error object
+    if (
+      typeof workoutCompletion.workout.workout_exercises === 'object' && 
+      'error' in workoutCompletion.workout.workout_exercises
+    ) {
+      console.error("Error in workout exercises:", workoutCompletion.workout.workout_exercises);
+      return [];
+    }
+    
+    // Now we know it's an array
+    return Array.isArray(workoutCompletion.workout.workout_exercises) 
+      ? workoutCompletion.workout.workout_exercises 
+      : [];
+  };
+
+  // Set up workout state manager with safe workout exercises
   const {
     exerciseStates,
     setExerciseStates,
@@ -92,7 +113,7 @@ const ActiveWorkout = () => {
     pendingRuns,
     setPendingRuns,
     workoutDataInitialized
-  } = useWorkoutState(workoutCompletion?.workout?.workout_exercises || []);
+  } = useWorkoutState(getWorkoutExercises());
 
   // Autosave workout progress
   const { saveStatus, forceSave } = useAutosave({
@@ -170,16 +191,20 @@ const ActiveWorkout = () => {
 
   // Fetch personal records
   useEffect(() => {
-    if (!user?.id || !workoutCompletion?.workout?.workout_exercises) return;
+    if (!user?.id) return;
     
-    const exerciseIds = workoutCompletion.workout.workout_exercises
+    // Get workout exercises safely
+    const exercises = getWorkoutExercises();
+    if (exercises.length === 0) return;
+    
+    const exerciseIds = exercises
       .map(we => we.exercise?.id)
-      .filter(Boolean);
+      .filter(Boolean) as string[];
       
     fetchPersonalRecords(user.id, exerciseIds)
       .then(records => setPersonalRecords(records))
       .catch(err => console.error('Error fetching PRs:', err));
-  }, [user?.id, workoutCompletion?.workout?.workout_exercises]);
+  }, [user?.id, workoutCompletion]);
 
   // Toggle exercise expanded state
   const toggleExerciseExpanded = (exerciseId: string) => {
@@ -268,7 +293,9 @@ const ActiveWorkout = () => {
         [exerciseId]: {
           ...prev[exerciseId],
           cardioData: {
-            ...updatedCardioData,
+            distance: updatedCardioData.distance || '',
+            duration: updatedCardioData.duration || '',
+            location: updatedCardioData.location || '',
             completed: prev[exerciseId]?.cardioData?.completed || false
           }
         }
@@ -311,12 +338,9 @@ const ActiveWorkout = () => {
       [exerciseId]: {
         ...prev[exerciseId],
         cardioData: {
-          ...prev[exerciseId]?.cardioData || {
-            distance: '',
-            duration: '',
-            location: '',
-            completed: false
-          },
+          distance: prev[exerciseId]?.cardioData?.distance || '',
+          duration: prev[exerciseId]?.cardioData?.duration || '',
+          location: prev[exerciseId]?.cardioData?.location || '',
           completed: !(prev[exerciseId]?.cardioData?.completed)
         }
       }
@@ -332,11 +356,8 @@ const ActiveWorkout = () => {
       [exerciseId]: {
         ...prev[exerciseId],
         flexibilityData: {
-          ...prev[exerciseId]?.flexibilityData || {
-            duration: '',
-            completed: false
-          },
-          duration: value
+          duration: value,
+          completed: prev[exerciseId]?.flexibilityData?.completed || false
         }
       }
     }));
@@ -375,10 +396,7 @@ const ActiveWorkout = () => {
       [exerciseId]: {
         ...prev[exerciseId],
         flexibilityData: {
-          ...prev[exerciseId]?.flexibilityData || {
-            duration: '',
-            completed: false
-          },
+          duration: prev[exerciseId]?.flexibilityData?.duration || '',
           completed: !(prev[exerciseId]?.flexibilityData?.completed)
         }
       }
@@ -400,11 +418,10 @@ const ActiveWorkout = () => {
         [exerciseId]: {
           ...prev[exerciseId],
           runData: {
-            ...updatedRunData,
-            completed: prev[exerciseId]?.runData?.completed || false,
             distance: updatedRunData.distance || '',
             duration: updatedRunData.duration || '',
-            location: updatedRunData.location || ''
+            location: updatedRunData.location || '',
+            completed: prev[exerciseId]?.runData?.completed || false
           }
         }
       };
@@ -446,12 +463,9 @@ const ActiveWorkout = () => {
       [exerciseId]: {
         ...prev[exerciseId],
         runData: {
-          ...prev[exerciseId]?.runData || {
-            distance: '',
-            duration: '',
-            location: '',
-            completed: false
-          },
+          distance: prev[exerciseId]?.runData?.distance || '',
+          duration: prev[exerciseId]?.runData?.duration || '',
+          location: prev[exerciseId]?.runData?.location || '',
           completed: !(prev[exerciseId]?.runData?.completed)
         }
       }
@@ -462,9 +476,8 @@ const ActiveWorkout = () => {
 
   // Open dialog to swap exercise
   const handleOpenSimilarExercises = async (exerciseId: string) => {
-    const exerciseObj = workoutCompletion?.workout?.workout_exercises?.find(
-      we => we.id === exerciseId
-    )?.exercise;
+    const exercises = getWorkoutExercises();
+    const exerciseObj = exercises.find(we => we.id === exerciseId)?.exercise;
     
     if (!exerciseObj) return;
     
@@ -482,9 +495,8 @@ const ActiveWorkout = () => {
   // Handle exercise swap
   const handleExerciseSwap = (exerciseId: string, newExercise: Exercise) => {
     // Find the current workout_exercise to swap
-    const currentWorkoutExercise = workoutCompletion?.workout?.workout_exercises?.find(
-      we => we.id === exerciseId
-    );
+    const exercises = getWorkoutExercises();
+    const currentWorkoutExercise = exercises.find(we => we.id === exerciseId);
     
     if (!currentWorkoutExercise) return;
     
@@ -577,12 +589,12 @@ const ActiveWorkout = () => {
     );
   }
 
-  // Extract workout details
-  const { workout } = workoutCompletion;
+  // Get workout exercises safely
+  const workoutExercises = getWorkoutExercises();
   
   // Check if workout exercises exists and is an array
-  if (!workout?.workout_exercises || !Array.isArray(workout?.workout_exercises)) {
-    console.error('No workout exercises found or invalid format:', workout?.workout_exercises);
+  if (!workoutExercises || workoutExercises.length === 0) {
+    console.error('No workout exercises found or invalid format:', workoutCompletion?.workout?.workout_exercises);
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
         <AlertCircle className="w-10 h-10 text-destructive" />
@@ -630,9 +642,9 @@ const ActiveWorkout = () => {
 
       {/* Workout Title */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">{workout?.title}</h1>
-        {workout?.description && (
-          <p className="text-muted-foreground mt-2">{workout.description}</p>
+        <h1 className="text-3xl font-bold">{workoutCompletion?.workout?.title}</h1>
+        {workoutCompletion?.workout?.description && (
+          <p className="text-muted-foreground mt-2">{workoutCompletion.workout.description}</p>
         )}
       </div>
 
@@ -645,7 +657,7 @@ const ActiveWorkout = () => {
 
       {/* Exercises */}
       <div className="space-y-6">
-        {workout.workout_exercises.map((workoutExercise) => {
+        {workoutExercises.map((workoutExercise) => {
           const exerciseType = workoutExercise.exercise?.exercise_type || 'strength';
           const exerciseName = workoutExercise.exercise?.name || '';
           const isRunExercise = exerciseName.toLowerCase().includes('run') || exerciseName.toLowerCase().includes('running');
@@ -788,15 +800,15 @@ const ActiveWorkout = () => {
           {showExerciseHelp && (
             <div className="space-y-4 mt-4">
               <p className="text-sm">
-                {workout?.workout_exercises?.find(we => we.id === showExerciseHelp)?.exercise?.description || 
+                {getWorkoutExercises().find(we => we.id === showExerciseHelp)?.exercise?.description || 
                  "No description available for this exercise."}
               </p>
-              {workout?.workout_exercises?.find(we => we.id === showExerciseHelp)?.notes && (
+              {getWorkoutExercises().find(we => we.id === showExerciseHelp)?.notes && (
                 <>
                   <Separator />
                   <div>
                     <h3 className="text-sm font-medium mb-2">Coach Notes:</h3>
-                    <p className="text-sm">{workout.workout_exercises.find(we => we.id === showExerciseHelp)?.notes}</p>
+                    <p className="text-sm">{getWorkoutExercises().find(we => we.id === showExerciseHelp)?.notes}</p>
                   </div>
                 </>
               )}
@@ -856,3 +868,4 @@ const ActiveWorkout = () => {
 };
 
 export default ActiveWorkout;
+

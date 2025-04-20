@@ -192,21 +192,21 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
 
             {entries.map((entry) => (
               <div key={entry.id} className="border rounded-lg p-4 mb-2">
-                <div className="flex justify-between items-start mb-4">
+                <div className="flex justify-between items-center mb-2">
                   {entry.exercise_title && (
-                    <div className="text-base font-medium">
-                      {entry.emoji && <span className="mr-2">{stripEmoji(entry.content)}</span>}
+                    <div className="text-base font-medium flex items-center gap-2">
+                      {entry.emoji && <span>{stripEmoji(entry.content)}</span>}
                       {entry.exercise_title}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleStartEdit(entry)}
+                        className="h-8 px-2"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     </div>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleStartEdit(entry)}
-                    className="h-8 px-2"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
                 </div>
                 
                 {editingId === entry.id ? (
@@ -249,3 +249,4 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
 };
 
 export default WorkoutJournalSection;
+

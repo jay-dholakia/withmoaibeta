@@ -1024,8 +1024,164 @@ const ActiveWorkout = () => {
   };
 
   return (
-    <div>
-      {/* Existing component JSX */}
+    <div className="container max-w-3xl px-4 py-6">
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center h-60">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="mt-4 text-lg text-muted-foreground">Loading workout...</p>
+        </div>
+      ) : !workoutData ? (
+        <div className="flex flex-col items-center justify-center h-60">
+          <AlertCircle className="h-10 w-10 text-destructive" />
+          <p className="mt-4 text-lg text-muted-foreground">Workout not found</p>
+          <Button 
+            onClick={() => navigate('/client-dashboard/workouts')} 
+            variant="outline" 
+            className="mt-4"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Workouts
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="flex justify-between items-center mb-6">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/client-dashboard/workouts')}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            
+            <div className="flex items-center">
+              {saveStatus === 'saving' && (
+                <div className="flex items-center text-xs text-muted-foreground mr-2">
+                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  Saving...
+                </div>
+              )}
+              {saveStatus === 'saved' && (
+                <div className="flex items-center text-xs text-muted-foreground mr-2">
+                  <CheckCircle2 className="h-3 w-3 mr-1 text-green-500" />
+                  Saved
+                </div>
+              )}
+              <Button 
+                variant="default" 
+                onClick={() => saveAllSetsMutation.mutate()}
+                disabled={saveAllSetsMutation.isPending}
+              >
+                {saveAllSetsMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Complete Workout
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold">
+              {workoutData.workout?.title || 'Workout'}
+            </h1>
+            {workoutData.workout?.description && (
+              <p className="text-muted-foreground mt-1">
+                {workoutData.workout.description}
+              </p>
+            )}
+          </div>
+
+          <div className="mb-6 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Stopwatch />
+            </div>
+          </div>
+
+          <Separator className="my-6" />
+
+          <div>
+            {workoutData.workout?.workout_exercises?.map((exercise: WorkoutExercise) => (
+              <div key={exercise.id}>
+                {renderExerciseCard(exercise)}
+              </div>
+            ))}
+            
+            {(!workoutData.workout?.workout_exercises || workoutData.workout.workout_exercises.length === 0) && (
+              <div className="text-center py-12">
+                <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-4 text-lg font-medium">No exercises found</h3>
+                <p className="mt-2 text-muted-foreground">
+                  This workout doesn't have any exercises defined yet.
+                </p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+      
+      <Dialog open={videoDialogOpen} onOpenChange={closeVideoDialog}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{currentExerciseName}</DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video">
+            {currentVideoUrl && <VideoPlayer url={currentVideoUrl} />}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={alternativeDialogOpen} onOpenChange={closeAlternativeDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Alternative Exercises</DialogTitle>
+            <DialogDescription>
+              Choose an alternative exercise that works the same muscle groups
+            </DialogDescription>
+          </DialogHeader>
+          
+          {isLoadingAlternatives ? (
+            <div className="flex justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : alternativeExercises.length === 0 ? (
+            <div className="py-4 text-center">
+              No alternative exercises found for this muscle group
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {alternativeExercises.map(exercise => (
+                <Button
+                  key={exercise.id}
+                  variant="outline"
+                  className="w-full justify-start h-auto py-3 px-4"
+                  onClick={() => handleExerciseSwap(exercise, currentExercise?.id)}
+                >
+                  <div className="text-start">
+                    <div className="font-medium">{exercise.name}</div>
+                    {exercise.description && (
+                      <div className="text-xs text-muted-foreground line-clamp-1">
+                        {exercise.description}
+                      </div>
+                    )}
+                  </div>
+                </Button>
+              ))}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={closeAlternativeDialog}>Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

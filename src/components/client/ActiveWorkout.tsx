@@ -1024,7 +1024,7 @@ const ActiveWorkout = () => {
   };
 
   return (
-    <div className="container max-w-3xl px-4 py-6">
+    <div className="container max-w-3xl px-4 pb-32">
       {isLoading ? (
         <div className="flex flex-col items-center justify-center h-60">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -1054,38 +1054,6 @@ const ActiveWorkout = () => {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            
-            <div className="flex items-center">
-              {saveStatus === 'saving' && (
-                <div className="flex items-center text-xs text-muted-foreground mr-2">
-                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                  Saving...
-                </div>
-              )}
-              {saveStatus === 'saved' && (
-                <div className="flex items-center text-xs text-muted-foreground mr-2">
-                  <CheckCircle2 className="h-3 w-3 mr-1 text-green-500" />
-                  Saved
-                </div>
-              )}
-              <Button 
-                variant="default" 
-                onClick={() => saveAllSetsMutation.mutate()}
-                disabled={saveAllSetsMutation.isPending}
-              >
-                {saveAllSetsMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Complete Workout
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
 
           <div className="mb-6">
@@ -1097,12 +1065,6 @@ const ActiveWorkout = () => {
                 {workoutData.workout.description}
               </p>
             )}
-          </div>
-
-          <div className="mb-6 flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Stopwatch />
-            </div>
           </div>
 
           <Separator className="my-6" />
@@ -1124,9 +1086,35 @@ const ActiveWorkout = () => {
               </div>
             )}
           </div>
+
+          <div className="fixed bottom-16 left-0 right-0 bg-background border-t border-gray-200 px-4 py-3 space-y-3">
+            <div className="max-w-3xl mx-auto">
+              <Stopwatch className="w-full" />
+            </div>
+            <div className="max-w-3xl mx-auto">
+              <Button 
+                variant="default"
+                className="w-full"
+                onClick={() => saveAllSetsMutation.mutate()}
+                disabled={saveAllSetsMutation.isPending}
+              >
+                {saveAllSetsMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Complete Workout
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </>
       )}
-      
+
       <Dialog open={videoDialogOpen} onOpenChange={closeVideoDialog}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>

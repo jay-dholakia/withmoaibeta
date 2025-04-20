@@ -25,6 +25,16 @@ export const StrengthExercise: React.FC<Props> = ({
   onVideoClick,
   onSwapClick
 }) => {
+  // Add guard to ensure exerciseState and sets exist
+  if (!exerciseState || !exerciseState.sets) {
+    console.error('Missing exerciseState or sets for exercise:', exercise);
+    return (
+      <div className="p-4 text-center bg-gray-50 rounded-md">
+        <p className="text-sm text-gray-500">Loading exercise data...</p>
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-3">
       {personalRecord && (

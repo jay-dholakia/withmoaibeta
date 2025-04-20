@@ -858,13 +858,12 @@ const ActiveWorkout = () => {
     setExerciseStates(prev => {
       const updatedStates = { ...prev };
       
-      // Find the exercise state to update
       const originalState = updatedStates[originalExerciseId];
       if (!originalState) return prev;
       
-      // Create a new state for the swapped exercise with the same structure
       updatedStates[originalExerciseId] = {
         ...originalState,
+        exercise_id: newExercise.id,
         sets: originalState.sets.map(set => ({
           ...set,
           weight: '',
@@ -876,11 +875,9 @@ const ActiveWorkout = () => {
       return updatedStates;
     });
     
-    // Update workout data to reflect the swap
     if (workoutData?.workout?.workout_exercises) {
       const exercises = workoutData.workout.workout_exercises;
       
-      // Check if workout_exercises is an array before using map
       if (Array.isArray(exercises)) {
         const updatedExercises = exercises.map(ex => {
           if (ex.id === originalExerciseId) {
@@ -906,6 +903,8 @@ const ActiveWorkout = () => {
         });
       }
     }
+    
+    setPendingSets(prev => prev.filter(set => set.exerciseId !== originalExerciseId));
     
     closeAlternativeDialog();
     toast.success(`Swapped to ${newExercise.name}`);

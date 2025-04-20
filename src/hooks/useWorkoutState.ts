@@ -4,6 +4,8 @@ import { ExerciseStates, PendingSet, PendingCardio, PendingFlexibility, PendingR
 import { WorkoutExercise } from '@/types/workout';
 import { toast } from 'sonner';
 
+export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
 export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined) => {
   const [exerciseStates, setExerciseStates] = useState<ExerciseStates>({});
   const [pendingSets, setPendingSets] = useState<PendingSet[]>([]);

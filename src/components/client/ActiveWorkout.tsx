@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,8 +14,8 @@ import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
-import { useWorkoutState } from '@/hooks/useWorkoutState';
-import { PersonalRecord, Exercise } from '@/types/workout';
+import { useWorkoutState, AutosaveStatus } from '@/hooks/useWorkoutState';
+import { PersonalRecord, Exercise, WorkoutExercise } from '@/types/workout';
 import { VideoPlayer } from '@/components/client/VideoPlayer';
 import Stopwatch from './Stopwatch';
 import { cn } from '@/lib/utils';
@@ -53,87 +52,6 @@ const ActiveWorkout = () => {
   const [currentExercise, setCurrentExercise] = useState<any>(null);
   const [alternativeExercises, setAlternativeExercises] = useState<any[]>([]);
   const [isLoadingAlternatives, setIsLoadingAlternatives] = useState(false);
-
-  const {
-    exerciseStates,
-    setExerciseStates,
-    pendingSets,
-    setPendingSets,
-    pendingCardio,
-    setPendingCardio,
-    pendingFlexibility,
-    setPendingFlexibility,
-    pendingRuns,
-    setPendingRuns,
-    workoutDataInitialized
-  } = useWorkoutState(workoutData?.workout?.workout_exercises);
-
-  const formatDurationInput = (value: string): string => {
-    let cleaned = value.replace(/[^\d:]/g, '');
-    const parts = cleaned.split(':');
-    if (parts.length > 3) {
-      cleaned = parts.slice(0, 3).join(':');
-    }
-    return cleaned;
-  };
-
-  const formatRestTime = (seconds: number | null) => {
-    if (!seconds) return "";
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
-  };
-
-  useEffect(() => {
-    if (user) {
-      console.log("Auth state detected in ActiveWorkout, user:", user.id);
-      setAuthStateChanged(prev => prev + 1);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    const loadPersonalRecords = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const records = await fetchPersonalRecords(user.id);
-        console.log("Loaded personal records:", records);
-        setPersonalRecords(records);
-      } catch (error) {
-        console.error("Error loading personal records:", error);
-      }
-    };
-    
-    loadPersonalRecords();
-  }, [user?.id]);
-
-  const getExercisePR = (exerciseId: string): PersonalRecord | undefined => {
-    return personalRecords.find(record => record.exercise_id === exerciseId);
-  };
-
-  const draftData = {
-    exerciseStates,
-    pendingSets,
-    pendingCardio,
-    pendingFlexibility,
-    pendingRuns
-  };
-
-  const { saveStatus } = useAutosave({
-    data: draftData,
-    onSave: async (data) => {
-      if (!workoutCompletionId || !user?.id) return false;
-      console.log("Saving workout draft with data:", data);
-      return await saveWorkoutDraft(
-        workoutCompletionId || null, 
-        'workout', 
-        data
-      );
-    },
-    interval: 3000,
-    disabled: !workoutCompletionId || !user?.id
-  });
 
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['active-workout', workoutCompletionId],
@@ -243,62 +161,86 @@ const ActiveWorkout = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
+  const {
+    exerciseStates,
+    setExerciseStates,
+    pendingSets,
+    setPendingSets,
+    pendingCardio,
+    setPendingCardio,
+    pendingFlexibility,
+    setPendingFlexibility,
+    pendingRuns,
+    setPendingRuns,
+    workoutDataInitialized
+  } = useWorkoutState(workoutData?.workout?.workout_exercises as WorkoutExercise[] | undefined);
+
+  const formatDurationInput = (value: string): string => {
+    let cleaned = value.replace(/[^\d:]/g, '');
+    const parts = cleaned.split(':');
+    if (parts.length > 3) {
+      cleaned = parts.slice(0, 3).join(':');
+    }
+    return cleaned;
+  };
+
+  const formatRestTime = (seconds: number | null) => {
+    if (!seconds) return "";
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  };
+
   useEffect(() => {
-    const loadDraftData = async () => {
-      if (!workoutCompletionId || !user?.id) return;
+    if (user) {
+      console.log("Auth state detected in ActiveWorkout, user:", user.id);
+      setAuthStateChanged(prev => prev + 1);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const loadPersonalRecords = async () => {
+      if (!user?.id) return;
       
       try {
-        console.log(`Loading draft data for workout ${workoutCompletionId}`);
-        
-        const draft = await getWorkoutDraft(workoutCompletionId);
-        
-        if (draft && draft.draft_data) {
-          console.log("Workout draft data received:", draft.draft_data);
-          
-          if (typeof draft.draft_data === 'object' && draft.draft_data !== null) {
-            if (draft.draft_data.exerciseStates) {
-              console.log("Loading exercise states from draft:", draft.draft_data.exerciseStates);
-              setExerciseStates(draft.draft_data.exerciseStates);
-            }
-            
-            if (Array.isArray(draft.draft_data.pendingSets)) {
-              console.log("Loading pending sets from draft:", draft.draft_data.pendingSets);
-              setPendingSets(draft.draft_data.pendingSets);
-            }
-            
-            if (Array.isArray(draft.draft_data.pendingCardio)) {
-              console.log("Loading pending cardio from draft:", draft.draft_data.pendingCardio);
-              setPendingCardio(draft.draft_data.pendingCardio);
-            }
-            
-            if (Array.isArray(draft.draft_data.pendingFlexibility)) {
-              console.log("Loading pending flexibility from draft:", draft.draft_data.pendingFlexibility);
-              setPendingFlexibility(draft.draft_data.pendingFlexibility);
-            }
-            
-            if (Array.isArray(draft.draft_data.pendingRuns)) {
-              console.log("Loading pending runs from draft:", draft.draft_data.pendingRuns);
-              setPendingRuns(draft.draft_data.pendingRuns);
-            }
-            
-            console.log("Draft data successfully loaded");
-            toast.success('Workout progress restored');
-          }
-        } else {
-          console.log("No valid draft data found for this workout");
-        }
+        const records = await fetchPersonalRecords(user.id);
+        console.log("Loaded personal records:", records);
+        setPersonalRecords(records);
       } catch (error) {
-        console.error("Error loading workout draft:", error);
-      } finally {
-        setDraftLoaded(true);
+        console.error("Error loading personal records:", error);
       }
     };
     
-    if (user && workoutCompletionId && !draftLoaded && workoutDataInitialized) {
-      console.log("User authenticated and workout data initialized, loading draft data");
-      loadDraftData();
-    }
-  }, [workoutCompletionId, user, draftLoaded, workoutDataInitialized]);
+    loadPersonalRecords();
+  }, [user?.id]);
+
+  const getExercisePR = (exerciseId: string): PersonalRecord | undefined => {
+    return personalRecords.find(record => record.exercise_id === exerciseId);
+  };
+
+  const draftData = {
+    exerciseStates,
+    pendingSets,
+    pendingCardio,
+    pendingFlexibility,
+    pendingRuns
+  };
+
+  const { saveStatus } = useAutosave({
+    data: draftData,
+    onSave: async (data) => {
+      if (!workoutCompletionId || !user?.id) return false;
+      console.log("Saving workout draft with data:", data);
+      return await saveWorkoutDraft(
+        workoutCompletionId || null, 
+        'workout', 
+        data
+      );
+    },
+    interval: 3000,
+    disabled: !workoutCompletionId || !user?.id
+  });
 
   const trackSetMutation = useMutation({
     mutationFn: async ({
@@ -871,14 +813,14 @@ const ActiveWorkout = () => {
     toast.success(`Swapped to ${newExercise.name}`);
   };
 
-  const renderExerciseCard = (exercise: any) => {
+  const renderExerciseCard = (exercise: WorkoutExercise) => {
     const exerciseType = exercise.exercise?.exercise_type || 'strength';
     const exerciseName = exercise.exercise?.name || '';
     const isRunExercise = exerciseName.toLowerCase().includes('run') || exerciseName.toLowerCase().includes('running');
     const exerciseDescription = exercise.exercise?.description;
     const exerciseNotes = exercise.notes;
     const youtubeLink = exercise.exercise?.youtube_link;
-    const personalRecord = getExercisePR(exercise.exercise?.id);
+    const personalRecord = getExercisePR(exercise.exercise?.id || '');
 
     if (!exerciseStates[exercise.id]) {
       return null;
@@ -1039,7 +981,7 @@ const ActiveWorkout = () => {
 
       <Stopwatch className="mt-2 mb-6" />
     
-      {workoutData.workout?.workout_exercises && workoutData.workout.workout_exercises.length > 0 ? (
+      {workoutData.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises) && workoutData.workout.workout_exercises.length > 0 ? (
         <div className="space-y-6">
           {workoutData.workout.workout_exercises.map((exercise: any) => (
             renderExerciseCard(exercise)

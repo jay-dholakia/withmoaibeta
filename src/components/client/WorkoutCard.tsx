@@ -113,10 +113,6 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
           <p className="text-xs text-muted-foreground">{description}</p>
         )}
         
-        {isLifeHappensPass && (
-          <p className="text-xs text-muted-foreground">Workout credit used via Life Happens Pass</p>
-        )}
-        
         {exercises && exercises.length > 0 && !isLifeHappensPass && (
           <Collapsible
             open={isExpanded}

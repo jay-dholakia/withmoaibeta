@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { trackWorkoutSet, fetchPersonalRecords } from '@/services/client-service';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
@@ -14,13 +14,16 @@ import { toast } from 'sonner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
+import { useWorkoutState } from '@/hooks/useWorkoutState';
 import { PersonalRecord, Exercise } from '@/types/workout';
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { VideoPlayer } from '@/components/client/VideoPlayer';
+import Stopwatch from './Stopwatch';
+import { cn } from '@/lib/utils';
+import { fetchSimilarExercises } from '@/services/exercise-service';
+import { StrengthExercise } from './workout/StrengthExercise';
+import { CardioExercise } from './workout/CardioExercise';
+import { FlexibilityExercise } from './workout/FlexibilityExercise';
+import { RunExercise } from './workout/RunExercise';
 import {
   Dialog,
   DialogContent,
@@ -29,10 +32,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { VideoPlayer } from '@/components/client/VideoPlayer';
-import Stopwatch from './Stopwatch';
-import { cn } from '@/lib/utils';
-import { fetchSimilarExercises } from '@/services/exercise-service';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -43,62 +42,6 @@ const ActiveWorkout = () => {
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [authStateChanged, setAuthStateChanged] = useState(0);
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
-  const [workoutDataInitialized, setWorkoutDataInitialized] = useState(false);
-  
-  const [exerciseStates, setExerciseStates] = useState<{
-    [key: string]: {
-      expanded: boolean;
-      sets: Array<{
-        setNumber: number;
-        weight: string;
-        reps: string;
-        completed: boolean;
-      }>;
-      cardioData?: {
-        distance: string;
-        duration: string;
-        location: string;
-        completed: boolean;
-      };
-      flexibilityData?: {
-        duration: string;
-        completed: boolean;
-      };
-      runData?: {
-        distance: string;
-        duration: string;
-        location: string;
-        completed: boolean;
-      };
-    };
-  }>({});
-
-  const [pendingSets, setPendingSets] = useState<Array<{
-    exerciseId: string;
-    setNumber: number;
-    weight: string;
-    reps: string;
-  }>>([]);
-
-  const [pendingCardio, setPendingCardio] = useState<Array<{
-    exerciseId: string;
-    distance: string;
-    duration: string;
-    location: string;
-  }>>([]);
-
-  const [pendingFlexibility, setPendingFlexibility] = useState<Array<{
-    exerciseId: string;
-    duration: string;
-  }>>([]);
-
-  const [pendingRuns, setPendingRuns] = useState<Array<{
-    exerciseId: string;
-    distance: string;
-    duration: string;
-    location: string;
-  }>>([]);
-
   const [expandedDescriptions, setExpandedDescriptions] = useState<{[key: string]: boolean}>({});
   
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
@@ -110,15 +53,26 @@ const ActiveWorkout = () => {
   const [alternativeExercises, setAlternativeExercises] = useState<any[]>([]);
   const [isLoadingAlternatives, setIsLoadingAlternatives] = useState(false);
 
+  const {
+    exerciseStates,
+    setExerciseStates,
+    pendingSets,
+    setPendingSets,
+    pendingCardio,
+    setPendingCardio,
+    pendingFlexibility,
+    setPendingFlexibility,
+    pendingRuns,
+    setPendingRuns,
+    workoutDataInitialized
+  } = useWorkoutState(workoutData?.workout?.workout_exercises);
+
   const formatDurationInput = (value: string): string => {
     let cleaned = value.replace(/[^\d:]/g, '');
-    
     const parts = cleaned.split(':');
-    
     if (parts.length > 3) {
       cleaned = parts.slice(0, 3).join(':');
     }
-    
     return cleaned;
   };
 
@@ -289,135 +243,21 @@ const ActiveWorkout = () => {
   });
 
   useEffect(() => {
-    if (workoutData?.workout?.workout_exercises && !workoutDataInitialized) {
-      console.log("Initializing workout exercise states from workout data");
-      
-      const initialState: any = {};
-      
-      const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
-        ? workoutData.workout.workout_exercises 
-        : [];
-      
-      workoutExercises.forEach((exercise: any) => {
-        const exerciseType = exercise.exercise?.exercise_type || 'strength';
-        const exerciseName = (exercise.exercise?.name || '').toLowerCase();
-        const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
-        
-        if (isRunExercise) {
-          const existingSet = workoutData.workout_set_completions?.find(
-            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
-          );
-          
-          initialState[exercise.id] = {
-            expanded: true,
-            sets: [],
-            runData: {
-              distance: existingSet?.distance || '',
-              duration: existingSet?.duration || '',
-              location: existingSet?.location || '',
-              completed: !!existingSet?.completed
-            }
-          };
-        } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
-          console.log(`Initializing exercise ${exercise.id}: ${exercise.exercise?.name} with ${exercise.sets} sets`);
-          const sets = Array.from({ length: exercise.sets || 1 }, (_, i) => {
-            const existingSet = workoutData.workout_set_completions?.find(
-              (set: any) => set.workout_exercise_id === exercise.id && set.set_number === i + 1
-            );
-            
-            let defaultReps = '';
-            if (exercise.reps) {
-              const repsMatch = exercise.reps.match(/^(\d+)$/);
-              if (repsMatch) {
-                defaultReps = repsMatch[1];
-              }
-            }
-            
-            return {
-              setNumber: i + 1,
-              weight: existingSet?.weight?.toString() || '',
-              reps: existingSet?.reps_completed?.toString() || defaultReps,
-              completed: !!existingSet?.completed,
-            };
-          });
-          
-          initialState[exercise.id] = {
-            expanded: true,
-            sets,
-          };
-          console.log(`Created ${sets.length} sets for exercise ${exercise.id}`);
-        } else if (exerciseType === 'cardio') {
-          const existingSet = workoutData.workout_set_completions?.find(
-            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
-          );
-          
-          initialState[exercise.id] = {
-            expanded: true,
-            sets: [],
-            cardioData: {
-              distance: existingSet?.distance || '',
-              duration: existingSet?.duration || '',
-              location: existingSet?.location || '',
-              completed: !!existingSet?.completed
-            }
-          };
-        } else if (exerciseType === 'flexibility') {
-          const existingSet = workoutData.workout_set_completions?.find(
-            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
-          );
-          
-          initialState[exercise.id] = {
-            expanded: true,
-            sets: [],
-            flexibilityData: {
-              duration: existingSet?.duration || '',
-              completed: !!existingSet?.completed
-            }
-          };
-        }
-      });
-      
-      console.log("Initialized exercise states:", initialState);
-      setExerciseStates(initialState);
-      setWorkoutDataInitialized(true);
-    }
-  }, [workoutData, workoutDataInitialized]);
-
-  useEffect(() => {
-    let mounted = true;
-    
     const loadDraftData = async () => {
-      if (!workoutCompletionId || !user?.id || !mounted) return;
+      if (!workoutCompletionId || !user?.id) return;
       
       try {
         console.log(`Loading draft data for workout ${workoutCompletionId}`);
         
         const draft = await getWorkoutDraft(workoutCompletionId);
         
-        if (!mounted) return;
-        
         if (draft && draft.draft_data) {
           console.log("Workout draft data received:", draft.draft_data);
           
           if (typeof draft.draft_data === 'object' && draft.draft_data !== null) {
-            if (workoutDataInitialized) {
-              if (draft.draft_data.exerciseStates) {
-                console.log("Loading exercise states from draft:", draft.draft_data.exerciseStates);
-                setExerciseStates(prevStates => {
-                  const mergedStates = { ...prevStates };
-                  
-                  Object.keys(draft.draft_data.exerciseStates).forEach(exerciseId => {
-                    if (mergedStates[exerciseId]) {
-                      mergedStates[exerciseId] = draft.draft_data.exerciseStates[exerciseId];
-                    }
-                  });
-                  
-                  return mergedStates;
-                });
-              }
-            } else {
-              console.log("Workout data not initialized yet, waiting to apply draft");
-              return; // Don't mark as loaded until we can actually apply it
+            if (draft.draft_data.exerciseStates) {
+              console.log("Loading exercise states from draft:", draft.draft_data.exerciseStates);
+              setExerciseStates(draft.draft_data.exerciseStates);
             }
             
             if (Array.isArray(draft.draft_data.pendingSets)) {
@@ -449,9 +289,7 @@ const ActiveWorkout = () => {
       } catch (error) {
         console.error("Error loading workout draft:", error);
       } finally {
-        if (mounted) {
-          setDraftLoaded(true);
-        }
+        setDraftLoaded(true);
       }
     };
     
@@ -459,10 +297,6 @@ const ActiveWorkout = () => {
       console.log("User authenticated and workout data initialized, loading draft data");
       loadDraftData();
     }
-    
-    return () => {
-      mounted = false;
-    };
   }, [workoutCompletionId, user, draftLoaded, workoutDataInitialized]);
 
   const trackSetMutation = useMutation({
@@ -682,95 +516,6 @@ const ActiveWorkout = () => {
       toast.error(`Failed to save workout: ${error?.message || 'Unknown error'}`);
     },
   });
-
-  useEffect(() => {
-    if (workoutData?.workout?.workout_exercises) {
-      const initialState: any = {};
-      
-      const workoutExercises = Array.isArray(workoutData.workout.workout_exercises) 
-        ? workoutData.workout.workout_exercises 
-        : [];
-      
-      workoutExercises.forEach((exercise: any) => {
-        const exerciseType = exercise.exercise?.exercise_type || 'strength';
-        const exerciseName = exercise.exercise?.name || '';
-        const isRunExercise = exerciseName.toLowerCase().includes('run') || exerciseName.toLowerCase().includes('running');
-        
-        if (isRunExercise) {
-          const existingSet = workoutData.workout_set_completions?.find(
-            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
-          );
-          
-          initialState[exercise.id] = {
-            expanded: true,
-            sets: [],
-            runData: {
-              distance: existingSet?.distance || '',
-              duration: existingSet?.duration || '',
-              location: existingSet?.location || '',
-              completed: !!existingSet?.completed
-            }
-          };
-        } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
-          const sets = Array.from({ length: exercise.sets }, (_, i) => {
-            const existingSet = workoutData.workout_set_completions?.find(
-              (set: any) => set.workout_exercise_id === exercise.id && set.set_number === i + 1
-            );
-            
-            let defaultReps = '';
-            if (exercise.reps) {
-              const repsMatch = exercise.reps.match(/^(\d+)$/);
-              if (repsMatch) {
-                defaultReps = repsMatch[1];
-              }
-            }
-            
-            return {
-              setNumber: i + 1,
-              weight: existingSet?.weight?.toString() || '',
-              reps: existingSet?.reps_completed?.toString() || defaultReps,
-              completed: !!existingSet?.completed,
-            };
-          });
-          
-          initialState[exercise.id] = {
-            expanded: true,
-            sets,
-          };
-        } else if (exerciseType === 'cardio') {
-          const existingSet = workoutData.workout_set_completions?.find(
-            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
-          );
-          
-          initialState[exercise.id] = {
-            expanded: true,
-            sets: [],
-            cardioData: {
-              distance: existingSet?.distance || '',
-              duration: existingSet?.duration || '',
-              location: existingSet?.location || '',
-              completed: !!existingSet?.completed
-            }
-          };
-        } else if (exerciseType === 'flexibility') {
-          const existingSet = workoutData.workout_set_completions?.find(
-            (set: any) => set.workout_exercise_id === exercise.id && set.set_number === 1
-          );
-          
-          initialState[exercise.id] = {
-            expanded: true,
-            sets: [],
-            flexibilityData: {
-              duration: existingSet?.duration || '',
-              completed: !!existingSet?.completed
-            }
-          };
-        }
-      });
-      
-      setExerciseStates(initialState);
-    }
-  }, [workoutData]);
 
   const handleSetChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
     setExerciseStates((prev) => {
@@ -1168,292 +913,84 @@ const ActiveWorkout = () => {
         </CardHeader>
 
         {expanded && (
-          <>
-            <CardContent className="pt-0 px-3 pb-2">
-              {(exerciseDescription || exerciseNotes) && (
-                <div className="mb-3 text-sm">
-                  {expandedDescriptions[exercise.id] ? (
-                    <div>
-                      {exerciseDescription && <div className="mb-2">{exerciseDescription}</div>}
-                      {exerciseNotes && (
-                        <div className="mt-2">
-                          <span className="font-semibold">Coach's notes:</span> {exerciseNotes}
-                        </div>
-                      )}
-                      {(exerciseDescription || exerciseNotes) && (
-                        <Button 
-                          variant="link" 
-                          className="p-0 h-auto text-xs" 
-                          onClick={() => toggleDescriptionExpanded(exercise.id)}
-                        >
-                          Show Less
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <Button 
-                      variant="link" 
-                      className="p-0 h-auto text-xs" 
-                      onClick={() => toggleDescriptionExpanded(exercise.id)}
-                    >
-                      Show Description
-                    </Button>
-                  )}
-                </div>
-              )}
-
-              {isRunExercise && exerciseStates[exercise.id].runData && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs mb-1">Distance (miles)</label>
-                      <Input 
-                        type="number" 
-                        placeholder="Enter distance"
-                        value={exerciseStates[exercise.id].runData?.distance || ''}
-                        onChange={(e) => handleRunChange(exercise.id, 'distance', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs mb-1">Duration (hh:mm:ss)</label>
-                      <Input 
-                        type="text"
-                        placeholder="00:30:00"
-                        value={exerciseStates[exercise.id].runData?.duration || ''}
-                        onChange={(e) => handleRunChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
-                      />
-                    </div>
-                  </div>
+          <CardContent className="pt-0 px-3 pb-2">
+            {(exerciseDescription || exerciseNotes) && (
+              <div className="mb-3 text-sm">
+                {expandedDescriptions[exercise.id] ? (
                   <div>
-                    <label className="block text-xs mb-1">Location (optional)</label>
-                    <Input 
-                      type="text" 
-                      placeholder="e.g., Central Park"
-                      value={exerciseStates[exercise.id].runData?.location || ''}
-                      onChange={(e) => handleRunChange(exercise.id, 'location', e.target.value)}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center">
-                            <Checkbox 
-                              id={`run-done-${exercise.id}`}
-                              checked={exerciseStates[exercise.id].runData?.completed}
-                              onCheckedChange={(checked) => handleRunCompletion(exercise.id, checked === true)}
-                              className="h-6 w-6 rounded-full border-2 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                            />
-                            <label htmlFor={`run-done-${exercise.id}`} className="ml-2 cursor-pointer">
-                              Mark as Done
-                            </label>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Mark this run as completed</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    {youtubeLink && (
+                    {exerciseDescription && <div className="mb-2">{exerciseDescription}</div>}
+                    {exerciseNotes && (
+                      <div className="mt-2">
+                        <span className="font-semibold">Coach's notes:</span> {exerciseNotes}
+                      </div>
+                    )}
+                    {(exerciseDescription || exerciseNotes) && (
                       <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => openVideoDialog(youtubeLink, exerciseName)}
+                        variant="link" 
+                        className="p-0 h-auto text-xs" 
+                        onClick={() => toggleDescriptionExpanded(exercise.id)}
                       >
-                        <Youtube className="h-4 w-4 mr-1" /> Demo
+                        Show Less
                       </Button>
                     )}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-xs" 
+                    onClick={() => toggleDescriptionExpanded(exercise.id)}
+                  >
+                    Show Description
+                  </Button>
+                )}
+              </div>
+            )}
 
-              {exerciseType === 'cardio' && !isRunExercise && exerciseStates[exercise.id].cardioData && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs mb-1">Distance (optional)</label>
-                      <Input 
-                        type="text" 
-                        placeholder="e.g., 5 miles"
-                        value={exerciseStates[exercise.id].cardioData?.distance || ''}
-                        onChange={(e) => handleCardioChange(exercise.id, 'distance', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs mb-1">Duration (hh:mm:ss)</label>
-                      <Input 
-                        type="text"
-                        placeholder="00:30:00"
-                        value={exerciseStates[exercise.id].cardioData?.duration || ''}
-                        onChange={(e) => handleCardioChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs mb-1">Location (optional)</label>
-                    <Input 
-                      type="text" 
-                      placeholder="e.g., Gym"
-                      value={exerciseStates[exercise.id].cardioData?.location || ''}
-                      onChange={(e) => handleCardioChange(exercise.id, 'location', e.target.value)}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center">
-                            <Checkbox 
-                              id={`cardio-done-${exercise.id}`}
-                              checked={exerciseStates[exercise.id].cardioData?.completed}
-                              onCheckedChange={(checked) => handleCardioCompletion(exercise.id, checked === true)}
-                              className="h-6 w-6 rounded-full border-2 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                            />
-                            <label htmlFor={`cardio-done-${exercise.id}`} className="ml-2 cursor-pointer">
-                              Mark as Done
-                            </label>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Mark this cardio session as completed</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    {youtubeLink && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => openVideoDialog(youtubeLink, exerciseName)}
-                      >
-                        <Youtube className="h-4 w-4 mr-1" /> Demo
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
+            {(exerciseType === 'strength' || exerciseType === 'bodyweight') && !isRunExercise && (
+              <StrengthExercise
+                exercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                personalRecord={personalRecord}
+                onSetChange={handleSetChange}
+                onSetCompletion={handleSetCompletion}
+                onVideoClick={openVideoDialog}
+                onSwapClick={openAlternativeDialog}
+              />
+            )}
 
-              {exerciseType === 'flexibility' && exerciseStates[exercise.id].flexibilityData && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs mb-1">Duration (mm:ss)</label>
-                    <Input 
-                      type="text"
-                      placeholder="05:00"
-                      value={exerciseStates[exercise.id].flexibilityData?.duration || ''}
-                      onChange={(e) => handleFlexibilityChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center">
-                            <Checkbox 
-                              id={`flexibility-done-${exercise.id}`}
-                              checked={exerciseStates[exercise.id].flexibilityData?.completed}
-                              onCheckedChange={(checked) => handleFlexibilityCompletion(exercise.id, checked === true)}
-                              className="h-6 w-6 rounded-full border-2 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                            />
-                            <label htmlFor={`flexibility-done-${exercise.id}`} className="ml-2 cursor-pointer">
-                              Mark as Done
-                            </label>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Mark this flexibility exercise as completed</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    {youtubeLink && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => openVideoDialog(youtubeLink, exerciseName)}
-                      >
-                        <Youtube className="h-4 w-4 mr-1" /> Demo
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
+            {exerciseType === 'cardio' && !isRunExercise && (
+              <CardioExercise
+                exercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                formatDurationInput={formatDurationInput}
+                onCardioChange={handleCardioChange}
+                onCardioCompletion={handleCardioCompletion}
+                onVideoClick={openVideoDialog}
+              />
+            )}
 
-              {(exerciseType === 'strength' || exerciseType === 'bodyweight') && !isRunExercise && (
-                <div className="space-y-3">
-                  {personalRecord && (
-                    <div className="bg-gray-50 p-2 rounded-md text-xs flex items-center mb-2">
-                      <Info className="h-4 w-4 mr-1.5 text-blue-500" />
-                      <span>
-                        <span className="font-semibold">PR:</span> {personalRecord.weight} lbs x {personalRecord.reps || 1} {personalRecord.reps !== 1 ? 'reps' : 'rep'}
-                      </span>
-                    </div>
-                  )}
+            {exerciseType === 'flexibility' && (
+              <FlexibilityExercise
+                exercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                formatDurationInput={formatDurationInput}
+                onFlexibilityChange={handleFlexibilityChange}
+                onFlexibilityCompletion={handleFlexibilityCompletion}
+                onVideoClick={openVideoDialog}
+              />
+            )}
 
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-xs text-gray-500">
-                        <th className="text-left font-normal">Set</th>
-                        <th className="text-left font-normal">Reps</th>
-                        <th className="text-left font-normal">Weight</th>
-                        <th className="text-center font-normal w-12">Done</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {exerciseStates[exercise.id].sets.map((set, index) => (
-                        <tr key={`${exercise.id}-set-${index}`} className="h-10">
-                          <td className="pl-1 w-8 text-sm">{set.setNumber}</td>
-                          <td className="pr-1 w-24">
-                            <Input
-                              type="number"
-                              placeholder="reps"
-                              value={set.reps}
-                              onChange={(e) => handleSetChange(exercise.id, index, 'reps', e.target.value)}
-                              className="h-8 text-sm"
-                            />
-                          </td>
-                          <td className="pr-1 w-24">
-                            <Input
-                              type="number"
-                              placeholder="lbs"
-                              value={set.weight}
-                              onChange={(e) => handleSetChange(exercise.id, index, 'weight', e.target.value)}
-                              className="h-8 text-sm"
-                            />
-                          </td>
-                          <td className="text-center">
-                            <Checkbox 
-                              id={`set-${exercise.id}-${index}`}
-                              checked={set.completed}
-                              onCheckedChange={(checked) => handleSetCompletion(exercise.id, index, checked === true)}
-                              className="h-6 w-6 rounded-full border-2 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  
-                  <div className="flex justify-end mt-2 space-x-2">
-                    {youtubeLink && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => openVideoDialog(youtubeLink, exerciseName)}
-                      >
-                        <Youtube className="h-4 w-4 mr-1" /> Demo
-                      </Button>
-                    )}
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => openAlternativeDialog(exercise)}
-                    >
-                      <ArrowRightLeft className="h-4 w-4 mr-1" /> Swap
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </>
+            {isRunExercise && (
+              <RunExercise
+                exercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                onRunChange={handleRunChange}
+                onRunCompletion={handleRunCompletion}
+                onVideoClick={openVideoDialog}
+                formatDurationInput={formatDurationInput}
+              />
+            )}
+          </CardContent>
         )}
       </Card>
     );
@@ -1475,137 +1012,4 @@ const ActiveWorkout = () => {
         <h2 className="text-xl font-bold mb-2">Workout Not Found</h2>
         <p className="text-gray-500 text-center mb-6">Could not load the requested workout.</p>
         <Button onClick={() => navigate('/client-dashboard/workouts')}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
-        </Button>
-      </div>
-    );
-  }
-
-  const workout = workoutData.workout;
-  const exercises = Array.isArray(workout.workout_exercises) ? workout.workout_exercises : [];
-  
-  // Sort exercises by their order_index if available
-  const sortedExercises = [...exercises].sort((a, b) => {
-    return (a.order_index || 0) - (b.order_index || 0);
-  });
-
-  // Workout completion state
-  const hasCompletedWorkout = Object.values(exerciseStates).some(state => {
-    if (state.cardioData?.completed) return true;
-    if (state.flexibilityData?.completed) return true;
-    if (state.runData?.completed) return true;
-    return state.sets?.some(set => set.completed);
-  });
-
-  return (
-    <div className="pb-32">
-      {/* Header */}
-      <div className="sticky top-0 bg-background z-10 p-4 border-b shadow-sm">
-        <div className="flex justify-between items-center">
-          <div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="mb-2 pl-0"
-              onClick={() => navigate('/client-dashboard/workouts')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" /> Back
-            </Button>
-            <h1 className="text-2xl font-bold">{workout.title}</h1>
-            {workout.description && (
-              <p className="text-gray-600 text-sm mt-1">{workout.description}</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="p-4 pb-32">
-        {/* Exercises */}
-        {sortedExercises.length === 0 ? (
-          <div className="text-center py-8">
-            <AlertCircle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-            <p>No exercises found for this workout.</p>
-          </div>
-        ) : (
-          sortedExercises.map(exercise => renderExerciseCard(exercise))
-        )}
-        
-        {/* Complete Workout Button */}
-        <div className="fixed bottom-16 left-0 right-0 bg-background border-t z-50">
-          <div className="p-4">
-            <Stopwatch className="mb-4" />
-            <Button 
-              disabled={!hasCompletedWorkout || saveAllSetsMutation.isPending}
-              onClick={() => saveAllSetsMutation.mutate()}
-              className="w-full h-12"
-            >
-              {saveAllSetsMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-      
-      {/* Video Demo Dialog */}
-      <Dialog open={videoDialogOpen} onOpenChange={closeVideoDialog}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{currentExerciseName} Demo</DialogTitle>
-          </DialogHeader>
-          {currentVideoUrl && <VideoPlayer url={currentVideoUrl} />}
-        </DialogContent>
-      </Dialog>
-      
-      {/* Alternative Exercises Dialog */}
-      <Dialog open={alternativeDialogOpen} onOpenChange={closeAlternativeDialog}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Alternative Exercises</DialogTitle>
-            <DialogDescription>
-              Click on an exercise to swap it with {currentExercise?.exercise?.name}. This will reset any logged sets.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {isLoadingAlternatives ? (
-            <div className="py-8 text-center">
-              <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-              <p className="mt-2">Loading alternatives...</p>
-            </div>
-          ) : alternativeExercises.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
-              <p>No alternative exercises found for this muscle group.</p>
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {alternativeExercises.map(alt => (
-                <Card 
-                  key={alt.id} 
-                  className="p-3 cursor-pointer hover:bg-accent transition-colors"
-                  onClick={() => handleExerciseSwap(alt, currentExercise?.id)}
-                >
-                  <h4 className="font-medium">{alt.name}</h4>
-                  {alt.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{alt.description}</p>
-                  )}
-                </Card>
-              ))}
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={closeAlternativeDialog}>Cancel</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default ActiveWorkout;
+          <ArrowLeft className="h-4 w-4

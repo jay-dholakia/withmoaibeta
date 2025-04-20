@@ -160,10 +160,10 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
       <CardFooter className="p-2 flex flex-col gap-1">
         <Button 
           className={cn(
-            "w-full h-10 py-2 text-sm border-2 border-client", // Updated to match dashboard button
+            "w-full h-10 py-2 text-sm outline-none focus:outline-none", // Removed blue outline
             isCurrentUserCompleted ? "bg-gray-400 hover:bg-gray-500" : ""
           )}
-          size="default" // Changed from "sm" to "default"
+          size="default"
           onClick={handleStartWorkout}
           disabled={isCurrentUserCompleted}
         >

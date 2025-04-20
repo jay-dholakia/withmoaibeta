@@ -876,7 +876,7 @@ const ActiveWorkout = () => {
       return updatedStates;
     });
     
-    // Update workout data to reflect the swap
+    // Only update workout data to reflect the exercise ID change
     if (workoutData?.workout?.workout_exercises) {
       const exercises = workoutData.workout.workout_exercises;
       
@@ -886,8 +886,8 @@ const ActiveWorkout = () => {
           if (ex.id === originalExerciseId) {
             return {
               ...ex,
-              exercise: newExercise,
-              exercise_id: newExercise.id
+              exercise_id: newExercise.id,
+              exercise: newExercise
             };
           }
           return ex;

@@ -1,13 +1,12 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { WorkoutTypeIcon } from './WorkoutTypeIcon';
-// Remove the import for AddToGoogleCalendarButton since we're hiding it
-// import { AddToGoogleCalendarButton } from './AddToGoogleCalendarButton';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface GroupMember {
   id: string;
@@ -26,9 +25,9 @@ interface WorkoutCardProps {
   onStartWorkout: (workoutId: string) => void;
   completed?: boolean;
   dayOfWeek?: number;
+  exercises?: any[];
 }
 
-// Helper to get initials
 const getMemberInitials = (name: string): string => {
   const parts = name.split(' ').filter(Boolean);
   if (parts.length === 0) return '?';
@@ -45,8 +44,10 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   currentUserId,
   onStartWorkout,
   completed = false,
-  dayOfWeek
+  dayOfWeek,
+  exercises = []
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const isCurrentUserCompleted = completed || 
     groupMembers.find(member => member.id === currentUserId)?.completed_workout_ids.includes(workoutId);
 
@@ -100,9 +101,47 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         )}
       </CardHeader>
       
-      <CardContent className="px-4 py-2">
+      <CardContent className="px-4 pb-2">
         {description && (
           <p className="text-sm text-muted-foreground">{description}</p>
+        )}
+        
+        {exercises && exercises.length > 0 && (
+          <Collapsible
+            open={isExpanded}
+            onOpenChange={setIsExpanded}
+            className="mt-2 space-y-2"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {exercises.length} exercise{exercises.length !== 1 ? 's' : ''}
+              </p>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                  <span className="sr-only">Toggle exercises</span>
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+            
+            <CollapsibleContent className="space-y-1">
+              {exercises.map((exercise, index) => (
+                <div 
+                  key={exercise.id || index}
+                  className="text-sm py-1 border-t first:border-t-0 border-gray-100"
+                >
+                  <p className="font-medium">{exercise.title || exercise.exercise?.name}</p>
+                  <p className="text-muted-foreground">
+                    {exercise.sets} {exercise.sets === 1 ? 'set' : 'sets'} × {exercise.reps}
+                  </p>
+                </div>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
         )}
       </CardContent>
       
@@ -118,8 +157,6 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         >
           {isCurrentUserCompleted ? 'Workout Completed' : 'Log Workout'}
         </Button>
-        
-        {/* Removed the AddToGoogleCalendarButton component */}
       </CardFooter>
     </Card>
   );

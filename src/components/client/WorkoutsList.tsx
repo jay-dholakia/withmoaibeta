@@ -342,14 +342,15 @@ const WorkoutsList = () => {
                 <WorkoutCard
                   key={workout.id}
                   workoutId={workout.id}
-                  title={workout.workout?.title || 'Untitled Workout'}
-                  description={workout.workout?.description || ''}
-                  type={workout.workout?.workout_type as any}
-                  groupMembers={allGroupMembers}
+                  title={workout.title}
+                  description={workout.description}
+                  type={workout.workout_type}
+                  groupMembers={groupMembers}
                   currentUserId={user?.id || ''}
                   onStartWorkout={handleStartWorkout}
-                  completed={false}
-                  dayOfWeek={workout.workout?.day_of_week}
+                  completed={isWorkoutCompleted(workout.id)}
+                  dayOfWeek={workout.day_of_week}
+                  exercises={workout.workout_exercises || []}
                 />
               ))}
             </div>
@@ -364,14 +365,15 @@ const WorkoutsList = () => {
                 <WorkoutCard
                   key={workout.id}
                   workoutId={workout.id}
-                  title={workout.workout?.title || 'Untitled Workout'}
-                  description={workout.workout?.description || ''}
-                  type={workout.workout?.workout_type as any}
-                  groupMembers={allGroupMembers}
+                  title={workout.title}
+                  description={workout.description}
+                  type={workout.workout_type}
+                  groupMembers={groupMembers}
                   currentUserId={user?.id || ''}
                   onStartWorkout={handleStartWorkout}
-                  completed={true}
-                  dayOfWeek={workout.workout?.day_of_week}
+                  completed={isWorkoutCompleted(workout.id)}
+                  dayOfWeek={workout.day_of_week}
+                  exercises={workout.workout_exercises || []}
                 />
               ))}
             </div>

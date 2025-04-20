@@ -8,10 +8,10 @@ import { useParams, Link } from 'react-router-dom';
 import { useWorkoutState } from '@/hooks/useWorkoutState';
 import { toast } from 'sonner';
 import { fetchWorkoutExercises } from '@/services/client-workout-history-service';
-import StrengthExercise from '@/components/client/workout/StrengthExercise';
-import CardioExercise from '@/components/client/workout/CardioExercise';
-import FlexibilityExercise from '@/components/client/workout/FlexibilityExercise';
-import RunExercise from '@/components/client/workout/RunExercise';
+import { StrengthExercise } from '@/components/client/workout/StrengthExercise';
+import { CardioExercise } from '@/components/client/workout/CardioExercise';
+import { FlexibilityExercise } from '@/components/client/workout/FlexibilityExercise';
+import { RunExercise } from '@/components/client/workout/RunExercise';
 
 const ActiveWorkout: React.FC = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -55,6 +55,104 @@ const ActiveWorkout: React.FC = () => {
       return true;
     }
   });
+
+  // Helper functions for exercise interaction
+  const formatDurationInput = (value: string): string => {
+    // Format duration input to hh:mm:ss format
+    // For now, just return the value as is
+    return value;
+  };
+
+  const onSetChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
+    setExerciseStates(prev => {
+      const newStates = {...prev};
+      if (newStates[exerciseId] && newStates[exerciseId].sets && newStates[exerciseId].sets[setIndex]) {
+        newStates[exerciseId].sets[setIndex][field] = value;
+      }
+      return newStates;
+    });
+  };
+
+  const onSetCompletion = (exerciseId: string, setIndex: number, completed: boolean) => {
+    setExerciseStates(prev => {
+      const newStates = {...prev};
+      if (newStates[exerciseId] && newStates[exerciseId].sets && newStates[exerciseId].sets[setIndex]) {
+        newStates[exerciseId].sets[setIndex].completed = completed;
+      }
+      return newStates;
+    });
+  };
+
+  const onCardioChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
+    setExerciseStates(prev => {
+      const newStates = {...prev};
+      if (newStates[exerciseId] && newStates[exerciseId].cardioData) {
+        newStates[exerciseId].cardioData[field] = value;
+      }
+      return newStates;
+    });
+  };
+
+  const onCardioCompletion = (exerciseId: string, completed: boolean) => {
+    setExerciseStates(prev => {
+      const newStates = {...prev};
+      if (newStates[exerciseId] && newStates[exerciseId].cardioData) {
+        newStates[exerciseId].cardioData.completed = completed;
+      }
+      return newStates;
+    });
+  };
+
+  const onFlexibilityChange = (exerciseId: string, field: 'duration', value: string) => {
+    setExerciseStates(prev => {
+      const newStates = {...prev};
+      if (newStates[exerciseId] && newStates[exerciseId].flexibilityData) {
+        newStates[exerciseId].flexibilityData[field] = value;
+      }
+      return newStates;
+    });
+  };
+
+  const onFlexibilityCompletion = (exerciseId: string, completed: boolean) => {
+    setExerciseStates(prev => {
+      const newStates = {...prev};
+      if (newStates[exerciseId] && newStates[exerciseId].flexibilityData) {
+        newStates[exerciseId].flexibilityData.completed = completed;
+      }
+      return newStates;
+    });
+  };
+
+  const onRunChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
+    setExerciseStates(prev => {
+      const newStates = {...prev};
+      if (newStates[exerciseId] && newStates[exerciseId].runData) {
+        newStates[exerciseId].runData[field] = value;
+      }
+      return newStates;
+    });
+  };
+
+  const onRunCompletion = (exerciseId: string, completed: boolean) => {
+    setExerciseStates(prev => {
+      const newStates = {...prev};
+      if (newStates[exerciseId] && newStates[exerciseId].runData) {
+        newStates[exerciseId].runData.completed = completed;
+      }
+      return newStates;
+    });
+  };
+
+  const onVideoClick = (url: string, name: string) => {
+    // Handle video demo click
+    window.open(url, '_blank');
+  };
+
+  const onSwapClick = (exercise: any) => {
+    // Handle swap exercise click
+    console.log('Swap exercise:', exercise);
+    // This would be implemented with actual swap exercise functionality
+  };
 
   // Group exercises by their type
   const groupedExercises = React.useMemo(() => {
@@ -113,11 +211,20 @@ const ActiveWorkout: React.FC = () => {
             <h3 className="text-lg font-medium mb-3">Strength Exercises</h3>
             <div className="space-y-4">
               {groupedExercises.strength.map((exerciseData) => (
-                <StrengthExercise 
-                  key={exerciseData.id} 
-                  exerciseData={exerciseData} 
-                  workoutCompletionId={workoutCompletionId || ''}
-                />
+                <div key={exerciseData.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                  <h4 className="font-medium mb-2">
+                    {exerciseData.workout_exercise?.exercise?.name || "Unknown Exercise"}
+                  </h4>
+                  <StrengthExercise 
+                    exercise={exerciseData.workout_exercise}
+                    exerciseState={exerciseStates[exerciseData.workout_exercise_id] || {}}
+                    personalRecord={null}
+                    onSetChange={onSetChange}
+                    onSetCompletion={onSetCompletion}
+                    onVideoClick={onVideoClick}
+                    onSwapClick={onSwapClick}
+                  />
+                </div>
               ))}
             </div>
           </div>
@@ -129,11 +236,19 @@ const ActiveWorkout: React.FC = () => {
             <h3 className="text-lg font-medium mb-3">Cardio Exercises</h3>
             <div className="space-y-4">
               {groupedExercises.cardio.map((exerciseData) => (
-                <CardioExercise 
-                  key={exerciseData.id} 
-                  exerciseData={exerciseData} 
-                  workoutCompletionId={workoutCompletionId || ''}
-                />
+                <div key={exerciseData.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                  <h4 className="font-medium mb-2">
+                    {exerciseData.workout_exercise?.exercise?.name || "Unknown Exercise"}
+                  </h4>
+                  <CardioExercise 
+                    exercise={exerciseData.workout_exercise}
+                    exerciseState={exerciseStates[exerciseData.workout_exercise_id] || {}}
+                    formatDurationInput={formatDurationInput}
+                    onCardioChange={onCardioChange}
+                    onCardioCompletion={onCardioCompletion}
+                    onVideoClick={onVideoClick}
+                  />
+                </div>
               ))}
             </div>
           </div>
@@ -145,11 +260,19 @@ const ActiveWorkout: React.FC = () => {
             <h3 className="text-lg font-medium mb-3">Flexibility Exercises</h3>
             <div className="space-y-4">
               {groupedExercises.flexibility.map((exerciseData) => (
-                <FlexibilityExercise 
-                  key={exerciseData.id} 
-                  exerciseData={exerciseData} 
-                  workoutCompletionId={workoutCompletionId || ''}
-                />
+                <div key={exerciseData.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                  <h4 className="font-medium mb-2">
+                    {exerciseData.workout_exercise?.exercise?.name || "Unknown Exercise"}
+                  </h4>
+                  <FlexibilityExercise 
+                    exercise={exerciseData.workout_exercise}
+                    exerciseState={exerciseStates[exerciseData.workout_exercise_id] || {}}
+                    formatDurationInput={formatDurationInput}
+                    onFlexibilityChange={onFlexibilityChange}
+                    onFlexibilityCompletion={onFlexibilityCompletion}
+                    onVideoClick={onVideoClick}
+                  />
+                </div>
               ))}
             </div>
           </div>
@@ -161,11 +284,19 @@ const ActiveWorkout: React.FC = () => {
             <h3 className="text-lg font-medium mb-3">Running</h3>
             <div className="space-y-4">
               {groupedExercises.running.map((exerciseData) => (
-                <RunExercise 
-                  key={exerciseData.id} 
-                  exerciseData={exerciseData} 
-                  workoutCompletionId={workoutCompletionId || ''}
-                />
+                <div key={exerciseData.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                  <h4 className="font-medium mb-2">
+                    {exerciseData.workout_exercise?.exercise?.name || "Unknown Exercise"}
+                  </h4>
+                  <RunExercise 
+                    exercise={exerciseData.workout_exercise}
+                    exerciseState={exerciseStates[exerciseData.workout_exercise_id] || {}}
+                    formatDurationInput={formatDurationInput}
+                    onRunChange={onRunChange}
+                    onRunCompletion={onRunCompletion}
+                    onVideoClick={onVideoClick}
+                  />
+                </div>
               ))}
             </div>
           </div>

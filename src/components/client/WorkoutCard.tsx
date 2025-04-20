@@ -62,16 +62,16 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
       "overflow-hidden transition-all",
       isCurrentUserCompleted ? "bg-gray-50 border-gray-100" : "bg-white"
     )}>
-      <CardHeader className="px-4 py-3 flex flex-row items-start justify-between">
+      <CardHeader className="px-3 py-2 flex flex-row items-start justify-between">
         <div className="flex items-center gap-2">
-          <div className="text-client text-lg">
+          <div className="text-client">
             <WorkoutTypeIcon type={type as any} />
           </div>
-          <CardTitle className="text-lg">{title}</CardTitle>
+          <CardTitle className="text-base">{title}</CardTitle>
         </div>
         
         {groupMembers.length > 0 && (
-          <div className="flex -space-x-2">
+          <div className="flex -space-x-1.5">
             <TooltipProvider>
               {groupMembers.map((member) => {
                 const hasCompleted = member.completed_workout_ids.includes(workoutId);
@@ -79,7 +79,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
                   <Tooltip key={member.id}>
                     <TooltipTrigger>
                       <Avatar className={cn(
-                        "h-7 w-7 border-2 border-white",
+                        "h-6 w-6 border-2 border-white",
                         !hasCompleted && "grayscale opacity-60"
                       )}>
                         {member.profile_picture_url && (
@@ -101,38 +101,38 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         )}
       </CardHeader>
       
-      <CardContent className="px-4 pb-2">
+      <CardContent className="px-3 pb-1 pt-0">
         {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
         )}
         
         {exercises && exercises.length > 0 && (
           <Collapsible
             open={isExpanded}
             onOpenChange={setIsExpanded}
-            className="mt-2 space-y-2"
+            className="mt-1 space-y-1"
           >
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {exercises.length} exercise{exercises.length !== 1 ? 's' : ''}
               </p>
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                   {isExpanded ? (
-                    <ChevronUp className="h-4 w-4" />
+                    <ChevronUp className="h-3 w-3" />
                   ) : (
-                    <ChevronDown className="h-4 w-4" />
+                    <ChevronDown className="h-3 w-3" />
                   )}
                   <span className="sr-only">Toggle exercises</span>
                 </Button>
               </CollapsibleTrigger>
             </div>
             
-            <CollapsibleContent className="space-y-1">
+            <CollapsibleContent className="space-y-0.5">
               {exercises.map((exercise, index) => (
                 <div 
                   key={exercise.id || index}
-                  className="text-sm py-1 border-t first:border-t-0 border-gray-100"
+                  className="text-xs py-0.5 border-t first:border-t-0 border-gray-100"
                 >
                   <p className="font-medium">{exercise.title || exercise.exercise?.name}</p>
                   <p className="text-muted-foreground">
@@ -145,10 +145,10 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         )}
       </CardContent>
       
-      <CardFooter className="p-3 flex flex-col gap-2">
+      <CardFooter className="p-2 flex flex-col gap-1">
         <Button 
           className={cn(
-            "w-full h-9 py-1",
+            "w-full h-7 py-0 text-sm",
             isCurrentUserCompleted ? "bg-gray-400 hover:bg-gray-500" : ""
           )}
           size="sm"

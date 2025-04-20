@@ -289,10 +289,10 @@ const WorkoutsList = () => {
   console.log("WorkoutsList: Final group members for cards:", allGroupMembers);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <ProgramProgressSection />
       
-      <div className="space-y-4">
+      <div className="space-y-3">
         {availableWeeks.length > 0 && (
           <div className="flex justify-center mb-2">
             <div className="relative" ref={selectRef}>
@@ -334,7 +334,7 @@ const WorkoutsList = () => {
         )}
         
         <div>
-          <h3 className="text-lg font-semibold mb-3">Pending Workouts</h3>
+          <h3 className="text-lg font-semibold mb-2">Pending Workouts</h3>
           {pendingWorkouts.length === 0 ? (
             <Card>
               <CardContent className="pt-4 pb-4 text-center">
@@ -344,7 +344,7 @@ const WorkoutsList = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {pendingWorkouts.map((workout) => (
                 <WorkoutCard
                   key={workout.id}
@@ -365,9 +365,9 @@ const WorkoutsList = () => {
         </div>
         
         {completedWorkouts.length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-3">Completed Workouts</h3>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-2">Completed Workouts</h3>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {completedWorkouts.map((workout) => (
                 <WorkoutCard
                   key={workout.id}

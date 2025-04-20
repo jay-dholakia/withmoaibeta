@@ -863,13 +863,17 @@ const ActiveWorkout = () => {
       
       updatedStates[originalExerciseId] = {
         ...originalState,
-        exercise_id: newExercise.id,
         sets: originalState.sets.map(set => ({
           ...set,
           weight: '',
           reps: '',
           completed: false
-        }))
+        })),
+        exerciseInfo: {
+          ...originalState.exerciseInfo,
+          exerciseId: newExercise.id,
+          name: newExercise.name
+        }
       };
       
       return updatedStates;

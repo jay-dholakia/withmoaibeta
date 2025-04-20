@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -109,6 +110,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
       </CardHeader>
       
       <CardContent className="px-3 pb-1 pt-0">
+        {/* Don't show description for Life Happens passes */}
         {description && !isLifeHappensPass && (
           <p className="text-xs text-muted-foreground">{description}</p>
         )}

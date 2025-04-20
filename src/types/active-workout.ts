@@ -23,6 +23,10 @@ export interface ExerciseState {
     location: string;
     completed: boolean;
   };
+  exerciseInfo?: {
+    exerciseId: string;
+    name: string;
+  };
 }
 
 export interface ExerciseStates {

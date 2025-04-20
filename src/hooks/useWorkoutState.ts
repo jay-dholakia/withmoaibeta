@@ -23,6 +23,12 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
         const exerciseName = (exercise.exercise?.name || '').toLowerCase();
         const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
         
+        // Initialize exerciseInfo for all exercise types
+        const exerciseInfo = {
+          exerciseId: exercise.exercise?.id || '',
+          name: exercise.exercise?.name || ''
+        };
+        
         if (isRunExercise) {
           initialState[exercise.id] = {
             expanded: true,
@@ -32,7 +38,8 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
               duration: '',
               location: '',
               completed: false
-            }
+            },
+            exerciseInfo
           };
         } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
           const sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
@@ -45,6 +52,7 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
           initialState[exercise.id] = {
             expanded: true,
             sets,
+            exerciseInfo
           };
         } else if (exerciseType === 'cardio') {
           initialState[exercise.id] = {
@@ -55,7 +63,8 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
               duration: '',
               location: '',
               completed: false
-            }
+            },
+            exerciseInfo
           };
         } else if (exerciseType === 'flexibility') {
           initialState[exercise.id] = {
@@ -64,7 +73,8 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
             flexibilityData: {
               duration: '',
               completed: false
-            }
+            },
+            exerciseInfo
           };
         }
       });

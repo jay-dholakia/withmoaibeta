@@ -33,7 +33,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-// ✅ Fully typed ExerciseState and ExerciseStates
 interface ExerciseState {
   expanded: boolean;
   sets: Array<{
@@ -71,8 +70,6 @@ const ActiveWorkout = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
-  // (Everything else remains unchanged)
 
   return <div>{/* UI goes here */}</div>;
 };

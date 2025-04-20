@@ -28,7 +28,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
-  const [isLegendExpanded, setIsLegendExpanded] = useState(true);
+  const [isLegendExpanded, setIsLegendExpanded] = useState(false);
   
   const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   console.log(`User timezone: ${userTimeZone}`);

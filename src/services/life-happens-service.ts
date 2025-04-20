@@ -1,11 +1,54 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { Database } from "@/integrations/supabase/types";
 
-// Maximum number of life happens passes per month
 export const MAX_MONTHLY_PASSES = 2;
 
-// Check how many life happens passes a user has used in the current month
+export const createLifeHappensCompletion = async (
+  userId: string,
+  notes: string = "Life happens pass used"
+): Promise<string | null> => {
+  try {
+    console.log("Creating life happens completion for user:", userId);
+    
+    const workoutId = await getFirstAvailableWorkoutId();
+    
+    if (!workoutId) {
+      console.error("Could not find a workout ID to use for life happens pass");
+      return null;
+    }
+    
+    const now = new Date().toISOString();
+    
+    const insertData = {
+      user_id: userId,
+      workout_id: workoutId,
+      completed_at: now,
+      notes: notes,
+      life_happens_pass: true,
+      title: "Life Happens Pass",
+      workout_type: "life_happens"
+    };
+    
+    console.log("Inserting workout completion data:", insertData);
+    
+    const { data, error } = await supabase
+      .from('workout_completions')
+      .insert(insertData)
+      .select('id')
+      .single();
+    
+    if (error) {
+      console.error("Error creating life happens completion:", error);
+      throw error;
+    }
+    
+    console.log("Successfully created life happens completion with ID:", data?.id);
+    return data?.id || null;
+  } catch (error) {
+    console.error("Error creating life happens completion:", error);
+    return null;
+  }
+};
+
 export const getLifeHappensPassesUsed = async (userId: string): Promise<number> => {
   const today = new Date();
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -36,14 +79,11 @@ export const getLifeHappensPassesUsed = async (userId: string): Promise<number> 
   }
 };
 
-// Get remaining passes for the current month
 export const getRemainingPasses = async (userId: string): Promise<number> => {
   const usedPasses = await getLifeHappensPassesUsed(userId);
   return Math.max(0, MAX_MONTHLY_PASSES - usedPasses);
 };
 
-// Find a workout ID to use for life happens pass
-// This helps us satisfy the non-null constraint on the workout_id column
 const getFirstAvailableWorkoutId = async (): Promise<string | null> => {
   try {
     const { data, error } = await supabase
@@ -57,14 +97,13 @@ const getFirstAvailableWorkoutId = async (): Promise<string | null> => {
     }
     
     if (!data || data.length === 0) {
-      // If no workouts exist, create a dummy workout
       const { data: newWorkout, error: createError } = await supabase
         .from('workouts')
         .insert({
           title: "Life Happens Placeholder",
           description: "Auto-generated workout for life happens passes",
           day_of_week: 1,
-          week_id: '00000000-0000-0000-0000-000000000000' // This might fail if there's a foreign key constraint
+          week_id: '00000000-0000-0000-0000-000000000000'
         })
         .select('id')
         .single();
@@ -84,58 +123,6 @@ const getFirstAvailableWorkoutId = async (): Promise<string | null> => {
   }
 };
 
-// Create a new workout completion with a life happens pass
-export const createLifeHappensCompletion = async (
-  userId: string,
-  notes: string = "Life happens pass used"
-): Promise<string | null> => {
-  try {
-    console.log("Creating life happens completion for user:", userId);
-    
-    // Get a workout ID to use (required by the database constraint)
-    const workoutId = await getFirstAvailableWorkoutId();
-    
-    if (!workoutId) {
-      console.error("Could not find a workout ID to use for life happens pass");
-      return null;
-    }
-    
-    console.log("Using workout ID:", workoutId);
-    
-    const now = new Date().toISOString();
-    console.log("Timestamp for completion:", now);
-    
-    // Ensure all required fields are provided and explicitly set life_happens_pass to true
-    const insertData = {
-      user_id: userId,
-      workout_id: workoutId,
-      completed_at: now,
-      notes: notes,
-      life_happens_pass: true
-    };
-    
-    console.log("Inserting workout completion data:", insertData);
-    
-    const { data, error } = await supabase
-      .from('workout_completions')
-      .insert(insertData)
-      .select('id')
-      .single();
-    
-    if (error) {
-      console.error("Error creating life happens completion:", error);
-      throw error;
-    }
-    
-    console.log("Successfully created life happens completion with ID:", data?.id);
-    return data?.id || null;
-  } catch (error) {
-    console.error("Error creating life happens completion:", error);
-    return null;
-  }
-};
-
-// Use a life happens pass for a workout
 export const useLifeHappensPass = async (
   workoutCompletionId: string,
   notes: string = "Life happens pass used"

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
@@ -31,41 +30,18 @@ const ActiveWorkout: React.FC = () => {
   } = useWorkoutState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch workout exercises directly with Supabase client for more detail
   const { data: workoutExercises, isLoading: exercisesLoading, error: exercisesError } = useQuery({
     queryKey: ['workout-exercises', workoutCompletionId],
     queryFn: async () => {
-      console.log(`Directly fetching exercises for workout completion: ${workoutCompletionId}`);
+      console.log(`Fetching exercises for workout: ${workoutCompletionId}`);
       
       try {
-        // First check if workout completion exists
-        const { data: completion, error: completionError } = await supabase
-          .from('workout_completions')
-          .select('*')
-          .eq('id', workoutCompletionId)
-          .single();
-        
-        if (completionError) {
-          console.error('Error fetching workout completion:', completionError);
-          throw completionError;
-        }
-        
-        console.log('Found workout completion:', completion);
-        
-        // Now fetch workout exercise information
-        const { data: workoutExerciseData, error } = await supabase
-          .from('workout_set_completions')
+        const { data: workout, error: workoutError } = await supabase
+          .from('workouts')
           .select(`
             *,
-            workout_exercise:workout_exercise_id (
-              id,
-              workout_id,
-              exercise_id,
-              sets,
-              reps,
-              rest_seconds,
-              notes,
-              order_index,
+            workout_exercises (
+              *,
               exercise:exercise_id (
                 id,
                 name,
@@ -75,64 +51,25 @@ const ActiveWorkout: React.FC = () => {
               )
             )
           `)
-          .eq('workout_completion_id', workoutCompletionId);
+          .eq('id', workoutCompletionId)
+          .single();
         
-        if (error) {
-          console.error('Error fetching workout exercises:', error);
-          throw error;
+        if (workoutError) {
+          console.error('Error fetching workout:', workoutError);
+          throw workoutError;
         }
         
-        console.log('Fetched exercise data:', workoutExerciseData);
-        
-        if (!workoutExerciseData || workoutExerciseData.length === 0) {
-          // Fallback to try getting exercises through workout_id
-          if (completion.workout_id) {
-            const { data: workoutExercises, error: exercisesError } = await supabase
-              .from('workout_exercises')
-              .select(`
-                *,
-                exercise:exercise_id (
-                  id,
-                  name,
-                  exercise_type,
-                  youtube_link,
-                  muscle_group
-                )
-              `)
-              .eq('workout_id', completion.workout_id);
-            
-            if (exercisesError) {
-              console.error('Error in fallback exercise fetch:', exercisesError);
-              throw exercisesError;
-            }
-            
-            console.log('Fallback exercises found:', workoutExercises);
-            
-            if (workoutExercises && workoutExercises.length > 0) {
-              // Map the workout exercises to the format expected
-              return workoutExercises.map(we => ({
-                id: `temp-${we.id}`, // Generate temporary ID
-                workout_completion_id: workoutCompletionId,
-                workout_exercise_id: we.id,
-                workout_exercise: {
-                  id: we.id,
-                  workout_id: we.workout_id,
-                  exercise_id: we.exercise_id,
-                  sets: we.sets,
-                  reps: we.reps,
-                  rest_seconds: we.rest_seconds,
-                  notes: we.notes,
-                  order_index: we.order_index,
-                  exercise: we.exercise
-                }
-              }));
-            }
-          }
+        if (!workout) {
+          console.error('No workout found with ID:', workoutCompletionId);
+          return [];
         }
+
+        console.log('Found workout:', workout);
+        console.log('With exercises:', workout.workout_exercises);
         
-        return workoutExerciseData || [];
+        return workout.workout_exercises || [];
       } catch (error) {
-        console.error('Error in workout exercise query function:', error);
+        console.error("Error in workout exercise query function:", error);
         throw error;
       }
     },
@@ -141,23 +78,18 @@ const ActiveWorkout: React.FC = () => {
   });
 
   useEffect(() => {
-    // Set loading state based on the query
     setIsLoading(exercisesLoading);
     
-    // Log detailed information about the data we're receiving
     if (workoutExercises) {
       console.log(`Loaded ${workoutExercises.length} exercises for workout completion ${workoutCompletionId}`);
       console.log('Exercise details:', workoutExercises);
     }
   }, [exercisesLoading, workoutExercises, workoutCompletionId]);
 
-  // Mock saveAllSetsMutation for now since we don't have its implementation
   const saveAllSetsMutation = useMutation({
     mutationFn: async () => {
-      // Trigger autosave before completing the workout
       triggerAutosave();
       
-      // This would be implemented with actual API calls to save workout data
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast.success('Workout completed successfully!');
@@ -165,10 +97,7 @@ const ActiveWorkout: React.FC = () => {
     }
   });
 
-  // Helper functions for exercise interaction
   const formatDurationInput = (value: string): string => {
-    // Format duration input to hh:mm:ss format
-    // For now, just return the value as is
     return value;
   };
 
@@ -253,17 +182,13 @@ const ActiveWorkout: React.FC = () => {
   };
 
   const onVideoClick = (url: string, name: string) => {
-    // Handle video demo click
     window.open(url, '_blank');
   };
 
   const onSwapClick = (exercise: any) => {
-    // Handle swap exercise click
     console.log('Swap exercise:', exercise);
-    // This would be implemented with actual swap exercise functionality
   };
 
-  // Group exercises by their type
   const groupedExercises = React.useMemo(() => {
     if (!workoutExercises) return { strength: [], cardio: [], flexibility: [], running: [] };
     
@@ -334,7 +259,6 @@ const ActiveWorkout: React.FC = () => {
       <div className="container max-w-3xl px-4 pt-4">
         <h2 className="text-2xl font-semibold mb-4">Your Workout</h2>
         
-        {/* Strength exercises */}
         {groupedExercises.strength.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-medium mb-3">Strength Exercises</h3>
@@ -362,7 +286,6 @@ const ActiveWorkout: React.FC = () => {
           </div>
         )}
         
-        {/* Cardio exercises */}
         {groupedExercises.cardio.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-medium mb-3">Cardio Exercises</h3>
@@ -389,7 +312,6 @@ const ActiveWorkout: React.FC = () => {
           </div>
         )}
         
-        {/* Flexibility exercises */}
         {groupedExercises.flexibility.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-medium mb-3">Flexibility Exercises</h3>
@@ -416,7 +338,6 @@ const ActiveWorkout: React.FC = () => {
           </div>
         )}
         
-        {/* Running exercises */}
         {groupedExercises.running.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-medium mb-3">Running</h3>
@@ -443,7 +364,6 @@ const ActiveWorkout: React.FC = () => {
           </div>
         )}
         
-        {/* Show a message if no exercises are grouped correctly */}
         {Object.values(groupedExercises).every(group => group.length === 0) && (
           <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
             <p className="text-center text-gray-500">

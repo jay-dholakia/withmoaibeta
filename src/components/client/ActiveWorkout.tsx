@@ -1078,7 +1078,7 @@ const ActiveWorkout = () => {
         <p className="text-gray-500 mb-6">{workoutData.workout.description}</p>
       )}
 
-      <Stopwatch className="mt-2 mb-6 fixed bottom-36 left-1/2 transform -translate-x-1/2 z-40" />
+      <Stopwatch className="mt-2 mb-6 fixed bottom-34 left-1/2 transform -translate-x-1/2 z-40" />
     
       {workoutData.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises) && workoutData.workout.workout_exercises.length > 0 ? (
         <div className="space-y-6 mb-40">

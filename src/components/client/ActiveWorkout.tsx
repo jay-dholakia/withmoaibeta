@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -1023,13 +1022,13 @@ const ActiveWorkout = () => {
             )}
 
             {isRunExercise && (
-              <RunExercise 
+              <RunExercise
                 exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
-                formatDurationInput={formatDurationInput}
                 onRunChange={handleRunChange}
                 onRunCompletion={handleRunCompletion}
                 onVideoClick={openVideoDialog}
+                formatDurationInput={formatDurationInput}
               />
             )}
           </CardContent>
@@ -1038,163 +1037,149 @@ const ActiveWorkout = () => {
     );
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+        <p className="text-lg font-medium">Loading workout...</p>
+      </div>
+    );
+  }
+
+  if (!workoutData || !workoutData.workout) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <h2 className="text-xl font-bold mb-2">Workout Not Found</h2>
+        <p className="text-gray-500 text-center mb-6">Could not load the requested workout.</p>
+        <Button onClick={() => navigate('/client-dashboard/workouts')}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto py-4 pb-20 max-w-lg">
-      {isLoading ? (
-        <Card className="p-10 flex flex-col items-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-          <p>Loading workout...</p>
-        </Card>
-      ) : !workoutData ? (
-        <Card>
-          <CardContent className="p-6 flex flex-col items-center">
-            <AlertCircle className="h-8 w-8 text-destructive mb-2" />
-            <p>Workout not found. It may have been deleted or you don't have access to it.</p>
-            <Button 
-              variant="secondary"
-              className="mt-4"
-              onClick={() => navigate('/client-dashboard/workouts')}
+    <div className="container max-w-2xl mx-auto p-4 pb-40">
+      <div className="flex items-center mb-4 gap-2">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/client-dashboard/workouts')} 
+          className="h-8 w-8 p-0 text-gray-500" 
+          aria-label="Back"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-xl font-bold">{workoutData.workout?.title || "Workout"}</h1>
+      </div>
+      
+      {workoutData.workout?.description && (
+        <p className="text-gray-500 mb-6">{workoutData.workout.description}</p>
+      )}
+
+      <Stopwatch className="mt-2 mb-6 fixed bottom-14 left-0 right-0 w-full z-40 shadow-lg" />
+    
+      {workoutData.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises) && workoutData.workout.workout_exercises.length > 0 ? (
+        <div className="space-y-6 mb-40">
+          {workoutData.workout.workout_exercises.map((exercise: any) => (
+            renderExerciseCard(exercise)
+          ))}
+          
+          <div className="fixed bottom-14 left-0 right-0 bg-background p-4 border-t z-50 shadow-lg">
+            <Button
+              className="w-full bg-client hover:bg-client/90 border-2 border-client text-white font-bold py-4"
+              size="lg"
+              onClick={() => saveAllSetsMutation.mutate()}
+              disabled={saveAllSetsMutation.isPending}
             >
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
+              {saveAllSetsMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-5 w-5" />
+                  Complete Workout
+                </>
+              )}
             </Button>
-          </CardContent>
-        </Card>
+            <div className="flex justify-center mt-2">
+              <p className="text-xs text-gray-500">
+                {saveStatus === 'saved' && 'Progress autosaved'}
+                {saveStatus === 'saving' && 'Saving...'}
+                {saveStatus === 'error' && 'Error saving'}
+              </p>
+            </div>
+          </div>
+        </div>
       ) : (
-        <>
-          <div className="flex justify-between items-center mb-4">
-            <Button 
-              variant="ghost" 
-              className="p-0" 
-              onClick={() => navigate('/client-dashboard/workouts')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back
-            </Button>
-            
-            {saveStatus === 'saving' && (
-              <div className="text-xs text-muted-foreground flex items-center">
-                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                Saving...
+        <div className="text-center py-8">
+          <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-2 text-lg font-medium">No Exercises Found</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            This workout doesn't have any exercises.
+          </p>
+        </div>
+      )}
+
+      <Dialog open={videoDialogOpen} onOpenChange={closeVideoDialog}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{currentExerciseName}</DialogTitle>
+            <DialogDescription>
+              Watch the exercise demonstration video
+            </DialogDescription>
+          </DialogHeader>
+          <div className="aspect-video overflow-hidden rounded-md">
+            {currentVideoUrl && <VideoPlayer url={currentVideoUrl} />}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={alternativeDialogOpen} onOpenChange={closeAlternativeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Alternative Exercises</DialogTitle>
+            <DialogDescription>
+              Select an alternative exercise to swap with {currentExercise?.exercise?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="max-h-[300px] overflow-y-auto">
+            {isLoadingAlternatives ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            )}
-            
-            {saveStatus === 'saved' && (
-              <div className="text-xs text-muted-foreground flex items-center">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Saved
+            ) : alternativeExercises.length > 0 ? (
+              <div className="space-y-2">
+                {alternativeExercises.map((exercise) => (
+                  <div 
+                    key={exercise.id}
+                    className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleExerciseSwap(exercise, currentExercise?.id)}
+                  >
+                    <span>{exercise.name}</span>
+                    <Button variant="outline" size="sm">
+                      Select
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p>No alternative exercises found.</p>
               </div>
             )}
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{workoutData?.workout?.name || 'Workout'}</CardTitle>
-              <CardDescription>
-                {workoutData?.workout?.description || 'Track your workout progress'}
-              </CardDescription>
-            </CardHeader>
-              
-            <CardContent>
-              {workoutData?.workout?.workout_exercises?.length === 0 ? (
-                <div className="text-center py-6">
-                  <p>No exercises in this workout. Please contact your coach.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {workoutData?.workout?.workout_exercises?.map((exercise: WorkoutExercise) => (
-                    renderExerciseCard(exercise)
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
-            <DialogContent className="sm:max-w-[700px] p-0">
-              <DialogHeader className="px-6 pt-6">
-                <DialogTitle>{currentExerciseName || "Exercise Video"}</DialogTitle>
-                <DialogDescription>Watch the video for proper form</DialogDescription>
-              </DialogHeader>
-              
-              <div className="relative w-full pt-[56.25%]">
-                {currentVideoUrl && (
-                  <VideoPlayer
-                    url={currentVideoUrl}
-                    height="100%"
-                    width="100%"
-                    className="absolute top-0 left-0 h-full"
-                    controls={true}
-                    playing={true}
-                  />
-                )}
-              </div>
-              
-              <DialogFooter className="p-6">
-                <Button onClick={closeVideoDialog}>Close</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        
-          <Dialog open={alternativeDialogOpen} onOpenChange={setAlternativeDialogOpen}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Alternative Exercises</DialogTitle>
-                <DialogDescription>
-                  Select an alternative exercise for {currentExercise?.exercise?.name || 'this exercise'}
-                </DialogDescription>
-              </DialogHeader>
-              
-              {isLoadingAlternatives ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-              ) : alternativeExercises.length === 0 ? (
-                <div className="py-4 text-center">
-                  <p>No alternative exercises found</p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {alternativeExercises.map((exercise) => (
-                    <Button
-                      key={exercise.id}
-                      variant="outline"
-                      className="w-full justify-start h-auto py-3 px-4"
-                      onClick={() => handleExerciseSwap(exercise, currentExercise?.id)}
-                    >
-                      <div className="text-left">
-                        <p className="font-medium">{exercise.name}</p>
-                        <p className="text-xs text-muted-foreground">{exercise.muscle_group}</p>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-              )}
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={closeAlternativeDialog}>Cancel</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <Stopwatch className="mt-6 mb-4 w-full" />
           
-          <Button 
-            className="w-full"
-            disabled={saveAllSetsMutation.isPending}
-            onClick={() => {
-              console.log("Pending sets:", pendingSets);
-              saveAllSetsMutation.mutate();
-            }}
-          >
-            {saveAllSetsMutation.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
-              </>
-            ) : (
-              'Complete Workout'
-            )}
-          </Button>
-        </>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={closeAlternativeDialog}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

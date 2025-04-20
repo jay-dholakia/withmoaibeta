@@ -4,7 +4,7 @@ export const MAX_MONTHLY_PASSES = 2;
 
 export const createLifeHappensCompletion = async (
   userId: string,
-  notes: string = ""
+  notes: string = "Life happens pass used"
 ): Promise<string | null> => {
   try {
     console.log("Creating life happens completion for user:", userId);
@@ -18,7 +18,8 @@ export const createLifeHappensCompletion = async (
       notes: notes,
       life_happens_pass: true,
       title: "Life Happens Pass", 
-      workout_type: "life_happens"
+      workout_type: "life_happens",
+      description: "Workout credit used via Life Happens Pass" 
     };
     
     console.log("Inserting workout completion data:", insertData);

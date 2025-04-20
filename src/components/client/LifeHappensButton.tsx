@@ -89,7 +89,7 @@ const LifeHappensButton = () => {
           Use Life Happens {remainingPasses !== undefined && `(${remainingPasses} remaining)`}
         </Button>
         <p className="text-xs text-center mt-2 text-muted-foreground">
-          When fitness get in the way of life, use a pass to get credit for a workout.
+          When workouts get in the way of life, use a pass to get credit for a workout.
         </p>
       </div>
 

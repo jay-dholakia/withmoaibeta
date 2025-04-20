@@ -18,10 +18,10 @@ interface JournalEntry {
 }
 
 interface WorkoutJournalSectionProps {
-  workoutId: string;
+  date: Date;
 }
 
-export const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ workoutId }) => {
+const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -30,7 +30,6 @@ export const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ wo
   const [isCreating, setIsCreating] = useState(false);
   const [newContent, setNewContent] = useState('');
   const { user } = useAuth();
-  const [date, setDate] = useState<Date>(new Date());
 
   useEffect(() => {
     if (!user?.id || !date) return;
@@ -212,3 +211,5 @@ export const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ wo
     </Card>
   );
 };
+
+export default WorkoutJournalSection;

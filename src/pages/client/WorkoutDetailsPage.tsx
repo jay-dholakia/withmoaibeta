@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ClientLayout } from '@/layouts/ClientLayout';
@@ -15,6 +16,7 @@ const processWorkoutHistory = (workouts: WorkoutHistoryItem[]): WorkoutHistoryIt
       return {
         ...workout,
         title: "Life Happens Pass",
+        description: "Workout credit used via Life Happens Pass",
         workout_type: "life_happens"
       };
     }

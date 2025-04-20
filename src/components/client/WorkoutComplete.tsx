@@ -499,7 +499,7 @@ const WorkoutComplete = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-40">
       <div className="flex items-center gap-4">
         <Button 
           variant="ghost" 
@@ -592,15 +592,15 @@ const WorkoutComplete = () => {
         <Button
           onClick={() => completeMutation.mutate()}
           disabled={completeMutation.isPending}
-          className="bg-client hover:bg-client/90 border-2 border-client"
+          className="bg-client hover:bg-client/90 border-2 border-client fixed bottom-16 left-4 right-4 z-50 py-6 shadow-lg"
         >
           {completeMutation.isPending ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Saving...
             </>
           ) : (
             <>
-              <CheckCircle2 className="mr-2 h-4 w-4" /> Complete Workout
+              <CheckCircle2 className="mr-2 h-5 w-5" /> Complete Workout
             </>
           )}
         </Button>

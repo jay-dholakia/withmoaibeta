@@ -1060,7 +1060,7 @@ const ActiveWorkout = () => {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto p-4 pb-28">
+    <div className="container max-w-2xl mx-auto p-4 pb-40">
       <div className="flex items-center mb-4 gap-2">
         <Button 
           variant="ghost" 
@@ -1080,26 +1080,26 @@ const ActiveWorkout = () => {
       <Stopwatch className="mt-2 mb-6" />
     
       {workoutData.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises) && workoutData.workout.workout_exercises.length > 0 ? (
-        <div className="space-y-6 mb-24">
+        <div className="space-y-6 mb-32">
           {workoutData.workout.workout_exercises.map((exercise: any) => (
             renderExerciseCard(exercise)
           ))}
           
-          <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t z-10 shadow-lg">
+          <div className="fixed bottom-16 left-0 right-0 bg-background p-4 border-t z-50 shadow-lg">
             <Button
-              className="w-full"
+              className="w-full bg-client hover:bg-client/90 border-2 border-client text-white font-bold py-4"
               size="lg"
               onClick={() => saveAllSetsMutation.mutate()}
               disabled={saveAllSetsMutation.isPending}
             >
               {saveAllSetsMutation.isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Saving...
                 </>
               ) : (
                 <>
-                  <Save className="mr-2 h-4 w-4" />
+                  <Save className="mr-2 h-5 w-5" />
                   Complete Workout
                 </>
               )}

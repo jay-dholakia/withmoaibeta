@@ -1076,7 +1076,7 @@ const ActiveWorkout = () => {
       const originalState = updatedStates[originalExerciseId];
       if (!originalState) return prev;
       
-      // Create a new state for the swapped exercise with the same structure
+      // Only reset the specific exercise's sets while preserving everything else
       updatedStates[originalExerciseId] = {
         ...originalState,
         sets: originalState.sets.map(set => ({

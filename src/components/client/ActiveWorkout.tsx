@@ -12,6 +12,7 @@ import { StrengthExercise } from '@/components/client/workout/StrengthExercise';
 import { CardioExercise } from '@/components/client/workout/CardioExercise';
 import { FlexibilityExercise } from '@/components/client/workout/FlexibilityExercise';
 import { RunExercise } from '@/components/client/workout/RunExercise';
+import { supabase } from "@/integrations/supabase/client";
 
 const ActiveWorkout: React.FC = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -30,27 +31,125 @@ const ActiveWorkout: React.FC = () => {
   } = useWorkoutState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch workout exercises with better error handling
+  // Fetch workout exercises directly with Supabase client for more detail
   const { data: workoutExercises, isLoading: exercisesLoading, error: exercisesError } = useQuery({
     queryKey: ['workout-exercises', workoutCompletionId],
     queryFn: async () => {
-      console.log(`Fetching exercises for workout: ${workoutCompletionId}`);
+      console.log(`Directly fetching exercises for workout completion: ${workoutCompletionId}`);
+      
       try {
-        const exercises = await fetchWorkoutExercises(workoutCompletionId || '');
-        console.log('Fetched exercises:', exercises);
-        return exercises;
+        // First check if workout completion exists
+        const { data: completion, error: completionError } = await supabase
+          .from('workout_completions')
+          .select('*')
+          .eq('id', workoutCompletionId)
+          .single();
+        
+        if (completionError) {
+          console.error('Error fetching workout completion:', completionError);
+          throw completionError;
+        }
+        
+        console.log('Found workout completion:', completion);
+        
+        // Now fetch workout exercise information
+        const { data: workoutExerciseData, error } = await supabase
+          .from('workout_set_completions')
+          .select(`
+            *,
+            workout_exercise:workout_exercise_id (
+              id,
+              workout_id,
+              exercise_id,
+              sets,
+              reps,
+              rest_seconds,
+              notes,
+              order_index,
+              exercise:exercise_id (
+                id,
+                name,
+                exercise_type,
+                youtube_link,
+                muscle_group
+              )
+            )
+          `)
+          .eq('workout_completion_id', workoutCompletionId);
+        
+        if (error) {
+          console.error('Error fetching workout exercises:', error);
+          throw error;
+        }
+        
+        console.log('Fetched exercise data:', workoutExerciseData);
+        
+        if (!workoutExerciseData || workoutExerciseData.length === 0) {
+          // Fallback to try getting exercises through workout_id
+          if (completion.workout_id) {
+            const { data: workoutExercises, error: exercisesError } = await supabase
+              .from('workout_exercises')
+              .select(`
+                *,
+                exercise:exercise_id (
+                  id,
+                  name,
+                  exercise_type,
+                  youtube_link,
+                  muscle_group
+                )
+              `)
+              .eq('workout_id', completion.workout_id);
+            
+            if (exercisesError) {
+              console.error('Error in fallback exercise fetch:', exercisesError);
+              throw exercisesError;
+            }
+            
+            console.log('Fallback exercises found:', workoutExercises);
+            
+            if (workoutExercises && workoutExercises.length > 0) {
+              // Map the workout exercises to the format expected
+              return workoutExercises.map(we => ({
+                id: `temp-${we.id}`, // Generate temporary ID
+                workout_completion_id: workoutCompletionId,
+                workout_exercise_id: we.id,
+                workout_exercise: {
+                  id: we.id,
+                  workout_id: we.workout_id,
+                  exercise_id: we.exercise_id,
+                  sets: we.sets,
+                  reps: we.reps,
+                  rest_seconds: we.rest_seconds,
+                  notes: we.notes,
+                  order_index: we.order_index,
+                  exercise: we.exercise
+                }
+              }));
+            }
+          }
+        }
+        
+        return workoutExerciseData || [];
       } catch (error) {
-        console.error('Error fetching workout exercises:', error);
+        console.error('Error in workout exercise query function:', error);
         throw error;
       }
     },
     enabled: !!workoutCompletionId,
+    retry: 2,
   });
 
   useEffect(() => {
     // Set loading state based on the query
     setIsLoading(exercisesLoading);
-  }, [exercisesLoading]);
+    
+    // Log detailed information about the data we're receiving
+    if (workoutExercises) {
+      console.log(`Loaded ${workoutExercises.length} exercises for workout completion ${workoutCompletionId}`);
+      console.log('Exercise details:', workoutExercises);
+    }
+  }, [exercisesLoading, workoutExercises, workoutCompletionId]);
 
   // Mock saveAllSetsMutation for now since we don't have its implementation
   const saveAllSetsMutation = useMutation({
@@ -202,6 +301,7 @@ const ActiveWorkout: React.FC = () => {
   }
   
   if (exercisesError) {
+    console.error('Error details:', exercisesError);
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center">
         <h2 className="text-xl font-bold mb-4">Error loading exercises</h2>

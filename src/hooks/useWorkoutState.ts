@@ -15,7 +15,7 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
   const [workoutDataInitialized, setWorkoutDataInitialized] = useState(false);
 
   useEffect(() => {
-    if (workoutExercises && !workoutDataInitialized) {
+    if (workoutExercises && Array.isArray(workoutExercises) && !workoutDataInitialized) {
       const initialState: ExerciseStates = {};
       
       workoutExercises.forEach((exercise) => {

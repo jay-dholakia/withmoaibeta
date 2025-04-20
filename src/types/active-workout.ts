@@ -8,19 +8,19 @@ export interface ExerciseState {
     completed: boolean;
   }>;
   cardioData?: {
-    distance: string;
-    duration: string;
-    location: string;
+    distance?: string;
+    duration?: string;
+    location?: string;
     completed: boolean;
   };
   flexibilityData?: {
-    duration: string;
+    duration?: string;
     completed: boolean;
   };
   runData?: {
-    distance: string;
-    duration: string;
-    location: string;
+    distance?: string;
+    duration?: string;
+    location?: string;
     completed: boolean;
   };
   exerciseInfo?: {

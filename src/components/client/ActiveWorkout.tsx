@@ -92,32 +92,42 @@ const ActiveWorkout = () => {
     pendingRuns,
     setPendingRuns,
     workoutDataInitialized
-  } = useWorkoutState(workoutCompletion?.workout?.workout_exercises);
+  } = useWorkoutState(workoutCompletion?.workout?.workout_exercises || []);
 
   // Autosave workout progress
-  const { triggerAutosave } = useAutosave({
-    enabled: !!workoutCompletionId && workoutDataInitialized,
-    onSave: async () => {
+  const { saveStatus, forceSave } = useAutosave({
+    data: {
+      exerciseStates,
+      pendingSets,
+      pendingCardio,
+      pendingFlexibility,
+      pendingRuns
+    },
+    onSave: async (data) => {
       if (!workoutCompletionId) return false;
       
       setAutosaveStatus('saving');
       const success = await saveWorkoutDraft(
         workoutCompletionId,
         workoutCompletion?.workout_type || 'workout',
-        {
-          exerciseStates,
-          pendingSets,
-          pendingCardio,
-          pendingFlexibility,
-          pendingRuns
-        }
+        data
       );
       
       setAutosaveStatus(success ? 'saved' : 'error');
       return success;
     },
-    debounceMs: 1500
+    debounce: 1500
   });
+
+  // Update autosave status when saveStatus changes
+  useEffect(() => {
+    setAutosaveStatus(saveStatus);
+  }, [saveStatus]);
+
+  // Trigger autosave manually
+  const triggerAutosave = () => {
+    forceSave();
+  };
 
   // Fetch saved workout draft
   useEffect(() => {
@@ -257,7 +267,10 @@ const ActiveWorkout = () => {
         ...prev,
         [exerciseId]: {
           ...prev[exerciseId],
-          cardioData: updatedCardioData
+          cardioData: {
+            ...updatedCardioData,
+            completed: prev[exerciseId]?.cardioData?.completed || false
+          }
         }
       };
     });
@@ -298,8 +311,13 @@ const ActiveWorkout = () => {
       [exerciseId]: {
         ...prev[exerciseId],
         cardioData: {
-          ...prev[exerciseId]?.cardioData || {},
-          completed: !prev[exerciseId]?.cardioData?.completed
+          ...prev[exerciseId]?.cardioData || {
+            distance: '',
+            duration: '',
+            location: '',
+            completed: false
+          },
+          completed: !(prev[exerciseId]?.cardioData?.completed)
         }
       }
     }));
@@ -314,7 +332,10 @@ const ActiveWorkout = () => {
       [exerciseId]: {
         ...prev[exerciseId],
         flexibilityData: {
-          ...prev[exerciseId]?.flexibilityData || {},
+          ...prev[exerciseId]?.flexibilityData || {
+            duration: '',
+            completed: false
+          },
           duration: value
         }
       }
@@ -354,8 +375,11 @@ const ActiveWorkout = () => {
       [exerciseId]: {
         ...prev[exerciseId],
         flexibilityData: {
-          ...prev[exerciseId]?.flexibilityData || {},
-          completed: !prev[exerciseId]?.flexibilityData?.completed
+          ...prev[exerciseId]?.flexibilityData || {
+            duration: '',
+            completed: false
+          },
+          completed: !(prev[exerciseId]?.flexibilityData?.completed)
         }
       }
     }));
@@ -375,7 +399,13 @@ const ActiveWorkout = () => {
         ...prev,
         [exerciseId]: {
           ...prev[exerciseId],
-          runData: updatedRunData
+          runData: {
+            ...updatedRunData,
+            completed: prev[exerciseId]?.runData?.completed || false,
+            distance: updatedRunData.distance || '',
+            duration: updatedRunData.duration || '',
+            location: updatedRunData.location || ''
+          }
         }
       };
     });
@@ -416,8 +446,13 @@ const ActiveWorkout = () => {
       [exerciseId]: {
         ...prev[exerciseId],
         runData: {
-          ...prev[exerciseId]?.runData || {},
-          completed: !prev[exerciseId]?.runData?.completed
+          ...prev[exerciseId]?.runData || {
+            distance: '',
+            duration: '',
+            location: '',
+            completed: false
+          },
+          completed: !(prev[exerciseId]?.runData?.completed)
         }
       }
     }));
@@ -544,6 +579,23 @@ const ActiveWorkout = () => {
 
   // Extract workout details
   const { workout } = workoutCompletion;
+  
+  // Check if workout exercises exists and is an array
+  if (!workout?.workout_exercises || !Array.isArray(workout?.workout_exercises)) {
+    console.error('No workout exercises found or invalid format:', workout?.workout_exercises);
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <AlertCircle className="w-10 h-10 text-destructive" />
+        <p className="mt-4 text-lg">No exercises found for this workout</p>
+        <Button 
+          className="mt-4" 
+          onClick={() => navigate('/client-dashboard/workouts')}
+        >
+          Back to Workouts
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-4xl mx-auto pb-20">
@@ -593,7 +645,7 @@ const ActiveWorkout = () => {
 
       {/* Exercises */}
       <div className="space-y-6">
-        {workout?.workout_exercises?.map(workoutExercise => {
+        {workout.workout_exercises.map((workoutExercise) => {
           const exerciseType = workoutExercise.exercise?.exercise_type || 'strength';
           const exerciseName = workoutExercise.exercise?.name || '';
           const isRunExercise = exerciseName.toLowerCase().includes('run') || exerciseName.toLowerCase().includes('running');

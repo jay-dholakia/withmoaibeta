@@ -63,6 +63,10 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
     loadEntries();
   }, [date, user?.id]);
 
+  const stripEmoji = (text: string) => {
+    return text.replace(/^[\u{1F600}-\u{1F6FF}]+/gu, '').trim();
+  };
+
   const handleStartEdit = (entry: JournalEntry) => {
     setEditContent(entry.content);
     setEditingId(entry.id);
@@ -184,7 +188,6 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
               <div key={entry.id} className="border rounded-lg p-4 mb-2">
                 <div className="flex justify-between items-start mb-2">
                   <div className="text-sm text-muted-foreground flex items-center">
-                    {entry.emoji && <span className="mr-2 text-lg">{entry.emoji}</span>}
                     {format(new Date(entry.created_at), 'h:mm a')}
                   </div>
                   <Button
@@ -196,7 +199,7 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
                     <Pencil className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="whitespace-pre-wrap">{entry.content}</p>
+                <p className="whitespace-pre-wrap">{stripEmoji(entry.content)}</p>
               </div>
             ))}
 

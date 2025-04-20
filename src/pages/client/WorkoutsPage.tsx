@@ -34,40 +34,27 @@ const WorkoutsPage = () => {
     enabled: !!user?.id,
   });
 
-  // Enhanced key generation to ensure component fully remounts
-  const timestamp = Date.now();
-  const workoutCompletionId = location.pathname.split('/').pop();
-  const forceReloadKey = `${workoutCompletionId}-${timestamp}-${user?.id || 'no-user'}-${Math.random().toString(36).substring(7)}`;
-
   return (
     <div className="w-full">
       <Routes>
         <Route index element={<WorkoutsList />} />
+        {/* Use React's key pattern properly by setting it on the element, not as a prop */}
         <Route 
           path="active/:workoutCompletionId" 
-          element={
-            <ActiveWorkout 
-              key={`active-${forceReloadKey}`} 
-            />
-          } 
+          element={<ActiveWorkout />} 
+          key="active-route" 
         />
         <Route 
           path="complete/:workoutCompletionId" 
-          element={
-            <WorkoutComplete 
-              key={`complete-${forceReloadKey}`} 
-            />
-          } 
+          element={<WorkoutComplete />}
+          key="complete-route"
         />
         <Route path="create" element={<CreateCustomWorkout />} />
         <Route path="custom/:workoutId" element={<CustomWorkoutDetail />} />
         <Route 
           path="one-off" 
-          element={
-            <EnterOneOffWorkout 
-              key={`one-off-${forceReloadKey}`} 
-            />
-          } 
+          element={<EnterOneOffWorkout />}
+          key="one-off-route"
         />
         <Route path="log-run" element={<LogRunPage />} />
         <Route path="log-cardio" element={<LogCardioPage />} />

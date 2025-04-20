@@ -4,15 +4,16 @@ import { useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import Stopwatch from '@/components/client/Stopwatch';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useWorkoutState } from '@/hooks/useWorkoutState';
 
 interface ActiveWorkoutProps {
-  key?: string;
+  // Removing the key prop from the interface as it shouldn't be accessed directly
+  // React handles the key prop specially
 }
 
-const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ key }) => {
+const ActiveWorkout: React.FC<ActiveWorkoutProps> = () => {
   const { workoutCompletionId } = useParams();
   
   // This is a placeholder for the actual mutation - replace with your actual implementation
@@ -37,7 +38,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ key }) => {
       {/* Your active workout content goes here */}
       
       {/* Fixed bottom bar with timer and complete button */}
-      <div className="fixed bottom-[4.5rem] left-0 right-0 bg-white dark:bg-background pb-2 pt-2 z-10">
+      <div className="fixed bottom-[7.5rem] left-0 right-0 bg-white dark:bg-background pb-2 pt-2 z-10">
         <div className="container max-w-3xl px-4">
           <div className="flex justify-center items-center mb-2">
             <Stopwatch />

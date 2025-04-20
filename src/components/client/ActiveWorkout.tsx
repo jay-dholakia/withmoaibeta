@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -174,7 +173,6 @@ const ActiveWorkout = () => {
     swappedExercises: {}
   });
 
-  // Update draftData whenever the exercise states or pending data changes
   useEffect(() => {
     setDraftData({
       exerciseStates,
@@ -268,6 +266,13 @@ const ActiveWorkout = () => {
           
           if (standaloneWorkout) {
             console.log("Found standalone workout:", standaloneWorkout);
+            type StandaloneWorkout = {
+              id: string;
+              [key: string]: any;
+            };
+            
+            const typedStandaloneWorkout = standaloneWorkout as StandaloneWorkout;
+            
             return {
               id: null,
               user_id: user?.id,
@@ -275,10 +280,10 @@ const ActiveWorkout = () => {
               standalone_workout_id: workoutCompletionId,
               completed_at: null,
               workout: {
-                ...standaloneWorkout,
-                workout_exercises: standaloneWorkout.standalone_workout_exercises?.map(ex => ({
+                ...typedStandaloneWorkout,
+                workout_exercises: typedStandaloneWorkout.standalone_workout_exercises?.map((ex: any) => ({
                   ...ex,
-                  workout_id: standaloneWorkout.id
+                  workout_id: typedStandaloneWorkout.id
                 }))
               },
               workout_set_completions: []
@@ -422,10 +427,8 @@ const ActiveWorkout = () => {
           
           if (typeof draft.draft_data === 'object' && draft.draft_data !== null) {
             if (workoutDataInitialized) {
-              // Handle swapped exercises if present in draft
               if (draft.draft_data.swappedExercises) {
                 Object.entries(draft.draft_data.swappedExercises).forEach(([exerciseId, newExercise]) => {
-                  // Update workout data to reflect the swap
                   if (workoutData?.workout?.workout_exercises) {
                     const exercises = workoutData.workout.workout_exercises;
                     
@@ -1064,7 +1067,6 @@ const ActiveWorkout = () => {
     try {
       console.log(`Swapping exercise ${originalExerciseId} with ${newExercise.name} (${newExercise.id})`);
       
-      // Update the workout data in React Query cache
       queryClient.setQueryData(['active-workout', workoutCompletionId], (oldData: any) => {
         if (!oldData?.workout?.workout_exercises) return oldData;
         
@@ -1088,7 +1090,6 @@ const ActiveWorkout = () => {
         };
       });
       
-      // Store the swapped exercise in the draft data
       setDraftData(prev => {
         const updatedSwappedExercises = {
           ...(prev.swappedExercises || {}),
@@ -1100,7 +1101,6 @@ const ActiveWorkout = () => {
           swappedExercises: updatedSwappedExercises
         };
         
-        // Save the updated draft data immediately
         if (workoutCompletionId && user?.id) {
           saveWorkoutDraft(workoutCompletionId, 'workout', newDraftData);
         }
@@ -1144,8 +1144,6 @@ const ActiveWorkout = () => {
       setIsLoadingAlternatives(false);
     }
   };
-  
-  // Rendering functions could go here
   
   return (
     <div>

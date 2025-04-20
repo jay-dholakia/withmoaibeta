@@ -13,7 +13,6 @@ import TermsOfServicePage from './TermsOfServicePage';
 
 const ClientDashboard = () => {
   const location = useLocation();
-  console.log("ClientDashboard: Rendering with path:", location.pathname);
   
   return (
     <ClientLayout>

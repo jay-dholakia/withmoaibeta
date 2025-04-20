@@ -1,10 +1,11 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const MAX_MONTHLY_PASSES = 2;
 
 export const createLifeHappensCompletion = async (
   userId: string,
-  notes: string = "Life happens pass used"
+  notes: string = ""
 ): Promise<string | null> => {
   try {
     console.log("Creating life happens completion for user:", userId);
@@ -19,7 +20,7 @@ export const createLifeHappensCompletion = async (
       life_happens_pass: true,
       title: "Life Happens Pass", 
       workout_type: "life_happens",
-      description: "Workout credit used via Life Happens Pass" 
+      description: null
     };
     
     console.log("Inserting workout completion data:", insertData);

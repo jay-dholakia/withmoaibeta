@@ -1017,7 +1017,7 @@ const ActiveWorkout = () => {
             : null}
           
           <div className="fixed bottom-[4.5rem] left-0 right-0 bg-white dark:bg-background pb-2 pt-2 z-10">
-            <div className="container max-w-3xl px-4 pb-4">
+            <div className="container max-w-3xl px-4 pb-0">
               <div className="flex justify-center items-center mb-3">
                 <Stopwatch />
               </div>

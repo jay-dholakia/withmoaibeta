@@ -70,11 +70,18 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
         console.warn("Failed to save draft to sessionStorage:", e);
       }
       
-      return await saveWorkoutDraft(
-        exerciseFormDraftId,
-        'exercise_form',
-        data
-      );
+      try {
+        const result = await saveWorkoutDraft(
+          exerciseFormDraftId,
+          'exercise_form',
+          data
+        );
+        
+        return result;
+      } catch (error) {
+        console.error("Error saving workout exercise draft:", error);
+        return false;
+      }
     },
     debounce: 1000,
     disabled: !exerciseFormDraftId || !user

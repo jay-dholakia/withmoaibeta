@@ -1,7 +1,8 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
-type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 interface AutosaveProps<T> {
   data: T;
@@ -36,6 +37,7 @@ export function useAutosave<T>({
   
   const previousDataRef = useRef<string>('');
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const changeCountRef = useRef<number>(0);
   const isSavingRef = useRef<boolean>(false);
   const mountedRef = useRef<boolean>(true);
@@ -44,6 +46,14 @@ export function useAutosave<T>({
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
   }, []);
   
@@ -122,6 +132,7 @@ export function useAutosave<T>({
     }
   };
   
+  // Effect that triggers autosave when data changes
   useEffect(() => {
     if (disabled || !mountedRef.current) return;
     
@@ -154,17 +165,27 @@ export function useAutosave<T>({
     };
   }, [data, disabled, debounce, minChanges]);
   
+  // Effect that sets up periodic interval for autosaving
   useEffect(() => {
     if (disabled || !mountedRef.current) return;
     
-    const intervalId = setInterval(() => {
-      if (changeCountRef.current > 0 && mountedRef.current) {
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    
+    // Setup a new interval
+    intervalRef.current = setInterval(() => {
+      if (changeCountRef.current > 0 && !isSavingRef.current && mountedRef.current) {
         saveData();
       }
     }, interval);
     
     return () => {
-      clearInterval(intervalId);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
   }, [disabled, interval]);
   

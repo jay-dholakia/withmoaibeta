@@ -232,13 +232,32 @@ const ActiveWorkout = () => {
     onSave: async (data) => {
       if (!workoutCompletionId || !user?.id) return false;
       console.log("Saving workout draft with data:", data);
-      return await saveWorkoutDraft(
-        workoutCompletionId || null, 
-        'workout', 
-        data
-      );
+      try {
+        // Save to sessionStorage first for immediate access on page reload
+        try {
+          sessionStorage.setItem(`workout_draft_${workoutCompletionId}`, JSON.stringify({
+            draft_data: data,
+            workout_type: 'workout',
+            updated_at: new Date().toISOString()
+          }));
+        } catch (e) {
+          console.warn("Failed to save draft to sessionStorage:", e);
+        }
+        
+        const result = await saveWorkoutDraft(
+          workoutCompletionId, 
+          'workout', 
+          data
+        );
+        
+        return result;
+      } catch (error) {
+        console.error("Error saving workout draft:", error);
+        return false;
+      }
     },
     interval: 3000,
+    debounce: 1000,
     disabled: !workoutCompletionId || !user?.id
   });
 

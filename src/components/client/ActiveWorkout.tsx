@@ -1060,7 +1060,7 @@ const ActiveWorkout = () => {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto p-4 pb-36">
+    <div className="container max-w-2xl mx-auto p-4 pb-28">
       <div className="flex items-center mb-4 gap-2">
         <Button 
           variant="ghost" 
@@ -1080,12 +1080,12 @@ const ActiveWorkout = () => {
       <Stopwatch className="mt-2 mb-6" />
     
       {workoutData.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises) && workoutData.workout.workout_exercises.length > 0 ? (
-        <div className="space-y-6 pb-36">
+        <div className="space-y-6 mb-24">
           {workoutData.workout.workout_exercises.map((exercise: any) => (
             renderExerciseCard(exercise)
           ))}
           
-          <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t z-10 shadow-md">
+          <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t z-10 shadow-lg">
             <Button
               className="w-full"
               size="lg"

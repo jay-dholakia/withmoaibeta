@@ -941,87 +941,56 @@ const ActiveWorkout = () => {
 
         {expanded && (
           <CardContent className="pt-0 px-3 pb-2">
-            {(exerciseDescription || exerciseNotes) && (
-              <div className="mb-3 text-sm">
-                {expandedDescriptions[exercise.id] ? (
-                  <div>
-                    {exerciseDescription && <div className="mb-2">{exerciseDescription}</div>}
-                    {exerciseNotes && (
-                      <div className="mt-2">
-                        <span className="font-semibold">Coach's notes:</span> {exerciseNotes}
-                      </div>
-                    )}
-                    {(exerciseDescription || exerciseNotes) && (
-                      <Button 
-                        variant="link" 
-                        className="p-0 h-auto text-xs" 
-                        onClick={() => toggleDescriptionExpanded(exercise.id)}
-                      >
-                        Show Less
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <Button 
-                    variant="link" 
-                    className="p-0 h-auto text-xs" 
-                    onClick={() => toggleDescriptionExpanded(exercise.id)}
-                  >
-                    Show Description
-                  </Button>
-                )}
-              </div>
-            )}
+          
+          {(exerciseType === 'strength' || exerciseType === 'bodyweight') && !isRunExercise && (
+            <StrengthExercise
+              exercise={exercise}
+              exerciseState={exerciseStates[exercise.id]}
+              personalRecord={personalRecord}
+              onSetChange={handleSetChange}
+              onSetCompletion={handleSetCompletion}
+              onVideoClick={openVideoDialog}
+              onSwapClick={openAlternativeDialog}
+            />
+          )}
 
-            {(exerciseType === 'strength' || exerciseType === 'bodyweight') && !isRunExercise && (
-              <StrengthExercise
-                exercise={exercise}
-                exerciseState={exerciseStates[exercise.id]}
-                personalRecord={personalRecord}
-                onSetChange={handleSetChange}
-                onSetCompletion={handleSetCompletion}
-                onVideoClick={openVideoDialog}
-                onSwapClick={openAlternativeDialog}
-              />
-            )}
+          {exerciseType === 'cardio' && !isRunExercise && (
+            <CardioExercise
+              exercise={exercise}
+              exerciseState={exerciseStates[exercise.id]}
+              formatDurationInput={formatDurationInput}
+              onCardioChange={handleCardioChange}
+              onCardioCompletion={handleCardioCompletion}
+              onVideoClick={openVideoDialog}
+            />
+          )}
 
-            {exerciseType === 'cardio' && !isRunExercise && (
-              <CardioExercise
-                exercise={exercise}
-                exerciseState={exerciseStates[exercise.id]}
-                formatDurationInput={formatDurationInput}
-                onCardioChange={handleCardioChange}
-                onCardioCompletion={handleCardioCompletion}
-                onVideoClick={openVideoDialog}
-              />
-            )}
-
-            {exerciseType === 'flexibility' && (
-              <FlexibilityExercise
-                exercise={exercise}
-                exerciseState={exerciseStates[exercise.id]}
-                formatDurationInput={formatDurationInput}
-                onFlexibilityChange={handleFlexibilityChange}
-                onFlexibilityCompletion={handleFlexibilityCompletion}
-                onVideoClick={openVideoDialog}
-              />
-            )}
-            
-            {isRunExercise && (
-              <RunExercise
-                exercise={exercise}
-                exerciseState={exerciseStates[exercise.id]}
-                formatDurationInput={formatDurationInput}
-                onRunChange={handleRunChange}
-                onRunCompletion={handleRunCompletion}
-                onVideoClick={openVideoDialog}
-              />
-            )}
-          </CardContent>
-        )}
-      </Card>
-    );
-  };
+          {exerciseType === 'flexibility' && (
+            <FlexibilityExercise
+              exercise={exercise}
+              exerciseState={exerciseStates[exercise.id]}
+              formatDurationInput={formatDurationInput}
+              onFlexibilityChange={handleFlexibilityChange}
+              onFlexibilityCompletion={handleFlexibilityCompletion}
+              onVideoClick={openVideoDialog}
+            />
+          )}
+          
+          {isRunExercise && (
+            <RunExercise
+              exercise={exercise}
+              exerciseState={exerciseStates[exercise.id]}
+              formatDurationInput={formatDurationInput}
+              onRunChange={handleRunChange}
+              onRunCompletion={handleRunCompletion}
+              onVideoClick={openVideoDialog}
+            />
+          )}
+        </CardContent>
+      )}
+    </Card>
+  );
+};
 
   return (
     <div className="container max-w-3xl px-4 pb-32">
@@ -1033,145 +1002,4 @@ const ActiveWorkout = () => {
       ) : !workoutData ? (
         <div className="flex flex-col items-center justify-center h-60">
           <AlertCircle className="h-10 w-10 text-destructive" />
-          <p className="mt-4 text-lg text-muted-foreground">Workout not found</p>
-          <Button 
-            onClick={() => navigate('/client-dashboard/workouts')} 
-            variant="outline" 
-            className="mt-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Workouts
-          </Button>
-        </div>
-      ) : (
-        <>
-          <div className="flex justify-between items-center mb-6">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate('/client-dashboard/workouts')}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
-          </div>
-
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">
-              {workoutData.workout?.title || 'Workout'}
-            </h1>
-            {workoutData.workout?.description && (
-              <p className="text-muted-foreground mt-1">
-                {workoutData.workout.description}
-              </p>
-            )}
-          </div>
-
-          <Separator className="my-6" />
-
-          <div>
-            {workoutData.workout?.workout_exercises?.map((exercise: WorkoutExercise) => (
-              <div key={exercise.id}>
-                {renderExerciseCard(exercise)}
-              </div>
-            ))}
-            
-            {(!workoutData.workout?.workout_exercises || workoutData.workout.workout_exercises.length === 0) && (
-              <div className="text-center py-12">
-                <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-medium">No exercises found</h3>
-                <p className="mt-2 text-muted-foreground">
-                  This workout doesn't have any exercises defined yet.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="fixed bottom-16 left-0 right-0 bg-background border-t border-gray-200 px-4 py-3 space-y-3">
-            <div className="max-w-3xl mx-auto">
-              <Stopwatch className="w-full" />
-            </div>
-            <div className="max-w-3xl mx-auto">
-              <Button 
-                variant="default"
-                className="w-full"
-                onClick={() => saveAllSetsMutation.mutate()}
-                disabled={saveAllSetsMutation.isPending}
-              >
-                {saveAllSetsMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Complete Workout
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
-
-      <Dialog open={videoDialogOpen} onOpenChange={closeVideoDialog}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{currentExerciseName}</DialogTitle>
-          </DialogHeader>
-          <div className="aspect-video">
-            {currentVideoUrl && <VideoPlayer url={currentVideoUrl} />}
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={alternativeDialogOpen} onOpenChange={closeAlternativeDialog}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Alternative Exercises</DialogTitle>
-            <DialogDescription>
-              Choose an alternative exercise that works the same muscle groups
-            </DialogDescription>
-          </DialogHeader>
-          
-          {isLoadingAlternatives ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : alternativeExercises.length === 0 ? (
-            <div className="py-4 text-center">
-              No alternative exercises found for this muscle group
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {alternativeExercises.map(exercise => (
-                <Button
-                  key={exercise.id}
-                  variant="outline"
-                  className="w-full justify-start h-auto py-3 px-4"
-                  onClick={() => handleExerciseSwap(exercise, currentExercise?.id)}
-                >
-                  <div className="text-start">
-                    <div className="font-medium">{exercise.name}</div>
-                    {exercise.description && (
-                      <div className="text-xs text-muted-foreground line-clamp-1">
-                        {exercise.description}
-                      </div>
-                    )}
-                  </div>
-                </Button>
-              ))}
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={closeAlternativeDialog}>Cancel</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default ActiveWorkout;
+          <p className="mt

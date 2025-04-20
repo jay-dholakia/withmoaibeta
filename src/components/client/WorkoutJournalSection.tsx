@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -16,7 +15,11 @@ interface JournalEntry {
   updated_at?: string;
   entry_date?: string;
   emoji?: string;
-  exercise_title?: string; // Add this to capture the exercise title
+  exercise_title?: string;
+}
+
+interface WorkoutJournalSectionProps {
+  date: Date;
 }
 
 const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) => {
@@ -189,11 +192,22 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
 
             {entries.map((entry) => (
               <div key={entry.id} className="border rounded-lg p-4 mb-2">
-                {entry.exercise_title && (
-                  <div className="text-sm font-medium text-muted-foreground mb-2">
-                    {entry.exercise_title}
-                  </div>
-                )}
+                <div className="flex justify-between items-start mb-4">
+                  {entry.exercise_title && (
+                    <div className="text-base font-medium">
+                      {entry.emoji && <span className="mr-2">{stripEmoji(entry.content)}</span>}
+                      {entry.exercise_title}
+                    </div>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleStartEdit(entry)}
+                    className="h-8 px-2"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </div>
                 
                 {editingId === entry.id ? (
                   <div className="space-y-2">
@@ -215,22 +229,9 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
                     </div>
                   </div>
                 ) : (
-                  <>
-                    <div className="flex justify-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleStartEdit(entry)}
-                        className="h-8 px-2"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <p className="whitespace-pre-wrap">
-                      <span className="mr-2 text-lg">{stripEmoji(entry.content)}</span>
-                      {removeEmoji(entry.content)}
-                    </p>
-                  </>
+                  <p className="whitespace-pre-wrap">
+                    {removeEmoji(entry.content)}
+                  </p>
                 )}
               </div>
             ))}

@@ -43,6 +43,7 @@ const ActiveWorkout = () => {
   const [authStateChanged, setAuthStateChanged] = useState(0);
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
   const [expandedDescriptions, setExpandedDescriptions] = useState<{[key: string]: boolean}>({});
+  const [draftLoadAttempted, setDraftLoadAttempted] = useState(false);
   
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
@@ -258,7 +259,7 @@ const ActiveWorkout = () => {
     },
     interval: 3000,
     debounce: 1000,
-    disabled: !workoutCompletionId || !user?.id
+    disabled: !workoutCompletionId || !user?.id || !workoutDataInitialized
   });
 
   const trackSetMutation = useMutation({
@@ -478,6 +479,84 @@ const ActiveWorkout = () => {
       toast.error(`Failed to save workout: ${error?.message || 'Unknown error'}`);
     },
   });
+
+  useEffect(() => {
+    const loadDraftData = async () => {
+      if (!workoutCompletionId || !user?.id || !workoutDataInitialized || draftLoadAttempted || draftLoaded) {
+        return;
+      }
+      
+      console.log("Attempting to load draft data for workout:", workoutCompletionId);
+      setDraftLoadAttempted(true);
+      
+      try {
+        // First try to get draft from sessionStorage for faster loading
+        let draft = null;
+        try {
+          const cachedDraft = sessionStorage.getItem(`workout_draft_${workoutCompletionId}`);
+          if (cachedDraft) {
+            draft = JSON.parse(cachedDraft);
+            console.log("Found draft in sessionStorage:", draft);
+          }
+        } catch (e) {
+          console.warn("Failed to retrieve draft from sessionStorage:", e);
+        }
+        
+        // If not in sessionStorage or doesn't exist, get from Supabase
+        if (!draft || !draft.draft_data) {
+          console.log("Fetching draft from database");
+          draft = await getWorkoutDraft(workoutCompletionId);
+        }
+        
+        if (!draft || !draft.draft_data) {
+          console.log("No draft found for workout:", workoutCompletionId);
+          setDraftLoaded(true);
+          return;
+        }
+        
+        console.log("Draft found:", draft);
+        
+        const draftData = draft.draft_data;
+        
+        // Update states with draft data
+        if (draftData.exerciseStates && Object.keys(draftData.exerciseStates).length > 0) {
+          console.log("Restoring exercise states from draft");
+          setExerciseStates(prevState => ({
+            ...prevState,
+            ...draftData.exerciseStates
+          }));
+        }
+        
+        if (draftData.pendingSets && draftData.pendingSets.length > 0) {
+          console.log("Restoring pending sets from draft:", draftData.pendingSets);
+          setPendingSets(draftData.pendingSets);
+        }
+        
+        if (draftData.pendingCardio && draftData.pendingCardio.length > 0) {
+          console.log("Restoring pending cardio from draft");
+          setPendingCardio(draftData.pendingCardio);
+        }
+        
+        if (draftData.pendingFlexibility && draftData.pendingFlexibility.length > 0) {
+          console.log("Restoring pending flexibility from draft");
+          setPendingFlexibility(draftData.pendingFlexibility);
+        }
+        
+        if (draftData.pendingRuns && draftData.pendingRuns.length > 0) {
+          console.log("Restoring pending runs from draft");
+          setPendingRuns(draftData.pendingRuns);
+        }
+        
+        toast.success("Your workout progress has been restored");
+        setDraftLoaded(true);
+      } catch (error) {
+        console.error("Error loading draft data:", error);
+        setDraftLoaded(true);
+      }
+    };
+    
+    loadDraftData();
+  }, [workoutCompletionId, user, workoutDataInitialized, draftLoadAttempted, draftLoaded, setExerciseStates, setPendingSets, setPendingCardio, setPendingFlexibility, setPendingRuns]);
 
   const handleSetChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
     setExerciseStates((prev) => {

@@ -1080,12 +1080,12 @@ const ActiveWorkout = () => {
       <Stopwatch className="mt-2 mb-6" />
     
       {workoutData.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises) && workoutData.workout.workout_exercises.length > 0 ? (
-        <div className="space-y-6 mb-32">
+        <div className="space-y-6 mb-40">
           {workoutData.workout.workout_exercises.map((exercise: any) => (
             renderExerciseCard(exercise)
           ))}
           
-          <div className="fixed bottom-16 left-0 right-0 bg-background p-4 border-t z-50 shadow-lg">
+          <div className="fixed bottom-20 left-0 right-0 bg-background p-4 border-t z-50 shadow-lg">
             <Button
               className="w-full bg-client hover:bg-client/90 border-2 border-client text-white font-bold py-4"
               size="lg"

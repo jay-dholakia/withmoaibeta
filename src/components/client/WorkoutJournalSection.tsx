@@ -196,7 +196,9 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
                   {entry.exercise_title && (
                     <div className="text-base font-medium flex items-center gap-2">
                       {entry.emoji && <span>{stripEmoji(entry.content)}</span>}
-                      {entry.exercise_title}
+                      <span className="text-base">
+                        {entry.exercise_title}
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -249,4 +251,3 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
 };
 
 export default WorkoutJournalSection;
-

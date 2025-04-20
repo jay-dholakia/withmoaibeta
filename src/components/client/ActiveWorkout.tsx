@@ -859,7 +859,6 @@ const ActiveWorkout = () => {
   };
 
   const handleExerciseSwap = (newExercise: Exercise, originalExerciseId: string) => {
-    // Get the original exercise data to maintain its structure
     let originalExercise = null;
     
     if (workoutData?.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises)) {
@@ -871,16 +870,13 @@ const ActiveWorkout = () => {
       return;
     }
     
-    // Update the UI immediately by updating the workoutData
     queryClient.setQueryData(['active-workout', workoutCompletionId], (oldData: any) => {
       if (!oldData || !oldData.workout || !Array.isArray(oldData.workout.workout_exercises)) {
         return oldData;
       }
       
-      // Create a deep copy of the data
       const newData = JSON.parse(JSON.stringify(oldData));
       
-      // Update the exercise
       newData.workout.workout_exercises = newData.workout.workout_exercises.map((ex: any) => {
         if (ex.id === originalExerciseId) {
           return {
@@ -895,11 +891,9 @@ const ActiveWorkout = () => {
       return newData;
     });
     
-    // Close dialog and show success message
     closeAlternativeDialog();
     toast.success(`Swapped to ${newExercise.name}`);
     
-    // Force an autosave to persist the change
     triggerAutosave();
   };
 
@@ -1007,3 +1001,33 @@ const ActiveWorkout = () => {
                 exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
                 formatDurationInput={formatDurationInput}
+                onFlexibilityChange={handleFlexibilityChange}
+                onFlexibilityCompletion={handleFlexibilityCompletion}
+                onVideoClick={openVideoDialog}
+              />
+            )}
+            
+            {isRunExercise && (
+              <RunExercise
+                exercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                formatDurationInput={formatDurationInput}
+                onRunChange={handleRunChange}
+                onRunCompletion={handleRunCompletion}
+                onVideoClick={openVideoDialog}
+              />
+            )}
+          </CardContent>
+        )}
+      </Card>
+    );
+  };
+
+  return (
+    <div>
+      {/* Existing component JSX */}
+    </div>
+  );
+};
+
+export default ActiveWorkout;

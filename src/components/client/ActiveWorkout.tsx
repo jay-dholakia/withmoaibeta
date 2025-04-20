@@ -1085,7 +1085,7 @@ const ActiveWorkout = () => {
             renderExerciseCard(exercise)
           ))}
           
-          <div className="fixed bottom-20 left-0 right-0 bg-background p-4 border-t z-50 shadow-lg">
+          <div className="fixed bottom-14 left-0 right-0 bg-background p-4 border-t z-50 shadow-lg">
             <Button
               className="w-full bg-client hover:bg-client/90 border-2 border-client text-white font-bold py-4"
               size="lg"

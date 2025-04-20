@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -1007,3 +1008,150 @@ const ActiveWorkout = () => {
       }
 
       const flexData = exerciseStates[exerciseId].flexibilityData!;
+      setPendingFlexibility(prev => [
+        ...prev.filter(f => f.exerciseId !== exerciseId),
+        {
+          exerciseId,
+          duration: flexData.duration
+        }
+      ]);
+    } else {
+      setPendingFlexibility(prev => prev.filter(item => item.exerciseId !== exerciseId));
+    }
+  };
+
+  const handleRunCompletion = (exerciseId: string, completed: boolean) => {
+    setExerciseStates((prev) => {
+      if (!prev[exerciseId] || !prev[exerciseId].runData) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          runData: {
+            ...prev[exerciseId].runData!,
+            completed
+          }
+        }
+      };
+    });
+
+    if (completed) {
+      if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].runData) {
+        console.error(`Invalid exercise ID or missing run data: ${exerciseId}`);
+        return;
+      }
+
+      const runData = exerciseStates[exerciseId].runData!;
+      const distance = runData.distance.trim() === '' ? null : runData.distance;
+      setPendingRuns(prev => [
+        ...prev.filter(r => r.exerciseId !== exerciseId),
+        {
+          exerciseId,
+          distance: distance,
+          duration: runData.duration,
+          location: runData.location
+        }
+      ]);
+    } else {
+      setPendingRuns(prev => prev.filter(item => item.exerciseId !== exerciseId));
+    }
+  };
+  
+  const handleExerciseSwap = async (originalExerciseId: string, newExercise: Exercise) => {
+    try {
+      console.log(`Swapping exercise ${originalExerciseId} with ${newExercise.name} (${newExercise.id})`);
+      
+      // Update the workout data in React Query cache
+      queryClient.setQueryData(['active-workout', workoutCompletionId], (oldData: any) => {
+        if (!oldData?.workout?.workout_exercises) return oldData;
+        
+        const updatedExercises = oldData.workout.workout_exercises.map((ex: any) => {
+          if (ex.id === originalExerciseId) {
+            return {
+              ...ex,
+              exercise: newExercise,
+              exercise_id: newExercise.id
+            };
+          }
+          return ex;
+        });
+        
+        return {
+          ...oldData,
+          workout: {
+            ...oldData.workout,
+            workout_exercises: updatedExercises
+          }
+        };
+      });
+      
+      // Store the swapped exercise in the draft data
+      setDraftData(prev => {
+        const updatedSwappedExercises = {
+          ...(prev.swappedExercises || {}),
+          [originalExerciseId]: newExercise
+        };
+        
+        const newDraftData = {
+          ...prev,
+          swappedExercises: updatedSwappedExercises
+        };
+        
+        // Save the updated draft data immediately
+        if (workoutCompletionId && user?.id) {
+          saveWorkoutDraft(workoutCompletionId, 'workout', newDraftData);
+        }
+        
+        return newDraftData;
+      });
+      
+      setAlternativeDialogOpen(false);
+      toast.success(`Switched to ${newExercise.name}`);
+    } catch (error) {
+      console.error("Error swapping exercise:", error);
+      toast.error("Failed to swap exercise");
+    }
+  };
+  
+  const handleShowVideo = (exercise: any) => {
+    if (!exercise?.youtube_link) {
+      toast.error("No video available for this exercise");
+      return;
+    }
+    
+    setCurrentVideoUrl(exercise.youtube_link);
+    setCurrentExerciseName(exercise.name);
+    setVideoDialogOpen(true);
+  };
+  
+  const handleShowAlternatives = async (exercise: any, exerciseId: string) => {
+    try {
+      setCurrentExercise({ ...exercise, exerciseId });
+      setAlternativeDialogOpen(true);
+      setIsLoadingAlternatives(true);
+      
+      const alternatives = await fetchSimilarExercises(exercise.id);
+      console.log("Fetched alternative exercises:", alternatives);
+      
+      setAlternativeExercises(alternatives);
+      setIsLoadingAlternatives(false);
+    } catch (error) {
+      console.error("Error fetching alternative exercises:", error);
+      toast.error("Failed to load alternative exercises");
+      setIsLoadingAlternatives(false);
+    }
+  };
+  
+  // Rendering functions could go here
+  
+  return (
+    <div>
+      {/* Component rendering logic */}
+    </div>
+  );
+};
+
+export default ActiveWorkout;

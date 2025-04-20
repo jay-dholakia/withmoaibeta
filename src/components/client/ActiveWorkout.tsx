@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
@@ -86,6 +85,75 @@ const ActiveWorkout: React.FC = () => {
       console.log('Exercise details:', workoutExercises);
     }
   }, [exercisesLoading, workoutExercises, workoutCompletionId]);
+
+  useEffect(() => {
+    if (workoutExercises && workoutExercises.length > 0) {
+      const initialState = { ...exerciseStates };
+      let statesUpdated = false;
+      
+      workoutExercises.forEach(exercise => {
+        if (!initialState[exercise.id]) {
+          const exerciseType = exercise.exercise?.exercise_type || 'strength';
+          const exerciseName = (exercise.exercise?.name || '').toLowerCase();
+          const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
+          
+          if (isRunExercise) {
+            initialState[exercise.id] = {
+              expanded: true,
+              sets: [],
+              runData: {
+                distance: '',
+                duration: '',
+                location: '',
+                completed: false
+              }
+            };
+            statesUpdated = true;
+          } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+            const sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
+              setNumber: i + 1,
+              weight: '',
+              reps: exercise.reps || '',
+              completed: false,
+            }));
+            
+            initialState[exercise.id] = {
+              expanded: true,
+              sets,
+            };
+            statesUpdated = true;
+          } else if (exerciseType === 'cardio') {
+            initialState[exercise.id] = {
+              expanded: true,
+              sets: [],
+              cardioData: {
+                distance: '',
+                duration: '',
+                location: '',
+                completed: false
+              }
+            };
+            statesUpdated = true;
+          } else if (exerciseType === 'flexibility') {
+            initialState[exercise.id] = {
+              expanded: true,
+              sets: [],
+              flexibilityData: {
+                duration: '',
+                completed: false
+              }
+            };
+            statesUpdated = true;
+          }
+        }
+      });
+      
+      if (statesUpdated) {
+        console.log('Updating exercise states with initial values:', initialState);
+        setExerciseStates(initialState);
+      }
+    }
+  }, [workoutExercises, setExerciseStates]);
 
   const saveAllSetsMutation = useMutation({
     mutationFn: async () => {
@@ -273,7 +341,7 @@ const ActiveWorkout: React.FC = () => {
                     </h4>
                     <StrengthExercise 
                       exercise={exerciseData}
-                      exerciseState={exerciseStates[exerciseData.id] || {}}
+                      exerciseState={exerciseStates[exerciseData.id] || { sets: [] }}
                       personalRecord={null}
                       onSetChange={onSetChange}
                       onSetCompletion={onSetCompletion}
@@ -404,4 +472,3 @@ const ActiveWorkout: React.FC = () => {
 };
 
 export default ActiveWorkout;
-

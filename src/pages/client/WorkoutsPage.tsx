@@ -38,24 +38,11 @@ const WorkoutsPage = () => {
     <div className="w-full">
       <Routes>
         <Route index element={<WorkoutsList />} />
-        {/* Use React's key pattern properly by setting it on the element, not as a prop */}
-        <Route 
-          path="active/:workoutCompletionId" 
-          element={<ActiveWorkout />} 
-          key="active-route" 
-        />
-        <Route 
-          path="complete/:workoutCompletionId" 
-          element={<WorkoutComplete />}
-          key="complete-route"
-        />
+        <Route path="active/:workoutCompletionId" element={<ActiveWorkout />} />
+        <Route path="complete/:workoutCompletionId" element={<WorkoutComplete />} />
         <Route path="create" element={<CreateCustomWorkout />} />
         <Route path="custom/:workoutId" element={<CustomWorkoutDetail />} />
-        <Route 
-          path="one-off" 
-          element={<EnterOneOffWorkout />}
-          key="one-off-route"
-        />
+        <Route path="one-off" element={<EnterOneOffWorkout />} />
         <Route path="log-run" element={<LogRunPage />} />
         <Route path="log-cardio" element={<LogCardioPage />} />
         <Route path="log-rest" element={<LogRestDayPage />} />

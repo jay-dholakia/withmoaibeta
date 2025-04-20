@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import Stopwatch from '@/components/client/Stopwatch';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useWorkoutState } from '@/hooks/useWorkoutState';
 
@@ -15,6 +15,8 @@ interface ActiveWorkoutProps {
 
 const ActiveWorkout: React.FC<ActiveWorkoutProps> = () => {
   const { workoutCompletionId } = useParams();
+  
+  console.log('ActiveWorkout: Rendering with workoutCompletionId:', workoutCompletionId);
   
   // This is a placeholder for the actual mutation - replace with your actual implementation
   const saveAllSetsMutation = useMutation({
@@ -35,10 +37,15 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = () => {
 
   return (
     <div className="pb-32">
-      {/* Your active workout content goes here */}
+      <div className="container max-w-3xl pt-4">
+        <h1 className="text-2xl font-bold mb-4">Active Workout</h1>
+        <p className="mb-6">Workout ID: {workoutCompletionId}</p>
+        
+        {/* Your active workout content goes here */}
+      </div>
       
       {/* Fixed bottom bar with timer and complete button */}
-      <div className="fixed bottom-[7.5rem] left-0 right-0 bg-white dark:bg-background pb-2 pt-2 z-10">
+      <div className="fixed bottom-[7.5rem] left-0 right-0 bg-white dark:bg-background pb-2 pt-2 z-10 shadow-md">
         <div className="container max-w-3xl px-4">
           <div className="flex justify-center items-center mb-2">
             <Stopwatch />

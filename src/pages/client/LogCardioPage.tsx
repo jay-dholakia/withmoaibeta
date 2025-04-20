@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { CalendarIcon, Timer, Activity, ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { CardioLog, logCardioActivity } from '@/services/activity-logging-service';
+import { toast } from 'sonner';
 
 const CARDIO_TYPES = [
   'Cycling',
@@ -41,26 +43,40 @@ const LogCardioPage: React.FC = () => {
     e.preventDefault();
     
     if (!activityType || !duration) {
+      toast.error("Please fill in all required fields");
       return;
     }
     
     setIsSubmitting(true);
     
     try {
+      const parsedDuration = parseInt(duration, 10);
+      
+      if (isNaN(parsedDuration) || parsedDuration <= 0) {
+        toast.error("Please enter a valid duration");
+        setIsSubmitting(false);
+        return;
+      }
+      
       const cardioData: CardioLog = {
         log_date: date,
         activity_type: activityType,
-        duration: parseInt(duration, 10),
+        duration: parsedDuration,
         notes
       };
       
+      console.log("Submitting cardio data:", cardioData);
       const result = await logCardioActivity(cardioData);
       
       if (result) {
+        toast.success("Cardio activity logged successfully!");
         navigate('/client-dashboard/workouts');
+      } else {
+        toast.error("Failed to log cardio activity");
       }
     } catch (error) {
       console.error('Error logging cardio activity:', error);
+      toast.error("An error occurred while saving your activity");
     } finally {
       setIsSubmitting(false);
     }
@@ -181,13 +197,14 @@ const LogCardioPage: React.FC = () => {
             variant="outline" 
             onClick={() => navigate('/client-dashboard/workouts')}
             disabled={isSubmitting}
+            className="outline-none focus:outline-none"
           >
             Cancel
           </Button>
           <Button 
             type="submit"
             disabled={isSubmitting}
-            className="bg-purple-600 hover:bg-purple-700"
+            className="bg-purple-600 hover:bg-purple-700 outline-none focus:outline-none"
           >
             {isSubmitting ? "Saving..." : "Save Activity"}
           </Button>

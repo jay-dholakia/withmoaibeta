@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
@@ -10,6 +9,8 @@ const corsHeaders = {
 
 // Handle incoming requests
 serve(async (req) => {
+  console.log("Edge function triggered: log_activity");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,6 +31,7 @@ serve(async (req) => {
     // Get the JWT from the request to verify the user
     const token = req.headers.get("Authorization")?.replace("Bearer ", "");
     if (!token) {
+      console.error("No authorization token provided");
       return new Response(
         JSON.stringify({ error: "No authorization token provided" }),
         {
@@ -54,13 +56,17 @@ serve(async (req) => {
     }
 
     // Parse the request body
-    let { client_id, activity_type, activity_data } = await req.json();
+    const body = await req.json();
+    let { client_id, activity_type, activity_data } = body;
+    
+    console.log("Request body:", { client_id, activity_type, activity_data });
 
     // Ensure client_id is provided (either explicitly or from the JWT)
     client_id = client_id || user.id;
 
     // Validate required fields
     if (!activity_type || !activity_data) {
+      console.error("Missing required fields");
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         {
@@ -72,6 +78,7 @@ serve(async (req) => {
 
     // Validate activity type
     if (!["run", "cardio", "rest"].includes(activity_type)) {
+      console.error("Invalid activity type:", activity_type);
       return new Response(
         JSON.stringify({ error: "Invalid activity type" }),
         {
@@ -89,7 +96,10 @@ serve(async (req) => {
       case "run": {
         // Validate run activity data
         const { date, distance, duration, location, notes } = activity_data;
+        console.log("Processing run activity:", { date, distance, duration, location, notes });
+        
         if (!date || !distance || !duration) {
+          console.error("Missing required fields for run activity");
           return new Response(
             JSON.stringify({ error: "Missing required fields for run activity" }),
             {
@@ -136,7 +146,10 @@ serve(async (req) => {
       case "cardio": {
         // Validate cardio activity data
         const { date, activity_type: type, duration, notes } = activity_data;
+        console.log("Processing cardio activity:", { date, type, duration, notes });
+        
         if (!date || !duration || !type) {
+          console.error("Missing required fields for cardio activity");
           return new Response(
             JSON.stringify({ error: "Missing required fields for cardio activity" }),
             {
@@ -181,7 +194,10 @@ serve(async (req) => {
       case "rest": {
         // Validate rest activity data
         const { date, notes } = activity_data;
+        console.log("Processing rest activity:", { date, notes });
+        
         if (!date) {
+          console.error("Missing required fields for rest activity");
           return new Response(
             JSON.stringify({ error: "Missing required fields for rest activity" }),
             {
@@ -233,6 +249,7 @@ serve(async (req) => {
     }
 
     console.log(`Successfully logged ${activity_type} activity for client ${client_id}`);
+    console.log("Result:", result);
     
     // Return success response
     return new Response(JSON.stringify(result), {

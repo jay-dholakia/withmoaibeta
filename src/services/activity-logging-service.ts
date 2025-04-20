@@ -73,10 +73,21 @@ export const logRunActivity = async (runData: RunLog): Promise<string | null> =>
 // Function to log a cardio activity
 export const logCardioActivity = async (cardioData: CardioLog): Promise<string | null> => {
   try {
-    const result = await logActivity('cardio', cardioData);
-    toast.success("Cardio activity logged successfully!");
+    console.log("Logging cardio activity:", cardioData);
+    const result = await logActivity('cardio', {
+      ...cardioData,
+      // Ensure log_date is properly formatted
+      log_date: cardioData.log_date
+    });
+    
+    if (!result) {
+      throw new Error("Failed to log cardio activity");
+    }
+    
+    console.log("Cardio activity logged successfully:", result);
     return result;
   } catch (error) {
+    console.error("Failed to log cardio activity:", error);
     toast.error("Failed to log cardio activity");
     return null;
   }

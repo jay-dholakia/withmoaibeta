@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, 
@@ -16,6 +15,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CardioLog, logCardioActivity } from "@/services/activity-logging-service";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "sonner";
 
 const CARDIO_TYPES = [
   'Cycling',
@@ -53,26 +53,43 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
     e.preventDefault();
     
     if (!activityType || !duration) {
+      toast.error("Please fill in all required fields");
       return;
     }
     
     setIsSubmitting(true);
     
-    const cardioData: CardioLog = {
-      log_date: date,
-      activity_type: activityType,
-      duration: parseInt(duration, 10),
-      notes
-    };
-    
     try {
+      const parsedDuration = parseInt(duration, 10);
+      
+      if (isNaN(parsedDuration) || parsedDuration <= 0) {
+        toast.error("Please enter a valid duration");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      const cardioData: CardioLog = {
+        log_date: date,
+        activity_type: activityType,
+        duration: parsedDuration,
+        notes
+      };
+      
+      console.log("Submitting cardio data from dialog:", cardioData);
       const result = await logCardioActivity(cardioData);
       
       if (result) {
+        console.log("Cardio activity logged successfully:", result);
+        toast.success("Cardio activity logged successfully!");
         resetForm();
         onOpenChange(false);
         if (onSuccess) onSuccess();
+      } else {
+        toast.error("Failed to log cardio activity");
       }
+    } catch (error) {
+      console.error('Error logging cardio activity:', error);
+      toast.error("An error occurred while saving your activity");
     } finally {
       setIsSubmitting(false);
     }
@@ -86,7 +103,6 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
     setTempSelectedDate(new Date());
   };
   
-  // Reset form when dialog is closed
   const handleDialogOpenChange = (open: boolean) => {
     if (!open) {
       resetForm();
@@ -94,7 +110,6 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
     onOpenChange(open);
   };
 
-  // Handle date selection safely
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
       setTempSelectedDate(selectedDate);
@@ -108,7 +123,6 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
     }
   };
   
-  // Stop propagation to prevent the dialog from closing the calendar popup
   const handleCalendarClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
@@ -240,13 +254,14 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
               variant="outline" 
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
+              className="outline-none focus:outline-none"
             >
               Cancel
             </Button>
             <Button 
               type="submit"
               disabled={isSubmitting}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-purple-600 hover:bg-purple-700 outline-none focus:outline-none"
             >
               {isSubmitting ? "Saving..." : "Save Activity"}
             </Button>

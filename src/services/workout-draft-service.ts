@@ -43,10 +43,10 @@ export const saveWorkoutDraft = async (
     // Ensure workout_type is a string, not null
     const workoutTypeValue = workoutType || 'workout';
 
-    // Prepare the draft data to store - handle any potential circular references
+    // Prepare the draft data to store
     const draftDataToStore = typeof draftData === 'string' 
       ? JSON.parse(draftData) 
-      : JSON.parse(JSON.stringify(draftData));
+      : draftData;
 
     // Perform the upsert operation - this will replace any existing draft for this workout
     const { data, error } = await supabase

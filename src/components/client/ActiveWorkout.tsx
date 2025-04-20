@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -1013,18 +1012,16 @@ const ActiveWorkout = () => {
             <p className="text-muted-foreground">{workoutData.workout?.description || ''}</p>
           </div>
           
-          {/* List of exercises */}
-          {workoutData.workout?.workout_exercises?.map(renderExerciseCard)}
+          {workoutData.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises) 
+            ? workoutData.workout.workout_exercises.map(renderExerciseCard) 
+            : null}
           
-          {/* Fixed timer at the bottom */}
           <div className="fixed bottom-[4.5rem] left-0 right-0 bg-white dark:bg-background pb-2 pt-2 z-10">
             <div className="container max-w-3xl px-4">
-              {/* Timer */}
               <div className="flex justify-center items-center mb-2">
                 <Stopwatch />
               </div>
             
-              {/* Complete workout button */}
               <Button 
                 variant="default" 
                 size="lg" 
@@ -1045,7 +1042,6 @@ const ActiveWorkout = () => {
             </div>
           </div>
           
-          {/* Video dialog */}
           <Dialog open={videoDialogOpen} onOpenChange={closeVideoDialog}>
             <DialogContent className="max-w-4xl">
               <DialogHeader>
@@ -1059,7 +1055,6 @@ const ActiveWorkout = () => {
             </DialogContent>
           </Dialog>
           
-          {/* Alternative exercises dialog */}
           <Dialog open={alternativeDialogOpen} onOpenChange={closeAlternativeDialog}>
             <DialogContent>
               <DialogHeader>

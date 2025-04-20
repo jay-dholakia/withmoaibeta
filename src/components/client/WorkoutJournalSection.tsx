@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,10 +16,7 @@ interface JournalEntry {
   updated_at?: string;
   entry_date?: string;
   emoji?: string;
-}
-
-interface WorkoutJournalSectionProps {
-  date: Date;
+  exercise_title?: string; // Add this to capture the exercise title
 }
 
 const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) => {
@@ -191,6 +189,12 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
 
             {entries.map((entry) => (
               <div key={entry.id} className="border rounded-lg p-4 mb-2">
+                {entry.exercise_title && (
+                  <div className="text-sm font-medium text-muted-foreground mb-2">
+                    {entry.exercise_title}
+                  </div>
+                )}
+                
                 {editingId === entry.id ? (
                   <div className="space-y-2">
                     <Textarea

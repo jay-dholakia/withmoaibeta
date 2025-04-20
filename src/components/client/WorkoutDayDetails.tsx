@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,10 +26,8 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { user } = useAuth();
 
-  // Convert date to string in yyyy-MM-dd format
   const dateString = formatInTimeZone(date, 'UTC', 'yyyy-MM-dd');
   
-  // Filter workouts by the current date
   const workoutsOnDate = workouts.filter(workout => {
     if (!workout.completed_at) return false;
     const completedDate = new Date(workout.completed_at);
@@ -59,7 +56,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       try {
         const exerciseData = await fetchWorkoutExercises(selectedWorkout.id);
         if (exerciseData) {
-          // Process exercise data
           const exercisesMap = new Map();
           
           exerciseData.forEach((set: any) => {
@@ -86,7 +82,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
           
           const processedExercises = Array.from(exercisesMap.values());
           
-          // Log the exercises found
           processedExercises.forEach(exercise => {
             console.log(`Added exercise: ${exercise.name} with ${exercise.sets.length} sets`);
           });
@@ -110,8 +105,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
     if (!selectedWorkout) return;
     
     try {
-      // Here we would implement the deletion logic
-      // For now just show a toast
       toast.success("Workout deleted successfully");
       setDeleteDialogOpen(false);
     } catch (error) {
@@ -170,12 +163,10 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
         </CardHeader>
         
         <CardContent className="pb-4">
-          {/* Only show the "credit used" text for non-life-happens workouts */}
           {!isLifeHappensPass && selectedWorkout?.description && (
             <p className="text-muted-foreground mb-4">{selectedWorkout.description}</p>
           )}
           
-          {/* Show user timezone */}
           <p className="text-sm text-muted-foreground mb-4">
             User timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
           </p>

@@ -1,8 +1,7 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
-type AutosaveStatus = 'idle' | 'saving' | 'success' | 'error';
+type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 interface AutosaveProps<T> {
   data: T;
@@ -41,7 +40,6 @@ export function useAutosave<T>({
   const isSavingRef = useRef<boolean>(false);
   const mountedRef = useRef<boolean>(true);
   
-  // Ensure component is mounted when effects run
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -49,7 +47,6 @@ export function useAutosave<T>({
     };
   }, []);
   
-  // Function to serialize data for comparison
   const serializeData = (data: T): string => {
     try {
       return JSON.stringify(data);
@@ -59,20 +56,17 @@ export function useAutosave<T>({
     }
   };
   
-  // Function to check if data has changed meaningfully
   const hasDataChanged = (prevData: string, currentData: T): boolean => {
     const serializedCurrent = serializeData(currentData);
     return prevData !== serializedCurrent;
   };
   
-  // Reset error count when disabled status changes
   useEffect(() => {
     if (disabled) {
       setErrorCount(0);
     }
   }, [disabled]);
   
-  // Function to save data
   const saveData = async (): Promise<boolean> => {
     if (isSavingRef.current || disabled || !mountedRef.current) {
       return false;
@@ -80,7 +74,6 @@ export function useAutosave<T>({
     
     const currentSerializedData = serializeData(data);
     
-    // If data hasn't changed since last save, no need to save again
     if (previousDataRef.current === currentSerializedData) {
       console.log('Data unchanged, skipping autosave');
       return false;
@@ -104,7 +97,7 @@ export function useAutosave<T>({
           timestamp: new Date().toISOString(),
           lastSaved: new Date().toISOString()
         });
-        setSaveStatus('success');
+        setSaveStatus('saved');
         setLastSaved(new Date());
         setErrorCount(0);
         previousDataRef.current = currentSerializedData;
@@ -129,7 +122,6 @@ export function useAutosave<T>({
     }
   };
   
-  // Debounced save effect
   useEffect(() => {
     if (disabled || !mountedRef.current) return;
     
@@ -140,14 +132,11 @@ export function useAutosave<T>({
       console.log('Data changed, triggering autosave');
       changeCountRef.current += 1;
       
-      // Clear any existing timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
       
-      // Only save if we've had enough changes or this is the first change
       if (changeCountRef.current >= minChanges || previousDataRef.current === '') {
-        // Set a new timeout
         timeoutRef.current = setTimeout(() => {
           if (mountedRef.current) {
             saveData();
@@ -158,7 +147,6 @@ export function useAutosave<T>({
       console.log('Data unchanged, skipping autosave');
     }
     
-    // Cleanup timeout on unmount
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -166,7 +154,6 @@ export function useAutosave<T>({
     };
   }, [data, disabled, debounce, minChanges]);
   
-  // Regular interval save effect
   useEffect(() => {
     if (disabled || !mountedRef.current) return;
     
@@ -181,7 +168,6 @@ export function useAutosave<T>({
     };
   }, [disabled, interval]);
   
-  // Force save function for manual saving
   const forceSave = async (): Promise<boolean> => {
     return await saveData();
   };

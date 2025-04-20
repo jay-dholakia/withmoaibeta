@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -1012,4 +1013,137 @@ const ActiveWorkout = () => {
         <h2 className="text-xl font-bold mb-2">Workout Not Found</h2>
         <p className="text-gray-500 text-center mb-6">Could not load the requested workout.</p>
         <Button onClick={() => navigate('/client-dashboard/workouts')}>
-          <ArrowLeft className="h-4 w-4
+          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container max-w-2xl mx-auto p-4 pb-20">
+      <div className="flex items-center mb-4 gap-2">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/client-dashboard/workouts')} 
+          className="h-8 w-8 p-0 text-gray-500" 
+          aria-label="Back"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-xl font-bold">{workoutData.workout?.title || "Workout"}</h1>
+      </div>
+      
+      {workoutData.workout?.description && (
+        <p className="text-gray-500 mb-6">{workoutData.workout.description}</p>
+      )}
+
+      <Stopwatch className="mt-2 mb-6" />
+    
+      {workoutData.workout?.workout_exercises && workoutData.workout.workout_exercises.length > 0 ? (
+        <div className="space-y-6">
+          {workoutData.workout.workout_exercises.map((exercise: any) => (
+            renderExerciseCard(exercise)
+          ))}
+          
+          <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t z-10">
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => saveAllSetsMutation.mutate()}
+              disabled={saveAllSetsMutation.isPending}
+            >
+              {saveAllSetsMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Complete Workout
+                </>
+              )}
+            </Button>
+            <div className="flex justify-center mt-2">
+              <p className="text-xs text-gray-500">
+                {saveStatus === 'saved' && 'Progress autosaved'}
+                {saveStatus === 'saving' && 'Saving...'}
+                {saveStatus === 'error' && 'Error saving'}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-2 text-lg font-medium">No Exercises Found</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            This workout doesn't have any exercises.
+          </p>
+        </div>
+      )}
+
+      {/* Video Player Dialog */}
+      <Dialog open={videoDialogOpen} onOpenChange={closeVideoDialog}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{currentExerciseName}</DialogTitle>
+            <DialogDescription>
+              Watch the exercise demonstration video
+            </DialogDescription>
+          </DialogHeader>
+          <div className="aspect-video overflow-hidden rounded-md">
+            {currentVideoUrl && <VideoPlayer url={currentVideoUrl} />}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alternative Exercise Dialog */}
+      <Dialog open={alternativeDialogOpen} onOpenChange={closeAlternativeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Alternative Exercises</DialogTitle>
+            <DialogDescription>
+              Select an alternative exercise to swap with {currentExercise?.exercise?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="max-h-[300px] overflow-y-auto">
+            {isLoadingAlternatives ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : alternativeExercises.length > 0 ? (
+              <div className="space-y-2">
+                {alternativeExercises.map((exercise) => (
+                  <div 
+                    key={exercise.id}
+                    className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleExerciseSwap(exercise, currentExercise?.id)}
+                  >
+                    <span>{exercise.name}</span>
+                    <Button variant="outline" size="sm">
+                      Select
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p>No alternative exercises found.</p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={closeAlternativeDialog}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ActiveWorkout;

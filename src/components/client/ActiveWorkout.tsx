@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { trackWorkoutSet, fetchPersonalRecords } from '@/services/client-service';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -53,6 +50,10 @@ const ActiveWorkout = () => {
   const [currentExercise, setCurrentExercise] = useState<any>(null);
   const [alternativeExercises, setAlternativeExercises] = useState<any[]>([]);
   const [isLoadingAlternatives, setIsLoadingAlternatives] = useState(false);
+
+  const handleGoBack = () => {
+    navigate('/client-dashboard/workouts');
+  };
 
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['active-workout', workoutCompletionId],
@@ -992,6 +993,23 @@ const ActiveWorkout = () => {
 
   return (
     <div className="container max-w-3xl px-4 pb-32">
+      <div className="flex items-center mb-4">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleGoBack} 
+          className="mr-4"
+          aria-label="Go back to workouts"
+        >
+          <ArrowLeft className="h-6 w-6" />
+        </Button>
+        
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold">{workoutData.workout?.title || 'My Workout'}</h1>
+          <p className="text-muted-foreground">{workoutData.workout?.description || ''}</p>
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="flex flex-col items-center justify-center h-60">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -1007,11 +1025,6 @@ const ActiveWorkout = () => {
         </div>
       ) : (
         <>
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">{workoutData.workout?.title || 'My Workout'}</h1>
-            <p className="text-muted-foreground">{workoutData.workout?.description || ''}</p>
-          </div>
-          
           {workoutData.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises) 
             ? workoutData.workout.workout_exercises.map(renderExerciseCard) 
             : null}

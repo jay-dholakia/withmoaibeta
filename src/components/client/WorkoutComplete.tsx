@@ -574,7 +574,7 @@ const WorkoutComplete = () => {
                   Saving...
                 </span>
               )}
-              {saveStatus === 'success' && (
+              {saveStatus === 'saved' && (
                 <span className="flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   Saved

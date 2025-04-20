@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -195,7 +194,6 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     };
   }, [exerciseFormDraftId, draftLoaded, user, authLoading, draftLoadAttempted]);
 
-  // Ensure draft is loaded when component mounts
   useEffect(() => {
     isMounted.current = true;
     
@@ -254,7 +252,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
               Saving...
             </span>
           )}
-          {saveStatus === 'success' && (
+          {saveStatus === 'saved' && (
             <span className="flex items-center justify-end gap-1">
               <CheckCircle2 className="h-3 w-3 text-green-500" />
               Saved

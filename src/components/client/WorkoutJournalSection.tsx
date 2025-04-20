@@ -64,6 +64,11 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
   }, [date, user?.id]);
 
   const stripEmoji = (text: string) => {
+    const match = text.match(/^([\u{1F600}-\u{1F6FF}]+)/gu);
+    return match ? match[0] : '';
+  };
+
+  const removeEmoji = (text: string) => {
     return text.replace(/^[\u{1F600}-\u{1F6FF}]+/gu, '').trim();
   };
 
@@ -199,7 +204,10 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
                     <Pencil className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="whitespace-pre-wrap">{stripEmoji(entry.content)}</p>
+                <p className="whitespace-pre-wrap">
+                  <span className="mr-2 text-lg">{stripEmoji(entry.content)}</span>
+                  {removeEmoji(entry.content)}
+                </p>
               </div>
             ))}
 

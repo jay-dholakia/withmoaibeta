@@ -11,7 +11,6 @@ interface AutosaveProps<T> {
   debounce?: number;
   disabled?: boolean;
   minChanges?: number;
-  forceSaveDependency?: any; // Add new prop to force save when this value changes
 }
 
 interface AutosaveReturn {
@@ -31,7 +30,6 @@ export function useAutosave<T>({
   debounce = 2000,
   disabled = false,
   minChanges = 0,
-  forceSaveDependency,
 }: AutosaveProps<T>): AutosaveReturn {
   const [saveStatus, setSaveStatus] = useState<AutosaveStatus>('idle');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -166,17 +164,6 @@ export function useAutosave<T>({
       }
     };
   }, [data, disabled, debounce, minChanges]);
-  
-  // Effect to handle forceSaveDependency changes
-  useEffect(() => {
-    if (forceSaveDependency !== undefined && !disabled && mountedRef.current) {
-      console.log('Force save triggered by dependency change');
-      // We use a small timeout to ensure this runs after any state updates
-      setTimeout(() => {
-        saveData();
-      }, 100);
-    }
-  }, [forceSaveDependency, disabled]);
   
   // Effect that sets up periodic interval for autosaving
   useEffect(() => {

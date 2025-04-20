@@ -173,7 +173,9 @@ const ActiveWorkout = () => {
     setPendingFlexibility,
     pendingRuns,
     setPendingRuns,
-    workoutDataInitialized
+    workoutDataInitialized,
+    forceAutosaveCounter,
+    triggerAutosave
   } = useWorkoutState(workoutData?.workout?.workout_exercises as WorkoutExercise[] | undefined);
 
   const formatDurationInput = (value: string): string => {
@@ -259,7 +261,9 @@ const ActiveWorkout = () => {
     },
     interval: 3000,
     debounce: 1000,
-    disabled: !workoutCompletionId || !user?.id || !workoutDataInitialized
+    disabled: !workoutCompletionId || !user?.id || !workoutDataInitialized,
+    // Add forceAutosaveCounter as a dependency to trigger saves
+    forceSaveDependency: forceAutosaveCounter
   });
 
   const trackSetMutation = useMutation({
@@ -855,60 +859,48 @@ const ActiveWorkout = () => {
   };
 
   const handleExerciseSwap = (newExercise: Exercise, originalExerciseId: string) => {
-    setExerciseStates(prev => {
-      const updatedStates = { ...prev };
-      
-      // Find the exercise state to update
-      const originalState = updatedStates[originalExerciseId];
-      if (!originalState) return prev;
-      
-      // Create a new state for the swapped exercise with the same structure
-      updatedStates[originalExerciseId] = {
-        ...originalState,
-        sets: originalState.sets.map(set => ({
-          ...set,
-          weight: '',
-          reps: '',
-          completed: false
-        }))
-      };
-      
-      return updatedStates;
-    });
+    // Get the original exercise data to maintain its structure
+    let originalExercise = null;
     
-    // Only update workout data to reflect the exercise ID change
-    if (workoutData?.workout?.workout_exercises) {
-      const exercises = workoutData.workout.workout_exercises;
-      
-      // Check if workout_exercises is an array before using map
-      if (Array.isArray(exercises)) {
-        const updatedExercises = exercises.map(ex => {
-          if (ex.id === originalExerciseId) {
-            return {
-              ...ex,
-              exercise_id: newExercise.id,
-              exercise: newExercise
-            };
-          }
-          return ex;
-        });
-        
-        queryClient.setQueryData(['active-workout', workoutCompletionId], (oldData: any) => {
-          if (!oldData) return oldData;
-          
-          return {
-            ...oldData,
-            workout: {
-              ...oldData.workout,
-              workout_exercises: updatedExercises
-            }
-          };
-        });
-      }
+    if (workoutData?.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises)) {
+      originalExercise = workoutData.workout.workout_exercises.find(ex => ex.id === originalExerciseId);
     }
     
+    if (!originalExercise) {
+      toast.error("Failed to swap exercise: Original exercise not found");
+      return;
+    }
+    
+    // Update the UI immediately by updating the workoutData
+    queryClient.setQueryData(['active-workout', workoutCompletionId], (oldData: any) => {
+      if (!oldData || !oldData.workout || !Array.isArray(oldData.workout.workout_exercises)) {
+        return oldData;
+      }
+      
+      // Create a deep copy of the data
+      const newData = JSON.parse(JSON.stringify(oldData));
+      
+      // Update the exercise
+      newData.workout.workout_exercises = newData.workout.workout_exercises.map((ex: any) => {
+        if (ex.id === originalExerciseId) {
+          return {
+            ...ex,
+            exercise_id: newExercise.id,
+            exercise: newExercise
+          };
+        }
+        return ex;
+      });
+      
+      return newData;
+    });
+    
+    // Close dialog and show success message
     closeAlternativeDialog();
     toast.success(`Swapped to ${newExercise.name}`);
+    
+    // Force an autosave to persist the change
+    triggerAutosave();
   };
 
   const renderExerciseCard = (exercise: WorkoutExercise) => {
@@ -1015,175 +1007,3 @@ const ActiveWorkout = () => {
                 exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
                 formatDurationInput={formatDurationInput}
-                onFlexibilityChange={handleFlexibilityChange}
-                onFlexibilityCompletion={handleFlexibilityCompletion}
-                onVideoClick={openVideoDialog}
-              />
-            )}
-
-            {isRunExercise && (
-              <RunExercise
-                exercise={exercise}
-                exerciseState={exerciseStates[exercise.id]}
-                onRunChange={handleRunChange}
-                onRunCompletion={handleRunCompletion}
-                onVideoClick={openVideoDialog}
-                formatDurationInput={formatDurationInput}
-              />
-            )}
-          </CardContent>
-        )}
-      </Card>
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-        <p className="text-lg font-medium">Loading workout...</p>
-      </div>
-    );
-  }
-
-  if (!workoutData || !workoutData.workout) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-        <h2 className="text-xl font-bold mb-2">Workout Not Found</h2>
-        <p className="text-gray-500 text-center mb-6">Could not load the requested workout.</p>
-        <Button onClick={() => navigate('/client-dashboard/workouts')}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container max-w-2xl mx-auto p-4 pb-20">
-      <div className="flex items-center mb-4 gap-2">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/client-dashboard/workouts')} 
-          className="h-8 w-8 p-0 text-gray-500" 
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-xl font-bold">{workoutData.workout?.title || "Workout"}</h1>
-      </div>
-      
-      {workoutData.workout?.description && (
-        <p className="text-gray-500 mb-6">{workoutData.workout.description}</p>
-      )}
-
-      <Stopwatch className="mt-2 mb-6" />
-    
-      {workoutData.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises) && workoutData.workout.workout_exercises.length > 0 ? (
-        <div className="space-y-6">
-          {workoutData.workout.workout_exercises.map((exercise: any) => (
-            renderExerciseCard(exercise)
-          ))}
-          
-          <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t z-10">
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={() => saveAllSetsMutation.mutate()}
-              disabled={saveAllSetsMutation.isPending}
-            >
-              {saveAllSetsMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Complete Workout
-                </>
-              )}
-            </Button>
-            <div className="flex justify-center mt-2">
-              <p className="text-xs text-gray-500">
-                {saveStatus === 'saved' && 'Progress autosaved'}
-                {saveStatus === 'saving' && 'Saving...'}
-                {saveStatus === 'error' && 'Error saving'}
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="text-center py-8">
-          <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-2 text-lg font-medium">No Exercises Found</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            This workout doesn't have any exercises.
-          </p>
-        </div>
-      )}
-
-      {/* Video Player Dialog */}
-      <Dialog open={videoDialogOpen} onOpenChange={closeVideoDialog}>
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{currentExerciseName}</DialogTitle>
-            <DialogDescription>
-              Watch the exercise demonstration video
-            </DialogDescription>
-          </DialogHeader>
-          <div className="aspect-video overflow-hidden rounded-md">
-            {currentVideoUrl && <VideoPlayer url={currentVideoUrl} />}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Alternative Exercise Dialog */}
-      <Dialog open={alternativeDialogOpen} onOpenChange={closeAlternativeDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Alternative Exercises</DialogTitle>
-            <DialogDescription>
-              Select an alternative exercise to swap with {currentExercise?.exercise?.name}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="max-h-[300px] overflow-y-auto">
-            {isLoadingAlternatives ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : alternativeExercises.length > 0 ? (
-              <div className="space-y-2">
-                {alternativeExercises.map((exercise) => (
-                  <div 
-                    key={exercise.id}
-                    className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100 cursor-pointer"
-                    onClick={() => handleExerciseSwap(exercise, currentExercise?.id)}
-                  >
-                    <span>{exercise.name}</span>
-                    <Button variant="outline" size="sm">
-                      Select
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p>No alternative exercises found.</p>
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={closeAlternativeDialog}>
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default ActiveWorkout;

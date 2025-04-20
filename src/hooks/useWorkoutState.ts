@@ -13,6 +13,7 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
   const [pendingFlexibility, setPendingFlexibility] = useState<PendingFlexibility[]>([]);
   const [pendingRuns, setPendingRuns] = useState<PendingRun[]>([]);
   const [workoutDataInitialized, setWorkoutDataInitialized] = useState(false);
+  const [forceAutosaveCounter, setForceAutosaveCounter] = useState(0);
 
   useEffect(() => {
     if (workoutExercises && !workoutDataInitialized) {
@@ -75,6 +76,11 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
     }
   }, [workoutExercises, workoutDataInitialized]);
 
+  // Function to trigger a force autosave
+  const triggerAutosave = () => {
+    setForceAutosaveCounter(prev => prev + 1);
+  };
+
   return {
     exerciseStates,
     setExerciseStates,
@@ -86,6 +92,8 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
     setPendingFlexibility,
     pendingRuns,
     setPendingRuns,
-    workoutDataInitialized
+    workoutDataInitialized,
+    forceAutosaveCounter,
+    triggerAutosave
   };
 };

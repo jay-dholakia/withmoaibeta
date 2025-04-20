@@ -459,10 +459,10 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
                   firstName={member.profileData?.first_name}
                   lastName={member.profileData?.last_name}
                   showLabelsBelow={false}
-                  className="py-2"
+                  className="py-1"
                 />
                 {index < allMembers.length - 1 && (
-                  <div className="py-2">
+                  <div className="py-1">
                     <Separator className="opacity-30" />
                   </div>
                 )}

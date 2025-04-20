@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -1017,4 +1018,185 @@ const ActiveWorkout = () => {
                 formatDurationInput={formatDurationInput}
                 onFlexibilityChange={handleFlexibilityChange}
                 onFlexibilityCompletion={handleFlexibilityCompletion}
-                on
+                onVideoClick={openVideoDialog}
+              />
+            )}
+
+            {isRunExercise && (
+              <RunExercise 
+                exercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                formatDurationInput={formatDurationInput}
+                onRunChange={handleRunChange}
+                onRunCompletion={handleRunCompletion}
+                onVideoClick={openVideoDialog}
+              />
+            )}
+          </CardContent>
+        )}
+      </Card>
+    );
+  };
+
+  return (
+    <div className="container mx-auto py-4 pb-20 max-w-lg">
+      {isLoading ? (
+        <Card className="p-10 flex flex-col items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+          <p>Loading workout...</p>
+        </Card>
+      ) : !workoutData ? (
+        <Card>
+          <CardContent className="p-6 flex flex-col items-center">
+            <AlertCircle className="h-8 w-8 text-destructive mb-2" />
+            <p>Workout not found. It may have been deleted or you don't have access to it.</p>
+            <Button 
+              variant="secondary"
+              className="mt-4"
+              onClick={() => navigate('/client-dashboard/workouts')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <div className="flex justify-between items-center mb-4">
+            <Button 
+              variant="ghost" 
+              className="p-0" 
+              onClick={() => navigate('/client-dashboard/workouts')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" /> Back
+            </Button>
+            
+            {saveStatus === 'saving' && (
+              <div className="text-xs text-muted-foreground flex items-center">
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                Saving...
+              </div>
+            )}
+            
+            {saveStatus === 'saved' && (
+              <div className="text-xs text-muted-foreground flex items-center">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Saved
+              </div>
+            )}
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{workoutData?.workout?.name || 'Workout'}</CardTitle>
+              <CardDescription>
+                {workoutData?.workout?.description || 'Track your workout progress'}
+              </CardDescription>
+            </CardHeader>
+              
+            <CardContent>
+              {workoutData?.workout?.workout_exercises?.length === 0 ? (
+                <div className="text-center py-6">
+                  <p>No exercises in this workout. Please contact your coach.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {workoutData?.workout?.workout_exercises?.map((exercise: WorkoutExercise) => (
+                    renderExerciseCard(exercise)
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
+            <DialogContent className="sm:max-w-[700px] p-0">
+              <DialogHeader className="px-6 pt-6">
+                <DialogTitle>{currentExerciseName || "Exercise Video"}</DialogTitle>
+                <DialogDescription>Watch the video for proper form</DialogDescription>
+              </DialogHeader>
+              
+              <div className="relative w-full pt-[56.25%]">
+                {currentVideoUrl && (
+                  <VideoPlayer
+                    url={currentVideoUrl}
+                    height="100%"
+                    width="100%"
+                    className="absolute top-0 left-0 h-full"
+                    controls={true}
+                    playing={true}
+                  />
+                )}
+              </div>
+              
+              <DialogFooter className="p-6">
+                <Button onClick={closeVideoDialog}>Close</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        
+          <Dialog open={alternativeDialogOpen} onOpenChange={setAlternativeDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Alternative Exercises</DialogTitle>
+                <DialogDescription>
+                  Select an alternative exercise for {currentExercise?.exercise?.name || 'this exercise'}
+                </DialogDescription>
+              </DialogHeader>
+              
+              {isLoadingAlternatives ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : alternativeExercises.length === 0 ? (
+                <div className="py-4 text-center">
+                  <p>No alternative exercises found</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {alternativeExercises.map((exercise) => (
+                    <Button
+                      key={exercise.id}
+                      variant="outline"
+                      className="w-full justify-start h-auto py-3 px-4"
+                      onClick={() => handleExerciseSwap(exercise, currentExercise?.id)}
+                    >
+                      <div className="text-left">
+                        <p className="font-medium">{exercise.name}</p>
+                        <p className="text-xs text-muted-foreground">{exercise.muscle_group}</p>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              )}
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={closeAlternativeDialog}>Cancel</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Stopwatch className="mt-6 mb-4 w-full" />
+          
+          <Button 
+            className="w-full"
+            disabled={saveAllSetsMutation.isPending}
+            onClick={() => {
+              console.log("Pending sets:", pendingSets);
+              saveAllSetsMutation.mutate();
+            }}
+          >
+            {saveAllSetsMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
+              </>
+            ) : (
+              'Complete Workout'
+            )}
+          </Button>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default ActiveWorkout;

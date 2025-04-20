@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const MAX_MONTHLY_PASSES = 2;
@@ -24,8 +25,9 @@ export const createLifeHappensCompletion = async (
       completed_at: now,
       notes: notes,
       life_happens_pass: true,
-      title: "Life Happens Pass",
-      workout_type: "life_happens"
+      title: "Life Happens Pass", // Explicitly set the title
+      workout_type: "life_happens", // Explicitly set the workout type
+      description: "Workout credit used via Life Happens Pass" // Optional description
     };
     
     console.log("Inserting workout completion data:", insertData);

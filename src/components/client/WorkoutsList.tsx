@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -213,6 +214,12 @@ const WorkoutsList = () => {
     navigate(`/client-dashboard/workouts/active/${workoutId}`);
   }, [navigate]);
 
+  // Helper function to check if a workout is completed
+  const isWorkoutCompleted = (workoutId: string): boolean => {
+    const workout = workouts.find(w => w.id === workoutId);
+    return !!workout?.completed_at;
+  };
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const calendarStatus = urlParams.get('calendar');
@@ -342,15 +349,15 @@ const WorkoutsList = () => {
                 <WorkoutCard
                   key={workout.id}
                   workoutId={workout.id}
-                  title={workout.title}
-                  description={workout.description}
-                  type={workout.workout_type}
-                  groupMembers={groupMembers}
+                  title={workout.title || workout.workout?.title || "Workout"}
+                  description={workout.description || workout.workout?.description}
+                  type={workout.workout_type || workout.workout?.workout_type}
+                  groupMembers={allGroupMembers}
                   currentUserId={user?.id || ''}
                   onStartWorkout={handleStartWorkout}
-                  completed={isWorkoutCompleted(workout.id)}
-                  dayOfWeek={workout.day_of_week}
-                  exercises={workout.workout_exercises || []}
+                  completed={!!workout.completed_at}
+                  dayOfWeek={workout.workout?.day_of_week}
+                  exercises={workout.workout?.workout_exercises || []}
                 />
               ))}
             </div>
@@ -365,15 +372,15 @@ const WorkoutsList = () => {
                 <WorkoutCard
                   key={workout.id}
                   workoutId={workout.id}
-                  title={workout.title}
-                  description={workout.description}
-                  type={workout.workout_type}
-                  groupMembers={groupMembers}
+                  title={workout.title || workout.workout?.title || "Workout"}
+                  description={workout.description || workout.workout?.description}
+                  type={workout.workout_type || workout.workout?.workout_type}
+                  groupMembers={allGroupMembers}
                   currentUserId={user?.id || ''}
                   onStartWorkout={handleStartWorkout}
-                  completed={isWorkoutCompleted(workout.id)}
-                  dayOfWeek={workout.day_of_week}
-                  exercises={workout.workout_exercises || []}
+                  completed={!!workout.completed_at}
+                  dayOfWeek={workout.workout?.day_of_week}
+                  exercises={workout.workout?.workout_exercises || []}
                 />
               ))}
             </div>

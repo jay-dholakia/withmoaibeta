@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1081,7 +1082,7 @@ const ActiveWorkout = () => {
     
       {workoutData.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises) && workoutData.workout.workout_exercises.length > 0 ? (
         <div className="space-y-6 mb-40">
-          {workoutData.workout.workout_exercises.map((exercise: any) => (
+          {workoutData.workout.workout_exercises.map((exercise: WorkoutExercise) => (
             renderExerciseCard(exercise)
           ))}
           

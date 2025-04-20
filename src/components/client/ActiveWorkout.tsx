@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -25,7 +24,6 @@ import { StrengthExercise } from './workout/StrengthExercise';
 import { CardioExercise } from './workout/CardioExercise';
 import { FlexibilityExercise } from './workout/FlexibilityExercise';
 import { RunExercise } from './workout/RunExercise';
-import { useIsMobile } from '@/lib/hooks';
 import {
   Dialog,
   DialogContent,
@@ -34,73 +32,136 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ExerciseState, ExerciseStates } from '@/types/active-workout';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
   
-  // State for the workout and exercise data
-  const [showExerciseHelp, setShowExerciseHelp] = useState<string | null>(null);
-  const [similarExercisesOpen, setSimilarExercisesOpen] = useState(false);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
-  const [similarExercises, setSimilarExercises] = useState<Exercise[]>([]);
-  const [autosaveStatus, setAutosaveStatus] = useState<AutosaveStatus>('idle');
-  const [showVideoPlayer, setShowVideoPlayer] = useState<string | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [authStateChanged, setAuthStateChanged] = useState(0);
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
+  const [expandedDescriptions, setExpandedDescriptions] = useState<{[key: string]: boolean}>({});
+  const [draftLoadAttempted, setDraftLoadAttempted] = useState(false);
+  
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
+  const [currentExerciseName, setCurrentExerciseName] = useState<string>('');
 
-  // Fetch workout completion data
-  const { data: workoutCompletion, isLoading, error } = useQuery({
-    queryKey: ['workout-completion', workoutCompletionId],
+  const [alternativeDialogOpen, setAlternativeDialogOpen] = useState(false);
+  const [currentExercise, setCurrentExercise] = useState<any>(null);
+  const [alternativeExercises, setAlternativeExercises] = useState<any[]>([]);
+  const [isLoadingAlternatives, setIsLoadingAlternatives] = useState(false);
+
+  const { data: workoutData, isLoading } = useQuery({
+    queryKey: ['active-workout', workoutCompletionId],
     queryFn: async () => {
-      if (!workoutCompletionId) throw new Error('No workout completion ID provided');
-      
-      const { data, error } = await supabase
-        .from('workout_completions')
-        .select(`
-          *,
-          workout:workout_id (
+      try {
+        console.log("Fetching workout data for completion ID:", workoutCompletionId);
+        
+        const { data: completionData, error: completionError } = await supabase
+          .from('workout_completions')
+          .select(`
+            *,
+            workout:workout_id (
+              *,
+              workout_exercises (
+                *,
+                exercise:exercise_id (*)
+              )
+            ),
+            workout_set_completions (*)
+          `)
+          .eq('id', workoutCompletionId || '')
+          .eq('user_id', user?.id)
+          .maybeSingle();
+        
+        if (completionError) {
+          console.error("Error fetching workout data:", completionError);
+        }
+        
+        if (completionData?.workout) {
+          console.log("Found existing workout completion data:", completionData);
+          return completionData;
+        }
+        
+        console.log("Fetching workout directly with ID:", workoutCompletionId);
+        const { data: workoutOnlyData, error: workoutError } = await supabase
+          .from('workouts')
+          .select(`
             *,
             workout_exercises (
               *,
               exercise:exercise_id (*)
             )
-          )
-        `)
-        .eq('id', workoutCompletionId)
-        .single();
+          `)
+          .eq('id', workoutCompletionId || '')
+          .maybeSingle();
+          
+        if (workoutError) {
+          console.error("Error fetching workout directly:", workoutError);
+          
+          const { data: standaloneWorkout, error: standaloneError } = await supabase
+            .from('standalone_workouts')
+            .select(`
+              *,
+              standalone_workout_exercises (
+                *,
+                exercise:exercise_id (*)
+              )
+            `)
+            .eq('id', workoutCompletionId || '')
+            .maybeSingle();
+            
+          if (standaloneError) {
+            console.error("Error fetching standalone workout:", standaloneError);
+            return null;
+          }
+          
+          if (standaloneWorkout) {
+            console.log("Found standalone workout:", standaloneWorkout);
+            return {
+              id: null,
+              user_id: user?.id,
+              workout_id: workoutCompletionId,
+              standalone_workout_id: workoutCompletionId,
+              completed_at: null,
+              workout: {
+                ...standaloneWorkout,
+                workout_exercises: standaloneWorkout.standalone_workout_exercises?.map(ex => ({
+                  ...ex,
+                  workout_id: standaloneWorkout.id
+                }))
+              },
+              workout_set_completions: []
+            };
+          }
+          
+          return null;
+        }
         
-      if (error) throw error;
-      return data;
+        if (!workoutOnlyData) {
+          console.error("Workout not found with ID:", workoutCompletionId);
+          return null;
+        }
+        
+        return {
+          id: null,
+          user_id: user?.id,
+          workout_id: workoutCompletionId,
+          completed_at: null,
+          workout: workoutOnlyData,
+          workout_set_completions: []
+        };
+      } catch (error) {
+        console.error("Error in workout data query:", error);
+        throw error;
+      }
     },
-    enabled: !!workoutCompletionId && !!user,
+    enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Get workout exercises safely, ensuring we always have an array
-  const getWorkoutExercises = (): WorkoutExercise[] => {
-    if (!workoutCompletion?.workout?.workout_exercises) {
-      return [];
-    }
-    
-    // Check if workout_exercises is an error object
-    if (
-      typeof workoutCompletion.workout.workout_exercises === 'object' && 
-      'error' in workoutCompletion.workout.workout_exercises
-    ) {
-      console.error("Error in workout exercises:", workoutCompletion.workout.workout_exercises);
-      return [];
-    }
-    
-    // Now we know it's an array
-    return Array.isArray(workoutCompletion.workout.workout_exercises) 
-      ? workoutCompletion.workout.workout_exercises 
-      : [];
-  };
-
-  // Set up workout state manager with safe workout exercises
   const {
     exerciseStates,
     setExerciseStates,
@@ -113,754 +174,1012 @@ const ActiveWorkout = () => {
     pendingRuns,
     setPendingRuns,
     workoutDataInitialized
-  } = useWorkoutState(getWorkoutExercises());
+  } = useWorkoutState(workoutData?.workout?.workout_exercises as WorkoutExercise[] | undefined);
 
-  // Autosave workout progress
-  const { saveStatus, forceSave } = useAutosave({
-    data: {
-      exerciseStates,
-      pendingSets,
-      pendingCardio,
-      pendingFlexibility,
-      pendingRuns
-    },
-    onSave: async (data) => {
-      if (!workoutCompletionId) return false;
-      
-      setAutosaveStatus('saving');
-      const success = await saveWorkoutDraft(
-        workoutCompletionId,
-        workoutCompletion?.workout_type || 'workout',
-        data
-      );
-      
-      setAutosaveStatus(success ? 'saved' : 'error');
-      return success;
-    },
-    debounce: 1500
-  });
-
-  // Update autosave status when saveStatus changes
-  useEffect(() => {
-    setAutosaveStatus(saveStatus);
-  }, [saveStatus]);
-
-  // Trigger autosave manually
-  const triggerAutosave = () => {
-    forceSave();
+  const formatDurationInput = (value: string): string => {
+    let cleaned = value.replace(/[^\d:]/g, '');
+    const parts = cleaned.split(':');
+    if (parts.length > 3) {
+      cleaned = parts.slice(0, 3).join(':');
+    }
+    return cleaned;
   };
 
-  // Fetch saved workout draft
+  const formatRestTime = (seconds: number | null) => {
+    if (!seconds) return "";
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  };
+
   useEffect(() => {
-    const fetchDraft = async () => {
-      if (!workoutCompletionId || !workoutDataInitialized) return;
+    if (user) {
+      console.log("Auth state detected in ActiveWorkout, user:", user.id);
+      setAuthStateChanged(prev => prev + 1);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const loadPersonalRecords = async () => {
+      if (!user?.id) return;
       
       try {
-        const draftData = await getWorkoutDraft(workoutCompletionId);
-        if (draftData && draftData.draft_data) {
-          if (draftData.draft_data.exerciseStates) {
-            setExerciseStates(draftData.draft_data.exerciseStates);
-          }
-          
-          if (draftData.draft_data.pendingSets) {
-            setPendingSets(draftData.draft_data.pendingSets);
-          }
-          
-          if (draftData.draft_data.pendingCardio) {
-            setPendingCardio(draftData.draft_data.pendingCardio);
-          }
-          
-          if (draftData.draft_data.pendingFlexibility) {
-            setPendingFlexibility(draftData.draft_data.pendingFlexibility);
-          }
-          
-          if (draftData.draft_data.pendingRuns) {
-            setPendingRuns(draftData.draft_data.pendingRuns);
-          }
-          
-          toast.success('Loaded your saved workout progress');
-        }
-      } catch (err) {
-        console.error('Error loading draft:', err);
-        toast.error('Could not load your saved progress');
+        const records = await fetchPersonalRecords(user.id);
+        console.log("Loaded personal records:", records);
+        setPersonalRecords(records);
+      } catch (error) {
+        console.error("Error loading personal records:", error);
       }
     };
     
-    fetchDraft();
-  }, [workoutCompletionId, workoutDataInitialized, setExerciseStates, setPendingSets, setPendingCardio, setPendingFlexibility, setPendingRuns]);
+    loadPersonalRecords();
+  }, [user?.id]);
 
-  // Fetch personal records
-  useEffect(() => {
-    if (!user?.id) return;
-    
-    // Get workout exercises safely
-    const exercises = getWorkoutExercises();
-    if (exercises.length === 0) return;
-    
-    const exerciseIds = exercises
-      .map(we => we.exercise?.id)
-      .filter(Boolean) as string[];
-      
-    fetchPersonalRecords(user.id, exerciseIds)
-      .then(records => setPersonalRecords(records))
-      .catch(err => console.error('Error fetching PRs:', err));
-  }, [user?.id, workoutCompletion]);
-
-  // Toggle exercise expanded state
-  const toggleExerciseExpanded = (exerciseId: string) => {
-    setExerciseStates(prev => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        expanded: !prev[exerciseId]?.expanded
-      }
-    }));
-    
-    triggerAutosave();
+  const getExercisePR = (exerciseId: string): PersonalRecord | undefined => {
+    return personalRecords.find(record => record.exercise_id === exerciseId);
   };
 
-  // Update exercise set values
-  const handleSetChange = (exerciseId: string, setNumber: number, field: 'weight' | 'reps', value: string) => {
-    setExerciseStates(prev => {
-      const updatedExerciseState = {
-        ...prev[exerciseId],
-        sets: prev[exerciseId]?.sets.map(set => 
-          set.setNumber === setNumber ? { ...set, [field]: value } : set
-        )
-      };
+  const draftData = {
+    exerciseStates,
+    pendingSets,
+    pendingCardio,
+    pendingFlexibility,
+    pendingRuns
+  };
+
+  const { saveStatus } = useAutosave({
+    data: draftData,
+    onSave: async (data) => {
+      if (!workoutCompletionId || !user?.id) return false;
+      console.log("Saving workout draft with data:", data);
+      try {
+        // Save to sessionStorage first for immediate access on page reload
+        try {
+          sessionStorage.setItem(`workout_draft_${workoutCompletionId}`, JSON.stringify({
+            draft_data: data,
+            workout_type: 'workout',
+            updated_at: new Date().toISOString()
+          }));
+        } catch (e) {
+          console.warn("Failed to save draft to sessionStorage:", e);
+        }
+        
+        const result = await saveWorkoutDraft(
+          workoutCompletionId, 
+          'workout', 
+          data
+        );
+        
+        return result;
+      } catch (error) {
+        console.error("Error saving workout draft:", error);
+        return false;
+      }
+    },
+    interval: 3000,
+    debounce: 1000,
+    disabled: !workoutCompletionId || !user?.id || !workoutDataInitialized
+  });
+
+  const trackSetMutation = useMutation({
+    mutationFn: async ({
+      exerciseId,
+      setNumber,
+      weight,
+      reps,
+      notes,
+      distance,
+      duration,
+      location
+    }: {
+      exerciseId: string;
+      setNumber: number;
+      weight: string | null;
+      reps: string | null;
+      notes?: string | null;
+      distance?: string | null;
+      duration?: string | null;
+      location?: string | null;
+    }) => {
+      if (!workoutCompletionId) {
+        toast.error("Missing workout completion ID");
+        return null;
+      }
       
-      return { ...prev, [exerciseId]: updatedExerciseState };
-    });
-    
-    // Add to pending sets
-    const currentExerciseInfo = exerciseStates[exerciseId]?.exerciseInfo;
-    if (currentExerciseInfo) {
-      const pendingSet = pendingSets.find(ps => 
-        ps.exerciseId === currentExerciseInfo.exerciseId && ps.setNumber === setNumber
-      );
+      console.log("Tracking set:", {
+        workoutCompletionId,
+        exerciseId,
+        setNumber,
+        weight: weight ? parseFloat(weight) : null,
+        reps: reps ? parseInt(reps, 10) : null,
+        notes,
+        distance,
+        duration,
+        location
+      });
       
-      if (pendingSet) {
-        setPendingSets(pendingSets.map(ps => 
-          ps.exerciseId === currentExerciseInfo.exerciseId && ps.setNumber === setNumber
-            ? { ...ps, [field]: value }
-            : ps
-        ));
-      } else {
-        setPendingSets([
-          ...pendingSets,
+      try {
+        return await trackWorkoutSet(
+          exerciseId,
+          workoutCompletionId,
+          setNumber,
           {
-            exerciseId: currentExerciseInfo.exerciseId,
-            setNumber: setNumber,
-            weight: field === 'weight' ? value : exerciseStates[exerciseId]?.sets[setNumber - 1]?.weight || '',
-            reps: field === 'reps' ? value : exerciseStates[exerciseId]?.sets[setNumber - 1]?.reps || ''
+            weight: weight ? parseFloat(weight) : null,
+            reps_completed: reps ? parseInt(reps, 10) : null,
+            notes: notes || null,
+            distance: distance || null,
+            duration: duration || null,
+            location: location || null,
+            completed: true
           }
-        ]);
+        );
+      } catch (error) {
+        console.error("Error in trackSetMutation:", error);
+        throw error;
       }
-    }
-    
-    triggerAutosave();
-  };
+    },
+    onSuccess: (data) => {
+      console.log("Successfully tracked set:", data);
+      queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
+    },
+    onError: (error: any) => {
+      console.error('Error tracking set:', error);
+      toast.error(`Failed to save set: ${error?.message || 'Unknown error'}`);
+    },
+  });
 
-  // Complete or uncomplete a set
-  const toggleSetCompleted = (exerciseId: string, setNumber: number) => {
-    setExerciseStates(prev => {
-      const updatedSets = prev[exerciseId]?.sets.map(set => 
-        set.setNumber === setNumber ? { ...set, completed: !set.completed } : set
-      );
+  const saveAllSetsMutation = useMutation({
+    mutationFn: async () => {
+      if (!workoutCompletionId || !user?.id) {
+        toast.error("Missing workout or user information");
+        return null;
+      }
       
+      try {
+        const { data: existingCompletion, error: checkError } = await supabase
+          .from('workout_completions')
+          .select('id')
+          .eq('workout_id', workoutCompletionId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+          
+        if (checkError) {
+          console.error("Error checking for existing completion:", checkError);
+        }
+        
+        let completionId = existingCompletion?.id;
+        
+        if (!completionId) {
+          console.log("Creating new workout completion record");
+          const { data: newCompletion, error: insertError } = await supabase
+            .from('workout_completions')
+            .insert({
+              workout_id: workoutData?.workout_id || workoutCompletionId,
+              user_id: user.id,
+              completed_at: new Date().toISOString()
+            })
+            .select('id')
+            .single();
+            
+          if (insertError) {
+            console.error("Error creating workout completion:", insertError);
+            throw insertError;
+          }
+          
+          completionId = newCompletion.id;
+        } else {
+          console.log("Using existing workout completion record:", completionId);
+        }
+        
+        const promises = [];
+        
+        if (pendingSets.length > 0) {
+          const setPromises = pendingSets.map(set => 
+            trackWorkoutSet(
+              set.exerciseId,
+              completionId!,
+              set.setNumber,
+              {
+                weight: set.weight ? parseFloat(set.weight) : null,
+                reps_completed: set.reps ? parseInt(set.reps, 10) : null,
+                completed: true
+              }
+            )
+          );
+          promises.push(...setPromises);
+        }
+        
+        if (pendingCardio.length > 0) {
+          const cardioPromises = pendingCardio.map(item => {
+            const distance = item.distance && item.distance.trim() !== '' 
+              ? item.distance
+              : null;
+              
+            return trackWorkoutSet(
+              item.exerciseId,
+              completionId!,
+              1,
+              {
+                distance,
+                duration: item.duration || null,
+                location: item.location || null,
+                completed: true
+              }
+            );
+          });
+          promises.push(...cardioPromises);
+        }
+        
+        if (pendingFlexibility.length > 0) {
+          const flexibilityPromises = pendingFlexibility.map(item => {
+            return trackWorkoutSet(
+              item.exerciseId,
+              completionId!,
+              1,
+              {
+                duration: item.duration || null,
+                completed: true
+              }
+            );
+          });
+          promises.push(...flexibilityPromises);
+        }
+        
+        if (pendingRuns.length > 0) {
+          const runPromises = pendingRuns.map(item => {
+            const distance = item.distance && item.distance.trim() !== '' 
+              ? item.distance
+              : null;
+              
+            return trackWorkoutSet(
+              item.exerciseId,
+              completionId!,
+              1,
+              {
+                distance,
+                duration: item.duration || null,
+                location: item.location || null,
+                completed: true
+              }
+            );
+          });
+          promises.push(...runPromises);
+        }
+        
+        if (promises.length > 0) {
+          await Promise.allSettled(promises);
+        } else {
+          console.log("No sets were completed, just marking workout as completed");
+        }
+        
+        return completionId;
+      } catch (error) {
+        console.error("Error in saveAllSetsMutation:", error);
+        throw error;
+      }
+    },
+    onSuccess: (completionId) => {
+      if (completionId) {
+        deleteWorkoutDraft(workoutCompletionId);
+        
+        queryClient.invalidateQueries({ queryKey: ['active-workout', workoutCompletionId] });
+        queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
+        setPendingSets([]);
+        setPendingCardio([]);
+        setPendingFlexibility([]);
+        setPendingRuns([]);
+        navigate(`/client-dashboard/workouts/complete/${completionId}`);
+      } else {
+        toast.error("Failed to save workout");
+      }
+    },
+    onError: (error: any) => {
+      console.error('Error saving workout data:', error);
+      toast.error(`Failed to save workout: ${error?.message || 'Unknown error'}`);
+    },
+  });
+
+  useEffect(() => {
+    const loadDraftData = async () => {
+      if (!workoutCompletionId || !user?.id || !workoutDataInitialized || draftLoadAttempted || draftLoaded) {
+        return;
+      }
+      
+      console.log("Attempting to load draft data for workout:", workoutCompletionId);
+      setDraftLoadAttempted(true);
+      
+      try {
+        // First try to get draft from sessionStorage for faster loading
+        let draft = null;
+        try {
+          const cachedDraft = sessionStorage.getItem(`workout_draft_${workoutCompletionId}`);
+          if (cachedDraft) {
+            draft = JSON.parse(cachedDraft);
+            console.log("Found draft in sessionStorage:", draft);
+          }
+        } catch (e) {
+          console.warn("Failed to retrieve draft from sessionStorage:", e);
+        }
+        
+        // If not in sessionStorage or doesn't exist, get from Supabase
+        if (!draft || !draft.draft_data) {
+          console.log("Fetching draft from database");
+          draft = await getWorkoutDraft(workoutCompletionId);
+        }
+        
+        if (!draft || !draft.draft_data) {
+          console.log("No draft found for workout:", workoutCompletionId);
+          setDraftLoaded(true);
+          return;
+        }
+        
+        console.log("Draft found:", draft);
+        
+        const draftData = draft.draft_data;
+        
+        // Update states with draft data
+        if (draftData.exerciseStates && Object.keys(draftData.exerciseStates).length > 0) {
+          console.log("Restoring exercise states from draft");
+          setExerciseStates(prevState => ({
+            ...prevState,
+            ...draftData.exerciseStates
+          }));
+        }
+        
+        if (draftData.pendingSets && draftData.pendingSets.length > 0) {
+          console.log("Restoring pending sets from draft:", draftData.pendingSets);
+          setPendingSets(draftData.pendingSets);
+        }
+        
+        if (draftData.pendingCardio && draftData.pendingCardio.length > 0) {
+          console.log("Restoring pending cardio from draft");
+          setPendingCardio(draftData.pendingCardio);
+        }
+        
+        if (draftData.pendingFlexibility && draftData.pendingFlexibility.length > 0) {
+          console.log("Restoring pending flexibility from draft");
+          setPendingFlexibility(draftData.pendingFlexibility);
+        }
+        
+        if (draftData.pendingRuns && draftData.pendingRuns.length > 0) {
+          console.log("Restoring pending runs from draft");
+          setPendingRuns(draftData.pendingRuns);
+        }
+        
+        toast.success("Your workout progress has been restored");
+        setDraftLoaded(true);
+      } catch (error) {
+        console.error("Error loading draft data:", error);
+        setDraftLoaded(true);
+      }
+    };
+    
+    loadDraftData();
+  }, [workoutCompletionId, user, workoutDataInitialized, draftLoadAttempted, draftLoaded, setExerciseStates, setPendingSets, setPendingCardio, setPendingFlexibility, setPendingRuns]);
+
+  const handleSetChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
+    setExerciseStates((prev) => {
+      if (!prev[exerciseId]) {
+        return prev;
+      }
+
       return {
         ...prev,
         [exerciseId]: {
           ...prev[exerciseId],
-          sets: updatedSets || []
-        }
+          sets: prev[exerciseId].sets.map((set, idx) => 
+            idx === setIndex ? { ...set, [field]: value } : set
+          ),
+        },
       };
     });
-    
-    triggerAutosave();
   };
 
-  // Update cardio exercise data
   const handleCardioChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
-    setExerciseStates(prev => {
-      const updatedCardioData = {
-        ...prev[exerciseId]?.cardioData,
-        [field]: value
-      };
-      
+    setExerciseStates((prev) => {
+      if (!prev[exerciseId] || !prev[exerciseId].cardioData) {
+        return prev;
+      }
+
       return {
         ...prev,
         [exerciseId]: {
           ...prev[exerciseId],
           cardioData: {
-            distance: updatedCardioData.distance || '',
-            duration: updatedCardioData.duration || '',
-            location: updatedCardioData.location || '',
-            completed: prev[exerciseId]?.cardioData?.completed || false
+            ...prev[exerciseId].cardioData!,
+            [field]: value
           }
         }
       };
     });
-    
-    // Update pending cardio data
-    const currentExerciseInfo = exerciseStates[exerciseId]?.exerciseInfo;
-    if (currentExerciseInfo) {
-      const pendingCardioEntry = pendingCardio.find(pc => 
-        pc.exerciseId === currentExerciseInfo.exerciseId
-      );
-      
-      if (pendingCardioEntry) {
-        setPendingCardio(pendingCardio.map(pc => 
-          pc.exerciseId === currentExerciseInfo.exerciseId
-            ? { ...pc, [field]: value }
-            : pc
-        ));
-      } else {
-        setPendingCardio([
-          ...pendingCardio,
-          {
-            exerciseId: currentExerciseInfo.exerciseId,
-            distance: field === 'distance' ? value : exerciseStates[exerciseId]?.cardioData?.distance || '',
-            duration: field === 'duration' ? value : exerciseStates[exerciseId]?.cardioData?.duration || '',
-            location: field === 'location' ? value : exerciseStates[exerciseId]?.cardioData?.location || ''
+  };
+
+  const handleFlexibilityChange = (exerciseId: string, field: 'duration', value: string) => {
+    setExerciseStates((prev) => {
+      if (!prev[exerciseId] || !prev[exerciseId].flexibilityData) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          flexibilityData: {
+            ...prev[exerciseId].flexibilityData!,
+            [field]: value
           }
-        ]);
-      }
-    }
-    
-    triggerAutosave();
-  };
-
-  // Toggle cardio completion
-  const toggleCardioCompleted = (exerciseId: string) => {
-    setExerciseStates(prev => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        cardioData: {
-          distance: prev[exerciseId]?.cardioData?.distance || '',
-          duration: prev[exerciseId]?.cardioData?.duration || '',
-          location: prev[exerciseId]?.cardioData?.location || '',
-          completed: !(prev[exerciseId]?.cardioData?.completed)
         }
-      }
-    }));
-    
-    triggerAutosave();
-  };
-
-  // Update flexibility exercise data
-  const handleFlexibilityChange = (exerciseId: string, value: string) => {
-    setExerciseStates(prev => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        flexibilityData: {
-          duration: value,
-          completed: prev[exerciseId]?.flexibilityData?.completed || false
-        }
-      }
-    }));
-    
-    // Update pending flexibility data
-    const currentExerciseInfo = exerciseStates[exerciseId]?.exerciseInfo;
-    if (currentExerciseInfo) {
-      const pendingFlexibilityEntry = pendingFlexibility.find(pf => 
-        pf.exerciseId === currentExerciseInfo.exerciseId
-      );
-      
-      if (pendingFlexibilityEntry) {
-        setPendingFlexibility(pendingFlexibility.map(pf => 
-          pf.exerciseId === currentExerciseInfo.exerciseId
-            ? { ...pf, duration: value }
-            : pf
-        ));
-      } else {
-        setPendingFlexibility([
-          ...pendingFlexibility,
-          {
-            exerciseId: currentExerciseInfo.exerciseId,
-            duration: value
-          }
-        ]);
-      }
-    }
-    
-    triggerAutosave();
-  };
-
-  // Toggle flexibility completion
-  const toggleFlexibilityCompleted = (exerciseId: string) => {
-    setExerciseStates(prev => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        flexibilityData: {
-          duration: prev[exerciseId]?.flexibilityData?.duration || '',
-          completed: !(prev[exerciseId]?.flexibilityData?.completed)
-        }
-      }
-    }));
-    
-    triggerAutosave();
-  };
-
-  // Update running exercise data
-  const handleRunChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
-    setExerciseStates(prev => {
-      const updatedRunData = {
-        ...prev[exerciseId]?.runData,
-        [field]: value
       };
-      
+    });
+  };
+
+  const handleRunChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
+    setExerciseStates((prev) => {
+      if (!prev[exerciseId] || !prev[exerciseId].runData) {
+        return prev;
+      }
+
       return {
         ...prev,
         [exerciseId]: {
           ...prev[exerciseId],
           runData: {
-            distance: updatedRunData.distance || '',
-            duration: updatedRunData.duration || '',
-            location: updatedRunData.location || '',
-            completed: prev[exerciseId]?.runData?.completed || false
+            ...prev[exerciseId].runData!,
+            [field]: value
           }
         }
       };
     });
-    
-    // Update pending run data
-    const currentExerciseInfo = exerciseStates[exerciseId]?.exerciseInfo;
-    if (currentExerciseInfo) {
-      const pendingRunEntry = pendingRuns.find(pr => 
-        pr.exerciseId === currentExerciseInfo.exerciseId
-      );
-      
-      if (pendingRunEntry) {
-        setPendingRuns(pendingRuns.map(pr => 
-          pr.exerciseId === currentExerciseInfo.exerciseId
-            ? { ...pr, [field]: value }
-            : pr
-        ));
-      } else {
-        setPendingRuns([
-          ...pendingRuns,
-          {
-            exerciseId: currentExerciseInfo.exerciseId,
-            distance: field === 'distance' ? value : exerciseStates[exerciseId]?.runData?.distance || '',
-            duration: field === 'duration' ? value : exerciseStates[exerciseId]?.runData?.duration || '',
-            location: field === 'location' ? value : exerciseStates[exerciseId]?.runData?.location || ''
-          }
-        ]);
+  };
+
+  const handleSetCompletion = (exerciseId: string, setIndex: number, completed: boolean) => {
+    setExerciseStates((prev) => {
+      if (!prev[exerciseId]) {
+        return prev;
       }
-    }
-    
-    triggerAutosave();
-  };
 
-  // Toggle run completion
-  const toggleRunCompleted = (exerciseId: string) => {
-    setExerciseStates(prev => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        runData: {
-          distance: prev[exerciseId]?.runData?.distance || '',
-          duration: prev[exerciseId]?.runData?.duration || '',
-          location: prev[exerciseId]?.runData?.location || '',
-          completed: !(prev[exerciseId]?.runData?.completed)
-        }
-      }
-    }));
-    
-    triggerAutosave();
-  };
-
-  // Open dialog to swap exercise
-  const handleOpenSimilarExercises = async (exerciseId: string) => {
-    const exercises = getWorkoutExercises();
-    const exerciseObj = exercises.find(we => we.id === exerciseId)?.exercise;
-    
-    if (!exerciseObj) return;
-    
-    try {
-      setSelectedExerciseId(exerciseId);
-      const similarExercisesList = await fetchSimilarExercises(exerciseObj.id);
-      setSimilarExercises(similarExercisesList);
-      setSimilarExercisesOpen(true);
-    } catch (error) {
-      console.error('Error fetching similar exercises:', error);
-      toast.error('Failed to load alternative exercises');
-    }
-  };
-
-  // Handle exercise swap
-  const handleExerciseSwap = (exerciseId: string, newExercise: Exercise) => {
-    // Find the current workout_exercise to swap
-    const exercises = getWorkoutExercises();
-    const currentWorkoutExercise = exercises.find(we => we.id === exerciseId);
-    
-    if (!currentWorkoutExercise) return;
-    
-    // Update exercise state with the new exercise info
-    setExerciseStates(prev => {
-      const currentState = prev[exerciseId];
-      
-      // Create updated exerciseInfo with the new exercise details
-      const updatedExerciseInfo = {
-        exerciseId: newExercise.id,
-        name: newExercise.name
-      };
-      
       return {
         ...prev,
         [exerciseId]: {
-          ...currentState,
-          exerciseInfo: updatedExerciseInfo,
-          // Reset sets if present
-          sets: currentState.sets?.map(set => ({
-            ...set,
-            weight: '',
-            reps: '',
-            completed: false
-          }))
+          ...prev[exerciseId],
+          sets: prev[exerciseId].sets.map((set, idx) => 
+            idx === setIndex ? { ...set, completed } : set
+          ),
+        },
+      };
+    });
+
+    if (completed) {
+      if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].sets || setIndex >= exerciseStates[exerciseId].sets.length) {
+        console.error(`Invalid exercise ID or set index: ${exerciseId}, ${setIndex}`);
+        return;
+      }
+
+      const set = exerciseStates[exerciseId].sets[setIndex];
+      setPendingSets(prev => [
+        ...prev.filter(s => !(s.exerciseId === exerciseId && s.setNumber === set.setNumber)),
+        {
+          exerciseId,
+          setNumber: set.setNumber,
+          weight: set.weight,
+          reps: set.reps
+        }
+      ]);
+    } else {
+      setPendingSets(prev => 
+        prev.filter(set => !(set.exerciseId === exerciseId && set.setNumber === setIndex + 1))
+      );
+    }
+  };
+
+  const handleCardioCompletion = (exerciseId: string, completed: boolean) => {
+    setExerciseStates((prev) => {
+      if (!prev[exerciseId] || !prev[exerciseId].cardioData) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          cardioData: {
+            ...prev[exerciseId].cardioData!,
+            completed
+          }
         }
       };
     });
-    
-    // Clear any pending sets for this exercise
-    const currentExerciseInfo = exerciseStates[exerciseId]?.exerciseInfo;
-    if (currentExerciseInfo) {
-      setPendingSets(pendingSets.filter(ps => ps.exerciseId !== currentExerciseInfo.exerciseId));
+
+    if (completed) {
+      if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].cardioData) {
+        console.error(`Invalid exercise ID or missing cardio data: ${exerciseId}`);
+        return;
+      }
+
+      const cardioData = exerciseStates[exerciseId].cardioData!;
+      const distance = cardioData.distance.trim() === '' ? null : cardioData.distance;
+      setPendingCardio(prev => [
+        ...prev.filter(c => c.exerciseId !== exerciseId),
+        {
+          exerciseId,
+          distance: distance,
+          duration: cardioData.duration,
+          location: cardioData.location
+        }
+      ]);
+    } else {
+      setPendingCardio(prev => prev.filter(item => item.exerciseId !== exerciseId));
     }
-    
-    // Close the dialog
-    setSimilarExercisesOpen(false);
-    toast.success(`Swapped to ${newExercise.name}`);
-    triggerAutosave();
   };
 
-  // Complete workout and navigate to summary page
-  const handleCompleteWorkout = async () => {
-    if (!workoutCompletionId || !user?.id) return;
+  const handleFlexibilityCompletion = (exerciseId: string, completed: boolean) => {
+    setExerciseStates((prev) => {
+      if (!prev[exerciseId] || !prev[exerciseId].flexibilityData) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          flexibilityData: {
+            ...prev[exerciseId].flexibilityData!,
+            completed
+          }
+        }
+      };
+    });
+
+    if (completed) {
+      if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].flexibilityData) {
+        console.error(`Invalid exercise ID or missing flexibility data: ${exerciseId}`);
+        return;
+      }
+
+      const flexData = exerciseStates[exerciseId].flexibilityData!;
+      setPendingFlexibility(prev => [
+        ...prev.filter(f => f.exerciseId !== exerciseId),
+        {
+          exerciseId,
+          duration: flexData.duration
+        }
+      ]);
+    } else {
+      setPendingFlexibility(prev => prev.filter(item => item.exerciseId !== exerciseId));
+    }
+  };
+
+  const handleRunCompletion = (exerciseId: string, completed: boolean) => {
+    setExerciseStates((prev) => {
+      if (!prev[exerciseId] || !prev[exerciseId].runData) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          runData: {
+            ...prev[exerciseId].runData!,
+            completed
+          }
+        }
+      };
+    });
+
+    if (completed) {
+      if (!exerciseStates[exerciseId] || !exerciseStates[exerciseId].runData) {
+        console.error(`Invalid exercise ID or missing run data: ${exerciseId}`);
+        return;
+      }
+
+      const runData = exerciseStates[exerciseId].runData!;
+      const distance = runData.distance.trim() === '' ? null : runData.distance;
+      setPendingRuns(prev => [
+        ...prev.filter(r => r.exerciseId !== exerciseId),
+        {
+          exerciseId,
+          distance: distance || '',
+          duration: runData.duration || '',
+          location: runData.location || ''
+        }
+      ]);
+    } else {
+      setPendingRuns(prev => prev.filter(item => item.exerciseId !== exerciseId));
+    }
+  };
+
+  const toggleExerciseExpanded = (exerciseId: string) => {
+    setExerciseStates((prev) => {
+      if (!prev[exerciseId]) {
+        console.error(`Exercise ID not found in state: ${exerciseId}`);
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          expanded: !prev[exerciseId].expanded,
+        },
+      };
+    });
+  };
+
+  const toggleDescriptionExpanded = (exerciseId: string) => {
+    setExpandedDescriptions(prev => ({
+      ...prev,
+      [exerciseId]: !prev[exerciseId]
+    }));
+  };
+
+  const openVideoDialog = (url: string, exerciseName: string) => {
+    if (url) {
+      setCurrentVideoUrl(url);
+      setCurrentExerciseName(exerciseName);
+      setVideoDialogOpen(true);
+    } else {
+      toast.error("No video available for this exercise");
+    }
+  };
+
+  const closeVideoDialog = () => {
+    setVideoDialogOpen(false);
+    setCurrentVideoUrl(null);
+  };
+
+  const openAlternativeDialog = async (exercise: any) => {
+    setCurrentExercise(exercise);
+    setAlternativeDialogOpen(true);
+    setIsLoadingAlternatives(true);
     
     try {
-      // Mark the workout as completed
-      const { error } = await supabase
-        .from('workout_completions')
-        .update({ completed_at: new Date().toISOString() })
-        .eq('id', workoutCompletionId);
-        
-      if (error) throw error;
-      
-      // Delete the draft since we've completed the workout
-      await deleteWorkoutDraft(workoutCompletionId);
-      
-      // Clear queries and navigate to completion page
-      queryClient.invalidateQueries();
-      navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
-    } catch (err) {
-      console.error('Error completing workout:', err);
-      toast.error('Failed to complete workout');
+      if (exercise.exercise?.muscle_group) {
+        const alternatives = await fetchSimilarExercises(exercise.exercise.muscle_group);
+        const filteredAlternatives = alternatives.filter(alt => alt.id !== exercise.exercise.id);
+        setAlternativeExercises(filteredAlternatives);
+      }
+    } catch (error) {
+      console.error('Error fetching alternative exercises:', error);
+      toast.error('Failed to load alternative exercises');
+    } finally {
+      setIsLoadingAlternatives(false);
     }
   };
 
-  // Loading state
+  const closeAlternativeDialog = () => {
+    setAlternativeDialogOpen(false);
+    setCurrentExercise(null);
+    setAlternativeExercises([]);
+  };
+
+  const handleExerciseSwap = (newExercise: Exercise, originalExerciseId: string) => {
+    setExerciseStates(prev => {
+      const updatedStates = { ...prev };
+      
+      // Find the exercise state to update
+      const originalState = updatedStates[originalExerciseId];
+      if (!originalState) return prev;
+      
+      // Create a new state for the swapped exercise with the same structure
+      updatedStates[originalExerciseId] = {
+        ...originalState,
+        sets: originalState.sets.map(set => ({
+          ...set,
+          weight: '',
+          reps: '',
+          completed: false
+        }))
+      };
+      
+      return updatedStates;
+    });
+    
+    // Update workout data to reflect the swap
+    if (workoutData?.workout?.workout_exercises) {
+      const exercises = workoutData.workout.workout_exercises;
+      
+      // Check if workout_exercises is an array before using map
+      if (Array.isArray(exercises)) {
+        const updatedExercises = exercises.map(ex => {
+          if (ex.id === originalExerciseId) {
+            return {
+              ...ex,
+              exercise: newExercise,
+              exercise_id: newExercise.id
+            };
+          }
+          return ex;
+        });
+        
+        queryClient.setQueryData(['active-workout', workoutCompletionId], (oldData: any) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            workout: {
+              ...oldData.workout,
+              workout_exercises: updatedExercises
+            }
+          };
+        });
+      }
+    }
+    
+    closeAlternativeDialog();
+    toast.success(`Swapped to ${newExercise.name}`);
+  };
+
+  const renderExerciseCard = (exercise: WorkoutExercise) => {
+    const exerciseType = exercise.exercise?.exercise_type || 'strength';
+    const exerciseName = exercise.exercise?.name || '';
+    const isRunExercise = exerciseName.toLowerCase().includes('run') || exerciseName.toLowerCase().includes('running');
+    const exerciseDescription = exercise.exercise?.description;
+    const exerciseNotes = exercise.notes;
+    const youtubeLink = exercise.exercise?.youtube_link;
+    const personalRecord = getExercisePR(exercise.exercise?.id || '');
+
+    if (!exerciseStates[exercise.id]) {
+      return null;
+    }
+
+    const { expanded } = exerciseStates[exercise.id];
+
+    return (
+      <Card key={exercise.id} className="mb-6">
+        <CardHeader className="p-3">
+          <div className="flex justify-between items-center">
+            <div className="flex-1">
+              <CardTitle className="text-lg font-semibold">
+                {exerciseName}
+              </CardTitle>
+              {exercise.reps && !isRunExercise && exerciseType !== 'cardio' && exerciseType !== 'flexibility' && (
+                <CardDescription>
+                  {exercise.sets} {exercise.sets > 1 ? 'sets' : 'set'} x {exercise.reps} reps
+                  {exercise.rest_seconds && ` • Rest: ${formatRestTime(exercise.rest_seconds)}`}
+                </CardDescription>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => toggleExerciseExpanded(exercise.id)}
+              className="h-8 w-8"
+              aria-label={expanded ? "Collapse exercise" : "Expand exercise"}
+            >
+              <ChevronRight className={cn("h-5 w-5 transition-transform", expanded ? "rotate-90" : "")} />
+            </Button>
+          </div>
+        </CardHeader>
+
+        {expanded && (
+          <CardContent className="pt-0 px-3 pb-2">
+            {(exerciseDescription || exerciseNotes) && (
+              <div className="mb-3 text-sm">
+                {expandedDescriptions[exercise.id] ? (
+                  <div>
+                    {exerciseDescription && <div className="mb-2">{exerciseDescription}</div>}
+                    {exerciseNotes && (
+                      <div className="mt-2">
+                        <span className="font-semibold">Coach's notes:</span> {exerciseNotes}
+                      </div>
+                    )}
+                    {(exerciseDescription || exerciseNotes) && (
+                      <Button 
+                        variant="link" 
+                        className="p-0 h-auto text-xs" 
+                        onClick={() => toggleDescriptionExpanded(exercise.id)}
+                      >
+                        Show Less
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-xs" 
+                    onClick={() => toggleDescriptionExpanded(exercise.id)}
+                  >
+                    Show Description
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {(exerciseType === 'strength' || exerciseType === 'bodyweight') && !isRunExercise && (
+              <StrengthExercise
+                exercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                personalRecord={personalRecord}
+                onSetChange={handleSetChange}
+                onSetCompletion={handleSetCompletion}
+                onVideoClick={openVideoDialog}
+                onSwapClick={openAlternativeDialog}
+              />
+            )}
+
+            {exerciseType === 'cardio' && !isRunExercise && (
+              <CardioExercise
+                exercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                formatDurationInput={formatDurationInput}
+                onCardioChange={handleCardioChange}
+                onCardioCompletion={handleCardioCompletion}
+                onVideoClick={openVideoDialog}
+              />
+            )}
+
+            {exerciseType === 'flexibility' && (
+              <FlexibilityExercise
+                exercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                formatDurationInput={formatDurationInput}
+                onFlexibilityChange={handleFlexibilityChange}
+                onFlexibilityCompletion={handleFlexibilityCompletion}
+                onVideoClick={openVideoDialog}
+              />
+            )}
+
+            {isRunExercise && (
+              <RunExercise
+                exercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                onRunChange={handleRunChange}
+                onRunCompletion={handleRunCompletion}
+                onVideoClick={openVideoDialog}
+                formatDurationInput={formatDurationInput}
+              />
+            )}
+          </CardContent>
+        )}
+      </Card>
+    );
+  };
+
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh]">
-        <Loader2 className="w-10 h-10 animate-spin text-client" />
-        <p className="mt-4 text-lg">Loading your workout...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+        <p className="text-lg font-medium">Loading workout...</p>
       </div>
     );
   }
 
-  // Error state
-  if (error || !workoutCompletion) {
+  if (!workoutData || !workoutData.workout) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh]">
-        <AlertCircle className="w-10 h-10 text-destructive" />
-        <p className="mt-4 text-lg">Could not load workout</p>
-        <Button 
-          className="mt-4" 
-          onClick={() => navigate('/client-dashboard/workouts')}
-        >
-          Back to Workouts
-        </Button>
-      </div>
-    );
-  }
-
-  // Get workout exercises safely
-  const workoutExercises = getWorkoutExercises();
-  
-  // Check if workout exercises exists and is an array
-  if (!workoutExercises || workoutExercises.length === 0) {
-    console.error('No workout exercises found or invalid format:', workoutCompletion?.workout?.workout_exercises);
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh]">
-        <AlertCircle className="w-10 h-10 text-destructive" />
-        <p className="mt-4 text-lg">No exercises found for this workout</p>
-        <Button 
-          className="mt-4" 
-          onClick={() => navigate('/client-dashboard/workouts')}
-        >
-          Back to Workouts
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <h2 className="text-xl font-bold mb-2">Workout Not Found</h2>
+        <p className="text-gray-500 text-center mb-6">Could not load the requested workout.</p>
+        <Button onClick={() => navigate('/client-dashboard/workouts')}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="container max-w-4xl mx-auto pb-20">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6 mt-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate('/client-dashboard/workouts')}
+    <div className="container max-w-2xl mx-auto p-4 pb-20">
+      <div className="flex items-center mb-4 gap-2">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/client-dashboard/workouts')} 
+          className="h-8 w-8 p-0 text-gray-500" 
+          aria-label="Back"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          <ArrowLeft className="h-5 w-5" />
         </Button>
-        
-        <div className="flex items-center gap-2">
-          {autosaveStatus === 'saving' && (
-            <span className="flex items-center text-sm text-muted-foreground">
-              <Loader2 className="animate-spin h-3 w-3 mr-1" /> Saving...
-            </span>
-          )}
-          {autosaveStatus === 'saved' && (
-            <span className="flex items-center text-sm text-green-600">
-              <CheckCircle2 className="h-3 w-3 mr-1" /> Saved
-            </span>
-          )}
-          {autosaveStatus === 'error' && (
-            <span className="flex items-center text-sm text-destructive">
-              <AlertCircle className="h-3 w-3 mr-1" /> Error saving
-            </span>
-          )}
-        </div>
+        <h1 className="text-xl font-bold">{workoutData.workout?.title || "Workout"}</h1>
       </div>
+      
+      {workoutData.workout?.description && (
+        <p className="text-gray-500 mb-6">{workoutData.workout.description}</p>
+      )}
 
-      {/* Workout Title */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">{workoutCompletion?.workout?.title}</h1>
-        {workoutCompletion?.workout?.description && (
-          <p className="text-muted-foreground mt-2">{workoutCompletion.workout.description}</p>
-        )}
-      </div>
-
-      {/* Timer */}
-      <Card className="mb-8">
-        <CardContent className="pt-6 flex justify-center">
-          <Stopwatch />
-        </CardContent>
-      </Card>
-
-      {/* Exercises */}
-      <div className="space-y-6">
-        {workoutExercises.map((workoutExercise) => {
-          const exerciseType = workoutExercise.exercise?.exercise_type || 'strength';
-          const exerciseName = workoutExercise.exercise?.name || '';
-          const isRunExercise = exerciseName.toLowerCase().includes('run') || exerciseName.toLowerCase().includes('running');
+      <Stopwatch className="mt-2 mb-6" />
+    
+      {workoutData.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises) && workoutData.workout.workout_exercises.length > 0 ? (
+        <div className="space-y-6">
+          {workoutData.workout.workout_exercises.map((exercise: any) => (
+            renderExerciseCard(exercise)
+          ))}
           
-          // Get personal record for this exercise if available
-          const pr = personalRecords.find(
-            record => record.exercise_id === workoutExercise.exercise?.id
-          );
-
-          return (
-            <Card key={workoutExercise.id} className="overflow-hidden">
-              <CardHeader 
-                className={cn(
-                  "cursor-pointer flex flex-row items-center justify-between p-4",
-                  exerciseStates[workoutExercise.id]?.expanded ? "pb-2" : ""
-                )}
-                onClick={() => toggleExerciseExpanded(workoutExercise.id)}
-              >
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    {exerciseStates[workoutExercise.id]?.exerciseInfo?.name || workoutExercise.exercise?.name}
-                    {workoutExercise.exercise?.youtube_link && (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowVideoPlayer(workoutExercise.exercise?.youtube_link || null);
-                        }}
-                      >
-                        <Youtube className="h-4 w-4 text-red-500" />
-                      </Button>
-                    )}
-                  </CardTitle>
-                  
-                  {pr && (
-                    <CardDescription className="flex items-center">
-                      <Info className="h-3 w-3 mr-1" /> PR: {pr.weight} lbs × {pr.reps || 1}
-                    </CardDescription>
-                  )}
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenSimilarExercises(workoutExercise.id);
-                    }}
-                  >
-                    <ArrowRightLeft className="h-4 w-4" />
-                  </Button>
-                  
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowExerciseHelp(workoutExercise.id);
-                    }}
-                  >
-                    <HelpCircle className="h-4 w-4" />
-                  </Button>
-                  
-                  <ChevronRight 
-                    className={cn(
-                      "transition-transform h-6 w-6",
-                      exerciseStates[workoutExercise.id]?.expanded && "rotate-90"
-                    )}
-                  />
-                </div>
-              </CardHeader>
-              
-              {exerciseStates[workoutExercise.id]?.expanded && (
-                <CardContent className="pt-2">
-                  {isRunExercise ? (
-                    <RunExercise 
-                      workoutExerciseId={workoutExercise.id}
-                      exerciseState={exerciseStates[workoutExercise.id]}
-                      onValueChange={(field, value) => handleRunChange(workoutExercise.id, field, value)}
-                      onToggleComplete={() => toggleRunCompleted(workoutExercise.id)}
-                    />
-                  ) : exerciseType === 'cardio' ? (
-                    <CardioExercise 
-                      workoutExerciseId={workoutExercise.id}
-                      exerciseState={exerciseStates[workoutExercise.id]}
-                      onValueChange={(field, value) => handleCardioChange(workoutExercise.id, field, value)}
-                      onToggleComplete={() => toggleCardioCompleted(workoutExercise.id)}
-                    />
-                  ) : exerciseType === 'flexibility' ? (
-                    <FlexibilityExercise 
-                      workoutExerciseId={workoutExercise.id}
-                      exerciseState={exerciseStates[workoutExercise.id]}
-                      onValueChange={(value) => handleFlexibilityChange(workoutExercise.id, value)}
-                      onToggleComplete={() => toggleFlexibilityCompleted(workoutExercise.id)}
-                    />
-                  ) : (
-                    <StrengthExercise 
-                      workoutExerciseId={workoutExercise.id}
-                      exerciseState={exerciseStates[workoutExercise.id]}
-                      onSetChange={(setNumber, field, value) => 
-                        handleSetChange(workoutExercise.id, setNumber, field, value)
-                      }
-                      onToggleComplete={(setNumber) => 
-                        toggleSetCompleted(workoutExercise.id, setNumber)
-                      }
-                      workoutExercise={workoutExercise}
-                    />
-                  )}
-                </CardContent>
-              )}
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Complete Workout Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
-        <div className="container max-w-4xl mx-auto">
-          <Button 
-            className="w-full bg-client hover:bg-client/90" 
-            size="lg"
-            onClick={handleCompleteWorkout}
-          >
-            Complete Workout
-          </Button>
-        </div>
-      </div>
-
-      {/* Exercise Help Dialog */}
-      <Dialog open={!!showExerciseHelp} onOpenChange={() => setShowExerciseHelp(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Exercise Guide</DialogTitle>
-          </DialogHeader>
-          {showExerciseHelp && (
-            <div className="space-y-4 mt-4">
-              <p className="text-sm">
-                {getWorkoutExercises().find(we => we.id === showExerciseHelp)?.exercise?.description || 
-                 "No description available for this exercise."}
-              </p>
-              {getWorkoutExercises().find(we => we.id === showExerciseHelp)?.notes && (
+          <div className="fixed bottom-0 left-0 right-0 bg-background p-4 border-t z-10">
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => saveAllSetsMutation.mutate()}
+              disabled={saveAllSetsMutation.isPending}
+            >
+              {saveAllSetsMutation.isPending ? (
                 <>
-                  <Separator />
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Coach Notes:</h3>
-                    <p className="text-sm">{getWorkoutExercises().find(we => we.id === showExerciseHelp)?.notes}</p>
-                  </div>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Complete Workout
                 </>
               )}
+            </Button>
+            <div className="flex justify-center mt-2">
+              <p className="text-xs text-gray-500">
+                {saveStatus === 'saved' && 'Progress autosaved'}
+                {saveStatus === 'saving' && 'Saving...'}
+                {saveStatus === 'error' && 'Error saving'}
+              </p>
             </div>
-          )}
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-2 text-lg font-medium">No Exercises Found</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            This workout doesn't have any exercises.
+          </p>
+        </div>
+      )}
+
+      {/* Video Player Dialog */}
+      <Dialog open={videoDialogOpen} onOpenChange={closeVideoDialog}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{currentExerciseName}</DialogTitle>
+            <DialogDescription>
+              Watch the exercise demonstration video
+            </DialogDescription>
+          </DialogHeader>
+          <div className="aspect-video overflow-hidden rounded-md">
+            {currentVideoUrl && <VideoPlayer url={currentVideoUrl} />}
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Similar Exercises Dialog */}
-      <Dialog open={similarExercisesOpen} onOpenChange={setSimilarExercisesOpen}>
-        <DialogContent>
+      {/* Alternative Exercise Dialog */}
+      <Dialog open={alternativeDialogOpen} onOpenChange={closeAlternativeDialog}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Choose Alternative Exercise</DialogTitle>
+            <DialogTitle>Alternative Exercises</DialogTitle>
             <DialogDescription>
-              Select an alternative exercise to replace the current one.
+              Select an alternative exercise to swap with {currentExercise?.exercise?.name}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
-            {similarExercises.length > 0 ? (
-              similarExercises.map(exercise => (
-                <div 
-                  key={exercise.id} 
-                  className="p-3 border rounded-md cursor-pointer hover:bg-accent"
-                  onClick={() => selectedExerciseId && handleExerciseSwap(selectedExerciseId, exercise)}
-                >
-                  <h3 className="font-medium">{exercise.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {exercise.exercise_type} • {exercise.category || 'Uncategorized'}
-                  </p>
-                </div>
-              ))
+          
+          <div className="max-h-[300px] overflow-y-auto">
+            {isLoadingAlternatives ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : alternativeExercises.length > 0 ? (
+              <div className="space-y-2">
+                {alternativeExercises.map((exercise) => (
+                  <div 
+                    key={exercise.id}
+                    className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleExerciseSwap(exercise, currentExercise?.id)}
+                  >
+                    <span>{exercise.name}</span>
+                    <Button variant="outline" size="sm">
+                      Select
+                    </Button>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <p>No alternative exercises available</p>
+              <div className="text-center py-4">
+                <p>No alternative exercises found.</p>
+              </div>
             )}
           </div>
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSimilarExercisesOpen(false)}>
+            <Button variant="outline" onClick={closeAlternativeDialog}>
               Cancel
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Video Player Dialog */}
-      <Dialog open={!!showVideoPlayer} onOpenChange={() => setShowVideoPlayer(null)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Exercise Demo</DialogTitle>
-          </DialogHeader>
-          <div className="mt-4 aspect-video">
-            {showVideoPlayer && <VideoPlayer url={showVideoPlayer} />}
-          </div>
         </DialogContent>
       </Dialog>
     </div>
@@ -868,4 +1187,3 @@ const ActiveWorkout = () => {
 };
 
 export default ActiveWorkout;
-

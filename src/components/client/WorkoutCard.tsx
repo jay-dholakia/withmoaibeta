@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils';
 import { WorkoutTypeIcon } from './WorkoutTypeIcon';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Umbrella } from 'lucide-react';
 
 interface GroupMember {
   id: string;
@@ -26,6 +26,7 @@ interface WorkoutCardProps {
   completed?: boolean;
   dayOfWeek?: number;
   exercises?: any[];
+  isLifeHappensPass?: boolean;
 }
 
 const getMemberInitials = (name: string): string => {
@@ -45,7 +46,8 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   onStartWorkout,
   completed = false,
   dayOfWeek,
-  exercises = []
+  exercises = [],
+  isLifeHappensPass = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const isCurrentUserCompleted = completed || 
@@ -65,9 +67,14 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
       <CardHeader className="px-3 py-2 flex flex-row items-start justify-between">
         <div className="flex items-center gap-2">
           <div className="text-client">
-            <WorkoutTypeIcon type={type as any} />
+            {isLifeHappensPass ? 
+              <Umbrella className="h-4 w-4" /> : 
+              <WorkoutTypeIcon type={type as any} />
+            }
           </div>
-          <CardTitle className="text-base">{title}</CardTitle>
+          <CardTitle className="text-base">
+            {isLifeHappensPass ? "Life Happens Pass" : title}
+          </CardTitle>
         </div>
         
         {groupMembers.length > 0 && (
@@ -102,11 +109,15 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
       </CardHeader>
       
       <CardContent className="px-3 pb-1 pt-0">
-        {description && (
+        {description && !isLifeHappensPass && (
           <p className="text-xs text-muted-foreground">{description}</p>
         )}
         
-        {exercises && exercises.length > 0 && (
+        {isLifeHappensPass && (
+          <p className="text-xs text-muted-foreground">Workout credit used via Life Happens Pass</p>
+        )}
+        
+        {exercises && exercises.length > 0 && !isLifeHappensPass && (
           <Collapsible
             open={isExpanded}
             onOpenChange={setIsExpanded}

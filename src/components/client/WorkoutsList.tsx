@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -220,6 +219,11 @@ const WorkoutsList = () => {
     return !!workout?.completed_at;
   };
 
+  // Helper function to check if a workout is a life happens pass
+  const isLifeHappensPass = (workout: any): boolean => {
+    return workout?.life_happens_pass === true || workout?.workout_type === 'life_happens';
+  };
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const calendarStatus = urlParams.get('calendar');
@@ -358,6 +362,7 @@ const WorkoutsList = () => {
                   completed={!!workout.completed_at}
                   dayOfWeek={workout.workout?.day_of_week}
                   exercises={workout.workout?.workout_exercises || []}
+                  isLifeHappensPass={isLifeHappensPass(workout)}
                 />
               ))}
             </div>
@@ -381,6 +386,7 @@ const WorkoutsList = () => {
                   completed={!!workout.completed_at}
                   dayOfWeek={workout.workout?.day_of_week}
                   exercises={workout.workout?.workout_exercises || []}
+                  isLifeHappensPass={isLifeHappensPass(workout)}
                 />
               ))}
             </div>

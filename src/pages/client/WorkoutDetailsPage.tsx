@@ -8,6 +8,22 @@ import { fetchClientWorkoutHistory } from '@/services/client-workout-history-ser
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutHistoryItem } from '@/types/workout';
 
+// Helper function to process life happens passes
+const processWorkoutHistory = (workouts: WorkoutHistoryItem[]): WorkoutHistoryItem[] => {
+  return workouts.map(workout => {
+    // If this is a life happens pass, make sure the title is correct
+    if (workout.life_happens_pass === true || workout.workout_type === 'life_happens') {
+      return {
+        ...workout,
+        title: "Life Happens Pass",
+        description: "Workout credit used via Life Happens Pass",
+        workout_type: "life_happens"
+      };
+    }
+    return workout;
+  });
+};
+
 const ClientWorkoutDetailsPage: React.FC = () => {
   const { user } = useAuth();
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -22,8 +38,8 @@ const ClientWorkoutDetailsPage: React.FC = () => {
       setIsLoading(true);
       try {
         const workoutHistory = await fetchClientWorkoutHistory(user.id);
-        // Filter workouts for the selected date if needed
-        setWorkouts(workoutHistory);
+        // Process workouts to ensure life happens passes are displayed correctly
+        setWorkouts(processWorkoutHistory(workoutHistory));
       } catch (error) {
         console.error('Error fetching workout history:', error);
       } finally {

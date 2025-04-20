@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -159,10 +160,10 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
       <CardFooter className="p-2 flex flex-col gap-1">
         <Button 
           className={cn(
-            "w-full h-7 py-0 text-sm",
+            "w-full h-10 py-2 text-sm border-2 border-client", // Updated to match dashboard button
             isCurrentUserCompleted ? "bg-gray-400 hover:bg-gray-500" : ""
           )}
-          size="sm"
+          size="default" // Changed from "sm" to "default"
           onClick={handleStartWorkout}
           disabled={isCurrentUserCompleted}
         >

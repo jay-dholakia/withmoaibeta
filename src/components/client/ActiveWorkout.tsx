@@ -856,25 +856,30 @@ const ActiveWorkout = () => {
 
   const handleExerciseSwap = async (newExercise: Exercise, originalExerciseWorkoutExerciseId: string) => {
     try {
-      // First, let's get the original exercise_id before updating the state
-      const originalExerciseId = workoutData?.workout?.workout_exercises?.find(
-        ex => ex.id === originalExerciseWorkoutExerciseId
-      )?.exercise_id;
+      let originalExerciseId: string | undefined;
+      
+      if (workoutData?.workout?.workout_exercises) {
+        const exercises = workoutData.workout.workout_exercises;
+        
+        if (Array.isArray(exercises)) {
+          const originalExercise = exercises.find(
+            ex => ex.id === originalExerciseWorkoutExerciseId
+          );
+          originalExerciseId = originalExercise?.exercise_id;
+        }
+      }
 
       if (!originalExerciseId || !newExercise.id) {
         console.error("Cannot swap exercises: missing IDs", { originalExerciseId, newExerciseId: newExercise.id });
         return;
       }
 
-      // Update the exercise states first
       setExerciseStates(prev => {
         const updatedStates = { ...prev };
         
-        // Find the exercise state to update
         const originalState = updatedStates[originalExerciseWorkoutExerciseId];
         if (!originalState) return prev;
         
-        // Create a new state for the swapped exercise with the same structure
         updatedStates[originalExerciseWorkoutExerciseId] = {
           ...originalState,
           sets: originalState.sets.map(set => ({
@@ -888,11 +893,9 @@ const ActiveWorkout = () => {
         return updatedStates;
       });
       
-      // Update workout data to reflect the swap
       if (workoutData?.workout?.workout_exercises) {
         const exercises = workoutData.workout.workout_exercises;
         
-        // Check if workout_exercises is an array before using map
         if (Array.isArray(exercises)) {
           const updatedExercises = exercises.map(ex => {
             if (ex.id === originalExerciseWorkoutExerciseId) {
@@ -905,12 +908,11 @@ const ActiveWorkout = () => {
             return ex;
           });
           
-          // Update exercise ID references in the draft data
           if (workoutCompletionId && originalExerciseId && newExercise.id) {
             await updateExerciseIdInDraft(
               workoutCompletionId,
-              originalExerciseWorkoutExerciseId, // This is the workout_exercise_id
-              originalExerciseWorkoutExerciseId  // Keep the same ID, just update the exercise data
+              originalExerciseWorkoutExerciseId,
+              originalExerciseWorkoutExerciseId
             );
             
             console.log("Updated workout draft exercise references after swap");

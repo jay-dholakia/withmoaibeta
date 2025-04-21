@@ -21,11 +21,12 @@ const CoachRoute: React.FC<CoachRouteProps> = ({ children }) => {
   }
 
   if (!user || userType !== 'coach') {
-    console.log("CoachRoute: Access denied, redirecting to login", { userType });
+    console.log("CoachRoute: Access denied, redirecting to login", { userType, path: location.pathname });
     // Remember the current location so we can redirect back after login
     return <Navigate to="/coach-login" state={{ from: location }} replace />;
   }
 
+  console.log("CoachRoute: Access granted for coach user", { path: location.pathname });
   return <>{children}</>;
 };
 

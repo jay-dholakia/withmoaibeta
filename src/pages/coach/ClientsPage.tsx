@@ -65,6 +65,7 @@ const ClientsPage = () => {
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
       try {
+        console.log('Fetching clients for coach:', user.id);
         const clientData = await fetchCoachClients(user.id);
         console.log('Fetched clients:', clientData);
         return clientData;
@@ -83,6 +84,7 @@ const ClientsPage = () => {
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
       try {
+        console.log('Fetching groups for coach:', user.id);
         const groupData = await fetchCoachGroups(user.id);
         console.log('Fetched groups:', groupData);
         return groupData;

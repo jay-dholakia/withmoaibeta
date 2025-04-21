@@ -115,10 +115,12 @@ const ClientsPage = () => {
     if (!sortConfig.key) return data;
 
     return [...data].sort((a, b) => {
-      if (sortConfig.key === 'email') {
+      if (sortConfig.key === 'name') {
+        const aName = `${a.first_name || ''} ${a.last_name ? a.last_name.charAt(0) + '.' : ''}`.trim();
+        const bName = `${b.first_name || ''} ${b.last_name ? b.last_name.charAt(0) + '.' : ''}`.trim();
         return sortConfig.direction === 'asc' 
-          ? a.email.localeCompare(b.email)
-          : b.email.localeCompare(a.email);
+          ? aName.localeCompare(bName)
+          : bName.localeCompare(aName);
       }
       if (sortConfig.key === 'last_workout') {
         const aValue = a.days_since_last_workout ?? Infinity;
@@ -352,11 +354,11 @@ const ClientsPage = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead 
-                          onClick={() => handleSort('email')}
+                          onClick={() => handleSort('name')}
                           className="cursor-pointer hover:bg-muted/50"
                         >
                           <div className="flex items-center">
-                            Client {renderSortIcon('email')}
+                            Client {renderSortIcon('name')}
                           </div>
                         </TableHead>
                         <TableHead 
@@ -390,7 +392,9 @@ const ClientsPage = () => {
                     <TableBody>
                       {paginatedClients.map((client) => (
                         <TableRow key={client.id}>
-                          <TableCell className="font-medium">{client.email}</TableCell>
+                          <TableCell className="font-medium">
+                            {client.first_name} {client.last_name ? client.last_name.charAt(0) + '.' : ''}
+                          </TableCell>
                           <TableCell>
                             <span className={getWorkoutStatusClass(client.days_since_last_workout)}>
                               {getWorkoutStatusText(client.days_since_last_workout)}

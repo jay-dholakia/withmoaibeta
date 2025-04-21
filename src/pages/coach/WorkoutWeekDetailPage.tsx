@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -10,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormEvent } from 'react';
 import { toast } from 'sonner';
+import { useToast } from "@/hooks/use-toast";
 import { 
   fetchWorkoutWeek, 
   updateWorkoutWeek,
@@ -19,7 +19,7 @@ import {
 } from '@/services/workout-service';
 import { deleteWorkout } from '@/services/workout-delete-service';
 import { Workout } from '@/types/workout';
-import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
@@ -61,6 +61,12 @@ const WorkoutWeekDetailPage = () => {
   const [editWorkoutId, setEditWorkoutId] = useState<string | null>(null);
   const [deleteWorkoutId, setDeleteWorkoutId] = useState<string | null>(null);
   const [isEditingMetrics, setIsEditingMetrics] = useState(false);
+  const [allWeeks, setAllWeeks] = useState<any[]>([]);
+  const [copyWorkoutId, setCopyWorkoutId] = useState<string | null>(null);
+  const [copyTargetWeekId, setCopyTargetWeekId] = useState<string | null>(null);
+  const [isCopying, setIsCopying] = useState(false);
+
+  const { toast } = useToast();
 
   useEffect(() => {
     const loadWeekDetails = async () => {
@@ -90,6 +96,19 @@ const WorkoutWeekDetailPage = () => {
 
         const workoutsData = await fetchWorkoutsForWeek(weekId);
         setWorkouts(workoutsData);
+
+        // Fetch all weeks for this program (for copy-to functionality)
+        if (week && week.program && week.program.id) {
+          const { data: allWeeksData, error: allWeeksError } = await supabase
+            .from("workout_weeks")
+            .select("*")
+            .eq("program_id", week.program.id)
+            .order("week_number", { ascending: true });
+
+          if (!allWeeksError && allWeeksData) {
+            setAllWeeks(allWeeksData);
+          }
+        }
       } catch (error) {
         console.error('Error loading week details:', error);
         toast.error('Failed to load week details');
@@ -234,6 +253,72 @@ const WorkoutWeekDetailPage = () => {
     navigate(`/workouts/${workoutId}/edit`);
   };
 
+  const handleCopyWorkout = async () => {
+    if (!copyWorkoutId || !copyTargetWeekId) return;
+    setIsCopying(true);
+    try {
+      // 1. Fetch the workout details
+      const { data: origWorkout, error: origError } = await supabase
+        .from("workouts")
+        .select("*")
+        .eq("id", copyWorkoutId)
+        .maybeSingle();
+      if (origError || !origWorkout) throw new Error("Original workout not found");
+
+      // 2. Fetch exercises for the workout
+      const { data: origExercises, error: exError } = await supabase
+        .from("workout_exercises")
+        .select("*")
+        .eq("workout_id", copyWorkoutId);
+      if (exError) throw new Error("Could not fetch workout exercises");
+
+      // 3. Insert the new workout
+      const { data: newWorkout, error: newError } = await supabase
+        .from("workouts")
+        .insert([
+          {
+            week_id: copyTargetWeekId,
+            title: origWorkout.title + " (Copy)",
+            description: origWorkout.description,
+            day_of_week: origWorkout.day_of_week,
+            workout_type: origWorkout.workout_type,
+            priority: origWorkout.priority,
+          },
+        ])
+        .select()
+        .maybeSingle();
+      if (newError || !newWorkout) throw new Error("Could not create workout copy");
+
+      // 4. Copy exercises to the new workout
+      if (origExercises && origExercises.length > 0) {
+        const exerciseCopies = origExercises.map((ex: any) => ({
+          sets: ex.sets,
+          reps: ex.reps,
+          order_index: ex.order_index,
+          rest_seconds: ex.rest_seconds,
+          notes: ex.notes,
+          exercise_id: ex.exercise_id,
+          workout_id: newWorkout.id,
+          superset_order: ex.superset_order || null,
+          superset_group_id: ex.superset_group_id || null,
+        }));
+        const { error: exerciseInsertError } = await supabase
+          .from("workout_exercises")
+          .insert(exerciseCopies);
+        if (exerciseInsertError) throw new Error("Failed to copy workout exercises");
+      }
+
+      setWorkouts((prev) => [...prev, newWorkout]);
+      setCopyWorkoutId(null);
+      setCopyTargetWeekId(null);
+      toast.success("Workout copied successfully!");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to copy workout");
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <CoachLayout>
@@ -375,7 +460,7 @@ const WorkoutWeekDetailPage = () => {
                     <TableCell>{workout.title}</TableCell>
                     <TableCell>{workout.day_of_week}</TableCell>
                     <TableCell>{workout.workout_type}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right flex gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -393,6 +478,15 @@ const WorkoutWeekDetailPage = () => {
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCopyWorkoutId(workout.id)}
+                        title="Copy Workout"
+                      >
+                        <ChevronRight className="w-4 h-4 mr-2" />
+                        Copy
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -400,6 +494,54 @@ const WorkoutWeekDetailPage = () => {
             </Table>
           </CardContent>
         </Card>
+
+        {copyWorkoutId && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <Card className="max-w-md w-full">
+              <CardHeader>
+                <CardTitle>Copy Workout to Another Week</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <label className="block mb-2 text-sm font-medium">Select Week</label>
+                  <select
+                    className="w-full border rounded p-2 text-sm"
+                    value={copyTargetWeekId || ""}
+                    onChange={e => setCopyTargetWeekId(e.target.value)}
+                  >
+                    <option value="" disabled>Select a week</option>
+                    {allWeeks
+                      .filter(wk => wk.id !== weekId) // cannot copy to same week
+                      .map(wk => (
+                        <option key={wk.id} value={wk.id}>
+                          {wk.title ? `${wk.title} (${wk.week_number})` : `Week ${wk.week_number}`}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => {
+                      setCopyWorkoutId(null);
+                      setCopyTargetWeekId(null);
+                    }}
+                    disabled={isCopying}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleCopyWorkout}
+                    disabled={!copyTargetWeekId || isCopying}
+                  >
+                    {isCopying ? "Copying..." : "Copy Workout"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {isWorkoutModalOpen || editWorkoutId ? (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">

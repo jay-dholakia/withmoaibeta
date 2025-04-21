@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Filter, Calendar, Clock, Award, Info, Send, CheckCircle2, Pencil } from 'lucide-react';
+import { Loader2, Users, Filter, ArrowUp, ArrowDown } from 'lucide-react';
 import { 
   Table, 
   TableHeader, 
@@ -47,6 +47,11 @@ interface MessageStatus {
   };
 }
 
+interface SortConfig {
+  key: string;
+  direction: 'asc' | 'desc';
+}
+
 const ClientsPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -58,6 +63,7 @@ const ClientsPage = () => {
   const [messageStatus, setMessageStatus] = useState<Record<string, MessageStatus>>({});
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editMessage, setEditMessage] = useState<{id: string; message: string; weekOf: string} | undefined>(undefined);
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' });
   const itemsPerPage = 10;
 
   const { data: clients, isLoading: isLoadingClients, error: clientsError } = useQuery({
@@ -98,12 +104,53 @@ const ClientsPage = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  const handleSort = (key: string) => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const getSortedData = (data: any[]) => {
+    if (!sortConfig.key) return data;
+
+    return [...data].sort((a, b) => {
+      if (sortConfig.key === 'email') {
+        return sortConfig.direction === 'asc' 
+          ? a.email.localeCompare(b.email)
+          : b.email.localeCompare(a.email);
+      }
+      if (sortConfig.key === 'last_workout') {
+        const aValue = a.days_since_last_workout ?? Infinity;
+        const bValue = b.days_since_last_workout ?? Infinity;
+        return sortConfig.direction === 'asc' 
+          ? aValue - bValue
+          : bValue - aValue;
+      }
+      if (sortConfig.key === 'total_workouts') {
+        return sortConfig.direction === 'asc'
+          ? a.total_workouts_completed - b.total_workouts_completed
+          : b.total_workouts_completed - a.total_workouts_completed;
+      }
+      if (sortConfig.key === 'program') {
+        const aProgram = a.current_program_title || '';
+        const bProgram = b.current_program_title || '';
+        return sortConfig.direction === 'asc'
+          ? aProgram.localeCompare(bProgram)
+          : bProgram.localeCompare(aProgram);
+      }
+      return 0;
+    });
+  };
+
   const filteredClients = clients?.filter(client => 
     selectedGroupId === 'all' || client.group_ids.includes(selectedGroupId)
   ) || [];
 
-  const totalPages = Math.ceil((filteredClients?.length || 0) / itemsPerPage);
-  const paginatedClients = filteredClients.slice(
+  const sortedAndFilteredClients = getSortedData(filteredClients);
+
+  const totalPages = Math.ceil((sortedAndFilteredClients?.length || 0) / itemsPerPage);
+  const paginatedClients = sortedAndFilteredClients.slice(
     (currentPage - 1) * itemsPerPage, 
     currentPage * itemsPerPage
   );
@@ -211,6 +258,11 @@ const ClientsPage = () => {
     return `${days} days ago`;
   };
 
+  const renderSortIcon = (key: string) => {
+    if (sortConfig.key !== key) return null;
+    return sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4 ml-1" /> : <ArrowDown className="w-4 h-4 ml-1" />;
+  };
+
   if (isLoadingClients || isLoadingGroups) {
     return (
       <CoachLayout>
@@ -299,10 +351,38 @@ const ClientsPage = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Last Workout</TableHead>
-                        <TableHead>Total Workouts</TableHead>
-                        <TableHead>Current Program</TableHead>
+                        <TableHead 
+                          onClick={() => handleSort('email')}
+                          className="cursor-pointer hover:bg-muted/50"
+                        >
+                          <div className="flex items-center">
+                            Client {renderSortIcon('email')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          onClick={() => handleSort('last_workout')}
+                          className="cursor-pointer hover:bg-muted/50"
+                        >
+                          <div className="flex items-center">
+                            Last Workout {renderSortIcon('last_workout')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          onClick={() => handleSort('total_workouts')}
+                          className="cursor-pointer hover:bg-muted/50"
+                        >
+                          <div className="flex items-center">
+                            Total Workouts {renderSortIcon('total_workouts')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          onClick={() => handleSort('program')}
+                          className="cursor-pointer hover:bg-muted/50"
+                        >
+                          <div className="flex items-center">
+                            Current Program {renderSortIcon('program')}
+                          </div>
+                        </TableHead>
                         <TableHead>Weekly Message</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>

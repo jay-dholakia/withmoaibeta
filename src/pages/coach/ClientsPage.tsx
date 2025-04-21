@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Filter, ArrowUp, ArrowDown, CheckCircle2, Pencil, Send, Info } from 'lucide-react';
+import { 
+  Loader2, Users, Filter, ArrowUp, ArrowDown, 
+  CheckCircle2, Pencil, Send, Info, BarChart3, Clock 
+} from 'lucide-react';
 import { 
   Table, 
   TableHeader, 
@@ -103,6 +106,42 @@ const ClientsPage = () => {
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  const { data: clientStats } = useQuery({
+    queryKey: ['client-stats'],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        const res = await fetch('/api/admin/client-stats');
+        const data = await res.json();
+        return data;
+      } catch (error) {
+        console.error('Error fetching client stats:', error);
+        return [];
+      }
+    },
+    enabled: !!user?.id,
+  });
+
+  const getClientStatsSummary = () => {
+    if (!clients?.length) return { total: 0, active: 0, inactive: 0, averageWorkouts: 0 };
+    
+    const total = clients.length;
+    const active = clients.filter(client => 
+      client.days_since_last_workout !== null && 
+      client.days_since_last_workout <= 14
+    ).length;
+    const inactive = total - active;
+    
+    const totalWorkouts = clients.reduce((sum, client) => 
+      sum + (client.total_workouts_completed || 0), 0
+    );
+    const averageWorkouts = total > 0 ? Math.round(totalWorkouts / total) : 0;
+    
+    return { total, active, inactive, averageWorkouts };
+  };
+
+  const stats = getClientStatsSummary();
 
   const handleSort = (key: string) => {
     setSortConfig(current => ({
@@ -304,6 +343,58 @@ const ClientsPage = () => {
   return (
     <CoachLayout>
       <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-coach flex items-center gap-2">
+          <Users className="h-8 w-8" /> Clients
+        </h1>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-coach" />
+                <span>Total Clients</span>
+              </CardTitle>
+              <CardDescription>Across all groups</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-coach">{stats.total}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-green-600" />
+                <span>Active Clients</span>
+              </CardTitle>
+              <CardDescription>Workout in last 2 weeks</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-end gap-2">
+                <div className="text-3xl font-bold text-green-600">{stats.active}</div>
+                <div className="text-sm text-muted-foreground mb-1">
+                  ({Math.round((stats.active / stats.total) * 100)}%)
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-amber-600" />
+                <span>Average Workouts</span>
+              </CardTitle>
+              <CardDescription>Per client</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-amber-600">
+                {stats.averageWorkouts}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-coach flex items-center gap-2">
             <Users className="h-8 w-8" /> Clients

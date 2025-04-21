@@ -75,6 +75,107 @@ export const saveWorkoutDraft = async (
   }
 };
 
+/**
+ * Updates exercise ID references in workout draft data
+ * Used when swapping exercises to maintain user progress
+ */
+export const updateExerciseIdInDraft = async (
+  workoutId: string | null,
+  oldExerciseId: string,
+  newExerciseId: string
+): Promise<boolean> => {
+  if (!workoutId || !oldExerciseId || !newExerciseId) {
+    console.warn("Missing required parameters for updating exercise ID in draft");
+    return false;
+  }
+
+  console.log(`Updating exercise ID in draft: ${oldExerciseId} -> ${newExerciseId} for workout ${workoutId}`);
+
+  try {
+    // Get the current draft first
+    const draft = await getWorkoutDraft(workoutId);
+    if (!draft || !draft.draft_data) {
+      console.log("No draft found to update exercise ID");
+      return false;
+    }
+
+    const draftData = draft.draft_data;
+    let updated = false;
+    
+    // Update exerciseStates key
+    if (draftData.exerciseStates && draftData.exerciseStates[oldExerciseId]) {
+      draftData.exerciseStates[newExerciseId] = draftData.exerciseStates[oldExerciseId];
+      delete draftData.exerciseStates[oldExerciseId];
+      updated = true;
+    }
+    
+    // Update pendingSets references
+    if (draftData.pendingSets && Array.isArray(draftData.pendingSets)) {
+      draftData.pendingSets = draftData.pendingSets.map((set: any) => {
+        if (set.exerciseId === oldExerciseId) {
+          return { ...set, exerciseId: newExerciseId };
+        }
+        return set;
+      });
+      updated = true;
+    }
+    
+    // Update pendingCardio references
+    if (draftData.pendingCardio && Array.isArray(draftData.pendingCardio)) {
+      draftData.pendingCardio = draftData.pendingCardio.map((item: any) => {
+        if (item.exerciseId === oldExerciseId) {
+          return { ...item, exerciseId: newExerciseId };
+        }
+        return item;
+      });
+      updated = true;
+    }
+    
+    // Update pendingFlexibility references
+    if (draftData.pendingFlexibility && Array.isArray(draftData.pendingFlexibility)) {
+      draftData.pendingFlexibility = draftData.pendingFlexibility.map((item: any) => {
+        if (item.exerciseId === oldExerciseId) {
+          return { ...item, exerciseId: newExerciseId };
+        }
+        return item;
+      });
+      updated = true;
+    }
+    
+    // Update pendingRuns references
+    if (draftData.pendingRuns && Array.isArray(draftData.pendingRuns)) {
+      draftData.pendingRuns = draftData.pendingRuns.map((item: any) => {
+        if (item.exerciseId === oldExerciseId) {
+          return { ...item, exerciseId: newExerciseId };
+        }
+        return item;
+      });
+      updated = true;
+    }
+    
+    if (updated) {
+      // Update sessionStorage first for immediate access
+      try {
+        sessionStorage.setItem(`workout_draft_${workoutId}`, JSON.stringify({
+          draft_data: draftData,
+          workout_type: 'workout',
+          updated_at: new Date().toISOString()
+        }));
+      } catch (e) {
+        console.warn("Failed to update draft in sessionStorage:", e);
+      }
+      
+      // Save the updated draft back to the database
+      return await saveWorkoutDraft(workoutId, 'workout', draftData);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error updating exercise ID in draft:", error);
+    return false;
+  }
+};
+
 export const getWorkoutDraft = async (
   workoutId: string | null,
   maxRetries = 5,

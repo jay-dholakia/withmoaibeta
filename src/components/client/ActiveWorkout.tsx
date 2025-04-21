@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -855,7 +854,7 @@ const ActiveWorkout = () => {
     setAlternativeExercises([]);
   };
 
-  const handleExerciseSwap = (newExercise: Exercise, originalExerciseId: string) => {
+  const handleExerciseSwap = async (newExercise: Exercise, originalExerciseId: string) => {
     setExerciseStates(prev => {
       const updatedStates = { ...prev };
       
@@ -893,6 +892,29 @@ const ActiveWorkout = () => {
           }
           return ex;
         });
+        
+        // Manually trigger a save of the draft to update the draft with the new exercise
+        if (workoutCompletionId) {
+          try {
+            const currentDraftData = {
+              exerciseStates,
+              pendingSets,
+              pendingCardio,
+              pendingFlexibility,
+              pendingRuns
+            };
+            
+            await saveWorkoutDraft(
+              workoutCompletionId,
+              'workout',
+              currentDraftData
+            );
+            
+            console.log("Updated workout draft after exercise swap");
+          } catch (error) {
+            console.error("Failed to update workout draft after exercise swap:", error);
+          }
+        }
         
         queryClient.setQueryData(['active-workout', workoutCompletionId], (oldData: any) => {
           if (!oldData) return oldData;

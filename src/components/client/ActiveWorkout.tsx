@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -855,84 +854,88 @@ const ActiveWorkout = () => {
     setAlternativeExercises([]);
   };
 
-  const handleExerciseSwap = async (newExercise: Exercise, originalExerciseId: string) => {
-    setExerciseStates(prev => {
-      const updatedStates = { ...prev };
-      
-      // Find the exercise state to update
-      const originalState = updatedStates[originalExerciseId];
-      if (!originalState) return prev;
-      
-      // Create a new state for the swapped exercise with the same structure
-      updatedStates[originalExerciseId] = {
-        ...originalState,
-        sets: originalState.sets.map(set => ({
-          ...set,
-          weight: '',
-          reps: '',
-          completed: false
-        }))
-      };
-      
-      return updatedStates;
-    });
-    
-    // Update workout data to reflect the swap
-    if (workoutData?.workout?.workout_exercises) {
-      const exercises = workoutData.workout.workout_exercises;
-      
-      // Check if workout_exercises is an array before using map
-      if (Array.isArray(exercises)) {
-        const updatedExercises = exercises.map(ex => {
-          if (ex.id === originalExerciseId) {
-            return {
-              ...ex,
-              exercise: newExercise,
-              exercise_id: newExercise.id
-            };
-          }
-          return ex;
-        });
+  const handleExerciseSwap = async (newExercise: Exercise, originalExerciseWorkoutExerciseId: string) => {
+    try {
+      // First, let's get the original exercise_id before updating the state
+      const originalExerciseId = workoutData?.workout?.workout_exercises?.find(
+        ex => ex.id === originalExerciseWorkoutExerciseId
+      )?.exercise_id;
+
+      if (!originalExerciseId || !newExercise.id) {
+        console.error("Cannot swap exercises: missing IDs", { originalExerciseId, newExerciseId: newExercise.id });
+        return;
+      }
+
+      // Update the exercise states first
+      setExerciseStates(prev => {
+        const updatedStates = { ...prev };
         
-        // Manually trigger a save of the draft to update the draft with the new exercise
-        if (workoutCompletionId) {
-          try {
-            const currentDraftData = {
-              exerciseStates,
-              pendingSets,
-              pendingCardio,
-              pendingFlexibility,
-              pendingRuns
-            };
-            
-            await saveWorkoutDraft(
+        // Find the exercise state to update
+        const originalState = updatedStates[originalExerciseWorkoutExerciseId];
+        if (!originalState) return prev;
+        
+        // Create a new state for the swapped exercise with the same structure
+        updatedStates[originalExerciseWorkoutExerciseId] = {
+          ...originalState,
+          sets: originalState.sets.map(set => ({
+            ...set,
+            weight: '',
+            reps: '',
+            completed: false
+          }))
+        };
+        
+        return updatedStates;
+      });
+      
+      // Update workout data to reflect the swap
+      if (workoutData?.workout?.workout_exercises) {
+        const exercises = workoutData.workout.workout_exercises;
+        
+        // Check if workout_exercises is an array before using map
+        if (Array.isArray(exercises)) {
+          const updatedExercises = exercises.map(ex => {
+            if (ex.id === originalExerciseWorkoutExerciseId) {
+              return {
+                ...ex,
+                exercise: newExercise,
+                exercise_id: newExercise.id
+              };
+            }
+            return ex;
+          });
+          
+          // Update exercise ID references in the draft data
+          if (workoutCompletionId && originalExerciseId && newExercise.id) {
+            await updateExerciseIdInDraft(
               workoutCompletionId,
-              'workout',
-              currentDraftData
+              originalExerciseWorkoutExerciseId, // This is the workout_exercise_id
+              originalExerciseWorkoutExerciseId  // Keep the same ID, just update the exercise data
             );
             
-            console.log("Updated workout draft after exercise swap");
-          } catch (error) {
-            console.error("Failed to update workout draft after exercise swap:", error);
+            console.log("Updated workout draft exercise references after swap");
           }
-        }
-        
-        queryClient.setQueryData(['active-workout', workoutCompletionId], (oldData: any) => {
-          if (!oldData) return oldData;
           
-          return {
-            ...oldData,
-            workout: {
-              ...oldData.workout,
-              workout_exercises: updatedExercises
-            }
-          };
-        });
+          queryClient.setQueryData(['active-workout', workoutCompletionId], (oldData: any) => {
+            if (!oldData) return oldData;
+            
+            return {
+              ...oldData,
+              workout: {
+                ...oldData.workout,
+                workout_exercises: updatedExercises
+              }
+            };
+          });
+        }
       }
+      
+      closeAlternativeDialog();
+      toast.success(`Swapped to ${newExercise.name}`);
+    } catch (error) {
+      console.error("Error during exercise swap:", error);
+      toast.error("Failed to swap exercise");
     }
-    
-    closeAlternativeDialog();
-    toast.success(`Swapped to ${newExercise.name}`);
   };
 
   const renderExerciseCard = (exercise: WorkoutExercise) => {

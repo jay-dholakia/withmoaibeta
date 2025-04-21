@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Filter, ArrowUp, ArrowDown } from 'lucide-react';
+import { Loader2, Users, Filter, ArrowUp, ArrowDown, CheckCircle2, Pencil, Send, Info } from 'lucide-react';
 import { 
   Table, 
   TableHeader, 

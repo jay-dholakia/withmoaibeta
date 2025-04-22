@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, AlertTriangle, Info, Banana } from 'lucide-react';
+import { Send, Loader2, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
@@ -95,10 +95,9 @@ const NotesPage = () => {
   return (
     <div className="h-full flex flex-col">
       <Card className="flex flex-col h-full pb-[120px]">
-        <CardHeader className="py-1 border-b flex flex-row items-center justify-center gap-2">
-          <Banana className="h-5 w-5 text-client" />
+        <CardHeader className="py-1 border-b">
           <CardTitle className="text-lg font-bold text-center">
-            Nutrition
+            Nutrition Assistant
           </CardTitle>
         </CardHeader>
         

@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
@@ -106,6 +105,7 @@ Based on this workout history, please provide personalized nutrition advice.`;
             role: 'system',
             content: `You are a knowledgeable nutrition assistant specialized in fitness nutrition.
 You provide evidence-based nutrition advice tailored to a person's workout routine and fitness goals.
+Limit your response to a maximum of 150 words. Be concise and direct.
 ${workoutContext}`
           },
           { 
@@ -114,6 +114,7 @@ ${workoutContext}`
           }
         ],
         temperature: 0.7,
+        max_tokens: 200  // Explicitly limit token count
       }),
     });
 

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Container } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,6 @@ const ExerciseImportPage = () => {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
       
-      // Auto-detect file type from extension
       if (selectedFile.name.endsWith('.json')) {
         setFileType('json');
       } else if (selectedFile.name.endsWith('.csv')) {
@@ -62,7 +60,6 @@ const ExerciseImportPage = () => {
 
       toast.success(`Processed ${data.total} exercises: ${data.inserted} inserted, ${data.updated} updated, ${data.skipped} skipped.`);
 
-      // Reset form
       setFile(null);
       const fileInput = document.getElementById('file-upload') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
@@ -147,7 +144,7 @@ const ExerciseImportPage = () => {
           </div>
 
           {invalidUrls.length > 0 && (
-            <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
+            <Alert variant="destructive" className="bg-red-50 border-red-200">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
                 <p className="font-medium mb-1">The following exercises had invalid YouTube URLs:</p>

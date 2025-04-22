@@ -10,7 +10,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -18,7 +17,6 @@ serve(async (req) => {
   try {
     const { question, userId } = await req.json();
 
-    // Detailed logging for API key check
     if (!openAIApiKey) {
       console.error('CRITICAL: OPENAI_API_KEY is not set');
       return new Response(JSON.stringify({ 
@@ -30,7 +28,6 @@ serve(async (req) => {
       });
     }
 
-    // More robust input validation
     if (!question || typeof question !== 'string') {
       return new Response(JSON.stringify({ 
         error: 'Invalid input: Question is required and must be a string',
@@ -41,18 +38,15 @@ serve(async (req) => {
       });
     }
 
-    // Create Supabase client with the authorization from the request
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
-    
-    // Fetch workout history context if userId is provided
+
     let workoutContext = '';
     if (userId) {
       try {
         console.log(`Fetching workout history for user ${userId}`);
         
-        // Get recent workouts (last 10)
         const { data: recentWorkouts, error: workoutsError } = await supabase
           .from('workout_completions')
           .select(`
@@ -70,7 +64,6 @@ serve(async (req) => {
         if (workoutsError) {
           console.error('Error fetching workout history:', workoutsError);
         } else if (recentWorkouts && recentWorkouts.length > 0) {
-          // Build context from workouts
           workoutContext = `
 Recent workout history:
 ${recentWorkouts.map(w => `- ${w.title || (w.rest_day ? 'Rest Day' : 'Workout')} (${w.workout_type || 'unknown type'}) on ${new Date(w.completed_at).toLocaleDateString()}`).join('\n')}
@@ -88,10 +81,8 @@ Based on this workout history, please provide personalized nutrition advice.`;
       }
     }
 
-    // Log the outgoing request details (without sensitive information)
     console.log(`Making OpenAI API request. Question length: ${question.length}`);
 
-    // Make the OpenAI API call with enhanced error handling
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -105,7 +96,7 @@ Based on this workout history, please provide personalized nutrition advice.`;
             role: 'system',
             content: `You are a knowledgeable nutrition assistant specialized in fitness nutrition.
 You provide evidence-based nutrition advice tailored to a person's workout routine and fitness goals.
-Limit your response to a maximum of 150 words. Be concise and direct.
+Limit your response to a maximum of 250 words. Be concise and direct.
 ${workoutContext}`
           },
           { 
@@ -114,14 +105,12 @@ ${workoutContext}`
           }
         ],
         temperature: 0.7,
-        max_tokens: 200  // Explicitly limit token count
+        max_tokens: 300
       }),
     });
 
-    // Log response status for debugging
     console.log(`OpenAI API Response Status: ${response.status}`);
 
-    // Enhanced error handling for API responses
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenAI API Error:', {
@@ -130,7 +119,6 @@ ${workoutContext}`
         body: errorText
       });
 
-      // Special handling for rate limit or quota errors
       if (response.status === 429) {
         return new Response(JSON.stringify({ 
           answer: 'The nutrition assistant service is currently disabled.',
@@ -153,7 +141,6 @@ ${workoutContext}`
 
     const data = await response.json();
     
-    // Additional logging for the generated response
     console.log(`OpenAI Response Generated. Tokens: ${data.usage?.total_tokens || 'Unknown'}`);
 
     return new Response(JSON.stringify({ 
@@ -164,7 +151,6 @@ ${workoutContext}`
     });
 
   } catch (error) {
-    // Catch-all error logging
     console.error('Unexpected error in nutrition-assistant function:', error);
     
     return new Response(JSON.stringify({ 

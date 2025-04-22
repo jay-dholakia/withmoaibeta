@@ -19,184 +19,108 @@ serve(async (req) => {
   try {
     const { question } = await req.json();
 
+    // Detailed logging for API key check
     if (!openAIApiKey) {
       console.error('CRITICAL: OPENAI_API_KEY is not set');
       return new Response(JSON.stringify({ 
         error: 'OpenAI API key is not configured. Please contact support.',
-        status: 'error' 
+        status: 'configuration_error' 
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    // More robust input validation
     if (!question || typeof question !== 'string') {
-      throw new Error('Question is required and must be a string');
+      return new Response(JSON.stringify({ 
+        error: 'Invalid input: Question is required and must be a string',
+        status: 'input_error' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Create Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    );
+    // Log the outgoing request details (without sensitive information)
+    console.log(`Making OpenAI API request. Question length: ${question.length}`);
 
-    // Get user information from the auth token
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    
-    if (authError || !user) {
-      throw new Error('Authentication required');
-    }
+    // Make the OpenAI API call with enhanced error handling
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a knowledgeable nutrition assistant.'
+          },
+          { 
+            role: 'user', 
+            content: question 
+          }
+        ],
+        temperature: 0.7,
+      }),
+    });
 
-    console.log('Fetching recent workout history...');
-    
-    // Get recent workout completions
-    const { data: workouts, error: workoutsError } = await supabaseClient
-      .from('workout_completions')
-      .select(`
-        id,
-        completed_at,
-        workout_type,
-        title,
-        rating,
-        notes,
-        distance,
-        duration
-      `)
-      .eq('user_id', user.id)
-      .order('completed_at', { ascending: false })
-      .limit(5);
+    // Log response status for debugging
+    console.log(`OpenAI API Response Status: ${response.status}`);
 
-    if (workoutsError) {
-      console.error('Error fetching workouts:', workoutsError);
-      throw workoutsError;
-    }
-
-    // Format workout history for the AI context
-    const workoutHistory = workouts?.map(w => ({
-      date: w.completed_at,
-      type: w.workout_type,
-      title: w.title,
-      rating: w.rating,
-      notes: w.notes,
-      distance: w.distance,
-      duration: w.duration
-    })) || [];
-
-    // Get client profile for additional context
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('client_profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError) {
-      console.error('Error fetching client profile:', profileError);
-    }
-
-    // Format the system message with workout history and profile context
-    const systemMessage = `You are a knowledgeable nutrition assistant with access to the client's recent workout history and profile. 
-    
-Client Profile:
-${profile ? `
-- Height: ${profile.height || 'Not specified'}
-- Weight: ${profile.weight || 'Not specified'}
-- Fitness Goals: ${profile.fitness_goals?.join(', ') || 'Not specified'}
-` : 'Profile information not available'}
-
-Recent Workout History:
-${workoutHistory.map(w => `- ${w.date}: ${w.type || 'Workout'} - ${w.title || 'Untitled'} ${w.distance ? `(${w.distance} miles)` : ''} ${w.duration ? `(${w.duration} minutes)` : ''}`).join('\n')}
-
-Using this context, provide personalized, evidence-based nutrition advice that takes into account their recent workout activity and goals. Format your responses in markdown, using bullet points for lists and proper headings. When suggesting recipes, include a brief description and categorize them (e.g., 'high-protein', 'low-carb', etc.).
-
-Base your recommendations on:
-1. Their recent workout types and intensity
-2. Their fitness goals
-3. Their current profile information
-4. The specific question they're asking
-
-Always encourage proper hydration and recovery nutrition when you notice intense workouts in their history.`;
-    
-    console.log('Making request to OpenAI with workout context...');
-    
-    try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: systemMessage
-            },
-            { role: 'user', content: question }
-          ],
-          temperature: 0.7,
-        }),
+    // Enhanced error handling for API responses
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
       });
 
-      // Check for HTTP errors
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('HTTP Error from OpenAI:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
+      // Special handling for rate limit or quota errors
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded. Please try again later.',
+          status: 'rate_limit' 
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
-
-        // Special handling for quota errors (429)
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ 
-            answer: "I'm unable to provide assistance right now due to high demand. The nutrition assistant service is currently unavailable. Please try again later or contact support if this persists.",
-            status: 'quota_exceeded'
-          }), {
-            status: 200, // Return 200 to the client to display the message
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        throw new Error(`OpenAI API HTTP error: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
-      
-      // Check for OpenAI API errors
-      if (data.error) {
-        console.error('OpenAI API Error:', JSON.stringify(data.error, null, 2));
-        throw new Error(`OpenAI API error: ${data.error.message || 'Unknown error'}`);
-      }
-      
       return new Response(JSON.stringify({ 
-        answer: data.choices[0].message.content,
-        status: 'success'
+        error: 'Failed to get response from OpenAI',
+        status: 'api_error',
+        details: errorText
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    } catch (openAiError) {
-      console.error('Error calling OpenAI API:', openAiError);
-      
-      // Provide a friendly message for any OpenAI-related error
-      return new Response(JSON.stringify({ 
-        answer: "I apologize, but I'm currently experiencing technical difficulties connecting to my knowledge source. Please try again later or contact support if this persists.",
-        status: 'api_error'
-      }), {
-        status: 200, // Return 200 to prevent API error in UI
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-  } catch (error) {
-    console.error('Error in nutrition assistant:', error);
+
+    const data = await response.json();
+    
+    // Additional logging for the generated response
+    console.log(`OpenAI Response Generated. Tokens: ${data.usage?.total_tokens || 'Unknown'}`);
+
     return new Response(JSON.stringify({ 
-      error: error.message,
-      status: 'error'
+      answer: data.choices[0].message.content,
+      status: 'success'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    // Catch-all error logging
+    console.error('Unexpected error in nutrition-assistant function:', error);
+    
+    return new Response(JSON.stringify({ 
+      error: 'An unexpected error occurred',
+      status: 'unexpected_error',
+      details: error.message
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

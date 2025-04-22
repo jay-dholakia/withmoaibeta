@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Container } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
@@ -8,12 +9,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, FileDown, AlertTriangle } from 'lucide-react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ExerciseImportPage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [fileType, setFileType] = useState<'json' | 'csv'>('csv');
   const [isUploading, setIsUploading] = useState(false);
   const [checkExisting, setCheckExisting] = useState(true);
+  const [invalidUrls, setInvalidUrls] = useState<string[]>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -36,6 +39,7 @@ const ExerciseImportPage = () => {
     }
 
     setIsUploading(true);
+    setInvalidUrls([]);
 
     try {
       const formData = new FormData();
@@ -49,6 +53,11 @@ const ExerciseImportPage = () => {
 
       if (error) {
         throw new Error(error.message);
+      }
+
+      if (data.invalid_urls && data.invalid_urls.length > 0) {
+        setInvalidUrls(data.invalid_urls);
+        toast.warning(`${data.invalid_urls.length} exercises had invalid YouTube URLs and were imported without links`);
       }
 
       toast.success(`Processed ${data.total} exercises: ${data.inserted} inserted, ${data.updated} updated, ${data.skipped} skipped.`);
@@ -137,6 +146,21 @@ const ExerciseImportPage = () => {
             </div>
           </div>
 
+          {invalidUrls.length > 0 && (
+            <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <p className="font-medium mb-1">The following exercises had invalid YouTube URLs:</p>
+                <div className="max-h-40 overflow-y-auto text-sm text-muted-foreground">
+                  {invalidUrls.map((name, i) => (
+                    <div key={i} className="mb-1">{name}</div>
+                  ))}
+                </div>
+                <p className="mt-2 text-sm">These exercises were imported without YouTube links.</p>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {file && (
             <div className="text-sm">
               Selected file: <span className="font-medium">{file.name}</span> ({(file.size / 1024).toFixed(2)} KB)
@@ -185,6 +209,7 @@ const ExerciseImportPage = () => {
               <li><strong>JSON</strong>: Array of objects with name, category, and optional description and exercise_type</li>
               <li><strong>CSV</strong>: First row as headers, must include name and category columns</li>
               <li>If exercise_type is not specified, it defaults to "strength"</li>
+              <li>YouTube links must be valid URLs starting with http:// or https://</li>
             </ul>
           </div>
         </div>

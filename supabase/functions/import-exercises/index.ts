@@ -19,6 +19,17 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// Helper function to validate URLs
+function isValidUrl(str: string): boolean {
+  if (!str) return true; // Empty URLs are considered valid (optional field)
+  try {
+    const url = new URL(str);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -57,10 +68,20 @@ Deno.serve(async (req) => {
 
     // Parse the file content based on file type
     let exercises: Exercise[] = [];
+    let invalidUrlExercises: string[] = [];
     
     if (fileType === 'json') {
       const content = await file.text();
-      exercises = JSON.parse(content);
+      const parsedExercises = JSON.parse(content);
+      
+      // Validate each exercise
+      parsedExercises.forEach((exercise: Exercise) => {
+        if (exercise.youtube_link && !isValidUrl(exercise.youtube_link)) {
+          invalidUrlExercises.push(exercise.name);
+        } else {
+          exercises.push(exercise);
+        }
+      });
     } else if (fileType === 'csv') {
       const content = await file.text();
       const lines = content.split('\n');
@@ -90,6 +111,7 @@ Deno.serve(async (req) => {
       const exerciseTypeIndex = headers.indexOf('exercise_type');
       const muscleGroupIndex = headers.indexOf('muscle_group');
       const youtubeLinkIndex = headers.indexOf('youtube_link');
+      const logTypeIndex = headers.indexOf('log_type');
       
       // Parse each line into an exercise object
       for (let i = 1; i < lines.length; i++) {
@@ -119,7 +141,19 @@ Deno.serve(async (req) => {
         }
 
         if (youtubeLinkIndex >= 0 && values[youtubeLinkIndex]) {
-          exercise.youtube_link = values[youtubeLinkIndex];
+          const youtubeLink = values[youtubeLinkIndex];
+          if (isValidUrl(youtubeLink)) {
+            exercise.youtube_link = youtubeLink;
+          } else {
+            invalidUrlExercises.push(exercise.name);
+            // Don't add youtube_link if it's invalid
+          }
+        }
+        
+        if (logTypeIndex >= 0 && values[logTypeIndex]) {
+          exercise.log_type = values[logTypeIndex];
+        } else {
+          exercise.log_type = 'weight_reps';
         }
         
         exercises.push(exercise);
@@ -139,7 +173,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Found ${exercises.length} exercises to import`);
+    console.log(`Found ${exercises.length} exercises to import (${invalidUrlExercises.length} with invalid YouTube URLs)`);
 
     let insertedCount = 0;
     let updatedCount = 0;
@@ -219,15 +253,18 @@ Deno.serve(async (req) => {
       insertedCount = exercises.length;
     }
 
-    // Return success response
+    // Return success response with warning about invalid URLs if any
+    const response = {
+      message: 'Exercises processed successfully', 
+      inserted: insertedCount,
+      updated: updatedCount,
+      skipped: skippedCount,
+      total: exercises.length + invalidUrlExercises.length,
+      invalid_urls: invalidUrlExercises.length > 0 ? invalidUrlExercises : undefined
+    };
+
     return new Response(
-      JSON.stringify({ 
-        message: 'Exercises processed successfully', 
-        inserted: insertedCount,
-        updated: updatedCount,
-        skipped: skippedCount,
-        total: exercises.length
-      }),
+      JSON.stringify(response),
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

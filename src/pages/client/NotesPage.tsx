@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,8 +67,8 @@ const NotesPage = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col">
-      <Card className="flex flex-col h-[calc(100%-40px)]">
+    <div className="h-full flex flex-col">
+      <Card className="flex flex-col h-full">
         <CardHeader className="py-1 border-b">
           <CardTitle className="text-lg font-bold text-center">
             Nutrition Assistant

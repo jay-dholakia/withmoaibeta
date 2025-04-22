@@ -10,6 +10,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -17,7 +18,12 @@ serve(async (req) => {
   try {
     const { question } = await req.json();
 
+    // Detailed logging for debugging
+    console.log('Received question:', question);
+    console.log('OpenAI API Key status:', openAIApiKey ? 'Present' : 'Missing');
+
     if (!openAIApiKey) {
+      console.error('CRITICAL: OPENAI_API_KEY is not set');
       throw new Error('OPENAI_API_KEY environment variable not set');
     }
 
@@ -25,7 +31,7 @@ serve(async (req) => {
       throw new Error('Question is required and must be a string');
     }
 
-    // Log that we're making a request to OpenAI
+    // Log partial API key for verification
     console.log(`Making request to OpenAI with API key: ${openAIApiKey.substring(0, 5)}...`);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -35,7 +41,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -50,19 +56,27 @@ serve(async (req) => {
       }),
     });
 
+    // Detailed HTTP response logging
+    console.log('OpenAI API Response Status:', response.status);
+    console.log('Response Headers:', Object.fromEntries(response.headers.entries()));
+
     // Check for HTTP errors
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('HTTP Error from OpenAI:', response.status, response.statusText, errorData);
+      const errorText = await response.text();
+      console.error('HTTP Error from OpenAI:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
       throw new Error(`OpenAI API HTTP error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('OpenAI API Response received successfully');
+    console.log('OpenAI API Response Data:', JSON.stringify(data, null, 2));
     
     // Check for OpenAI API errors
     if (data.error) {
-      console.error('OpenAI API Error:', JSON.stringify(data.error));
+      console.error('OpenAI API Error:', JSON.stringify(data.error, null, 2));
       
       // Check specifically for quota errors
       if (data.error.code === 'insufficient_quota') {
@@ -74,7 +88,7 @@ serve(async (req) => {
     
     // Check if the response contains the expected data
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('Unexpected API response structure:', JSON.stringify(data));
+      console.error('Unexpected API response structure:', JSON.stringify(data, null, 2));
       throw new Error('Invalid response from OpenAI API');
     }
     
@@ -85,7 +99,11 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Comprehensive Error:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
     return new Response(JSON.stringify({ 
       error: error.message,
       type: error.name || 'Error',

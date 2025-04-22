@@ -25,6 +25,9 @@ serve(async (req) => {
       throw new Error('Question is required and must be a string');
     }
 
+    // Log that we're making a request to OpenAI
+    console.log(`Making request to OpenAI with API key: ${openAIApiKey.substring(0, 5)}...`);
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -47,7 +50,15 @@ serve(async (req) => {
       }),
     });
 
+    // Check for HTTP errors
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('HTTP Error from OpenAI:', response.status, response.statusText, errorData);
+      throw new Error(`OpenAI API HTTP error: ${response.status} ${response.statusText}`);
+    }
+
     const data = await response.json();
+    console.log('OpenAI API Response received successfully');
     
     // Check for OpenAI API errors
     if (data.error) {
@@ -68,7 +79,8 @@ serve(async (req) => {
     }
     
     return new Response(JSON.stringify({ 
-      answer: data.choices[0].message.content 
+      answer: data.choices[0].message.content,
+      status: 'success'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -76,7 +88,8 @@ serve(async (req) => {
     console.error('Error:', error);
     return new Response(JSON.stringify({ 
       error: error.message,
-      type: error.name || 'Error'
+      type: error.name || 'Error',
+      status: 'error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

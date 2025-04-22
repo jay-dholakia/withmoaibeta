@@ -29,11 +29,17 @@ const NotesPage = () => {
     setIsLoading(true);
 
     try {
+      console.log('Sending request to nutrition-assistant function...');
       const { data, error } = await supabase.functions.invoke('nutrition-assistant', {
         body: { question },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+      
+      console.log('Response from nutrition-assistant:', data);
       
       if (data.error) {
         // Handle API errors returned in the data
@@ -42,8 +48,10 @@ const NotesPage = () => {
           content: `Error: ${data.error}` 
         }]);
         toast.error('API error: ' + data.error);
-      } else {
+      } else if (data.answer) {
         setMessages(prev => [...prev, { role: 'assistant', content: data.answer }]);
+      } else {
+        throw new Error('Invalid response format from nutrition assistant');
       }
     } catch (error: any) {
       console.error('Error getting AI response:', error);

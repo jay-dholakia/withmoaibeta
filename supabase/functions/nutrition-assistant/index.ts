@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
@@ -53,7 +54,7 @@ serve(async (req) => {
           .select('fitness_goals, first_name, birthday, height, weight')
           .eq('id', userId)
           .single();
-          
+        
         if (profileError) {
           console.error('Error fetching client profile:', profileError);
         } else if (profileData) {
@@ -130,6 +131,15 @@ Using the above profile information and workout history, provide personalized nu
       }
     }
 
+    // UPDATED SYSTEM PROMPT to request concise, direct, and clear responses
+    const systemPrompt = 
+`You are a knowledgeable nutrition assistant specialized in fitness nutrition.
+You provide evidence-based nutrition advice tailored to a person's physiological attributes, workout routine, and fitness goals.
+Your responses must be clear, concise, and direct – prioritize brevity and informativeness over length. Avoid lengthy or overly detailed explanations unless strictly necessary.
+When asked about caloric needs, TDEE, or macros, use the available profile information to give specific numerical estimates.
+${contextContent}
+`;
+
     console.log(`Making OpenAI API request. Question length: ${question.length}`);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -143,10 +153,7 @@ Using the above profile information and workout history, provide personalized nu
         messages: [
           {
             role: 'system',
-            content: `You are a knowledgeable nutrition assistant specialized in fitness nutrition.
-You provide evidence-based nutrition advice tailored to a person's physiological attributes, workout routine, and fitness goals.
-When asked about caloric needs, TDEE, or macros, use the available profile information to give specific numerical estimates.
-${contextContent}`
+            content: systemPrompt
           },
           { 
             role: 'user', 
@@ -211,3 +218,4 @@ ${contextContent}`
     });
   }
 });
+

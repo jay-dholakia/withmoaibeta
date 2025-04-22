@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
@@ -42,11 +43,30 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let workoutContext = '';
+    let contextContent = '';
     if (userId) {
       try {
-        console.log(`Fetching workout history for user ${userId}`);
+        console.log(`Fetching profile and workout history for user ${userId}`);
         
+        // Fetch client profile to get fitness goals
+        const { data: profileData, error: profileError } = await supabase
+          .from('client_profiles')
+          .select('fitness_goals')
+          .eq('id', userId)
+          .single();
+          
+        if (profileError) {
+          console.error('Error fetching client profile:', profileError);
+        } else if (profileData && profileData.fitness_goals) {
+          contextContent += `
+User's fitness goals:
+${profileData.fitness_goals.join(', ')}
+
+`;
+          console.log('Added fitness goals context to prompt');
+        }
+        
+        // Fetch recent workouts
         const { data: recentWorkouts, error: workoutsError } = await supabase
           .from('workout_completions')
           .select(`
@@ -64,20 +84,20 @@ serve(async (req) => {
         if (workoutsError) {
           console.error('Error fetching workout history:', workoutsError);
         } else if (recentWorkouts && recentWorkouts.length > 0) {
-          workoutContext = `
+          contextContent += `
 Recent workout history:
 ${recentWorkouts.map(w => `- ${w.title || (w.rest_day ? 'Rest Day' : 'Workout')} (${w.workout_type || 'unknown type'}) on ${new Date(w.completed_at).toLocaleDateString()}`).join('\n')}
 
-Based on this workout history, please provide personalized nutrition advice.`;
+Based on this fitness profile and workout history, please provide personalized nutrition advice.`;
 
-          console.log('Added workout context to prompt');
+          console.log('Added workout history to prompt');
         } else {
           console.log('No workout history found for user');
-          workoutContext = 'No workout history available. Provide general nutrition advice.';
+          contextContent += 'No workout history available. Providing general nutrition advice based on fitness goals.';
         }
       } catch (error) {
-        console.error('Error processing workout history:', error);
-        workoutContext = 'Error retrieving workout history. Providing general nutrition advice instead.';
+        console.error('Error processing user data:', error);
+        contextContent = 'Error retrieving user data. Providing general nutrition advice instead.';
       }
     }
 
@@ -97,7 +117,7 @@ Based on this workout history, please provide personalized nutrition advice.`;
             content: `You are a knowledgeable nutrition assistant specialized in fitness nutrition.
 You provide evidence-based nutrition advice tailored to a person's workout routine and fitness goals.
 Limit your response to a maximum of 250 words. Be concise and direct.
-${workoutContext}`
+${contextContent}`
           },
           { 
             role: 'user', 

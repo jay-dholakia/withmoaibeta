@@ -127,7 +127,7 @@ const AssignProgramPage = () => {
         <Button 
           variant="ghost" 
           className="mb-4" 
-          onClick={() => navigate(`/coach-dashboard/workouts/${programId ? `/${programId}` : ''}`)}
+          onClick={() => navigate(`/coach-dashboard/workouts/${programId}`)}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Program

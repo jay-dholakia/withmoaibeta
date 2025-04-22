@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,6 +23,7 @@ import { fetchCoachClients } from '@/services/coach-clients-service';
 import { formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/lib/hooks';
+import { toast } from 'sonner';
 
 interface ClientStats {
   id: string;
@@ -46,10 +48,12 @@ const CoachClientStatsPage = () => {
   const [groupFilter, setGroupFilter] = useState<string[]>([]);
   const [activityFilter, setActivityFilter] = useState<string>('all'); // 'all', 'active', 'inactive'
 
+  // Fetch coach clients
   const { 
     data: coachClients, 
     isLoading: isLoadingCoachClients,
-    refetch: refetchCoachClients
+    refetch: refetchCoachClients,
+    error: coachClientsError
   } = useQuery({
     queryKey: ['coach-clients', user?.id],
     queryFn: async () => {
@@ -59,47 +63,78 @@ const CoachClientStatsPage = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  // Fetch client stats
   const { 
     data: clientStats,
     isLoading: isLoadingStats,
-    refetch: refetchStats
+    refetch: refetchStats,
+    error: statsError
   } = useQuery({
     queryKey: ['client-stats'],
     queryFn: fetchClientWorkoutStats,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  useEffect(() => {
+    if (coachClientsError) {
+      console.error('Error fetching coach clients:', coachClientsError);
+      toast.error('Failed to load clients. Please try again.');
+    }
+    if (statsError) {
+      console.error('Error fetching client stats:', statsError);
+      toast.error('Failed to load client statistics. Please try again.');
+    }
+  }, [coachClientsError, statsError]);
+
   const handleRefresh = () => {
     refetchCoachClients();
     refetchStats();
+    toast.success('Refreshing client data...');
   };
 
+  // Get coach client IDs
   const coachClientIds = useMemo(() => {
     return coachClients?.map(client => client.id) || [];
   }, [coachClients]);
 
+  // Debug logs
+  useEffect(() => {
+    console.log('Coach clients:', coachClients);
+    console.log('Coach client IDs:', coachClientIds);
+    console.log('Client stats:', clientStats);
+  }, [coachClients, coachClientIds, clientStats]);
+
+  // Combine data from both sources
   const combinedData: ClientStats[] = useMemo(() => {
-    if (!clientStats) return [];
+    if (!clientStats || !coachClients) return [];
     
-    return clientStats
-      .filter(stat => coachClientIds.includes(stat.id))
-      .map(stat => {
-        const clientInfo = coachClients?.find(client => client.id === stat.id);
-        
-        return {
-          id: stat.id,
-          email: clientInfo?.email || 'Unknown',
-          first_name: clientInfo?.first_name || null,
-          last_name: clientInfo?.last_name || null,
-          groups: stat.groups || [],
-          last_workout_date: stat.last_workout_date,
-          assigned_workouts_this_week: stat.assigned_workouts_this_week || 0,
-          activities_this_week: stat.activities_this_week || 0,
-          total_activities: stat.total_activities || 0
-        };
-      });
+    // First, create a map of client info for quick lookups
+    const clientInfoMap = new Map(coachClients.map(client => [client.id, client]));
+    
+    // Filter clientStats to only include coach's clients
+    const filteredStats = clientStats.filter(stat => coachClientIds.includes(stat.id));
+    
+    console.log('Filtered stats count:', filteredStats.length);
+    
+    // Map the filtered stats to include client info
+    return filteredStats.map(stat => {
+      const clientInfo = clientInfoMap.get(stat.id);
+      
+      return {
+        id: stat.id,
+        email: clientInfo?.email || 'Unknown',
+        first_name: clientInfo?.first_name || null,
+        last_name: clientInfo?.last_name || null,
+        groups: stat.groups || [],
+        last_workout_date: stat.last_workout_date,
+        assigned_workouts_this_week: stat.assigned_workouts_this_week || 0,
+        activities_this_week: stat.activities_this_week || 0,
+        total_activities: stat.total_activities || 0
+      };
+    });
   }, [clientStats, coachClientIds, coachClients]);
 
+  // Get all unique groups
   const allGroups = useMemo(() => {
     if (!combinedData) return [];
     
@@ -141,6 +176,7 @@ const CoachClientStatsPage = () => {
     );
   };
 
+  // Apply filters and sorting
   const filteredAndSortedClients = useMemo(() => {
     let result = [...combinedData];
     
@@ -416,7 +452,45 @@ const CoachClientStatsPage = () => {
                     ) : filteredAndSortedClients.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={isMobile ? 2 : 6} className="text-center py-8 text-muted-foreground">
-                          No clients found
+                          {coachClientIds.length === 0 ? (
+                            <>
+                              No clients assigned to you. 
+                              <div className="mt-2 text-sm">
+                                Clients need to be assigned to your groups in the admin panel.
+                              </div>
+                            </>
+                          ) : searchQuery || groupFilter.length > 0 || activityFilter !== 'all' ? (
+                            <>
+                              No clients match the current filters.
+                              <div className="mt-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    setSearchQuery('');
+                                    setGroupFilter([]);
+                                    setActivityFilter('all');
+                                  }}
+                                >
+                                  Clear filters
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              No client statistics available.
+                              <div className="mt-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={handleRefresh}
+                                >
+                                  <RefreshCw className="h-4 w-4 mr-2" />
+                                  Refresh Data
+                                </Button>
+                              </div>
+                            </>
+                          )}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -425,8 +499,13 @@ const CoachClientStatsPage = () => {
                           <TableCell>
                             <div>
                               <div className="font-medium">
-                                {formatDisplayName(client.first_name, client.last_name)}
+                                {client.first_name && client.first_name.length > 0
+                                  ? formatDisplayName(client.first_name, client.last_name)
+                                  : client.email}
                               </div>
+                              {client.first_name && client.first_name.length > 0 && (
+                                <div className="text-sm text-muted-foreground">{client.email}</div>
+                              )}
                             </div>
                           </TableCell>
                           

@@ -76,9 +76,11 @@ const NotesPage = () => {
                       }`}
                     >
                       {message.role === 'assistant' ? (
-                        <ReactMarkdown className="prose prose-sm max-w-none">
-                          {message.content}
-                        </ReactMarkdown>
+                        <div className="prose prose-sm max-w-none">
+                          <ReactMarkdown>
+                            {message.content}
+                          </ReactMarkdown>
+                        </div>
                       ) : (
                         <p>{message.content}</p>
                       )}

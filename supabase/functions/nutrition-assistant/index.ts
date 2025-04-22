@@ -48,22 +48,56 @@ serve(async (req) => {
       try {
         console.log(`Fetching profile and workout history for user ${userId}`);
         
-        // Fetch client profile to get fitness goals
+        // Fetch client profile to get fitness goals and personal stats
         const { data: profileData, error: profileError } = await supabase
           .from('client_profiles')
-          .select('fitness_goals')
+          .select('fitness_goals, first_name, birthday, height, weight, gender')
           .eq('id', userId)
           .single();
           
         if (profileError) {
           console.error('Error fetching client profile:', profileError);
-        } else if (profileData && profileData.fitness_goals) {
-          contextContent += `
-User's fitness goals:
-${profileData.fitness_goals.join(', ')}
+        } else if (profileData) {
+          contextContent += 'User profile information:\n';
+          
+          // Calculate age if birthday exists
+          let age = null;
+          if (profileData.birthday) {
+            const birthDate = new Date(profileData.birthday);
+            const today = new Date();
+            age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+              age--;
+            }
+          }
+          
+          if (profileData.first_name) {
+            contextContent += `Name: ${profileData.first_name}\n`;
+          }
+          
+          if (age) {
+            contextContent += `Age: ${age}\n`;
+          }
+          
+          if (profileData.height) {
+            contextContent += `Height: ${profileData.height}\n`;
+          }
+          
+          if (profileData.weight) {
+            contextContent += `Weight: ${profileData.weight}\n`;
+          }
+          
+          if (profileData.gender) {
+            contextContent += `Gender: ${profileData.gender}\n`;
+          }
 
-`;
-          console.log('Added fitness goals context to prompt');
+          if (profileData.fitness_goals && profileData.fitness_goals.length > 0) {
+            contextContent += `Fitness goals: ${profileData.fitness_goals.join(', ')}\n`;
+          }
+          
+          contextContent += '\n';
+          console.log('Added personal stats to nutrition context');
         }
         
         // Fetch recent workouts
@@ -88,12 +122,12 @@ ${profileData.fitness_goals.join(', ')}
 Recent workout history:
 ${recentWorkouts.map(w => `- ${w.title || (w.rest_day ? 'Rest Day' : 'Workout')} (${w.workout_type || 'unknown type'}) on ${new Date(w.completed_at).toLocaleDateString()}`).join('\n')}
 
-Based on this fitness profile and workout history, please provide personalized nutrition advice.`;
+Using the above profile information and workout history, provide personalized nutrition advice.`;
 
           console.log('Added workout history to prompt');
         } else {
           console.log('No workout history found for user');
-          contextContent += 'No workout history available. Providing general nutrition advice based on fitness goals.';
+          contextContent += 'No workout history available. Providing nutrition advice based on profile information.';
         }
       } catch (error) {
         console.error('Error processing user data:', error);
@@ -115,7 +149,8 @@ Based on this fitness profile and workout history, please provide personalized n
           {
             role: 'system',
             content: `You are a knowledgeable nutrition assistant specialized in fitness nutrition.
-You provide evidence-based nutrition advice tailored to a person's workout routine and fitness goals.
+You provide evidence-based nutrition advice tailored to a person's physiological attributes, workout routine, and fitness goals.
+When asked about caloric needs, TDEE, or macros, use the available profile information to give specific numerical estimates.
 Limit your response to a maximum of 250 words. Be concise and direct.
 ${contextContent}`
           },

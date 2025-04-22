@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,12 @@ interface Message {
 
 const NotesPage = () => {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    { 
+      role: 'info', 
+      content: 'Ask me anything about nutrition! I can calculate your caloric needs, suggest meal plans, or answer questions about macronutrients.' 
+    }
+  ]);
   const [newQuestion, setNewQuestion] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -104,52 +110,46 @@ const NotesPage = () => {
         <div className="flex-1 overflow-hidden relative flex flex-col">
           <ScrollArea className="absolute inset-0">
             <div className="p-4 space-y-1">
-              {messages.length === 0 ? (
-                <p className="text-center text-muted-foreground py-2 text-xs">
-                  Ask me anything about nutrition, recipes, or dietary advice! I'll personalize suggestions based on your workout history.
-                </p>
-              ) : (
-                messages.map((message, index) => (
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`flex ${
+                    message.role === 'user' ? 'justify-end' : 'justify-start'
+                  }`}
+                >
                   <div
-                    key={index}
-                    className={`flex ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
+                    className={`max-w-[80%] rounded-lg px-3 py-1 ${
+                      message.role === 'user'
+                        ? 'bg-client text-white'
+                        : message.role === 'error'
+                          ? 'bg-red-100 text-red-800'
+                          : message.role === 'info'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100'
                     }`}
                   >
-                    <div
-                      className={`max-w-[80%] rounded-lg px-3 py-1 ${
-                        message.role === 'user'
-                          ? 'bg-client text-white'
-                          : message.role === 'error'
-                            ? 'bg-red-100 text-red-800'
-                            : message.role === 'info'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100'
-                      }`}
-                    >
-                      {message.role === 'error' ? (
-                        <div className="flex items-center gap-1">
-                          <AlertTriangle className="h-3 w-3 text-red-600" />
-                          <p className="text-xs">{message.content}</p>
-                        </div>
-                      ) : message.role === 'info' ? (
-                        <div className="flex items-center gap-1">
-                          <Info className="h-3 w-3 text-blue-600" />
-                          <p className="text-xs">{message.content}</p>
-                        </div>
-                      ) : message.role === 'assistant' ? (
-                        <div className="prose prose-sm max-w-none text-xs">
-                          <ReactMarkdown>
-                            {message.content}
-                          </ReactMarkdown>
-                        </div>
-                      ) : (
+                    {message.role === 'error' ? (
+                      <div className="flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3 text-red-600" />
                         <p className="text-xs">{message.content}</p>
-                      )}
-                    </div>
+                      </div>
+                    ) : message.role === 'info' ? (
+                      <div className="flex items-center gap-1">
+                        <Info className="h-3 w-3 text-blue-600" />
+                        <p className="text-xs">{message.content}</p>
+                      </div>
+                    ) : message.role === 'assistant' ? (
+                      <div className="prose prose-sm max-w-none text-xs">
+                        <ReactMarkdown>
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="text-xs">{message.content}</p>
+                    )}
                   </div>
-                ))
-              )}
+                </div>
+              ))}
               {isLoading && (
                 <div className="flex justify-center">
                   <Loader2 className="h-4 w-4 animate-spin text-client" />
@@ -167,7 +167,7 @@ const NotesPage = () => {
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Write your question here..."
+              placeholder="Ask about nutrition, your caloric needs, or meal planning..."
               className="flex-1 min-h-[40px] max-h-[60px] text-xs resize-none py-2 bg-white"
             />
             <Button 

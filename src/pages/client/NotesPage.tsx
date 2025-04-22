@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,18 +70,18 @@ const NotesPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
-      <Card className="flex flex-col h-[90vh]">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold text-center">
+      <Card className="flex flex-col h-[80vh]">
+        <CardHeader className="py-2">
+          <CardTitle className="text-lg font-bold text-center">
             Nutrition Assistant
           </CardTitle>
         </CardHeader>
         
-        <CardContent className="flex-grow overflow-hidden">
-          <ScrollArea className="h-[calc(90vh-250px)] pr-4">
-            <div className="space-y-3">
+        <CardContent className="flex-grow overflow-hidden pt-0">
+          <ScrollArea className="h-[calc(80vh-140px)] pr-4">
+            <div className="space-y-2">
               {messages.length === 0 ? (
-                <p className="text-center text-muted-foreground py-4 text-sm">
+                <p className="text-center text-muted-foreground py-2 text-xs">
                   Ask me anything about nutrition, recipes, or dietary advice!
                 </p>
               ) : (
@@ -92,7 +93,7 @@ const NotesPage = () => {
                     }`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-lg px-3 py-1.5 ${
+                      className={`max-w-[80%] rounded-lg px-3 py-1 ${
                         message.role === 'user'
                           ? 'bg-client text-white'
                           : message.role === 'error'
@@ -101,7 +102,7 @@ const NotesPage = () => {
                       }`}
                     >
                       {message.role === 'error' ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3 text-red-600" />
                           <p className="text-xs">{message.content}</p>
                         </div>
@@ -127,23 +128,24 @@ const NotesPage = () => {
           </ScrollArea>
         </CardContent>
 
-        <CardFooter>
+        <CardFooter className="p-3">
           <form onSubmit={handleSubmit} className="flex w-full gap-2">
             <Textarea
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
               placeholder="Ask about nutrition, recipes, or dietary advice..."
-              className="flex-1 min-h-[60px] max-h-[100px]"
+              className="flex-1 min-h-[40px] max-h-[60px] text-xs"
             />
             <Button 
               type="submit" 
               disabled={isLoading || !newQuestion.trim()}
-              className="self-end"
+              className="self-end h-9"
+              size="sm"
             >
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="h-3 w-3" />
               )}
             </Button>
           </form>

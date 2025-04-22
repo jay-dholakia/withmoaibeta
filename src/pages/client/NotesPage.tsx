@@ -1,15 +1,13 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, AlertTriangle, Info, PenLine } from 'lucide-react';
+import { Send, Loader2, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/contexts/AuthContext';
-import { Badge } from '@/components/ui/badge';
 
 interface Message {
   role: 'user' | 'assistant' | 'error' | 'info';
@@ -55,7 +53,6 @@ const NotesPage = () => {
         }]);
         toast.error('API error: ' + data.error);
       } else if (data.answer) {
-        // Handle different status types
         if (data.status === 'quota_exceeded') {
           setMessages(prev => [...prev, { 
             role: 'info', 
@@ -92,10 +89,8 @@ const NotesPage = () => {
     <div className="h-full flex flex-col">
       <Card className="flex flex-col h-full">
         <CardHeader className="py-1 border-b">
-          <CardTitle className="text-lg font-bold text-center flex items-center justify-center gap-2">
-            <PenLine className="h-4 w-4" />
-            Personalized Nutrition Assistant
-            {user && <Badge variant="outline" className="text-xs">Personalized</Badge>}
+          <CardTitle className="text-lg font-bold text-center">
+            Nutrition Assistant
           </CardTitle>
         </CardHeader>
         

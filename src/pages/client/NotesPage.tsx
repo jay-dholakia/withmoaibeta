@@ -70,7 +70,7 @@ const NotesPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
-      <Card className="flex flex-col h-[80vh]">
+      <Card className="flex flex-col h-[75vh]"> {/* Reduced height slightly */}
         <CardHeader className="py-2">
           <CardTitle className="text-lg font-bold text-center">
             Nutrition Assistant
@@ -78,7 +78,7 @@ const NotesPage = () => {
         </CardHeader>
         
         <CardContent className="flex-grow overflow-hidden pt-0">
-          <ScrollArea className="h-[calc(80vh-140px)] pr-4">
+          <ScrollArea className="h-[calc(75vh-180px)] pr-4"> {/* Adjusted height calculation */}
             <div className="space-y-2">
               {messages.length === 0 ? (
                 <p className="text-center text-muted-foreground py-2 text-xs">
@@ -156,3 +156,4 @@ const NotesPage = () => {
 };
 
 export default NotesPage;
+

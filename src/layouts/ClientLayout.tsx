@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Dumbbell, Mountain, LayoutDashboard, Settings, LogOut, FileText } from 'lucide-react';
+import { Dumbbell, Mountain, LayoutDashboard, Settings, LogOut, FileText, Banana } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
 import { Toaster } from 'sonner';
@@ -99,8 +98,8 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   to="/client-dashboard/notes" 
                   className={`flex flex-col items-center py-3 ${isActive('/notes') ? 'text-client' : 'text-gray-500'}`}
                 >
-                  <FileText className="h-5 w-5" />
-                  <span className="text-xs mt-1">Journal</span>
+                  <Banana className="h-5 w-5" />
+                  <span className="text-xs mt-1">Nutrition</span>
                 </Link>
               </li>
               

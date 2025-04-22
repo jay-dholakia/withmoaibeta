@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
@@ -147,7 +146,6 @@ Using the above profile information and workout history, provide personalized nu
             content: `You are a knowledgeable nutrition assistant specialized in fitness nutrition.
 You provide evidence-based nutrition advice tailored to a person's physiological attributes, workout routine, and fitness goals.
 When asked about caloric needs, TDEE, or macros, use the available profile information to give specific numerical estimates.
-Limit your response to a maximum of 250 words. Be concise and direct.
 ${contextContent}`
           },
           { 
@@ -156,7 +154,6 @@ ${contextContent}`
           }
         ],
         temperature: 0.7,
-        max_tokens: 300
       }),
     });
 

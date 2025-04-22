@@ -167,7 +167,7 @@ const NotesPage = () => {
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about nutrition based on your recent workouts..."
+              placeholder="Write your question here..."
               className="flex-1 min-h-[40px] max-h-[60px] text-xs resize-none py-2 bg-white"
             />
             <Button 

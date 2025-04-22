@@ -4,11 +4,12 @@ import { ClientLayout } from '@/layouts/ClientLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Users, MessageCircle } from 'lucide-react';
+import { Loader2, Users, MessageCircle, UserRound } from 'lucide-react';
 import { Chat } from '@/components/chat/Chat';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useGroupChat } from '@/hooks/useGroupChat';
+import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 
 const MoaiPage = () => {
   const { user } = useAuth();
@@ -52,7 +53,7 @@ const MoaiPage = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Group Chat</CardTitle>
+            <CardTitle>Moai Group</CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="chat" value={activeTab} onValueChange={setActiveTab}>
@@ -60,6 +61,10 @@ const MoaiPage = () => {
                 <TabsTrigger value="chat" className="flex items-center gap-2">
                   <MessageCircle className="h-4 w-4" />
                   <span>Group Chat</span>
+                </TabsTrigger>
+                <TabsTrigger value="members" className="flex items-center gap-2">
+                  <UserRound className="h-4 w-4" />
+                  <span>Members</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -80,6 +85,10 @@ const MoaiPage = () => {
                   </div>
                 )}
               </TabsContent>
+
+              <TabsContent value="members" className="mt-4">
+                <MoaiMembersTab groupId={userGroup?.group_id || ''} />
+              </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
@@ -89,3 +98,4 @@ const MoaiPage = () => {
 };
 
 export default MoaiPage;
+

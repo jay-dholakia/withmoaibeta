@@ -54,7 +54,7 @@ const NotesPage = () => {
             role: 'info', 
             content: data.answer
           }]);
-          toast.error('The nutrition assistant service is currently unavailable due to high demand.');
+          toast.error('The nutrition assistant service is currently disabled.');
         } else if (data.status === 'api_error') {
           setMessages(prev => [...prev, { 
             role: 'info', 

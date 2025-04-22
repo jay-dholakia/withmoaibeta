@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -86,9 +85,16 @@ const NotesPage = () => {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
-      <Card className="flex flex-col h-full pb-[120px]"> {/* Add padding to account for fixed input */}
+      <Card className="flex flex-col h-full pb-[120px]">
         <CardHeader className="py-1 border-b">
           <CardTitle className="text-lg font-bold text-center">
             Nutrition Assistant
@@ -160,8 +166,9 @@ const NotesPage = () => {
             <Textarea
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Ask about nutrition based on your recent workouts..."
-              className="flex-1 min-h-[40px] max-h-[60px] text-xs resize-none py-2"
+              className="flex-1 min-h-[40px] max-h-[60px] text-xs resize-none py-2 bg-white"
             />
             <Button 
               type="submit" 

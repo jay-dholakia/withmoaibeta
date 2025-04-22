@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -152,13 +153,13 @@ const NotesPage = () => {
           </ScrollArea>
         </div>
 
-        <div className="p-2 border-t mt-auto">
+        <div className="p-2 border-t mt-auto pb-4">
           <form onSubmit={handleSubmit} className="flex w-full gap-2">
             <Textarea
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
               placeholder="Ask about nutrition based on your recent workouts..."
-              className="flex-1 min-h-[40px] max-h-[50px] text-xs resize-none"
+              className="flex-1 min-h-[40px] max-h-[60px] text-xs resize-none py-2"
             />
             <Button 
               type="submit" 

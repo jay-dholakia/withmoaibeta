@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
@@ -48,7 +47,6 @@ serve(async (req) => {
       try {
         console.log(`Fetching profile and workout history for user ${userId}`);
         
-        // Fetch client profile to get fitness goals and personal stats
         const { data: profileData, error: profileError } = await supabase
           .from('client_profiles')
           .select('fitness_goals, first_name, birthday, height, weight')
@@ -60,7 +58,6 @@ serve(async (req) => {
         } else if (profileData) {
           contextContent += 'User profile information:\n';
           
-          // Calculate age if birthday exists
           let age = null;
           if (profileData.birthday) {
             const birthDate = new Date(profileData.birthday);
@@ -96,7 +93,6 @@ serve(async (req) => {
           console.log('Added personal stats to nutrition context');
         }
         
-        // Fetch recent workouts
         const { data: recentWorkouts, error: workoutsError } = await supabase
           .from('workout_completions')
           .select(`
@@ -131,7 +127,6 @@ Using the above profile information and workout history, provide personalized nu
       }
     }
 
-    // UPDATED SYSTEM PROMPT to request concise, direct, and clear responses
     const systemPrompt = 
 `You are a knowledgeable nutrition assistant specialized in fitness nutrition.
 You provide evidence-based nutrition advice tailored to a person's physiological attributes, workout routine, and fitness goals.
@@ -174,6 +169,21 @@ ${contextContent}
         body: errorText
       });
 
+      if (userId) {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        await supabase
+          .from('nutrition_ai_logs')
+          .insert([{
+            user_id: userId,
+            question,
+            answer: '',
+            error: errorText || response.statusText,
+          }]);
+      }
+
       if (response.status === 429) {
         return new Response(JSON.stringify({ 
           answer: 'The nutrition assistant service is currently disabled.',
@@ -195,11 +205,24 @@ ${contextContent}
     }
 
     const data = await response.json();
-    
-    console.log(`OpenAI Response Generated. Tokens: ${data.usage?.total_tokens || 'Unknown'}`);
+    const aiAnswer = data.choices[0].message.content;
+
+    if (userId) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      await supabase
+        .from('nutrition_ai_logs')
+        .insert([{
+          user_id: userId,
+          question,
+          answer: aiAnswer,
+        }]);
+    }
 
     return new Response(JSON.stringify({ 
-      answer: data.choices[0].message.content,
+      answer: aiAnswer,
       status: 'success'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -207,7 +230,27 @@ ${contextContent}
 
   } catch (error) {
     console.error('Unexpected error in nutrition-assistant function:', error);
-    
+
+    try {
+      const reqBody = await req.json().catch(() => null);
+      if (reqBody && reqBody.userId && reqBody.question) {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        await supabase
+          .from('nutrition_ai_logs')
+          .insert([{
+            user_id: reqBody.userId,
+            question: reqBody.question,
+            answer: '',
+            error: error.message,
+          }]);
+      }
+    } catch (logError) {
+      console.error('Failed to log nutrition assistant error to db:', logError);
+    }
+
     return new Response(JSON.stringify({ 
       error: 'An unexpected error occurred',
       status: 'unexpected_error',
@@ -218,4 +261,3 @@ ${contextContent}
     });
   }
 });
-

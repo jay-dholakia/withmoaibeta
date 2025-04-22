@@ -751,6 +751,33 @@ export type Database = {
         }
         Relationships: []
       }
+      nutrition_ai_logs: {
+        Row: {
+          answer: string
+          created_at: string | null
+          error: string | null
+          id: string
+          question: string
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          question: string
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          question?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       personal_records: {
         Row: {
           achieved_at: string

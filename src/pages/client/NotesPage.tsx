@@ -4,10 +4,12 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, AlertTriangle, Info } from 'lucide-react';
+import { Send, Loader2, AlertTriangle, Info, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
+import { useAuth } from '@/contexts/AuthContext';
+import { Badge } from '@/components/ui/badge';
 
 interface Message {
   role: 'user' | 'assistant' | 'error' | 'info';
@@ -15,6 +17,7 @@ interface Message {
 }
 
 const NotesPage = () => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newQuestion, setNewQuestion] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +34,10 @@ const NotesPage = () => {
     try {
       console.log('Sending request to nutrition-assistant function...');
       const { data, error } = await supabase.functions.invoke('nutrition-assistant', {
-        body: { question },
+        body: { 
+          question,
+          userId: user?.id // Pass the user ID to the function
+        },
       });
 
       if (error) {
@@ -42,6 +48,7 @@ const NotesPage = () => {
       console.log('Response from nutrition-assistant:', data);
       
       if (data.error) {
+        console.error('API error:', data.error);
         setMessages(prev => [...prev, { 
           role: 'error', 
           content: `Error: ${data.error}` 
@@ -85,8 +92,10 @@ const NotesPage = () => {
     <div className="h-full flex flex-col">
       <Card className="flex flex-col h-full">
         <CardHeader className="py-1 border-b">
-          <CardTitle className="text-lg font-bold text-center">
-            Nutrition Assistant
+          <CardTitle className="text-lg font-bold text-center flex items-center justify-center gap-2">
+            <PenLine className="h-4 w-4" />
+            Personalized Nutrition Assistant
+            {user && <Badge variant="outline" className="text-xs">Personalized</Badge>}
           </CardTitle>
         </CardHeader>
         
@@ -95,7 +104,7 @@ const NotesPage = () => {
             <div className="p-4 space-y-1">
               {messages.length === 0 ? (
                 <p className="text-center text-muted-foreground py-2 text-xs">
-                  Ask me anything about nutrition, recipes, or dietary advice!
+                  Ask me anything about nutrition, recipes, or dietary advice! I'll personalize suggestions based on your workout history.
                 </p>
               ) : (
                 messages.map((message, index) => (
@@ -153,7 +162,7 @@ const NotesPage = () => {
             <Textarea
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
-              placeholder="Ask about nutrition, recipes, or dietary advice..."
+              placeholder="Ask about nutrition based on your recent workouts..."
               className="flex-1 min-h-[40px] max-h-[50px] text-xs resize-none"
             />
             <Button 

@@ -17,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    const { question } = await req.json();
+    const { question, userId } = await req.json();
 
     // Detailed logging for API key check
     if (!openAIApiKey) {
@@ -42,6 +42,53 @@ serve(async (req) => {
       });
     }
 
+    // Create Supabase client with the authorization from the request
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Fetch workout history context if userId is provided
+    let workoutContext = '';
+    if (userId) {
+      try {
+        console.log(`Fetching workout history for user ${userId}`);
+        
+        // Get recent workouts (last 10)
+        const { data: recentWorkouts, error: workoutsError } = await supabase
+          .from('workout_completions')
+          .select(`
+            id,
+            completed_at,
+            workout_type,
+            title,
+            workout_id,
+            rest_day
+          `)
+          .eq('user_id', userId)
+          .order('completed_at', { ascending: false })
+          .limit(10);
+        
+        if (workoutsError) {
+          console.error('Error fetching workout history:', workoutsError);
+        } else if (recentWorkouts && recentWorkouts.length > 0) {
+          // Build context from workouts
+          workoutContext = `
+Recent workout history:
+${recentWorkouts.map(w => `- ${w.title || (w.rest_day ? 'Rest Day' : 'Workout')} (${w.workout_type || 'unknown type'}) on ${new Date(w.completed_at).toLocaleDateString()}`).join('\n')}
+
+Based on this workout history, please provide personalized nutrition advice.`;
+
+          console.log('Added workout context to prompt');
+        } else {
+          console.log('No workout history found for user');
+          workoutContext = 'No workout history available. Provide general nutrition advice.';
+        }
+      } catch (error) {
+        console.error('Error processing workout history:', error);
+        workoutContext = 'Error retrieving workout history. Providing general nutrition advice instead.';
+      }
+    }
+
     // Log the outgoing request details (without sensitive information)
     console.log(`Making OpenAI API request. Question length: ${question.length}`);
 
@@ -57,7 +104,9 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a knowledgeable nutrition assistant.'
+            content: `You are a knowledgeable nutrition assistant specialized in fitness nutrition.
+You provide evidence-based nutrition advice tailored to a person's workout routine and fitness goals.
+${workoutContext}`
           },
           { 
             role: 'user', 
@@ -83,8 +132,8 @@ serve(async (req) => {
       // Special handling for rate limit or quota errors
       if (response.status === 429) {
         return new Response(JSON.stringify({ 
-          error: 'Rate limit exceeded. Please try again later.',
-          status: 'rate_limit' 
+          answer: 'The nutrition assistant service is currently disabled.',
+          status: 'quota_exceeded' 
         }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

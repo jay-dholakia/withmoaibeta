@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -107,8 +106,8 @@ const NotesPage = () => {
                           <p className="text-xs">{message.content}</p>
                         </div>
                       ) : message.role === 'assistant' ? (
-                        <div className="prose prose-sm max-w-none">
-                          <ReactMarkdown className="text-xs">
+                        <div className="prose prose-sm max-w-none text-xs">
+                          <ReactMarkdown>
                             {message.content}
                           </ReactMarkdown>
                         </div>

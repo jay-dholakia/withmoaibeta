@@ -55,40 +55,29 @@ export const Chat: React.FC<ChatProps> = ({ channelUrl }) => {
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-4">
-            {messages.map((message: any) => {
-              // Safety check to ensure message has required properties
-              const senderId = message?.sender?.userId || message?._sender?.userId;
-              const currentUserId = message?._sender?.userId || message?.sender?.userId;
-              const senderName = message?.sender?.nickname || 
-                                message?._sender?.nickname ||  
-                                message?.sender?.userId || 
-                                message?._sender?.userId || 
-                                'Unknown';
-                                
-              return (
+            {messages.map((message: any) => (
+              <div
+                key={message.messageId}
+                className={`flex ${
+                  message.sender.userId === message._sender.userId
+                    ? 'justify-end'
+                    : 'justify-start'
+                }`}
+              >
                 <div
-                  key={message.messageId}
-                  className={`flex ${
-                    senderId === currentUserId
-                      ? 'justify-end'
-                      : 'justify-start'
+                  className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                    message.sender.userId === message._sender.userId
+                      ? 'bg-client text-white'
+                      : 'bg-gray-100'
                   }`}
                 >
-                  <div
-                    className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                      senderId === currentUserId
-                        ? 'bg-client text-white'
-                        : 'bg-gray-100'
-                    }`}
-                  >
-                    <p className="text-sm font-medium">
-                      {senderName}
-                    </p>
-                    <p>{message.message}</p>
-                  </div>
+                  <p className="text-sm font-medium">
+                    {message.sender.nickname || message.sender.userId}
+                  </p>
+                  <p>{message.message}</p>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </ScrollArea>
       </CardContent>

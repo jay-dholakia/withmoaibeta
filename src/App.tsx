@@ -40,6 +40,7 @@ import ClientStatsPage from './pages/admin/ClientStatsPage';
 import CoachClientStatsPage from './pages/coach/ClientStatsPage';
 import CreateWorkoutWeekPage from './pages/coach/CreateWorkoutWeekPage';
 import CreateWorkoutProgramPage from './pages/coach/CreateWorkoutProgramPage';
+import AssignProgramPage from './pages/coach/AssignProgramPage';
 // Import the coach version of the clients page
 import CoachClientsPage from './pages/coach/ClientsPage';
 
@@ -83,6 +84,7 @@ const App: React.FC = () => {
       <Route path="/coach-dashboard/workouts" element={<CoachRoute><WorkoutProgramPage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts/create" element={<CoachRoute><CreateWorkoutProgramPage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts/:programId" element={<CoachRoute><WorkoutProgramDetailsPage /></CoachRoute>} />
+      <Route path="/coach-dashboard/workouts/:programId/assign" element={<CoachRoute><AssignProgramPage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts/week/:weekId" element={<CoachRoute><WorkoutWeekDetailsPage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts/:programId/create-week" element={<CoachRoute><CreateWorkoutWeekPage /></CoachRoute>} />
       <Route path="/workout-weeks/:weekId" element={<CoachRoute><WorkoutWeekDetailsPage /></CoachRoute>} />

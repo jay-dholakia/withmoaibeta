@@ -70,18 +70,18 @@ const NotesPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
-      <Card>
+      <Card className="flex flex-col h-[90vh]">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">
+          <CardTitle className="text-xl font-bold text-center">
             Nutrition Assistant
           </CardTitle>
         </CardHeader>
         
-        <CardContent>
-          <ScrollArea className="h-[500px] pr-4">
-            <div className="space-y-4">
+        <CardContent className="flex-grow overflow-hidden">
+          <ScrollArea className="h-[calc(90vh-250px)] pr-4">
+            <div className="space-y-3">
               {messages.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
+                <p className="text-center text-muted-foreground py-4 text-sm">
                   Ask me anything about nutrition, recipes, or dietary advice!
                 </p>
               ) : (
@@ -93,7 +93,7 @@ const NotesPage = () => {
                     }`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                      className={`max-w-[80%] rounded-lg px-3 py-1.5 ${
                         message.role === 'user'
                           ? 'bg-client text-white'
                           : message.role === 'error'
@@ -103,17 +103,17 @@ const NotesPage = () => {
                     >
                       {message.role === 'error' ? (
                         <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-4 w-4 text-red-600" />
-                          <p>{message.content}</p>
+                          <AlertTriangle className="h-3 w-3 text-red-600" />
+                          <p className="text-xs">{message.content}</p>
                         </div>
                       ) : message.role === 'assistant' ? (
                         <div className="prose prose-sm max-w-none">
-                          <ReactMarkdown>
+                          <ReactMarkdown className="text-xs">
                             {message.content}
                           </ReactMarkdown>
                         </div>
                       ) : (
-                        <p>{message.content}</p>
+                        <p className="text-xs">{message.content}</p>
                       )}
                     </div>
                   </div>
@@ -121,7 +121,7 @@ const NotesPage = () => {
               )}
               {isLoading && (
                 <div className="flex justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-client" />
+                  <Loader2 className="h-4 w-4 animate-spin text-client" />
                 </div>
               )}
             </div>
@@ -134,7 +134,7 @@ const NotesPage = () => {
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
               placeholder="Ask about nutrition, recipes, or dietary advice..."
-              className="flex-1 min-h-[60px]"
+              className="flex-1 min-h-[60px] max-h-[100px]"
             />
             <Button 
               type="submit" 

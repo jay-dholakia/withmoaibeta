@@ -17,6 +17,14 @@ serve(async (req) => {
   try {
     const { question } = await req.json();
 
+    if (!openAIApiKey) {
+      throw new Error('OPENAI_API_KEY environment variable not set');
+    }
+
+    if (!question || typeof question !== 'string') {
+      throw new Error('Question is required and must be a string');
+    }
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -40,6 +48,13 @@ serve(async (req) => {
     });
 
     const data = await response.json();
+    
+    // Check if the response contains the expected data
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Unexpected API response structure:', JSON.stringify(data));
+      throw new Error('Invalid response from OpenAI API');
+    }
+    
     return new Response(JSON.stringify({ 
       answer: data.choices[0].message.content 
     }), {

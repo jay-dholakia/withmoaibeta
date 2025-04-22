@@ -75,8 +75,8 @@ const NotesPage = () => {
         </CardHeader>
         
         <CardContent className="flex-grow overflow-hidden p-0">
-          <ScrollArea className="h-[calc(100%-40px)] pr-4">
-            <div className="space-y-1 px-4 py-2">
+          <ScrollArea className="h-[calc(100%-2rem)] pr-4">
+            <div className="space-y-1 px-4">
               {messages.length === 0 ? (
                 <p className="text-center text-muted-foreground py-2 text-xs">
                   Ask me anything about nutrition, recipes, or dietary advice!
@@ -125,7 +125,7 @@ const NotesPage = () => {
           </ScrollArea>
         </CardContent>
 
-        <CardFooter className="p-2">
+        <div className="p-2 border-t">
           <form onSubmit={handleSubmit} className="flex w-full gap-2">
             <Textarea
               value={newQuestion}
@@ -146,7 +146,7 @@ const NotesPage = () => {
               )}
             </Button>
           </form>
-        </CardFooter>
+        </div>
       </Card>
     </div>
   );

@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -66,17 +67,17 @@ const NotesPage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <Card className="flex flex-col h-[calc(100vh-120px)]">
-        <CardHeader className="py-1">
+    <div className="h-[calc(100vh-120px)] flex flex-col">
+      <Card className="flex flex-col h-full">
+        <CardHeader className="py-1 border-b">
           <CardTitle className="text-lg font-bold text-center">
             Nutrition Assistant
           </CardTitle>
         </CardHeader>
         
-        <CardContent className="flex-grow overflow-hidden p-0">
-          <ScrollArea className="h-[calc(100%-2rem)] pr-4">
-            <div className="space-y-1 px-4">
+        <div className="flex-1 overflow-hidden relative flex flex-col">
+          <ScrollArea className="absolute inset-0">
+            <div className="p-4 space-y-1">
               {messages.length === 0 ? (
                 <p className="text-center text-muted-foreground py-2 text-xs">
                   Ask me anything about nutrition, recipes, or dietary advice!
@@ -123,9 +124,9 @@ const NotesPage = () => {
               )}
             </div>
           </ScrollArea>
-        </CardContent>
+        </div>
 
-        <div className="p-2 border-t">
+        <div className="p-2 border-t mt-auto">
           <form onSubmit={handleSubmit} className="flex w-full gap-2">
             <Textarea
               value={newQuestion}

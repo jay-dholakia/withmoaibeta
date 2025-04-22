@@ -1,5 +1,7 @@
-
 project_id = "gjrheltyxjilxcphbzdj"
+
+[functions.nutrition-assistant]
+verify_jwt = true
 
 [functions.send-invitation]
 verify_jwt = true

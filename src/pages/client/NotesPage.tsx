@@ -4,13 +4,13 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 
 interface Message {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'error';
   content: string;
 }
 
@@ -34,10 +34,26 @@ const NotesPage = () => {
       });
 
       if (error) throw error;
-
-      setMessages(prev => [...prev, { role: 'assistant', content: data.answer }]);
-    } catch (error) {
+      
+      if (data.error) {
+        // Handle API errors returned in the data
+        setMessages(prev => [...prev, { 
+          role: 'error', 
+          content: `Error: ${data.error}` 
+        }]);
+        toast.error('API error: ' + data.error);
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.answer }]);
+      }
+    } catch (error: any) {
       console.error('Error getting AI response:', error);
+      
+      // Add error message to the chat
+      setMessages(prev => [...prev, { 
+        role: 'error', 
+        content: `Error: ${error.message || 'Failed to get response from the nutrition assistant'}`
+      }]);
+      
       toast.error('Failed to get response from the nutrition assistant');
     } finally {
       setIsLoading(false);
@@ -72,10 +88,17 @@ const NotesPage = () => {
                       className={`max-w-[80%] rounded-lg px-4 py-2 ${
                         message.role === 'user'
                           ? 'bg-client text-white'
-                          : 'bg-gray-100'
+                          : message.role === 'error'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100'
                       }`}
                     >
-                      {message.role === 'assistant' ? (
+                      {message.role === 'error' ? (
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-600" />
+                          <p>{message.content}</p>
+                        </div>
+                      ) : message.role === 'assistant' ? (
                         <div className="prose prose-sm max-w-none">
                           <ReactMarkdown>
                             {message.content}

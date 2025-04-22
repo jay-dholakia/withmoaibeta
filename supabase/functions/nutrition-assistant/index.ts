@@ -49,6 +49,18 @@ serve(async (req) => {
 
     const data = await response.json();
     
+    // Check for OpenAI API errors
+    if (data.error) {
+      console.error('OpenAI API Error:', JSON.stringify(data.error));
+      
+      // Check specifically for quota errors
+      if (data.error.code === 'insufficient_quota') {
+        throw new Error('The OpenAI API key has exceeded its quota. Please check your billing details on OpenAI platform.');
+      } else {
+        throw new Error(`OpenAI API error: ${data.error.message || 'Unknown error'}`);
+      }
+    }
+    
     // Check if the response contains the expected data
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       console.error('Unexpected API response structure:', JSON.stringify(data));
@@ -62,7 +74,10 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      type: error.name || 'Error'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

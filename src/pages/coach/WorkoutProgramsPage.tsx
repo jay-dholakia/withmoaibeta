@@ -33,7 +33,8 @@ const WorkoutProgramsPage = () => {
       if (!user?.id) return;
       
       try {
-        const data = await fetchWorkoutPrograms(user.id);
+        // Pass true as the second parameter to fetch all programs, not just the current coach's programs
+        const data = await fetchWorkoutPrograms(user.id, true);
         setPrograms(data);
       } catch (error) {
         console.error('Error loading workout programs:', error);
@@ -55,7 +56,7 @@ const WorkoutProgramsPage = () => {
       
       // Update programs list
       if (user?.id) {
-        const updatedPrograms = await fetchWorkoutPrograms(user.id);
+        const updatedPrograms = await fetchWorkoutPrograms(user.id, true);
         setPrograms(updatedPrograms);
       }
       

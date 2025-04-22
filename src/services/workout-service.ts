@@ -138,14 +138,15 @@ export const deleteProgramAssignment = async (assignmentId: string) => {
 /**
  * Fetches workout programs
  */
-export const fetchWorkoutPrograms = async (coachId?: string) => {
+export const fetchWorkoutPrograms = async (coachId?: string, fetchAllPrograms: boolean = false) => {
   try {
     let query = supabase
       .from('workout_programs')
       .select('*')
       .order('created_at', { ascending: false });
     
-    if (coachId) {
+    // Only filter by coach ID if fetchAllPrograms is false
+    if (coachId && !fetchAllPrograms) {
       query = query.eq('coach_id', coachId);
     }
     

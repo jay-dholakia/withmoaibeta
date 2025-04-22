@@ -67,16 +67,16 @@ const NotesPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Card className="flex flex-col h-[calc(100vh-200px)]">
-        <CardHeader className="py-2">
+      <Card className="flex flex-col h-[calc(100vh-160px)]">
+        <CardHeader className="py-1">
           <CardTitle className="text-lg font-bold text-center">
             Nutrition Assistant
           </CardTitle>
         </CardHeader>
         
         <CardContent className="flex-grow overflow-hidden pt-0">
-          <ScrollArea className="h-[calc(100%-80px)] pr-4">
-            <div className="space-y-2 pb-2">
+          <ScrollArea className="h-[calc(100%-60px)] pr-4">
+            <div className="space-y-1 pb-1">
               {messages.length === 0 ? (
                 <p className="text-center text-muted-foreground py-2 text-xs">
                   Ask me anything about nutrition, recipes, or dietary advice!
@@ -131,12 +131,12 @@ const NotesPage = () => {
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
               placeholder="Ask about nutrition, recipes, or dietary advice..."
-              className="flex-1 min-h-[40px] max-h-[60px] text-xs resize-none"
+              className="flex-1 min-h-[40px] max-h-[50px] text-xs resize-none"
             />
             <Button 
               type="submit" 
               disabled={isLoading || !newQuestion.trim()}
-              className="self-end h-9"
+              className="self-end h-8"
               size="sm"
             >
               {isLoading ? (

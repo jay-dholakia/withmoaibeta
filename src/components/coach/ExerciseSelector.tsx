@@ -4,16 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { WorkoutExerciseForm } from '@/components/coach/WorkoutExerciseForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { fetchMuscleGroups, fetchExercisesByMuscleGroup } from '@/services/exercise-service';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ExerciseSelectorProps {
   onSelectExercise: (exercise: Exercise) => void;
   excludeIds?: string[];
   buttonText?: string;
-  // Legacy props - maintained for compatibility
   onSelect?: (exerciseId: string, data: any) => Promise<void>;
   onCancel?: () => void;
   isSubmitting?: boolean;
@@ -28,9 +26,9 @@ export const ExerciseSelector = ({
   isSubmitting
 }: ExerciseSelectorProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [muscleGroups, setMuscleGroups] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +41,7 @@ export const ExerciseSelector = ({
   useEffect(() => {
     excludeIdsRef.current = excludeIds;
   }, [excludeIds]);
-  
+
   const filterExercises = useCallback((
     exercises: Exercise[],
     query: string
@@ -67,62 +65,67 @@ export const ExerciseSelector = ({
   useEffect(() => {
     if (dataFetchedRef.current) return;
     
-    const loadMuscleGroupsAndExercises = async () => {
+    const loadCategoriesAndExercises = async () => {
       setIsLoading(true);
       setError(null);
       
       try {
-        const groups = await fetchMuscleGroups();
-        setMuscleGroups(groups);
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from('exercises')
+          .select('category')
+          .not('category', 'is', null)
+          .order('category');
+
+        if (categoriesError) throw categoriesError;
+
+        const uniqueCategories = [...new Set(categoriesData.map(item => item.category))];
+        setCategories(uniqueCategories);
         
-        // Initially load all exercises
-        const allExercises: Exercise[] = [];
-        for (const group of groups) {
-          const groupExercises = await fetchExercisesByMuscleGroup(group);
-          allExercises.push(...groupExercises);
-        }
+        const { data: allExercises, error: exercisesError } = await supabase
+          .from('exercises')
+          .select('*')
+          .order('name');
+          
+        if (exercisesError) throw exercisesError;
         
         setExercises(allExercises);
         setFilteredExercises(allExercises.filter(ex => !excludeIds.includes(ex.id)));
         dataFetchedRef.current = true;
       } catch (error) {
-        console.error('Error loading muscle groups and exercises:', error);
+        console.error('Error loading categories and exercises:', error);
         setError('Failed to load exercises. Please try again.');
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadMuscleGroupsAndExercises();
+    loadCategoriesAndExercises();
   }, [excludeIds]);
 
-  const handleMuscleGroupChange = async (muscleGroup: string) => {
+  const handleCategoryChange = (category: string) => {
     setIsLoading(true);
-    setSelectedMuscleGroup(muscleGroup);
+    setSelectedCategory(category);
     
     try {
       let filtered: Exercise[];
-      if (muscleGroup === 'all') {
+      if (category === 'all') {
         filtered = exercises;
       } else {
-        const groupExercises = await fetchExercisesByMuscleGroup(muscleGroup);
-        filtered = groupExercises;
+        filtered = exercises.filter(ex => ex.category === category);
       }
       
-      // Apply search filter if exists
       if (searchQuery) {
         filtered = filtered.filter(ex => 
           ex.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
       }
       
-      // Filter out excluded IDs
       filtered = filtered.filter(ex => !excludeIds.includes(ex.id));
       
       setFilteredExercises(filtered);
     } catch (error) {
-      console.error('Error fetching exercises for muscle group:', error);
-      setError('Failed to load exercises for this muscle group');
+      console.error('Error filtering exercises by category:', error);
+      setError('Failed to filter exercises');
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +134,6 @@ export const ExerciseSelector = ({
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
     
-    // Apply search filter to the current exercises
     const newFiltered = filterExercises(exercises, query);
     setFilteredExercises(newFiltered);
   };
@@ -176,19 +178,19 @@ export const ExerciseSelector = ({
           </Button>
         </div>
       ) : (
-        <Tabs value={selectedMuscleGroup} onValueChange={handleMuscleGroupChange}>
+        <Tabs value={selectedCategory} onValueChange={handleCategoryChange}>
           <TabsList className="mb-4 flex flex-wrap h-auto">
             <TabsTrigger value="all" className="text-xs">
               All Exercises
             </TabsTrigger>
-            {muscleGroups.map((group) => (
-              <TabsTrigger key={group} value={group} className="text-xs">
-                {group}
+            {categories.map((category) => (
+              <TabsTrigger key={category} value={category} className="text-xs">
+                {category}
               </TabsTrigger>
             ))}
           </TabsList>
 
-          <TabsContent value={selectedMuscleGroup} className="mt-0">
+          <TabsContent value={selectedCategory} className="mt-0">
             {isLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -200,7 +202,7 @@ export const ExerciseSelector = ({
                     key={exercise.id}
                     variant="outline"
                     className="justify-start h-auto py-3 px-4"
-                    onClick={() => handleExerciseClick(exercise as Exercise)}
+                    onClick={() => handleExerciseClick(exercise)}
                   >
                     <div className="text-left flex-1">
                       <div className="font-medium flex items-center">

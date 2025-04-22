@@ -20,7 +20,7 @@ const NotesPage = () => {
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: 'info', 
-      content: 'Ask me anything about nutrition! I can calculate your caloric needs, suggest meal plans, or answer questions about macronutrients.' 
+      content: 'Ask me anything about nutrition! I can calculate your caloric needs, suggest meal plans, or answer questions about macronutrients. For the most accurate advice, make sure your profile information is complete.' 
     }
   ]);
   const [newQuestion, setNewQuestion] = useState('');

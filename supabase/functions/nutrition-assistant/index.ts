@@ -51,7 +51,7 @@ serve(async (req) => {
         // Fetch client profile to get fitness goals and personal stats
         const { data: profileData, error: profileError } = await supabase
           .from('client_profiles')
-          .select('fitness_goals, first_name, birthday, height, weight, gender')
+          .select('fitness_goals, first_name, birthday, height, weight')
           .eq('id', userId)
           .single();
           
@@ -88,10 +88,6 @@ serve(async (req) => {
             contextContent += `Weight: ${profileData.weight}\n`;
           }
           
-          if (profileData.gender) {
-            contextContent += `Gender: ${profileData.gender}\n`;
-          }
-
           if (profileData.fitness_goals && profileData.fitness_goals.length > 0) {
             contextContent += `Fitness goals: ${profileData.fitness_goals.join(', ')}\n`;
           }

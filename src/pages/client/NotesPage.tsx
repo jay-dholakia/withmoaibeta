@@ -67,16 +67,16 @@ const NotesPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Card className="flex flex-col h-[calc(100vh-160px)]">
+      <Card className="flex flex-col h-[calc(100vh-120px)]">
         <CardHeader className="py-1">
           <CardTitle className="text-lg font-bold text-center">
             Nutrition Assistant
           </CardTitle>
         </CardHeader>
         
-        <CardContent className="flex-grow overflow-hidden pt-0">
-          <ScrollArea className="h-[calc(100%-60px)] pr-4">
-            <div className="space-y-1 pb-1">
+        <CardContent className="flex-grow overflow-hidden p-0">
+          <ScrollArea className="h-[calc(100%-40px)] pr-4">
+            <div className="space-y-1 px-4 py-2">
               {messages.length === 0 ? (
                 <p className="text-center text-muted-foreground py-2 text-xs">
                   Ask me anything about nutrition, recipes, or dietary advice!

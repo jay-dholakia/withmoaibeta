@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,7 +41,6 @@ const NotesPage = () => {
       console.log('Response from nutrition-assistant:', data);
       
       if (data.error) {
-        // Handle API errors returned in the data
         setMessages(prev => [...prev, { 
           role: 'error', 
           content: `Error: ${data.error}` 
@@ -56,7 +54,6 @@ const NotesPage = () => {
     } catch (error: any) {
       console.error('Error getting AI response:', error);
       
-      // Add error message to the chat
       setMessages(prev => [...prev, { 
         role: 'error', 
         content: `Error: ${error.message || 'Failed to get response from the nutrition assistant'}`
@@ -69,8 +66,8 @@ const NotesPage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
-      <Card className="flex flex-col h-[75vh]"> {/* Reduced height slightly */}
+    <div className="max-w-4xl mx-auto">
+      <Card className="flex flex-col h-[calc(100vh-200px)]">
         <CardHeader className="py-2">
           <CardTitle className="text-lg font-bold text-center">
             Nutrition Assistant
@@ -78,8 +75,8 @@ const NotesPage = () => {
         </CardHeader>
         
         <CardContent className="flex-grow overflow-hidden pt-0">
-          <ScrollArea className="h-[calc(75vh-180px)] pr-4"> {/* Adjusted height calculation */}
-            <div className="space-y-2">
+          <ScrollArea className="h-[calc(100%-80px)] pr-4">
+            <div className="space-y-2 pb-2">
               {messages.length === 0 ? (
                 <p className="text-center text-muted-foreground py-2 text-xs">
                   Ask me anything about nutrition, recipes, or dietary advice!
@@ -128,13 +125,13 @@ const NotesPage = () => {
           </ScrollArea>
         </CardContent>
 
-        <CardFooter className="p-3">
+        <CardFooter className="p-2">
           <form onSubmit={handleSubmit} className="flex w-full gap-2">
             <Textarea
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
               placeholder="Ask about nutrition, recipes, or dietary advice..."
-              className="flex-1 min-h-[40px] max-h-[60px] text-xs"
+              className="flex-1 min-h-[40px] max-h-[60px] text-xs resize-none"
             />
             <Button 
               type="submit" 
@@ -156,4 +153,3 @@ const NotesPage = () => {
 };
 
 export default NotesPage;
-

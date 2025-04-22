@@ -4,13 +4,13 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, AlertTriangle } from 'lucide-react';
+import { Send, Loader2, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 
 interface Message {
-  role: 'user' | 'assistant' | 'error';
+  role: 'user' | 'assistant' | 'error' | 'info';
   content: string;
 }
 
@@ -48,7 +48,22 @@ const NotesPage = () => {
         }]);
         toast.error('API error: ' + data.error);
       } else if (data.answer) {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.answer }]);
+        // Handle different status types
+        if (data.status === 'quota_exceeded') {
+          setMessages(prev => [...prev, { 
+            role: 'info', 
+            content: data.answer
+          }]);
+          toast.error('The nutrition assistant service is currently unavailable due to high demand.');
+        } else if (data.status === 'api_error') {
+          setMessages(prev => [...prev, { 
+            role: 'info', 
+            content: data.answer
+          }]);
+          toast.error('Technical difficulties with the nutrition assistant.');
+        } else {
+          setMessages(prev => [...prev, { role: 'assistant', content: data.answer }]);
+        }
       } else {
         throw new Error('Invalid response format from nutrition assistant');
       }
@@ -96,12 +111,19 @@ const NotesPage = () => {
                           ? 'bg-client text-white'
                           : message.role === 'error'
                             ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100'
+                            : message.role === 'info'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100'
                       }`}
                     >
                       {message.role === 'error' ? (
                         <div className="flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3 text-red-600" />
+                          <p className="text-xs">{message.content}</p>
+                        </div>
+                      ) : message.role === 'info' ? (
+                        <div className="flex items-center gap-1">
+                          <Info className="h-3 w-3 text-blue-600" />
                           <p className="text-xs">{message.content}</p>
                         </div>
                       ) : message.role === 'assistant' ? (

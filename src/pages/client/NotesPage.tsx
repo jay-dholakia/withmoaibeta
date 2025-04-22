@@ -88,7 +88,7 @@ const NotesPage = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <Card className="flex flex-col h-full">
+      <Card className="flex flex-col h-full pb-[120px]"> {/* Add padding to account for fixed input */}
         <CardHeader className="py-1 border-b">
           <CardTitle className="text-lg font-bold text-center">
             Nutrition Assistant
@@ -152,9 +152,11 @@ const NotesPage = () => {
             </div>
           </ScrollArea>
         </div>
+      </Card>
 
-        <div className="p-2 border-t mt-auto pb-4">
-          <form onSubmit={handleSubmit} className="flex w-full gap-2">
+      <div className="fixed bottom-[64px] left-0 right-0 bg-background border-t z-50">
+        <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
+          <form onSubmit={handleSubmit} className="flex w-full gap-2 py-3">
             <Textarea
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
@@ -175,7 +177,7 @@ const NotesPage = () => {
             </Button>
           </form>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };

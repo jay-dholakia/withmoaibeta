@@ -126,7 +126,7 @@ const NotesPage = () => {
           </ScrollArea>
         </div>
 
-        <div className="p-2 border-t -mt-1.5"> {/* Moved input box up by adjusting margin */}
+        <div className="p-2 border-t mt-auto">
           <form onSubmit={handleSubmit} className="flex w-full gap-2">
             <Textarea
               value={newQuestion}

@@ -1,5 +1,5 @@
-
 import React from 'react';
+import { Dumbbell } from 'lucide-react';
 import { StandardWorkoutType } from '@/types/workout';
 
 export type WorkoutType = StandardWorkoutType;
@@ -7,60 +7,60 @@ export type WorkoutType = StandardWorkoutType;
 interface WorkoutTypeIconProps {
   type: WorkoutType;
   className?: string;
-  size?: 'sm' | 'md' | 'lg'; // Add size prop
-  colorOverride?: string; // Add colorOverride prop
+  size?: 'sm' | 'md' | 'lg'; 
+  colorOverride?: string;
 }
 
 export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({ 
   type, 
   className = '',
-  size = 'md', // Default to medium size
-  colorOverride // Add colorOverride parameter
+  size = 'md',
+  colorOverride 
 }) => {
   const getIconForType = () => {
     switch (type) {
       case 'strength':
-        return '🏋️'; // Weightlifting emoji
+        return <Dumbbell className={`${className} ${colorOverride || ''}`} />;
       case 'bodyweight':
         return '💪'; // Muscle emoji
       case 'cardio':
-        return '🏃'; // Running emoji - updated for cardio workouts
+        return '🏃'; // Running emoji 
       case 'flexibility':
         return '🧘'; // Yoga/flexibility emoji
       case 'rest_day':
-        return '😌'; // Updated Rest day emoji
+        return '😌'; 
       case 'custom':
-        return '✨'; // Custom workout
+        return '✨'; 
       case 'one_off':
-        return '🎯'; // One-off workout
+        return '🎯'; 
       case 'hiit':
-        return '⚡'; // HIIT workout
+        return '⚡'; 
       case 'sport':
-        return '🎾'; // Sport activity
+        return '🎾'; 
       case 'swimming':
-        return '🏊'; // Swimming
+        return '🏊'; 
       case 'cycling':
-        return '🚴'; // Cycling
+        return '🚴'; 
       case 'dance':
-        return '💃'; // Dance workout
+        return '💃'; 
       case 'basketball':
-        return '🏀'; // Basketball
+        return '🏀'; 
       case 'golf':
-        return '⛳'; // Golf
+        return '⛳'; 
       case 'volleyball':
-        return '🏐'; // Volleyball
+        return '🏐'; 
       case 'baseball':
-        return '⚾'; // Baseball
+        return '⚾'; 
       case 'tennis':
-        return '🎾'; // Tennis
+        return '🎾'; 
       case 'hiking':
-        return '🥾'; // Hiking/trails
+        return '🥾'; 
       case 'skiing':
-        return '⛷️'; // Skiing
+        return '⛷️'; 
       case 'yoga':
-        return '🧘'; // Yoga
+        return '🧘'; 
       default:
-        return '📝'; // Default icon
+        return '📝'; 
     }
   };
 
@@ -77,25 +77,34 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
     }
   };
 
-  return (
-    <span 
-      className={`workout-type-icon ${className}`} 
-      role="img" 
-      aria-label={`${type} workout`}
-      style={{ 
-        fontSize: getFontSize(), 
-        lineHeight: 1,
-        color: colorOverride // Apply colorOverride if provided
-      }}
-    >
-      {getIconForType()}
-    </span>
-  );
+  // For Dumbbell, we'll use its default rendering, for others we'll keep the existing style
+  const renderIcon = () => {
+    if (type === 'strength') {
+      return getIconForType();
+    }
+    
+    return (
+      <span 
+        className={`workout-type-icon ${className}`} 
+        role="img" 
+        aria-label={`${type} workout`}
+        style={{ 
+          fontSize: getFontSize(), 
+          lineHeight: 1,
+          color: colorOverride 
+        }}
+      >
+        {getIconForType()}
+      </span>
+    );
+  };
+
+  return renderIcon();
 };
 
-// Export the workout types with labels for use in dropdowns
+// Update WORKOUT_TYPES to use Dumbbell for strength
 export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.ReactNode}[] = [
-  { value: 'strength', label: 'Strength', icon: '🏋️' },
+  { value: 'strength', label: 'Strength', icon: <Dumbbell /> },
   { value: 'bodyweight', label: 'Bodyweight', icon: '💪' },
   { value: 'flexibility', label: 'Flexibility', icon: '🧘' },
   { value: 'hiit', label: 'HIIT', icon: '⚡' },
@@ -110,5 +119,4 @@ export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.Reac
   { value: 'hiking', label: 'Hiking', icon: '🥾' },
   { value: 'skiing', label: 'Skiing', icon: '⛷️' },
   { value: 'yoga', label: 'Yoga', icon: '🧘' }
-  // Removed: cardio, sport, one_off, custom, rest_day as requested
 ];

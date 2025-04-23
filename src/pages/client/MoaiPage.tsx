@@ -12,7 +12,7 @@ const MoaiPage = () => {
 
   return (
     <div className="space-y-6">
-      <MoaiGroupProgress />
+      <MoaiGroupProgress groupId={groupId || ''} />
       
       <div className="grid gap-6 md:grid-cols-2">
         <DashboardJournalSection />
@@ -23,10 +23,10 @@ const MoaiPage = () => {
             <TabsTrigger value="members">Members</TabsTrigger>
           </TabsList>
           <TabsContent value="coach">
-            <MoaiCoachTab groupId={groupId} />
+            <MoaiCoachTab groupId={groupId || ''} />
           </TabsContent>
           <TabsContent value="members">
-            <MoaiMembersTab groupId={groupId} />
+            <MoaiMembersTab groupId={groupId || ''} />
           </TabsContent>
         </Tabs>
       </div>

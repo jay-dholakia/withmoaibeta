@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -156,7 +155,7 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-xl">Journal Entries</CardTitle>
         {!isCreating && !isEditing && (
-          <Button onClick={handleStartCreate} className="flex items-center gap-2">
+          <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             Add Entry
           </Button>
@@ -175,10 +174,10 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
                   placeholder="Write your journal entry here..."
-                  className="min-h-[150px]"
+                  className="min-h-[150px] text-base"
                 />
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={handleCancelCreate}>
+                  <Button variant="outline" onClick={() => setIsCreating(false)}>
                     <X className="h-4 w-4 mr-1" />
                     Cancel
                   </Button>
@@ -240,7 +239,7 @@ const WorkoutJournalSection: React.FC<WorkoutJournalSectionProps> = ({ date }) =
 
             {!isCreating && entries.length === 0 && (
               <div className="text-center text-muted-foreground py-8">
-                No journal entries for this date.
+                No journal entries for this date. Click "Add Entry" to create one.
               </div>
             )}
           </div>

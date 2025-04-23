@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -130,11 +129,11 @@ export default function MoaiPage() {
   }
   
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {groupData && (
         <Card className="border-none shadow-none bg-slate-50">
-          <CardHeader className="text-center py-2 px-4">
-            <CardTitle className="text-2xl md:text-3xl font-semibold">
+          <CardHeader className="text-center py-1 px-4">
+            <CardTitle className="text-xl md:text-2xl font-semibold">
               {groupData.name}
             </CardTitle>
           </CardHeader>
@@ -144,14 +143,13 @@ export default function MoaiPage() {
                 variant="outline"
                 size="sm" 
                 onClick={handleOpenSpotifyPlaylist}
-                className="bg-white hover:bg-green-50 mb-3"
+                className="bg-white hover:bg-green-50 mb-2"
               >
                 <Music className="h-4 w-4 mr-2 text-green-600" />
                 <span>Team Spotify Playlist</span>
               </Button>
             )}
             
-            {/* Accountability Buddy Card */}
             {activeGroupId && (
               <AccountabilityBuddyCard
                 buddies={buddies || []}
@@ -166,11 +164,11 @@ export default function MoaiPage() {
       )}
       
       {userGroups && userGroups.length > 1 && (
-        <div className="flex justify-center">
+        <div className="flex justify-center mb-2">
           <select
             value={activeGroupId || ''}
             onChange={(e) => setActiveGroupId(e.target.value)}
-            className="px-3 py-1.5 border rounded-md text-sm"
+            className="px-2 py-1 border rounded-md text-sm"
           >
             {userGroups.map(group => (
               <option key={group.id} value={group.id}>
@@ -191,7 +189,7 @@ export default function MoaiPage() {
             </TabsList>
             
             {user && (
-              <div className="px-4 pt-4 pb-1">
+              <div className="px-4 pt-2 pb-1">
                 <Button 
                   asChild 
                   className="w-full flex items-center justify-center gap-2 bg-client hover:bg-client/90"
@@ -204,7 +202,7 @@ export default function MoaiPage() {
               </div>
             )}
             
-            <TabsContent value="progress" className="pt-2">
+            <TabsContent value="progress" className="pt-1">
               <MoaiGroupProgress 
                 groupId={activeGroupId || ''} 
                 currentProgram={currentProgram}

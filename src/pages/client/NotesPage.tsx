@@ -131,21 +131,27 @@ const NotesPage = () => {
                     {message.role === 'error' ? (
                       <div className="flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3 text-red-600" />
-                        <p className="text-xs">{message.content}</p>
+                        <p className="text-xs">
+                          {message.content}
+                        </p>
                       </div>
                     ) : message.role === 'info' ? (
                       <div className="flex items-center gap-1">
                         <Info className="h-3 w-3 text-blue-600" />
-                        <p className="text-xs">{message.content}</p>
+                        <p className="text-xs">
+                          {message.content}
+                        </p>
                       </div>
                     ) : message.role === 'assistant' ? (
-                      <div className="prose prose-sm max-w-none text-xs">
+                      <div className="prose prose-sm max-w-none text-[10px]">
                         <ReactMarkdown>
                           {message.content}
                         </ReactMarkdown>
                       </div>
                     ) : (
-                      <p className="text-xs">{message.content}</p>
+                      <p className="text-[10px]">
+                        {message.content}
+                      </p>
                     )}
                   </div>
                 </div>

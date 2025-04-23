@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dumbbell } from 'lucide-react';
 import { StandardWorkoutType } from '@/types/workout';
@@ -64,7 +65,6 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
     }
   };
 
-  // Determine font size based on size prop
   const getFontSize = () => {
     switch (size) {
       case 'sm':
@@ -120,3 +120,4 @@ export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.Reac
   { value: 'skiing', label: 'Skiing', icon: '⛷️' },
   { value: 'yoga', label: 'Yoga', icon: '🧘' }
 ];
+

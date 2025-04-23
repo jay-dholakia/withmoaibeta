@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MoaiCoachTab } from '@/components/client/MoaiCoachTab';
-import { MoaiMembersTab } from '@/components/client/MoaiMembersTab';
-import { MoaiGroupProgress } from '@/components/client/MoaiGroupProgress';
+import MoaiCoachTab from '@/components/client/MoaiCoachTab';
+import MoaiMembersTab from '@/components/client/MoaiMembersTab';
+import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
 import DashboardJournalSection from '@/components/client/DashboardJournalSection';
 
 const MoaiPage = () => {

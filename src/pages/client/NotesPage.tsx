@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -131,27 +130,21 @@ const NotesPage = () => {
                     {message.role === 'error' ? (
                       <div className="flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3 text-red-600" />
-                        <p className="text-xs">
-                          {message.content}
-                        </p>
+                        <p className="text-base">{message.content}</p>
                       </div>
                     ) : message.role === 'info' ? (
                       <div className="flex items-center gap-1">
                         <Info className="h-3 w-3 text-blue-600" />
-                        <p className="text-xs">
-                          {message.content}
-                        </p>
+                        <p className="text-base">{message.content}</p>
                       </div>
                     ) : message.role === 'assistant' ? (
-                      <div className="prose prose-sm max-w-none text-[10px]">
+                      <div className="prose prose-sm max-w-none text-base">
                         <ReactMarkdown>
                           {message.content}
                         </ReactMarkdown>
                       </div>
                     ) : (
-                      <p className="text-[10px]">
-                        {message.content}
-                      </p>
+                      <p className="text-base">{message.content}</p>
                     )}
                   </div>
                 </div>
@@ -174,7 +167,7 @@ const NotesPage = () => {
               onChange={(e) => setNewQuestion(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about nutrition, your caloric needs, or meal planning..."
-              className="flex-1 min-h-[40px] max-h-[60px] text-xs resize-none py-2 bg-white"
+              className="flex-1 min-h-[40px] max-h-[60px] text-base resize-none py-2 bg-white"
             />
             <Button 
               type="submit" 

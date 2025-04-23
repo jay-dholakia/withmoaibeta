@@ -1,6 +1,4 @@
-
 import React from 'react';
-import { Dumbbell } from 'lucide-react';
 import { StandardWorkoutType } from '@/types/workout';
 
 export type WorkoutType = StandardWorkoutType;
@@ -21,7 +19,7 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
   const getIconForType = () => {
     switch (type) {
       case 'strength':
-        return <Dumbbell className={`${className} ${colorOverride || ''}`} />;
+        return '🏋️‍♀️'; // iOS dumbbell emoji
       case 'bodyweight':
         return '💪'; // Muscle emoji
       case 'cardio':
@@ -77,7 +75,6 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
     }
   };
 
-  // For Dumbbell, we'll use its default rendering, for others we'll keep the existing style
   const renderIcon = () => {
     if (type === 'strength') {
       return getIconForType();
@@ -102,9 +99,8 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
   return renderIcon();
 };
 
-// Update WORKOUT_TYPES to use Dumbbell for strength
 export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.ReactNode}[] = [
-  { value: 'strength', label: 'Strength', icon: <Dumbbell /> },
+  { value: 'strength', label: 'Strength', icon: '🏋️‍♀️' },
   { value: 'bodyweight', label: 'Bodyweight', icon: '💪' },
   { value: 'flexibility', label: 'Flexibility', icon: '🧘' },
   { value: 'hiit', label: 'HIIT', icon: '⚡' },
@@ -120,4 +116,3 @@ export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.Reac
   { value: 'skiing', label: 'Skiing', icon: '⛷️' },
   { value: 'yoga', label: 'Yoga', icon: '🧘' }
 ];
-

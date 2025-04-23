@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -41,8 +40,9 @@ import CoachClientStatsPage from './pages/coach/ClientStatsPage';
 import CreateWorkoutWeekPage from './pages/coach/CreateWorkoutWeekPage';
 import CreateWorkoutProgramPage from './pages/coach/CreateWorkoutProgramPage';
 import AssignProgramPage from './pages/coach/AssignProgramPage';
-// Import the coach version of the clients page
 import CoachClientsPage from './pages/coach/ClientsPage';
+import PrivacyPolicyPage from './pages/client/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/client/TermsOfServicePage';
 
 const App: React.FC = () => {
   const { loading } = useAuth();
@@ -58,7 +58,6 @@ const App: React.FC = () => {
 
   return (
     <Routes>
-      {/* Public routes accessible to everyone */}
       <Route path="/" element={<PublicRoute><HomePage /></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/admin-login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
@@ -66,8 +65,9 @@ const App: React.FC = () => {
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
       <Route path="/password-reset-request" element={<PublicRoute><PasswordResetRequestPage /></PublicRoute>} />
       <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
+      <Route path="/privacy-policy" element={<PublicRoute><PrivacyPolicyPage /></PublicRoute>} />
+      <Route path="/terms-of-service" element={<PublicRoute><TermsOfServicePage /></PublicRoute>} />
 
-      {/* Admin routes */}
       <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/admin-dashboard/invitations" element={<AdminRoute><InvitationsPage /></AdminRoute>} />
       <Route path="/admin-dashboard/groups" element={<AdminRoute><GroupsPage /></AdminRoute>} />
@@ -78,7 +78,6 @@ const App: React.FC = () => {
       <Route path="/admin-dashboard/client-stats" element={<AdminRoute><ClientStatsPage /></AdminRoute>} />
       <Route path="/exercise-import" element={<AdminRoute><ExerciseImportPage /></AdminRoute>} />
 
-      {/* Coach routes */}
       <Route path="/coach-dashboard" element={<CoachRoute><CoachDashboard /></CoachRoute>} />
       <Route path="/coach-profile" element={<CoachRoute><CoachProfilePage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts" element={<CoachRoute><WorkoutProgramPage /></CoachRoute>} />
@@ -97,14 +96,12 @@ const App: React.FC = () => {
       <Route path="/coach-dashboard/clients" element={<CoachRoute><CoachClientsPage /></CoachRoute>} />
       <Route path="/coach-dashboard/client-stats" element={<CoachRoute><CoachClientStatsPage /></CoachRoute>} />
 
-      {/* Client routes */}
       <Route path="/dashboard" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
       <Route path="/client-dashboard/*" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
       <Route path="/profile" element={<ClientRoute><ClientProfilePage /></ClientRoute>} />
       <Route path="/workouts" element={<ClientRoute><ClientWorkoutHistoryPage /></ClientRoute>} />
       <Route path="/workouts/:workoutId" element={<ClientRoute><ClientWorkoutDetailsPage /></ClientRoute>} />
       
-      {/* Fallback route */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

@@ -2,6 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Users, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { AnimatedBackground } from '../components/AnimatedBackground';
 import { Logo } from '../components/Logo';
 import { PortalCard } from '../components/PortalCard';
@@ -90,7 +91,13 @@ const Index = () => {
         </main>
         
         <footer className="py-8 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} Moai. All rights reserved.</p>
+          <div className="container mx-auto px-4">
+            <p>© {new Date().getFullYear()} Moai. All rights reserved.</p>
+            <div className="mt-4 flex justify-center space-x-4">
+              <Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link>
+              <Link to="/terms-of-service" className="hover:underline">Terms of Service</Link>
+            </div>
+          </div>
         </footer>
       </PageTransition>
     </div>

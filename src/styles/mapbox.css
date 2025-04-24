@@ -1,0 +1,31 @@
+
+/* Mapbox global styles */
+.mapboxgl-map {
+  font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+}
+
+.mapboxgl-canvas {
+  outline: none;
+}
+
+.mapboxgl-ctrl-logo {
+  display: none !important;
+}
+
+/* Custom map markers */
+.start-marker {
+  box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.3);
+}
+
+.end-marker {
+  box-shadow: 0 0 0 4px rgba(244, 67, 54, 0.3);
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .mapboxgl-ctrl-group {
+    transform: scale(1.2);
+    margin-top: 10px;
+    margin-right: 10px;
+  }
+}

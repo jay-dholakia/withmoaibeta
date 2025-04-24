@@ -8,11 +8,12 @@ export interface RunLocation {
   run_id: string;
 }
 
-export const saveRunLocation = async (location: RunLocation) => {
+export const saveRunLocation = async (location: RunLocation & { user_id: string }) => {
   const { error } = await supabase
     .from('run_tracking')
     .insert({
       run_id: location.run_id,
+      user_id: location.user_id,
       latitude: location.latitude,
       longitude: location.longitude,
       timestamp: location.timestamp
@@ -27,7 +28,7 @@ export const saveRunLocation = async (location: RunLocation) => {
 export const getRunLocations = async (runId: string): Promise<RunLocation[]> => {
   const { data, error } = await supabase
     .from('run_tracking')
-    .select('latitude, longitude, timestamp')
+    .select('latitude, longitude, timestamp, run_id')
     .eq('run_id', runId)
     .order('timestamp', { ascending: true });
 

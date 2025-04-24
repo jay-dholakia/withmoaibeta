@@ -1,53 +1,35 @@
+// src/components/ui/calendar-caption.tsx
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { CaptionProps } from 'react-day-picker'
 
-import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "./button";
-import { cn } from "@/lib/utils";
-import type { CaptionProps as DayPickerCaptionProps } from "react-day-picker";
-
-// We need to extend the CaptionProps to ensure we have the correct types
-export type CaptionProps = DayPickerCaptionProps;
-
-export function CalendarCaption({ 
+export function CalendarCaption({
   displayMonth,
   goToMonth,
-  className,
-}: CaptionProps) {
-  const handlePrevious = () => {
-    const prevMonth = new Date(displayMonth);
-    prevMonth.setMonth(prevMonth.getMonth() - 1);
-    goToMonth(prevMonth);
-  };
+}: CaptionProps): JSX.Element {
+  const handlePrev = () => {
+    const prev = new Date(displayMonth)
+    prev.setMonth(prev.getMonth() - 1)
+    goToMonth(prev)
+  }
 
   const handleNext = () => {
-    const nextMonth = new Date(displayMonth);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    goToMonth(nextMonth);
-  };
+    const next = new Date(displayMonth)
+    next.setMonth(next.getMonth() + 1)
+    goToMonth(next)
+  }
 
   return (
-    <div className={cn("flex justify-between pt-1 relative items-center", className)}>
-      <Button
-        variant="outline"
-        className={cn(
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-1"
-        )}
-        onClick={handlePrevious}
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </Button>
+    <div className="flex items-center justify-between px-3 py-2">
+      <button onClick={handlePrev}>
+        <ChevronLeft className="w-4 h-4" />
+      </button>
       <span className="text-sm font-medium">
         {displayMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
       </span>
-      <Button
-        variant="outline"
-        className={cn(
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-1"
-        )}
-        onClick={handleNext}
-      >
-        <ChevronRight className="h-5 w-5" />
-      </Button>
+      <button onClick={handleNext}>
+        <ChevronRight className="w-4 h-4" />
+      </button>
     </div>
-  );
+  )
 }
+

@@ -28,8 +28,8 @@ export function CalendarCaption(props: CaptionProps) {
         <ChevronLeft className="w-4 h-4" />
       </button>
       <span className="text-sm font-medium">
-        {/* Format the date correctly without additional parameters */}
-        {new Intl.DateTimeFormat('default', { month: 'long', year: 'numeric' }).format(calendarMonth)}
+        {/* Format the date correctly with the Date object */}
+        {calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
       </span>
       <button 
         onClick={handleNext}

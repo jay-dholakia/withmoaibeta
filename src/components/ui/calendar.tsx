@@ -1,5 +1,4 @@
 
-// src/components/ui/calendar.tsx
 import * as React from "react"
 import { DayPicker } from 'react-day-picker'
 
@@ -27,8 +26,7 @@ export function Calendar({
       selected={selected}
       onSelect={onSelect}
       // Use a valid captionLayout value
-      captionLayout="buttons"
-      // Components prop has been removed since it's not supported in this way
+      captionLayout="dropdown"
       className={className}
       disabled={disabled}
       initialFocus={initialFocus}

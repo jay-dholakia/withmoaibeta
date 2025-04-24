@@ -3,21 +3,13 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./button";
 import { cn } from "@/lib/utils";
-import { type DayPicker } from "react-day-picker";
-
-// We need to use this type definition since the CaptionProps from react-day-picker
-// doesn't expose the properties we need
-export type CalendarCaptionProps = React.ComponentProps<typeof DayPicker.Caption> & {
-  displayMonth: Date;
-  goToMonth: (date: Date) => void;
-  className?: string;
-};
+import { CaptionProps } from "react-day-picker";
 
 export function CalendarCaption({ 
   displayMonth,
   goToMonth,
   className,
-}: CalendarCaptionProps) {
+}: CaptionProps) {
   const handlePrevious = () => {
     const prevMonth = new Date(displayMonth);
     prevMonth.setMonth(prevMonth.getMonth() - 1);

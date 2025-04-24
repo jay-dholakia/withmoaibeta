@@ -2,7 +2,6 @@
 // src/components/ui/calendar.tsx
 import * as React from "react"
 import { DayPicker } from 'react-day-picker'
-import { CalendarCaption } from './calendar-caption'
 
 // Define a type that includes only the properties we need
 export interface CalendarProps {
@@ -27,10 +26,9 @@ export function Calendar({
       mode="single"
       selected={selected}
       onSelect={onSelect}
-      captionLayout="custom"
-      components={{
-        Caption: CalendarCaption
-      }}
+      // Use a valid captionLayout value
+      captionLayout="buttons"
+      // Components prop has been removed since it's not supported in this way
       className={className}
       disabled={disabled}
       initialFocus={initialFocus}

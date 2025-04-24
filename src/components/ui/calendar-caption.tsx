@@ -3,7 +3,10 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./button";
 import { cn } from "@/lib/utils";
-import { CaptionProps } from "react-day-picker";
+import type { CaptionProps as DayPickerCaptionProps } from "react-day-picker";
+
+// We need to extend the CaptionProps to ensure we have the correct types
+export type CaptionProps = DayPickerCaptionProps;
 
 export function CalendarCaption({ 
   displayMonth,

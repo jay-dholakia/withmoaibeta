@@ -43,6 +43,7 @@ import AssignProgramPage from './pages/coach/AssignProgramPage';
 import CoachClientsPage from './pages/coach/ClientsPage';
 import PrivacyPolicyPage from './pages/client/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/client/TermsOfServicePage';
+import LiveRunPage from './pages/client/LiveRunPage';
 
 const App: React.FC = () => {
   const { loading } = useAuth();
@@ -98,6 +99,7 @@ const App: React.FC = () => {
 
       <Route path="/dashboard" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
       <Route path="/client-dashboard/*" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
+      <Route path="/client-dashboard/workouts/live-run" element={<ClientRoute><LiveRunPage /></ClientRoute>} />
       <Route path="/profile" element={<ClientRoute><ClientProfilePage /></ClientRoute>} />
       <Route path="/workouts" element={<ClientRoute><ClientWorkoutHistoryPage /></ClientRoute>} />
       <Route path="/workouts/:workoutId" element={<ClientRoute><ClientWorkoutDetailsPage /></ClientRoute>} />

@@ -27,11 +27,11 @@ export function CalendarCaption(props: CaptionProps) {
         <ChevronLeft className="w-4 h-4" />
       </button>
       <span className="text-sm font-medium">
-        {/* Correctly format the date */}
+        {/* Convert CalendarMonth to Date */}
         {new Intl.DateTimeFormat('default', { 
           month: 'long', 
           year: 'numeric' 
-        }).format(calendarMonth)}
+        }).format(new Date(calendarMonth.year, calendarMonth.month - 1))}
       </span>
       <button 
         onClick={handleNext}
@@ -42,4 +42,3 @@ export function CalendarCaption(props: CaptionProps) {
     </div>
   )
 }
-

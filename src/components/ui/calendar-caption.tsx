@@ -1,33 +1,39 @@
 
 // src/components/ui/calendar-caption.tsx
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { CaptionProps } from 'react-day-picker'
+import { CaptionProps, useNavigation } from 'react-day-picker'
 
-export function CalendarCaption({
-  displayMonth,
-  goToMonth,
-}: CaptionProps): JSX.Element {
+export function CalendarCaption(props: CaptionProps) {
+  const { goToMonth, nextMonth, previousMonth } = useNavigation();
+  const { displayMonth } = props;
+
   const handlePrev = () => {
-    const prev = new Date(displayMonth)
-    prev.setMonth(prev.getMonth() - 1)
-    goToMonth(prev)
+    if (previousMonth) {
+      goToMonth(previousMonth);
+    }
   }
 
   const handleNext = () => {
-    const next = new Date(displayMonth)
-    next.setMonth(next.getMonth() + 1)
-    goToMonth(next)
+    if (nextMonth) {
+      goToMonth(nextMonth);
+    }
   }
 
   return (
     <div className="flex items-center justify-between px-3 py-2">
-      <button onClick={handlePrev}>
+      <button 
+        onClick={handlePrev}
+        disabled={!previousMonth}
+      >
         <ChevronLeft className="w-4 h-4" />
       </button>
       <span className="text-sm font-medium">
         {displayMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
       </span>
-      <button onClick={handleNext}>
+      <button 
+        onClick={handleNext}
+        disabled={!nextMonth}
+      >
         <ChevronRight className="w-4 h-4" />
       </button>
     </div>

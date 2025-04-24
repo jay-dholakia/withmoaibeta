@@ -5,15 +5,17 @@ import { Button } from "./button";
 import { cn } from "@/lib/utils";
 import type { DayPicker } from "react-day-picker";
 
+export type CalendarCaptionProps = React.ComponentProps<typeof DayPicker.Caption> & {
+  displayMonth: Date;
+  goToMonth: (date: Date) => void;
+  className?: string;
+};
+
 export function CalendarCaption({ 
   displayMonth,
   goToMonth,
   className,
-}: {
-  displayMonth: Date;
-  goToMonth: (date: Date) => void;
-  className?: string;
-}) {
+}: CalendarCaptionProps) {
   const handlePrevious = () => {
     const prevMonth = new Date(displayMonth);
     prevMonth.setMonth(prevMonth.getMonth() - 1);
@@ -52,4 +54,3 @@ export function CalendarCaption({
     </div>
   );
 }
-

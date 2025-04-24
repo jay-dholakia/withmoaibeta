@@ -51,12 +51,12 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: () => (
+        ChevronLeft: () => (
           <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-1">
             <ChevronLeft className="h-5 w-5" />
           </button>
         ),
-        IconRight: () => (
+        ChevronRight: () => (
           <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-1">
             <ChevronRight className="h-5 w-5" />
           </button>

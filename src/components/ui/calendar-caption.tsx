@@ -18,6 +18,9 @@ export function CalendarCaption(props: CaptionProps) {
     }
   }
 
+  // Create a proper Date object from the CalendarMonth
+  const month = new Date(calendarMonth.year, calendarMonth.month - 1, 1);
+
   return (
     <div className="flex items-center justify-between px-3 py-2">
       <button 
@@ -27,11 +30,10 @@ export function CalendarCaption(props: CaptionProps) {
         <ChevronLeft className="w-4 h-4" />
       </button>
       <span className="text-sm font-medium">
-        {/* Convert CalendarMonth to Date */}
         {new Intl.DateTimeFormat('default', { 
           month: 'long', 
           year: 'numeric' 
-        }).format(calendarMonth)}
+        }).format(month)}
       </span>
       <button 
         onClick={handleNext}

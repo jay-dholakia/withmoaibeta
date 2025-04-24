@@ -1,6 +1,7 @@
 
 import * as React from "react"
 import { DayPicker } from 'react-day-picker'
+import { CalendarCaption } from './calendar-caption'
 
 // Define a type that includes only the properties we need
 export interface CalendarProps {
@@ -25,9 +26,10 @@ export function Calendar({
       mode="single"
       selected={selected}
       onSelect={onSelect}
-      // Use a valid captionLayout value
-      captionLayout="dropdown"
-      className={className}
+      components={{
+        Caption: CalendarCaption
+      }}
+      className={`pointer-events-auto ${className || ''}`}
       disabled={disabled}
       initialFocus={initialFocus}
     />

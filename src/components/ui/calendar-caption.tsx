@@ -1,3 +1,4 @@
+
 // src/components/ui/calendar-caption.tsx
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { CaptionProps } from 'react-day-picker'
@@ -32,4 +33,3 @@ export function CalendarCaption({
     </div>
   )
 }
-

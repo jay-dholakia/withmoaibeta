@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, PlayCircle } from 'lucide-react';
 
 export const LogActivityButtons: React.FC = () => {
   return (
@@ -18,6 +17,20 @@ export const LogActivityButtons: React.FC = () => {
             <span>Log Run</span>
           </div>
           <span className="ml-auto">🏃</span>
+        </Link>
+      </Button>
+      
+      <Button 
+        asChild
+        variant="outline"
+        className="flex items-center justify-between text-green-600 border-green-200 hover:bg-green-50"
+      >
+        <Link to="/client-dashboard/workouts/live-run">
+          <div className="flex items-center">
+            <PlayCircle className="h-4 w-4 mr-2" />
+            <span>Start Live Run</span>
+          </div>
+          <span className="ml-auto">📍</span>
         </Link>
       </Button>
       

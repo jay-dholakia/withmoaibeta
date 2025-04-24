@@ -1074,6 +1074,44 @@ export type Database = {
           },
         ]
       }
+      run_tracking: {
+        Row: {
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          run_id: string
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          run_id: string
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          run_id?: string
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_run_tracking_run"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workout_completions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       standalone_superset_groups: {
         Row: {
           created_at: string

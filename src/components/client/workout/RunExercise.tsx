@@ -1,16 +1,18 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Youtube, MapPin } from 'lucide-react';
 import { WorkoutExercise } from '@/types/workout';
+import { toast } from 'sonner';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import RunTracking from './RunTracking';
 
 interface Props {
   exercise: WorkoutExercise;
@@ -29,6 +31,20 @@ export const RunExercise: React.FC<Props> = ({
   onRunCompletion,
   onVideoClick
 }) => {
+  const [showTracking, setShowTracking] = useState(false);
+  
+  useEffect(() => {
+    return () => {
+      // Clean up any resources
+    };
+  }, []);
+
+  const handleRunComplete = (summary: {distance: number, duration: number, pace: number}) => {
+    // Update the distance and duration fields with the summary data
+    onRunChange(exercise.id, 'distance', `${summary.distance}`);
+    onRunChange(exercise.id, 'duration', formatDurationInput(Math.round(summary.duration).toString()));
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2">
@@ -64,6 +80,26 @@ export const RunExercise: React.FC<Props> = ({
             className="pl-8"
           />
         </div>
+      </div>
+      
+      <div className="flex flex-col gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setShowTracking(!showTracking)}
+          className="flex items-center gap-2"
+        >
+          {showTracking ? "Hide GPS Tracking" : "Show GPS Tracking"}
+        </Button>
+        
+        {showTracking && (
+          <div className="mt-2">
+            <RunTracking 
+              runId={exercise.id} 
+              onRunComplete={handleRunComplete}
+            />
+          </div>
+        )}
       </div>
       
       <div className="flex justify-between items-center">

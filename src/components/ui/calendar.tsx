@@ -46,7 +46,7 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Caption: CalendarCaption as React.ComponentType<any>
+        Caption: CalendarCaption
       }}
       {...props}
     />

@@ -31,7 +31,7 @@ export function CalendarCaption(props: CaptionProps) {
         {new Intl.DateTimeFormat('default', { 
           month: 'long', 
           year: 'numeric' 
-        }).format(new Date(calendarMonth.year, calendarMonth.month - 1))}
+        }).format(calendarMonth)}
       </span>
       <button 
         onClick={handleNext}

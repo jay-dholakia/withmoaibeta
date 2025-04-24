@@ -1,13 +1,12 @@
-
-import * as React from "react"
+// src/components/ui/calendar.tsx
+import * as React from 'react'
 import { DayPicker } from 'react-day-picker'
 import { CalendarCaption } from './calendar-caption'
 
-// Define a type that includes only the properties we need
 export interface CalendarProps {
   selected?: Date | undefined
   onSelect: (date: Date | undefined) => void
-  mode?: "single" // Only supporting single mode for simplicity
+  mode?: 'single'
   className?: string
   disabled?: (date: Date) => boolean
   initialFocus?: boolean
@@ -16,22 +15,22 @@ export interface CalendarProps {
 export function Calendar({
   selected,
   onSelect,
-  mode = "single",
+  mode = 'single',
   className,
   disabled,
   initialFocus,
 }: CalendarProps) {
   return (
     <DayPicker
-      mode="single"
+      mode={mode}
       selected={selected}
       onSelect={onSelect}
-      components={{
-        Caption: CalendarCaption
-      }}
+      captionLayout="buttons"
+      components={{ Caption: CalendarCaption }}
       className={`pointer-events-auto ${className || ''}`}
       disabled={disabled}
       initialFocus={initialFocus}
     />
   )
 }
+

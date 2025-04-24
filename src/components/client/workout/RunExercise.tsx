@@ -1,10 +1,12 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Youtube, MapPin } from 'lucide-react';
+import { Youtube, MapPin, Navigation } from 'lucide-react';
 import { WorkoutExercise } from '@/types/workout';
+import { saveRunLocation } from '@/services/run-tracking-service';
+import { toast } from 'sonner';
 import {
   Tooltip,
   TooltipContent,
@@ -29,6 +31,61 @@ export const RunExercise: React.FC<Props> = ({
   onRunCompletion,
   onVideoClick
 }) => {
+  const [isTracking, setIsTracking] = useState(false);
+  const [watchId, setWatchId] = useState<number | null>(null);
+
+  const startTracking = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    const id = navigator.geolocation.watchPosition(
+      async (position) => {
+        try {
+          await saveRunLocation({
+            run_id: exercise.id,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            timestamp: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error('Error saving location:', error);
+        }
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        toast.error("Unable to get your location");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+    );
+
+    setWatchId(id);
+    setIsTracking(true);
+    toast.success("Location tracking started");
+  };
+
+  const stopTracking = () => {
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      setWatchId(null);
+      setIsTracking(false);
+      toast.success("Location tracking stopped");
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, [watchId]);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2">
@@ -64,6 +121,18 @@ export const RunExercise: React.FC<Props> = ({
             className="pl-8"
           />
         </div>
+      </div>
+      
+      <div className="flex flex-col gap-2">
+        <Button
+          type="button"
+          variant={isTracking ? "destructive" : "secondary"}
+          onClick={isTracking ? stopTracking : startTracking}
+          className="flex items-center gap-2"
+        >
+          <Navigation className="h-4 w-4" />
+          {isTracking ? "Stop Tracking" : "Start Tracking"}
+        </Button>
       </div>
       
       <div className="flex justify-between items-center">

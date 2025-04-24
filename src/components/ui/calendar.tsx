@@ -1,7 +1,7 @@
 
 // src/components/ui/calendar.tsx
 import * as React from "react"
-import { DayPicker, DayPickerSingleProps } from 'react-day-picker'
+import { DayPicker } from 'react-day-picker'
 import { CalendarCaption } from './calendar-caption'
 
 // Define a type that includes only the properties we need
@@ -27,9 +27,9 @@ export function Calendar({
       mode="single"
       selected={selected}
       onSelect={onSelect}
-      captionLayout="dropdown"
+      captionLayout="custom"
       components={{
-        // Remove custom Caption component for now to get things working
+        Caption: CalendarCaption
       }}
       className={className}
       disabled={disabled}

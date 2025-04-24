@@ -5,7 +5,8 @@ import { CaptionProps, useNavigation } from 'react-day-picker'
 
 export function CalendarCaption(props: CaptionProps) {
   const { goToMonth, nextMonth, previousMonth } = useNavigation();
-  const { displayMonth } = props;
+  // Use calendarMonth instead of displayMonth
+  const { calendarMonth } = props;
 
   const handlePrev = () => {
     if (previousMonth) {
@@ -28,7 +29,7 @@ export function CalendarCaption(props: CaptionProps) {
         <ChevronLeft className="w-4 h-4" />
       </button>
       <span className="text-sm font-medium">
-        {displayMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+        {calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
       </span>
       <button 
         onClick={handleNext}

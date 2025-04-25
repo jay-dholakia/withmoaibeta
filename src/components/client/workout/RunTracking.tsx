@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { saveRunLocation, getRunLocations, RunLocation } from '@/services/run-tracking-service';
@@ -17,7 +16,6 @@ interface RunTrackingProps {
   }) => void;
 }
 
-// Initialize Mapbox with your token
 mapboxgl.accessToken = 'pk.eyJ1Ijoid2l0aG1vYWkiLCJhIjoiY205dXVub3N6MGViejJrcTEyZTR3d21jcSJ9.yn3olASbo2JjtdDHX3mQTQ';
 
 const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
@@ -37,8 +35,8 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     duration: 0,
     pace: 0
   });
-  
-  // Create the map when component mounts
+  const currentLocationMarker = useRef<mapboxgl.Marker | null>(null);
+
   useEffect(() => {
     if (!mapContainer.current) return;
     
@@ -53,7 +51,6 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
       
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
       
-      // Try to set initial location from user's position
       navigator.geolocation.getCurrentPosition(
         position => {
           if (map.current) {
@@ -61,14 +58,12 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
           }
         },
         () => {
-          // Default center if location access is denied
           if (map.current) {
-            map.current.setCenter([-122.4194, 37.7749]); // San Francisco default
+            map.current.setCenter([-122.4194, 37.7749]);
           }
         }
       );
       
-      // Clean up on unmount
       return () => {
         map.current?.remove();
       };
@@ -77,8 +72,7 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
       setError('Could not initialize map. Please try again later.');
     }
   }, []);
-  
-  // Load existing run data when component mounts
+
   useEffect(() => {
     const loadExistingRunData = async () => {
       try {
@@ -86,10 +80,7 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
         setLocationPoints(points);
         
         if (points.length > 0 && map.current) {
-          // Update map with existing points
           updateRouteOnMap(points);
-          
-          // Center map on the most recent point
           const lastPoint = points[points.length - 1];
           map.current.setCenter([lastPoint.longitude, lastPoint.latitude]);
         }
@@ -100,15 +91,13 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     
     loadExistingRunData();
   }, [runId]);
-  
-  // Update the route on the map when location points change
+
   useEffect(() => {
     if (locationPoints.length > 0 && map.current) {
       updateRouteOnMap(locationPoints);
     }
   }, [locationPoints]);
-  
-  // Timer effect for tracking duration
+
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
     
@@ -122,7 +111,7 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
       if (timer) clearInterval(timer);
     };
   }, [isTracking, startTime]);
-  
+
   const startTracking = () => {
     if (!navigator.geolocation) {
       setError("Geolocation is not supported by your browser");
@@ -137,14 +126,12 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     }
     
     try {
-      // Start the watch position
       watchId.current = navigator.geolocation.watchPosition(
         handlePositionUpdate,
         handlePositionError,
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
       
-      // Set tracking interval to save location every 5 seconds
       trackingInterval.current = setInterval(saveCurrentPosition, 5000);
       
       setIsTracking(true);
@@ -158,7 +145,7 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
       toast.error("Could not start location tracking");
     }
   };
-  
+
   const stopTracking = () => {
     if (watchId.current !== null) {
       navigator.geolocation.clearWatch(watchId.current);
@@ -172,7 +159,6 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     
     setIsTracking(false);
     
-    // Calculate summary data
     if (locationPoints.length > 0 && startTime && currentTime) {
       const totalDistance = calculateTotalDistance(locationPoints);
       const durationMs = currentTime.getTime() - startTime.getTime();
@@ -180,7 +166,6 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
       let pace = 0;
       
       if (totalDistance > 0) {
-        // Pace in minutes per mile
         pace = durationMinutes / totalDistance;
       }
       
@@ -200,7 +185,7 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     
     toast.success("Location tracking stopped");
   };
-  
+
   const handlePositionUpdate = (position: GeolocationPosition) => {
     const newPoint: RunLocation = {
       run_id: runId,
@@ -209,17 +194,17 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
       timestamp: new Date().toISOString()
     };
     
-    // Add to local state
     setLocationPoints(prev => [...prev, newPoint]);
     
-    // Center map on new position
     if (map.current) {
       map.current.setCenter([newPoint.longitude, newPoint.latitude]);
+      
+      addCurrentLocationMarker(newPoint.latitude, newPoint.longitude);
     }
     
     setError(null);
   };
-  
+
   const saveCurrentPosition = async () => {
     if (!isTracking || !user?.id) return;
     
@@ -245,7 +230,7 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
     );
   };
-  
+
   const handlePositionError = (err: GeolocationPositionError) => {
     console.error('Error getting location:', err);
     let errorMessage = "Error getting your location";
@@ -265,17 +250,15 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     setError(errorMessage);
     toast.error(errorMessage);
   };
-  
+
   const updateRouteOnMap = (points: RunLocation[]) => {
     if (!map.current || points.length < 2) return;
     
-    // Check if map is loaded
     if (!map.current.loaded()) {
       map.current.once('load', () => updateRouteOnMap(points));
       return;
     }
     
-    // Convert points to GeoJSON LineString
     const geojson = {
       type: 'Feature',
       properties: {},
@@ -285,7 +268,6 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
       }
     } as GeoJSON.Feature<GeoJSON.LineString>;
     
-    // Remove existing layer and source if they exist
     if (map.current.getLayer('route')) {
       map.current.removeLayer('route');
     }
@@ -293,7 +275,6 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
       map.current.removeSource('route');
     }
     
-    // Add the route line
     map.current.addSource('route', {
       type: 'geojson',
       data: geojson
@@ -314,21 +295,18 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
       }
     });
     
-    // Add start and end markers
     addStartEndMarkers(points);
   };
-  
+
   const addStartEndMarkers = (points: RunLocation[]) => {
     if (!map.current || points.length < 2) return;
     
     const startPoint = points[0];
     const endPoint = points[points.length - 1];
     
-    // Remove existing markers
     const markers = document.querySelectorAll('.mapboxgl-marker');
     markers.forEach(marker => marker.remove());
     
-    // Add start marker (green)
     const startMarkerEl = document.createElement('div');
     startMarkerEl.className = 'mapboxgl-marker start-marker';
     startMarkerEl.style.backgroundColor = '#4caf50';
@@ -341,7 +319,6 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
       .setLngLat([startPoint.longitude, startPoint.latitude])
       .addTo(map.current);
     
-    // Add end marker (red)
     if (!isTracking) {
       const endMarkerEl = document.createElement('div');
       endMarkerEl.className = 'mapboxgl-marker end-marker';
@@ -356,7 +333,28 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
         .addTo(map.current);
     }
   };
-  
+
+  const addCurrentLocationMarker = (latitude: number, longitude: number) => {
+    if (!map.current) return;
+
+    if (currentLocationMarker.current) {
+      currentLocationMarker.current.remove();
+    }
+
+    const markerEl = document.createElement('div');
+    markerEl.className = 'mapboxgl-marker current-location-marker';
+    markerEl.style.backgroundColor = '#3887be';
+    markerEl.style.width = '15px';
+    markerEl.style.height = '15px';
+    markerEl.style.borderRadius = '50%';
+    markerEl.style.border = '3px solid white';
+    markerEl.style.boxShadow = '0 0 0 2px rgba(56, 135, 190, 0.5)';
+
+    currentLocationMarker.current = new mapboxgl.Marker(markerEl)
+      .setLngLat([longitude, latitude])
+      .addTo(map.current);
+  };
+
   const calculateTotalDistance = (points: RunLocation[]): number => {
     if (points.length < 2) return 0;
     
@@ -376,10 +374,9 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     
     return parseFloat(totalMiles.toFixed(2));
   };
-  
+
   const getDistanceInMiles = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    // Haversine formula to calculate distance between two points
-    const R = 3959; // Radius of the earth in miles
+    const R = 3959;
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
@@ -389,11 +386,11 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
-  
+
   const deg2rad = (deg: number): number => {
     return deg * (Math.PI / 180);
   };
-  
+
   const formatDuration = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
     const mins = Math.floor(minutes % 60);
@@ -401,7 +398,7 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-  
+
   const formatPace = (paceMinutesPerMile: number): string => {
     if (!isFinite(paceMinutesPerMile) || paceMinutesPerMile === 0) {
       return '00:00';
@@ -412,10 +409,9 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
-  
+
   return (
     <div className="space-y-4 w-full">
-      {/* Map container */}
       <div 
         ref={mapContainer} 
         className="w-full h-[300px] rounded-lg shadow-md relative"
@@ -438,7 +434,6 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
         )}
       </div>
       
-      {/* Tracking controls */}
       <div className="flex justify-center">
         {!isTracking ? (
           <Button 
@@ -460,7 +455,6 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
         )}
       </div>
       
-      {/* Live stats */}
       {isTracking && startTime && currentTime && (
         <div className="grid grid-cols-3 gap-2 mt-4 text-center">
           <div className="p-2 bg-slate-100 rounded-lg">
@@ -484,7 +478,6 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
         </div>
       )}
       
-      {/* Run summary */}
       {showSummary && (
         <div className="mt-4 p-4 bg-slate-100 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Run Summary</h3>

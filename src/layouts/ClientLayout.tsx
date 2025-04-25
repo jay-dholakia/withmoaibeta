@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -19,7 +20,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50 overflow-x-hidden">
       <Toaster position="top-center" richColors />
       
       <header className="bg-white shadow-sm border-b border-gray-200 py-4">
@@ -32,8 +33,8 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
         </div>
       </header>
       
-      <main className="flex-grow py-6 mb-16 w-full">
-        <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
+      <main className="flex-grow py-6 mb-16 w-full overflow-visible">
+        <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6 overflow-visible">
           <PageTransition>
             {children}
           </PageTransition>

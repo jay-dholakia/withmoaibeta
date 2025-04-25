@@ -857,6 +857,7 @@ const ActiveWorkout = () => {
   const handleExerciseSwap = async (newExercise: Exercise, originalExerciseWorkoutExerciseId: string) => {
     try {
       let originalExerciseId: string | undefined;
+      let originalExerciseName: string | undefined;
       
       if (workoutData?.workout?.workout_exercises) {
         const exercises = workoutData.workout.workout_exercises;
@@ -866,6 +867,7 @@ const ActiveWorkout = () => {
             ex => ex.id === originalExerciseWorkoutExerciseId
           );
           originalExerciseId = originalExercise?.exercise?.id;
+          originalExerciseName = originalExercise?.exercise?.name;
         }
       }
 
@@ -874,11 +876,24 @@ const ActiveWorkout = () => {
         return;
       }
 
+      console.log("Exercise swap requested", {
+        originalExerciseId,
+        originalExerciseWorkoutExerciseId,
+        originalExerciseName,
+        newExerciseId: newExercise.id,
+        newExerciseName: newExercise.name
+      });
+
       setExerciseStates(prev => {
         const updatedStates = { ...prev };
         
         const originalState = updatedStates[originalExerciseWorkoutExerciseId];
         if (!originalState) return prev;
+        
+        console.log("Updating exercise state with new exercise", {
+          originalState,
+          newExerciseId: newExercise.id
+        });
         
         updatedStates[originalExerciseWorkoutExerciseId] = {
           ...originalState,
@@ -898,6 +913,8 @@ const ActiveWorkout = () => {
         const exercises = workoutData.workout.workout_exercises;
         
         if (Array.isArray(exercises)) {
+          console.log(`Swapping exercise: "${originalExerciseName}" (${originalExerciseId}) → "${newExercise.name}" (${newExercise.id})`);
+          
           const updatedExercises = exercises.map(ex => {
             if (ex.id === originalExerciseWorkoutExerciseId) {
               return {

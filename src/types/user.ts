@@ -1,15 +1,9 @@
 
-export interface User {
-  id: string;
-  email: string | null;
-  metadata?: Record<string, any>;
-}
-
 export interface Profile {
   id: string;
   user_type: string;
   created_at: string;
-  vacation_mode?: boolean;
+  vacation_mode?: boolean; // Keep it optional with explicit boolean type
   first_name?: string;
   last_name?: string;
   city?: string;

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,19 +49,12 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   exercises = [],
   isLifeHappensPass = false
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
   const isCurrentUserCompleted = completed || 
     groupMembers.find(member => member.id === currentUserId)?.completed_workout_ids.includes(workoutId);
 
-  const handleStartWorkout = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onStartWorkout(workoutId);
-  };
-
   return (
     <Card className={cn(
-      "overflow-hidden transition-all",
+      "overflow-hidden transition-all shadow-xl",
       isCurrentUserCompleted ? "bg-gray-50" : "bg-white"
     )}>
       <CardHeader className="px-3 py-2 flex flex-row items-start justify-between">
@@ -160,7 +152,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
       <CardFooter className="p-2 flex flex-col gap-1">
         <Button 
           className={cn(
-            "w-full h-10 py-2 text-sm outline-none focus:outline-none", // Removed blue outline
+            "w-full h-10 py-2 text-sm outline-none focus:outline-none",
             isCurrentUserCompleted ? "bg-gray-400 hover:bg-gray-500" : ""
           )}
           size="default"

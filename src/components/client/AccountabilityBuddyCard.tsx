@@ -42,7 +42,7 @@ export function AccountabilityBuddyCard({
   };
 
   return (
-    <Card className="shadow-sm bg-slate-50 mt-3">
+    <Card className="shadow-xl bg-slate-50 mt-3">
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center">

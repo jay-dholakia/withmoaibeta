@@ -84,7 +84,7 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
 
   if (loading) {
     return (
-      <Card className="mb-6 shadow-sm">
+      <Card className="mb-6 shadow-xl">
         <CardHeader className="pb-2">
           <Skeleton className="h-6 w-2/3" />
         </CardHeader>
@@ -97,7 +97,7 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
 
   if (!message) {
     return (
-      <Card className="mb-6 shadow-sm">
+      <Card className="mb-6 shadow-xl">
         <CardContent className="py-6">
           <div className="flex flex-col items-center justify-center text-center text-muted-foreground">
             <MessageSquare className="h-8 w-8 mb-2 opacity-60" />
@@ -109,7 +109,7 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
   }
 
   return (
-    <Card className="mb-6 shadow-sm">
+    <Card className="mb-6 shadow-xl">
       <CardHeader className="pb-2">
         <h3 className="text-lg font-medium">
           Message from Coach {message.coach_first_name || 'Your Coach'}

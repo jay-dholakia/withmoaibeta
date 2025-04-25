@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -8,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Loader2, User, LogOut, Edit, FileText, Shield } from 'lucide-react';
 import BetaFeedbackCard from '@/components/client/BetaFeedbackCard';
-import VacationModeToggle from '@/components/VacationModeToggle';
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
@@ -30,18 +30,22 @@ const SettingsPage = () => {
   };
 
   const handleEditProfile = () => {
+    // Navigate to profile editor with state indicating we came from settings
     navigate('/client-profile-editor', { state: { from: 'settings' } });
   };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not provided';
     
+    // Create date from ISO string
     const date = new Date(dateString);
     
+    // Extract date components from UTC values to avoid timezone issues
     const year = date.getUTCFullYear();
-    const month = date.getUTCMonth() + 1;
+    const month = date.getUTCMonth() + 1; // Month is 0-indexed
     const day = date.getUTCDate();
     
+    // Format as MM/DD/YYYY
     return `${month}/${day}/${year}`;
   };
 
@@ -111,6 +115,7 @@ const SettingsPage = () => {
         </CardFooter>
       </Card>
 
+      {/* Legal Documents Card */}
       <Card>
         <CardHeader>
           <CardTitle>Legal</CardTitle>
@@ -136,6 +141,7 @@ const SettingsPage = () => {
         </CardContent>
       </Card>
       
+      {/* Beta Feedback Card */}
       <BetaFeedbackCard />
       
       <Card>
@@ -144,12 +150,9 @@ const SettingsPage = () => {
           <CardDescription>Manage your account settings</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Vacation Mode
-            </p>
-            <VacationModeToggle />
-          </div>
+          <p className="text-sm text-muted-foreground">
+            If you need to change your email or password, please contact your coach or administrator.
+          </p>
         </CardContent>
         <CardFooter className="border-t pt-4">
           <Button

@@ -288,7 +288,6 @@ export type Database = {
           program_type: string | null
           state: string | null
           updated_at: string | null
-          vacation_mode: boolean | null
           weight: string | null
         }
         Insert: {
@@ -309,7 +308,6 @@ export type Database = {
           program_type?: string | null
           state?: string | null
           updated_at?: string | null
-          vacation_mode?: boolean | null
           weight?: string | null
         }
         Update: {
@@ -330,7 +328,6 @@ export type Database = {
           program_type?: string | null
           state?: string | null
           updated_at?: string | null
-          vacation_mode?: boolean | null
           weight?: string | null
         }
         Relationships: []
@@ -1886,10 +1883,6 @@ export type Database = {
       }
       is_program_assigned_to_user: {
         Args: { program_id_param: string; user_id_param: string }
-        Returns: boolean
-      }
-      should_assign_buddy: {
-        Args: { user_id: string }
         Returns: boolean
       }
       update_client_program: {

@@ -1,26 +1,6 @@
 
-export interface Profile {
+export interface User {
   id: string;
-  user_type: string;
-  created_at: string;
-  vacation_mode?: boolean; // Keep it optional with explicit boolean type
-  first_name?: string;
-  last_name?: string;
-  city?: string;
-  state?: string;
-  birthday?: string;
-  height?: string;
-  weight?: string;
-  avatar_url?: string;
-  fitness_goals?: string[];
-  favorite_movements?: string[];
-  event_type?: string;
-  event_date?: string;
-  event_name?: string;
-  profile_completed?: boolean;
-}
-
-// Add ClientProfile interface that extends Profile
-export interface ClientProfile extends Profile {
-  user_type: 'client';
+  email: string | null;
+  metadata?: Record<string, any>;
 }

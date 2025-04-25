@@ -15,7 +15,6 @@ interface MemberProps {
       first_name: string | null;
       last_name: string | null;
       avatar_url: string | null;
-      vacation_mode?: boolean;
     };
   };
   onClick: () => void;
@@ -28,11 +27,13 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
   const lastName = member.profileData?.last_name || '';
   const displayName = firstName + (lastName ? ` ${lastName.charAt(0)}.` : '');
   
+  // Create initials from first and last name
   const firstInitial = firstName.charAt(0).toUpperCase();
   const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
   const initials = `${firstInitial}${lastInitial}`;
   
   const handleClick = (e: React.MouseEvent) => {
+    // If we're clicking on the collapsible trigger or its children, do nothing
     if ((e.target as HTMLElement).closest('.collapsible-trigger')) {
       return;
     }
@@ -40,7 +41,9 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
   };
 
   return (
-    <div className="flex flex-col border rounded-lg shadow-sm bg-white">
+    <div 
+      className="flex flex-col border rounded-lg shadow-sm bg-white"
+    >
       <div 
         className="flex items-center justify-between p-3 cursor-pointer"
         onClick={handleClick}
@@ -67,14 +70,11 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <div className="flex items-center">
+          <div>
             <span className="font-medium whitespace-nowrap">
               {displayName}
               {member.isCurrentUser && <span className="text-xs ml-1.5 text-muted-foreground">(You)</span>}
             </span>
-            {member.profileData?.vacation_mode && (
-              <span className="ml-2" title="On Vacation">🌴</span>
-            )}
           </div>
         </div>
         

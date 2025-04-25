@@ -111,22 +111,18 @@ export const generateWeeklyBuddies = async (
     const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
     const weekStartDate = format(monday, 'yyyy-MM-dd');
 
-    const { data: activeMembers, error: membersError } = await supabase
+    const { data: groupMembers, error: membersError } = await supabase
       .from('group_members')
-      .select(`
-        user_id,
-        client_profiles!inner(vacation_mode)
-      `)
-      .eq('group_id', groupId)
-      .eq('client_profiles.vacation_mode', false);
+      .select('user_id')
+      .eq('group_id', groupId);
 
     if (membersError) {
-      console.error('Error fetching active group members:', membersError);
+      console.error('Error fetching group members:', membersError);
       return false;
     }
 
-    if (!activeMembers || activeMembers.length < 2) {
-      console.log('Not enough active members for buddy pairing');
+    if (!groupMembers || groupMembers.length < 2) {
+      console.log('Not enough members for buddy pairing');
       return false;
     }
 
@@ -144,7 +140,7 @@ export const generateWeeklyBuddies = async (
       }
     }
 
-    const memberIds = activeMembers.map(member => member.user_id);
+    const memberIds = groupMembers.map(member => member.user_id);
     const shuffled = [...memberIds].sort(() => Math.random() - 0.5);
     const pairings: any[] = [];
 

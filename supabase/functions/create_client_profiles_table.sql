@@ -26,7 +26,6 @@ BEGIN
       fitness_goals TEXT[],
       favorite_movements TEXT[],
       profile_completed BOOLEAN DEFAULT FALSE,
-      vacation_mode BOOLEAN DEFAULT FALSE, // Added default false for vacation mode
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );

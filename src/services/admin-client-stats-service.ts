@@ -10,7 +10,6 @@ interface ClientStat {
   assigned_workouts_this_week: number;
   activities_this_week: number;
   total_activities: number;
-  vacation_mode?: boolean;
 }
 
 /**

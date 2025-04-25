@@ -1,252 +1,302 @@
-
-import { Profile, ClientProfile } from '@/types/user';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { PersonalRecord } from '@/types/workout';
 
-export const createClientProfile = async (userId: string): Promise<ClientProfile | null> => {
-  // Check if profile already exists
-  const { data: existingProfile } = await supabase
+/**
+ * Client Profile interface
+ */
+export interface ClientProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  city: string | null;
+  state: string | null;
+  birthday: string | null;
+  height: string | null;
+  weight: string | null;
+  avatar_url: string | null;
+  fitness_goals: string[];
+  favorite_movements: string[];
+  event_type: string | null;
+  event_date: string | null;
+  event_name: string | null;
+  profile_completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Fetch client profile
+ */
+export const fetchClientProfile = async (userId: string): Promise<ClientProfile> => {
+  const { data, error } = await supabase
     .from('client_profiles')
     .select('*')
     .eq('id', userId)
     .single();
 
-  if (existingProfile) {
-    return {
-      ...existingProfile,
-      user_type: 'client',
-      vacation_mode: existingProfile.vacation_mode ?? false // Ensure vacation_mode is always set
-    };
+  if (error) {
+    console.error("Error fetching client profile:", error);
+    throw error;
   }
 
-  // Create new profile with default vacation_mode
+  return data as ClientProfile;
+};
+
+/**
+ * Create client profile if it doesn't exist
+ */
+export const createClientProfile = async (userId: string): Promise<ClientProfile | null> => {
+  const { data: existingProfile, error: checkError } = await supabase
+    .from('client_profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (checkError && checkError.code !== 'PGRST116') {
+    console.error("Error checking for existing profile:", checkError);
+    throw checkError;
+  }
+
+  if (existingProfile) {
+    return existingProfile as ClientProfile;
+  }
+
+  const { data: newProfile, error: createError } = await supabase
+    .from('client_profiles')
+    .insert([{ id: userId }])
+    .select()
+    .single();
+
+  if (createError) {
+    console.error("Error creating client profile:", createError);
+    throw createError;
+  }
+
+  return newProfile as ClientProfile;
+};
+
+/**
+ * Update client profile
+ */
+export const updateClientProfile = async (userId: string, profileData: Partial<ClientProfile>): Promise<ClientProfile> => {
   const { data, error } = await supabase
     .from('client_profiles')
-    .insert({ 
-      id: userId, 
-      vacation_mode: false // Explicitly set default to false
-    })
+    .update(profileData)
+    .eq('id', userId)
     .select()
     .single();
 
   if (error) {
-    console.error('Error creating client profile:', error);
-    return null;
+    console.error("Error updating client profile:", error);
+    throw error;
   }
 
-  return {
-    ...data,
-    user_type: 'client',
-    vacation_mode: false
-  };
+  return data as ClientProfile;
 };
 
-// Add missing functions that are referenced in other files
-export const fetchClientProfile = async (userId: string): Promise<ClientProfile | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('client_profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+/**
+ * Upload client avatar
+ */
+export const uploadClientAvatar = async (userId: string, file: File): Promise<string> => {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${userId}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+  const filePath = `avatars/${fileName}`;
 
-    if (error) throw error;
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(filePath, file);
 
-    return {
-      ...data,
-      user_type: 'client',
-      vacation_mode: data.vacation_mode ?? false
-    };
-  } catch (error) {
-    console.error('Error fetching client profile:', error);
-    return null;
+  if (uploadError) {
+    console.error("Error uploading avatar:", uploadError);
+    throw uploadError;
   }
+
+  const { data } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(filePath);
+
+  await updateClientProfile(userId, {
+    avatar_url: data.publicUrl
+  });
+
+  return data.publicUrl;
 };
 
-export const updateClientProfile = async (userId: string, updates: Partial<ClientProfile>): Promise<ClientProfile | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('client_profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return {
-      ...data,
-      user_type: 'client'
-    };
-  } catch (error) {
-    console.error('Error updating client profile:', error);
-    return null;
-  }
-};
-
-export const uploadClientAvatar = async (userId: string, file: File): Promise<string | null> => {
-  try {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}-avatar.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('user_content')
-      .upload(filePath, file, { upsert: true });
-
-    if (uploadError) throw uploadError;
-
-    const { data } = supabase.storage.from('user_content').getPublicUrl(filePath);
-    
-    // Update profile with new avatar URL
-    const { error: updateError } = await supabase
-      .from('client_profiles')
-      .update({ avatar_url: data.publicUrl })
-      .eq('id', userId);
-
-    if (updateError) throw updateError;
-
-    return data.publicUrl;
-  } catch (error) {
-    console.error('Error uploading avatar:', error);
-    return null;
-  }
-};
-
-export const fetchAllClientProfiles = async (): Promise<ClientProfile[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('client_profiles')
-      .select('*');
-
-    if (error) throw error;
-
-    return data.map(profile => ({
-      ...profile,
-      user_type: 'client',
-      vacation_mode: profile.vacation_mode ?? false
-    }));
-  } catch (error) {
-    console.error('Error fetching all client profiles:', error);
-    return [];
-  }
-};
-
-export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error('Error sending password reset email:', error);
-    return false;
-  }
-};
-
+/**
+ * Delete user
+ */
 export const deleteUser = async (userId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase.functions.invoke('delete-user', {
-      body: { userId }
-    });
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
     
-    if (error) throw error;
+    if (profileError) {
+      console.error("Error deleting user profile:", profileError);
+      throw profileError;
+    }
+    
+    const { error } = await supabase.auth.admin.deleteUser(userId);
+    
+    if (error) {
+      console.error("Error deleting user from auth:", error);
+      throw error;
+    }
+    
     return true;
   } catch (error) {
-    console.error('Error deleting user:', error);
-    return false;
+    console.error("Error in deleteUser:", error);
+    throw error;
   }
 };
 
-export const fetchPersonalRecords = async (userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('personal_records')
-      .select(`
-        *,
-        exercise:exercise_id (
-          id,
-          name,
-          exercise_type
-        )
-      `)
-      .eq('user_id', userId);
+/**
+ * Send password reset email
+ */
+export const sendPasswordResetEmail = async (email: string): Promise<void> => {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
 
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching personal records:', error);
-    return [];
+  if (error) {
+    console.error("Error sending password reset email:", error);
+    throw error;
   }
 };
 
+/**
+ * Fetch all client profiles
+ */
+export const fetchAllClientProfiles = async () => {
+  const { data, error } = await supabase
+    .from('client_profiles')
+    .select('*');
+
+  if (error) {
+    console.error("Error fetching client profiles:", error);
+    throw error;
+  }
+
+  return data;
+};
+
+/**
+ * Track workout set
+ */
 export const trackWorkoutSet = async (
   exerciseId: string, 
-  workoutCompletionId: string, 
-  setNumber: number,
-  setData: {
+  completionId: string, 
+  setNumber: number, 
+  data: {
     weight?: number | null;
     reps_completed?: number | null;
     notes?: string | null;
     distance?: string | null;
     duration?: string | null;
     location?: string | null;
-    completed: boolean;
+    completed?: boolean;
   }
 ) => {
-  try {
-    const userData = await supabase.auth.getUser();
-    const userId = userData.data.user?.id;
+  // Get the current user ID
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData.user?.id;
 
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
+  if (!userId) {
+    throw new Error("User must be authenticated to track workout sets");
+  }
 
-    const { data, error } = await supabase
-      .from('workout_set_completions')
-      .upsert({
-        workout_exercise_id: exerciseId,
-        workout_completion_id: workoutCompletionId,
-        set_number: setNumber,
-        weight: setData.weight || null,
-        reps_completed: setData.reps_completed || null,
-        notes: setData.notes || null,
-        distance: setData.distance || null,
-        duration: setData.duration || null,
-        location: setData.location || null,
-        completed: setData.completed,
-        user_id: userId
-      })
-      .select();
+  const { data: result, error } = await supabase
+    .from('workout_set_completions')
+    .insert([{
+      workout_exercise_id: exerciseId,
+      workout_completion_id: completionId,
+      set_number: setNumber,
+      weight: data.weight,
+      reps_completed: data.reps_completed,
+      notes: data.notes,
+      distance: data.distance,
+      duration: data.duration,
+      location: data.location,
+      completed: data.completed || false,
+      user_id: userId // Always include the user ID
+    }])
+    .select()
+    .single();
 
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error tracking workout set:', error);
+  if (error) {
+    console.error("Error tracking workout set:", error);
     throw error;
   }
+
+  return result;
 };
 
-export const completeWorkout = async (
-  workoutCompletionId: string,
-  data: {
-    rating?: number;
-    notes?: string;
-  }
-) => {
-  try {
-    const { error } = await supabase
-      .from('workout_completions')
-      .update({
-        rating: data.rating,
-        notes: data.notes,
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', workoutCompletionId);
+/**
+ * Complete workout
+ */
+export const completeWorkout = async (workoutCompletionId: string) => {
+  const { data, error } = await supabase
+    .from('workout_completions')
+    .update({ completed_at: new Date().toISOString() })
+    .eq('id', workoutCompletionId)
+    .select()
+    .single();
 
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error('Error completing workout:', error);
-    return false;
+  if (error) {
+    console.error("Error completing workout:", error);
+    throw error;
   }
+
+  return data;
+};
+
+/**
+ * Fetch personal records
+ */
+export const fetchPersonalRecords = async (userId: string): Promise<PersonalRecord[]> => {
+  const { data, error } = await supabase
+    .from('personal_records')
+    .select(`
+      *,
+      exercise:exercises(name, category)
+    `)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error("Error fetching personal records:", error);
+    throw error;
+  }
+
+  return data.map(record => ({
+    ...record,
+    exercise_name: record.exercise?.name
+  })) as PersonalRecord[];
+};
+
+/**
+ * Fetch personal record for a specific exercise
+ */
+export const fetchExercisePersonalRecord = async (userId: string, exerciseId: string): Promise<PersonalRecord | null> => {
+  const { data, error } = await supabase
+    .from('personal_records')
+    .select(`
+      *,
+      exercise:exercises(name, category)
+    `)
+    .eq('user_id', userId)
+    .eq('exercise_id', exerciseId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`Error fetching personal record for exercise ${exerciseId}:`, error);
+    throw error;
+  }
+
+  if (!data) return null;
+  
+  return {
+    ...data,
+    exercise_name: data.exercise?.name
+  } as PersonalRecord;
 };

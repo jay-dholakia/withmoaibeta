@@ -1885,6 +1885,10 @@ export type Database = {
         Args: { program_id_param: string; user_id_param: string }
         Returns: boolean
       }
+      should_assign_buddy: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       update_client_program: {
         Args: { user_id_param: string; program_id_param: string }
         Returns: undefined

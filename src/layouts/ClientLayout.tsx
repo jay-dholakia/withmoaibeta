@@ -6,25 +6,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
 import { Toaster } from 'sonner';
 import { Logo } from '@/components/Logo';
-import { toast } from '@/components/ui/use-toast';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
 }
 
 export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
-  const { signOut } = useAuth();
   const location = useLocation();
-  
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast.success('Signed out successfully');
-    } catch (error) {
-      console.error('Sign out error:', error);
-      toast.error('Failed to sign out');
-    }
-  };
 
   const isActive = (path: string) => {
     return location.pathname.includes(path);
@@ -40,13 +28,6 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
             <div className="flex items-center">
               <Logo variant="client" size="md" />
             </div>
-            <button 
-              onClick={handleSignOut}
-              className="flex items-center text-gray-500 hover:text-gray-700"
-            >
-              <LogOut className="h-4 w-4 mr-1" />
-              <span className="text-sm">Sign Out</span>
-            </button>
           </div>
         </div>
       </header>

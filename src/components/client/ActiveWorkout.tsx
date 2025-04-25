@@ -882,6 +882,7 @@ const ActiveWorkout = () => {
         
         updatedStates[originalExerciseWorkoutExerciseId] = {
           ...originalState,
+          exercise_id: newExercise.id,
           sets: originalState.sets.map(set => ({
             ...set,
             weight: '',
@@ -912,7 +913,7 @@ const ActiveWorkout = () => {
             await updateExerciseIdInDraft(
               workoutCompletionId,
               originalExerciseWorkoutExerciseId,
-              originalExerciseWorkoutExerciseId
+              newExercise.id
             );
             
             console.log("Updated workout draft exercise references after swap");

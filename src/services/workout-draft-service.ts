@@ -101,11 +101,10 @@ export const updateExerciseIdInDraft = async (
     const draftData = draft.draft_data;
     let updated = false;
     
-    // Update exerciseStates key - in this case we're using the workout_exercise_id which stays the same,
-    // but we need to update the exercise data within it
+    // Update exerciseStates key - update the exercise_id property to track the new exercise
     if (draftData.exerciseStates && draftData.exerciseStates[oldExerciseId]) {
-      // Keep the same key but update the exercise data if needed
-      // Note: We're not changing the key since we're using workout_exercise_id which remains the same
+      // Keep the same key but update the exercise_id property
+      draftData.exerciseStates[oldExerciseId].exercise_id = newExerciseId;
       updated = true;
     }
     
@@ -116,7 +115,7 @@ export const updateExerciseIdInDraft = async (
         if (set.exerciseId === oldExerciseId) {
           // We keep the same exerciseId because it refers to the workout_exercise_id
           // which doesn't change, only the exercise within it changes
-          return { ...set }; 
+          return { ...set, exercise_id: newExerciseId }; 
         }
         return set;
       });
@@ -125,19 +124,34 @@ export const updateExerciseIdInDraft = async (
     
     // Update pendingCardio references
     if (draftData.pendingCardio && Array.isArray(draftData.pendingCardio)) {
-      // Same logic as for pendingSets
+      draftData.pendingCardio = draftData.pendingCardio.map((item: any) => {
+        if (item.exerciseId === oldExerciseId) {
+          return { ...item, exercise_id: newExerciseId };
+        }
+        return item;
+      });
       updated = true;
     }
     
     // Update pendingFlexibility references
     if (draftData.pendingFlexibility && Array.isArray(draftData.pendingFlexibility)) {
-      // Same logic as for pendingSets
+      draftData.pendingFlexibility = draftData.pendingFlexibility.map((item: any) => {
+        if (item.exerciseId === oldExerciseId) {
+          return { ...item, exercise_id: newExerciseId };
+        }
+        return item;
+      });
       updated = true;
     }
     
     // Update pendingRuns references
     if (draftData.pendingRuns && Array.isArray(draftData.pendingRuns)) {
-      // Same logic as for pendingSets
+      draftData.pendingRuns = draftData.pendingRuns.map((item: any) => {
+        if (item.exerciseId === oldExerciseId) {
+          return { ...item, exercise_id: newExerciseId };
+        }
+        return item;
+      });
       updated = true;
     }
     

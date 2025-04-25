@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Plus, PlayCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 
 export const LogActivityButtons: React.FC = () => {
   return (
@@ -14,7 +14,7 @@ export const LogActivityButtons: React.FC = () => {
       >
         <Link to="/client-dashboard/workouts/log-run">
           <div className="flex items-center">
-            <Plus className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
             <span>Log Run</span>
           </div>
           <span className="ml-auto">🏃</span>
@@ -28,7 +28,7 @@ export const LogActivityButtons: React.FC = () => {
       >
         <Link to="/client-dashboard/workouts/live-run">
           <div className="flex items-center">
-            <PlayCircle className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
             <span>Start Live Run</span>
           </div>
           <span className="ml-auto">📍</span>
@@ -42,7 +42,7 @@ export const LogActivityButtons: React.FC = () => {
       >
         <Link to="/client-dashboard/workouts/log-cardio">
           <div className="flex items-center">
-            <Plus className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
             <span>Log Cardio Cross Training</span>
           </div>
           <span className="ml-auto">🚴</span>
@@ -56,7 +56,7 @@ export const LogActivityButtons: React.FC = () => {
       >
         <Link to="/client-dashboard/workouts/log-rest">
           <div className="flex items-center">
-            <Plus className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-5 w-5 mr-2 text-amber-600 dark:text-amber-400" />
             <span>Log Rest Day</span>
           </div>
           <span className="ml-auto">😴</span>
@@ -65,3 +65,5 @@ export const LogActivityButtons: React.FC = () => {
     </div>
   );
 };
+
+export default LogActivityButtons;

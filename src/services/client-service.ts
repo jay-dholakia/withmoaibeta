@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { PersonalRecord } from '@/types/workout';
 
@@ -23,7 +22,6 @@ export interface ClientProfile {
   profile_completed: boolean;
   created_at: string;
   updated_at: string;
-  vacation_mode: boolean;
 }
 
 /**

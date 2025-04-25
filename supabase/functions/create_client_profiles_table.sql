@@ -27,8 +27,7 @@ BEGIN
       favorite_movements TEXT[],
       profile_completed BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-      vacation_mode BOOLEAN DEFAULT FALSE
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );
 
     -- Add RLS policies

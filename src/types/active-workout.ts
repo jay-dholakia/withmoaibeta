@@ -1,6 +1,7 @@
 
 export interface ExerciseState {
   expanded: boolean;
+  exercise_id?: string; // Add this field to track the current exercise ID
   sets: Array<{
     setNumber: number;
     weight: string;

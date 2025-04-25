@@ -26,6 +26,7 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
         if (isRunExercise) {
           initialState[exercise.id] = {
             expanded: true,
+            exercise_id: exercise.exercise?.id, // Initialize with the exercise ID
             sets: [],
             runData: {
               distance: '',
@@ -44,11 +45,13 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
           
           initialState[exercise.id] = {
             expanded: true,
+            exercise_id: exercise.exercise?.id, // Initialize with the exercise ID
             sets,
           };
         } else if (exerciseType === 'cardio') {
           initialState[exercise.id] = {
             expanded: true,
+            exercise_id: exercise.exercise?.id, // Initialize with the exercise ID
             sets: [],
             cardioData: {
               distance: '',
@@ -60,6 +63,7 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
         } else if (exerciseType === 'flexibility') {
           initialState[exercise.id] = {
             expanded: true,
+            exercise_id: exercise.exercise?.id, // Initialize with the exercise ID
             sets: [],
             flexibilityData: {
               duration: '',

@@ -163,6 +163,7 @@
   );
   transform: rotate(30deg);
   animation: shine 6s infinite linear;
+  z-index: -1;
 }
 
 @keyframes shine {

@@ -1,10 +1,11 @@
 
+import React, { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Profile } from '@/types/user'; // Explicitly import Profile type
 
 export function VacationModeToggle() {
   const { user, profile } = useAuth();

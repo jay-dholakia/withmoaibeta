@@ -107,8 +107,6 @@ const CoachClientStatsPage = () => {
     
     const filteredStats = clientStats.filter(stat => coachClientIds.includes(stat.id));
     
-    console.log('Filtered stats count:', filteredStats.length);
-    
     return filteredStats.map(stat => {
       const clientInfo = clientInfoMap.get(stat.id);
       

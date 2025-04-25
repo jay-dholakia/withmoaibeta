@@ -1,10 +1,12 @@
 
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { CaptionProps, useNavigation } from 'react-day-picker'
+import { useNavigation } from 'react-day-picker'
+import type { CalendarProps } from './calendar'
+import type { CalendarMonth } from 'react-day-picker'
 
-export function CalendarCaption(props: CaptionProps) {
+export function CalendarCaption(props: CalendarProps & { calendarMonth: CalendarMonth }) {
   const { goToMonth, nextMonth, previousMonth } = useNavigation();
-  const { displayMonth } = props;
+  const displayMonth = props.calendarMonth.date;
 
   const handlePrev = () => {
     if (previousMonth) {

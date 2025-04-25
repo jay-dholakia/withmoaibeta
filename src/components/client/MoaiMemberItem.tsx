@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -14,6 +15,7 @@ interface MemberProps {
       first_name: string | null;
       last_name: string | null;
       avatar_url: string | null;
+      vacation_mode?: boolean;
     };
   };
   onClick: () => void;

@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Loader2, User, LogOut, Edit, FileText, Shield } from 'lucide-react';
 import BetaFeedbackCard from '@/components/client/BetaFeedbackCard';
-import VacationModeToggle from '@/components/client/VacationModeToggle';
+import VacationModeToggle from '@/components/VacationModeToggle';
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
@@ -144,9 +144,12 @@ const SettingsPage = () => {
           <CardDescription>Manage your account settings</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            If you need to change your email or password, please contact your coach or administrator.
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Vacation Mode
+            </p>
+            <VacationModeToggle />
+          </div>
         </CardContent>
         <CardFooter className="border-t pt-4">
           <Button

@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Palm } from "lucide-react";
 
 export function VacationModeToggle() {
   const { user, profile } = useAuth();
@@ -48,3 +47,5 @@ export function VacationModeToggle() {
     </div>
   );
 }
+
+export default VacationModeToggle;

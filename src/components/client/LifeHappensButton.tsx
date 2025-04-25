@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Umbrella, Loader2 } from 'lucide-react';
@@ -82,7 +81,7 @@ const LifeHappensButton = () => {
       <div className="mt-8 border-t pt-6">
         <Button 
           variant="outline" 
-          className="w-full flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+          className="w-full flex items-center justify-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 shadow-lg"
           onClick={handleLifeHappensClick}
         >
           <Umbrella className="h-4 w-4" />
@@ -94,7 +93,7 @@ const LifeHappensButton = () => {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md shadow-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Umbrella className="h-5 w-5 text-blue-600" />

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -9,7 +10,7 @@ export const LogActivityButtons: React.FC = () => {
       <Button 
         asChild
         variant="outline" 
-        className="flex items-center justify-between text-blue-600 border-blue-200 hover:bg-blue-50"
+        className="flex items-center justify-between text-blue-600 border-blue-200 hover:bg-blue-50 shadow-lg"
       >
         <Link to="/client-dashboard/workouts/log-run">
           <div className="flex items-center">
@@ -23,7 +24,7 @@ export const LogActivityButtons: React.FC = () => {
       <Button 
         asChild
         variant="outline"
-        className="flex items-center justify-between text-green-600 border-green-200 hover:bg-green-50"
+        className="flex items-center justify-between text-green-600 border-green-200 hover:bg-green-50 shadow-lg"
       >
         <Link to="/client-dashboard/workouts/live-run">
           <div className="flex items-center">
@@ -37,7 +38,7 @@ export const LogActivityButtons: React.FC = () => {
       <Button 
         asChild
         variant="outline"
-        className="flex items-center justify-between text-purple-600 border-purple-200 hover:bg-purple-50"
+        className="flex items-center justify-between text-purple-600 border-purple-200 hover:bg-purple-50 shadow-lg"
       >
         <Link to="/client-dashboard/workouts/log-cardio">
           <div className="flex items-center">
@@ -51,7 +52,7 @@ export const LogActivityButtons: React.FC = () => {
       <Button 
         asChild
         variant="outline"
-        className="flex items-center justify-between text-amber-600 border-amber-200 hover:bg-amber-50"
+        className="flex items-center justify-between text-amber-600 border-amber-200 hover:bg-amber-50 shadow-lg"
       >
         <Link to="/client-dashboard/workouts/log-rest">
           <div className="flex items-center">

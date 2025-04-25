@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -100,7 +101,7 @@ const NotesPage = () => {
   return (
     <div className="h-full flex flex-col">
       <Card className="flex flex-col h-full pb-[120px]">
-        <CardHeader className="py-1 border-b">
+        <CardHeader className="py-1 border-b dark:border-gray-700">
           <CardTitle className="text-lg font-bold text-center">
             Nutrition Assistant
           </CardTitle>
@@ -121,24 +122,24 @@ const NotesPage = () => {
                       message.role === 'user'
                         ? 'bg-client text-white'
                         : message.role === 'error'
-                          ? 'bg-red-100 text-red-800'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
                           : message.role === 'info'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-gray-100'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                            : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-100'
                     }`}
                   >
                     {message.role === 'error' ? (
                       <div className="flex items-center gap-1">
-                        <AlertTriangle className="h-3 w-3 text-red-600" />
+                        <AlertTriangle className="h-3 w-3 text-red-600 dark:text-red-400" />
                         <p className="text-base">{message.content}</p>
                       </div>
                     ) : message.role === 'info' ? (
                       <div className="flex items-center gap-1">
-                        <Info className="h-3 w-3 text-blue-600" />
+                        <Info className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                         <p className="text-base">{message.content}</p>
                       </div>
                     ) : message.role === 'assistant' ? (
-                      <div className="prose prose-sm max-w-none text-base">
+                      <div className="prose prose-sm max-w-none text-base dark:prose-invert">
                         <ReactMarkdown>
                           {message.content}
                         </ReactMarkdown>
@@ -159,7 +160,7 @@ const NotesPage = () => {
         </div>
       </Card>
 
-      <div className="fixed bottom-[64px] left-0 right-0 bg-background border-t z-50">
+      <div className="fixed bottom-[64px] left-0 right-0 bg-background border-t z-50 dark:border-gray-700">
         <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
           <form onSubmit={handleSubmit} className="flex w-full gap-2 py-3">
             <Textarea
@@ -167,7 +168,7 @@ const NotesPage = () => {
               onChange={(e) => setNewQuestion(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about nutrition, your caloric needs, or meal planning..."
-              className="flex-1 min-h-[40px] max-h-[60px] text-base resize-none py-2 bg-white"
+              className="flex-1 min-h-[40px] max-h-[60px] text-base resize-none py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400 dark:border-gray-700"
             />
             <Button 
               type="submit" 

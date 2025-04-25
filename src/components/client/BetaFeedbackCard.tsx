@@ -41,16 +41,16 @@ const BetaFeedbackCard = () => {
   };
 
   return (
-    <Card>
+    <Card className="dark:bg-gray-800 dark:border-gray-700">
       <CardHeader>
-        <CardTitle>Beta Feedback</CardTitle>
-        <CardDescription>Help us improve the app by sharing your thoughts</CardDescription>
+        <CardTitle className="dark:text-gray-100">Beta Feedback</CardTitle>
+        <CardDescription className="dark:text-gray-300">Help us improve the app by sharing your thoughts</CardDescription>
       </CardHeader>
       <CardContent>
         <Textarea
           value={feedback}
           onChange={(e) => setFeedback(e.target.value)}
-          className="min-h-[150px]"
+          className="min-h-[150px] dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
           placeholder="Spill any thoughts, feedback, and/or bugs experienced while using the app :) The more critical the better!"
           onFocus={(e) => {
             // Clear placeholder text on focus if it's the default text
@@ -63,7 +63,7 @@ const BetaFeedbackCard = () => {
       <CardFooter>
         <Button 
           onClick={handleSubmit} 
-          className="w-full bg-client hover:bg-client/90"
+          className="w-full bg-client hover:bg-client/90 dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
           disabled={isSaving}
         >
           {isSaving ? (

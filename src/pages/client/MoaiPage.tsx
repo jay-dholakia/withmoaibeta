@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -114,7 +115,7 @@ export default function MoaiPage() {
   if (isLoadingGroup || isLoadingProgram || isLoadingUserGroups) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-client" />
+        <Loader2 className="h-8 w-8 animate-spin text-client dark:text-blue-300" />
       </div>
     );
   }
@@ -122,8 +123,8 @@ export default function MoaiPage() {
   if ((!activeGroupId || !groupData) && (!userGroups || userGroups.length === 0)) {
     return (
       <div className="flex flex-col justify-center items-center h-64 space-y-4">
-        <p className="text-muted-foreground text-center">No groups found. You aren't assigned to any Moai group yet.</p>
-        <p className="text-sm text-muted-foreground text-center">Please contact your coach or administrator.</p>
+        <p className="text-muted-foreground text-center dark:text-gray-300">No groups found. You aren't assigned to any Moai group yet.</p>
+        <p className="text-sm text-muted-foreground text-center dark:text-gray-300">Please contact your coach or administrator.</p>
       </div>
     );
   }
@@ -131,9 +132,9 @@ export default function MoaiPage() {
   return (
     <div className="space-y-2">
       {groupData && (
-        <Card className="border-none shadow-none bg-slate-50">
+        <Card className="border-none shadow-none bg-slate-50 dark:bg-gray-800/50">
           <CardHeader className="text-center py-1 px-4">
-            <CardTitle className="text-xl md:text-2xl font-semibold">
+            <CardTitle className="text-xl md:text-2xl font-semibold dark:text-white">
               {groupData.name}
             </CardTitle>
           </CardHeader>
@@ -143,9 +144,9 @@ export default function MoaiPage() {
                 variant="outline"
                 size="sm" 
                 onClick={handleOpenSpotifyPlaylist}
-                className="bg-white hover:bg-green-50 mb-2"
+                className="bg-white hover:bg-green-50 mb-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
               >
-                <Music className="h-4 w-4 mr-2 text-green-600" />
+                <Music className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
                 <span>Team Spotify Playlist</span>
               </Button>
             )}
@@ -168,7 +169,7 @@ export default function MoaiPage() {
           <select
             value={activeGroupId || ''}
             onChange={(e) => setActiveGroupId(e.target.value)}
-            className="px-2 py-1 border rounded-md text-sm"
+            className="px-2 py-1 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
           >
             {userGroups.map(group => (
               <option key={group.id} value={group.id}>
@@ -179,20 +180,20 @@ export default function MoaiPage() {
         </div>
       )}
       
-      <Card>
+      <Card className="dark:bg-gray-800 dark:border-gray-700">
         <CardContent className="p-0">
           <Tabs defaultValue="progress" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="progress">Progress</TabsTrigger>
-              <TabsTrigger value="members">Members</TabsTrigger>
-              <TabsTrigger value="coach">Coach</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 dark:bg-gray-700">
+              <TabsTrigger value="progress" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Progress</TabsTrigger>
+              <TabsTrigger value="members" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Members</TabsTrigger>
+              <TabsTrigger value="coach" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Coach</TabsTrigger>
             </TabsList>
             
             {user && (
               <div className="px-4 pt-2 pb-1">
                 <Button 
                   asChild 
-                  className="w-full flex items-center justify-center gap-2 bg-client hover:bg-client/90"
+                  className="w-full flex items-center justify-center gap-2 bg-client hover:bg-client/90 dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
                 >
                   <Link to="/client-dashboard/workouts">
                     <Dumbbell className="h-4 w-4" />

@@ -85,12 +85,12 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
 
   if (loading) {
     return (
-      <Card className="mb-6 shadow-lg">
+      <Card className="mb-6 shadow-lg dark:bg-gray-800 dark:border-gray-700">
         <CardHeader className="pb-2">
-          <Skeleton className="h-6 w-2/3" />
+          <Skeleton className="h-6 w-2/3 dark:bg-gray-700" />
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full dark:bg-gray-700" />
         </CardContent>
       </Card>
     );
@@ -98,9 +98,9 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
 
   if (!message) {
     return (
-      <Card className="mb-6 shadow-lg">
+      <Card className="mb-6 shadow-lg dark:bg-gray-800 dark:border-gray-700">
         <CardContent className="py-6">
-          <div className="flex flex-col items-center justify-center text-center text-muted-foreground">
+          <div className="flex flex-col items-center justify-center text-center text-muted-foreground dark:text-gray-400">
             <MessageSquare className="h-8 w-8 mb-2 opacity-60" />
             <p>No messages from your coach yet</p>
           </div>
@@ -110,18 +110,18 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
   }
 
   return (
-    <Card className="mb-6 shadow-lg">
+    <Card className="mb-6 shadow-lg dark:bg-gray-800 dark:border-gray-700">
       <CardHeader className="pb-2">
-        <h3 className="text-lg font-medium">
+        <h3 className="text-lg font-medium dark:text-gray-100">
           Message from Coach {message.coach_first_name || 'Your Coach'}
         </h3>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground dark:text-gray-400">
           {programWeek !== null ? `Week ${programWeek}` : 'Week 0'} 
           {' '}(week of {new Date(message.week_of).toLocaleDateString()})
         </p>
       </CardHeader>
       <CardContent>
-        <blockquote className="border-l-4 border-client dark:border-blue-500 pl-4 italic text-left">
+        <blockquote className="border-l-4 border-client dark:border-blue-500 pl-4 italic text-left dark:text-gray-200">
           "{message.message}"
         </blockquote>
       </CardContent>

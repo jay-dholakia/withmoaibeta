@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Loader2, User, LogOut, Edit, FileText, Shield } from 'lucide-react';
 import BetaFeedbackCard from '@/components/client/BetaFeedbackCard';
+import VacationModeToggle from '@/components/client/VacationModeToggle';
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
@@ -30,22 +30,18 @@ const SettingsPage = () => {
   };
 
   const handleEditProfile = () => {
-    // Navigate to profile editor with state indicating we came from settings
     navigate('/client-profile-editor', { state: { from: 'settings' } });
   };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not provided';
     
-    // Create date from ISO string
     const date = new Date(dateString);
     
-    // Extract date components from UTC values to avoid timezone issues
     const year = date.getUTCFullYear();
-    const month = date.getUTCMonth() + 1; // Month is 0-indexed
+    const month = date.getUTCMonth() + 1;
     const day = date.getUTCDate();
     
-    // Format as MM/DD/YYYY
     return `${month}/${day}/${year}`;
   };
 
@@ -115,7 +111,6 @@ const SettingsPage = () => {
         </CardFooter>
       </Card>
 
-      {/* Legal Documents Card */}
       <Card>
         <CardHeader>
           <CardTitle>Legal</CardTitle>
@@ -141,7 +136,6 @@ const SettingsPage = () => {
         </CardContent>
       </Card>
       
-      {/* Beta Feedback Card */}
       <BetaFeedbackCard />
       
       <Card>

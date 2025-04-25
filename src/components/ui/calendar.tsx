@@ -26,7 +26,7 @@ export function Calendar({
       selected={selected}
       onSelect={onSelect}
       captionLayout="buttons"
-      components={{ Caption: CalendarCaption }}
+      components={{ caption: CalendarCaption }}
       className={`pointer-events-auto ${className || ''}`}
       disabled={disabled}
       initialFocus={initialFocus}

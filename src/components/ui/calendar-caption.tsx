@@ -4,7 +4,7 @@ import { CaptionProps, useNavigation } from 'react-day-picker'
 
 export function CalendarCaption(props: CaptionProps) {
   const { goToMonth, nextMonth, previousMonth } = useNavigation();
-  const { calendarMonth } = props;
+  const { displayMonth } = props;
 
   const handlePrev = () => {
     if (previousMonth) {
@@ -18,9 +18,6 @@ export function CalendarCaption(props: CaptionProps) {
     }
   }
 
-  // Create a proper Date object from the CalendarMonth
-  const month = new Date(calendarMonth.year, calendarMonth.month - 1, 1);
-
   return (
     <div className="flex items-center justify-between px-3 py-2">
       <button 
@@ -33,7 +30,7 @@ export function CalendarCaption(props: CaptionProps) {
         {new Intl.DateTimeFormat('default', { 
           month: 'long', 
           year: 'numeric' 
-        }).format(month)}
+        }).format(displayMonth)}
       </span>
       <button 
         onClick={handleNext}

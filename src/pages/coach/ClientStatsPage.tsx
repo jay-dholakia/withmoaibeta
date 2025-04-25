@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -35,6 +34,7 @@ interface ClientStats {
   assigned_workouts_this_week: number;
   activities_this_week: number;
   total_activities: number;
+  vacation_mode: boolean;
 }
 
 type SortField = 'name' | 'lastWorkout' | 'assignedWorkouts' | 'activitiesWeek' | 'totalActivities';
@@ -48,7 +48,6 @@ const CoachClientStatsPage = () => {
   const [groupFilter, setGroupFilter] = useState<string[]>([]);
   const [activityFilter, setActivityFilter] = useState<string>('all'); // 'all', 'active', 'inactive'
 
-  // Fetch coach clients
   const { 
     data: coachClients, 
     isLoading: isLoadingCoachClients,
@@ -63,7 +62,6 @@ const CoachClientStatsPage = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fetch client stats
   const { 
     data: clientStats,
     isLoading: isLoadingStats,
@@ -92,31 +90,25 @@ const CoachClientStatsPage = () => {
     toast.success('Refreshing client data...');
   };
 
-  // Get coach client IDs
   const coachClientIds = useMemo(() => {
     return coachClients?.map(client => client.id) || [];
   }, [coachClients]);
 
-  // Debug logs
   useEffect(() => {
     console.log('Coach clients:', coachClients);
     console.log('Coach client IDs:', coachClientIds);
     console.log('Client stats:', clientStats);
   }, [coachClients, coachClientIds, clientStats]);
 
-  // Combine data from both sources
   const combinedData: ClientStats[] = useMemo(() => {
     if (!clientStats || !coachClients) return [];
     
-    // First, create a map of client info for quick lookups
     const clientInfoMap = new Map(coachClients.map(client => [client.id, client]));
     
-    // Filter clientStats to only include coach's clients
     const filteredStats = clientStats.filter(stat => coachClientIds.includes(stat.id));
     
     console.log('Filtered stats count:', filteredStats.length);
     
-    // Map the filtered stats to include client info
     return filteredStats.map(stat => {
       const clientInfo = clientInfoMap.get(stat.id);
       
@@ -129,12 +121,12 @@ const CoachClientStatsPage = () => {
         last_workout_date: stat.last_workout_date,
         assigned_workouts_this_week: stat.assigned_workouts_this_week || 0,
         activities_this_week: stat.activities_this_week || 0,
-        total_activities: stat.total_activities || 0
+        total_activities: stat.total_activities || 0,
+        vacation_mode: stat.vacation_mode || false
       };
     });
   }, [clientStats, coachClientIds, coachClients]);
 
-  // Get all unique groups
   const allGroups = useMemo(() => {
     if (!combinedData) return [];
     
@@ -176,7 +168,6 @@ const CoachClientStatsPage = () => {
     );
   };
 
-  // Apply filters and sorting
   const filteredAndSortedClients = useMemo(() => {
     let result = [...combinedData];
     
@@ -498,10 +489,11 @@ const CoachClientStatsPage = () => {
                         <TableRow key={client.id}>
                           <TableCell>
                             <div>
-                              <div className="font-medium">
+                              <div className="font-medium flex items-center gap-2">
                                 {client.first_name && client.first_name.length > 0
                                   ? formatDisplayName(client.first_name, client.last_name)
                                   : client.email}
+                                {client.vacation_mode && <span title="On Vacation">🌴</span>}
                               </div>
                               {client.first_name && client.first_name.length > 0 && (
                                 <div className="text-sm text-muted-foreground">{client.email}</div>

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
   Dumbbell, 
   DumbbellIcon, 
@@ -35,6 +34,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
+      
       <Toaster position="top-center" richColors />
       
       <header className="bg-card shadow-sm border-b border-border py-4">
@@ -64,11 +64,9 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   to="/client-dashboard/leaderboard" 
                   className={`flex flex-col items-center py-3 ${isActive('/leaderboard') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  {isActive('/leaderboard') ? (
-                    <LayoutGrid className="h-5 w-5" />
-                  ) : (
-                    <LayoutDashboard className="h-5 w-5" />
-                  )}
+                  <div className={`relative ${isActive('/leaderboard') ? 'p-1.5 bg-client/10 dark:bg-blue-900/40 rounded-full' : ''}`}>
+                    <LayoutGrid className={`h-5 w-5 ${isActive('/leaderboard') ? 'stroke-[2.5]' : ''}`} />
+                  </div>
                   <span className="text-xs mt-1">Dashboard</span>
                 </Link>
               </li>
@@ -78,11 +76,13 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   to="/client-dashboard/workouts" 
                   className={`flex flex-col items-center py-3 ${isActive('/workouts') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  {isActive('/workouts') ? (
-                    <DumbbellIcon className="h-5 w-5 fill-current" />
-                  ) : (
-                    <Dumbbell className="h-5 w-5" />
-                  )}
+                  <div className={`relative ${isActive('/workouts') ? 'p-1.5 bg-client/10 dark:bg-blue-900/40 rounded-full' : ''}`}>
+                    {isActive('/workouts') ? (
+                      <DumbbellIcon className="h-5 w-5 stroke-[2.5]" />
+                    ) : (
+                      <Dumbbell className="h-5 w-5" />
+                    )}
+                  </div>
                   <span className="text-xs mt-1">Workouts</span>
                 </Link>
               </li>
@@ -92,11 +92,13 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   to="/client-dashboard/moai" 
                   className={`flex flex-col items-center py-3 ${isActive('/moai') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  {isActive('/moai') ? (
-                    <Users2Icon className="h-5 w-5 fill-current" />
-                  ) : (
-                    <Users2 className="h-5 w-5" />
-                  )}
+                  <div className={`relative ${isActive('/moai') ? 'p-1.5 bg-client/10 dark:bg-blue-900/40 rounded-full' : ''}`}>
+                    {isActive('/moai') ? (
+                      <Users2Icon className="h-5 w-5 stroke-[2.5]" />
+                    ) : (
+                      <Users2 className="h-5 w-5" />
+                    )}
+                  </div>
                   <span className="text-xs mt-1 whitespace-nowrap">Your Moai</span>
                 </Link>
               </li>
@@ -106,11 +108,13 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   to="/client-dashboard/notes" 
                   className={`flex flex-col items-center py-3 ${isActive('/notes') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  {isActive('/notes') ? (
-                    <BananaIcon className="h-5 w-5 fill-current" />
-                  ) : (
-                    <Banana className="h-5 w-5" />
-                  )}
+                  <div className={`relative ${isActive('/notes') ? 'p-1.5 bg-client/10 dark:bg-blue-900/40 rounded-full' : ''}`}>
+                    {isActive('/notes') ? (
+                      <BananaIcon className="h-5 w-5 stroke-[2.5]" />
+                    ) : (
+                      <Banana className="h-5 w-5" />
+                    )}
+                  </div>
                   <span className="text-xs mt-1">Nutrition</span>
                 </Link>
               </li>
@@ -120,11 +124,9 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   to="/client-dashboard/settings" 
                   className={`flex flex-col items-center py-3 ${isActive('/settings') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  {isActive('/settings') ? (
-                    <Settings2 className="h-5 w-5 fill-current" />
-                  ) : (
-                    <Settings className="h-5 w-5" />
-                  )}
+                  <div className={`relative ${isActive('/settings') ? 'p-1.5 bg-client/10 dark:bg-blue-900/40 rounded-full' : ''}`}>
+                    <Settings className={`h-5 w-5 ${isActive('/settings') ? 'stroke-[2.5]' : ''}`} />
+                  </div>
                   <span className="text-xs mt-1">Settings</span>
                 </Link>
               </li>

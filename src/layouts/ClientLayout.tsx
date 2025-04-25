@@ -1,8 +1,22 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Dumbbell, Mountain, LayoutDashboard, Settings, LogOut, FileText, Banana } from 'lucide-react';
+import { 
+  Dumbbell, 
+  DumbbellIcon, 
+  LayoutDashboard,
+  LayoutGrid,
+  Users2,
+  Users2Icon,
+  Utensils,
+  UtensilsCrossed,
+  Settings,
+  Settings2,
+  Mountain,
+  MountainIcon,
+  Banana,
+  BananaIcon
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageTransition } from '@/components/PageTransition';
 import { Toaster } from 'sonner';
@@ -50,7 +64,11 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   to="/client-dashboard/leaderboard" 
                   className={`flex flex-col items-center py-3 ${isActive('/leaderboard') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  <LayoutDashboard className="h-5 w-5" />
+                  {isActive('/leaderboard') ? (
+                    <LayoutGrid className="h-5 w-5" />
+                  ) : (
+                    <LayoutDashboard className="h-5 w-5" />
+                  )}
                   <span className="text-xs mt-1">Dashboard</span>
                 </Link>
               </li>
@@ -60,7 +78,11 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   to="/client-dashboard/workouts" 
                   className={`flex flex-col items-center py-3 ${isActive('/workouts') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  <Dumbbell className="h-5 w-5" />
+                  {isActive('/workouts') ? (
+                    <DumbbellIcon className="h-5 w-5 fill-current" />
+                  ) : (
+                    <Dumbbell className="h-5 w-5" />
+                  )}
                   <span className="text-xs mt-1">Workouts</span>
                 </Link>
               </li>
@@ -70,7 +92,11 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   to="/client-dashboard/moai" 
                   className={`flex flex-col items-center py-3 ${isActive('/moai') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  <Mountain className="h-5 w-5" />
+                  {isActive('/moai') ? (
+                    <Users2Icon className="h-5 w-5 fill-current" />
+                  ) : (
+                    <Users2 className="h-5 w-5" />
+                  )}
                   <span className="text-xs mt-1 whitespace-nowrap">Your Moai</span>
                 </Link>
               </li>
@@ -80,7 +106,11 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   to="/client-dashboard/notes" 
                   className={`flex flex-col items-center py-3 ${isActive('/notes') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  <Banana className="h-5 w-5" />
+                  {isActive('/notes') ? (
+                    <BananaIcon className="h-5 w-5 fill-current" />
+                  ) : (
+                    <Banana className="h-5 w-5" />
+                  )}
                   <span className="text-xs mt-1">Nutrition</span>
                 </Link>
               </li>
@@ -90,7 +120,11 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                   to="/client-dashboard/settings" 
                   className={`flex flex-col items-center py-3 ${isActive('/settings') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  <Settings className="h-5 w-5" />
+                  {isActive('/settings') ? (
+                    <Settings2 className="h-5 w-5 fill-current" />
+                  ) : (
+                    <Settings className="h-5 w-5" />
+                  )}
                   <span className="text-xs mt-1">Settings</span>
                 </Link>
               </li>

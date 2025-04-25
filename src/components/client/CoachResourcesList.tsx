@@ -32,7 +32,7 @@ const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
 
   if (isLoading) {
     return (
-      <Card className="mt-4 shadow-xl">
+      <Card className="mt-4 shadow-lg">
         <CardContent className="pt-6 flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-client" />
         </CardContent>
@@ -42,7 +42,7 @@ const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
 
   if (error) {
     return (
-      <Card className="mt-4 shadow-xl">
+      <Card className="mt-4 shadow-lg">
         <CardContent className="pt-6 text-center">
           <p className="text-muted-foreground">Unable to load coach resources</p>
         </CardContent>
@@ -52,7 +52,7 @@ const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
 
   if (!resources || resources.length === 0) {
     return (
-      <Card className="mt-4 shadow-xl">
+      <Card className="mt-4 shadow-lg">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Coach's Corner</CardTitle>
           <CardDescription>Helpful resources from your coach</CardDescription>
@@ -65,7 +65,7 @@ const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
   }
 
   return (
-    <Card className="mt-4 shadow-xl">
+    <Card className="mt-4 shadow-lg">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Coach's Corner</CardTitle>
         <CardDescription>Helpful resources from your coach</CardDescription>

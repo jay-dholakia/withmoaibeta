@@ -9,5 +9,5 @@ export interface Profile {
   id: string;
   user_type: string;
   created_at: string;
-  vacation_mode?: boolean;
+  vacation_mode?: boolean; // Added optional vacation_mode property
 }

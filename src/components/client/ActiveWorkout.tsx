@@ -887,12 +887,7 @@ const ActiveWorkout = () => {
             weight: '',
             reps: '',
             completed: false
-          })),
-          swapData: {
-            originalExerciseId,
-            replacementExerciseId: newExercise.id,
-            timestamp: new Date().toISOString()
-          }
+          }))
         };
         
         return updatedStates;

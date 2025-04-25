@@ -70,45 +70,51 @@ export const updateExerciseIdInDraft = async (
     const draftData = draft.draft_data;
     let updated = false;
     
+    // Update exercise_id in exerciseStates
     if (draftData.exerciseStates && draftData.exerciseStates[oldExerciseId]) {
+      // Update the exercise_id field
       draftData.exerciseStates[oldExerciseId].exercise_id = newExerciseId;
       updated = true;
     }
     
+    // Update references in pendingSets
     if (draftData.pendingSets && Array.isArray(draftData.pendingSets)) {
       draftData.pendingSets = draftData.pendingSets.map((set: any) => {
         if (set.exerciseId === oldExerciseId) {
-          return { ...set, exercise_id: newExerciseId };
+          return { ...set, exerciseId: newExerciseId };
         }
         return set;
       });
       updated = true;
     }
     
+    // Update references in pendingCardio
     if (draftData.pendingCardio && Array.isArray(draftData.pendingCardio)) {
       draftData.pendingCardio = draftData.pendingCardio.map((item: any) => {
         if (item.exerciseId === oldExerciseId) {
-          return { ...item, exercise_id: newExerciseId };
+          return { ...item, exerciseId: newExerciseId };
         }
         return item;
       });
       updated = true;
     }
     
+    // Update references in pendingFlexibility
     if (draftData.pendingFlexibility && Array.isArray(draftData.pendingFlexibility)) {
       draftData.pendingFlexibility = draftData.pendingFlexibility.map((item: any) => {
         if (item.exerciseId === oldExerciseId) {
-          return { ...item, exercise_id: newExerciseId };
+          return { ...item, exerciseId: newExerciseId };
         }
         return item;
       });
       updated = true;
     }
     
+    // Update references in pendingRuns
     if (draftData.pendingRuns && Array.isArray(draftData.pendingRuns)) {
       draftData.pendingRuns = draftData.pendingRuns.map((item: any) => {
         if (item.exerciseId === oldExerciseId) {
-          return { ...item, exercise_id: newExerciseId };
+          return { ...item, exerciseId: newExerciseId };
         }
         return item;
       });

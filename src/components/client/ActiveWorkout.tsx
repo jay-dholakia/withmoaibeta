@@ -865,7 +865,7 @@ const ActiveWorkout = () => {
           const originalExercise = exercises.find(
             ex => ex.id === originalExerciseWorkoutExerciseId
           );
-          originalExerciseId = originalExercise?.exercise_id;
+          originalExerciseId = originalExercise?.exercise?.id;
         }
       }
 
@@ -910,19 +910,11 @@ const ActiveWorkout = () => {
           });
           
           if (workoutCompletionId) {
-            console.log("Updating draft with new exercise:", {
-              workoutCompletionId,
-              originalExerciseId: originalExerciseWorkoutExerciseId,
-              newExerciseId: newExercise.id
-            });
-            
             await updateExerciseIdInDraft(
               workoutCompletionId,
               originalExerciseWorkoutExerciseId,
               newExercise.id
             );
-            
-            console.log("Updated workout draft exercise references after swap");
           }
           
           queryClient.setQueryData(['active-workout', workoutCompletionId], (oldData: any) => {

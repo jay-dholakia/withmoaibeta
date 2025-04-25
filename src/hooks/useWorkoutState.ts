@@ -23,6 +23,7 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
         const exerciseName = (exercise.exercise?.name || '').toLowerCase();
         const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
         
+        // Store the exercise's unique exercise_id in all exercise states
         if (isRunExercise) {
           initialState[exercise.id] = {
             expanded: true,

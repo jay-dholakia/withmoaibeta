@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { Logo } from '@/components/Logo';
+import { PageTransition } from '@/components/PageTransition';
 
 interface ClientLayoutProps {
   children: React.ReactNode;

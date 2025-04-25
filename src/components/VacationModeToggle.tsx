@@ -9,7 +9,7 @@ import { toast } from "sonner";
 export function VacationModeToggle() {
   const { user, profile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [isEnabled, setIsEnabled] = useState(profile?.vacation_mode || false);
+  const [isEnabled, setIsEnabled] = useState(!!profile?.vacation_mode);
 
   const handleToggle = async (enabled: boolean) => {
     if (!user) return;

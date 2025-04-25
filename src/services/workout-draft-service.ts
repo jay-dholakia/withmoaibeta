@@ -37,7 +37,14 @@ export const saveWorkoutDraft = async (
     console.log(`Saving workout draft for workout ${workoutId}`, {
       dataSize: JSON.stringify(draftDataToStore).length,
       exerciseStatesCount: Object.keys(draftDataToStore.exerciseStates || {}).length,
-      pendingSetsCount: (draftDataToStore.pendingSets || []).length
+      pendingSetsCount: (draftDataToStore.pendingSets || []).length,
+      exerciseIds: Object.keys(draftDataToStore.exerciseStates || {}).map(key => {
+        const exercise = draftDataToStore.exerciseStates[key];
+        return {
+          workoutExerciseId: key,
+          exerciseId: exercise.exercise_id
+        };
+      })
     });
 
     const { error } = await supabase
@@ -71,14 +78,14 @@ export const saveWorkoutDraft = async (
  */
 export const updateExerciseIdInDraft = async (
   workoutId: string | null,
-  oldExerciseId: string,
+  workoutExerciseId: string,
   newExerciseId: string
 ): Promise<boolean> => {
-  if (!workoutId || !oldExerciseId || !newExerciseId) return false;
+  if (!workoutId || !workoutExerciseId || !newExerciseId) return false;
 
   try {
     console.log(`Updating exercise ID in draft for workout ${workoutId}`, {
-      oldExerciseId,
+      workoutExerciseId,
       newExerciseId
     });
     
@@ -92,29 +99,45 @@ export const updateExerciseIdInDraft = async (
     let updated = false;
     
     // Update exercise_id in exerciseStates
-    if (draftData.exerciseStates && draftData.exerciseStates[oldExerciseId]) {
-      console.log(`Found exercise in draft states to update: ${oldExerciseId} → ${newExerciseId}`, {
-        exerciseState: draftData.exerciseStates[oldExerciseId]
+    if (draftData.exerciseStates && draftData.exerciseStates[workoutExerciseId]) {
+      console.log(`Found exercise in draft states to update: ${workoutExerciseId} → ${newExerciseId}`, {
+        exerciseState: draftData.exerciseStates[workoutExerciseId],
+        workoutExerciseId,
+        newExerciseId
       });
       
       // Update the exercise_id field
-      draftData.exerciseStates[oldExerciseId].exercise_id = newExerciseId;
+      draftData.exerciseStates[workoutExerciseId].exercise_id = newExerciseId;
+      
+      // Add swap tracking data - this helps us identify swapped exercises
+      draftData.exerciseStates[workoutExerciseId].swapData = {
+        timestamp: new Date().toISOString(),
+        originalExerciseId: draftData.exerciseStates[workoutExerciseId].exercise_id || null,
+        replacementExerciseId: newExerciseId
+      };
+      
       updated = true;
+    } else {
+      console.error(`Exercise ${workoutExerciseId} not found in draft states`, {
+        availableExerciseIds: Object.keys(draftData.exerciseStates || {})
+      });
     }
     
     // Update references in pendingSets
     if (draftData.pendingSets && Array.isArray(draftData.pendingSets)) {
-      const setsToUpdate = draftData.pendingSets.filter((set: any) => set.exerciseId === oldExerciseId);
+      const setsToUpdate = draftData.pendingSets.filter((set: any) => set.exerciseId === workoutExerciseId);
       
       if (setsToUpdate.length > 0) {
         console.log(`Updating ${setsToUpdate.length} pending sets with new exercise ID`, {
-          originalSets: setsToUpdate
+          originalSets: setsToUpdate,
+          workoutExerciseId,
+          newExerciseId
         });
       }
       
       draftData.pendingSets = draftData.pendingSets.map((set: any) => {
-        if (set.exerciseId === oldExerciseId) {
-          return { ...set, exerciseId: newExerciseId };
+        if (set.exerciseId === workoutExerciseId) {
+          return { ...set, exerciseId: workoutExerciseId };
         }
         return set;
       });
@@ -123,17 +146,19 @@ export const updateExerciseIdInDraft = async (
     
     // Update references in pendingCardio
     if (draftData.pendingCardio && Array.isArray(draftData.pendingCardio)) {
-      const cardioToUpdate = draftData.pendingCardio.filter((item: any) => item.exerciseId === oldExerciseId);
+      const cardioToUpdate = draftData.pendingCardio.filter((item: any) => item.exerciseId === workoutExerciseId);
       
       if (cardioToUpdate.length > 0) {
         console.log(`Updating ${cardioToUpdate.length} pending cardio items with new exercise ID`, {
-          originalItems: cardioToUpdate
+          originalItems: cardioToUpdate,
+          workoutExerciseId,
+          newExerciseId
         });
       }
       
       draftData.pendingCardio = draftData.pendingCardio.map((item: any) => {
-        if (item.exerciseId === oldExerciseId) {
-          return { ...item, exerciseId: newExerciseId };
+        if (item.exerciseId === workoutExerciseId) {
+          return { ...item, exerciseId: workoutExerciseId };
         }
         return item;
       });
@@ -142,17 +167,19 @@ export const updateExerciseIdInDraft = async (
     
     // Update references in pendingFlexibility
     if (draftData.pendingFlexibility && Array.isArray(draftData.pendingFlexibility)) {
-      const flexToUpdate = draftData.pendingFlexibility.filter((item: any) => item.exerciseId === oldExerciseId);
+      const flexToUpdate = draftData.pendingFlexibility.filter((item: any) => item.exerciseId === workoutExerciseId);
       
       if (flexToUpdate.length > 0) {
         console.log(`Updating ${flexToUpdate.length} pending flexibility items with new exercise ID`, {
-          originalItems: flexToUpdate
+          originalItems: flexToUpdate,
+          workoutExerciseId,
+          newExerciseId
         });
       }
       
       draftData.pendingFlexibility = draftData.pendingFlexibility.map((item: any) => {
-        if (item.exerciseId === oldExerciseId) {
-          return { ...item, exerciseId: newExerciseId };
+        if (item.exerciseId === workoutExerciseId) {
+          return { ...item, exerciseId: workoutExerciseId };
         }
         return item;
       });
@@ -161,17 +188,19 @@ export const updateExerciseIdInDraft = async (
     
     // Update references in pendingRuns
     if (draftData.pendingRuns && Array.isArray(draftData.pendingRuns)) {
-      const runsToUpdate = draftData.pendingRuns.filter((item: any) => item.exerciseId === oldExerciseId);
+      const runsToUpdate = draftData.pendingRuns.filter((item: any) => item.exerciseId === workoutExerciseId);
       
       if (runsToUpdate.length > 0) {
         console.log(`Updating ${runsToUpdate.length} pending runs with new exercise ID`, {
-          originalItems: runsToUpdate
+          originalItems: runsToUpdate,
+          workoutExerciseId,
+          newExerciseId
         });
       }
       
       draftData.pendingRuns = draftData.pendingRuns.map((item: any) => {
-        if (item.exerciseId === oldExerciseId) {
-          return { ...item, exerciseId: newExerciseId };
+        if (item.exerciseId === workoutExerciseId) {
+          return { ...item, exerciseId: workoutExerciseId };
         }
         return item;
       });
@@ -179,9 +208,23 @@ export const updateExerciseIdInDraft = async (
     }
     
     if (updated) {
-      console.log("Saving draft with updated exercise IDs...");
+      console.log("Saving draft with updated exercise IDs...", {
+        workoutExerciseId,
+        newExerciseId,
+        draftData: {
+          exerciseStates: Object.keys(draftData.exerciseStates || {}).map(id => ({
+            id,
+            exercise_id: draftData.exerciseStates[id].exercise_id
+          }))
+        }
+      });
+      
       const saveResult = await saveWorkoutDraft(workoutId, 'workout', draftData);
-      console.log("Draft save after exercise swap result:", saveResult ? "SUCCESS" : "FAILED");
+      console.log("Draft save after exercise swap result:", saveResult ? "SUCCESS" : "FAILED", {
+        workoutId,
+        workoutExerciseId,
+        newExerciseId
+      });
       return saveResult;
     }
     
@@ -221,7 +264,10 @@ export const getWorkoutDraft = async (
         await new Promise(res => setTimeout(res, retryInterval));
       } else {
         if (data) {
-          console.log(`Retrieved workout draft for ${workoutId}`);
+          console.log(`Retrieved workout draft for ${workoutId}`, {
+            exerciseStatesCount: Object.keys(safeParseDraftData(data.draft_data).exerciseStates || {}).length,
+            updatedAt: data.updated_at
+          });
           return {
             ...data,
             draft_data: safeParseDraftData(data.draft_data)

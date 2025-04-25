@@ -898,6 +898,11 @@ const ActiveWorkout = () => {
         updatedStates[originalExerciseWorkoutExerciseId] = {
           ...originalState,
           exercise_id: newExercise.id,
+          swapData: {
+            timestamp: new Date().toISOString(),
+            originalExerciseId: originalExerciseId,
+            replacementExerciseId: newExercise.id
+          },
           sets: originalState.sets.map(set => ({
             ...set,
             weight: '',
@@ -913,7 +918,11 @@ const ActiveWorkout = () => {
         const exercises = workoutData.workout.workout_exercises;
         
         if (Array.isArray(exercises)) {
-          console.log(`Swapping exercise: "${originalExerciseName}" (${originalExerciseId}) → "${newExercise.name}" (${newExercise.id})`);
+          console.log(`Swapping exercise: "${originalExerciseName}" (${originalExerciseId}) → "${newExercise.name}" (${newExercise.id})`, {
+            workoutExerciseId: originalExerciseWorkoutExerciseId,
+            originalExerciseName,
+            newExerciseName: newExercise.name
+          });
           
           const updatedExercises = exercises.map(ex => {
             if (ex.id === originalExerciseWorkoutExerciseId) {
@@ -927,11 +936,17 @@ const ActiveWorkout = () => {
           });
           
           if (workoutCompletionId) {
-            await updateExerciseIdInDraft(
+            const updateResult = await updateExerciseIdInDraft(
               workoutCompletionId,
               originalExerciseWorkoutExerciseId,
               newExercise.id
             );
+            
+            console.log("Exercise swap draft update result:", updateResult ? "SUCCESS" : "FAILED", {
+              workoutCompletionId,
+              workoutExerciseId: originalExerciseWorkoutExerciseId,
+              newExerciseId: newExercise.id
+            });
           }
           
           queryClient.setQueryData(['active-workout', workoutCompletionId], (oldData: any) => {

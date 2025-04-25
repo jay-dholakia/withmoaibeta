@@ -23,7 +23,7 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
         const exerciseName = (exercise.exercise?.name || '').toLowerCase();
         const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
         
-        // Store the exercise's unique exercise_id in all exercise states
+        // Always store the exercise's unique exercise_id in all exercise states
         if (isRunExercise) {
           initialState[exercise.id] = {
             expanded: true,
@@ -72,6 +72,13 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
             }
           };
         }
+        
+        // Log each exercise we're initializing
+        console.log(`Initialized exercise state for ${exerciseName}`, {
+          workoutExerciseId: exercise.id,
+          exerciseId: exercise.exercise?.id,
+          exerciseType
+        });
       });
       
       setExerciseStates(initialState);

@@ -1,7 +1,12 @@
 
 export interface ExerciseState {
   expanded: boolean;
-  exercise_id?: string; // Add this field to track the current exercise ID
+  exercise_id?: string; // Track the current exercise ID
+  swapData?: {
+    timestamp: string;
+    originalExerciseId: string | null;
+    replacementExerciseId: string;
+  };
   sets: Array<{
     setNumber: number;
     weight: string;

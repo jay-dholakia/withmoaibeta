@@ -101,22 +101,36 @@ export const updateExerciseIdInDraft = async (
     const draftData = draft.draft_data;
     let updated = false;
     
-    // Update exerciseStates key - in this case we're using the workout_exercise_id which stays the same,
-    // but we need to update the exercise data within it
+    // Update exerciseStates key
     if (draftData.exerciseStates && draftData.exerciseStates[oldExerciseId]) {
-      // Keep the same key but update the exercise data if needed
-      // Note: We're not changing the key since we're using workout_exercise_id which remains the same
+      draftData.exerciseStates[newExerciseId] = {
+        ...draftData.exerciseStates[oldExerciseId],
+        sets: draftData.exerciseStates[oldExerciseId].sets.map(set => ({
+          ...set,
+          weight: '',
+          reps: '',
+          completed: false
+        })),
+        swapData: {
+          originalExerciseId: oldExerciseId,
+          replacementExerciseId: newExerciseId,
+          timestamp: new Date().toISOString()
+        }
+      };
+      delete draftData.exerciseStates[oldExerciseId];
       updated = true;
     }
     
-    // Update pendingSets references if they exist
+    // Update pendingSets references
     if (draftData.pendingSets && Array.isArray(draftData.pendingSets)) {
       draftData.pendingSets = draftData.pendingSets.map((set: any) => {
-        // Update if this set belongs to the exercise being swapped
         if (set.exerciseId === oldExerciseId) {
-          // We keep the same exerciseId because it refers to the workout_exercise_id
-          // which doesn't change, only the exercise within it changes
-          return { ...set }; 
+          return {
+            ...set,
+            exerciseId: newExerciseId,
+            weight: '',
+            reps: ''
+          };
         }
         return set;
       });
@@ -125,19 +139,50 @@ export const updateExerciseIdInDraft = async (
     
     // Update pendingCardio references
     if (draftData.pendingCardio && Array.isArray(draftData.pendingCardio)) {
-      // Same logic as for pendingSets
+      draftData.pendingCardio = draftData.pendingCardio.map((item: any) => {
+        if (item.exerciseId === oldExerciseId) {
+          return {
+            ...item,
+            exerciseId: newExerciseId,
+            distance: '',
+            duration: '',
+            location: ''
+          };
+        }
+        return item;
+      });
       updated = true;
     }
     
     // Update pendingFlexibility references
     if (draftData.pendingFlexibility && Array.isArray(draftData.pendingFlexibility)) {
-      // Same logic as for pendingSets
+      draftData.pendingFlexibility = draftData.pendingFlexibility.map((item: any) => {
+        if (item.exerciseId === oldExerciseId) {
+          return {
+            ...item,
+            exerciseId: newExerciseId,
+            duration: ''
+          };
+        }
+        return item;
+      });
       updated = true;
     }
     
     // Update pendingRuns references
     if (draftData.pendingRuns && Array.isArray(draftData.pendingRuns)) {
-      // Same logic as for pendingSets
+      draftData.pendingRuns = draftData.pendingRuns.map((item: any) => {
+        if (item.exerciseId === oldExerciseId) {
+          return {
+            ...item,
+            exerciseId: newExerciseId,
+            distance: '',
+            duration: '',
+            location: ''
+          };
+        }
+        return item;
+      });
       updated = true;
     }
     

@@ -10,7 +10,7 @@ import { Profile } from '@/types/user'; // Explicitly import Profile type
 export function VacationModeToggle() {
   const { user, profile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [isEnabled, setIsEnabled] = useState(!!profile?.vacation_mode);
+  const [isEnabled, setIsEnabled] = useState(!!Profile?.vacation_mode);
 
   const handleToggle = async (enabled: boolean) => {
     if (!user) return;

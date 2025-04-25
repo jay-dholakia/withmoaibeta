@@ -1,23 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
-  Dumbbell, 
-  DumbbellIcon, 
-  LayoutDashboard,
   LayoutGrid,
-  Users2,
+  DumbbellIcon,
   Users2Icon,
-  Utensils,
-  UtensilsCrossed,
-  Settings,
-  Settings2,
-  Mountain,
-  MountainIcon,
-  Banana,
-  BananaIcon
+  BananaIcon,
+  Settings
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { PageTransition } from '@/components/PageTransition';
 import { Toaster } from 'sonner';
 import { Logo } from '@/components/Logo';
 
@@ -47,7 +36,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
         </div>
       </header>
       
-      <main className="flex-grow py-6 mb-16 w-full overflow-visible">
+      <main className="flex-grow py-6 mb-14 w-full overflow-visible">
         <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6 overflow-visible">
           <PageTransition>
             {children}
@@ -57,80 +46,90 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
       
       <footer className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-md z-[100]">
         <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
-          <nav className="flex justify-center">
-            <ul className="flex justify-evenly w-full max-w-screen-xl mx-auto">
-              <li className="flex-1 flex justify-center">
+          <nav>
+            <ul className="flex justify-evenly items-center h-14">
+              <li>
                 <Link 
                   to="/client-dashboard/leaderboard" 
-                  className={`flex flex-col items-center py-3 ${isActive('/leaderboard') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
+                  className={`flex items-center justify-center w-12 h-12 rounded-full relative ${
+                    isActive('/leaderboard') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                  }`}
                 >
-                  <div className="relative w-10 h-10 flex items-center justify-center">
-                    {isActive('/leaderboard') && (
-                      <div className="absolute inset-0 m-auto bg-client/10 dark:bg-blue-900/40 rounded-full" />
-                    )}
-                    <LayoutGrid className="h-5 w-5 relative z-10" strokeWidth={isActive('/leaderboard') ? 2.5 : 2} />
-                  </div>
-                  <span className="text-xs mt-1">Dashboard</span>
+                  {isActive('/leaderboard') && (
+                    <div className="absolute inset-0 bg-client/10 dark:bg-blue-900/40 rounded-full" />
+                  )}
+                  <LayoutGrid 
+                    className="relative z-10 w-6 h-6" 
+                    strokeWidth={isActive('/leaderboard') ? 2.5 : 2} 
+                  />
                 </Link>
               </li>
               
-              <li className="flex-1 flex justify-center">
+              <li>
                 <Link 
                   to="/client-dashboard/workouts" 
-                  className={`flex flex-col items-center py-3 ${isActive('/workouts') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
+                  className={`flex items-center justify-center w-12 h-12 rounded-full relative ${
+                    isActive('/workouts') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                  }`}
                 >
-                  <div className="relative w-10 h-10 flex items-center justify-center">
-                    {isActive('/workouts') && (
-                      <div className="absolute inset-0 m-auto bg-client/10 dark:bg-blue-900/40 rounded-full" />
-                    )}
-                    <DumbbellIcon className="h-5 w-5 relative z-10" strokeWidth={isActive('/workouts') ? 2.5 : 2} />
-                  </div>
-                  <span className="text-xs mt-1">Workouts</span>
+                  {isActive('/workouts') && (
+                    <div className="absolute inset-0 bg-client/10 dark:bg-blue-900/40 rounded-full" />
+                  )}
+                  <DumbbellIcon 
+                    className="relative z-10 w-6 h-6" 
+                    strokeWidth={isActive('/workouts') ? 2.5 : 2} 
+                  />
                 </Link>
               </li>
               
-              <li className="flex-1 flex justify-center">
+              <li>
                 <Link 
                   to="/client-dashboard/moai" 
-                  className={`flex flex-col items-center py-3 ${isActive('/moai') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
+                  className={`flex items-center justify-center w-12 h-12 rounded-full relative ${
+                    isActive('/moai') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                  }`}
                 >
-                  <div className="relative w-10 h-10 flex items-center justify-center">
-                    {isActive('/moai') && (
-                      <div className="absolute inset-0 m-auto bg-client/10 dark:bg-blue-900/40 rounded-full" />
-                    )}
-                    <Users2Icon className="h-5 w-5 relative z-10" strokeWidth={isActive('/moai') ? 2.5 : 2} />
-                  </div>
-                  <span className="text-xs mt-1 whitespace-nowrap">Your Moai</span>
+                  {isActive('/moai') && (
+                    <div className="absolute inset-0 bg-client/10 dark:bg-blue-900/40 rounded-full" />
+                  )}
+                  <Users2Icon 
+                    className="relative z-10 w-6 h-6" 
+                    strokeWidth={isActive('/moai') ? 2.5 : 2} 
+                  />
                 </Link>
               </li>
               
-              <li className="flex-1 flex justify-center">
+              <li>
                 <Link 
                   to="/client-dashboard/notes" 
-                  className={`flex flex-col items-center py-3 ${isActive('/notes') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
+                  className={`flex items-center justify-center w-12 h-12 rounded-full relative ${
+                    isActive('/notes') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                  }`}
                 >
-                  <div className="relative w-10 h-10 flex items-center justify-center">
-                    {isActive('/notes') && (
-                      <div className="absolute inset-0 m-auto bg-client/10 dark:bg-blue-900/40 rounded-full" />
-                    )}
-                    <BananaIcon className="h-5 w-5 relative z-10" strokeWidth={isActive('/notes') ? 2.5 : 2} />
-                  </div>
-                  <span className="text-xs mt-1">Nutrition</span>
+                  {isActive('/notes') && (
+                    <div className="absolute inset-0 bg-client/10 dark:bg-blue-900/40 rounded-full" />
+                  )}
+                  <BananaIcon 
+                    className="relative z-10 w-6 h-6" 
+                    strokeWidth={isActive('/notes') ? 2.5 : 2} 
+                  />
                 </Link>
               </li>
               
-              <li className="flex-1 flex justify-center">
+              <li>
                 <Link 
                   to="/client-dashboard/settings" 
-                  className={`flex flex-col items-center py-3 ${isActive('/settings') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
+                  className={`flex items-center justify-center w-12 h-12 rounded-full relative ${
+                    isActive('/settings') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                  }`}
                 >
-                  <div className="relative w-10 h-10 flex items-center justify-center">
-                    {isActive('/settings') && (
-                      <div className="absolute inset-0 m-auto bg-client/10 dark:bg-blue-900/40 rounded-full" />
-                    )}
-                    <Settings className="h-5 w-5 relative z-10" strokeWidth={isActive('/settings') ? 2.5 : 2} />
-                  </div>
-                  <span className="text-xs mt-1">Settings</span>
+                  {isActive('/settings') && (
+                    <div className="absolute inset-0 bg-client/10 dark:bg-blue-900/40 rounded-full" />
+                  )}
+                  <Settings 
+                    className="relative z-10 w-6 h-6" 
+                    strokeWidth={isActive('/settings') ? 2.5 : 2} 
+                  />
                 </Link>
               </li>
             </ul>

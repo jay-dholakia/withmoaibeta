@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -8,7 +9,6 @@ const safeParseDraftData = (data: any): any => {
     try {
       return JSON.parse(data);
     } catch (error) {
-      console.error("Error parsing draft data:", error);
       return {};
     }
   }
@@ -23,32 +23,18 @@ export const saveWorkoutDraft = async (
   workoutType: string | null,
   draftData: any
 ): Promise<boolean> => {
-  if (!workoutId) {
-    console.warn("No workout ID provided");
-    return false;
-  }
-
-  console.log(`Attempting to save draft for workout ${workoutId} of type ${workoutType}`);
-  console.log("Draft data to save:", draftData);
+  if (!workoutId) return false;
 
   try {
-    // Ensure we have an authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error("User auth error:", authError);
-      return false;
-    }
+    if (authError || !user) return false;
     
-    // Ensure workout_type is a string, not null
     const workoutTypeValue = workoutType || 'workout';
-
-    // Prepare the draft data to store
     const draftDataToStore = typeof draftData === 'string' 
       ? JSON.parse(draftData) 
       : draftData;
 
-    // Perform the upsert operation - this will replace any existing draft for this workout
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("workout_drafts")
       .upsert({
         user_id: user.id,
@@ -58,18 +44,10 @@ export const saveWorkoutDraft = async (
         updated_at: new Date().toISOString()
       }, { 
         onConflict: "user_id,workout_id" 
-      })
-      .select("id");
+      });
 
-    if (error) {
-      console.error(">>> UPSERT ERROR:", error);
-      return false;
-    }
-
-    console.log(">>> UPSERT SUCCESS:", data);
-    return true;
-  } catch (err) {
-    console.error(">>> UNEXPECTED ERROR DURING DRAFT SAVE:", err);
+    return !error;
+  } catch {
     return false;
   }
 };
@@ -83,39 +61,23 @@ export const updateExerciseIdInDraft = async (
   oldExerciseId: string,
   newExerciseId: string
 ): Promise<boolean> => {
-  if (!workoutId || !oldExerciseId || !newExerciseId) {
-    console.warn("Missing required parameters for updating exercise ID in draft");
-    return false;
-  }
-
-  console.log(`Updating exercise ID in draft: ${oldExerciseId} -> ${newExerciseId} for workout ${workoutId}`);
+  if (!workoutId || !oldExerciseId || !newExerciseId) return false;
 
   try {
-    // Get the current draft first
     const draft = await getWorkoutDraft(workoutId);
-    if (!draft || !draft.draft_data) {
-      console.log("No draft found to update exercise ID");
-      return false;
-    }
+    if (!draft || !draft.draft_data) return false;
 
     const draftData = draft.draft_data;
     let updated = false;
     
-    // Update exerciseStates key
     if (draftData.exerciseStates && draftData.exerciseStates[oldExerciseId]) {
-      // Update the exercise_id property to track the new exercise
       draftData.exerciseStates[oldExerciseId].exercise_id = newExerciseId;
-      console.log(`Updated exercise_id in exerciseStates[${oldExerciseId}] to ${newExerciseId}`);
       updated = true;
     }
     
-    // Update pendingSets references if they exist
     if (draftData.pendingSets && Array.isArray(draftData.pendingSets)) {
       draftData.pendingSets = draftData.pendingSets.map((set: any) => {
-        // Update if this set belongs to the exercise being swapped
         if (set.exerciseId === oldExerciseId) {
-          // We keep the same exerciseId because it refers to the workout_exercise_id
-          // but update the exercise_id property to reference the new exercise
           return { ...set, exercise_id: newExerciseId };
         }
         return set;
@@ -123,7 +85,6 @@ export const updateExerciseIdInDraft = async (
       updated = true;
     }
     
-    // Update pendingCardio references
     if (draftData.pendingCardio && Array.isArray(draftData.pendingCardio)) {
       draftData.pendingCardio = draftData.pendingCardio.map((item: any) => {
         if (item.exerciseId === oldExerciseId) {
@@ -134,7 +95,6 @@ export const updateExerciseIdInDraft = async (
       updated = true;
     }
     
-    // Update pendingFlexibility references
     if (draftData.pendingFlexibility && Array.isArray(draftData.pendingFlexibility)) {
       draftData.pendingFlexibility = draftData.pendingFlexibility.map((item: any) => {
         if (item.exerciseId === oldExerciseId) {
@@ -145,7 +105,6 @@ export const updateExerciseIdInDraft = async (
       updated = true;
     }
     
-    // Update pendingRuns references
     if (draftData.pendingRuns && Array.isArray(draftData.pendingRuns)) {
       draftData.pendingRuns = draftData.pendingRuns.map((item: any) => {
         if (item.exerciseId === oldExerciseId) {
@@ -157,30 +116,11 @@ export const updateExerciseIdInDraft = async (
     }
     
     if (updated) {
-      // Update sessionStorage first for immediate access
-      try {
-        console.log("Updating draft in sessionStorage with:", {
-          draft_data: draftData,
-          workout_type: 'workout',
-          updated_at: new Date().toISOString()
-        });
-        
-        sessionStorage.setItem(`workout_draft_${workoutId}`, JSON.stringify({
-          draft_data: draftData,
-          workout_type: 'workout',
-          updated_at: new Date().toISOString()
-        }));
-      } catch (e) {
-        console.warn("Failed to update draft in sessionStorage:", e);
-      }
-      
-      // Save the updated draft back to the database
       return await saveWorkoutDraft(workoutId, 'workout', draftData);
     }
     
     return true;
-  } catch (error) {
-    console.error("Error updating exercise ID in draft:", error);
+  } catch {
     return false;
   }
 };
@@ -191,37 +131,16 @@ export const getWorkoutDraft = async (
   retryInterval = 300
 ): Promise<any | null> => {
   if (!workoutId) return null;
-
-  console.log(`Attempting to get workout draft for workoutId: ${workoutId}`);
   
   try {
-    // First try to get from sessionStorage for faster access
-    try {
-      const cachedDraft = sessionStorage.getItem(`workout_draft_${workoutId}`);
-      if (cachedDraft) {
-        const parsedDraft = JSON.parse(cachedDraft);
-        console.log("Retrieved draft from sessionStorage:", parsedDraft);
-        return parsedDraft;
-      }
-    } catch (e) {
-      console.warn("Failed to retrieve draft from sessionStorage:", e);
-    }
-    
-    // Fetch from database with retries
     for (let i = 0; i <= maxRetries; i++) {
-      // Ensure we have the authenticated user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        console.log(`Auth error (attempt ${i+1}/${maxRetries+1}):`, authError);
         if (i === maxRetries) return null;
         await new Promise(res => setTimeout(res, retryInterval));
         continue;
       }
 
-      console.log(`Querying database for draft (attempt ${i+1}/${maxRetries+1})`);
-      console.log(`Looking for draft with user_id=${user.id}, workout_id=${workoutId}`);
-      
-      // Get the specific draft
       const { data, error } = await supabase
         .from("workout_drafts")
         .select("*")
@@ -230,32 +149,20 @@ export const getWorkoutDraft = async (
         .maybeSingle();
 
       if (error) {
-        console.error(`Fetch error (attempt ${i+1}/${maxRetries+1}):`, error);
         if (i === maxRetries) return null;
         await new Promise(res => setTimeout(res, retryInterval));
       } else {
         if (data) {
-          console.log("Retrieved draft from database:", data);
-          
-          // Store in sessionStorage for faster access next time
-          try {
-            sessionStorage.setItem(`workout_draft_${workoutId}`, JSON.stringify(data));
-          } catch (e) {
-            console.warn("Failed to store draft in sessionStorage:", e);
-          }
-          
-          // Ensure draft_data is properly formatted
           return {
             ...data,
             draft_data: safeParseDraftData(data.draft_data)
           };
         }
-        console.log("No draft found in database for this specific workout ID");
         return null;
       }
     }
-  } catch (err) {
-    console.error("Unexpected error fetching draft:", err);
+  } catch {
+    return null;
   }
   
   return null;
@@ -269,21 +176,9 @@ export const deleteWorkoutDraft = async (
 ): Promise<boolean> => {
   if (!workoutId) return false;
 
-  console.log(`Deleting workout draft for workoutId: ${workoutId}`);
-
   try {
-    // Remove from sessionStorage first
-    try {
-      sessionStorage.removeItem(`workout_draft_${workoutId}`);
-    } catch (e) {
-      console.warn("Failed to remove draft from sessionStorage:", e);
-    }
-    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error("Auth error when deleting draft:", authError);
-      return false;
-    }
+    if (authError || !user) return false;
 
     const { error } = await supabase
       .from("workout_drafts")
@@ -291,15 +186,8 @@ export const deleteWorkoutDraft = async (
       .eq("user_id", user.id)
       .eq("workout_id", workoutId);
 
-    if (error) {
-      console.error("Delete error:", error);
-      return false;
-    }
-
-    console.log("Successfully deleted draft from database");
-    return true;
-  } catch (err) {
-    console.error("Unexpected error deleting draft:", err);
+    return !error;
+  } catch {
     return false;
   }
 };

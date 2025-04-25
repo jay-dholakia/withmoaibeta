@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   email: string | null;
@@ -10,7 +9,6 @@ export interface Profile {
   user_type: string;
   created_at: string;
   vacation_mode?: boolean;
-  // Add additional properties needed by components
   first_name?: string;
   last_name?: string;
   city?: string;

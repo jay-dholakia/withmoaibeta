@@ -73,13 +73,13 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md dark:bg-gray-800 dark:border-gray-700">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-amber-700">
+          <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-500">
             <Armchair className="h-5 w-5" />
             <span>Log Rest Day</span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="dark:text-gray-400">
             Record your rest day and any notes.
           </DialogDescription>
         </DialogHeader>
@@ -87,7 +87,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="rest-date">Date</Label>
+              <Label htmlFor="rest-date" className="dark:text-gray-300">Date</Label>
               <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -95,7 +95,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                     variant="outline"
                     onClick={() => setDatePickerOpen((prev) => !prev)}
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal dark:bg-gray-900 dark:border-gray-700",
                       !date && "text-muted-foreground"
                     )}
                   >
@@ -104,7 +104,7 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
-                  className="w-auto p-3"
+                  className="w-auto p-3 dark:bg-gray-800 dark:border-gray-700"
                   align="start"
                 >
                   <div>
@@ -122,13 +122,13 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="notes">Notes (optional)</Label>
+              <Label htmlFor="notes" className="dark:text-gray-300">Notes (optional)</Label>
               <Textarea
                 id="notes"
                 placeholder="What did you do on your rest day? How are you feeling?"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="min-h-[100px]"
+                className="min-h-[100px] dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500"
               />
             </div>
           </div>
@@ -139,13 +139,14 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
+              className="dark:bg-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-amber-600 hover:bg-amber-700"
+              className="bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-800"
             >
               {isSubmitting ? "Saving..." : "Log Rest Day"}
             </Button>

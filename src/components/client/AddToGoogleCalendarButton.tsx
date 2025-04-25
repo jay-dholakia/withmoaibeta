@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, CalendarPlus, ExternalLink, Clock, CheckCircle } from 'lucide-react';
@@ -29,7 +28,6 @@ interface AddToGoogleCalendarButtonProps {
   disabled?: boolean;
 }
 
-// Add this constant at the top of the file
 const SUPABASE_URL = "https://gjrheltyxjilxcphbzdj.supabase.co";
 
 export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps> = ({
@@ -50,12 +48,10 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState('10:00');
 
-  // Check for URL parameters that might indicate auth success or failure
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const calendarStatus = searchParams.get('calendar');
@@ -64,11 +60,9 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
     if (calendarStatus === 'connected') {
       toast.success('Google Calendar connected successfully!');
       setIsConnected(true);
-      // Clean up URL parameters
       navigate(location.pathname, { replace: true });
     } else if (errorMessage) {
       toast.error(`Google Calendar error: ${errorMessage}`);
-      // Clean up URL parameters
       navigate(location.pathname, { replace: true });
     }
   }, [location.search, navigate, location.pathname]);
@@ -110,7 +104,6 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
         return;
       }
       
-      // Use the serverless function to get the auth URL
       const response = await fetch(`${SUPABASE_URL}/functions/v1/google-calendar-auth`, {
         method: 'GET',
         headers: {
@@ -127,7 +120,6 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
       const result = await response.json();
       
       if (result.url) {
-        // Open the authorization URL in a new window/tab instead of redirecting
         window.open(result.url, '_blank', 'noopener,noreferrer');
         toast.info('Please complete the Google authorization in the new tab');
       } else {
@@ -156,7 +148,6 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
         return;
       }
       
-      // Create a datetime string from the selected date and time
       let scheduledDateTime: string | undefined;
       if (selectedDate) {
         const dateObj = new Date(selectedDate);
@@ -183,10 +174,9 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
       const result = await response.json();
       
       if (response.ok && result.success) {
-        // Store the event link for opening later
         if (result.event && result.event.htmlLink) {
           setEventLink(result.event.htmlLink);
-          setIsAddedToCalendar(true); // Set the added to calendar state to true
+          setIsAddedToCalendar(true);
         }
         
         toast.success('Workout added to Google Calendar', {
@@ -198,7 +188,6 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
       } else {
         console.error('Error adding to calendar:', result);
         
-        // Handle the specific case of Google Calendar API not being enabled
         if (result.status === 403 && result.details && 
             (result.details.message?.includes('has not been used') || 
              result.details.message?.includes('is disabled'))) {
@@ -228,16 +217,13 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
 
   const handleClick = () => {
     if (isConnected === null) {
-      // Still checking
       return;
     }
     
     if (isConnected) {
       if (isAddedToCalendar && eventLink) {
-        // If already added to calendar and we have a link, open it
         window.open(eventLink, '_blank', 'noopener,noreferrer');
       } else if (!isAddedToCalendar) {
-        // Show date picker only if not added to calendar yet
         setShowDatePicker(true);
       }
     } else {
@@ -251,7 +237,6 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
       return;
     }
     
-    // Close dialog and continue with adding to calendar
     setShowDatePicker(false);
     addToCalendar();
   };
@@ -261,7 +246,7 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
       <Button
         variant={isAddedToCalendar ? 'secondary' : variant}
         size="sm"
-        className={`${className} ${isAddedToCalendar ? 'bg-green-100 text-green-800 hover:bg-green-200 border-green-300' : ''}`}
+        className={`${className} ${isAddedToCalendar ? 'bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800 dark:border-green-700' : ''}`}
         onClick={handleClick}
         disabled={disabled || isLoading || isConnected === null}
       >
@@ -291,49 +276,57 @@ export const AddToGoogleCalendarButton: React.FC<AddToGoogleCalendarButtonProps>
       </Button>
       
       <Dialog open={showDatePicker} onOpenChange={setShowDatePicker}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md dark:bg-gray-800 dark:border-gray-700">
           <DialogHeader>
-            <DialogTitle>Schedule Workout</DialogTitle>
+            <DialogTitle className="dark:text-white">Schedule Workout</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date" className="dark:text-gray-300">Date</Label>
               <div className="flex justify-center">
                 <CalendarComponent
                   mode="single"
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   className="p-3 pointer-events-auto"
-                  disabled={(date) => date < new Date(Date.now() - 86400000)} // Disable dates in the past (minus 1 day tolerance)
+                  disabled={(date) => date < new Date(Date.now() - 86400000)}
                   initialFocus
                 />
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="time">Time</Label>
+              <Label htmlFor="time" className="dark:text-gray-300">Time</Label>
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 opacity-50" />
+                <Clock className="h-4 w-4 opacity-50 dark:text-gray-400" />
                 <Input 
                   id="time" 
                   type="time" 
                   value={selectedTime} 
                   onChange={(e) => setSelectedTime(e.target.value)}
+                  className="dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
                 />
               </div>
             </div>
             <div>
               {selectedDate && (
-                <p className="text-sm text-muted-foreground text-center">
+                <p className="text-sm text-muted-foreground text-center dark:text-gray-400">
                   Scheduling "{title}" for {format(selectedDate, "EEEE, MMMM d, yyyy")} at {selectedTime}
                 </p>
               )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDatePicker(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDatePicker(false)}
+              className="dark:bg-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
               Cancel
             </Button>
-            <Button onClick={handleDateTimeSubmit}>
+            <Button 
+              onClick={handleDateTimeSubmit}
+              className="dark:bg-blue-600 dark:hover:bg-blue-700"
+            >
               Add to Calendar
             </Button>
           </DialogFooter>

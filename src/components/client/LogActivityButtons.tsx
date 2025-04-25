@@ -10,7 +10,7 @@ export const LogActivityButtons: React.FC = () => {
       <Button 
         asChild
         variant="outline" 
-        className="flex items-center justify-between text-blue-600 border-blue-200 hover:bg-blue-50 shadow-lg"
+        className="flex items-center justify-between text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-900/30 shadow-lg"
       >
         <Link to="/client-dashboard/workouts/log-run">
           <div className="flex items-center">
@@ -24,7 +24,7 @@ export const LogActivityButtons: React.FC = () => {
       <Button 
         asChild
         variant="outline"
-        className="flex items-center justify-between text-green-600 border-green-200 hover:bg-green-50 shadow-lg"
+        className="flex items-center justify-between text-green-600 dark:text-green-400 border-green-200 dark:border-green-900 hover:bg-green-50 dark:hover:bg-green-900/30 shadow-lg"
       >
         <Link to="/client-dashboard/workouts/live-run">
           <div className="flex items-center">
@@ -38,7 +38,7 @@ export const LogActivityButtons: React.FC = () => {
       <Button 
         asChild
         variant="outline"
-        className="flex items-center justify-between text-purple-600 border-purple-200 hover:bg-purple-50 shadow-lg"
+        className="flex items-center justify-between text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-900 hover:bg-purple-50 dark:hover:bg-purple-900/30 shadow-lg"
       >
         <Link to="/client-dashboard/workouts/log-cardio">
           <div className="flex items-center">
@@ -52,7 +52,7 @@ export const LogActivityButtons: React.FC = () => {
       <Button 
         asChild
         variant="outline"
-        className="flex items-center justify-between text-amber-600 border-amber-200 hover:bg-amber-50 shadow-lg"
+        className="flex items-center justify-between text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900 hover:bg-amber-50 dark:hover:bg-amber-900/30 shadow-lg"
       >
         <Link to="/client-dashboard/workouts/log-rest">
           <div className="flex items-center">

@@ -20,10 +20,10 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
       <Toaster position="top-center" richColors />
       
-      <header className="bg-white shadow-sm border-b border-gray-200 py-4">
+      <header className="bg-card shadow-sm border-b border-border py-4">
         <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
@@ -41,14 +41,14 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
         </div>
       </main>
       
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md z-[100]">
+      <footer className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-md z-[100]">
         <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
           <nav className="flex justify-center">
             <ul className="flex justify-evenly w-full max-w-screen-xl mx-auto">
               <li className="flex-1 flex justify-center">
                 <Link 
                   to="/client-dashboard/leaderboard" 
-                  className={`flex flex-col items-center py-3 ${isActive('/leaderboard') ? 'text-client' : 'text-gray-500'}`}
+                  className={`flex flex-col items-center py-3 ${isActive('/leaderboard') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
                   <LayoutDashboard className="h-5 w-5" />
                   <span className="text-xs mt-1">Dashboard</span>
@@ -58,7 +58,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
               <li className="flex-1 flex justify-center">
                 <Link 
                   to="/client-dashboard/workouts" 
-                  className={`flex flex-col items-center py-3 ${isActive('/workouts') ? 'text-client' : 'text-gray-500'}`}
+                  className={`flex flex-col items-center py-3 ${isActive('/workouts') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
                   <Dumbbell className="h-5 w-5" />
                   <span className="text-xs mt-1">Workouts</span>
@@ -68,7 +68,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
               <li className="flex-1 flex justify-center">
                 <Link 
                   to="/client-dashboard/moai" 
-                  className={`flex flex-col items-center py-3 ${isActive('/moai') ? 'text-client' : 'text-gray-500'}`}
+                  className={`flex flex-col items-center py-3 ${isActive('/moai') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
                   <Mountain className="h-5 w-5" />
                   <span className="text-xs mt-1 whitespace-nowrap">Your Moai</span>
@@ -78,7 +78,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
               <li className="flex-1 flex justify-center">
                 <Link 
                   to="/client-dashboard/notes" 
-                  className={`flex flex-col items-center py-3 ${isActive('/notes') ? 'text-client' : 'text-gray-500'}`}
+                  className={`flex flex-col items-center py-3 ${isActive('/notes') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
                   <Banana className="h-5 w-5" />
                   <span className="text-xs mt-1">Nutrition</span>
@@ -88,7 +88,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
               <li className="flex-1 flex justify-center">
                 <Link 
                   to="/client-dashboard/settings" 
-                  className={`flex flex-col items-center py-3 ${isActive('/settings') ? 'text-client' : 'text-gray-500'}`}
+                  className={`flex flex-col items-center py-3 ${isActive('/settings') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
                 >
                   <Settings className="h-5 w-5" />
                   <span className="text-xs mt-1">Settings</span>

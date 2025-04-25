@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,13 +21,13 @@ const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
 
   const getIconForResource = (url: string) => {
     if (url.includes('calendar') || url.includes('event') || url.includes('schedule')) {
-      return <Calendar className="h-4 w-4 text-blue-500" />;
+      return <Calendar className="h-4 w-4 text-blue-500 dark:text-blue-400" />;
     } else if (url.includes('book') || url.includes('pdf') || url.includes('doc')) {
-      return <Book className="h-4 w-4 text-emerald-500" />;
+      return <Book className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />;
     } else if (url.includes('info') || url.includes('about') || url.includes('faq')) {
-      return <Info className="h-4 w-4 text-amber-500" />;
+      return <Info className="h-4 w-4 text-amber-500 dark:text-amber-400" />;
     } else {
-      return <LinkIcon className="h-4 w-4 text-purple-500" />;
+      return <LinkIcon className="h-4 w-4 text-purple-500 dark:text-purple-400" />;
     }
   };
 
@@ -34,7 +35,7 @@ const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
     return (
       <Card className="mt-4 shadow-lg">
         <CardContent className="pt-6 flex justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-client" />
+          <Loader2 className="h-6 w-6 animate-spin text-client dark:text-blue-300" />
         </CardContent>
       </Card>
     );
@@ -84,7 +85,7 @@ const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
                 )}
                 <Button 
                   variant="link" 
-                  className="h-8 px-0 text-blue-600 flex items-center gap-1"
+                  className="h-8 px-0 text-blue-600 dark:text-blue-400 flex items-center gap-1"
                   asChild
                 >
                   <a href={resource.url} target="_blank" rel="noopener noreferrer">

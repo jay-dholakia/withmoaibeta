@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -259,7 +260,7 @@ const WorkoutsList = () => {
   if (isLoading) {
     return (
       <div className="py-10 text-center">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-client" />
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-client dark:text-blue-300" />
         <p>Loading your workouts...</p>
       </div>
     );
@@ -268,7 +269,7 @@ const WorkoutsList = () => {
   if (error) {
     return (
       <div className="py-10 text-center">
-        <p className="text-red-500 mb-4">{error}</p>
+        <p className="text-red-500 dark:text-red-400 mb-4">{error}</p>
         <Button onClick={() => window.location.reload()}>
           Try Again
         </Button>
@@ -301,7 +302,7 @@ const WorkoutsList = () => {
           <div className="flex justify-center mb-2">
             <div className="relative" ref={selectRef}>
               <button
-                className="flex w-[200px] h-8 text-sm items-center justify-between rounded-md border border-input bg-background px-3 py-2 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                className="flex w-[200px] h-8 text-sm items-center justify-between rounded-md border border-input bg-card px-3 py-2 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 onClick={toggleSelectDropdown}
               >
                 <div className="flex items-center gap-1">
@@ -394,7 +395,7 @@ const WorkoutsList = () => {
         )}
       </div>
       
-      <div className="mt-8 border-t pt-6">
+      <div className="mt-8 border-t border-border pt-6">
         <h3 className="text-lg font-medium mb-4">Add Other Activity</h3>
         
         <LogActivityButtons />
@@ -402,7 +403,7 @@ const WorkoutsList = () => {
         <Button 
           asChild 
           variant="outline" 
-          className="w-full mt-4 flex items-center justify-between text-emerald-600 border-emerald-200 hover:bg-emerald-50 shadow-lg"
+          className="w-full mt-4 flex items-center justify-between text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 shadow-lg"
         >
           <Link to="/client-dashboard/workouts/one-off">
             <div className="flex items-center">

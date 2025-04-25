@@ -49,10 +49,10 @@
     --background: 222 47% 9%;
     --foreground: 210 40% 98%;
 
-    --card: 222 47% 9%;
+    --card: 222 47% 11%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 47% 9%;
+    --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
 
     --primary: 210 40% 98%;
@@ -73,6 +73,15 @@
     --border: 217 33% 16%;
     --input: 217 33% 16%;
     --ring: 213 27% 84%;
+
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 80%;
+    --sidebar-primary: 210 40% 98%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 33% 18%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 18%;
+    --sidebar-ring: 213 27% 84%;
   }
 }
 

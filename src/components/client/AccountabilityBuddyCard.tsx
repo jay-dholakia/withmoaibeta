@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -42,15 +43,15 @@ export function AccountabilityBuddyCard({
   };
 
   return (
-    <Card className="shadow-lg bg-slate-50 mt-3">
+    <Card className="shadow-lg mt-3">
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center">
-            <UserCheck className="h-4 w-4 mr-2 text-client" />
+            <UserCheck className="h-4 w-4 mr-2 text-client dark:text-blue-300" />
             <h3 className="font-medium text-sm">This Week's Accountability Buddy</h3>
           </div>
 
-          <Badge className="text-xs bg-white">
+          <Badge className="text-xs bg-background dark:bg-secondary">
             Refreshes Monday
           </Badge>
 
@@ -72,7 +73,7 @@ export function AccountabilityBuddyCard({
             buddies.map((buddy) => (
               <div
                 key={buddy.userId}
-                className="flex items-center p-2 rounded-md bg-white border cursor-pointer hover:bg-gray-50 transition-colors"
+                className="flex items-center p-2 rounded-md bg-background dark:bg-secondary border border-border cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 onClick={() => handleClick(buddy.userId)}
               >
                 <Avatar className="h-8 w-8 mr-2">
@@ -86,7 +87,7 @@ export function AccountabilityBuddyCard({
               </div>
             ))
           ) : (
-            <div className="col-span-2 p-3 bg-white border rounded-md text-center text-sm text-muted-foreground">
+            <div className="col-span-2 p-3 bg-background dark:bg-secondary border border-border rounded-md text-center text-sm text-muted-foreground">
               No accountability buddy assigned yet for this week.
             </div>
           )}

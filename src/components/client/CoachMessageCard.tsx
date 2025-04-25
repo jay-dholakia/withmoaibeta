@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { fetchLatestCoachMessage, CoachMessage, markCoachMessageAsRead } from '@/services/coach-message-service';
@@ -120,7 +121,7 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
         </p>
       </CardHeader>
       <CardContent>
-        <blockquote className="border-l-4 border-client pl-4 italic text-left">
+        <blockquote className="border-l-4 border-client dark:border-blue-500 pl-4 italic text-left">
           "{message.message}"
         </blockquote>
       </CardContent>

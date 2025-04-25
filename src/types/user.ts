@@ -19,3 +19,8 @@ export interface Profile {
   event_name?: string;
   profile_completed?: boolean;
 }
+
+// Add ClientProfile interface that extends Profile
+export interface ClientProfile extends Profile {
+  user_type: 'client';
+}

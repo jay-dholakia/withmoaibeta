@@ -399,7 +399,11 @@ const WorkoutsList = () => {
         
         <LogActivityButtons />
         
-        <Button asChild variant="outline" className="w-full mt-4 flex items-center justify-between text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+        <Button 
+          asChild 
+          variant="outline" 
+          className="w-full mt-4 flex items-center justify-between text-emerald-600 border-emerald-200 hover:bg-emerald-50 shadow-lg"
+        >
           <Link to="/client-dashboard/workouts/one-off">
             <div className="flex items-center">
               <PlusCircle className="h-4 w-4 mr-2" />

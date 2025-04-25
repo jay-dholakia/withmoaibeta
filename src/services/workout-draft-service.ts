@@ -101,10 +101,11 @@ export const updateExerciseIdInDraft = async (
     const draftData = draft.draft_data;
     let updated = false;
     
-    // Update exerciseStates key - update the exercise_id property to track the new exercise
+    // Update exerciseStates key
     if (draftData.exerciseStates && draftData.exerciseStates[oldExerciseId]) {
-      // Keep the same key but update the exercise_id property
+      // Update the exercise_id property to track the new exercise
       draftData.exerciseStates[oldExerciseId].exercise_id = newExerciseId;
+      console.log(`Updated exercise_id in exerciseStates[${oldExerciseId}] to ${newExerciseId}`);
       updated = true;
     }
     
@@ -114,8 +115,8 @@ export const updateExerciseIdInDraft = async (
         // Update if this set belongs to the exercise being swapped
         if (set.exerciseId === oldExerciseId) {
           // We keep the same exerciseId because it refers to the workout_exercise_id
-          // which doesn't change, only the exercise within it changes
-          return { ...set, exercise_id: newExerciseId }; 
+          // but update the exercise_id property to reference the new exercise
+          return { ...set, exercise_id: newExerciseId };
         }
         return set;
       });
@@ -158,6 +159,12 @@ export const updateExerciseIdInDraft = async (
     if (updated) {
       // Update sessionStorage first for immediate access
       try {
+        console.log("Updating draft in sessionStorage with:", {
+          draft_data: draftData,
+          workout_type: 'workout',
+          updated_at: new Date().toISOString()
+        });
+        
         sessionStorage.setItem(`workout_draft_${workoutId}`, JSON.stringify({
           draft_data: draftData,
           workout_type: 'workout',
@@ -188,6 +195,18 @@ export const getWorkoutDraft = async (
   console.log(`Attempting to get workout draft for workoutId: ${workoutId}`);
   
   try {
+    // First try to get from sessionStorage for faster access
+    try {
+      const cachedDraft = sessionStorage.getItem(`workout_draft_${workoutId}`);
+      if (cachedDraft) {
+        const parsedDraft = JSON.parse(cachedDraft);
+        console.log("Retrieved draft from sessionStorage:", parsedDraft);
+        return parsedDraft;
+      }
+    } catch (e) {
+      console.warn("Failed to retrieve draft from sessionStorage:", e);
+    }
+    
     // Fetch from database with retries
     for (let i = 0; i <= maxRetries; i++) {
       // Ensure we have the authenticated user
@@ -217,6 +236,14 @@ export const getWorkoutDraft = async (
       } else {
         if (data) {
           console.log("Retrieved draft from database:", data);
+          
+          // Store in sessionStorage for faster access next time
+          try {
+            sessionStorage.setItem(`workout_draft_${workoutId}`, JSON.stringify(data));
+          } catch (e) {
+            console.warn("Failed to store draft in sessionStorage:", e);
+          }
+          
           // Ensure draft_data is properly formatted
           return {
             ...data,
@@ -245,6 +272,13 @@ export const deleteWorkoutDraft = async (
   console.log(`Deleting workout draft for workoutId: ${workoutId}`);
 
   try {
+    // Remove from sessionStorage first
+    try {
+      sessionStorage.removeItem(`workout_draft_${workoutId}`);
+    } catch (e) {
+      console.warn("Failed to remove draft from sessionStorage:", e);
+    }
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       console.error("Auth error when deleting draft:", authError);

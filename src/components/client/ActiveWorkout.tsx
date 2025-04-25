@@ -909,7 +909,13 @@ const ActiveWorkout = () => {
             return ex;
           });
           
-          if (workoutCompletionId && originalExerciseId && newExercise.id) {
+          if (workoutCompletionId) {
+            console.log("Updating draft with new exercise:", {
+              workoutCompletionId,
+              originalExerciseId: originalExerciseWorkoutExerciseId,
+              newExerciseId: newExercise.id
+            });
+            
             await updateExerciseIdInDraft(
               workoutCompletionId,
               originalExerciseWorkoutExerciseId,

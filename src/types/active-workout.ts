@@ -1,4 +1,3 @@
-
 export interface ExerciseState {
   expanded: boolean;
   sets: Array<{
@@ -53,4 +52,38 @@ export interface PendingRun {
   distance: string;
   duration: string;
   location: string;
+}
+
+// Add new interface for exercise swaps
+export interface ExerciseSwap {
+  originalExerciseId: string;
+  replacementExerciseId: string;
+  timestamp: string;
+}
+
+export interface ExerciseState {
+  expanded: boolean;
+  sets: Array<{
+    setNumber: number;
+    weight: string;
+    reps: string;
+    completed: boolean;
+  }>;
+  cardioData?: {
+    distance: string;
+    duration: string;
+    location: string;
+    completed: boolean;
+  };
+  flexibilityData?: {
+    duration: string;
+    completed: boolean;
+  };
+  runData?: {
+    distance: string;
+    duration: string;
+    location: string;
+    completed: boolean;
+  };
+  swapData?: ExerciseSwap;
 }

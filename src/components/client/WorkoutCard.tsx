@@ -63,7 +63,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   return (
     <Card className={cn(
       "overflow-hidden transition-all",
-      isCurrentUserCompleted ? "bg-gray-50 border-gray-100" : "bg-white"
+      isCurrentUserCompleted ? "bg-gray-50" : "bg-white"
     )}>
       <CardHeader className="px-3 py-2 flex flex-row items-start justify-between">
         <div className="flex items-center gap-2">

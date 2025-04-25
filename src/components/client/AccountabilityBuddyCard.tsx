@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -43,7 +42,7 @@ export function AccountabilityBuddyCard({
   };
 
   return (
-    <Card className="border-none shadow-none bg-slate-50 mt-3">
+    <Card className="shadow-sm bg-slate-50 mt-3">
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center">

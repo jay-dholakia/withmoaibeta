@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { fetchLatestCoachMessage, CoachMessage, markCoachMessageAsRead } from '@/services/coach-message-service';
@@ -16,11 +15,9 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
   const [loading, setLoading] = useState(true);
   const [programWeek, setProgramWeek] = useState<number | null>(null);
 
-  // Calculate which program week the message corresponds to
   const calculateProgramWeek = async (messageDateStr: string) => {
     try {
       const messageDate = new Date(messageDateStr);
-      // Fetch the user's assigned program
       const { data, error } = await supabase
         .from('program_assignments')
         .select('start_date')
@@ -36,28 +33,24 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
       if (data && data.length > 0) {
         const startDate = new Date(data[0].start_date);
         
-        // If program hasn't started yet, return Week 0
         if (isFuture(startDate)) {
           setProgramWeek(0);
           return 0;
         }
         
-        // If message is before program start
         if (messageDate < startDate) {
           setProgramWeek(0);
           return 0;
         }
         
-        // Calculate the difference in weeks
         const diffTime = messageDate.getTime() - startDate.getTime();
         const diffDays = diffTime / (1000 * 3600 * 24);
-        const weekNumber = Math.floor(diffDays / 7) + 1; // +1 because we're in the first week when we start
+        const weekNumber = Math.floor(diffDays / 7) + 1;
         
         setProgramWeek(weekNumber);
         return weekNumber;
       }
       
-      // No program assigned
       setProgramWeek(0);
       return 0;
     } catch (error) {
@@ -75,11 +68,9 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
       const coachMessage = await fetchLatestCoachMessage(userId);
       setMessage(coachMessage);
       
-      // Calculate program week if we have a message
       if (coachMessage) {
         await calculateProgramWeek(coachMessage.week_of);
         
-        // Mark the message as read if not already read
         if (!coachMessage.read_by_client) {
           await markCoachMessageAsRead(coachMessage.id);
         }
@@ -93,7 +84,7 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
 
   if (loading) {
     return (
-      <Card className="mb-6">
+      <Card className="mb-6 shadow-sm">
         <CardHeader className="pb-2">
           <Skeleton className="h-6 w-2/3" />
         </CardHeader>
@@ -106,7 +97,7 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
 
   if (!message) {
     return (
-      <Card className="mb-6">
+      <Card className="mb-6 shadow-sm">
         <CardContent className="py-6">
           <div className="flex flex-col items-center justify-center text-center text-muted-foreground">
             <MessageSquare className="h-8 w-8 mb-2 opacity-60" />
@@ -118,7 +109,7 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({ userId }) =>
   }
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-6 shadow-sm">
       <CardHeader className="pb-2">
         <h3 className="text-lg font-medium">
           Message from Coach {message.coach_first_name || 'Your Coach'}

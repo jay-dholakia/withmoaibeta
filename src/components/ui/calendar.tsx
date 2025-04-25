@@ -27,7 +27,7 @@ export function Calendar({
       onSelect={onSelect}
       captionLayout="label"
       components={{
-        Caption: CalendarCaption as React.ComponentType<any>
+        Caption: (props) => <CalendarCaption {...props} />
       }}
       className={`pointer-events-auto ${className || ''}`}
       disabled={disabled}

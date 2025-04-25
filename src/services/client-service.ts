@@ -140,6 +140,25 @@ export const uploadClientAvatar = async (userId: string, file: File): Promise<st
   return data.publicUrl;
 };
 
+// Fix the trackWorkoutSet function to accept all required parameters
+export const trackWorkoutSet = async (
+  exerciseId: string,
+  workoutCompletionId: string, 
+  setNumber: number, 
+  data: any
+) => {
+  const response = await supabase
+    .from('workout_set_completions')
+    .insert({
+      workout_exercise_id: exerciseId,
+      workout_completion_id: workoutCompletionId,
+      set_number: setNumber,
+      ...data
+    });
+  
+  return response;
+};
+
 export const completeWorkout = async (workoutId: string, data: any) => {
   // Implementation for completing a workout
   const response = await supabase
@@ -162,14 +181,6 @@ export const fetchPersonalRecords = async (userId: string) => {
   }
 
   return data;
-};
-
-export const trackWorkoutSet = async (data: any) => {
-  const response = await supabase
-    .from('workout_set_completions')
-    .insert(data);
-  
-  return response;
 };
 
 export const deleteUser = async (userId: string) => {

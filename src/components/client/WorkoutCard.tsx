@@ -158,7 +158,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
           className={cn(
             "w-full h-10 py-2 text-sm outline-none focus:outline-none",
             isCurrentUserCompleted 
-              ? "bg-gray-400 hover:bg-gray-500 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600" 
+              ? "bg-gray-400 hover:bg-gray-500 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200" 
               : "dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
           )}
           size="default"

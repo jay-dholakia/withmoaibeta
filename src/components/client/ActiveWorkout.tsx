@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -29,22 +28,39 @@ const ActiveWorkout = () => {
 
   const [expandedDescriptions, setExpandedDescriptions] = useState<{ [key: string]: boolean }>({});
 
-  const { data: workoutData, isLoading } = useQuery({
+  useEffect(() => {
+    console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
+    console.log("ActiveWorkout: Current user:", user?.id);
+  }, [workoutCompletionId, user?.id]);
+
+  const { data: workoutData, isLoading, error } = useQuery({
     queryKey: ['active-workout', workoutCompletionId],
     queryFn: async () => {
+      console.log("Fetching workout data for ID:", workoutCompletionId);
       const { data, error } = await supabase
         .from('workout_completions')
         .select(`*, workout:workout_id (*, workout_exercises (*, exercise:exercise_id (*)))`)
         .eq('id', workoutCompletionId || '')
         .eq('user_id', user?.id)
         .maybeSingle();
-      if (error) throw error;
+      
+      if (error) {
+        console.error("Error fetching workout:", error);
+        throw error;
+      }
+      
+      console.log("Workout data received:", data);
       return data;
     },
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Ensure workoutExercises is an array with proper type checking
+  useEffect(() => {
+    if (error) {
+      console.error("Error in workout query:", error);
+    }
+  }, [error]);
+
   const workoutExercises = Array.isArray(workoutData?.workout?.workout_exercises)
     ? workoutData.workout.workout_exercises
     : [];
@@ -96,6 +112,9 @@ const ActiveWorkout = () => {
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <AlertCircle className="h-12 w-12 text-destructive mb-4" />
         <h2 className="text-xl font-bold mb-2">Workout Not Found</h2>
+        <p className="text-gray-600 mb-4">
+          We couldn't find the workout with ID: {workoutCompletionId}
+        </p>
         <Button onClick={() => navigate('/client-dashboard/workouts')}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
         </Button>

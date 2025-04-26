@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -106,10 +105,6 @@ const App: React.FC = () => {
       <Route path="/workouts" element={<ClientRoute><ClientWorkoutHistoryPage /></ClientRoute>} />
       <Route path="/workouts/:workoutId" element={<ClientRoute><ClientWorkoutDetailsPage /></ClientRoute>} />
       
-      {/* Handle 404s for any specific paths */}
-      <Route path="/client-dashboard/workouts/active/:workoutId" element={<ClientRoute><NotFound /></ClientRoute>} />
-      
-      {/* All other unmatched routes */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

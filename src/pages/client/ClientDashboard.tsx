@@ -29,7 +29,6 @@ const ClientDashboard = () => {
           <Route path="settings/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="settings/terms-of-service" element={<TermsOfServicePage />} />
           <Route path="notes" element={<NotesPage />} />
-          <Route path="workouts/active/:workoutId" element={<NotFound />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>

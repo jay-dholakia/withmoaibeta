@@ -34,6 +34,14 @@ const NotFound = () => {
   const isWorkoutNotFound = location.pathname.includes("/workouts/active/") || 
                            location.pathname.includes("/workout/");
 
+  // Extract the workout ID for better error reporting
+  const extractWorkoutId = () => {
+    const parts = location.pathname.split('/');
+    return parts[parts.length - 1];
+  };
+
+  const workoutId = isWorkoutNotFound ? extractWorkoutId() : null;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
@@ -45,6 +53,7 @@ const NotFound = () => {
             <h1 className="text-2xl font-bold text-gray-800 mb-4">Workout Not Found</h1>
             <p className="text-gray-600 mb-6">
               We couldn't find the workout you're looking for. It may have been deleted or you may not have access to it.
+              {workoutId && <span className="block mt-2 text-sm font-mono bg-gray-100 px-2 py-1 rounded">{workoutId}</span>}
             </p>
           </>
         ) : (

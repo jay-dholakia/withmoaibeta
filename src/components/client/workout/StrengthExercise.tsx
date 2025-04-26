@@ -1,10 +1,15 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Youtube, ArrowRightLeft, Info } from 'lucide-react';
 import { WorkoutExercise, PersonalRecord } from '@/types/workout';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { fetchSimilarExercises } from '@/services/exercise-service';
+import { useQuery } from '@tanstack/react-query';
+import VideoDialog from './VideoDialog';
+import { toast } from 'sonner';
 
 interface Props {
   exercise: WorkoutExercise;
@@ -25,6 +30,23 @@ export const StrengthExercise: React.FC<Props> = ({
   onVideoClick,
   onSwapClick
 }) => {
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+
+  // Query for similar exercises
+  const { data: similarExercises } = useQuery({
+    queryKey: ['similar-exercises', exercise.exercise?.id],
+    queryFn: () => fetchSimilarExercises(exercise.exercise?.id || ''),
+    enabled: !!exercise.exercise?.id,
+  });
+
+  const handleSwapExercise = (newExercise: any) => {
+    onSwapClick({
+      ...exercise,
+      exercise: newExercise,
+    });
+    toast.success(`Swapped to ${newExercise.name}`);
+  };
+
   return (
     <div className="space-y-3">
       {personalRecord && (
@@ -85,19 +107,50 @@ export const StrengthExercise: React.FC<Props> = ({
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => onVideoClick(exercise.exercise!.youtube_link!, exercise.exercise!.name)}
+            onClick={() => setIsVideoOpen(true)}
           >
             <Youtube className="h-4 w-4 mr-1" /> Demo
           </Button>
         )}
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => onSwapClick(exercise)}
-        >
-          <ArrowRightLeft className="h-4 w-4 mr-1" /> Swap
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm"
+            >
+              <ArrowRightLeft className="h-4 w-4 mr-1" /> Swap
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" side="top">
+            <div className="space-y-2">
+              {similarExercises?.map((similar) => (
+                <Button
+                  key={similar.id}
+                  variant="ghost"
+                  className="w-full justify-start text-sm"
+                  onClick={() => handleSwapExercise(similar)}
+                >
+                  {similar.name}
+                </Button>
+              ))}
+              {(!similarExercises || similarExercises.length === 0) && (
+                <p className="text-sm text-muted-foreground p-2">
+                  No alternative exercises found
+                </p>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
+
+      {exercise.exercise?.youtube_link && (
+        <VideoDialog 
+          isOpen={isVideoOpen}
+          onClose={() => setIsVideoOpen(false)}
+          videoUrl={exercise.exercise.youtube_link}
+          exerciseName={exercise.exercise.name || 'Exercise'}
+        />
+      )}
     </div>
   );
 };

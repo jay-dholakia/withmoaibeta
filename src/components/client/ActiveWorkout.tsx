@@ -173,7 +173,8 @@ const ActiveWorkout = () => {
     setPendingFlexibility,
     pendingRuns,
     setPendingRuns,
-    workoutDataInitialized
+    workoutDataInitialized,
+    sortedExerciseIds
   } = useWorkoutState(workoutData?.workout?.workout_exercises as WorkoutExercise[] | undefined);
 
   const formatDurationInput = (value: string): string => {
@@ -1141,9 +1142,11 @@ const ActiveWorkout = () => {
     
       {workoutData.workout?.workout_exercises && Array.isArray(workoutData.workout.workout_exercises) && workoutData.workout.workout_exercises.length > 0 ? (
         <div className="space-y-6 mb-40">
-          {workoutData.workout.workout_exercises.map((exercise: WorkoutExercise) => (
-            renderExerciseCard(exercise)
-          ))}
+          {sortedExerciseIds.map(exerciseId => {
+            const exercise = workoutData.workout!.workout_exercises!.find(ex => ex.id === exerciseId);
+            if (!exercise) return null;
+            return renderExerciseCard(exercise);
+          })}
           
           <div className="fixed bottom-14 left-0 right-0 bg-background p-4 border-t z-50 shadow-lg">
             <Button

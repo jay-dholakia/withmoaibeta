@@ -13,12 +13,32 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
   const [pendingFlexibility, setPendingFlexibility] = useState<PendingFlexibility[]>([]);
   const [pendingRuns, setPendingRuns] = useState<PendingRun[]>([]);
   const [workoutDataInitialized, setWorkoutDataInitialized] = useState(false);
+  const [sortedExerciseIds, setSortedExerciseIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (workoutExercises && !workoutDataInitialized) {
       const initialState: ExerciseStates = {};
+      const orderedExerciseIds: string[] = [];
       
-      workoutExercises.forEach((exercise) => {
+      // Sort exercises by order_index if available
+      const sortedExercises = [...workoutExercises].sort((a, b) => {
+        // Use order_index as primary sort field if available on both
+        if (a.order_index !== undefined && b.order_index !== undefined) {
+          return a.order_index - b.order_index;
+        }
+        // Fall back to array order if order_index not available
+        return 0;
+      });
+      
+      // Store the sorted exercise IDs
+      sortedExercises.forEach(exercise => {
+        orderedExerciseIds.push(exercise.id);
+      });
+      
+      // Set the sorted exercise IDs
+      setSortedExerciseIds(orderedExerciseIds);
+      
+      sortedExercises.forEach((exercise) => {
         const exerciseType = exercise.exercise?.exercise_type || 'strength';
         const exerciseName = (exercise.exercise?.name || '').toLowerCase();
         const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
@@ -77,7 +97,8 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
         console.log(`Initialized exercise state for ${exerciseName}`, {
           workoutExerciseId: exercise.id,
           exerciseId: exercise.exercise?.id,
-          exerciseType
+          exerciseType,
+          orderIndex: exercise.order_index
         });
       });
       
@@ -98,6 +119,7 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
     setPendingFlexibility,
     pendingRuns,
     setPendingRuns,
-    workoutDataInitialized
+    workoutDataInitialized,
+    sortedExerciseIds
   };
 };

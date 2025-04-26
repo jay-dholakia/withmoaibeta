@@ -38,11 +38,15 @@ export const saveWorkoutDraft = async (
       dataSize: JSON.stringify(draftDataToStore).length,
       exerciseStatesCount: Object.keys(draftDataToStore.exerciseStates || {}).length,
       pendingSetsCount: (draftDataToStore.pendingSets || []).length,
-      exerciseIds: Object.keys(draftDataToStore.exerciseStates || {}).map(key => {
+      exercises: Object.keys(draftDataToStore.exerciseStates || {}).map(key => {
         const exercise = draftDataToStore.exerciseStates[key];
+        const swapInfo = exercise.swapData 
+          ? `[Swapped: ${exercise.swapData.originalExerciseId} → ${exercise.swapData.replacementExerciseId}]` 
+          : '';
         return {
           workoutExerciseId: key,
-          exerciseId: exercise.exercise_id
+          exerciseId: exercise.exercise_id,
+          swapInfo
         };
       })
     });
@@ -100,21 +104,23 @@ export const updateExerciseIdInDraft = async (
     
     // Update exercise_id in exerciseStates
     if (draftData.exerciseStates && draftData.exerciseStates[workoutExerciseId]) {
-      console.log(`Found exercise in draft states to update: ${workoutExerciseId} → ${newExerciseId}`, {
-        exerciseState: draftData.exerciseStates[workoutExerciseId],
-        workoutExerciseId,
-        newExerciseId
-      });
+      const originalExerciseId = draftData.exerciseStates[workoutExerciseId].exercise_id;
       
-      // Update the exercise_id field
-      draftData.exerciseStates[workoutExerciseId].exercise_id = newExerciseId;
+      console.log(`Found exercise in draft states to update: ${workoutExerciseId}`, {
+        originalExerciseId,
+        newExerciseId,
+        exerciseState: draftData.exerciseStates[workoutExerciseId]
+      });
       
       // Add swap tracking data - this helps us identify swapped exercises
       draftData.exerciseStates[workoutExerciseId].swapData = {
         timestamp: new Date().toISOString(),
-        originalExerciseId: draftData.exerciseStates[workoutExerciseId].exercise_id || null,
+        originalExerciseId: originalExerciseId || null,
         replacementExerciseId: newExerciseId
       };
+      
+      // Update the exercise_id field
+      draftData.exerciseStates[workoutExerciseId].exercise_id = newExerciseId;
       
       updated = true;
     } else {
@@ -214,7 +220,8 @@ export const updateExerciseIdInDraft = async (
         draftData: {
           exerciseStates: Object.keys(draftData.exerciseStates || {}).map(id => ({
             id,
-            exercise_id: draftData.exerciseStates[id].exercise_id
+            exercise_id: draftData.exerciseStates[id].exercise_id,
+            swapData: draftData.exerciseStates[id].swapData
           }))
         }
       });

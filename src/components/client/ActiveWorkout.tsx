@@ -178,10 +178,10 @@ const ActiveWorkout = () => {
       return workoutData.workout.workout_exercises;
     }
     
-    // Check if the exercises are in standalone_workout_exercises (standalone workout case)
-    if (workoutData.workout.standalone_workout_exercises && 
-        Array.isArray(workoutData.workout.standalone_workout_exercises)) {
-      return workoutData.workout.standalone_workout_exercises;
+    // Safely check if standalone_workout_exercises exists and is an array
+    const standaloneExercises = (workoutData.workout as any).standalone_workout_exercises;
+    if (standaloneExercises && Array.isArray(standaloneExercises)) {
+      return standaloneExercises;
     }
     
     // If we still don't have exercises, look for them directly in the workout

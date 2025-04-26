@@ -61,8 +61,8 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         ? "bg-gray-50 dark:bg-gray-800/70" 
         : "bg-white dark:bg-gray-800 dark:border-gray-700"
     )}>
-      <CardHeader className="px-3 py-2 flex flex-row items-start justify-between">
-        <div className="flex items-center gap-2">
+      <CardHeader className="px-3 py-2">
+        <div className="flex items-center gap-2 mb-1">
           <div className="text-client dark:text-blue-400">
             {isLifeHappensPass ? 
               <Umbrella className="h-4 w-4" /> : 
@@ -75,7 +75,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         </div>
         
         {groupMembers.length > 0 && (
-          <div className="flex -space-x-1.5">
+          <div className="flex flex-wrap gap-1">
             <TooltipProvider>
               {groupMembers.map((member) => {
                 const hasCompleted = member.completed_workout_ids.includes(workoutId);

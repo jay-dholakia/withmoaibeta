@@ -161,9 +161,43 @@ const ActiveWorkout = () => {
     }
   }, [error]);
 
-  const workoutExercises = Array.isArray(workoutData?.workout?.workout_exercises)
-    ? workoutData.workout.workout_exercises
-    : [];
+  // Log the workout data to debug
+  useEffect(() => {
+    if (workoutData) {
+      console.log("Workout data fetched:", workoutData);
+      console.log("Workout exercises:", workoutData.workout?.workout_exercises);
+    }
+  }, [workoutData]);
+
+  // Ensure we have an array of workout exercises, even if the structure varies
+  const getWorkoutExercises = () => {
+    if (!workoutData || !workoutData.workout) return [];
+    
+    // Check if the exercises are in workout_exercises (standard case)
+    if (Array.isArray(workoutData.workout.workout_exercises)) {
+      return workoutData.workout.workout_exercises;
+    }
+    
+    // Check if the exercises are in standalone_workout_exercises (standalone workout case)
+    if (workoutData.workout.standalone_workout_exercises && 
+        Array.isArray(workoutData.workout.standalone_workout_exercises)) {
+      return workoutData.workout.standalone_workout_exercises;
+    }
+    
+    // If we still don't have exercises, look for them directly in the workout
+    if (workoutData.standalone_workout_id && workoutData.workout) {
+      if (Array.isArray(workoutData.workout.workout_exercises)) {
+        return workoutData.workout.workout_exercises;
+      }
+    }
+    
+    // Return empty array if we couldn't find exercises
+    console.error("No workout exercises found in workoutData:", workoutData);
+    return [];
+  };
+
+  const workoutExercises = getWorkoutExercises();
+  console.log("Workout exercises to render:", workoutExercises);
 
   const { exerciseStates, setExerciseStates, sortedExerciseIds } = useWorkoutState(workoutExercises);
 
@@ -330,7 +364,10 @@ const ActiveWorkout = () => {
   };
 
   const renderExerciseCard = (exercise: WorkoutExercise) => {
-    if (!exerciseStates[exercise.id]) return null;
+    if (!exerciseStates[exercise.id]) {
+      console.log(`No exercise state found for exercise with ID: ${exercise.id}`);
+      return null;
+    }
     
     const { expanded } = exerciseStates[exercise.id];
     const exerciseName = exercise.exercise?.name || '';
@@ -463,13 +500,11 @@ const ActiveWorkout = () => {
 
       <Stopwatch className="mt-2 mb-6" />
 
-      {Array.isArray(workoutExercises) && workoutExercises.length > 0 ? (
+      {workoutExercises.length > 0 ? (
         <div className="space-y-6 mb-32">
-          {sortedExerciseIds.map(exerciseId => {
-            const exercise = workoutExercises.find(ex => ex.id === exerciseId);
-            if (!exercise) return null;
-            return renderExerciseCard(exercise);
-          })}
+          {console.log("Rendering workout exercises:", workoutExercises)}
+          {console.log("Sorted exercise IDs:", sortedExerciseIds)}
+          {workoutExercises.map(exercise => renderExerciseCard(exercise))}
           
           <div className="fixed bottom-24 left-0 right-0 bg-gradient-to-t from-background to-transparent pt-6 pb-4 px-4">
             <Button 

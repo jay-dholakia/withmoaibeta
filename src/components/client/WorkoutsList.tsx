@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -17,6 +16,8 @@ import { LogActivityButtons } from './LogActivityButtons';
 import LifeHappensButton from './LifeHappensButton';
 import { formatInTimeZone } from 'date-fns-tz';
 import { addDays, startOfWeek } from 'date-fns';
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
@@ -214,13 +215,11 @@ const WorkoutsList = () => {
     navigate(`/client-dashboard/workouts/active/${workoutId}`);
   }, [navigate]);
 
-  // Helper function to check if a workout is completed
   const isWorkoutCompleted = (workoutId: string): boolean => {
     const workout = workouts.find(w => w.id === workoutId);
     return !!workout?.completed_at;
   };
 
-  // Helper function to check if a workout is a life happens pass
   const isLifeHappensPass = (workout: any): boolean => {
     return workout?.life_happens_pass === true || workout?.workout_type === 'life_happens';
   };
@@ -232,11 +231,9 @@ const WorkoutsList = () => {
     
     if (calendarStatus === 'connected') {
       toast.success('Google Calendar connected successfully');
-      // Clean up URL parameters
       navigate('/client-dashboard/workouts', { replace: true });
     } else if (error) {
       toast.error(decodeURIComponent(error));
-      // Clean up URL parameters
       navigate('/client-dashboard/workouts', { replace: true });
     }
   }, [navigate]);
@@ -297,7 +294,7 @@ const WorkoutsList = () => {
     <div className="space-y-4">
       <ProgramProgressSection />
       
-      <div className="space-y-3">
+      <div className="space-y-6">
         {availableWeeks.length > 0 && (
           <div className="flex justify-center mb-2">
             <div className="relative" ref={selectRef}>
@@ -339,7 +336,7 @@ const WorkoutsList = () => {
         )}
         
         <div>
-          <h3 className="text-lg font-semibold mb-2">Pending Workouts</h3>
+          <h3 className="text-lg font-semibold mb-3">Pending Workouts</h3>
           {pendingWorkouts.length === 0 ? (
             <Card>
               <CardContent className="pt-4 pb-4 text-center">
@@ -349,48 +346,56 @@ const WorkoutsList = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {pendingWorkouts.map((workout) => (
-                <WorkoutCard
-                  key={workout.id}
-                  workoutId={workout.id}
-                  title={workout.title || workout.workout?.title || "Workout"}
-                  description={workout.description || workout.workout?.description}
-                  type={workout.workout_type || workout.workout?.workout_type}
-                  groupMembers={allGroupMembers}
-                  currentUserId={user?.id || ''}
-                  onStartWorkout={handleStartWorkout}
-                  completed={!!workout.completed_at}
-                  dayOfWeek={workout.workout?.day_of_week}
-                  exercises={workout.workout?.workout_exercises || []}
-                  isLifeHappensPass={isLifeHappensPass(workout)}
-                />
-              ))}
-            </div>
+            <ScrollArea className="w-full whitespace-nowrap rounded-lg">
+              <div className="flex w-full gap-3 px-1 pb-4">
+                {pendingWorkouts.map((workout) => (
+                  <div key={workout.id} className="w-[300px] flex-none">
+                    <WorkoutCard
+                      workoutId={workout.id}
+                      title={workout.title || workout.workout?.title || "Workout"}
+                      description={workout.description || workout.workout?.description}
+                      type={workout.workout_type || workout.workout?.workout_type}
+                      groupMembers={allGroupMembers}
+                      currentUserId={user?.id || ''}
+                      onStartWorkout={handleStartWorkout}
+                      completed={!!workout.completed_at}
+                      dayOfWeek={workout.workout?.day_of_week}
+                      exercises={workout.workout?.workout_exercises || []}
+                      isLifeHappensPass={isLifeHappensPass(workout)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" className="h-2.5" />
+            </ScrollArea>
           )}
         </div>
         
         {completedWorkouts.length > 0 && (
           <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2">Completed Workouts</h3>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {completedWorkouts.map((workout) => (
-                <WorkoutCard
-                  key={workout.id}
-                  workoutId={workout.id}
-                  title={workout.title || workout.workout?.title || "Workout"}
-                  description={workout.description || workout.workout?.description}
-                  type={workout.workout_type || workout.workout?.workout_type}
-                  groupMembers={allGroupMembers}
-                  currentUserId={user?.id || ''}
-                  onStartWorkout={handleStartWorkout}
-                  completed={!!workout.completed_at}
-                  dayOfWeek={workout.workout?.day_of_week}
-                  exercises={workout.workout?.workout_exercises || []}
-                  isLifeHappensPass={isLifeHappensPass(workout)}
-                />
-              ))}
-            </div>
+            <h3 className="text-lg font-semibold mb-3">Completed Workouts</h3>
+            <ScrollArea className="w-full whitespace-nowrap rounded-lg">
+              <div className="flex w-full gap-3 px-1 pb-4">
+                {completedWorkouts.map((workout) => (
+                  <div key={workout.id} className="w-[300px] flex-none">
+                    <WorkoutCard
+                      workoutId={workout.id}
+                      title={workout.title || workout.workout?.title || "Workout"}
+                      description={workout.description || workout.workout?.description}
+                      type={workout.workout_type || workout.workout?.workout_type}
+                      groupMembers={allGroupMembers}
+                      currentUserId={user?.id || ''}
+                      onStartWorkout={handleStartWorkout}
+                      completed={!!workout.completed_at}
+                      dayOfWeek={workout.workout?.day_of_week}
+                      exercises={workout.workout?.workout_exercises || []}
+                      isLifeHappensPass={isLifeHappensPass(workout)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" className="h-2.5" />
+            </ScrollArea>
           </div>
         )}
       </div>

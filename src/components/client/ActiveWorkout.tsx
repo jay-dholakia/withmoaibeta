@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, Save, HelpCircle } from 'lucide-react';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft, updateExerciseIdInDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
-import { useWorkoutState } from '@/hooks/useWorkoutState';
+import { useWorkoutInitialization } from '@/hooks/useWorkoutInitialization';
 import { PersonalRecord, Exercise, WorkoutExercise } from '@/types/workout';
 import Stopwatch from './Stopwatch';
 import { cn } from '@/lib/utils';
@@ -33,9 +34,7 @@ const ActiveWorkout = () => {
   const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [workoutDataLoaded, setWorkoutDataLoaded] = useState(false);
-  const [draftApplied, setDraftApplied] = useState(false);
   const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
-  const [draftLoadAttempted, setDraftLoadAttempted] = useState(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initCompleteForceCounter = useRef<number>(0);
   const forceInitRef = useRef<boolean>(false);
@@ -190,24 +189,21 @@ const ActiveWorkout = () => {
     workoutId,
     onDraftLoaded: (loadedDraftData) => {
       console.log("Draft data has finished loading:", loadedDraftData);
-      setDraftLoadAttempted(true);
-      
-      if (loadedDraftData && loadedDraftData.exerciseStates && !draftApplied) {
-        console.log("Draft loaded successfully, preparing to apply to workout state");
-        setDraftApplied(true);
-      }
     }
   });
 
+  // Use the new hook for initialization
   const { 
     exerciseStates, 
     setExerciseStates,
     sortedExerciseIds,
-    workoutDataInitialized
-  } = useWorkoutState(
-    workoutExercises, 
-    draftLoaded ? draftData?.exerciseStates : undefined
-  );
+    initializationComplete
+  } = useWorkoutInitialization({
+    workoutExercises,
+    draftData,
+    draftLoaded,
+    workoutDataLoaded
+  });
 
   useEffect(() => {
     console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
@@ -228,65 +224,21 @@ const ActiveWorkout = () => {
     };
   }, [workoutCompletionId, user?.id]);
 
+  // Update initialLoadComplete when initialization is complete
+  useEffect(() => {
+    if (initializationComplete && !initialLoadComplete) {
+      console.log("Initialization complete - setting initialLoadComplete to true");
+      setInitialLoadComplete(true);
+    }
+  }, [initializationComplete, initialLoadComplete]);
+
   useEffect(() => {
     console.log("State update - workout data:", !!workoutData);
     console.log("State update - workout exercises:", workoutExercises.length);
     console.log("State update - exercise states count:", Object.keys(exerciseStates || {}).length);
     console.log("State update - draft loaded:", draftLoaded);
-    console.log("State update - draft load attempted:", draftLoadAttempted);
-    console.log("State update - workout data initialized:", workoutDataInitialized);
-  }, [workoutData, workoutExercises, exerciseStates, draftLoaded, draftLoadAttempted, workoutDataInitialized]);
-
-  useEffect(() => {
-    if (workoutData && workoutExercises.length > 0 && !workoutDataInitialized) {
-      console.log("Workout data available but not initialized - forcing initialization");
-      setWorkoutDataLoaded(true);
-    }
-  }, [workoutData, workoutExercises, workoutDataInitialized]);
-  
-  useEffect(() => {
-    if (forceInitRef.current && workoutExercises.length > 0) {
-      if (Object.keys(exerciseStates || {}).length === 0) {
-        console.log("Force timeout reached - exercise states empty but needed - forcing refresh");
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-      }
-    }
-  }, [exerciseStates, workoutExercises, forceInitRef.current]);
-
-  useEffect(() => {
-    const hasWorkoutData = workoutDataLoaded && workoutExercises.length > 0;
-    const hasExerciseStates = Object.keys(exerciseStates || {}).length > 0;
-    
-    console.log("Initialization check - Critical conditions:", {
-      hasWorkoutData,
-      hasExerciseStates,
-      draftLoadAttempted,
-      initialLoadComplete
-    });
-    
-    if (hasWorkoutData && hasExerciseStates && !initialLoadComplete) {
-      console.log("We have workout data and exercise states - setting initialLoadComplete");
-      setInitialLoadComplete(true);
-    }
-    else if (hasWorkoutData && draftLoadAttempted && !initialLoadComplete) {
-      console.log("Draft load attempted with workout data - setting initialLoadComplete");
-      setInitialLoadComplete(true);
-    }
-    else if (forceInitRef.current && !initialLoadComplete) {
-      console.log("Force timeout reached - setting initialLoadComplete regardless of conditions");
-      setInitialLoadComplete(true);
-    }
-  }, [workoutDataLoaded, workoutExercises, exerciseStates, draftLoadAttempted, initialLoadComplete]);
-
-  useEffect(() => {
-    console.log("Workout exercises to render:", workoutExercises);
-    console.log("Sorted exercise IDs:", sortedExerciseIds);
-    console.log("Initial load complete:", initialLoadComplete);
-    console.log("Exercise states:", exerciseStates);
-    console.log("Workout data initialized:", workoutDataInitialized);
-  }, [workoutExercises, sortedExerciseIds, initialLoadComplete, exerciseStates, workoutDataInitialized]);
+    console.log("State update - initialization complete:", initializationComplete);
+  }, [workoutData, workoutExercises, exerciseStates, draftLoaded, initializationComplete]);
 
   const toggleDescriptionExpanded = (exerciseId: string) => {
     setExpandedDescriptions(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));
@@ -571,6 +523,13 @@ const ActiveWorkout = () => {
     data: exerciseStates,
     onSave: async (data) => {
       const workoutId = getWorkoutId();
+      
+      // Don't save if exercise states is empty
+      if (!data || Object.keys(data).length === 0) {
+        console.log("Skipping autosave - exercise states is empty");
+        return false;
+      }
+      
       console.log(`Attempting to save workout draft for ID: ${workoutId}`, {
         dataSize: JSON.stringify(data).length,
         exerciseCount: Object.keys(data).length
@@ -579,7 +538,7 @@ const ActiveWorkout = () => {
     },
     debounce: 2000,
     minChanges: 1,
-    disabled: !workoutData || !exerciseStates || Object.keys(exerciseStates).length === 0
+    disabled: !workoutData || !exerciseStates || Object.keys(exerciseStates).length === 0 || !initializationComplete
   });
 
   useEffect(() => {
@@ -604,19 +563,7 @@ const ActiveWorkout = () => {
     }
   }, [saveStatus, autosaveRetries, forceSave]);
 
-  useEffect(() => {
-    if (workoutData && workoutExercises.length > 0 && 
-        initialLoadComplete && Object.keys(exerciseStates).length === 0) {
-      const timer = setTimeout(() => {
-        console.log("EMERGENCY: Workout data exists but no exercise states - reloading");
-        window.location.reload();
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [workoutData, workoutExercises, initialLoadComplete, exerciseStates]);
-
-  if (isLoading) {
+  if (isLoading || isDraftLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
@@ -685,7 +632,8 @@ const ActiveWorkout = () => {
             <p className="text-lg font-medium">Preparing workout...</p>
             <p className="text-sm text-muted-foreground mt-2">
               Status: {workoutDataLoaded ? 'Workout data loaded' : 'Loading workout data'}, 
-              {draftLoaded ? 'Draft loaded' : 'Loading draft'}
+              {draftLoaded ? 'Draft loaded' : 'Loading draft'},
+              {initializationComplete ? 'Initialization complete' : 'Initializing'}
             </p>
             <Button
               onClick={() => {

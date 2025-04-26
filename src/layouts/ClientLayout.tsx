@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutGrid,
   DumbbellIcon,
-  Users2Icon,
+  Mountain,  // Updated import
   BananaIcon,
   Settings
 } from 'lucide-react';
@@ -92,7 +93,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                       : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  <Users2Icon 
+                  <Mountain 
                     className="w-6 h-6" 
                     strokeWidth={isActive('/moai') ? 2.5 : 2} 
                   />

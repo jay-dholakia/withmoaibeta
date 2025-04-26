@@ -13,6 +13,7 @@ import LogRestDayPage from '@/pages/client/LogRestDayPage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCurrentProgram } from '@/services/program-service';
+import NotFound from '@/pages/NotFound';
 
 const WorkoutsPage = () => {
   const location = useLocation();
@@ -46,7 +47,7 @@ const WorkoutsPage = () => {
         <Route path="log-run" element={<LogRunPage />} />
         <Route path="log-cardio" element={<LogCardioPage />} />
         <Route path="log-rest" element={<LogRestDayPage />} />
-        <Route path="*" element={<Navigate to="/client-dashboard/workouts" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
   );

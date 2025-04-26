@@ -47,14 +47,20 @@ const NotFound = () => {
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
         {isWorkoutNotFound ? (
           <>
-            <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-red-100 mb-4">
-              <AlertCircle className="h-8 w-8 text-red-500" />
+            <div className="mx-auto h-24 w-24 flex items-center justify-center rounded-full bg-red-100 mb-6">
+              <AlertCircle className="h-12 w-12 text-red-500" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">Workout Not Found</h1>
-            <p className="text-gray-600 mb-6">
-              We couldn't find the workout you're looking for. It may have been deleted or you may not have access to it.
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">Workout Not Found</h1>
+            <p className="text-gray-600 text-lg mb-6">
+              We couldn't find the workout with ID:
               {workoutId && <span className="block mt-2 text-sm font-mono bg-gray-100 px-2 py-1 rounded">{workoutId}</span>}
             </p>
+            <Link to="/client-dashboard/workouts">
+              <Button className="w-full py-6 text-lg">
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Back to Workouts
+              </Button>
+            </Link>
           </>
         ) : (
           <>
@@ -69,7 +75,7 @@ const NotFound = () => {
           </>
         )}
         
-        {suggestedRoute && (
+        {suggestedRoute && !isWorkoutNotFound && (
           <div className="mb-6 p-4 bg-blue-50 rounded-md border border-blue-200">
             <p className="text-blue-800 mb-2">Did you mean to go here?</p>
             <Link 
@@ -81,32 +87,25 @@ const NotFound = () => {
           </div>
         )}
         
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button
-            variant="outline"
-            onClick={() => window.history.back()}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Go Back
-          </Button>
-          
-          <Link to={isWorkoutNotFound ? "/client-dashboard/workouts" : "/"}>
-            <Button className="flex items-center gap-2 w-full">
-              {isWorkoutNotFound ? (
-                <>
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Workouts
-                </>
-              ) : (
-                <>
-                  <Home className="h-4 w-4" />
-                  Return Home
-                </>
-              )}
+        {!isWorkoutNotFound && (
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button
+              variant="outline"
+              onClick={() => window.history.back()}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Go Back
             </Button>
-          </Link>
-        </div>
+            
+            <Link to="/">
+              <Button className="flex items-center gap-2 w-full">
+                <Home className="h-4 w-4" />
+                Return Home
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

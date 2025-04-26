@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -19,6 +20,7 @@ import { CardioExercise } from './workout/CardioExercise';
 import { FlexibilityExercise } from './workout/FlexibilityExercise';
 import { RunExercise } from './workout/RunExercise';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -27,32 +29,127 @@ const ActiveWorkout = () => {
   const queryClient = useQueryClient();
 
   const [expandedDescriptions, setExpandedDescriptions] = useState<{ [key: string]: boolean }>({});
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
     console.log("ActiveWorkout: Current user:", user?.id);
   }, [workoutCompletionId, user?.id]);
 
+  // Attempt to fetch the workout with progressive retries
   const { data: workoutData, isLoading, error } = useQuery({
-    queryKey: ['active-workout', workoutCompletionId],
+    queryKey: ['active-workout', workoutCompletionId, retryCount],
     queryFn: async () => {
-      console.log("Fetching workout data for ID:", workoutCompletionId);
-      const { data, error } = await supabase
-        .from('workout_completions')
-        .select(`*, workout:workout_id (*, workout_exercises (*, exercise:exercise_id (*)))`)
-        .eq('id', workoutCompletionId || '')
-        .eq('user_id', user?.id)
-        .maybeSingle();
+      console.log(`Fetching workout data for ID: ${workoutCompletionId} (Attempt: ${retryCount + 1})`);
       
-      if (error) {
-        console.error("Error fetching workout:", error);
+      try {
+        // Try to find the workout completion directly by ID
+        const { data: workoutCompletion, error: completionError } = await supabase
+          .from('workout_completions')
+          .select(`*, workout:workout_id (*, workout_exercises (*, exercise:exercise_id (*)))`)
+          .eq('id', workoutCompletionId || '')
+          .maybeSingle();
+        
+        if (completionError) {
+          console.error("Error fetching workout completion:", completionError);
+        } else if (workoutCompletion) {
+          console.log("Found workout completion:", workoutCompletion);
+          return workoutCompletion;
+        }
+
+        // If not found by ID, try by workout_id with the user's ID
+        const { data: byWorkoutId, error: workoutIdError } = await supabase
+          .from('workout_completions')
+          .select(`*, workout:workout_id (*, workout_exercises (*, exercise:exercise_id (*)))`)
+          .eq('workout_id', workoutCompletionId || '')
+          .eq('user_id', user?.id || '')
+          .maybeSingle();
+        
+        if (workoutIdError) {
+          console.error("Error fetching by workout_id:", workoutIdError);
+        } else if (byWorkoutId) {
+          console.log("Found workout by workout_id:", byWorkoutId);
+          return byWorkoutId;
+        }
+
+        // As a last resort, try to fetch just the workout directly
+        const { data: directWorkout, error: directWorkoutError } = await supabase
+          .from('workouts')
+          .select(`*, workout_exercises (*, exercise:exercise_id (*))`)
+          .eq('id', workoutCompletionId || '')
+          .maybeSingle();
+
+        if (directWorkoutError) {
+          console.error("Error fetching direct workout:", directWorkoutError);
+        } else if (directWorkout) {
+          console.log("Found direct workout:", directWorkout);
+          
+          // Create a synthetic workout completion
+          return {
+            id: null,
+            user_id: user?.id,
+            workout_id: directWorkout.id,
+            started_at: new Date().toISOString(),
+            completed_at: null,
+            workout: directWorkout,
+            workout_set_completions: []
+          };
+        }
+
+        // Check if it's a standalone workout
+        const { data: standaloneWorkout, error: standaloneError } = await supabase
+          .from('standalone_workouts')
+          .select(`*, standalone_workout_exercises (*, exercise:exercise_id (*))`)
+          .eq('id', workoutCompletionId || '')
+          .maybeSingle();
+          
+        if (standaloneError) {
+          console.error("Error fetching standalone workout:", standaloneError);
+        } else if (standaloneWorkout) {
+          console.log("Found standalone workout:", standaloneWorkout);
+          
+          // Create a synthetic workout completion for the standalone workout
+          return {
+            id: null,
+            user_id: user?.id,
+            standalone_workout_id: standaloneWorkout.id,
+            started_at: new Date().toISOString(),
+            completed_at: null,
+            workout: {
+              ...standaloneWorkout,
+              workout_exercises: standaloneWorkout.standalone_workout_exercises
+            },
+            workout_set_completions: []
+          };
+        }
+        
+        // If we've reached this point, log all the attempts made and throw a specific error
+        console.error("Workout not found after multiple lookup attempts:", { 
+          workoutCompletionId, 
+          userId: user?.id 
+        });
+        
+        throw new Error(`Workout not found: ${workoutCompletionId}`);
+      } catch (error) {
+        console.error("Error in workout query:", error);
         throw error;
       }
-      
-      console.log("Workout data received:", data);
-      return data;
     },
     enabled: !!workoutCompletionId && !!user?.id,
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 30000,
+    onError: (error) => {
+      console.error("Error fetching workout:", error);
+      if (retryCount < 2) {
+        // Retry a few times with a delay
+        setTimeout(() => {
+          setRetryCount(prevCount => prevCount + 1);
+        }, 2000);
+      } else {
+        toast.error("Unable to load workout. Please try again later.");
+      }
+    }
   });
 
   useEffect(() => {
@@ -110,14 +207,21 @@ const ActiveWorkout = () => {
   if (!workoutData || !workoutData.workout) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-        <h2 className="text-xl font-bold mb-2">Workout Not Found</h2>
-        <p className="text-gray-600 mb-4">
-          We couldn't find the workout with ID: {workoutCompletionId}
-        </p>
-        <Button onClick={() => navigate('/client-dashboard/workouts')}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
-        </Button>
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+          <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-red-100 mb-4">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+          </div>
+          <h2 className="text-xl font-bold mb-2">Workout Not Found</h2>
+          <p className="text-gray-600 mb-4">
+            We couldn't find the workout with ID: {workoutCompletionId}
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            The workout may have been deleted or you may not have access to it.
+          </p>
+          <Button onClick={() => navigate('/client-dashboard/workouts')} className="w-full">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
+          </Button>
+        </div>
       </div>
     );
   }

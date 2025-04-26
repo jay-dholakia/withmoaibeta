@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { ExerciseStates } from '@/types/active-workout';
 import { WorkoutExercise } from '@/types/workout';
@@ -55,7 +54,7 @@ export const useWorkoutInitialization = ({
       workoutExercisesCount: workoutExercises.length
     });
 
-    // Get the sorted exercise IDs from workout exercises
+    // Get the sorted exercise IDs from workout exercises - ensure they're in the correct order
     const orderedExerciseIds = workoutExercises.map(exercise => exercise.id);
     setSortedExerciseIds(orderedExerciseIds);
     
@@ -152,14 +151,8 @@ export const useWorkoutInitialization = ({
   const buildInitialExerciseState = (exercises: WorkoutExercise[]): ExerciseStates => {
     const initialState: ExerciseStates = {};
     
-    const sortedExercises = [...exercises].sort((a, b) => {
-      if (a.order_index !== undefined && b.order_index !== undefined) {
-        return a.order_index - b.order_index;
-      }
-      return 0;
-    });
-    
-    sortedExercises.forEach((exercise) => {
+    // Using exercises directly since they should already be sorted by the parent component
+    exercises.forEach((exercise) => {
       if (!exercise || !exercise.id) {
         console.error("Exercise missing ID:", exercise);
         return;

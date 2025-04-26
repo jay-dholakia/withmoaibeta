@@ -38,6 +38,7 @@ const ActiveWorkout = () => {
   const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
   const [draftLoadAttempted, setDraftLoadAttempted] = useState(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initCompleteForceCounter = useRef<number>(0);
 
   const getWorkoutExercises = () => {
     if (!workoutData || !workoutData.workout) return [];
@@ -182,18 +183,18 @@ const ActiveWorkout = () => {
     
     // Set a safety timeout to prevent permanent loading state
     loadingTimeoutRef.current = setTimeout(() => {
-      if (!initialLoadComplete && workoutDataLoaded) {
+      if (!initialLoadComplete) {
         console.log("Safety timeout: forcing initialLoadComplete to true after delay");
         setInitialLoadComplete(true);
       }
-    }, 5000); // 5 seconds safety timeout
+    }, 8000); // 8 seconds safety timeout
     
     return () => {
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
       }
     };
-  }, [workoutCompletionId, user?.id, initialLoadComplete, workoutDataLoaded]);
+  }, [workoutCompletionId, user?.id]);
 
   const getWorkoutId = () => {
     if (!workoutData) return workoutCompletionId;
@@ -234,13 +235,20 @@ const ActiveWorkout = () => {
   useEffect(() => {
     if (workoutData) {
       console.log("Workout data fetched:", workoutData);
-      console.log("Workout exercises:", workoutData.workout?.workout_exercises);
       
-      if (workoutData.workout && !initialLoadComplete) {
-        setInitialLoadComplete(true);
+      if (!initialLoadComplete) {
+        // Force initialLoadComplete after a short delay once we have workout data
+        const timer = setTimeout(() => {
+          if (!initialLoadComplete && workoutDataLoaded && Object.keys(exerciseStates || {}).length > 0) {
+            console.log("Forcing initialLoadComplete to true after delay with workout data");
+            setInitialLoadComplete(true);
+          }
+        }, 1000);
+        
+        return () => clearTimeout(timer);
       }
     }
-  }, [workoutData, initialLoadComplete]);
+  }, [workoutData, initialLoadComplete, workoutDataLoaded, exerciseStates]);
 
   // Critical effect for initialization logic
   useEffect(() => {
@@ -250,36 +258,39 @@ const ActiveWorkout = () => {
       draftLoadAttempted,
       isDraftLoading,
       hasExerciseStates: Object.keys(exerciseStates || {}).length > 0,
-      initialLoadComplete
+      initialLoadComplete,
+      initCompleteForceCounter: initCompleteForceCounter.current
     });
     
-    if (workoutDataLoaded) {
-      // Case 1: Draft is loaded and has data
-      if (draftLoaded && draftData?.exerciseStates && 
-          Object.keys(draftData.exerciseStates).length > 0) {
-        console.log("Initialization: Using draft data");
-        setExerciseStates(draftData.exerciseStates);
-        setInitialLoadComplete(true);
-      } 
-      // Case 2: Draft loading attempted but no valid draft data found
-      else if (draftLoadAttempted) {
-        console.log("Initialization: No valid draft, using original workout data");
-        setInitialLoadComplete(true);
-      }
-      // Case 3: Draft loading timed out or failed
-      else if (!isDraftLoading && !draftLoaded) {
-        console.log("Initialization: Draft loading failed, proceeding with workout data");
-        setInitialLoadComplete(true);
-      }
+    // Increment the force counter to help detect when we should force initialization
+    if (!initialLoadComplete) {
+      initCompleteForceCounter.current += 1;
+    }
+    
+    // Force initialization after multiple checks if we have exercise states
+    const hasExerciseStates = Object.keys(exerciseStates || {}).length > 0;
+    
+    if (workoutDataLoaded && hasExerciseStates) {
+      console.log("We have workout data and exercise states - setting initialLoadComplete");
+      setInitialLoadComplete(true);
+    }
+    // Force initialization after draft load is attempted
+    else if (workoutDataLoaded && draftLoadAttempted) {
+      console.log("Draft load attempted, proceeding with initialization");
+      setInitialLoadComplete(true);
+    }
+    // Force initialization if draft loading fails
+    else if (workoutDataLoaded && !isDraftLoading && initCompleteForceCounter.current > 3) {
+      console.log("Force initializing after multiple checks");
+      setInitialLoadComplete(true);
     }
   }, [
     workoutDataLoaded, 
     draftLoaded, 
     draftLoadAttempted,
     isDraftLoading,
-    draftData, 
     exerciseStates, 
-    setExerciseStates
+    initialLoadComplete
   ]);
 
   useEffect(() => {
@@ -608,12 +619,10 @@ const ActiveWorkout = () => {
     
     if (saveStatus === 'saved') {
       setAutosaveRetries(0);
-      // Optional: Show success toast
-      // toast.success('Progress saved');
     }
   }, [saveStatus, autosaveRetries, forceSave]);
 
-  if (isLoading || isDraftLoading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
@@ -644,8 +653,8 @@ const ActiveWorkout = () => {
     );
   }
 
-  const exerciseRenderReady = initialLoadComplete && workoutExercises.length > 0 && 
-    Object.keys(exerciseStates).length > 0;
+  // Important: We check both initialLoadComplete and exerciseStates to determine if we're ready to render
+  const exerciseRenderReady = initialLoadComplete && Object.keys(exerciseStates || {}).length > 0;
 
   return (
     <div className="container max-w-2xl mx-auto p-4 pb-32">
@@ -679,6 +688,10 @@ const ActiveWorkout = () => {
           <div className="flex flex-col items-center justify-center min-h-[300px] p-4">
             <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
             <p className="text-lg font-medium">Preparing workout...</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Status: {workoutDataLoaded ? 'Workout data loaded' : 'Loading workout data'}, 
+              {draftLoaded ? 'Draft loaded' : 'Loading draft'}
+            </p>
           </div>
         )
       ) : (

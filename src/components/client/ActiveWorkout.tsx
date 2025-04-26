@@ -217,7 +217,7 @@ const ActiveWorkout = () => {
   };
 
   const workoutExercises = getWorkoutExercises();
-  
+
   useEffect(() => {
     console.log("Workout exercises to render:", workoutExercises);
     console.log("Sorted exercise IDs:", sortedExerciseIds);

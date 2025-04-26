@@ -35,20 +35,39 @@ const ActiveWorkout = () => {
   const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
   const [draftApplied, setDraftApplied] = useState(false);
 
-  useEffect(() => {
-    console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
-    console.log("ActiveWorkout: Current user:", user?.id);
-  }, [workoutCompletionId, user?.id]);
+  // Move getWorkoutExercises function before its usage
+  const getWorkoutExercises = () => {
+    if (!workoutData || !workoutData.workout) return [];
+    
+    if (Array.isArray(workoutData.workout.workout_exercises)) {
+      return workoutData.workout.workout_exercises;
+    }
+    
+    const standaloneExercises = (workoutData.workout as any).standalone_workout_exercises;
+    if (standaloneExercises && Array.isArray(standaloneExercises)) {
+      return standaloneExercises;
+    }
+    
+    if (workoutData.standalone_workout_id && workoutData.workout) {
+      if (Array.isArray(workoutData.workout.workout_exercises)) {
+        return workoutData.workout.workout_exercises;
+      }
+    }
+    
+    console.error("No workout exercises found in workoutData:", workoutData);
+    return [];
+  };
 
+  // Fetch workout data query 
   const { data: workoutData, isLoading, error } = useQuery({
     queryKey: ['active-workout', workoutCompletionId, retryCount],
     queryFn: async () => {
-      console.log(Fetching workout data for ID: ${workoutCompletionId} (Attempt: ${retryCount + 1}));
+      console.log(`Fetching workout data for ID: ${workoutCompletionId} (Attempt: ${retryCount + 1})`);
       
       try {
         const { data: workoutCompletion, error: completionError } = await supabase
           .from('workout_completions')
-          .select(*, workout:workout_id (*, workout_exercises (*, exercise:exercise_id (*))))
+          .select(`*, workout:workout_id (*, workout_exercises (*, exercise:exercise_id (*)))`)
           .eq('id', workoutCompletionId || '')
           .maybeSingle();
         
@@ -61,7 +80,7 @@ const ActiveWorkout = () => {
 
         const { data: byWorkoutId, error: workoutIdError } = await supabase
           .from('workout_completions')
-          .select(*, workout:workout_id (*, workout_exercises (*, exercise:exercise_id (*))))
+          .select(`*, workout:workout_id (*, workout_exercises (*, exercise:exercise_id (*)))`)
           .eq('workout_id', workoutCompletionId || '')
           .eq('user_id', user?.id || '')
           .maybeSingle();
@@ -75,7 +94,7 @@ const ActiveWorkout = () => {
 
         const { data: directWorkout, error: directWorkoutError } = await supabase
           .from('workouts')
-          .select(*, workout_exercises (*, exercise:exercise_id (*)))
+          .select(`*, workout_exercises (*, exercise:exercise_id (*))`)
           .eq('id', workoutCompletionId || '')
           .maybeSingle();
 
@@ -97,7 +116,7 @@ const ActiveWorkout = () => {
 
         const { data: standaloneWorkout, error: standaloneError } = await supabase
           .from('standalone_workouts')
-          .select(*, standalone_workout_exercises (*, exercise:exercise_id (*)))
+          .select(`*, standalone_workout_exercises (*, exercise:exercise_id (*))`)
           .eq('id', workoutCompletionId || '')
           .maybeSingle();
           
@@ -125,7 +144,7 @@ const ActiveWorkout = () => {
           userId: user?.id 
         });
         
-        throw new Error(Workout not found: ${workoutCompletionId});
+        throw new Error(`Workout not found: ${workoutCompletionId}`);
       } catch (error) {
         console.error("Error in workout query:", error);
         throw error;
@@ -148,6 +167,14 @@ const ActiveWorkout = () => {
       }
     }
   });
+
+  // Declare workoutExercises after getWorkoutExercises function
+  const workoutExercises = getWorkoutExercises();
+
+  useEffect(() => {
+    console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
+    console.log("ActiveWorkout: Current user:", user?.id);
+  }, [workoutCompletionId, user?.id]);
 
   const getWorkoutId = () => {
     if (!workoutData) return workoutCompletionId;
@@ -194,30 +221,6 @@ const ActiveWorkout = () => {
     }
   }, [workoutData, initialLoadComplete]);
 
-  const getWorkoutExercises = () => {
-    if (!workoutData || !workoutData.workout) return [];
-    
-    if (Array.isArray(workoutData.workout.workout_exercises)) {
-      return workoutData.workout.workout_exercises;
-    }
-    
-    const standaloneExercises = (workoutData.workout as any).standalone_workout_exercises;
-    if (standaloneExercises && Array.isArray(standaloneExercises)) {
-      return standaloneExercises;
-    }
-    
-    if (workoutData.standalone_workout_id && workoutData.workout) {
-      if (Array.isArray(workoutData.workout.workout_exercises)) {
-        return workoutData.workout.workout_exercises;
-      }
-    }
-    
-    console.error("No workout exercises found in workoutData:", workoutData);
-    return [];
-  };
-
-  const workoutExercises = getWorkoutExercises();
-
   useEffect(() => {
     console.log("Workout exercises to render:", workoutExercises);
     console.log("Sorted exercise IDs:", sortedExerciseIds);
@@ -234,7 +237,7 @@ const ActiveWorkout = () => {
   };
 
   const confirmCompleteWorkout = () => {
-    navigate(/client-dashboard/workouts/complete/${workoutCompletionId});
+    navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
   };
 
   const formatDurationInput = (value: string): string => {
@@ -243,9 +246,9 @@ const ActiveWorkout = () => {
     if (numericValue.length <= 2) {
       return numericValue;
     } else if (numericValue.length <= 4) {
-      return ${numericValue.slice(0, 2)}:${numericValue.slice(2)};
+      return `${numericValue.slice(0, 2)}:${numericValue.slice(2)}`;
     } else {
-      return ${numericValue.slice(0, 2)}:${numericValue.slice(2, 4)}:${numericValue.slice(4, 6)};
+      return `${numericValue.slice(0, 2)}:${numericValue.slice(2, 4)}:${numericValue.slice(4, 6)}`;
     }
   };
 
@@ -411,7 +414,7 @@ const ActiveWorkout = () => {
     }
 
     if (!exerciseStates || !exerciseStates[exercise.id]) {
-      console.log(No exercise state found for exercise with ID: ${exercise.id});
+      console.log(`No exercise state found for exercise with ID: ${exercise.id}`);
       return null;
     }
     
@@ -513,7 +516,7 @@ const ActiveWorkout = () => {
     data: exerciseStates,
     onSave: async (data) => {
       const workoutId = getWorkoutId();
-      console.log(Attempting to save workout draft for ID: ${workoutId}, {
+      console.log(`Attempting to save workout draft for ID: ${workoutId}`, {
         dataSize: JSON.stringify(data).length,
         exerciseCount: Object.keys(data).length
       });
@@ -527,7 +530,7 @@ const ActiveWorkout = () => {
   useEffect(() => {
     if (saveStatus === 'error') {
       if (autosaveRetries < 3) {
-        console.log(Autosave failed (attempt ${autosaveRetries + 1}/3). Will retry in 5 seconds...);
+        console.log(`Autosave failed (attempt ${autosaveRetries + 1}/3). Will retry in 5 seconds...`);
         setTimeout(() => {
           setAutosaveRetries(prev => prev + 1);
           forceSave();
@@ -660,3 +663,5 @@ const ActiveWorkout = () => {
     </div>
   );
 };
+
+export default ActiveWorkout;

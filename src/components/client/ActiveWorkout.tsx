@@ -20,6 +20,7 @@ import { FlexibilityExercise } from './workout/FlexibilityExercise';
 import { RunExercise } from './workout/RunExercise';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { useWorkoutDraft } from '@/hooks/useWorkoutDraft';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -143,6 +144,25 @@ const ActiveWorkout = () => {
         } else {
           toast.error("Unable to load workout. Please try again later.");
         }
+      }
+    }
+  });
+
+  const getWorkoutId = () => {
+    if (!workoutData) return workoutCompletionId;
+    if (workoutData.standalone_workout_id) return workoutData.standalone_workout_id;
+    if (workoutData.workout?.id) return workoutData.workout.id;
+    return workoutCompletionId;
+  };
+
+  const workoutId = getWorkoutId();
+
+  // Add the useWorkoutDraft hook
+  const { draftData, draftLoaded } = useWorkoutDraft({
+    workoutId,
+    onDraftLoaded: (loadedDraftData) => {
+      if (loadedDraftData && loadedDraftData.exerciseStates) {
+        setExerciseStates(loadedDraftData.exerciseStates);
       }
     }
   });
@@ -481,13 +501,6 @@ const ActiveWorkout = () => {
         )}
       </Card>
     );
-  };
-
-  const getWorkoutId = () => {
-    if (!workoutData) return workoutCompletionId;
-    if (workoutData.standalone_workout_id) return workoutData.standalone_workout_id;
-    if (workoutData.workout?.id) return workoutData.workout.id;
-    return workoutCompletionId;
   };
 
   const { saveStatus, errorCount, forceSave } = useAutosave({

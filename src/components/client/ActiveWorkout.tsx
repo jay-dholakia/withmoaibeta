@@ -39,7 +39,6 @@ const ActiveWorkout = () => {
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initCompleteForceCounter = useRef<number>(0);
   const forceInitRef = useRef<boolean>(false);
-  const [isWorkoutStateReady, setIsWorkoutStateReady] = useState(false);
 
   const getWorkoutExercises = () => {
     if (!workoutData || !workoutData.workout) return [];
@@ -158,16 +157,14 @@ const ActiveWorkout = () => {
     retry: 2,
     retryDelay: 1000,
     staleTime: 30000,
-    meta: {
-      onError: (error: Error) => {
-        console.error("Error fetching workout:", error);
-        if (retryCount < 2) {
-          setTimeout(() => {
-            setRetryCount(prevCount => prevCount + 1);
-          }, 2000);
-        } else {
-          toast.error("Unable to load workout. Please try again later.");
-        }
+    onError: (error: Error) => {
+      console.error("Error fetching workout:", error);
+      if (retryCount < 2) {
+        setTimeout(() => {
+          setRetryCount(prevCount => prevCount + 1);
+        }, 2000);
+      } else {
+        toast.error("Unable to load workout. Please try again later.");
       }
     },
     onSuccess: (data) => {
@@ -193,39 +190,21 @@ const ActiveWorkout = () => {
       console.log("Draft data has finished loading:", loadedDraftData);
       setDraftLoadAttempted(true);
       
-      if (loadedDraftData && loadedDraftData.exerciseStates) {
+      if (loadedDraftData && loadedDraftData.exerciseStates && !draftApplied) {
         console.log("Draft loaded successfully, preparing to apply to workout state");
-        
-        // Wait to ensure workoutData is available before applying draft
-        if (workoutDataLoaded) {
-          setDraftApplied(true);
-          setIsWorkoutStateReady(true);
-          
-          // Only set initialLoadComplete after we're sure the draft is ready to be applied
-          if (Object.keys(loadedDraftData.exerciseStates).length > 0) {
-            console.log("Draft fully loaded and applied, setting initialLoadComplete=true");
-            setInitialLoadComplete(true);
-          }
-        } else {
-          console.log("Draft loaded but workout data not yet available");
-        }
-      } else {
-        console.log("No draft data found or draft data is empty");
         setDraftApplied(true);
-        setIsWorkoutStateReady(true);
       }
     }
   });
 
-  // Only initialize useWorkoutState when both workout data and draft loading are complete
   const { 
     exerciseStates, 
     setExerciseStates,
     sortedExerciseIds,
     workoutDataInitialized
   } = useWorkoutState(
-    isWorkoutStateReady && workoutDataLoaded ? workoutExercises : undefined, 
-    isWorkoutStateReady && draftLoaded ? draftData?.exerciseStates : undefined
+    workoutExercises, 
+    draftLoaded ? draftData?.exerciseStates : undefined
   );
 
   useEffect(() => {
@@ -237,11 +216,8 @@ const ActiveWorkout = () => {
         console.log("Safety timeout: forcing initialLoadComplete to true after delay");
         forceInitRef.current = true;
         setInitialLoadComplete(true);
-        if (!isWorkoutStateReady) {
-          setIsWorkoutStateReady(true);
-        }
       }
-    }, 5000); // Increased timeout for better chance of proper loading
+    }, 3000);
     
     return () => {
       if (loadingTimeoutRef.current) {
@@ -251,49 +227,62 @@ const ActiveWorkout = () => {
   }, [workoutCompletionId, user?.id]);
 
   useEffect(() => {
-    console.log("Initialization status update:", { 
-      workoutDataLoaded, 
-      draftLoaded, 
-      draftLoadAttempted, 
-      draftApplied,
-      isWorkoutStateReady,
-      exerciseStatesCount: Object.keys(exerciseStates || {}).length,
-      workoutDataInitialized,
-      initialLoadComplete
-    });
-  }, [workoutDataLoaded, draftLoaded, draftLoadAttempted, draftApplied, isWorkoutStateReady, exerciseStates, workoutDataInitialized, initialLoadComplete]);
+    console.log("State update - workout data:", !!workoutData);
+    console.log("State update - workout exercises:", workoutExercises.length);
+    console.log("State update - exercise states count:", Object.keys(exerciseStates || {}).length);
+    console.log("State update - draft loaded:", draftLoaded);
+    console.log("State update - draft load attempted:", draftLoadAttempted);
+    console.log("State update - workout data initialized:", workoutDataInitialized);
+  }, [workoutData, workoutExercises, exerciseStates, draftLoaded, draftLoadAttempted, workoutDataInitialized]);
 
-  // When workout data loads, and draft has been attempted, make sure we're ready to initialize workout state
   useEffect(() => {
-    if (workoutDataLoaded && draftLoadAttempted && !isWorkoutStateReady) {
-      console.log("Both workout data and draft load attempted, setting isWorkoutStateReady=true");
-      setIsWorkoutStateReady(true);
+    if (workoutData && workoutExercises.length > 0 && !workoutDataInitialized) {
+      console.log("Workout data available but not initialized - forcing initialization");
+      setWorkoutDataLoaded(true);
     }
-  }, [workoutDataLoaded, draftLoadAttempted, isWorkoutStateReady]);
-
-  // Ensure we set initialLoadComplete when exercise states are ready
+  }, [workoutData, workoutExercises, workoutDataInitialized]);
+  
   useEffect(() => {
+    if (forceInitRef.current && workoutExercises.length > 0) {
+      if (Object.keys(exerciseStates || {}).length === 0) {
+        console.log("Force timeout reached - exercise states empty but needed - forcing refresh");
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
+    }
+  }, [exerciseStates, workoutExercises, forceInitRef.current]);
+
+  useEffect(() => {
+    const hasWorkoutData = workoutDataLoaded && workoutExercises.length > 0;
     const hasExerciseStates = Object.keys(exerciseStates || {}).length > 0;
     
-    if (hasExerciseStates && workoutDataLoaded && !initialLoadComplete) {
-      console.log("Exercise states initialized and workout data loaded, setting initialLoadComplete=true");
+    console.log("Initialization check - Critical conditions:", {
+      hasWorkoutData,
+      hasExerciseStates,
+      draftLoadAttempted,
+      initialLoadComplete
+    });
+    
+    if (hasWorkoutData && hasExerciseStates && !initialLoadComplete) {
+      console.log("We have workout data and exercise states - setting initialLoadComplete");
       setInitialLoadComplete(true);
     }
-  }, [exerciseStates, workoutDataLoaded, initialLoadComplete]);
-
-  useEffect(() => {
-    if (forceInitRef.current && workoutExercises.length > 0 && !initialLoadComplete) {
-      console.log("Force timeout reached - setting initialLoadComplete=true anyway");
+    else if (hasWorkoutData && draftLoadAttempted && !initialLoadComplete) {
+      console.log("Draft load attempted with workout data - setting initialLoadComplete");
       setInitialLoadComplete(true);
     }
-  }, [workoutExercises, forceInitRef.current, initialLoadComplete]);
+    else if (forceInitRef.current && !initialLoadComplete) {
+      console.log("Force timeout reached - setting initialLoadComplete regardless of conditions");
+      setInitialLoadComplete(true);
+    }
+  }, [workoutDataLoaded, workoutExercises, exerciseStates, draftLoadAttempted, initialLoadComplete]);
 
   useEffect(() => {
     console.log("Workout exercises to render:", workoutExercises);
     console.log("Sorted exercise IDs:", sortedExerciseIds);
     console.log("Initial load complete:", initialLoadComplete);
     console.log("Exercise states:", exerciseStates);
-    console.log("Exercise states count:", Object.keys(exerciseStates || {}).length);
     console.log("Workout data initialized:", workoutDataInitialized);
   }, [workoutExercises, sortedExerciseIds, initialLoadComplete, exerciseStates, workoutDataInitialized]);
 
@@ -579,12 +568,6 @@ const ActiveWorkout = () => {
   const { saveStatus, errorCount, forceSave } = useAutosave({
     data: exerciseStates,
     onSave: async (data) => {
-      // Don't attempt to save empty states
-      if (!data || Object.keys(data).length === 0) {
-        console.log("Prevented autosave of empty exercise states");
-        return null; // Return null to indicate no save was attempted
-      }
-      
       const workoutId = getWorkoutId();
       console.log(`Attempting to save workout draft for ID: ${workoutId}`, {
         dataSize: JSON.stringify(data).length,
@@ -594,7 +577,6 @@ const ActiveWorkout = () => {
     },
     debounce: 2000,
     minChanges: 1,
-    // Only enable autosave when we have valid exercise states
     disabled: !workoutData || !exerciseStates || Object.keys(exerciseStates).length === 0
   });
 
@@ -621,7 +603,6 @@ const ActiveWorkout = () => {
   }, [saveStatus, autosaveRetries, forceSave]);
 
   useEffect(() => {
-    // Check if we have workout data but no exercise states after initialLoadComplete
     if (workoutData && workoutExercises.length > 0 && 
         initialLoadComplete && Object.keys(exerciseStates).length === 0) {
       const timer = setTimeout(() => {

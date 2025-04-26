@@ -25,11 +25,9 @@ export const useWorkoutState = (
       
       console.log("useWorkoutState: Initializing exercise states", {
         hasInitialDraft: !!initialDraftData,
-        exerciseCount: workoutExercises.length,
-        draftDataExerciseCount: initialDraftData ? Object.keys(initialDraftData).length : 0
+        exerciseCount: workoutExercises.length
       });
 
-      // Apply draft data if it exists and has content
       if (initialDraftData && Object.keys(initialDraftData).length > 0) {
         console.log("Using existing draft data for initialization:", initialDraftData);
         setExerciseStates(initialDraftData);

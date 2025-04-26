@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
@@ -41,9 +40,20 @@ export function useAutosave<T>({
   const changeCountRef = useRef<number>(0);
   const isSavingRef = useRef<boolean>(false);
   const mountedRef = useRef<boolean>(true);
+  const saveAttemptsRef = useRef<number>(0);
   
   useEffect(() => {
     mountedRef.current = true;
+    
+    // Initialize with current data
+    previousDataRef.current = serializeData(data);
+    console.log('[Autosave] Initialized with data', {
+      dataSize: previousDataRef.current.length,
+      disabled,
+      interval,
+      debounce
+    });
+    
     return () => {
       mountedRef.current = false;
       if (timeoutRef.current) {
@@ -61,14 +71,21 @@ export function useAutosave<T>({
     try {
       return JSON.stringify(data);
     } catch (error) {
-      console.error('Error serializing data for comparison:', error);
+      console.error('[Autosave] Error serializing data for comparison:', error);
       return '';
     }
   };
   
   const hasDataChanged = (prevData: string, currentData: T): boolean => {
     const serializedCurrent = serializeData(currentData);
-    return prevData !== serializedCurrent;
+    const hasChanged = prevData !== serializedCurrent;
+    if (hasChanged) {
+      console.log('[Autosave] Data changed', {
+        prevSize: prevData.length,
+        currentSize: serializedCurrent.length,
+      });
+    }
+    return hasChanged;
   };
   
   useEffect(() => {
@@ -77,7 +94,7 @@ export function useAutosave<T>({
     }
   }, [disabled]);
   
-  const saveData = async (): Promise<boolean> => {
+  const saveData = async (retryCount = 0): Promise<boolean> => {
     if (isSavingRef.current || disabled || !mountedRef.current) {
       return false;
     }
@@ -85,17 +102,25 @@ export function useAutosave<T>({
     const currentSerializedData = serializeData(data);
     
     if (previousDataRef.current === currentSerializedData) {
-      console.log('Data unchanged, skipping autosave');
+      console.log('[Autosave] Data unchanged, skipping autosave');
       return false;
     }
     
     try {
       isSavingRef.current = true;
+      saveAttemptsRef.current++;
+      
       if (mountedRef.current) {
         setSaveStatus('saving');
       }
       
-      console.log('Autosaving data:', data);
+      console.log('[Autosave] Saving data...', {
+        attemptNumber: saveAttemptsRef.current,
+        dataSize: currentSerializedData.length,
+        changesCount: changeCountRef.current,
+        timestamp: new Date().toISOString()
+      });
+      
       const success = await onSave(data);
       
       isSavingRef.current = false;
@@ -103,26 +128,39 @@ export function useAutosave<T>({
       if (!mountedRef.current) return false;
       
       if (success) {
-        console.log('Autosave successful', {
-          timestamp: new Date().toISOString(),
-          lastSaved: new Date().toISOString()
+        console.log('[Autosave] Save successful', {
+          timestamp: new Date().toISOString()
         });
         setSaveStatus('saved');
         setLastSaved(new Date());
         setErrorCount(0);
         previousDataRef.current = currentSerializedData;
         changeCountRef.current = 0;
+        
+        // Dispatch autosave event
+        window.dispatchEvent(new Event('workout:autosave'));
+        
         return true;
       } else {
-        console.error('Autosave returned false', {
-          timestamp: new Date().toISOString()
+        console.error('[Autosave] Save returned false', {
+          timestamp: new Date().toISOString(),
+          retryCount
         });
         setSaveStatus('error');
         setErrorCount(prev => prev + 1);
+        
+        // Auto-retry on failure (max 3 retries)
+        if (retryCount < 3 && mountedRef.current) {
+          console.log(`[Autosave] Retrying save (attempt ${retryCount + 1}/3)...`);
+          setTimeout(() => {
+            saveData(retryCount + 1);
+          }, 2000);
+        }
+        
         return false;
       }
     } catch (error) {
-      console.error('Error during autosave:', error);
+      console.error('[Autosave] Error during save:', error);
       isSavingRef.current = false;
       if (mountedRef.current) {
         setSaveStatus('error');
@@ -140,7 +178,7 @@ export function useAutosave<T>({
     const hasChanged = hasDataChanged(previousDataRef.current, data);
     
     if (hasChanged) {
-      console.log('Data changed, triggering autosave');
+      console.log('[Autosave] Data change detected, triggering autosave');
       changeCountRef.current += 1;
       
       if (timeoutRef.current) {
@@ -154,8 +192,6 @@ export function useAutosave<T>({
           }
         }, debounce);
       }
-    } else {
-      console.log('Data unchanged, skipping autosave');
     }
     
     return () => {

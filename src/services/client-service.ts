@@ -198,38 +198,85 @@ export const trackWorkoutSet = async (
     completed?: boolean;
   }
 ) => {
-  // Get the current user ID
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData.user?.id;
 
   if (!userId) {
     throw new Error("User must be authenticated to track workout sets");
   }
+  
+  console.log(`Tracking set ${setNumber} for exercise ${exerciseId}`, data);
+  
+  try {
+    // Check if this set already exists
+    const { data: existingSet, error: checkError } = await supabase
+      .from('workout_set_completions')
+      .select('id')
+      .eq('workout_exercise_id', exerciseId)
+      .eq('workout_completion_id', completionId)
+      .eq('set_number', setNumber)
+      .eq('user_id', userId)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error("Error checking for existing set:", checkError);
+      throw checkError;
+    }
+    
+    if (existingSet) {
+      // Update existing set
+      const { data: updatedSet, error: updateError } = await supabase
+        .from('workout_set_completions')
+        .update({
+          weight: data.weight,
+          reps_completed: data.reps_completed,
+          notes: data.notes,
+          distance: data.distance,
+          duration: data.duration,
+          location: data.location,
+          completed: data.completed || false
+        })
+        .eq('id', existingSet.id)
+        .select()
+        .single();
+        
+      if (updateError) {
+        console.error("Error updating workout set:", updateError);
+        throw updateError;
+      }
+      
+      return updatedSet;
+    }
+    
+    // Insert new set
+    const { data: result, error } = await supabase
+      .from('workout_set_completions')
+      .insert([{
+        workout_exercise_id: exerciseId,
+        workout_completion_id: completionId,
+        set_number: setNumber,
+        weight: data.weight,
+        reps_completed: data.reps_completed,
+        notes: data.notes,
+        distance: data.distance,
+        duration: data.duration,
+        location: data.location,
+        completed: data.completed || false,
+        user_id: userId
+      }])
+      .select()
+      .single();
 
-  const { data: result, error } = await supabase
-    .from('workout_set_completions')
-    .insert([{
-      workout_exercise_id: exerciseId,
-      workout_completion_id: completionId,
-      set_number: setNumber,
-      weight: data.weight,
-      reps_completed: data.reps_completed,
-      notes: data.notes,
-      distance: data.distance,
-      duration: data.duration,
-      location: data.location,
-      completed: data.completed || false,
-      user_id: userId // Always include the user ID
-    }])
-    .select()
-    .single();
+    if (error) {
+      console.error("Error tracking workout set:", error);
+      throw error;
+    }
 
-  if (error) {
-    console.error("Error tracking workout set:", error);
+    return result;
+  } catch (error) {
+    console.error("Error in trackWorkoutSet:", error);
     throw error;
   }
-
-  return result;
 };
 
 /**

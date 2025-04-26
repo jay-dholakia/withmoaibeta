@@ -1,88 +1,110 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { PlayCircle, PauseCircle, RefreshCw, Save } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { AutosaveStatus } from "@/hooks/useAutosave";
 
 interface StopwatchProps {
   className?: string;
+  saveStatus?: AutosaveStatus;
+  workoutCompletionId?: string;
 }
 
-const Stopwatch: React.FC<StopwatchProps> = ({ className }) => {
-  const [time, setTime] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCompletionId }) => {
+  const [time, setTime] = useState<number>(0);
+  const [isRunning, setIsRunning] = useState<boolean>(false);
 
-  const toggleTimer = () => {
-    setIsRunning(!isRunning);
-  };
-
-  const resetTimer = () => {
+  // Reset timer when workoutCompletionId changes
+  useEffect(() => {
+    // Always reset to 0 when a new workout is loaded, but don't start automatically
     setTime(0);
-    if (isRunning) {
-      setIsRunning(false);
-    }
-  };
+    setIsRunning(false);
+    localStorage.setItem("workout_start_time", Date.now().toString());
+  }, [workoutCompletionId]);
 
   useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
     if (isRunning) {
-      intervalRef.current = setInterval(() => {
+      interval = setInterval(() => {
         setTime(prevTime => prevTime + 1);
       }, 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
     }
-
+    
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (interval) clearInterval(interval);
     };
   }, [isRunning]);
 
-  const formatTime = (timeInSeconds: number) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = timeInSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  const formatTime = (seconds: number): string => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    const formattedHours = hrs > 0 ? `${hrs}:` : '';
+    const formattedMins = mins < 10 ? `0${mins}` : `${mins}`;
+    const formattedSecs = secs < 10 ? `0${secs}` : `${secs}`;
+    
+    return `${formattedHours}${formattedMins}:${formattedSecs}`;
   };
 
-  const getTimeColor = () => {
-    if (time >= 60) return 'text-red-500';
-    if (time >= 45) return 'text-yellow-500';
-    return 'text-gray-800';
+  const handleReset = () => {
+    setTime(0);
+    setIsRunning(false);
+    localStorage.setItem("workout_start_time", Date.now().toString());
+  };
+
+  const toggleRunning = () => {
+    if (!isRunning) {
+      // When starting, set the start time to current time
+      localStorage.setItem("workout_start_time", Date.now().toString());
+    }
+    setIsRunning(!isRunning);
+  };
+  
+  const getSaveStatusIcon = () => {
+    switch (saveStatus) {
+      case 'saving':
+        return <Save className="h-4 w-4 animate-pulse text-amber-500" />;
+      case 'saved':
+        return <Save className="h-4 w-4 text-green-500" />;
+      case 'error':
+        return <Save className="h-4 w-4 text-red-500" />;
+      default:
+        return null;
+    }
   };
 
   return (
-    <div className={cn(
-      "w-full bg-background py-2 flex items-center justify-between",
-      className
-    )}>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={resetTimer} 
-        className="h-8 w-8 p-0"
-      >
-        <RefreshCw className="h-4 w-4" />
-        <span className="sr-only">Reset</span>
-      </Button>
+    <div className={cn("flex justify-between items-center py-3 px-4 bg-background border rounded-md shadow-sm", className)}>
+      <div className="text-xl font-semibold">{formatTime(time)}</div>
       
-      <div className={cn("text-2xl font-mono font-bold flex-1 text-center", getTimeColor())}>
-        {formatTime(time)}
+      <div className="flex items-center gap-2">
+        {getSaveStatusIcon()}
+        
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={toggleRunning}
+          aria-label={isRunning ? "Pause timer" : "Start timer"}
+        >
+          {isRunning ? (
+            <PauseCircle className="h-5 w-5" />
+          ) : (
+            <PlayCircle className="h-5 w-5" />
+          )}
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={handleReset}
+          aria-label="Reset timer"
+        >
+          <RefreshCw className="h-5 w-5" />
+        </Button>
       </div>
-      
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={toggleTimer} 
-        className={cn(
-          "h-8 w-8 p-0",
-          isRunning ? "bg-gray-200" : "bg-white"
-        )}
-      >
-        {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-        <span className="sr-only">{isRunning ? 'Pause' : 'Play'}</span>
-      </Button>
     </div>
   );
 };

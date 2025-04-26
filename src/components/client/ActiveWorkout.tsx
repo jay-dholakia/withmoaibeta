@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, Save, HelpCircle } from 'lucide-react';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft, updateExerciseIdInDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
-import { useWorkoutState } from '@/hooks/useWorkoutState';
+import { useWorkoutInitialization } from '@/hooks/useWorkoutInitialization';
 import { PersonalRecord, Exercise, WorkoutExercise } from '@/types/workout';
 import Stopwatch from './Stopwatch';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,7 @@ import { FlexibilityExercise } from './workout/FlexibilityExercise';
 import { RunExercise } from './workout/RunExercise';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { useWorkoutDraft } from '@/hooks/useWorkoutDraft';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -31,11 +32,34 @@ const ActiveWorkout = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [workoutDataLoaded, setWorkoutDataLoaded] = useState(false);
+  const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
 
-  useEffect(() => {
-    console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
-    console.log("ActiveWorkout: Current user:", user?.id);
-  }, [workoutCompletionId, user?.id]);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initCompleteForceCounter = useRef<number>(0);
+  const forceInitRef = useRef<boolean>(false);
+
+  const getWorkoutExercises = (data: any) => {
+    if (!data || !data.workout) return [];
+    
+    if (Array.isArray(data.workout.workout_exercises)) {
+      return data.workout.workout_exercises;
+    }
+    
+    const standaloneExercises = (data.workout as any).standalone_workout_exercises;
+    if (standaloneExercises && Array.isArray(standaloneExercises)) {
+      return standaloneExercises;
+    }
+    
+    if (data.standalone_workout_id && data.workout) {
+      if (Array.isArray(data.workout.workout_exercises)) {
+        return data.workout.workout_exercises;
+      }
+    }
+    
+    console.error("No workout exercises found in workoutData:", data);
+    return [];
+  };
 
   const { data: workoutData, isLoading, error } = useQuery({
     queryKey: ['active-workout', workoutCompletionId, retryCount],
@@ -147,56 +171,82 @@ const ActiveWorkout = () => {
   });
 
   useEffect(() => {
-    if (error) {
-      console.error("Error in workout query:", error);
-    }
-  }, [error]);
-
-  useEffect(() => {
     if (workoutData) {
-      console.log("Workout data fetched:", workoutData);
-      console.log("Workout exercises:", workoutData.workout?.workout_exercises);
-      
-      if (workoutData.workout && !initialLoadComplete) {
-        setInitialLoadComplete(true);
-      }
+      console.log("Workout data has finished loading:", workoutData);
+      setWorkoutDataLoaded(true);
     }
-  }, [workoutData, initialLoadComplete]);
+  }, [workoutData]);
 
-  const getWorkoutExercises = () => {
-    if (!workoutData || !workoutData.workout) return [];
-    
-    if (Array.isArray(workoutData.workout.workout_exercises)) {
-      return workoutData.workout.workout_exercises;
-    }
-    
-    const standaloneExercises = (workoutData.workout as any).standalone_workout_exercises;
-    if (standaloneExercises && Array.isArray(standaloneExercises)) {
-      return standaloneExercises;
-    }
-    
-    if (workoutData.standalone_workout_id && workoutData.workout) {
-      if (Array.isArray(workoutData.workout.workout_exercises)) {
-        return workoutData.workout.workout_exercises;
-      }
-    }
-    
-    console.error("No workout exercises found in workoutData:", workoutData);
-    return [];
+  const workoutExercises = workoutData ? getWorkoutExercises(workoutData) : [];
+  
+  const getWorkoutId = () => {
+    if (!workoutData) return workoutCompletionId;
+    if (workoutData.standalone_workout_id) return workoutData.standalone_workout_id;
+    if (workoutData.workout?.id) return workoutData.workout.id;
+    return workoutCompletionId;
   };
 
-  const workoutExercises = getWorkoutExercises();
-  
-  const { exerciseStates, setExerciseStates, sortedExerciseIds } = useWorkoutState(
-    initialLoadComplete ? workoutExercises : undefined
-  );
+  const workoutId = getWorkoutId();
+
+  const { draftData, draftLoaded, isLoading: isDraftLoading } = useWorkoutDraft({
+    workoutId,
+    onDraftLoaded: (loadedDraftData) => {
+      console.log("Draft data has finished loading:", loadedDraftData);
+    }
+  });
+
+  const { 
+    exerciseStates, 
+    setExerciseStates,
+    sortedExerciseIds,
+    initializationComplete
+  } = useWorkoutInitialization({
+    workoutExercises,
+    draftData,
+    draftLoaded,
+    workoutDataLoaded
+  });
 
   useEffect(() => {
-    console.log("Workout exercises to render:", workoutExercises);
-    console.log("Sorted exercise IDs:", sortedExerciseIds);
-    console.log("Initial load complete:", initialLoadComplete);
-    console.log("Exercise states:", exerciseStates);
-  }, [workoutExercises, sortedExerciseIds, initialLoadComplete, exerciseStates]);
+    console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
+    console.log("ActiveWorkout: Current user:", user?.id);
+    
+    loadingTimeoutRef.current = setTimeout(() => {
+      if (!initialLoadComplete) {
+        console.log("Safety timeout: forcing initialLoadComplete to true after delay");
+        forceInitRef.current = true;
+        setInitialLoadComplete(true);
+      }
+    }, 5000);
+    
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [workoutCompletionId, user?.id]);
+
+  useEffect(() => {
+    if (initializationComplete && !initialLoadComplete) {
+      console.log("Initialization complete - setting initialLoadComplete to true");
+      setInitialLoadComplete(true);
+    }
+  }, [initializationComplete, initialLoadComplete]);
+
+  useEffect(() => {
+    console.log("State update - workout data:", !!workoutData);
+    console.log("State update - workout exercises:", workoutExercises.length);
+    console.log("State update - exercise states count:", Object.keys(exerciseStates || {}).length);
+    console.log("State update - draft loaded:", draftLoaded);
+    console.log("State update - initialization complete:", initializationComplete);
+    
+    if (workoutExercises.length > 0 && Object.keys(exerciseStates || {}).length > 0) {
+      console.log("Exercise state availability check:");
+      workoutExercises.forEach(ex => {
+        console.log(`Exercise ${ex.id}: ${exerciseStates[ex.id] ? "State found" : "NO STATE FOUND"}`);
+      });
+    }
+  }, [workoutData, workoutExercises, exerciseStates, draftLoaded, initializationComplete]);
 
   const toggleDescriptionExpanded = (exerciseId: string) => {
     setExpandedDescriptions(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));
@@ -206,8 +256,137 @@ const ActiveWorkout = () => {
     setIsCompletionDialogOpen(true);
   };
 
-  const confirmCompleteWorkout = () => {
-    navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
+  const confirmCompleteWorkout = async () => {
+    try {
+      let completionId = workoutData?.id;
+      
+      if (!completionId) {
+        const { data: newCompletion, error: completionError } = await supabase
+          .from('workout_completions')
+          .insert({
+            workout_id: workoutData?.workout_id || workoutCompletionId,
+            standalone_workout_id: workoutData?.standalone_workout_id,
+            user_id: user?.id,
+            completed_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (completionError) {
+          console.error("Error creating workout completion:", completionError);
+          throw completionError;
+        }
+        
+        if (!newCompletion) {
+          throw new Error("Failed to create workout completion");
+        }
+        
+        completionId = newCompletion.id;
+      }
+
+      const savePromises = [];
+      
+      for (const exerciseId of sortedExerciseIds) {
+        if (!exerciseStates[exerciseId]) continue;
+        
+        const exerciseState = exerciseStates[exerciseId];
+        const currentExercise = exerciseState.currentExercise;
+        const exerciseType = currentExercise?.exercise_type || 'strength';
+        
+        if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+          if (exerciseState.sets && exerciseState.sets.length > 0) {
+            exerciseState.sets.forEach((set, index) => {
+              if (set.completed || (set.weight && set.reps)) {
+                const setData = {
+                  weight: parseFloat(set.weight) || null,
+                  reps_completed: parseInt(set.reps) || null,
+                  completed: set.completed || false,
+                  notes: null
+                };
+                
+                savePromises.push(
+                  trackWorkoutSet(
+                    exerciseId,
+                    completionId,
+                    set.setNumber,
+                    setData
+                  )
+                );
+              }
+            });
+          }
+        } else if (exerciseType === 'cardio' && exerciseState.cardioData) {
+          const cardioData = exerciseState.cardioData;
+          if (cardioData.completed || cardioData.distance || cardioData.duration) {
+            savePromises.push(
+              trackWorkoutSet(
+                exerciseId,
+                completionId,
+                1,
+                {
+                  distance: cardioData.distance || null,
+                  duration: cardioData.duration || null,
+                  location: cardioData.location || null,
+                  completed: cardioData.completed || false,
+                  notes: null
+                }
+              )
+            );
+          }
+        } else if (exerciseType === 'flexibility' && exerciseState.flexibilityData) {
+          const flexData = exerciseState.flexibilityData;
+          if (flexData.completed || flexData.duration) {
+            savePromises.push(
+              trackWorkoutSet(
+                exerciseId,
+                completionId,
+                1,
+                {
+                  duration: flexData.duration || null,
+                  completed: flexData.completed || false,
+                  notes: null
+                }
+              )
+            );
+          }
+        } else if (isRunExercise(exerciseState) && exerciseState.runData) {
+          const runData = exerciseState.runData;
+          if (runData.completed || runData.distance || runData.duration) {
+            savePromises.push(
+              trackWorkoutSet(
+                exerciseId,
+                completionId,
+                1,
+                {
+                  distance: runData.distance || null,
+                  duration: runData.duration || null,
+                  location: runData.location || null,
+                  completed: runData.completed || false,
+                  notes: null
+                }
+              )
+            );
+          }
+        }
+      }
+      
+      if (savePromises.length > 0) {
+        console.log(`Saving ${savePromises.length} workout records...`);
+        await Promise.all(savePromises);
+        console.log(`Successfully saved ${savePromises.length} workout records`);
+      }
+
+      navigate(`/client-dashboard/workouts/complete/${completionId}`);
+    } catch (error) {
+      console.error("Error saving workout data:", error);
+      toast.error("There was an error saving your workout data");
+    }
+  };
+
+  const isRunExercise = (exerciseState: any) => {
+    const exerciseName = exerciseState.currentExercise?.name || '';
+    return exerciseName.toLowerCase().includes('run') || 
+           exerciseName.toLowerCase().includes('running');
   };
 
   const formatDurationInput = (value: string): string => {
@@ -378,13 +557,8 @@ const ActiveWorkout = () => {
   };
 
   const renderExerciseCard = (exercise: WorkoutExercise) => {
-    if (!exercise) {
-      console.log("Attempted to render null exercise");
-      return null;
-    }
-
-    if (!exerciseStates || !exerciseStates[exercise.id]) {
-      console.log(`No exercise state found for exercise with ID: ${exercise.id}`);
+    if (!exercise || !exerciseStates || !exerciseStates[exercise.id]) {
+      console.log(`No exercise state found for exercise with ID: ${exercise?.id}`);
       return null;
     }
     
@@ -482,7 +656,50 @@ const ActiveWorkout = () => {
     );
   };
 
-  if (isLoading) {
+  const { saveStatus, errorCount, forceSave } = useAutosave({
+    data: exerciseStates,
+    onSave: async (data) => {
+      const workoutId = getWorkoutId();
+      
+      if (!data || Object.keys(data).length === 0) {
+        console.log("Skipping autosave - exercise states is empty");
+        return false;
+      }
+      
+      console.log(`Attempting to save workout draft for ID: ${workoutId}`, {
+        dataSize: JSON.stringify(data).length,
+        exerciseCount: Object.keys(data).length
+      });
+      return await saveWorkoutDraft(workoutId, 'workout', data);
+    },
+    debounce: 2000,
+    minChanges: 1,
+    disabled: !workoutData || !exerciseStates || Object.keys(exerciseStates).length === 0 || !initializationComplete
+  });
+
+  useEffect(() => {
+    if (saveStatus === 'error') {
+      if (autosaveRetries < 3) {
+        console.log(`Autosave failed (attempt ${autosaveRetries + 1}/3). Will retry in 5 seconds...`);
+        setTimeout(() => {
+          setAutosaveRetries(prev => prev + 1);
+          forceSave();
+        }, 5000);
+        
+        if (autosaveRetries === 2) {
+          toast.error('Failed to save workout progress. Please check your connection.');
+        }
+      } else {
+        toast.error('Could not save workout progress automatically. Try completing your workout when connection improves.');
+      }
+    }
+    
+    if (saveStatus === 'saved') {
+      setAutosaveRetries(0);
+    }
+  }, [saveStatus, autosaveRetries, forceSave]);
+
+  if (isLoading || isDraftLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
@@ -513,8 +730,12 @@ const ActiveWorkout = () => {
     );
   }
 
-  const exerciseRenderReady = initialLoadComplete && workoutExercises.length > 0 && 
-    Object.keys(exerciseStates).length > 0;
+  const exerciseRenderReady = 
+    initialLoadComplete && 
+    Object.keys(exerciseStates || {}).length > 0 &&
+    workoutExercises.every(ex => !!exerciseStates[ex.id]);
+  
+  const forceShowExercises = forceInitRef.current && workoutExercises.length > 0;
 
   return (
     <div className="container max-w-2xl mx-auto p-4 pb-32">
@@ -526,14 +747,18 @@ const ActiveWorkout = () => {
       </div>
 
       {workoutExercises.length > 0 ? (
-        exerciseRenderReady ? (
+        exerciseRenderReady || forceShowExercises ? (
           <div className="space-y-6">
             {workoutExercises.map(exercise => renderExerciseCard(exercise))}
             
             <div className="fixed bottom-14 left-0 right-0 z-40">
               <div className="bg-gradient-to-t from-background via-background to-transparent">
                 <div className="container max-w-2xl mx-auto px-4">
-                  <Stopwatch className="border-b border-border" />
+                  <Stopwatch 
+                    className="border-b border-border" 
+                    saveStatus={saveStatus} 
+                    workoutCompletionId={workoutCompletionId}
+                  />
                   <Button 
                     onClick={handleCompleteWorkout}
                     className="w-full mt-3 mb-2 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded-lg shadow-sm"
@@ -548,6 +773,21 @@ const ActiveWorkout = () => {
           <div className="flex flex-col items-center justify-center min-h-[300px] p-4">
             <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
             <p className="text-lg font-medium">Preparing workout...</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Status: {workoutDataLoaded ? 'Workout data loaded' : 'Loading workout data'}, 
+              {draftLoaded ? ' Draft loaded' : ' Loading draft'},
+              {initializationComplete ? ' Initialization complete' : ' Initializing'}
+            </p>
+            <Button
+              onClick={() => {
+                console.log("Manual reload triggered by user");
+                window.location.reload();
+              }}
+              variant="outline"
+              className="mt-6"
+            >
+              <Loader2 className="h-4 w-4 mr-2" /> Reload Workout
+            </Button>
           </div>
         )
       ) : (

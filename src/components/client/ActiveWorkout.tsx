@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -43,9 +44,10 @@ const ActiveWorkout = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
+  // Ensure workoutExercises is an array with proper type checking
   const workoutExercises = Array.isArray(workoutData?.workout?.workout_exercises)
     ? workoutData.workout.workout_exercises
-    : undefined;
+    : [];
 
   const { exerciseStates, setExerciseStates, sortedExerciseIds } = useWorkoutState(workoutExercises);
 
@@ -131,4 +133,3 @@ const ActiveWorkout = () => {
 };
 
 export default ActiveWorkout;
-

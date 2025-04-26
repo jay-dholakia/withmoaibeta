@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -533,7 +534,7 @@ const ActiveWorkout = () => {
             {workoutExercises.map(exercise => renderExerciseCard(exercise))}
             
             <div className="fixed bottom-16 left-0 right-0 bg-gradient-to-t from-background to-transparent pt-6 px-4">
-              <Stopwatch className="mb-4" />
+              <Stopwatch className="mb-4 z-50" />
               <Button 
                 onClick={handleCompleteWorkout}
                 className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow-lg text-base"

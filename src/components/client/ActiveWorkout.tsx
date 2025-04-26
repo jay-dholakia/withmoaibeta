@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -157,14 +158,16 @@ const ActiveWorkout = () => {
     retry: 2,
     retryDelay: 1000,
     staleTime: 30000,
-    onError: (error: Error) => {
-      console.error("Error fetching workout:", error);
-      if (retryCount < 2) {
-        setTimeout(() => {
-          setRetryCount(prevCount => prevCount + 1);
-        }, 2000);
-      } else {
-        toast.error("Unable to load workout. Please try again later.");
+    meta: {
+      onError: (error: Error) => {
+        console.error("Error fetching workout:", error);
+        if (retryCount < 2) {
+          setTimeout(() => {
+            setRetryCount(prevCount => prevCount + 1);
+          }, 2000);
+        } else {
+          toast.error("Unable to load workout. Please try again later.");
+        }
       }
     },
     onSuccess: (data) => {

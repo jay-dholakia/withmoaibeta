@@ -3,7 +3,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { WorkoutHistoryItem } from '@/types/workout';
+import { WorkoutHistoryItem, StandardWorkoutType } from '@/types/workout';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -32,6 +32,22 @@ export const ClientWorkoutHistoryDialog = ({
   const formatWorkoutDate = (dateString: string) => {
     const date = new Date(dateString);
     return format(date, 'MMM d, yyyy');
+  };
+
+  // Function to safely get workout type as StandardWorkoutType
+  const getWorkoutType = (type: string | undefined): StandardWorkoutType => {
+    // Define a list of valid workout types matching StandardWorkoutType
+    const validTypes: StandardWorkoutType[] = [
+      'strength', 'cardio', 'bodyweight', 'flexibility', 
+      'rest_day', 'custom', 'one_off', 'hiit', 'sport',
+      'swimming', 'cycling', 'dance', 'basketball', 'golf',
+      'volleyball', 'baseball', 'tennis', 'hiking', 'skiing', 'yoga'
+    ];
+    
+    // If the type is valid, return it; otherwise default to 'custom'
+    return (type && validTypes.includes(type as StandardWorkoutType)) 
+      ? type as StandardWorkoutType 
+      : 'custom';
   };
 
   return (
@@ -81,7 +97,7 @@ export const ClientWorkoutHistoryDialog = ({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <WorkoutTypeIcon type={workout.workout?.workout_type || 'custom'} />
+                        <WorkoutTypeIcon type={getWorkoutType(workout.workout?.workout_type)} />
                         <span className="capitalize">
                           {workout.workout?.workout_type || 'custom'}
                         </span>

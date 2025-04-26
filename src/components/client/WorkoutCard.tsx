@@ -74,7 +74,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         </div>
         
         {groupMembers.length > 0 && (
-          <div className="flex -space-x-1 items-center mt-1">
+          <div className="flex -space-x-1 items-center mt-2">
             <TooltipProvider>
               {groupMembers.map((member, index) => {
                 const hasCompleted = member.completed_workout_ids.includes(workoutId);
@@ -82,7 +82,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
                   <Tooltip key={member.id}>
                     <TooltipTrigger>
                       <Avatar className={cn(
-                        "h-5 w-5 border-2 border-white dark:border-gray-700 relative",
+                        "h-8 w-8 border-2 border-white dark:border-gray-700 relative",
                         !hasCompleted && "grayscale opacity-60",
                         "hover:translate-y-0.5 transition-transform"
                       )}
@@ -92,7 +92,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
                         {member.profile_picture_url && (
                           <AvatarImage src={member.profile_picture_url} alt={member.name} />
                         )}
-                        <AvatarFallback className="bg-client/80 text-white text-xs">
+                        <AvatarFallback className="bg-client/80 text-white text-sm">
                           {getMemberInitials(member.name)}
                         </AvatarFallback>
                       </Avatar>

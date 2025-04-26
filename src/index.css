@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -83,9 +82,7 @@
     --sidebar-border: 217 33% 18%;
     --sidebar-ring: 213 27% 84%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
@@ -132,7 +129,7 @@
   .portal-gradient-coach {
     background: linear-gradient(135deg, rgba(46, 204, 113, 0.05) 0%, rgba(46, 204, 113, 0.1) 100%);
   }
-  
+
   .portal-gradient-client {
     background: linear-gradient(135deg, rgba(37, 65, 143, 0.05) 0%, rgba(37, 65, 143, 0.1) 100%);
   }
@@ -208,3 +205,4 @@
 .btn-hover-effect:hover:before {
   width: 100%;
 }
+

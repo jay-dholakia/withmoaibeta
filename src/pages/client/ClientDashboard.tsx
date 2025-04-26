@@ -10,6 +10,7 @@ import NotesPage from './NotesPage';
 import ProfileEditor from './ProfileEditor';
 import PrivacyPolicyPage from './PrivacyPolicyPage';
 import TermsOfServicePage from './TermsOfServicePage';
+import NotFound from '@/pages/NotFound';
 
 const ClientDashboard = () => {
   const location = useLocation();
@@ -28,7 +29,8 @@ const ClientDashboard = () => {
           <Route path="settings/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="settings/terms-of-service" element={<TermsOfServicePage />} />
           <Route path="notes" element={<NotesPage />} />
-          <Route path="*" element={<Navigate to="moai" replace />} />
+          <Route path="workouts/active/:workoutId" element={<NotFound />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     </ClientLayout>

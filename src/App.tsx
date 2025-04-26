@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -44,6 +45,7 @@ import CoachClientsPage from './pages/coach/ClientsPage';
 import PrivacyPolicyPage from './pages/client/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/client/TermsOfServicePage';
 import LiveRunPage from './pages/client/LiveRunPage';
+import NotFound from './pages/NotFound';
 
 const App: React.FC = () => {
   const { loading } = useAuth();
@@ -104,7 +106,11 @@ const App: React.FC = () => {
       <Route path="/workouts" element={<ClientRoute><ClientWorkoutHistoryPage /></ClientRoute>} />
       <Route path="/workouts/:workoutId" element={<ClientRoute><ClientWorkoutDetailsPage /></ClientRoute>} />
       
-      <Route path="*" element={<Navigate to="/" />} />
+      {/* Handle 404s for any specific paths */}
+      <Route path="/client-dashboard/workouts/active/:workoutId" element={<ClientRoute><NotFound /></ClientRoute>} />
+      
+      {/* All other unmatched routes */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };

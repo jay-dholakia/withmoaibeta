@@ -18,7 +18,8 @@ export const fetchClientWorkoutHistory = async (clientId: string): Promise<Worko
       .select(selectStatement)
       .eq('user_id', clientId)
       .not('completed_at', 'is', null)
-      .order('completed_at', { ascending: false });
+      .order('completed_at', { ascending: true })
+      .order('id', { ascending: true });
     
     if (completionsError) {
       console.error("Error fetching workout completions:", completionsError);

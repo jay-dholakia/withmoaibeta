@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Mountain } from 'lucide-react';
 
 interface LogoProps {
   variant?: 'admin' | 'coach' | 'client' | 'default';
@@ -29,6 +30,7 @@ export const Logo: React.FC<LogoProps> = ({
 
   return (
     <div className="flex items-center">
+      <Mountain className={`h-6 w-6 mr-2 ${getColor()}`} />
       <div className={`${getSize()} font-bold ${getColor()}`}>
         Moai
       </div>

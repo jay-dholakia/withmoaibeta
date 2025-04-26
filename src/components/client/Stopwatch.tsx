@@ -12,7 +12,7 @@ interface StopwatchProps {
 
 const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus }) => {
   const [time, setTime] = useState<number>(0);
-  const [isRunning, setIsRunning] = useState<boolean>(true);
+  const [isRunning, setIsRunning] = useState<boolean>(false);
   const [savedTime, setSavedTime] = useState<number | null>(null);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus }) => {
       const elapsed = Math.floor((Date.now() - parseInt(workoutStartTime)) / 1000);
       setTime(elapsed);
     } else {
-      // If no saved time, start from 0 and save current time
+      // If no saved time, initialize to 0 but don't start automatically
       localStorage.setItem("workout_start_time", Date.now().toString());
     }
 
@@ -77,7 +77,7 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus }) => {
   };
 
   return (
-    <div className={cn("flex justify-between items-center py-3", className)}>
+    <div className={cn("flex justify-between items-center py-3 px-4 bg-background border rounded-md shadow-sm", className)}>
       <div className="text-xl font-semibold">{formatTime(time)}</div>
       
       <div className="flex items-center gap-2">

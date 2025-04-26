@@ -82,7 +82,8 @@ export const saveWorkoutDraft = async (
       userId: user.id,
       workoutType: workoutTypeValue,
       dataSize: JSON.stringify(draftDataToStore).length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      exerciseStates: Object.keys(draftDataToStore).length
     });
 
     // First check if a draft already exists for this workout

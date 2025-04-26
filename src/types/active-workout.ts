@@ -1,4 +1,6 @@
 
+import { Exercise } from '@/types/workout';
+
 export interface ExerciseState {
   expanded: boolean;
   exercise_id?: string; // Track the current exercise ID

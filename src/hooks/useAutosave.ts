@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
@@ -137,6 +136,10 @@ export function useAutosave<T>({
         setErrorCount(0);
         previousDataRef.current = currentSerializedData;
         changeCountRef.current = 0;
+        
+        // Dispatch autosave event
+        window.dispatchEvent(new Event('workout:autosave'));
+        
         return true;
       } else {
         console.error('[Autosave] Save returned false', {

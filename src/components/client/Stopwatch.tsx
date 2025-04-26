@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { Play, Pause, RefreshCw } from 'lucide-react';
+import { Play, Pause, RefreshCw, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StopwatchProps {
@@ -11,7 +11,30 @@ interface StopwatchProps {
 const Stopwatch: React.FC<StopwatchProps> = ({ className }) => {
   const [time, setTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Listen for autosave events from the parent
+  useEffect(() => {
+    const handleAutosave = () => {
+      setShowSaveIndicator(true);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      saveTimeoutRef.current = setTimeout(() => {
+        setShowSaveIndicator(false);
+      }, 2000);
+    };
+
+    window.addEventListener('workout:autosave', handleAutosave);
+    return () => {
+      window.removeEventListener('workout:autosave', handleAutosave);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const toggleTimer = () => {
     setIsRunning(!isRunning);
@@ -54,7 +77,7 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className }) => {
 
   return (
     <div className={cn(
-      "w-full bg-background py-2 flex items-center justify-between",
+      "w-full bg-background py-2 flex items-center justify-between gap-2",
       className
     )}>
       <Button 
@@ -71,18 +94,26 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className }) => {
         {formatTime(time)}
       </div>
       
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={toggleTimer} 
-        className={cn(
-          "h-8 w-8 p-0",
-          isRunning ? "bg-gray-200" : "bg-white"
+      <div className="flex items-center gap-2">
+        {showSaveIndicator && (
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Save className="h-4 w-4 mr-1 text-green-500" />
+            <span className="text-green-600">Saved</span>
+          </div>
         )}
-      >
-        {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-        <span className="sr-only">{isRunning ? 'Pause' : 'Play'}</span>
-      </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={toggleTimer} 
+          className={cn(
+            "h-8 w-8 p-0",
+            isRunning ? "bg-gray-200" : "bg-white"
+          )}
+        >
+          {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          <span className="sr-only">{isRunning ? 'Pause' : 'Play'}</span>
+        </Button>
+      </div>
     </div>
   );
 };

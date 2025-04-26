@@ -40,26 +40,10 @@ export function useWorkoutDraft({
       console.log(`Loading workout draft for ${workoutId}...`);
       
       abortControllerRef.current = new AbortController();
-      const signal = abortControllerRef.current.signal;
       
-      // First try to get draft from sessionStorage for faster loading
-      let draft = null;
-      try {
-        const cachedDraft = sessionStorage.getItem(`workout_draft_${workoutId}`);
-        if (cachedDraft) {
-          draft = JSON.parse(cachedDraft);
-          console.log("Retrieved draft from sessionStorage:", draft);
-        }
-      } catch (e) {
-        console.warn("Failed to retrieve draft from sessionStorage:", e);
-      }
+      const draft = await getWorkoutDraft(workoutId);
       
-      // If not in sessionStorage or user is not available yet, get from Supabase
-      if (!draft || !draft.draft_data) {
-        draft = await getWorkoutDraft(workoutId);
-      }
-      
-      if (!isMountedRef.current || signal.aborted) return;
+      if (!isMountedRef.current) return;
       
       if (draft && draft.draft_data) {
         console.log(`Successfully loaded draft data for ${workoutId}:`, draft.draft_data);

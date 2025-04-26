@@ -25,7 +25,7 @@ export const SwapExerciseDialog: React.FC<SwapExerciseDialogProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[600px] lg:max-w-[800px]">
         <DialogHeader>
           <DialogTitle>Swap "{exerciseName}"</DialogTitle>
         </DialogHeader>
@@ -39,7 +39,7 @@ export const SwapExerciseDialog: React.FC<SwapExerciseDialogProps> = ({
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : similarExercises && similarExercises.length > 0 ? (
-            <div className="grid gap-2 max-h-[300px] overflow-y-auto pr-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-2">
               {similarExercises.map((exercise) => (
                 <Button
                   key={exercise.id}

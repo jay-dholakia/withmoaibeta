@@ -364,7 +364,8 @@ const ActiveWorkout = () => {
         ...prev,
         [updatedExercise.id]: {
           ...prev[updatedExercise.id],
-          exercise_id: updatedExercise.exercise?.id
+          exercise_id: updatedExercise.exercise?.id,
+          currentExercise: updatedExercise.exercise
         }
       }));
       
@@ -388,9 +389,11 @@ const ActiveWorkout = () => {
     }
     
     const { expanded } = exerciseStates[exercise.id];
-    const exerciseName = exercise.exercise?.name || '';
-    const exerciseType = exercise.exercise?.exercise_type || 'strength';
-    const description = exercise.exercise?.description || '';
+    
+    const currentExercise = exerciseStates[exercise.id].currentExercise || exercise.exercise;
+    const exerciseName = currentExercise?.name || exercise.exercise?.name || '';
+    const exerciseType = currentExercise?.exercise_type || exercise.exercise?.exercise_type || 'strength';
+    const description = currentExercise?.description || exercise.exercise?.description || '';
 
     return (
       <Card key={exercise.id} className="mb-6">
@@ -428,7 +431,10 @@ const ActiveWorkout = () => {
             
             {exerciseType === 'strength' && (
               <StrengthExercise 
-                exercise={exercise}
+                exercise={{
+                  ...exercise,
+                  exercise: currentExercise
+                }}
                 exerciseState={exerciseStates[exercise.id]}
                 personalRecord={undefined}
                 onSetChange={handleSetChange}

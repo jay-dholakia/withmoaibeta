@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,13 @@ export const StrengthExercise: React.FC<Props> = ({
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
   const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>(exercise.exercise);
 
+  // Update currentExercise if the parent component passes a different exercise
+  useEffect(() => {
+    if (exercise.exercise && exercise.exercise.id !== currentExercise?.id) {
+      setCurrentExercise(exercise.exercise);
+    }
+  }, [exercise.exercise]);
+
   // Query for similar exercises
   const { data: similarExercises, isLoading } = useQuery({
     queryKey: ['similar-exercises', currentExercise?.id],
@@ -49,11 +56,14 @@ export const StrengthExercise: React.FC<Props> = ({
       // Update the local state first for immediate UI feedback
       setCurrentExercise(newExercise);
       
-      // Update the exercise in the state through the parent component
-      onSwapClick({
+      // Create updated exercise object with the new exercise details
+      const updatedExercise: WorkoutExercise = {
         ...exercise,
-        exercise: newExercise,
-      });
+        exercise: newExercise
+      };
+      
+      // Update the exercise in the state through the parent component
+      onSwapClick(updatedExercise);
 
       // Update the exercise ID in the workout draft
       if (workoutCompletionId) {
@@ -172,4 +182,3 @@ export const StrengthExercise: React.FC<Props> = ({
     </div>
   );
 };
-

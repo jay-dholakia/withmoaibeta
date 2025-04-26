@@ -256,8 +256,111 @@ const ActiveWorkout = () => {
     setIsCompletionDialogOpen(true);
   };
 
-  const confirmCompleteWorkout = () => {
-    navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
+  const confirmCompleteWorkout = async () => {
+    try {
+      const savePromises = [];
+      
+      for (const exerciseId of sortedExerciseIds) {
+        if (!exerciseStates[exerciseId]) continue;
+        
+        const exerciseState = exerciseStates[exerciseId];
+        const currentExercise = exerciseState.currentExercise;
+        const exerciseType = currentExercise?.exercise_type || 'strength';
+        
+        if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+          if (exerciseState.sets && exerciseState.sets.length > 0) {
+            exerciseState.sets.forEach((set, index) => {
+              if (set.completed || (set.weight && set.reps)) {
+                const setData = {
+                  weight: parseFloat(set.weight) || null,
+                  reps_completed: parseInt(set.reps) || null,
+                  completed: set.completed || false,
+                  notes: null
+                };
+                
+                savePromises.push(
+                  trackWorkoutSet(
+                    exerciseId,
+                    workoutCompletionId,
+                    set.setNumber,
+                    setData
+                  )
+                );
+              }
+            });
+          }
+        } else if (exerciseType === 'cardio' && exerciseState.cardioData) {
+          const cardioData = exerciseState.cardioData;
+          if (cardioData.completed || cardioData.distance || cardioData.duration) {
+            savePromises.push(
+              trackWorkoutSet(
+                exerciseId,
+                workoutCompletionId,
+                1,
+                {
+                  distance: cardioData.distance || null,
+                  duration: cardioData.duration || null,
+                  location: cardioData.location || null,
+                  completed: cardioData.completed || false,
+                  notes: null
+                }
+              )
+            );
+          }
+        } else if (exerciseType === 'flexibility' && exerciseState.flexibilityData) {
+          const flexData = exerciseState.flexibilityData;
+          if (flexData.completed || flexData.duration) {
+            savePromises.push(
+              trackWorkoutSet(
+                exerciseId,
+                workoutCompletionId,
+                1,
+                {
+                  duration: flexData.duration || null,
+                  completed: flexData.completed || false,
+                  notes: null
+                }
+              )
+            );
+          }
+        } else if (isRunExercise(exerciseState) && exerciseState.runData) {
+          const runData = exerciseState.runData;
+          if (runData.completed || runData.distance || runData.duration) {
+            savePromises.push(
+              trackWorkoutSet(
+                exerciseId,
+                workoutCompletionId,
+                1,
+                {
+                  distance: runData.distance || null,
+                  duration: runData.duration || null,
+                  location: runData.location || null,
+                  completed: runData.completed || false,
+                  notes: null
+                }
+              )
+            );
+          }
+        }
+      }
+      
+      if (savePromises.length > 0) {
+        toast.info(`Saving ${savePromises.length} workout records...`);
+        await Promise.all(savePromises);
+        console.log(`Successfully saved ${savePromises.length} workout records`);
+      }
+
+      navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
+    } catch (error) {
+      console.error("Error saving workout data:", error);
+      toast.error("There was an error saving your workout data");
+    }
+  };
+
+  const isRunExercise = (exerciseState: any) => {
+    const exerciseName = exerciseState.currentExercise?.name || '';
+    return exerciseName.toLowerCase().includes('run') || 
+           exerciseName.toLowerCase().includes('running');
   };
 
   const formatDurationInput = (value: string): string => {

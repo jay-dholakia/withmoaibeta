@@ -205,7 +205,48 @@ export const trackWorkoutSet = async (
   if (!userId) {
     throw new Error("User must be authenticated to track workout sets");
   }
+  
+  console.log(`Tracking set ${setNumber} for exercise ${exerciseId}`, data);
 
+  // Check if this set already exists
+  const { data: existingSet, error: checkError } = await supabase
+    .from('workout_set_completions')
+    .select('id')
+    .eq('workout_exercise_id', exerciseId)
+    .eq('workout_completion_id', completionId)
+    .eq('set_number', setNumber)
+    .eq('user_id', userId)
+    .maybeSingle();
+    
+  if (checkError) {
+    console.error("Error checking for existing set:", checkError);
+    throw checkError;
+  }
+  
+  if (existingSet) {
+    // Update existing set
+    const { error: updateError } = await supabase
+      .from('workout_set_completions')
+      .update({
+        weight: data.weight,
+        reps_completed: data.reps_completed,
+        notes: data.notes,
+        distance: data.distance,
+        duration: data.duration,
+        location: data.location,
+        completed: data.completed || false
+      })
+      .eq('id', existingSet.id);
+      
+    if (updateError) {
+      console.error("Error updating workout set:", updateError);
+      throw updateError;
+    }
+    
+    return { ...existingSet, ...data };
+  }
+  
+  // Insert new set
   const { data: result, error } = await supabase
     .from('workout_set_completions')
     .insert([{

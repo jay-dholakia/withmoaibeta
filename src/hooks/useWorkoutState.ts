@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { ExerciseStates, PendingSet, PendingCardio, PendingFlexibility, PendingRun } from '@/types/active-workout';
-import { WorkoutExercise } from '@/types/workout';
+import { WorkoutExercise, Exercise } from '@/types/workout';
 import { toast } from 'sonner';
 
 export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -50,6 +50,7 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
           initialState[exercise.id] = {
             expanded: true,
             exercise_id: exercise.exercise?.id, // Initialize with the exercise ID
+            currentExercise: exercise.exercise, // Initialize with the current exercise
             sets: [],
             runData: {
               distance: '',
@@ -69,12 +70,14 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
           initialState[exercise.id] = {
             expanded: true,
             exercise_id: exercise.exercise?.id, // Initialize with the exercise ID
+            currentExercise: exercise.exercise, // Initialize with the current exercise
             sets,
           };
         } else if (exerciseType === 'cardio') {
           initialState[exercise.id] = {
             expanded: true,
             exercise_id: exercise.exercise?.id, // Initialize with the exercise ID
+            currentExercise: exercise.exercise, // Initialize with the current exercise
             sets: [],
             cardioData: {
               distance: '',
@@ -87,6 +90,7 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
           initialState[exercise.id] = {
             expanded: true,
             exercise_id: exercise.exercise?.id, // Initialize with the exercise ID
+            currentExercise: exercise.exercise, // Initialize with the current exercise
             sets: [],
             flexibilityData: {
               duration: '',

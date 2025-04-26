@@ -7,6 +7,7 @@ export interface ExerciseState {
     originalExerciseId: string | null;
     replacementExerciseId: string;
   };
+  currentExercise?: Exercise; // Added this property to store the current exercise
   sets: Array<{
     setNumber: number;
     weight: string;

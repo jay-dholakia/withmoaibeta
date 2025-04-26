@@ -1,7 +1,3 @@
-// ---
-// ActiveWorkout.tsx - Cleaned and Production-Ready
-// ---
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -11,9 +7,14 @@ import { saveWorkoutDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useWorkoutState } from '@/hooks/useWorkoutState';
 import { useWorkoutDraft } from '@/hooks/useWorkoutDraft';
+import { StrengthExercise } from './workout/StrengthExercise';
+import { CardioExercise } from './workout/CardioExercise';
+import { FlexibilityExercise } from './workout/FlexibilityExercise';
+import { RunExercise } from './workout/RunExercise';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import Stopwatch from './Stopwatch';
+import { cn } from '@/lib/utils';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -37,8 +38,9 @@ const ActiveWorkout = () => {
     enabled: !!workoutCompletionId && !!user?.id
   });
 
-  const getWorkoutId = () => workoutData?.id || workoutCompletionId;
-  const workoutId = getWorkoutId();
+  const workoutExercises = workoutData?.workout_exercises || [];
+
+  const workoutId = workoutData?.id || workoutCompletionId;
 
   const { draftData, draftLoaded, isLoading: isDraftLoading } = useWorkoutDraft({
     workoutId,
@@ -50,7 +52,7 @@ const ActiveWorkout = () => {
     setExerciseStates,
     sortedExerciseIds
   } = useWorkoutState(
-    initialLoadComplete ? workoutData?.workout_exercises : undefined,
+    initialLoadComplete ? workoutExercises : undefined,
     draftLoaded ? draftData?.exerciseStates : undefined
   );
 
@@ -88,6 +90,26 @@ const ActiveWorkout = () => {
     );
   }
 
+  const renderExerciseCard = (exerciseId: string) => {
+    const state = exerciseStates[exerciseId];
+    if (!state) return null;
+
+    const currentExercise = state.currentExercise;
+    const type = currentExercise?.exercise_type || 'strength';
+
+    if (type === 'strength') {
+      return <StrengthExercise key={exerciseId} exerciseId={exerciseId} exerciseState={state} />;
+    } else if (type === 'cardio') {
+      return <CardioExercise key={exerciseId} exerciseId={exerciseId} exerciseState={state} />;
+    } else if (type === 'flexibility') {
+      return <FlexibilityExercise key={exerciseId} exerciseId={exerciseId} exerciseState={state} />;
+    } else if (type.includes('run')) {
+      return <RunExercise key={exerciseId} exerciseId={exerciseId} exerciseState={state} />;
+    }
+
+    return null;
+  };
+
   return (
     <div className="container max-w-2xl mx-auto p-4 pb-32">
       <div className="flex items-center mb-4">
@@ -99,7 +121,7 @@ const ActiveWorkout = () => {
 
       {sortedExerciseIds.length > 0 ? (
         <div className="space-y-6">
-          {/* Render exercises here */}
+          {sortedExerciseIds.map(renderExerciseCard)}
         </div>
       ) : (
         <div className="text-center py-8">No exercises found for this workout.</div>
@@ -123,4 +145,3 @@ const ActiveWorkout = () => {
 };
 
 export default ActiveWorkout;
-

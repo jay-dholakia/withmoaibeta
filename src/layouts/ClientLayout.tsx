@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -97,7 +96,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                     className="w-6 h-6" 
                     strokeWidth={isActive('/moai') ? 2.5 : 2} 
                   />
-                  <span className="text-xs font-medium">Moai</span>
+                  <span className="text-xs font-medium">Your Moai</span>
                 </Link>
               </li>
               
@@ -114,7 +113,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                     className="w-6 h-6" 
                     strokeWidth={isActive('/notes') ? 2.5 : 2} 
                   />
-                  <span className="text-xs font-medium">Notes</span>
+                  <span className="text-xs font-medium">Nutrition</span>
                 </Link>
               </li>
               
@@ -141,4 +140,3 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
     </div>
   );
 };
-

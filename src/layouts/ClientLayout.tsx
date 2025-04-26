@@ -53,85 +53,85 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
               <li>
                 <Link 
                   to="/client-dashboard/leaderboard" 
-                  className={`flex items-center justify-center w-12 h-12 rounded-full relative ${
-                    isActive('/leaderboard') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg relative ${
+                    isActive('/leaderboard') 
+                      ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
+                      : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  {isActive('/leaderboard') && (
-                    <div className="absolute inset-0 bg-client/10 dark:bg-blue-900/40 rounded-full" />
-                  )}
                   <LayoutGrid 
-                    className="relative z-10 w-6 h-6" 
+                    className="w-6 h-6" 
                     strokeWidth={isActive('/leaderboard') ? 2.5 : 2} 
                   />
+                  <span className="text-sm font-medium">Dashboard</span>
                 </Link>
               </li>
               
               <li>
                 <Link 
                   to="/client-dashboard/workouts" 
-                  className={`flex items-center justify-center w-12 h-12 rounded-full relative ${
-                    isActive('/workouts') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg relative ${
+                    isActive('/workouts') 
+                      ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
+                      : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  {isActive('/workouts') && (
-                    <div className="absolute inset-0 bg-client/10 dark:bg-blue-900/40 rounded-full" />
-                  )}
                   <DumbbellIcon 
-                    className="relative z-10 w-6 h-6" 
+                    className="w-6 h-6" 
                     strokeWidth={isActive('/workouts') ? 2.5 : 2} 
                   />
+                  <span className="text-sm font-medium">Workouts</span>
                 </Link>
               </li>
               
               <li>
                 <Link 
                   to="/client-dashboard/moai" 
-                  className={`flex items-center justify-center w-12 h-12 rounded-full relative ${
-                    isActive('/moai') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg relative ${
+                    isActive('/moai') 
+                      ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
+                      : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  {isActive('/moai') && (
-                    <div className="absolute inset-0 bg-client/10 dark:bg-blue-900/40 rounded-full" />
-                  )}
                   <Users2Icon 
-                    className="relative z-10 w-6 h-6" 
+                    className="w-6 h-6" 
                     strokeWidth={isActive('/moai') ? 2.5 : 2} 
                   />
+                  <span className="text-sm font-medium">Moai</span>
                 </Link>
               </li>
               
               <li>
                 <Link 
                   to="/client-dashboard/notes" 
-                  className={`flex items-center justify-center w-12 h-12 rounded-full relative ${
-                    isActive('/notes') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg relative ${
+                    isActive('/notes') 
+                      ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
+                      : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  {isActive('/notes') && (
-                    <div className="absolute inset-0 bg-client/10 dark:bg-blue-900/40 rounded-full" />
-                  )}
                   <BananaIcon 
-                    className="relative z-10 w-6 h-6" 
+                    className="w-6 h-6" 
                     strokeWidth={isActive('/notes') ? 2.5 : 2} 
                   />
+                  <span className="text-sm font-medium">Notes</span>
                 </Link>
               </li>
               
               <li>
                 <Link 
                   to="/client-dashboard/settings" 
-                  className={`flex items-center justify-center w-12 h-12 rounded-full relative ${
-                    isActive('/settings') ? 'text-client dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg relative ${
+                    isActive('/settings') 
+                      ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
+                      : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  {isActive('/settings') && (
-                    <div className="absolute inset-0 bg-client/10 dark:bg-blue-900/40 rounded-full" />
-                  )}
                   <Settings 
-                    className="relative z-10 w-6 h-6" 
+                    className="w-6 h-6" 
                     strokeWidth={isActive('/settings') ? 2.5 : 2} 
                   />
+                  <span className="text-sm font-medium">Settings</span>
                 </Link>
               </li>
             </ul>

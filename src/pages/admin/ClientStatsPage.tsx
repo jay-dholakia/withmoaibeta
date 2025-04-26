@@ -4,7 +4,7 @@ import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Search, UserSquare, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Filter, CalendarDays } from 'lucide-react';
+import { RefreshCw, Search, UserSquare, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Filter, CalendarDays, History } from 'lucide-react';
 import { fetchAllClients } from '@/services/workout-service';
 import { fetchClientWorkoutStats } from '@/services/admin-client-stats-service';
 import { format, isValid } from 'date-fns';
@@ -20,6 +20,7 @@ import { debounce } from '@/lib/utils';
 import { formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/lib/hooks';
+import { ClientWorkoutHistoryDialog } from '@/components/admin/ClientWorkoutHistoryDialog';
 
 interface ClientStats {
   id: string;
@@ -42,6 +43,7 @@ const ClientStatsPage = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [groupFilter, setGroupFilter] = useState<string[]>([]);
   const [activityFilter, setActivityFilter] = useState<string>('all'); // 'all', 'active', 'inactive'
+  const [selectedClient, setSelectedClient] = useState<{ id: string; name: string } | null>(null);
 
   const { 
     data: clients, 
@@ -416,6 +418,7 @@ const ClientStatsPage = () => {
                         <div className="text-sm text-muted-foreground">{client.email}</div>
                       </div>
                     </TableCell>
+                    
                     {!isMobile && (
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -431,16 +434,34 @@ const ClientStatsPage = () => {
                         </div>
                       </TableCell>
                     )}
+                    
                     <TableCell className={cn(
                       isWorkoutStale(client.last_workout_date) && "text-red-500 font-medium"
                     )}>
                       {formatDate(client.last_workout_date)}
                     </TableCell>
+                    
                     {!isMobile && (
                       <>
                         <TableCell>{client.assigned_workouts_this_week}</TableCell>
                         <TableCell>{client.activities_this_week}</TableCell>
-                        <TableCell>{client.total_activities}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-between">
+                            <span>{client.total_activities}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="ml-4"
+                              onClick={() => setSelectedClient({
+                                id: client.id,
+                                name: formatDisplayName(client.first_name, client.last_name, client.email)
+                              })}
+                            >
+                              <History className="h-4 w-4 mr-1" />
+                              History
+                            </Button>
+                          </div>
+                        </TableCell>
                       </>
                     )}
                   </TableRow>
@@ -450,6 +471,12 @@ const ClientStatsPage = () => {
           </Table>
         </div>
       </div>
+      <ClientWorkoutHistoryDialog
+        clientId={selectedClient?.id || ''}
+        clientName={selectedClient?.name || ''}
+        open={!!selectedClient}
+        onOpenChange={(open) => !open && setSelectedClient(null)}
+      />
     </AdminDashboardLayout>
   );
 };

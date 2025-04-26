@@ -482,6 +482,27 @@ const ActiveWorkout = () => {
     );
   };
 
+  const getWorkoutId = () => {
+    if (!workoutData) return workoutCompletionId;
+    if (workoutData.standalone_workout_id) return workoutData.standalone_workout_id;
+    if (workoutData.workout?.id) return workoutData.workout.id;
+    return workoutCompletionId;
+  };
+
+  const { saveStatus } = useAutosave({
+    data: exerciseStates,
+    onSave: (data) => saveWorkoutDraft(getWorkoutId(), 'workout', data),
+    debounce: 2000,
+    minChanges: 1,
+    disabled: !workoutData || !exerciseStates
+  });
+
+  useEffect(() => {
+    if (saveStatus === 'error') {
+      toast.error('Failed to save workout progress');
+    }
+  }, [saveStatus]);
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">

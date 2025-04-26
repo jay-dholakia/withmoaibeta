@@ -1,117 +1,108 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, RefreshCw, Save } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { PlayCircle, PauseCircle, RefreshCw, Save } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { AutosaveStatus } from "@/hooks/useAutosave";
 
 interface StopwatchProps {
   className?: string;
+  saveStatus?: AutosaveStatus;
 }
 
-const Stopwatch: React.FC<StopwatchProps> = ({ className }) => {
-  const [time, setTime] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus }) => {
+  const [time, setTime] = useState<number>(0);
+  const [isRunning, setIsRunning] = useState<boolean>(true);
+  const [savedTime, setSavedTime] = useState<number | null>(null);
 
-  // Listen for autosave events from the parent
   useEffect(() => {
-    const handleAutosave = () => {
-      setShowSaveIndicator(true);
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      saveTimeoutRef.current = setTimeout(() => {
-        setShowSaveIndicator(false);
-      }, 2000);
-    };
-
-    window.addEventListener('workout:autosave', handleAutosave);
-    return () => {
-      window.removeEventListener('workout:autosave', handleAutosave);
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const toggleTimer = () => {
-    setIsRunning(!isRunning);
-  };
-
-  const resetTimer = () => {
-    setTime(0);
-    if (isRunning) {
-      setIsRunning(false);
+    // Attempt to load saved time from localStorage
+    const workoutStartTime = localStorage.getItem("workout_start_time");
+    if (workoutStartTime) {
+      const elapsed = Math.floor((Date.now() - parseInt(workoutStartTime)) / 1000);
+      setTime(elapsed);
+    } else {
+      // If no saved time, start from 0 and save current time
+      localStorage.setItem("workout_start_time", Date.now().toString());
     }
-  };
 
-  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
     if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        setTime(prevTime => prevTime + 1);
+      interval = setInterval(() => {
+        setTime(prevTime => {
+          const newTime = prevTime + 1;
+          return newTime;
+        });
       }, 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
     }
-
+    
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (interval) clearInterval(interval);
     };
   }, [isRunning]);
 
-  const formatTime = (timeInSeconds: number) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = timeInSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  const formatTime = (seconds: number): string => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    const formattedHours = hrs > 0 ? `${hrs}:` : '';
+    const formattedMins = mins < 10 ? `0${mins}` : `${mins}`;
+    const formattedSecs = secs < 10 ? `0${secs}` : `${secs}`;
+    
+    return `${formattedHours}${formattedMins}:${formattedSecs}`;
   };
 
-  const getTimeColor = () => {
-    if (time >= 60) return 'text-red-500';
-    if (time >= 45) return 'text-yellow-500';
-    return 'text-gray-800';
+  const handleReset = () => {
+    setTime(0);
+    localStorage.setItem("workout_start_time", Date.now().toString());
+  };
+
+  const toggleRunning = () => {
+    setIsRunning(!isRunning);
+  };
+  
+  const getSaveStatusIcon = () => {
+    switch (saveStatus) {
+      case 'saving':
+        return <Save className="h-4 w-4 animate-pulse text-amber-500" />;
+      case 'saved':
+        return <Save className="h-4 w-4 text-green-500" />;
+      case 'error':
+        return <Save className="h-4 w-4 text-red-500" />;
+      default:
+        return null;
+    }
   };
 
   return (
-    <div className={cn(
-      "w-full bg-background py-2 flex items-center justify-between gap-2",
-      className
-    )}>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={resetTimer} 
-        className="h-8 w-8 p-0"
-      >
-        <RefreshCw className="h-4 w-4" />
-        <span className="sr-only">Reset</span>
-      </Button>
-      
-      <div className={cn("text-2xl font-mono font-bold flex-1 text-center", getTimeColor())}>
-        {formatTime(time)}
-      </div>
+    <div className={cn("flex justify-between items-center py-3", className)}>
+      <div className="text-xl font-semibold">{formatTime(time)}</div>
       
       <div className="flex items-center gap-2">
-        {showSaveIndicator && (
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Save className="h-4 w-4 mr-1 text-green-500" />
-            <span className="text-green-600">Saved</span>
-          </div>
-        )}
+        {getSaveStatusIcon()}
+        
         <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={toggleTimer} 
-          className={cn(
-            "h-8 w-8 p-0",
-            isRunning ? "bg-gray-200" : "bg-white"
-          )}
+          variant="ghost" 
+          size="icon"
+          onClick={toggleRunning}
+          aria-label={isRunning ? "Pause timer" : "Start timer"}
         >
-          {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-          <span className="sr-only">{isRunning ? 'Pause' : 'Play'}</span>
+          {isRunning ? (
+            <PauseCircle className="h-5 w-5" />
+          ) : (
+            <PlayCircle className="h-5 w-5" />
+          )}
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={handleReset}
+          aria-label="Reset timer"
+        >
+          <RefreshCw className="h-5 w-5" />
         </Button>
       </div>
     </div>

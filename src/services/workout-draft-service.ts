@@ -21,11 +21,24 @@ const safeParseDraftData = (data: any): any => {
  */
 const verifySupabaseConnection = async (): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.from("workout_drafts").select("count(*)", { count: "exact", head: true });
-    if (error) {
-      console.error("Supabase connection error:", error);
+    // First check if auth is available
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError) {
+      console.error("Auth error during connection check:", authError);
       return false;
     }
+
+    // Then try a simple query to test database connection
+    const { error: dbError } = await supabase
+      .from("workout_drafts")
+      .select("id", { count: "exact", head: true })
+      .limit(1);
+      
+    if (dbError) {
+      console.error("Database connection error:", dbError);
+      return false;
+    }
+    
     return true;
   } catch (error) {
     console.error("Failed to verify Supabase connection:", error);

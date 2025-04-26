@@ -31,6 +31,7 @@ const ActiveWorkout = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
 
   useEffect(() => {
     console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
@@ -489,19 +490,45 @@ const ActiveWorkout = () => {
     return workoutCompletionId;
   };
 
-  const { saveStatus } = useAutosave({
+  const { saveStatus, errorCount, forceSave } = useAutosave({
     data: exerciseStates,
-    onSave: (data) => saveWorkoutDraft(getWorkoutId(), 'workout', data),
+    onSave: async (data) => {
+      const workoutId = getWorkoutId();
+      console.log(`Attempting to save workout draft for ID: ${workoutId}`, {
+        dataSize: JSON.stringify(data).length,
+        exerciseCount: Object.keys(data).length
+      });
+      return await saveWorkoutDraft(workoutId, 'workout', data);
+    },
     debounce: 2000,
     minChanges: 1,
-    disabled: !workoutData || !exerciseStates
+    disabled: !workoutData || !exerciseStates || Object.keys(exerciseStates).length === 0
   });
 
   useEffect(() => {
     if (saveStatus === 'error') {
-      toast.error('Failed to save workout progress');
+      if (autosaveRetries < 3) {
+        console.log(`Autosave failed (attempt ${autosaveRetries + 1}/3). Will retry in 5 seconds...`);
+        setTimeout(() => {
+          setAutosaveRetries(prev => prev + 1);
+          forceSave();
+        }, 5000);
+        
+        // Only show error toast on final retry
+        if (autosaveRetries === 2) {
+          toast.error('Failed to save workout progress. Please check your connection.');
+        }
+      } else {
+        toast.error('Could not save workout progress automatically. Try completing your workout when connection improves.');
+      }
     }
-  }, [saveStatus]);
+    
+    if (saveStatus === 'saved') {
+      setAutosaveRetries(0);
+      // Optional: Show success toast
+      // toast.success('Progress saved');
+    }
+  }, [saveStatus, autosaveRetries, forceSave]);
 
   if (isLoading) {
     return (
@@ -554,7 +581,7 @@ const ActiveWorkout = () => {
             <div className="fixed bottom-14 left-0 right-0 z-40">
               <div className="bg-gradient-to-t from-background via-background to-transparent">
                 <div className="container max-w-2xl mx-auto px-4">
-                  <Stopwatch className="border-b border-border" />
+                  <Stopwatch className="border-b border-border" saveStatus={saveStatus} />
                   <Button 
                     onClick={handleCompleteWorkout}
                     className="w-full mt-3 mb-2 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded-lg shadow-sm"

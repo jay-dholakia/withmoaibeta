@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -38,14 +37,12 @@ const ActiveWorkout = () => {
     console.log("ActiveWorkout: Current user:", user?.id);
   }, [workoutCompletionId, user?.id]);
 
-  // Attempt to fetch the workout with progressive retries
   const { data: workoutData, isLoading, error } = useQuery({
     queryKey: ['active-workout', workoutCompletionId, retryCount],
     queryFn: async () => {
       console.log(`Fetching workout data for ID: ${workoutCompletionId} (Attempt: ${retryCount + 1})`);
       
       try {
-        // Try to find the workout completion directly by ID
         const { data: workoutCompletion, error: completionError } = await supabase
           .from('workout_completions')
           .select(`*, workout:workout_id (*, workout_exercises (*, exercise:exercise_id (*)))`)
@@ -59,7 +56,6 @@ const ActiveWorkout = () => {
           return workoutCompletion;
         }
 
-        // If not found by ID, try by workout_id with the user's ID
         const { data: byWorkoutId, error: workoutIdError } = await supabase
           .from('workout_completions')
           .select(`*, workout:workout_id (*, workout_exercises (*, exercise:exercise_id (*)))`)
@@ -74,7 +70,6 @@ const ActiveWorkout = () => {
           return byWorkoutId;
         }
 
-        // As a last resort, try to fetch just the workout directly
         const { data: directWorkout, error: directWorkoutError } = await supabase
           .from('workouts')
           .select(`*, workout_exercises (*, exercise:exercise_id (*))`)
@@ -86,7 +81,6 @@ const ActiveWorkout = () => {
         } else if (directWorkout) {
           console.log("Found direct workout:", directWorkout);
           
-          // Create a synthetic workout completion
           return {
             id: null,
             user_id: user?.id,
@@ -98,7 +92,6 @@ const ActiveWorkout = () => {
           };
         }
 
-        // Check if it's a standalone workout
         const { data: standaloneWorkout, error: standaloneError } = await supabase
           .from('standalone_workouts')
           .select(`*, standalone_workout_exercises (*, exercise:exercise_id (*))`)
@@ -110,7 +103,6 @@ const ActiveWorkout = () => {
         } else if (standaloneWorkout) {
           console.log("Found standalone workout:", standaloneWorkout);
           
-          // Create a synthetic workout completion for the standalone workout
           return {
             id: null,
             user_id: user?.id,
@@ -125,7 +117,6 @@ const ActiveWorkout = () => {
           };
         }
         
-        // If we've reached this point, log all the attempts made and throw a specific error
         console.error("Workout not found after multiple lookup attempts:", { 
           workoutCompletionId, 
           userId: user?.id 
@@ -145,7 +136,6 @@ const ActiveWorkout = () => {
       onError: (error: Error) => {
         console.error("Error fetching workout:", error);
         if (retryCount < 2) {
-          // Retry a few times with a delay
           setTimeout(() => {
             setRetryCount(prevCount => prevCount + 1);
           }, 2000);
@@ -162,54 +152,45 @@ const ActiveWorkout = () => {
     }
   }, [error]);
 
-  // Log the workout data to debug
   useEffect(() => {
     if (workoutData) {
       console.log("Workout data fetched:", workoutData);
       console.log("Workout exercises:", workoutData.workout?.workout_exercises);
       
-      // Ensure the data gets properly initialized
       if (workoutData.workout && !initialLoadComplete) {
         setInitialLoadComplete(true);
       }
     }
   }, [workoutData, initialLoadComplete]);
 
-  // Ensure we have an array of workout exercises, even if the structure varies
   const getWorkoutExercises = () => {
     if (!workoutData || !workoutData.workout) return [];
     
-    // Check if the exercises are in workout_exercises (standard case)
     if (Array.isArray(workoutData.workout.workout_exercises)) {
       return workoutData.workout.workout_exercises;
     }
     
-    // Safely check if standalone_workout_exercises exists and is an array
     const standaloneExercises = (workoutData.workout as any).standalone_workout_exercises;
     if (standaloneExercises && Array.isArray(standaloneExercises)) {
       return standaloneExercises;
     }
     
-    // If we still don't have exercises, look for them directly in the workout
     if (workoutData.standalone_workout_id && workoutData.workout) {
       if (Array.isArray(workoutData.workout.workout_exercises)) {
         return workoutData.workout.workout_exercises;
       }
     }
     
-    // Return empty array if we couldn't find exercises
     console.error("No workout exercises found in workoutData:", workoutData);
     return [];
   };
 
   const workoutExercises = getWorkoutExercises();
   
-  // Only initialize workout state after data is loaded
   const { exerciseStates, setExerciseStates, sortedExerciseIds } = useWorkoutState(
     initialLoadComplete ? workoutExercises : undefined
   );
 
-  // Debug logs for data flow
   useEffect(() => {
     console.log("Workout exercises to render:", workoutExercises);
     console.log("Sorted exercise IDs:", sortedExerciseIds);
@@ -226,13 +207,10 @@ const ActiveWorkout = () => {
   };
 
   const confirmCompleteWorkout = () => {
-    // Mark workout as completed
     navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
   };
 
-  // Helper function to format duration input as HH:MM:SS
   const formatDurationInput = (value: string): string => {
-    // Remove any non-numeric characters
     const numericValue = value.replace(/[^\d]/g, '');
     
     if (numericValue.length <= 2) {
@@ -244,7 +222,6 @@ const ActiveWorkout = () => {
     }
   };
 
-  // Handler functions for exercise components
   const handleSetChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
     setExerciseStates(prev => {
       const updatedSets = [...prev[exerciseId].sets];
@@ -370,13 +347,33 @@ const ActiveWorkout = () => {
   };
 
   const handleVideoClick = (url: string, exerciseName: string) => {
-    // Open video in a new tab or modal
     window.open(url, '_blank');
   };
 
-  const handleSwapExercise = (exercise: WorkoutExercise) => {
-    // This would open a modal to swap the exercise
-    toast.info("Exercise swap feature coming soon");
+  const handleSwapExercise = (updatedExercise: WorkoutExercise) => {
+    const updatedExercises = [...workoutExercises];
+    const exerciseIndex = updatedExercises.findIndex(ex => ex.id === updatedExercise.id);
+    
+    if (exerciseIndex !== -1) {
+      updatedExercises[exerciseIndex] = {
+        ...updatedExercises[exerciseIndex],
+        exercise: updatedExercise.exercise
+      };
+      
+      setExerciseStates(prev => ({
+        ...prev,
+        [updatedExercise.id]: {
+          ...prev[updatedExercise.id],
+          exercise_id: updatedExercise.exercise?.id
+        }
+      }));
+      
+      console.log("Exercise swapped in state:", {
+        exerciseId: updatedExercise.id,
+        newExerciseName: updatedExercise.exercise?.name,
+        newExerciseId: updatedExercise.exercise?.id
+      });
+    }
   };
 
   const renderExerciseCard = (exercise: WorkoutExercise) => {
@@ -510,7 +507,6 @@ const ActiveWorkout = () => {
     );
   }
 
-  // Ensure the exercise states are initialized before rendering exercise cards
   const exerciseRenderReady = initialLoadComplete && workoutExercises.length > 0 && 
     Object.keys(exerciseStates).length > 0;
 

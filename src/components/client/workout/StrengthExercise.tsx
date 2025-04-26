@@ -1,14 +1,15 @@
+
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Youtube, ArrowRightLeft, Info } from 'lucide-react';
 import { WorkoutExercise, PersonalRecord, Exercise } from '@/types/workout';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { fetchSimilarExercises } from '@/services/exercise-service';
 import { useQuery } from '@tanstack/react-query';
 import { saveWorkoutDraft, updateExerciseIdInDraft } from '@/services/workout-draft-service';
 import VideoDialog from './VideoDialog';
+import SwapExerciseDialog from './SwapExerciseDialog';
 import { toast } from 'sonner';
 import { useParams } from 'react-router-dom';
 
@@ -32,6 +33,7 @@ export const StrengthExercise: React.FC<Props> = ({
   onSwapClick
 }) => {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const [isSwapDialogOpen, setIsSwapDialogOpen] = useState(false);
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
 
   // Query for similar exercises
@@ -131,40 +133,16 @@ export const StrengthExercise: React.FC<Props> = ({
             <Youtube className="h-4 w-4 mr-1" /> Demo
           </Button>
         )}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm"
-              disabled={isLoading}
-            >
-              <ArrowRightLeft className="h-4 w-4 mr-1" /> 
-              {isLoading ? 'Loading...' : 'Swap'}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-56 p-2" side="top">
-            <div className="space-y-2">
-              {similarExercises?.map((similar) => (
-                <Button
-                  key={similar.id}
-                  variant="ghost"
-                  className="w-full justify-start text-sm"
-                  onClick={() => handleSwapExercise(similar)}
-                >
-                  {similar.name}
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {similar.muscle_group}
-                  </span>
-                </Button>
-              ))}
-              {(!similarExercises || similarExercises.length === 0) && (
-                <p className="text-sm text-muted-foreground p-2">
-                  No alternative exercises found for this muscle group
-                </p>
-              )}
-            </div>
-          </PopoverContent>
-        </Popover>
+        
+        <Button 
+          variant="outline" 
+          size="sm"
+          disabled={isLoading}
+          onClick={() => setIsSwapDialogOpen(true)}
+        >
+          <ArrowRightLeft className="h-4 w-4 mr-1" /> 
+          {isLoading ? 'Loading...' : 'Swap'}
+        </Button>
       </div>
 
       {exercise.exercise?.youtube_link && (
@@ -175,6 +153,16 @@ export const StrengthExercise: React.FC<Props> = ({
           exerciseName={exercise.exercise.name || 'Exercise'}
         />
       )}
+      
+      <SwapExerciseDialog
+        isOpen={isSwapDialogOpen}
+        onClose={() => setIsSwapDialogOpen(false)}
+        exerciseName={exercise.exercise?.name || 'Exercise'}
+        muscleGroup={exercise.exercise?.muscle_group || ''}
+        similarExercises={similarExercises}
+        isLoading={isLoading}
+        onSwapSelect={handleSwapExercise}
+      />
     </div>
   );
 };

@@ -96,7 +96,7 @@ export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
       }
       
       // Get client's last workout date
-      const { data: workoutCompletions, error: workoutError } = await supabase
+      const { data: lastWorkout, error: lastWorkoutError } = await supabase
         .from('workout_completions')
         .select('completed_at')
         .eq('user_id', clientId)
@@ -104,40 +104,34 @@ export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
         .order('completed_at', { ascending: false })
         .limit(1);
         
-      if (workoutError) {
-        console.error(`Error fetching last workout for client ${clientId}:`, workoutError);
+      if (lastWorkoutError) {
+        console.error(`Error fetching last workout for client ${clientId}:`, lastWorkoutError);
       }
       
-      const lastWorkoutDate = workoutCompletions && workoutCompletions.length > 0 
-        ? workoutCompletions[0].completed_at 
+      const lastWorkoutDate = lastWorkout && lastWorkout.length > 0 
+        ? lastWorkout[0].completed_at 
         : null;
       
-      // Get assigned workouts completed this week - using Pacific Time week boundaries
-      const { count: assignedWorkoutsThisWeek, error: assignedError } = await supabase
+      // Get workouts completed this week - both assigned and custom
+      const { data: weeklyWorkouts, error: weeklyWorkoutsError } = await supabase
         .from('workout_completions')
-        .select('*', { count: 'exact', head: true })
+        .select('id, workout_id')
         .eq('user_id', clientId)
-        .not('workout_id', 'is', null)
         .not('completed_at', 'is', null)
         .gte('completed_at', startOfWeekISO)
         .lt('completed_at', endOfWeekISO);
         
-      if (assignedError) {
-        console.error(`Error fetching assigned workouts for client ${clientId}:`, assignedError);
+      if (weeklyWorkoutsError) {
+        console.error(`Error fetching weekly workouts for client ${clientId}:`, weeklyWorkoutsError);
       }
       
-      // Get activities logged this week - using Pacific Time week boundaries
-      const { count: activitiesThisWeek, error: activitiesWeekError } = await supabase
-        .from('workout_completions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', clientId)
-        .not('completed_at', 'is', null)
-        .gte('completed_at', startOfWeekISO)
-        .lt('completed_at', endOfWeekISO);
-        
-      if (activitiesWeekError) {
-        console.error(`Error fetching weekly activities for client ${clientId}:`, activitiesWeekError);
-      }
+      // Count assigned workouts (those with a workout_id)
+      const assignedWorkoutsThisWeek = weeklyWorkouts 
+        ? weeklyWorkouts.filter(w => w.workout_id !== null).length 
+        : 0;
+      
+      // Total activities this week includes all workout completions
+      const activitiesThisWeek = weeklyWorkouts ? weeklyWorkouts.length : 0;
       
       // Get total activities all time
       const { count: totalActivities, error: totalError } = await supabase
@@ -154,8 +148,8 @@ export const fetchClientWorkoutStats = async (): Promise<ClientStat[]> => {
         id: clientId,
         groups,
         last_workout_date: lastWorkoutDate,
-        assigned_workouts_this_week: assignedWorkoutsThisWeek || 0,
-        activities_this_week: activitiesThisWeek || 0,
+        assigned_workouts_this_week: assignedWorkoutsThisWeek,
+        activities_this_week: activitiesThisWeek,
         total_activities: totalActivities || 0
       });
     }

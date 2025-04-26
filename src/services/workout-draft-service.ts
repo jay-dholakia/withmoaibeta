@@ -16,6 +16,33 @@ const safeParseDraftData = (data: any): any => {
 };
 
 /**
+ * Wraps raw exerciseStates into full draft structure
+ */
+const normalizeDraftData = (draftData: any): any => {
+  if (!draftData) return {
+    exerciseStates: {},
+    pendingSets: [],
+    pendingCardio: [],
+    pendingFlexibility: [],
+    pendingRuns: []
+  };
+
+  // If exerciseStates is missing but the data looks like exerciseStates directly, wrap it
+  if (!draftData.exerciseStates && typeof draftData === 'object') {
+    console.warn("Normalizing old draft data format into full structure...");
+    return {
+      exerciseStates: draftData,
+      pendingSets: [],
+      pendingCardio: [],
+      pendingFlexibility: [],
+      pendingRuns: []
+    };
+  }
+
+  return draftData;
+};
+
+/**
  * Verifies Supabase connection is available
  */
 const verifySupabaseConnection = async (): Promise<boolean> => {
@@ -74,12 +101,14 @@ export const saveWorkoutDraft = async (
       ? JSON.parse(draftData)
       : draftData;
 
+    const wrappedDraftData = normalizeDraftData(draftDataToStore);
+
     console.log(`Saving workout draft for workout ${workoutId}`, {
       userId: user.id,
       workoutType: workoutTypeValue,
-      dataSize: JSON.stringify(draftDataToStore).length,
+      dataSize: JSON.stringify(wrappedDraftData).length,
       timestamp: new Date().toISOString(),
-      exerciseStates: Object.keys(draftDataToStore.exerciseStates || {}).length
+      exerciseStatesCount: Object.keys(wrappedDraftData.exerciseStates || {}).length
     });
 
     const { data: existingDraft, error: queryError } = await supabase
@@ -100,7 +129,7 @@ export const saveWorkoutDraft = async (
       result = await supabase
         .from("workout_drafts")
         .update({
-          draft_data: JSON.stringify(draftDataToStore),
+          draft_data: JSON.stringify(wrappedDraftData),
           workout_type: workoutTypeValue,
           updated_at: new Date().toISOString()
         })
@@ -114,7 +143,7 @@ export const saveWorkoutDraft = async (
           user_id: user.id,
           workout_id: workoutId,
           workout_type: workoutTypeValue,
-          draft_data: JSON.stringify(draftDataToStore),
+          draft_data: JSON.stringify(wrappedDraftData),
           updated_at: new Date().toISOString()
         });
     }
@@ -162,8 +191,7 @@ export const updateExerciseIdInDraft = async (
 
       console.log(`Found exercise in draft states to update: ${workoutExerciseId}`, {
         originalExerciseId,
-        newExerciseId,
-        exerciseState: draftData.exerciseStates[workoutExerciseId]
+        newExerciseId
       });
 
       draftData.exerciseStates[workoutExerciseId].swapData = {
@@ -174,60 +202,29 @@ export const updateExerciseIdInDraft = async (
 
       draftData.exerciseStates[workoutExerciseId].exercise_id = newExerciseId;
       updated = true;
-    } else {
-      console.error(`Exercise ${workoutExerciseId} not found in draft states`, {
-        availableExerciseIds: Object.keys(draftData.exerciseStates || {})
-      });
     }
 
-    const updatePending = (pendingKey: string) => {
-      if (draftData[pendingKey] && Array.isArray(draftData[pendingKey])) {
-        const itemsToUpdate = draftData[pendingKey].filter((item: any) => item.exerciseId === workoutExerciseId);
-
-        if (itemsToUpdate.length > 0) {
-          console.log(`Updating ${itemsToUpdate.length} items in ${pendingKey}`, {
-            originalItems: itemsToUpdate
-          });
-        }
-
-        draftData[pendingKey] = draftData[pendingKey].map((item: any) => {
+    const pendingKeys = ['pendingSets', 'pendingCardio', 'pendingFlexibility', 'pendingRuns'];
+    pendingKeys.forEach((key) => {
+      if (draftData[key] && Array.isArray(draftData[key])) {
+        draftData[key] = draftData[key].map((item: any) => {
           if (item.exerciseId === workoutExerciseId) {
-            return { ...item, exerciseId: workoutExerciseId };
+            return { ...item, exerciseId: newExerciseId };
           }
           return item;
         });
         updated = true;
       }
-    };
-
-    updatePending('pendingSets');
-    updatePending('pendingCardio');
-    updatePending('pendingFlexibility');
-    updatePending('pendingRuns');
+    });
 
     if (updated) {
-      console.log("Saving draft with updated exercise IDs...", {
-        workoutExerciseId,
-        newExerciseId,
-        draftData: {
-          exerciseStates: Object.keys(draftData.exerciseStates || {}).map(id => ({
-            id,
-            exercise_id: draftData.exerciseStates[id].exercise_id,
-            swapData: draftData.exerciseStates[id].swapData
-          }))
-        }
-      });
-
+      console.log("Saving updated draft after exercise swap...");
       const saveResult = await saveWorkoutDraft(workoutId, 'workout', draftData);
-      console.log("Draft save after exercise swap result:", saveResult ? "SUCCESS" : "FAILED", {
-        workoutId,
-        workoutExerciseId,
-        newExerciseId
-      });
+      console.log("Draft save result after exercise swap:", saveResult ? "SUCCESS" : "FAILED");
       return saveResult;
     }
 
-    console.log("No changes needed to draft data for exercise swap");
+    console.log("No updates needed to draft data for exercise swap");
     return true;
   } catch (error) {
     console.error("Error updating exercise ID in draft:", error);
@@ -272,23 +269,22 @@ export const getWorkoutDraft = async (
         console.error(`Error fetching draft (attempt ${i + 1}):`, error);
         if (i === maxRetries) return null;
         await new Promise(res => setTimeout(res, retryInterval));
+      } else if (data) {
+        const parsedData = safeParseDraftData(data.draft_data);
+        const normalizedData = normalizeDraftData(parsedData);
+
+        console.log(`Retrieved workout draft for ${workoutId}`, {
+          exerciseStatesCount: Object.keys(normalizedData.exerciseStates || {}).length,
+          updatedAt: data.updated_at
+        });
+
+        return {
+          ...data,
+          draft_data: normalizedData
+        };
       } else {
-        if (data) {
-          console.log(`Retrieved workout draft for ${workoutId}`, {
-            exerciseStatesCount: Object.keys(safeParseDraftData(data.draft_data).exerciseStates || {}).length,
-            updatedAt: data.updated_at
-          });
-
-          const parsedData = safeParseDraftData(data.draft_data);
-
-          return {
-            ...data,
-            draft_data: parsedData
-          };
-        } else {
-          console.log(`No draft found for workout ${workoutId}`);
-          return null;
-        }
+        console.log(`No draft found for workout ${workoutId}`);
+        return null;
       }
     }
   } catch (error) {
@@ -337,3 +333,4 @@ export const deleteWorkoutDraft = async (
     return false;
   }
 };
+

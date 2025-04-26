@@ -754,7 +754,11 @@ const ActiveWorkout = () => {
             <div className="fixed bottom-14 left-0 right-0 z-40">
               <div className="bg-gradient-to-t from-background via-background to-transparent">
                 <div className="container max-w-2xl mx-auto px-4">
-                  <Stopwatch className="border-b border-border" saveStatus={saveStatus} />
+                  <Stopwatch 
+                    className="border-b border-border" 
+                    saveStatus={saveStatus} 
+                    workoutCompletionId={workoutCompletionId}
+                  />
                   <Button 
                     onClick={handleCompleteWorkout}
                     className="w-full mt-3 mb-2 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded-lg shadow-sm"

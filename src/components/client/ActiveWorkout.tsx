@@ -517,7 +517,7 @@ const ActiveWorkout = () => {
     Object.keys(exerciseStates).length > 0;
 
   return (
-    <div className="container max-w-2xl mx-auto p-4 pb-40">
+    <div className="container max-w-2xl mx-auto p-4 pb-32">
       <div className="flex items-center mb-4 gap-2">
         <Button variant="ghost" onClick={() => navigate('/client-dashboard/workouts')} className="h-8 w-8 p-0 text-gray-500">
           <ArrowLeft className="h-5 w-5" />
@@ -532,12 +532,13 @@ const ActiveWorkout = () => {
           <div className="space-y-6 mb-32">
             {workoutExercises.map(exercise => renderExerciseCard(exercise))}
             
-            <div className="fixed bottom-24 left-0 right-0 bg-gradient-to-t from-background to-transparent pt-6 pb-4 px-4">
+            <div className="fixed bottom-16 left-0 right-0 bg-gradient-to-t from-background to-transparent pt-6 px-4">
+              <Stopwatch className="mb-4" />
               <Button 
                 onClick={handleCompleteWorkout}
-                className="w-full py-6 bg-primary hover:bg-primary/90 text-white font-semibold text-lg rounded-lg shadow-lg"
+                className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow-lg text-base"
               >
-                <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
+                <CheckCircle2 className="h-4 w-4 mr-2" /> Complete Workout
               </Button>
             </div>
           </div>

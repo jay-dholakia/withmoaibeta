@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,13 +68,13 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
               <WorkoutTypeIcon type={type as any} />
             }
           </div>
-          <CardTitle className="text-base dark:text-gray-100">
+          <CardTitle className="text-base dark:text-gray-100 flex-grow">
             {isLifeHappensPass ? "Life Happens Pass" : title}
           </CardTitle>
         </div>
         
         {groupMembers.length > 0 && (
-          <div className="flex -space-x-2">
+          <div className="flex -space-x-1 items-center mt-1">
             <TooltipProvider>
               {groupMembers.map((member, index) => {
                 const hasCompleted = member.completed_workout_ids.includes(workoutId);
@@ -83,7 +82,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
                   <Tooltip key={member.id}>
                     <TooltipTrigger>
                       <Avatar className={cn(
-                        "h-6 w-6 border-2 border-white dark:border-gray-700 relative",
+                        "h-5 w-5 border-2 border-white dark:border-gray-700 relative",
                         !hasCompleted && "grayscale opacity-60",
                         "hover:translate-y-0.5 transition-transform"
                       )}

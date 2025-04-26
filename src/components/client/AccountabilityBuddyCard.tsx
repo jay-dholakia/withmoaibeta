@@ -43,15 +43,15 @@ export function AccountabilityBuddyCard({
   };
 
   return (
-    <Card className="border-none shadow-none bg-slate-50 mt-3">
+    <Card className="shadow-lg mt-3 dark:bg-gray-900 dark:border-gray-700">
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center">
-            <UserCheck className="h-4 w-4 mr-2 text-client" />
-            <h3 className="font-medium text-sm">This Week's Accountability Buddy</h3>
+            <UserCheck className="h-4 w-4 mr-2 text-client dark:text-blue-300" />
+            <h3 className="font-medium text-sm dark:text-white">This Week's Accountability Buddy</h3>
           </div>
 
-          <Badge className="text-xs bg-white">
+          <Badge className="text-xs bg-background dark:bg-gray-800 dark:text-gray-200">
             Refreshes Monday
           </Badge>
 
@@ -61,6 +61,7 @@ export function AccountabilityBuddyCard({
               size="sm"
               onClick={handleRefresh}
               disabled={loading}
+              className="dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
             >
               <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? 'animate-spin' : ''}`} />
               <span className="text-xs">Refresh</span>
@@ -73,7 +74,7 @@ export function AccountabilityBuddyCard({
             buddies.map((buddy) => (
               <div
                 key={buddy.userId}
-                className="flex items-center p-2 rounded-md bg-white border cursor-pointer hover:bg-gray-50 transition-colors"
+                className="flex items-center p-2 rounded-md bg-background dark:bg-gray-800 border border-border dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 onClick={() => handleClick(buddy.userId)}
               >
                 <Avatar className="h-8 w-8 mr-2">
@@ -83,11 +84,11 @@ export function AccountabilityBuddyCard({
                     {buddy.lastName ? buddy.lastName.charAt(0).toUpperCase() : ''}
                   </AvatarFallback>
                 </Avatar>
-                <span className="font-medium text-sm">{buddy.name}</span>
+                <span className="font-medium text-sm dark:text-white">{buddy.name}</span>
               </div>
             ))
           ) : (
-            <div className="col-span-2 p-3 bg-white border rounded-md text-center text-sm text-muted-foreground">
+            <div className="col-span-2 p-3 bg-background dark:bg-gray-800 border border-border dark:border-gray-700 rounded-md text-center text-sm text-muted-foreground dark:text-gray-300">
               No accountability buddy assigned yet for this week.
             </div>
           )}

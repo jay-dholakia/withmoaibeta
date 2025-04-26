@@ -7,8 +7,9 @@ import { fetchClientProfile } from '@/services/client-service';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Loader2, User, LogOut, Edit, FileText, Shield } from 'lucide-react';
+import { Loader2, User, LogOut, Edit, FileText, Shield, MoonStar } from 'lucide-react';
 import BetaFeedbackCard from '@/components/client/BetaFeedbackCard';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
@@ -115,6 +116,23 @@ const SettingsPage = () => {
         </CardFooter>
       </Card>
 
+      {/* Theme Settings Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>Customize how the app looks</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MoonStar className="h-5 w-5 text-muted-foreground" />
+              <span>Dark Mode</span>
+            </div>
+            <ThemeToggle showLabel={false} />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Legal Documents Card */}
       <Card>
         <CardHeader>
@@ -125,14 +143,14 @@ const SettingsPage = () => {
           <div className="flex flex-col gap-3">
             <Link 
               to="/client-dashboard/settings/privacy-policy" 
-              className="flex items-center text-blue-600 hover:underline"
+              className="flex items-center text-blue-600 dark:text-blue-400 hover:underline"
             >
               <Shield className="mr-2 h-4 w-4" />
               Privacy Policy
             </Link>
             <Link 
               to="/client-dashboard/settings/terms-of-service" 
-              className="flex items-center text-blue-600 hover:underline"
+              className="flex items-center text-blue-600 dark:text-blue-400 hover:underline"
             >
               <FileText className="mr-2 h-4 w-4" />
               Terms of Service

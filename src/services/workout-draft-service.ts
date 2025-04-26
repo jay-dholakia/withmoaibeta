@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -8,7 +9,6 @@ const safeParseDraftData = (data: any): any => {
     try {
       return JSON.parse(data);
     } catch (error) {
-      console.error("Error parsing draft data:", error);
       return {};
     }
   }
@@ -23,32 +23,35 @@ export const saveWorkoutDraft = async (
   workoutType: string | null,
   draftData: any
 ): Promise<boolean> => {
-  if (!workoutId) {
-    console.warn("No workout ID provided");
-    return false;
-  }
-
-  console.log(`Attempting to save draft for workout ${workoutId} of type ${workoutType}`);
-  console.log("Draft data to save:", draftData);
+  if (!workoutId) return false;
 
   try {
-    // Ensure we have an authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error("User auth error:", authError);
-      return false;
-    }
+    if (authError || !user) return false;
     
-    // Ensure workout_type is a string, not null
     const workoutTypeValue = workoutType || 'workout';
-
-    // Prepare the draft data to store
     const draftDataToStore = typeof draftData === 'string' 
       ? JSON.parse(draftData) 
       : draftData;
 
-    // Perform the upsert operation - this will replace any existing draft for this workout
-    const { data, error } = await supabase
+    console.log(`Saving workout draft for workout ${workoutId}`, {
+      dataSize: JSON.stringify(draftDataToStore).length,
+      exerciseStatesCount: Object.keys(draftDataToStore.exerciseStates || {}).length,
+      pendingSetsCount: (draftDataToStore.pendingSets || []).length,
+      exercises: Object.keys(draftDataToStore.exerciseStates || {}).map(key => {
+        const exercise = draftDataToStore.exerciseStates[key];
+        const swapInfo = exercise.swapData 
+          ? `[Swapped: ${exercise.swapData.originalExerciseId} → ${exercise.swapData.replacementExerciseId}]` 
+          : '';
+        return {
+          workoutExerciseId: key,
+          exerciseId: exercise.exercise_id,
+          swapInfo
+        };
+      })
+    });
+
+    const { error } = await supabase
       .from("workout_drafts")
       .upsert({
         user_id: user.id,
@@ -58,18 +61,17 @@ export const saveWorkoutDraft = async (
         updated_at: new Date().toISOString()
       }, { 
         onConflict: "user_id,workout_id" 
-      })
-      .select("id");
+      });
 
-    if (error) {
-      console.error(">>> UPSERT ERROR:", error);
+    if (!error) {
+      console.log(`Draft successfully saved to Supabase for workout ${workoutId}`);
+      return true;
+    } else {
+      console.error("Error saving draft to Supabase:", error);
       return false;
     }
-
-    console.log(">>> UPSERT SUCCESS:", data);
-    return true;
-  } catch (err) {
-    console.error(">>> UNEXPECTED ERROR DURING DRAFT SAVE:", err);
+  } catch (error) {
+    console.error("Exception during draft save:", error);
     return false;
   }
 };
@@ -80,83 +82,160 @@ export const saveWorkoutDraft = async (
  */
 export const updateExerciseIdInDraft = async (
   workoutId: string | null,
-  oldExerciseId: string,
+  workoutExerciseId: string,
   newExerciseId: string
 ): Promise<boolean> => {
-  if (!workoutId || !oldExerciseId || !newExerciseId) {
-    console.warn("Missing required parameters for updating exercise ID in draft");
-    return false;
-  }
-
-  console.log(`Updating exercise ID in draft: ${oldExerciseId} -> ${newExerciseId} for workout ${workoutId}`);
+  if (!workoutId || !workoutExerciseId || !newExerciseId) return false;
 
   try {
-    // Get the current draft first
+    console.log(`Updating exercise ID in draft for workout ${workoutId}`, {
+      workoutExerciseId,
+      newExerciseId
+    });
+    
     const draft = await getWorkoutDraft(workoutId);
     if (!draft || !draft.draft_data) {
-      console.log("No draft found to update exercise ID");
+      console.error("No draft found to update exercise");
       return false;
     }
 
     const draftData = draft.draft_data;
     let updated = false;
     
-    // Update exerciseStates key - in this case we're using the workout_exercise_id which stays the same,
-    // but we need to update the exercise data within it
-    if (draftData.exerciseStates && draftData.exerciseStates[oldExerciseId]) {
-      // Keep the same key but update the exercise data if needed
-      // Note: We're not changing the key since we're using workout_exercise_id which remains the same
+    // Update exercise_id in exerciseStates
+    if (draftData.exerciseStates && draftData.exerciseStates[workoutExerciseId]) {
+      const originalExerciseId = draftData.exerciseStates[workoutExerciseId].exercise_id;
+      
+      console.log(`Found exercise in draft states to update: ${workoutExerciseId}`, {
+        originalExerciseId,
+        newExerciseId,
+        exerciseState: draftData.exerciseStates[workoutExerciseId]
+      });
+      
+      // Add swap tracking data - this helps us identify swapped exercises
+      draftData.exerciseStates[workoutExerciseId].swapData = {
+        timestamp: new Date().toISOString(),
+        originalExerciseId: originalExerciseId || null,
+        replacementExerciseId: newExerciseId
+      };
+      
+      // Update the exercise_id field
+      draftData.exerciseStates[workoutExerciseId].exercise_id = newExerciseId;
+      
       updated = true;
+    } else {
+      console.error(`Exercise ${workoutExerciseId} not found in draft states`, {
+        availableExerciseIds: Object.keys(draftData.exerciseStates || {})
+      });
     }
     
-    // Update pendingSets references if they exist
+    // Update references in pendingSets
     if (draftData.pendingSets && Array.isArray(draftData.pendingSets)) {
+      const setsToUpdate = draftData.pendingSets.filter((set: any) => set.exerciseId === workoutExerciseId);
+      
+      if (setsToUpdate.length > 0) {
+        console.log(`Updating ${setsToUpdate.length} pending sets with new exercise ID`, {
+          originalSets: setsToUpdate,
+          workoutExerciseId,
+          newExerciseId
+        });
+      }
+      
       draftData.pendingSets = draftData.pendingSets.map((set: any) => {
-        // Update if this set belongs to the exercise being swapped
-        if (set.exerciseId === oldExerciseId) {
-          // We keep the same exerciseId because it refers to the workout_exercise_id
-          // which doesn't change, only the exercise within it changes
-          return { ...set }; 
+        if (set.exerciseId === workoutExerciseId) {
+          return { ...set, exerciseId: workoutExerciseId };
         }
         return set;
       });
       updated = true;
     }
     
-    // Update pendingCardio references
+    // Update references in pendingCardio
     if (draftData.pendingCardio && Array.isArray(draftData.pendingCardio)) {
-      // Same logic as for pendingSets
+      const cardioToUpdate = draftData.pendingCardio.filter((item: any) => item.exerciseId === workoutExerciseId);
+      
+      if (cardioToUpdate.length > 0) {
+        console.log(`Updating ${cardioToUpdate.length} pending cardio items with new exercise ID`, {
+          originalItems: cardioToUpdate,
+          workoutExerciseId,
+          newExerciseId
+        });
+      }
+      
+      draftData.pendingCardio = draftData.pendingCardio.map((item: any) => {
+        if (item.exerciseId === workoutExerciseId) {
+          return { ...item, exerciseId: workoutExerciseId };
+        }
+        return item;
+      });
       updated = true;
     }
     
-    // Update pendingFlexibility references
+    // Update references in pendingFlexibility
     if (draftData.pendingFlexibility && Array.isArray(draftData.pendingFlexibility)) {
-      // Same logic as for pendingSets
+      const flexToUpdate = draftData.pendingFlexibility.filter((item: any) => item.exerciseId === workoutExerciseId);
+      
+      if (flexToUpdate.length > 0) {
+        console.log(`Updating ${flexToUpdate.length} pending flexibility items with new exercise ID`, {
+          originalItems: flexToUpdate,
+          workoutExerciseId,
+          newExerciseId
+        });
+      }
+      
+      draftData.pendingFlexibility = draftData.pendingFlexibility.map((item: any) => {
+        if (item.exerciseId === workoutExerciseId) {
+          return { ...item, exerciseId: workoutExerciseId };
+        }
+        return item;
+      });
       updated = true;
     }
     
-    // Update pendingRuns references
+    // Update references in pendingRuns
     if (draftData.pendingRuns && Array.isArray(draftData.pendingRuns)) {
-      // Same logic as for pendingSets
+      const runsToUpdate = draftData.pendingRuns.filter((item: any) => item.exerciseId === workoutExerciseId);
+      
+      if (runsToUpdate.length > 0) {
+        console.log(`Updating ${runsToUpdate.length} pending runs with new exercise ID`, {
+          originalItems: runsToUpdate,
+          workoutExerciseId,
+          newExerciseId
+        });
+      }
+      
+      draftData.pendingRuns = draftData.pendingRuns.map((item: any) => {
+        if (item.exerciseId === workoutExerciseId) {
+          return { ...item, exerciseId: workoutExerciseId };
+        }
+        return item;
+      });
       updated = true;
     }
     
     if (updated) {
-      // Update sessionStorage first for immediate access
-      try {
-        sessionStorage.setItem(`workout_draft_${workoutId}`, JSON.stringify({
-          draft_data: draftData,
-          workout_type: 'workout',
-          updated_at: new Date().toISOString()
-        }));
-      } catch (e) {
-        console.warn("Failed to update draft in sessionStorage:", e);
-      }
+      console.log("Saving draft with updated exercise IDs...", {
+        workoutExerciseId,
+        newExerciseId,
+        draftData: {
+          exerciseStates: Object.keys(draftData.exerciseStates || {}).map(id => ({
+            id,
+            exercise_id: draftData.exerciseStates[id].exercise_id,
+            swapData: draftData.exerciseStates[id].swapData
+          }))
+        }
+      });
       
-      // Save the updated draft back to the database
-      return await saveWorkoutDraft(workoutId, 'workout', draftData);
+      const saveResult = await saveWorkoutDraft(workoutId, 'workout', draftData);
+      console.log("Draft save after exercise swap result:", saveResult ? "SUCCESS" : "FAILED", {
+        workoutId,
+        workoutExerciseId,
+        newExerciseId
+      });
+      return saveResult;
     }
     
+    console.log("No changes needed to draft data for exercise swap");
     return true;
   } catch (error) {
     console.error("Error updating exercise ID in draft:", error);
@@ -170,25 +249,16 @@ export const getWorkoutDraft = async (
   retryInterval = 300
 ): Promise<any | null> => {
   if (!workoutId) return null;
-
-  console.log(`Attempting to get workout draft for workoutId: ${workoutId}`);
   
   try {
-    // Fetch from database with retries
     for (let i = 0; i <= maxRetries; i++) {
-      // Ensure we have the authenticated user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        console.log(`Auth error (attempt ${i+1}/${maxRetries+1}):`, authError);
         if (i === maxRetries) return null;
         await new Promise(res => setTimeout(res, retryInterval));
         continue;
       }
 
-      console.log(`Querying database for draft (attempt ${i+1}/${maxRetries+1})`);
-      console.log(`Looking for draft with user_id=${user.id}, workout_id=${workoutId}`);
-      
-      // Get the specific draft
       const { data, error } = await supabase
         .from("workout_drafts")
         .select("*")
@@ -197,24 +267,25 @@ export const getWorkoutDraft = async (
         .maybeSingle();
 
       if (error) {
-        console.error(`Fetch error (attempt ${i+1}/${maxRetries+1}):`, error);
         if (i === maxRetries) return null;
         await new Promise(res => setTimeout(res, retryInterval));
       } else {
         if (data) {
-          console.log("Retrieved draft from database:", data);
-          // Ensure draft_data is properly formatted
+          console.log(`Retrieved workout draft for ${workoutId}`, {
+            exerciseStatesCount: Object.keys(safeParseDraftData(data.draft_data).exerciseStates || {}).length,
+            updatedAt: data.updated_at
+          });
           return {
             ...data,
             draft_data: safeParseDraftData(data.draft_data)
           };
         }
-        console.log("No draft found in database for this specific workout ID");
         return null;
       }
     }
-  } catch (err) {
-    console.error("Unexpected error fetching draft:", err);
+  } catch (error) {
+    console.error("Error retrieving workout draft:", error);
+    return null;
   }
   
   return null;
@@ -228,30 +299,27 @@ export const deleteWorkoutDraft = async (
 ): Promise<boolean> => {
   if (!workoutId) return false;
 
-  console.log(`Deleting workout draft for workoutId: ${workoutId}`);
-
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error("Auth error when deleting draft:", authError);
-      return false;
-    }
+    if (authError || !user) return false;
 
+    console.log(`Deleting workout draft for workout ${workoutId}`);
+    
     const { error } = await supabase
       .from("workout_drafts")
       .delete()
       .eq("user_id", user.id)
       .eq("workout_id", workoutId);
 
-    if (error) {
-      console.error("Delete error:", error);
-      return false;
+    if (!error) {
+      console.log(`Draft successfully deleted for workout ${workoutId}`);
+    } else {
+      console.error("Error deleting draft:", error);
     }
 
-    console.log("Successfully deleted draft from database");
-    return true;
-  } catch (err) {
-    console.error("Unexpected error deleting draft:", err);
+    return !error;
+  } catch (error) {
+    console.error("Exception deleting draft:", error);
     return false;
   }
 };

@@ -261,7 +261,7 @@ const CreateCustomWorkout = () => {
               const isCardio = isCardioExercise(exerciseName);
               
               return (
-                <Card key={exercise.id} className="p-4">
+                <Card key={exercise.id} className="p-4 shadow-xl">
                   <div className="flex flex-col space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">

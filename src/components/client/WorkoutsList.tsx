@@ -16,6 +16,8 @@ import { LogActivityButtons } from './LogActivityButtons';
 import LifeHappensButton from './LifeHappensButton';
 import { formatInTimeZone } from 'date-fns-tz';
 import { addDays, startOfWeek } from 'date-fns';
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
@@ -213,13 +215,11 @@ const WorkoutsList = () => {
     navigate(`/client-dashboard/workouts/active/${workoutId}`);
   }, [navigate]);
 
-  // Helper function to check if a workout is completed
   const isWorkoutCompleted = (workoutId: string): boolean => {
     const workout = workouts.find(w => w.id === workoutId);
     return !!workout?.completed_at;
   };
 
-  // Helper function to check if a workout is a life happens pass
   const isLifeHappensPass = (workout: any): boolean => {
     return workout?.life_happens_pass === true || workout?.workout_type === 'life_happens';
   };
@@ -231,11 +231,9 @@ const WorkoutsList = () => {
     
     if (calendarStatus === 'connected') {
       toast.success('Google Calendar connected successfully');
-      // Clean up URL parameters
       navigate('/client-dashboard/workouts', { replace: true });
     } else if (error) {
       toast.error(decodeURIComponent(error));
-      // Clean up URL parameters
       navigate('/client-dashboard/workouts', { replace: true });
     }
   }, [navigate]);
@@ -259,7 +257,7 @@ const WorkoutsList = () => {
   if (isLoading) {
     return (
       <div className="py-10 text-center">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-client" />
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-client dark:text-blue-300" />
         <p>Loading your workouts...</p>
       </div>
     );
@@ -268,7 +266,7 @@ const WorkoutsList = () => {
   if (error) {
     return (
       <div className="py-10 text-center">
-        <p className="text-red-500 mb-4">{error}</p>
+        <p className="text-red-500 dark:text-red-400 mb-4">{error}</p>
         <Button onClick={() => window.location.reload()}>
           Try Again
         </Button>
@@ -296,12 +294,12 @@ const WorkoutsList = () => {
     <div className="space-y-4">
       <ProgramProgressSection />
       
-      <div className="space-y-3">
+      <div className="space-y-6">
         {availableWeeks.length > 0 && (
           <div className="flex justify-center mb-2">
             <div className="relative" ref={selectRef}>
               <button
-                className="flex w-[200px] h-8 text-sm items-center justify-between rounded-md border border-input bg-background px-3 py-2 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                className="flex w-[200px] h-8 text-sm items-center justify-between rounded-md border border-input bg-card px-3 py-2 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 onClick={toggleSelectDropdown}
               >
                 <div className="flex items-center gap-1">
@@ -338,7 +336,7 @@ const WorkoutsList = () => {
         )}
         
         <div>
-          <h3 className="text-lg font-semibold mb-2">Pending Workouts</h3>
+          <h3 className="text-lg font-semibold mb-3">Pending Workouts</h3>
           {pendingWorkouts.length === 0 ? (
             <Card>
               <CardContent className="pt-4 pb-4 text-center">
@@ -348,58 +346,70 @@ const WorkoutsList = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {pendingWorkouts.map((workout) => (
-                <WorkoutCard
-                  key={workout.id}
-                  workoutId={workout.id}
-                  title={workout.title || workout.workout?.title || "Workout"}
-                  description={workout.description || workout.workout?.description}
-                  type={workout.workout_type || workout.workout?.workout_type}
-                  groupMembers={allGroupMembers}
-                  currentUserId={user?.id || ''}
-                  onStartWorkout={handleStartWorkout}
-                  completed={!!workout.completed_at}
-                  dayOfWeek={workout.workout?.day_of_week}
-                  exercises={workout.workout?.workout_exercises || []}
-                  isLifeHappensPass={isLifeHappensPass(workout)}
-                />
-              ))}
-            </div>
+            <ScrollArea className="w-full whitespace-nowrap rounded-lg">
+              <div className="flex w-full gap-3 px-1 pb-4">
+                {pendingWorkouts.map((workout) => (
+                  <div key={workout.id} className="w-[300px] flex-none">
+                    <WorkoutCard
+                      workoutId={workout.id}
+                      title={workout.title || workout.workout?.title || "Workout"}
+                      description={workout.description || workout.workout?.description}
+                      type={workout.workout_type || workout.workout?.workout_type}
+                      groupMembers={allGroupMembers}
+                      currentUserId={user?.id || ''}
+                      onStartWorkout={handleStartWorkout}
+                      completed={!!workout.completed_at}
+                      dayOfWeek={workout.workout?.day_of_week}
+                      exercises={workout.workout?.workout_exercises || []}
+                      isLifeHappensPass={isLifeHappensPass(workout)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" className="h-2.5" />
+            </ScrollArea>
           )}
         </div>
         
         {completedWorkouts.length > 0 && (
           <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2">Completed Workouts</h3>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {completedWorkouts.map((workout) => (
-                <WorkoutCard
-                  key={workout.id}
-                  workoutId={workout.id}
-                  title={workout.title || workout.workout?.title || "Workout"}
-                  description={workout.description || workout.workout?.description}
-                  type={workout.workout_type || workout.workout?.workout_type}
-                  groupMembers={allGroupMembers}
-                  currentUserId={user?.id || ''}
-                  onStartWorkout={handleStartWorkout}
-                  completed={!!workout.completed_at}
-                  dayOfWeek={workout.workout?.day_of_week}
-                  exercises={workout.workout?.workout_exercises || []}
-                  isLifeHappensPass={isLifeHappensPass(workout)}
-                />
-              ))}
-            </div>
+            <h3 className="text-lg font-semibold mb-3">Completed Workouts</h3>
+            <ScrollArea className="w-full whitespace-nowrap rounded-lg">
+              <div className="flex w-full gap-3 px-1 pb-4">
+                {completedWorkouts.map((workout) => (
+                  <div key={workout.id} className="w-[300px] flex-none">
+                    <WorkoutCard
+                      workoutId={workout.id}
+                      title={workout.title || workout.workout?.title || "Workout"}
+                      description={workout.description || workout.workout?.description}
+                      type={workout.workout_type || workout.workout?.workout_type}
+                      groupMembers={allGroupMembers}
+                      currentUserId={user?.id || ''}
+                      onStartWorkout={handleStartWorkout}
+                      completed={!!workout.completed_at}
+                      dayOfWeek={workout.workout?.day_of_week}
+                      exercises={workout.workout?.workout_exercises || []}
+                      isLifeHappensPass={isLifeHappensPass(workout)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" className="h-2.5" />
+            </ScrollArea>
           </div>
         )}
       </div>
       
-      <div className="mt-8 border-t pt-6">
+      <div className="mt-8 border-t border-border pt-6">
         <h3 className="text-lg font-medium mb-4">Add Other Activity</h3>
         
         <LogActivityButtons />
         
-        <Button asChild variant="outline" className="w-full mt-4 flex items-center justify-between text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+        <Button 
+          asChild 
+          variant="outline" 
+          className="w-full mt-4 flex items-center justify-between text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 shadow-lg"
+        >
           <Link to="/client-dashboard/workouts/one-off">
             <div className="flex items-center">
               <PlusCircle className="h-4 w-4 mr-2" />

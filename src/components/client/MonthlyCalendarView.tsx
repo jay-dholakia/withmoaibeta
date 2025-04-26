@@ -97,13 +97,13 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
     const dateFormat = "MMMM yyyy";
     return (
       <div className="flex items-center justify-between mb-4">
-        <Button variant="outline" size="icon" onClick={prevMonth} className="h-8 w-8">
+        <Button variant="outline" size="icon" onClick={prevMonth} className="h-8 w-8 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <div className="text-lg font-semibold">
+        <div className="text-lg font-semibold dark:text-white">
           {format(currentMonth, dateFormat)}
         </div>
-        <Button variant="outline" size="icon" onClick={nextMonth} className="h-8 w-8">
+        <Button variant="outline" size="icon" onClick={nextMonth} className="h-8 w-8 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -116,7 +116,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
     return (
       <div className="grid grid-cols-7 gap-1 mb-1">
         {daysOfWeek.map(day => (
-          <div key={day} className="text-center text-xs font-medium py-1">
+          <div key={day} className="text-center text-xs font-medium py-1 dark:text-gray-300">
             {day}
           </div>
         ))}
@@ -301,10 +301,10 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
         <div 
           key={day.toString()} 
           onClick={() => handleDayClick(day)}
-          className={`h-10 p-1 text-center relative cursor-pointer hover:bg-gray-50 ${
-            !isSameMonthDay ? 'text-gray-300' : 
-            isSelected ? 'bg-primary/20 text-primary font-bold rounded-md' :
-            isCurrentDay ? 'border-2 border-primary text-primary font-bold rounded-md' : ''
+          className={`h-10 p-1 text-center relative cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${
+            !isSameMonthDay ? 'text-gray-300 dark:text-gray-600' : 
+            isSelected ? 'bg-primary/20 text-primary dark:bg-blue-900/50 dark:text-blue-200 font-bold rounded-md' :
+            isCurrentDay ? 'border-2 border-primary text-primary dark:border-blue-500 dark:text-blue-300 font-bold rounded-md' : 'dark:text-gray-300'
           }`}
         >
           {renderDayContent(day, isSelected, isCurrentDay)}
@@ -357,12 +357,12 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
     ] as const;
 
     return (
-      <div className="mt-4 pt-3 border-t">
+      <div className="mt-4 pt-3 border-t dark:border-gray-700">
         <Button 
           variant="ghost" 
           size="sm" 
           onClick={() => setIsLegendExpanded(!isLegendExpanded)}
-          className="w-full flex items-center justify-between text-xs font-medium mb-2"
+          className="w-full flex items-center justify-between text-xs font-medium mb-2 dark:text-gray-300 dark:hover:bg-gray-800"
         >
           <span>Workout Types</span>
           {isLegendExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -373,7 +373,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
             {legendItems.map((item) => (
               <div key={item.type} className="flex items-center gap-1.5">
                 <WorkoutTypeIcon type={item.type} />
-                <span className="text-xs">{item.label}</span>
+                <span className="text-xs dark:text-gray-300">{item.label}</span>
               </div>
             ))}
           </div>
@@ -383,7 +383,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
   };
 
   return (
-    <div className="p-2 bg-white rounded-lg">
+    <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
       {renderHeader()}
       {renderDays()}
       {renderCells()}

@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Plus, PlayCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 
 export const LogActivityButtons: React.FC = () => {
   return (
@@ -9,11 +10,11 @@ export const LogActivityButtons: React.FC = () => {
       <Button 
         asChild
         variant="outline" 
-        className="flex items-center justify-between text-blue-600 border-blue-200 hover:bg-blue-50"
+        className="flex items-center justify-between text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-900/30 shadow-lg"
       >
         <Link to="/client-dashboard/workouts/log-run">
           <div className="flex items-center">
-            <Plus className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
             <span>Log Run</span>
           </div>
           <span className="ml-auto">🏃</span>
@@ -23,11 +24,11 @@ export const LogActivityButtons: React.FC = () => {
       <Button 
         asChild
         variant="outline"
-        className="flex items-center justify-between text-green-600 border-green-200 hover:bg-green-50"
+        className="flex items-center justify-between text-green-600 dark:text-green-400 border-green-200 dark:border-green-900 hover:bg-green-50 dark:hover:bg-green-900/30 shadow-lg"
       >
         <Link to="/client-dashboard/workouts/live-run">
           <div className="flex items-center">
-            <PlayCircle className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
             <span>Start Live Run</span>
           </div>
           <span className="ml-auto">📍</span>
@@ -37,11 +38,11 @@ export const LogActivityButtons: React.FC = () => {
       <Button 
         asChild
         variant="outline"
-        className="flex items-center justify-between text-purple-600 border-purple-200 hover:bg-purple-50"
+        className="flex items-center justify-between text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-900 hover:bg-purple-50 dark:hover:bg-purple-900/30 shadow-lg"
       >
         <Link to="/client-dashboard/workouts/log-cardio">
           <div className="flex items-center">
-            <Plus className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
             <span>Log Cardio Cross Training</span>
           </div>
           <span className="ml-auto">🚴</span>
@@ -51,11 +52,11 @@ export const LogActivityButtons: React.FC = () => {
       <Button 
         asChild
         variant="outline"
-        className="flex items-center justify-between text-amber-600 border-amber-200 hover:bg-amber-50"
+        className="flex items-center justify-between text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900 hover:bg-amber-50 dark:hover:bg-amber-900/30 shadow-lg"
       >
         <Link to="/client-dashboard/workouts/log-rest">
           <div className="flex items-center">
-            <Plus className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-5 w-5 mr-2 text-amber-600 dark:text-amber-400" />
             <span>Log Rest Day</span>
           </div>
           <span className="ml-auto">😴</span>
@@ -64,3 +65,5 @@ export const LogActivityButtons: React.FC = () => {
     </div>
   );
 };
+
+export default LogActivityButtons;

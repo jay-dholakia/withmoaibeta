@@ -44,6 +44,7 @@ import CoachClientsPage from './pages/coach/ClientsPage';
 import PrivacyPolicyPage from './pages/client/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/client/TermsOfServicePage';
 import LiveRunPage from './pages/client/LiveRunPage';
+import NotFound from './pages/NotFound';
 
 const App: React.FC = () => {
   const { loading } = useAuth();
@@ -104,7 +105,7 @@ const App: React.FC = () => {
       <Route path="/workouts" element={<ClientRoute><ClientWorkoutHistoryPage /></ClientRoute>} />
       <Route path="/workouts/:workoutId" element={<ClientRoute><ClientWorkoutDetailsPage /></ClientRoute>} />
       
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };

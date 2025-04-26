@@ -54,7 +54,7 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className }) => {
 
   return (
     <div className={cn(
-      "fixed bottom-0 left-0 right-0 w-full bg-gray-100 p-2 flex items-center justify-between z-50", 
+      "w-full bg-background py-2 flex items-center justify-between",
       className
     )}>
       <Button 

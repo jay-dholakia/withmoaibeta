@@ -180,8 +180,8 @@ const LeaderboardPage = () => {
     return (
       <Container className="px-4 sm:px-4 mx-auto w-full max-w-screen-md">
         <div className="flex justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-client" />
-          <span className="ml-2">Loading your progress...</span>
+          <Loader2 className="h-8 w-8 animate-spin text-client dark:text-blue-400" />
+          <span className="ml-2 dark:text-gray-300">Loading your progress...</span>
         </div>
       </Container>
     );
@@ -199,19 +199,19 @@ const LeaderboardPage = () => {
         </button>
         
         <div className="mt-6 mb-2 flex flex-col items-center">
-          <h2 className="text-xl font-bold mb-1 flex items-center justify-center gap-2">
-            <User className="h-5 w-5 text-client" />
+          <h2 className="text-xl font-bold mb-1 flex items-center justify-center gap-2 dark:text-white">
+            <User className="h-5 w-5 text-client dark:text-blue-400" />
             Workout History
           </h2>
           
           {clientWorkouts && clientWorkouts.length > 0 && (
-            <div className="text-sm text-center text-muted-foreground">
+            <div className="text-sm text-center text-muted-foreground dark:text-gray-400">
               {clientWorkouts.length} total workouts in your history
             </div>
           )}
         </div>
         
-        <Card className="mt-2">
+        <Card className="mt-2 dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="pt-6">
             {clientWorkouts && clientWorkouts.length > 0 ? (
               <MonthlyCalendarView 
@@ -221,7 +221,7 @@ const LeaderboardPage = () => {
                 showWorkoutTooltips={true}
               />
             ) : (
-              <div className="text-center py-8">
+              <div className="text-center py-8 dark:text-gray-300">
                 <p>No workout history yet. Complete workouts to see them on your calendar!</p>
               </div>
             )}
@@ -230,7 +230,7 @@ const LeaderboardPage = () => {
         
         <Button 
           onClick={handleLogWorkoutClick}
-          className="w-full mt-4 rounded-md bg-client hover:bg-client/90 text-white flex items-center justify-center gap-2"
+          className="w-full mt-4 rounded-md bg-client hover:bg-client/90 text-white flex items-center justify-center gap-2 dark:bg-blue-600 dark:hover:bg-blue-700 shadow-md"
         >
           <Dumbbell className="h-5 w-5" />
           Log a Workout
@@ -238,9 +238,9 @@ const LeaderboardPage = () => {
         
         {selectedDayWorkouts.length > 0 && (
           <div className="mt-6" ref={workoutDetailsRef}>
-            <Card>
+            <Card className="dark:bg-gray-800 dark:border-gray-700">
               <CardHeader>
-                <CardTitle className="text-lg">Workout Details</CardTitle>
+                <CardTitle className="text-lg dark:text-white">Workout Details</CardTitle>
               </CardHeader>
               <CardContent>
                 <WorkoutDayDetails 

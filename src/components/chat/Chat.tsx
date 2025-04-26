@@ -68,7 +68,7 @@ export const Chat: React.FC<ChatProps> = ({ channelUrl }) => {
                   className={`max-w-[70%] rounded-lg px-4 py-2 ${
                     message.sender.userId === message._sender.userId
                       ? 'bg-client text-white'
-                      : 'bg-gray-100'
+                      : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-100'
                   }`}
                 >
                   <p className="text-sm font-medium">
@@ -87,7 +87,7 @@ export const Chat: React.FC<ChatProps> = ({ channelUrl }) => {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type a message..."
-            className="flex-1"
+            className="flex-1 dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:placeholder:text-gray-400"
           />
           <Button type="submit">Send</Button>
         </form>

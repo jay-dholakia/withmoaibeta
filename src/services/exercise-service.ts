@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Exercise } from '@/types/workout';
 
@@ -38,11 +39,29 @@ export const fetchMuscleGroups = async (): Promise<string[]> => {
 /**
  * Get similar exercises by muscle group
  */
-export const fetchSimilarExercises = async (muscleGroup: string): Promise<Exercise[]> => {
+export const fetchSimilarExercises = async (exerciseId: string): Promise<Exercise[]> => {
+  // First get the original exercise's muscle group
+  const { data: originalExercise, error: originalError } = await supabase
+    .from('exercises')
+    .select('muscle_group')
+    .eq('id', exerciseId)
+    .single();
+
+  if (originalError) {
+    console.error('Error fetching original exercise:', originalError);
+    throw originalError;
+  }
+
+  if (!originalExercise?.muscle_group) {
+    return [];
+  }
+
+  // Then fetch all exercises with the same muscle group, excluding the original exercise
   const { data, error } = await supabase
     .from('exercises')
     .select('*')
-    .eq('muscle_group', muscleGroup)
+    .eq('muscle_group', originalExercise.muscle_group)
+    .neq('id', exerciseId)
     .order('name');
 
   if (error) {
@@ -50,5 +69,6 @@ export const fetchSimilarExercises = async (muscleGroup: string): Promise<Exerci
     throw error;
   }
 
-  return data;
+  return data || [];
 };
+

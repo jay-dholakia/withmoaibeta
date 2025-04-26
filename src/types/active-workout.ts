@@ -1,6 +1,15 @@
 
+import { Exercise } from '@/types/workout';
+
 export interface ExerciseState {
   expanded: boolean;
+  exercise_id?: string; // Track the current exercise ID
+  swapData?: {
+    timestamp: string;
+    originalExerciseId: string | null;
+    replacementExerciseId: string;
+  };
+  currentExercise?: Exercise; // Added this property to store the current exercise
   sets: Array<{
     setNumber: number;
     weight: string;

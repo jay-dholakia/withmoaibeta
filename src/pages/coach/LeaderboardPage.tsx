@@ -115,7 +115,7 @@ const LeaderboardPage = () => {
       return (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
+            <Skeleton key={i} className="h-12 w-full dark:bg-gray-700" />
           ))}
         </div>
       );
@@ -123,9 +123,9 @@ const LeaderboardPage = () => {
     
     if (error) {
       return (
-        <div className="p-4 text-center text-destructive">
+        <div className="p-4 text-center text-destructive dark:text-red-400">
           <p>Error loading leaderboard data.</p>
-          <p className="text-sm text-muted-foreground">Please try again later.</p>
+          <p className="text-sm text-muted-foreground dark:text-gray-400">Please try again later.</p>
         </div>
       );
     }
@@ -133,8 +133,8 @@ const LeaderboardPage = () => {
     if (!data || data.length === 0) {
       return (
         <div className="p-8 text-center">
-          <p className="text-lg mb-2">No workout data found for this period.</p>
-          <p className="text-muted-foreground">
+          <p className="text-lg mb-2 dark:text-gray-300">No workout data found for this period.</p>
+          <p className="text-muted-foreground dark:text-gray-400">
             Encourage your clients to complete workouts to see them on the leaderboard.
           </p>
         </div>
@@ -144,22 +144,22 @@ const LeaderboardPage = () => {
     return (
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead className="w-16 text-center">Rank</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead className="text-right">Completed Workouts</TableHead>
+          <TableRow className="dark:border-gray-700">
+            <TableHead className="w-16 text-center dark:text-gray-300">Rank</TableHead>
+            <TableHead className="dark:text-gray-300">Client</TableHead>
+            <TableHead className="text-right dark:text-gray-300">Completed Workouts</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((entry, index) => (
-            <TableRow key={entry.user_id}>
-              <TableCell className="text-center font-medium">
+            <TableRow key={entry.user_id} className="dark:border-gray-700">
+              <TableCell className="text-center font-medium dark:text-gray-300">
                 {index === 0 ? '🏆' : index + 1}
               </TableCell>
-              <TableCell>
+              <TableCell className="dark:text-gray-300">
                 {entry.email.split('@')[0]}
               </TableCell>
-              <TableCell className="text-right font-medium">
+              <TableCell className="text-right font-medium dark:text-gray-300">
                 {entry.total_workouts}
               </TableCell>
             </TableRow>
@@ -173,13 +173,13 @@ const LeaderboardPage = () => {
     <CoachLayout>
       <div className="space-y-6">
         <div className="flex items-center gap-2">
-          <Trophy className="h-7 w-7 text-coach" />
-          <h1 className="text-3xl font-bold text-coach">Leaderboards</h1>
+          <Trophy className="h-7 w-7 text-coach dark:text-green-400" />
+          <h1 className="text-3xl font-bold text-coach dark:text-green-400">Leaderboards</h1>
         </div>
 
-        <Card>
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
           <CardHeader>
-            <CardTitle>Client Workout Leaderboard</CardTitle>
+            <CardTitle className="dark:text-white">Client Workout Leaderboard</CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs 
@@ -188,9 +188,19 @@ const LeaderboardPage = () => {
               onValueChange={(value) => setActiveTab(value as 'weekly' | 'monthly')}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-6 dark:bg-gray-700">
+                <TabsTrigger 
+                  value="weekly" 
+                  className="dark:data-[state=active]:bg-gray-900 dark:data-[state=active]:text-white"
+                >
+                  Weekly
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="monthly" 
+                  className="dark:data-[state=active]:bg-gray-900 dark:data-[state=active]:text-white"
+                >
+                  Monthly
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="weekly">

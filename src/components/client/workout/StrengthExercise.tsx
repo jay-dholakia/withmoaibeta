@@ -1,10 +1,17 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Youtube, ArrowRightLeft, Info } from 'lucide-react';
-import { WorkoutExercise, PersonalRecord } from '@/types/workout';
+import { WorkoutExercise, PersonalRecord, Exercise } from '@/types/workout';
+import { fetchSimilarExercises } from '@/services/exercise-service';
+import { useQuery } from '@tanstack/react-query';
+import { saveWorkoutDraft, updateExerciseIdInDraft } from '@/services/workout-draft-service';
+import VideoDialog from './VideoDialog';
+import SwapExerciseDialog from './SwapExerciseDialog';
+import { toast } from 'sonner';
+import { useParams } from 'react-router-dom';
 
 interface Props {
   exercise: WorkoutExercise;
@@ -25,6 +32,58 @@ export const StrengthExercise: React.FC<Props> = ({
   onVideoClick,
   onSwapClick
 }) => {
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const [isSwapDialogOpen, setIsSwapDialogOpen] = useState(false);
+  const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
+  const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>(exercise.exercise);
+
+  // Update currentExercise if the parent component passes a different exercise
+  useEffect(() => {
+    if (exercise.exercise && exercise.exercise.id !== currentExercise?.id) {
+      setCurrentExercise(exercise.exercise);
+    }
+  }, [exercise.exercise]);
+
+  // Query for similar exercises
+  const { data: similarExercises, isLoading } = useQuery({
+    queryKey: ['similar-exercises', currentExercise?.id],
+    queryFn: () => fetchSimilarExercises(currentExercise?.id || ''),
+    enabled: !!currentExercise?.id,
+  });
+
+  const handleSwapExercise = async (newExercise: Exercise) => {
+    try {
+      // Update the local state first for immediate UI feedback
+      setCurrentExercise(newExercise);
+      
+      // Create updated exercise object with the new exercise details
+      const updatedExercise: WorkoutExercise = {
+        ...exercise,
+        exercise: newExercise
+      };
+      
+      // Update the exercise in the state through the parent component
+      onSwapClick(updatedExercise);
+
+      // Update the exercise ID in the workout draft
+      if (workoutCompletionId) {
+        await updateExerciseIdInDraft(workoutCompletionId, exercise.id, newExercise.id);
+        console.log('Exercise swap persisted to draft:', {
+          workoutId: workoutCompletionId,
+          originalExerciseId: exercise.id,
+          newExerciseId: newExercise.id
+        });
+      }
+
+      toast.success(`Swapped to ${newExercise.name}`);
+    } catch (error) {
+      console.error('Error swapping exercise:', error);
+      toast.error('Failed to swap exercise');
+      // Revert the local state on error
+      setCurrentExercise(exercise.exercise);
+    }
+  };
+
   return (
     <div className="space-y-3">
       {personalRecord && (
@@ -81,23 +140,45 @@ export const StrengthExercise: React.FC<Props> = ({
       </table>
       
       <div className="flex justify-end mt-2 space-x-2">
-        {exercise.exercise?.youtube_link && (
+        {currentExercise?.youtube_link && (
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => onVideoClick(exercise.exercise!.youtube_link!, exercise.exercise!.name)}
+            onClick={() => setIsVideoOpen(true)}
           >
             <Youtube className="h-4 w-4 mr-1" /> Demo
           </Button>
         )}
+        
         <Button 
           variant="outline" 
           size="sm"
-          onClick={() => onSwapClick(exercise)}
+          disabled={isLoading}
+          onClick={() => setIsSwapDialogOpen(true)}
         >
-          <ArrowRightLeft className="h-4 w-4 mr-1" /> Swap
+          <ArrowRightLeft className="h-4 w-4 mr-1" /> 
+          {isLoading ? 'Loading...' : 'Swap'}
         </Button>
       </div>
+
+      {currentExercise?.youtube_link && (
+        <VideoDialog 
+          isOpen={isVideoOpen}
+          onClose={() => setIsVideoOpen(false)}
+          videoUrl={currentExercise.youtube_link}
+          exerciseName={currentExercise.name || 'Exercise'}
+        />
+      )}
+      
+      <SwapExerciseDialog
+        isOpen={isSwapDialogOpen}
+        onClose={() => setIsSwapDialogOpen(false)}
+        exerciseName={currentExercise?.name || 'Exercise'}
+        muscleGroup={currentExercise?.muscle_group || ''}
+        similarExercises={similarExercises}
+        isLoading={isLoading}
+        onSwapSelect={handleSwapExercise}
+      />
     </div>
   );
 };

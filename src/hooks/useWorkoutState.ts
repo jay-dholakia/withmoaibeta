@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { ExerciseStates, PendingSet, PendingCardio, PendingFlexibility, PendingRun } from '@/types/active-workout';
-import { WorkoutExercise } from '@/types/workout';
+import { WorkoutExercise, Exercise } from '@/types/workout';
 import { toast } from 'sonner';
 
 export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -13,19 +13,44 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
   const [pendingFlexibility, setPendingFlexibility] = useState<PendingFlexibility[]>([]);
   const [pendingRuns, setPendingRuns] = useState<PendingRun[]>([]);
   const [workoutDataInitialized, setWorkoutDataInitialized] = useState(false);
+  const [sortedExerciseIds, setSortedExerciseIds] = useState<string[]>([]);
 
+  // Reset state if exercises change (this helps with navigation and reloads)
   useEffect(() => {
     if (workoutExercises && !workoutDataInitialized) {
+      console.log("useWorkoutState: Initializing exercise states with", workoutExercises.length, "exercises");
       const initialState: ExerciseStates = {};
+      const orderedExerciseIds: string[] = [];
       
-      workoutExercises.forEach((exercise) => {
+      // Sort exercises by order_index if available
+      const sortedExercises = [...workoutExercises].sort((a, b) => {
+        // Use order_index as primary sort field if available on both
+        if (a.order_index !== undefined && b.order_index !== undefined) {
+          return a.order_index - b.order_index;
+        }
+        // Fall back to array order if order_index not available
+        return 0;
+      });
+      
+      // Store the sorted exercise IDs
+      sortedExercises.forEach(exercise => {
+        orderedExerciseIds.push(exercise.id);
+      });
+      
+      // Set the sorted exercise IDs
+      setSortedExerciseIds(orderedExerciseIds);
+      
+      sortedExercises.forEach((exercise) => {
         const exerciseType = exercise.exercise?.exercise_type || 'strength';
         const exerciseName = (exercise.exercise?.name || '').toLowerCase();
         const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
         
+        // Always store the exercise's unique exercise_id in all exercise states
         if (isRunExercise) {
           initialState[exercise.id] = {
             expanded: true,
+            exercise_id: exercise.exercise?.id, // Initialize with the exercise ID
+            currentExercise: exercise.exercise, // Initialize with the current exercise
             sets: [],
             runData: {
               distance: '',
@@ -44,11 +69,15 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
           
           initialState[exercise.id] = {
             expanded: true,
+            exercise_id: exercise.exercise?.id, // Initialize with the exercise ID
+            currentExercise: exercise.exercise, // Initialize with the current exercise
             sets,
           };
         } else if (exerciseType === 'cardio') {
           initialState[exercise.id] = {
             expanded: true,
+            exercise_id: exercise.exercise?.id, // Initialize with the exercise ID
+            currentExercise: exercise.exercise, // Initialize with the current exercise
             sets: [],
             cardioData: {
               distance: '',
@@ -60,6 +89,8 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
         } else if (exerciseType === 'flexibility') {
           initialState[exercise.id] = {
             expanded: true,
+            exercise_id: exercise.exercise?.id, // Initialize with the exercise ID
+            currentExercise: exercise.exercise, // Initialize with the current exercise
             sets: [],
             flexibilityData: {
               duration: '',
@@ -67,11 +98,22 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
             }
           };
         }
+        
+        // Log each exercise we're initializing
+        console.log(`Initialized exercise state for ${exerciseName}`, {
+          workoutExerciseId: exercise.id,
+          exerciseId: exercise.exercise?.id,
+          exerciseType,
+          orderIndex: exercise.order_index
+        });
       });
       
       setExerciseStates(initialState);
       setWorkoutDataInitialized(true);
-      toast.success('Workout initialized');
+      
+      if (sortedExercises.length > 0) {
+        toast.success(`Workout initialized with ${sortedExercises.length} exercises`);
+      }
     }
   }, [workoutExercises, workoutDataInitialized]);
 
@@ -86,6 +128,7 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
     setPendingFlexibility,
     pendingRuns,
     setPendingRuns,
-    workoutDataInitialized
+    workoutDataInitialized,
+    sortedExerciseIds
   };
 };

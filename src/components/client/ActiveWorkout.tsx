@@ -30,6 +30,7 @@ const ActiveWorkout = () => {
 
   const [expandedDescriptions, setExpandedDescriptions] = useState<{ [key: string]: boolean }>({});
   const [retryCount, setRetryCount] = useState(0);
+  const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
 
   useEffect(() => {
     console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
@@ -139,15 +140,17 @@ const ActiveWorkout = () => {
     retry: 2,
     retryDelay: 1000,
     staleTime: 30000,
-    onError: (error) => {
-      console.error("Error fetching workout:", error);
-      if (retryCount < 2) {
-        // Retry a few times with a delay
-        setTimeout(() => {
-          setRetryCount(prevCount => prevCount + 1);
-        }, 2000);
-      } else {
-        toast.error("Unable to load workout. Please try again later.");
+    meta: {
+      onError: (error: Error) => {
+        console.error("Error fetching workout:", error);
+        if (retryCount < 2) {
+          // Retry a few times with a delay
+          setTimeout(() => {
+            setRetryCount(prevCount => prevCount + 1);
+          }, 2000);
+        } else {
+          toast.error("Unable to load workout. Please try again later.");
+        }
       }
     }
   });
@@ -168,10 +171,22 @@ const ActiveWorkout = () => {
     setExpandedDescriptions(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));
   };
 
+  const handleCompleteWorkout = () => {
+    setIsCompletionDialogOpen(true);
+  };
+
+  const confirmCompleteWorkout = () => {
+    // Mark workout as completed
+    navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
+  };
+
   const renderExerciseCard = (exercise: WorkoutExercise) => {
     if (!exerciseStates[exercise.id]) return null;
+    
     const { expanded } = exerciseStates[exercise.id];
     const exerciseName = exercise.exercise?.name || '';
+    const exerciseType = exercise.exercise?.exercise_type || 'strength';
+    const description = exercise.exercise?.description || '';
 
     return (
       <Card key={exercise.id} className="mb-6">
@@ -179,8 +194,18 @@ const ActiveWorkout = () => {
           <div className="flex justify-between items-center">
             <div className="flex-1">
               <CardTitle className="text-lg font-semibold">{exerciseName}</CardTitle>
+              {description && !expandedDescriptions[exercise.id] && (
+                <CardDescription className="mt-1 text-xs line-clamp-2">
+                  {description}
+                </CardDescription>
+              )}
             </div>
-            <Button variant="ghost" size="icon" onClick={() => toggleDescriptionExpanded(exercise.id)} className="h-8 w-8">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => toggleDescriptionExpanded(exercise.id)} 
+              className="h-8 w-8"
+            >
               <ChevronRight className={cn("h-5 w-5 transition-transform", expanded ? "rotate-90" : "")} />
             </Button>
           </div>
@@ -188,7 +213,66 @@ const ActiveWorkout = () => {
 
         {expanded && (
           <CardContent className="pt-0 px-3 pb-2">
-            {/* Exercise content would go here */}
+            {description && (
+              <div className={cn(
+                "mb-4 text-sm rounded-md",
+                expandedDescriptions[exercise.id] ? "bg-muted/50 p-3" : ""
+              )}>
+                {expandedDescriptions[exercise.id] && description}
+              </div>
+            )}
+            
+            {exerciseType === 'strength' && (
+              <StrengthExercise 
+                workoutExercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                onStateChange={(newState) => {
+                  setExerciseStates(prev => ({
+                    ...prev,
+                    [exercise.id]: newState
+                  }));
+                }}
+              />
+            )}
+            
+            {exerciseType === 'cardio' && (
+              <CardioExercise 
+                workoutExercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                onStateChange={(newState) => {
+                  setExerciseStates(prev => ({
+                    ...prev,
+                    [exercise.id]: newState
+                  }));
+                }}
+              />
+            )}
+            
+            {exerciseType === 'flexibility' && (
+              <FlexibilityExercise 
+                workoutExercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                onStateChange={(newState) => {
+                  setExerciseStates(prev => ({
+                    ...prev,
+                    [exercise.id]: newState
+                  }));
+                }}
+              />
+            )}
+            
+            {(exerciseName.toLowerCase().includes('run') || exerciseName.toLowerCase().includes('running')) && (
+              <RunExercise 
+                workoutExercise={exercise}
+                exerciseState={exerciseStates[exercise.id]}
+                onStateChange={(newState) => {
+                  setExerciseStates(prev => ({
+                    ...prev,
+                    [exercise.id]: newState
+                  }));
+                }}
+              />
+            )}
           </CardContent>
         )}
       </Card>
@@ -235,22 +319,65 @@ const ActiveWorkout = () => {
         <h1 className="text-xl font-bold">{workoutData.workout?.title || "Workout"}</h1>
       </div>
 
-      <Stopwatch className="mt-2 mb-6 fixed bottom-32 left-1/2 transform -translate-x-1/2 z-40" />
+      <Stopwatch className="mt-2 mb-6" />
 
       {Array.isArray(workoutExercises) && workoutExercises.length > 0 ? (
-        <div className="space-y-6 mb-40">
+        <div className="space-y-6 mb-32">
           {sortedExerciseIds.map(exerciseId => {
             const exercise = workoutExercises.find(ex => ex.id === exerciseId);
             if (!exercise) return null;
             return renderExerciseCard(exercise);
           })}
+          
+          <div className="fixed bottom-24 left-0 right-0 bg-gradient-to-t from-background to-transparent pt-6 pb-4 px-4">
+            <Button 
+              onClick={handleCompleteWorkout}
+              className="w-full py-6 bg-primary hover:bg-primary/90 text-white font-semibold text-lg rounded-lg shadow-lg"
+            >
+              <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="text-center py-8">
           <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-2 text-lg font-medium">No Exercises Found</h3>
+          <p className="text-muted-foreground">This workout doesn't have any exercises.</p>
+          <Button 
+            onClick={() => navigate('/client-dashboard/workouts')}
+            variant="outline"
+            className="mt-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
+          </Button>
         </div>
       )}
+
+      <Dialog open={isCompletionDialogOpen} onOpenChange={setIsCompletionDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Complete Workout</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to mark this workout as complete?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsCompletionDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmCompleteWorkout}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Complete Workout
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

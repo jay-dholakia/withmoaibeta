@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -168,11 +167,11 @@ const ActiveWorkout = () => {
         } else {
           toast.error("Unable to load workout. Please try again later.");
         }
+      },
+      onSuccess: (data) => {
+        console.log("Workout data has finished loading:", data);
+        setWorkoutDataLoaded(true);
       }
-    },
-    onSuccess: (data) => {
-      console.log("Workout data has finished loading:", data);
-      setWorkoutDataLoaded(true);
     }
   });
 

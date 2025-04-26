@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -526,21 +525,24 @@ const ActiveWorkout = () => {
         <h1 className="text-xl font-bold">{workoutData.workout?.title || "Workout"}</h1>
       </div>
 
-      <Stopwatch className="mt-2 mb-6" />
-
       {workoutExercises.length > 0 ? (
         exerciseRenderReady ? (
           <div className="space-y-6 mb-32">
             {workoutExercises.map(exercise => renderExerciseCard(exercise))}
             
-            <div className="fixed bottom-16 left-0 right-0 bg-gradient-to-t from-background to-transparent pt-6 px-4">
-              <Stopwatch className="mb-4 z-50" />
-              <Button 
-                onClick={handleCompleteWorkout}
-                className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow-lg text-base"
-              >
-                <CheckCircle2 className="h-4 w-4 mr-2" /> Complete Workout
-              </Button>
+            <div className="fixed bottom-0 left-0 right-0 z-40">
+              <div className="bg-gradient-to-t from-background to-transparent p-4 pb-20">
+                <div className="mb-3">
+                  <Stopwatch className="z-50" />
+                </div>
+                
+                <Button 
+                  onClick={handleCompleteWorkout}
+                  className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow-lg text-sm"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Complete Workout
+                </Button>
+              </div>
             </div>
           </div>
         ) : (

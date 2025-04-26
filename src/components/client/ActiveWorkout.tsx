@@ -258,6 +258,32 @@ const ActiveWorkout = () => {
 
   const confirmCompleteWorkout = async () => {
     try {
+      let completionId = workoutData?.id;
+      
+      if (!completionId) {
+        const { data: newCompletion, error: completionError } = await supabase
+          .from('workout_completions')
+          .insert({
+            workout_id: workoutData?.workout_id || workoutCompletionId,
+            standalone_workout_id: workoutData?.standalone_workout_id,
+            user_id: user?.id,
+            completed_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (completionError) {
+          console.error("Error creating workout completion:", completionError);
+          throw completionError;
+        }
+        
+        if (!newCompletion) {
+          throw new Error("Failed to create workout completion");
+        }
+        
+        completionId = newCompletion.id;
+      }
+
       const savePromises = [];
       
       for (const exerciseId of sortedExerciseIds) {
@@ -281,7 +307,7 @@ const ActiveWorkout = () => {
                 savePromises.push(
                   trackWorkoutSet(
                     exerciseId,
-                    workoutCompletionId,
+                    completionId,
                     set.setNumber,
                     setData
                   )
@@ -295,7 +321,7 @@ const ActiveWorkout = () => {
             savePromises.push(
               trackWorkoutSet(
                 exerciseId,
-                workoutCompletionId,
+                completionId,
                 1,
                 {
                   distance: cardioData.distance || null,
@@ -313,7 +339,7 @@ const ActiveWorkout = () => {
             savePromises.push(
               trackWorkoutSet(
                 exerciseId,
-                workoutCompletionId,
+                completionId,
                 1,
                 {
                   duration: flexData.duration || null,
@@ -329,7 +355,7 @@ const ActiveWorkout = () => {
             savePromises.push(
               trackWorkoutSet(
                 exerciseId,
-                workoutCompletionId,
+                completionId,
                 1,
                 {
                   distance: runData.distance || null,
@@ -345,12 +371,12 @@ const ActiveWorkout = () => {
       }
       
       if (savePromises.length > 0) {
-        toast.info(`Saving ${savePromises.length} workout records...`);
+        console.log(`Saving ${savePromises.length} workout records...`);
         await Promise.all(savePromises);
         console.log(`Successfully saved ${savePromises.length} workout records`);
       }
 
-      navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
+      navigate(`/client-dashboard/workouts/complete/${completionId}`);
     } catch (error) {
       console.error("Error saving workout data:", error);
       toast.error("There was an error saving your workout data");

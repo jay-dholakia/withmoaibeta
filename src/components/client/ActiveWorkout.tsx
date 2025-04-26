@@ -42,23 +42,31 @@ const ActiveWorkout = () => {
   const getWorkoutExercises = (data: any) => {
     if (!data || !data.workout) return [];
     
+    let exercises = [];
+    
     if (Array.isArray(data.workout.workout_exercises)) {
-      return data.workout.workout_exercises;
-    }
-    
-    const standaloneExercises = (data.workout as any).standalone_workout_exercises;
-    if (standaloneExercises && Array.isArray(standaloneExercises)) {
-      return standaloneExercises;
-    }
-    
-    if (data.standalone_workout_id && data.workout) {
-      if (Array.isArray(data.workout.workout_exercises)) {
-        return data.workout.workout_exercises;
+      exercises = data.workout.workout_exercises;
+    } else {
+      const standaloneExercises = (data.workout as any).standalone_workout_exercises;
+      if (standaloneExercises && Array.isArray(standaloneExercises)) {
+        exercises = standaloneExercises;
+      } else if (data.standalone_workout_id && data.workout) {
+        if (Array.isArray(data.workout.workout_exercises)) {
+          exercises = data.workout.workout_exercises;
+        }
       }
     }
     
-    console.error("No workout exercises found in workoutData:", data);
-    return [];
+    if (exercises.length === 0) {
+      console.error("No workout exercises found in workoutData:", data);
+      return [];
+    }
+    
+    return [...exercises].sort((a, b) => {
+      const orderA = typeof a.order_index === 'number' ? a.order_index : 0;
+      const orderB = typeof b.order_index === 'number' ? b.order_index : 0;
+      return orderA - orderB;
+    });
   };
 
   const { data: workoutData, isLoading, error } = useQuery({

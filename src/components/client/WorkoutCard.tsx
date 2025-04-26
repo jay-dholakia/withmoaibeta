@@ -82,7 +82,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
                   <Tooltip key={member.id}>
                     <TooltipTrigger>
                       <Avatar className={cn(
-                        "h-5 w-5 border-2 border-white dark:border-gray-700 relative",
+                        "h-6 w-6 border-2 border-white dark:border-gray-700 relative",
                         !hasCompleted && "grayscale opacity-60",
                         "hover:translate-y-0.5 transition-transform"
                       )}

@@ -32,10 +32,9 @@ const ActiveWorkout = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-  const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
+  const [workoutDataLoaded, setWorkoutDataLoaded] = useState(false);
   const [draftApplied, setDraftApplied] = useState(false);
 
-  // Move getWorkoutExercises function before its usage
   const getWorkoutExercises = () => {
     if (!workoutData || !workoutData.workout) return [];
     
@@ -58,7 +57,6 @@ const ActiveWorkout = () => {
     return [];
   };
 
-  // Fetch workout data query 
   const { data: workoutData, isLoading, error } = useQuery({
     queryKey: ['active-workout', workoutCompletionId, retryCount],
     queryFn: async () => {
@@ -164,11 +162,14 @@ const ActiveWorkout = () => {
         } else {
           toast.error("Unable to load workout. Please try again later.");
         }
+      },
+      onSuccess: () => {
+        console.log("Workout data has finished loading");
+        setWorkoutDataLoaded(true);
       }
     }
   });
 
-  // Declare workoutExercises after getWorkoutExercises function
   const workoutExercises = getWorkoutExercises();
 
   useEffect(() => {
@@ -188,6 +189,7 @@ const ActiveWorkout = () => {
   const { draftData, draftLoaded, isLoading: isDraftLoading } = useWorkoutDraft({
     workoutId,
     onDraftLoaded: (loadedDraftData) => {
+      console.log("Draft data has finished loading:", loadedDraftData);
       if (loadedDraftData && loadedDraftData.exerciseStates && !draftApplied) {
         console.log("Draft loaded successfully, preparing to apply to workout state");
         setDraftApplied(true);
@@ -200,7 +202,7 @@ const ActiveWorkout = () => {
     setExerciseStates,
     sortedExerciseIds 
   } = useWorkoutState(
-    initialLoadComplete ? workoutExercises : undefined,
+    workoutDataLoaded ? workoutExercises : undefined,
     draftLoaded ? draftData?.exerciseStates : undefined
   );
 
@@ -227,6 +229,27 @@ const ActiveWorkout = () => {
     console.log("Initial load complete:", initialLoadComplete);
     console.log("Exercise states:", exerciseStates);
   }, [workoutExercises, sortedExerciseIds, initialLoadComplete, exerciseStates]);
+
+  useEffect(() => {
+    if (workoutData && workoutDataLoaded) {
+      if (draftLoaded) {
+        if (draftData?.exerciseStates && Object.keys(draftData.exerciseStates).length > 0) {
+          console.log("Exercise states updated from draft data");
+          setExerciseStates(draftData.exerciseStates);
+          setInitialLoadComplete(true);
+          console.log("Initial Load Complete set to true - with draft data");
+        } else {
+          console.log("No valid draft data found, initializing with original workout exercises");
+          setInitialLoadComplete(true);
+          console.log("Initial Load Complete set to true - without draft data");
+        }
+      } else if (!isDraftLoading) {
+        console.log("No draft data available, proceeding with workout data only");
+        setInitialLoadComplete(true);
+        console.log("Initial Load Complete set to true - draft loading failed/no draft");
+      }
+    }
+  }, [workoutData, workoutDataLoaded, draftLoaded, draftData, isDraftLoading, setExerciseStates]);
 
   const toggleDescriptionExpanded = (exerciseId: string) => {
     setExpandedDescriptions(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));

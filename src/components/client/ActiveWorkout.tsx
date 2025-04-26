@@ -31,6 +31,7 @@ const ActiveWorkout = () => {
   const [expandedDescriptions, setExpandedDescriptions] = useState<{ [key: string]: boolean }>({});
   const [retryCount, setRetryCount] = useState(0);
   const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useEffect(() => {
     console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
@@ -166,8 +167,13 @@ const ActiveWorkout = () => {
     if (workoutData) {
       console.log("Workout data fetched:", workoutData);
       console.log("Workout exercises:", workoutData.workout?.workout_exercises);
+      
+      // Ensure the data gets properly initialized
+      if (workoutData.workout && !initialLoadComplete) {
+        setInitialLoadComplete(true);
+      }
     }
-  }, [workoutData]);
+  }, [workoutData, initialLoadComplete]);
 
   // Ensure we have an array of workout exercises, even if the structure varies
   const getWorkoutExercises = () => {
@@ -197,9 +203,19 @@ const ActiveWorkout = () => {
   };
 
   const workoutExercises = getWorkoutExercises();
-  console.log("Workout exercises to render:", workoutExercises);
+  
+  // Only initialize workout state after data is loaded
+  const { exerciseStates, setExerciseStates, sortedExerciseIds } = useWorkoutState(
+    initialLoadComplete ? workoutExercises : undefined
+  );
 
-  const { exerciseStates, setExerciseStates, sortedExerciseIds } = useWorkoutState(workoutExercises);
+  // Debug logs for data flow
+  useEffect(() => {
+    console.log("Workout exercises to render:", workoutExercises);
+    console.log("Sorted exercise IDs:", sortedExerciseIds);
+    console.log("Initial load complete:", initialLoadComplete);
+    console.log("Exercise states:", exerciseStates);
+  }, [workoutExercises, sortedExerciseIds, initialLoadComplete, exerciseStates]);
 
   const toggleDescriptionExpanded = (exerciseId: string) => {
     setExpandedDescriptions(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));
@@ -364,7 +380,12 @@ const ActiveWorkout = () => {
   };
 
   const renderExerciseCard = (exercise: WorkoutExercise) => {
-    if (!exerciseStates[exercise.id]) {
+    if (!exercise) {
+      console.log("Attempted to render null exercise");
+      return null;
+    }
+
+    if (!exerciseStates || !exerciseStates[exercise.id]) {
       console.log(`No exercise state found for exercise with ID: ${exercise.id}`);
       return null;
     }
@@ -489,6 +510,10 @@ const ActiveWorkout = () => {
     );
   }
 
+  // Ensure the exercise states are initialized before rendering exercise cards
+  const exerciseRenderReady = initialLoadComplete && workoutExercises.length > 0 && 
+    Object.keys(exerciseStates).length > 0;
+
   return (
     <div className="container max-w-2xl mx-auto p-4 pb-40">
       <div className="flex items-center mb-4 gap-2">
@@ -501,20 +526,25 @@ const ActiveWorkout = () => {
       <Stopwatch className="mt-2 mb-6" />
 
       {workoutExercises.length > 0 ? (
-        <div className="space-y-6 mb-32">
-          {console.log("Rendering workout exercises:", workoutExercises)}
-          {console.log("Sorted exercise IDs:", sortedExerciseIds)}
-          {workoutExercises.map(exercise => renderExerciseCard(exercise))}
-          
-          <div className="fixed bottom-24 left-0 right-0 bg-gradient-to-t from-background to-transparent pt-6 pb-4 px-4">
-            <Button 
-              onClick={handleCompleteWorkout}
-              className="w-full py-6 bg-primary hover:bg-primary/90 text-white font-semibold text-lg rounded-lg shadow-lg"
-            >
-              <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
-            </Button>
+        exerciseRenderReady ? (
+          <div className="space-y-6 mb-32">
+            {workoutExercises.map(exercise => renderExerciseCard(exercise))}
+            
+            <div className="fixed bottom-24 left-0 right-0 bg-gradient-to-t from-background to-transparent pt-6 pb-4 px-4">
+              <Button 
+                onClick={handleCompleteWorkout}
+                className="w-full py-6 bg-primary hover:bg-primary/90 text-white font-semibold text-lg rounded-lg shadow-lg"
+              >
+                <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center min-h-[300px] p-4">
+            <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+            <p className="text-lg font-medium">Preparing workout...</p>
+          </div>
+        )
       ) : (
         <div className="text-center py-8">
           <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground" />

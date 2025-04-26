@@ -15,8 +15,10 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
   const [workoutDataInitialized, setWorkoutDataInitialized] = useState(false);
   const [sortedExerciseIds, setSortedExerciseIds] = useState<string[]>([]);
 
+  // Reset state if exercises change (this helps with navigation and reloads)
   useEffect(() => {
     if (workoutExercises && !workoutDataInitialized) {
+      console.log("useWorkoutState: Initializing exercise states with", workoutExercises.length, "exercises");
       const initialState: ExerciseStates = {};
       const orderedExerciseIds: string[] = [];
       
@@ -104,7 +106,10 @@ export const useWorkoutState = (workoutExercises: WorkoutExercise[] | undefined)
       
       setExerciseStates(initialState);
       setWorkoutDataInitialized(true);
-      toast.success('Workout initialized');
+      
+      if (sortedExercises.length > 0) {
+        toast.success(`Workout initialized with ${sortedExercises.length} exercises`);
+      }
     }
   }, [workoutExercises, workoutDataInitialized]);
 

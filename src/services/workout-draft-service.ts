@@ -17,6 +17,23 @@ const safeParseDraftData = (data: any): any => {
 };
 
 /**
+ * Verifies Supabase connection is available
+ */
+const verifySupabaseConnection = async (): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.from("workout_drafts").select("count(*)", { count: "exact", head: true });
+    if (error) {
+      console.error("Supabase connection error:", error);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("Failed to verify Supabase connection:", error);
+    return false;
+  }
+};
+
+/**
  * Saves a workout draft to the server
  */
 export const saveWorkoutDraft = async (
@@ -30,6 +47,13 @@ export const saveWorkoutDraft = async (
   }
 
   try {
+    // Verify connection before attempting save
+    const isConnected = await verifySupabaseConnection();
+    if (!isConnected) {
+      console.error("Cannot save draft: Supabase connection unavailable");
+      return false;
+    }
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       console.error("Auth error or no user found:", authError);
@@ -49,12 +73,17 @@ export const saveWorkoutDraft = async (
     });
 
     // First check if a draft already exists for this workout
-    const { data: existingDraft } = await supabase
+    const { data: existingDraft, error: queryError } = await supabase
       .from("workout_drafts")
       .select("id")
       .eq("user_id", user.id)
       .eq("workout_id", workoutId)
       .maybeSingle();
+
+    if (queryError) {
+      console.error("Error checking for existing draft:", queryError);
+      return false;
+    }
 
     let result;
     if (existingDraft) {

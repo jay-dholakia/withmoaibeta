@@ -180,6 +180,155 @@ const ActiveWorkout = () => {
     navigate(`/client-dashboard/workouts/complete/${workoutCompletionId}`);
   };
 
+  // Helper function to format duration input as HH:MM:SS
+  const formatDurationInput = (value: string): string => {
+    // Remove any non-numeric characters
+    const numericValue = value.replace(/[^\d]/g, '');
+    
+    if (numericValue.length <= 2) {
+      return numericValue;
+    } else if (numericValue.length <= 4) {
+      return `${numericValue.slice(0, 2)}:${numericValue.slice(2)}`;
+    } else {
+      return `${numericValue.slice(0, 2)}:${numericValue.slice(2, 4)}:${numericValue.slice(4, 6)}`;
+    }
+  };
+
+  // Handler functions for exercise components
+  const handleSetChange = (exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
+    setExerciseStates(prev => {
+      const updatedSets = [...prev[exerciseId].sets];
+      updatedSets[setIndex] = {
+        ...updatedSets[setIndex],
+        [field]: value
+      };
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          sets: updatedSets
+        }
+      };
+    });
+  };
+
+  const handleSetCompletion = (exerciseId: string, setIndex: number, completed: boolean) => {
+    setExerciseStates(prev => {
+      const updatedSets = [...prev[exerciseId].sets];
+      updatedSets[setIndex] = {
+        ...updatedSets[setIndex],
+        completed
+      };
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          sets: updatedSets
+        }
+      };
+    });
+  };
+
+  const handleCardioChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
+    setExerciseStates(prev => {
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          cardioData: {
+            ...prev[exerciseId].cardioData,
+            [field]: value
+          }
+        }
+      };
+    });
+  };
+
+  const handleCardioCompletion = (exerciseId: string, completed: boolean) => {
+    setExerciseStates(prev => {
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          cardioData: {
+            ...prev[exerciseId].cardioData,
+            completed
+          }
+        }
+      };
+    });
+  };
+
+  const handleFlexibilityChange = (exerciseId: string, field: 'duration', value: string) => {
+    setExerciseStates(prev => {
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          flexibilityData: {
+            ...prev[exerciseId].flexibilityData,
+            [field]: value
+          }
+        }
+      };
+    });
+  };
+
+  const handleFlexibilityCompletion = (exerciseId: string, completed: boolean) => {
+    setExerciseStates(prev => {
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          flexibilityData: {
+            ...prev[exerciseId].flexibilityData,
+            completed
+          }
+        }
+      };
+    });
+  };
+
+  const handleRunChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
+    setExerciseStates(prev => {
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          runData: {
+            ...prev[exerciseId].runData,
+            [field]: value
+          }
+        }
+      };
+    });
+  };
+
+  const handleRunCompletion = (exerciseId: string, completed: boolean) => {
+    setExerciseStates(prev => {
+      return {
+        ...prev,
+        [exerciseId]: {
+          ...prev[exerciseId],
+          runData: {
+            ...prev[exerciseId].runData,
+            completed
+          }
+        }
+      };
+    });
+  };
+
+  const handleVideoClick = (url: string, exerciseName: string) => {
+    // Open video in a new tab or modal
+    window.open(url, '_blank');
+  };
+
+  const handleSwapExercise = (exercise: WorkoutExercise) => {
+    // This would open a modal to swap the exercise
+    toast.info("Exercise swap feature coming soon");
+  };
+
   const renderExerciseCard = (exercise: WorkoutExercise) => {
     if (!exerciseStates[exercise.id]) return null;
     
@@ -224,53 +373,46 @@ const ActiveWorkout = () => {
             
             {exerciseType === 'strength' && (
               <StrengthExercise 
-                workoutExercise={exercise}
+                exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
-                onStateChange={(newState) => {
-                  setExerciseStates(prev => ({
-                    ...prev,
-                    [exercise.id]: newState
-                  }));
-                }}
+                personalRecord={undefined}
+                onSetChange={handleSetChange}
+                onSetCompletion={handleSetCompletion}
+                onVideoClick={handleVideoClick}
+                onSwapClick={handleSwapExercise}
               />
             )}
             
             {exerciseType === 'cardio' && (
               <CardioExercise 
-                workoutExercise={exercise}
+                exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
-                onStateChange={(newState) => {
-                  setExerciseStates(prev => ({
-                    ...prev,
-                    [exercise.id]: newState
-                  }));
-                }}
+                formatDurationInput={formatDurationInput}
+                onCardioChange={handleCardioChange}
+                onCardioCompletion={handleCardioCompletion}
+                onVideoClick={handleVideoClick}
               />
             )}
             
             {exerciseType === 'flexibility' && (
               <FlexibilityExercise 
-                workoutExercise={exercise}
+                exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
-                onStateChange={(newState) => {
-                  setExerciseStates(prev => ({
-                    ...prev,
-                    [exercise.id]: newState
-                  }));
-                }}
+                formatDurationInput={formatDurationInput}
+                onFlexibilityChange={handleFlexibilityChange}
+                onFlexibilityCompletion={handleFlexibilityCompletion}
+                onVideoClick={handleVideoClick}
               />
             )}
             
             {(exerciseName.toLowerCase().includes('run') || exerciseName.toLowerCase().includes('running')) && (
               <RunExercise 
-                workoutExercise={exercise}
+                exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
-                onStateChange={(newState) => {
-                  setExerciseStates(prev => ({
-                    ...prev,
-                    [exercise.id]: newState
-                  }));
-                }}
+                formatDurationInput={formatDurationInput}
+                onRunChange={handleRunChange}
+                onRunCompletion={handleRunCompletion}
+                onVideoClick={handleVideoClick}
               />
             )}
           </CardContent>

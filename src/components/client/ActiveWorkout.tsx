@@ -60,7 +60,6 @@ const ActiveWorkout = () => {
 
   useEffect(() => {
     if (draftLoaded && initialLoadComplete) {
-      console.log("Applying loaded draft to exercise states...");
       setExerciseStates(draftData?.exerciseStates || {});
     }
   }, [draftLoaded, initialLoadComplete, draftData, setExerciseStates]);

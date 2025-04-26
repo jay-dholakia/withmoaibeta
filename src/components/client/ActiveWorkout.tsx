@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -209,13 +208,14 @@ const ActiveWorkout = () => {
     console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
     console.log("ActiveWorkout: Current user:", user?.id);
     
+    // Set a longer safety timeout - give initialization more time
     loadingTimeoutRef.current = setTimeout(() => {
       if (!initialLoadComplete) {
         console.log("Safety timeout: forcing initialLoadComplete to true after delay");
         forceInitRef.current = true;
         setInitialLoadComplete(true);
       }
-    }, 3000);
+    }, 5000); // Increased from 3000ms to 5000ms
     
     return () => {
       if (loadingTimeoutRef.current) {
@@ -238,6 +238,14 @@ const ActiveWorkout = () => {
     console.log("State update - exercise states count:", Object.keys(exerciseStates || {}).length);
     console.log("State update - draft loaded:", draftLoaded);
     console.log("State update - initialization complete:", initializationComplete);
+    
+    // Add more debug info
+    if (workoutExercises.length > 0 && Object.keys(exerciseStates || {}).length > 0) {
+      console.log("Exercise state availability check:");
+      workoutExercises.forEach(ex => {
+        console.log(`Exercise ${ex.id}: ${exerciseStates[ex.id] ? "State found" : "NO STATE FOUND"}`);
+      });
+    }
   }, [workoutData, workoutExercises, exerciseStates, draftLoaded, initializationComplete]);
 
   const toggleDescriptionExpanded = (exerciseId: string) => {
@@ -538,6 +546,7 @@ const ActiveWorkout = () => {
     },
     debounce: 2000,
     minChanges: 1,
+    // Only enable autosave if workout data is loaded, exercise states exist, and initialization is complete
     disabled: !workoutData || !exerciseStates || Object.keys(exerciseStates).length === 0 || !initializationComplete
   });
 
@@ -594,7 +603,10 @@ const ActiveWorkout = () => {
     );
   }
 
-  const exerciseRenderReady = initialLoadComplete && Object.keys(exerciseStates || {}).length > 0;
+  const exerciseRenderReady = 
+    initialLoadComplete && 
+    Object.keys(exerciseStates || {}).length > 0 &&
+    workoutExercises.every(ex => !!exerciseStates[ex.id]);
   
   const forceShowExercises = forceInitRef.current && workoutExercises.length > 0;
 
@@ -632,8 +644,8 @@ const ActiveWorkout = () => {
             <p className="text-lg font-medium">Preparing workout...</p>
             <p className="text-sm text-muted-foreground mt-2">
               Status: {workoutDataLoaded ? 'Workout data loaded' : 'Loading workout data'}, 
-              {draftLoaded ? 'Draft loaded' : 'Loading draft'},
-              {initializationComplete ? 'Initialization complete' : 'Initializing'}
+              {draftLoaded ? ' Draft loaded' : ' Loading draft'},
+              {initializationComplete ? ' Initialization complete' : ' Initializing'}
             </p>
             <Button
               onClick={() => {

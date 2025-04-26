@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { ExerciseStates } from '@/types/active-workout';
 import { WorkoutExercise } from '@/types/workout';
@@ -19,6 +20,7 @@ export const useWorkoutInitialization = ({
   const [exerciseStates, setExerciseStates] = useState<ExerciseStates>({});
   const [sortedExerciseIds, setSortedExerciseIds] = useState<string[]>([]);
   const [initializationComplete, setInitializationComplete] = useState(false);
+  const [initializedExerciseIds, setInitializedExerciseIds] = useState<string[]>([]);
 
   // This effect handles the initialization of workout data
   useEffect(() => {
@@ -46,11 +48,83 @@ export const useWorkoutInitialization = ({
     // Get the sorted exercise IDs from workout exercises
     const orderedExerciseIds = workoutExercises.map(exercise => exercise.id);
     setSortedExerciseIds(orderedExerciseIds);
+    
+    // Also track which exercises we've initialized for debugging
+    setInitializedExerciseIds(orderedExerciseIds);
 
     // If we have valid draft data, use it
     if (draftData?.exerciseStates && Object.keys(draftData.exerciseStates).length > 0) {
       console.log("Initializing from draft data:", draftData.exerciseStates);
-      setExerciseStates(draftData.exerciseStates);
+      
+      // We need to ensure all current workout exercises are in the states
+      const updatedExerciseStates = { ...draftData.exerciseStates };
+      
+      // Check if any exercises in the workout are missing from the draft
+      workoutExercises.forEach(exercise => {
+        if (!updatedExerciseStates[exercise.id]) {
+          console.log(`Adding missing exercise to states: ${exercise.id}`);
+          // Add the missing exercise with a default state
+          const exerciseType = exercise.exercise?.exercise_type || 'strength';
+          const exerciseName = (exercise.exercise?.name || '').toLowerCase();
+          const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
+          
+          if (isRunExercise) {
+            updatedExerciseStates[exercise.id] = {
+              expanded: true,
+              exercise_id: exercise.exercise?.id,
+              currentExercise: exercise.exercise,
+              sets: [],
+              runData: {
+                distance: '',
+                duration: '',
+                location: '',
+                completed: false
+              }
+            };
+          } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+            const sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
+              setNumber: i + 1,
+              weight: '',
+              reps: exercise.reps || '',
+              completed: false,
+            }));
+            
+            updatedExerciseStates[exercise.id] = {
+              expanded: true,
+              exercise_id: exercise.exercise?.id,
+              currentExercise: exercise.exercise,
+              sets,
+            };
+          } else if (exerciseType === 'cardio') {
+            updatedExerciseStates[exercise.id] = {
+              expanded: true,
+              exercise_id: exercise.exercise?.id,
+              currentExercise: exercise.exercise,
+              sets: [],
+              cardioData: {
+                distance: '',
+                duration: '',
+                location: '',
+                completed: false
+              }
+            };
+          } else if (exerciseType === 'flexibility') {
+            updatedExerciseStates[exercise.id] = {
+              expanded: true,
+              exercise_id: exercise.exercise?.id,
+              currentExercise: exercise.exercise,
+              sets: [],
+              flexibilityData: {
+                duration: '',
+                completed: false
+              }
+            };
+          }
+        }
+      });
+      
+      // Update with combined state data
+      setExerciseStates(updatedExerciseStates);
       toast.success("Loaded your saved workout progress");
     } else {
       // Otherwise, build exercise states from scratch
@@ -138,8 +212,21 @@ export const useWorkoutInitialization = ({
       }
     });
     
+    // Log the created states for debugging
+    console.log("Created initial exercise states:", Object.keys(initialState).length);
     return initialState;
   };
+
+  // Log states for debugging
+  useEffect(() => {
+    if (initializationComplete) {
+      console.log("Exercise states after initialization:", {
+        statesCount: Object.keys(exerciseStates).length,
+        exerciseIds: Object.keys(exerciseStates),
+        initializedExerciseIds
+      });
+    }
+  }, [initializationComplete, exerciseStates, initializedExerciseIds]);
 
   return {
     exerciseStates,

@@ -34,29 +34,30 @@ const ActiveWorkout = () => {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [workoutDataLoaded, setWorkoutDataLoaded] = useState(false);
   const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
+
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initCompleteForceCounter = useRef<number>(0);
   const forceInitRef = useRef<boolean>(false);
 
-  const getWorkoutExercises = () => {
-    if (!workoutData || !workoutData.workout) return [];
+  const getWorkoutExercises = (data: any) => {
+    if (!data || !data.workout) return [];
     
-    if (Array.isArray(workoutData.workout.workout_exercises)) {
-      return workoutData.workout.workout_exercises;
+    if (Array.isArray(data.workout.workout_exercises)) {
+      return data.workout.workout_exercises;
     }
     
-    const standaloneExercises = (workoutData.workout as any).standalone_workout_exercises;
+    const standaloneExercises = (data.workout as any).standalone_workout_exercises;
     if (standaloneExercises && Array.isArray(standaloneExercises)) {
       return standaloneExercises;
     }
     
-    if (workoutData.standalone_workout_id && workoutData.workout) {
-      if (Array.isArray(workoutData.workout.workout_exercises)) {
-        return workoutData.workout.workout_exercises;
+    if (data.standalone_workout_id && data.workout) {
+      if (Array.isArray(data.workout.workout_exercises)) {
+        return data.workout.workout_exercises;
       }
     }
     
-    console.error("No workout exercises found in workoutData:", workoutData);
+    console.error("No workout exercises found in workoutData:", data);
     return [];
   };
 
@@ -165,15 +166,18 @@ const ActiveWorkout = () => {
         } else {
           toast.error("Unable to load workout. Please try again later.");
         }
-      },
-      onSuccess: (data) => {
-        console.log("Workout data has finished loading:", data);
-        setWorkoutDataLoaded(true);
       }
     }
   });
 
-  const workoutExercises = workoutData ? getWorkoutExercises() : [];
+  useEffect(() => {
+    if (workoutData) {
+      console.log("Workout data has finished loading:", workoutData);
+      setWorkoutDataLoaded(true);
+    }
+  }, [workoutData]);
+
+  const workoutExercises = workoutData ? getWorkoutExercises(workoutData) : [];
   
   const getWorkoutId = () => {
     if (!workoutData) return workoutCompletionId;
@@ -191,7 +195,6 @@ const ActiveWorkout = () => {
     }
   });
 
-  // Use the new hook for initialization
   const { 
     exerciseStates, 
     setExerciseStates,
@@ -208,14 +211,13 @@ const ActiveWorkout = () => {
     console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
     console.log("ActiveWorkout: Current user:", user?.id);
     
-    // Set a longer safety timeout - give initialization more time
     loadingTimeoutRef.current = setTimeout(() => {
       if (!initialLoadComplete) {
         console.log("Safety timeout: forcing initialLoadComplete to true after delay");
         forceInitRef.current = true;
         setInitialLoadComplete(true);
       }
-    }, 5000); // Increased from 3000ms to 5000ms
+    }, 5000);
     
     return () => {
       if (loadingTimeoutRef.current) {
@@ -224,7 +226,6 @@ const ActiveWorkout = () => {
     };
   }, [workoutCompletionId, user?.id]);
 
-  // Update initialLoadComplete when initialization is complete
   useEffect(() => {
     if (initializationComplete && !initialLoadComplete) {
       console.log("Initialization complete - setting initialLoadComplete to true");
@@ -239,7 +240,6 @@ const ActiveWorkout = () => {
     console.log("State update - draft loaded:", draftLoaded);
     console.log("State update - initialization complete:", initializationComplete);
     
-    // Add more debug info
     if (workoutExercises.length > 0 && Object.keys(exerciseStates || {}).length > 0) {
       console.log("Exercise state availability check:");
       workoutExercises.forEach(ex => {
@@ -532,7 +532,6 @@ const ActiveWorkout = () => {
     onSave: async (data) => {
       const workoutId = getWorkoutId();
       
-      // Don't save if exercise states is empty
       if (!data || Object.keys(data).length === 0) {
         console.log("Skipping autosave - exercise states is empty");
         return false;
@@ -546,7 +545,6 @@ const ActiveWorkout = () => {
     },
     debounce: 2000,
     minChanges: 1,
-    // Only enable autosave if workout data is loaded, exercise states exist, and initialization is complete
     disabled: !workoutData || !exerciseStates || Object.keys(exerciseStates).length === 0 || !initializationComplete
   });
 

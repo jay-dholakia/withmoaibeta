@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ExerciseStates } from '@/types/active-workout';
 import { WorkoutExercise } from '@/types/workout';
 import { toast } from 'sonner';
@@ -17,10 +17,15 @@ export const useWorkoutInitialization = ({
   draftLoaded,
   workoutDataLoaded
 }: UseWorkoutInitializationProps) => {
+  // Always initialize all state hooks at the top level
   const [exerciseStates, setExerciseStates] = useState<ExerciseStates>({});
   const [sortedExerciseIds, setSortedExerciseIds] = useState<string[]>([]);
-  const [initializationComplete, setInitializationComplete] = useState(false);
+  const [initializationComplete, setInitializationComplete] = useState<boolean>(false);
   const [initializedExerciseIds, setInitializedExerciseIds] = useState<string[]>([]);
+  
+  // Use refs for tracking initialization to avoid hook dependency issues
+  const attemptedInitializationRef = useRef<boolean>(false);
+  const initializedRef = useRef<boolean>(false);
 
   // This effect handles the initialization of workout data
   useEffect(() => {
@@ -35,9 +40,14 @@ export const useWorkoutInitialization = ({
     }
 
     // If we're already initialized, don't reinitialize
-    if (initializationComplete && Object.keys(exerciseStates).length > 0) {
+    if (initializedRef.current && Object.keys(exerciseStates).length > 0) {
       console.log("Workout already initialized, skipping");
       return;
+    }
+    
+    // Set our attempt flag
+    if (!attemptedInitializationRef.current) {
+      attemptedInitializationRef.current = true;
     }
     
     console.log("Initializing workout states", {
@@ -133,8 +143,10 @@ export const useWorkoutInitialization = ({
       setExerciseStates(initialState);
     }
     
+    // Mark initialization as complete
+    initializedRef.current = true;
     setInitializationComplete(true);
-  }, [workoutDataLoaded, workoutExercises, draftData, draftLoaded, initializationComplete, exerciseStates]);
+  }, [workoutDataLoaded, workoutExercises, draftData, draftLoaded, exerciseStates]);
 
   // Helper function to build initial exercise state from workout exercises
   const buildInitialExerciseState = (exercises: WorkoutExercise[]): ExerciseStates => {

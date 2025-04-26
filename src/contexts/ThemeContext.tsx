@@ -21,10 +21,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         return storedTheme;
       }
       
-      // If user prefers dark mode
-      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        return "dark";
-      }
+      // Default to light mode even if system prefers dark mode
+      return "light";
     }
     return "light";
   });
@@ -65,3 +63,4 @@ export const useTheme = () => {
   
   return context;
 };
+

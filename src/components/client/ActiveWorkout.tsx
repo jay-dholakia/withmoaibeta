@@ -867,8 +867,10 @@ const ActiveWorkout = () => {
           const originalExercise = exercises.find(
             ex => ex.id === originalExerciseWorkoutExerciseId
           );
-          originalExerciseId = originalExercise?.exercise?.id;
-          originalExerciseName = originalExercise?.exercise?.name;
+          if (originalExercise && originalExercise.exercise) {
+            originalExerciseId = originalExercise.exercise.id;
+            originalExerciseName = originalExercise.exercise.name;
+          }
         }
       }
 

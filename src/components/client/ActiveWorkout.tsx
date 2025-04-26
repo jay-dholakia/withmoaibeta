@@ -33,6 +33,7 @@ const ActiveWorkout = () => {
   const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
+  const [draftApplied, setDraftApplied] = useState(false);
 
   useEffect(() => {
     console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
@@ -157,15 +158,24 @@ const ActiveWorkout = () => {
 
   const workoutId = getWorkoutId();
 
-  // Add the useWorkoutDraft hook
-  const { draftData, draftLoaded } = useWorkoutDraft({
+  const { draftData, draftLoaded, isLoading: isDraftLoading } = useWorkoutDraft({
     workoutId,
     onDraftLoaded: (loadedDraftData) => {
-      if (loadedDraftData && loadedDraftData.exerciseStates) {
-        setExerciseStates(loadedDraftData.exerciseStates);
+      if (loadedDraftData && loadedDraftData.exerciseStates && !draftApplied) {
+        console.log("Draft loaded successfully, preparing to apply to workout state");
+        setDraftApplied(true);
       }
     }
   });
+
+  const { 
+    exerciseStates, 
+    setExerciseStates,
+    sortedExerciseIds 
+  } = useWorkoutState(
+    initialLoadComplete ? workoutExercises : undefined,
+    draftLoaded ? draftData?.exerciseStates : undefined
+  );
 
   useEffect(() => {
     if (error) {
@@ -208,10 +218,6 @@ const ActiveWorkout = () => {
 
   const workoutExercises = getWorkoutExercises();
   
-  const { exerciseStates, setExerciseStates, sortedExerciseIds } = useWorkoutState(
-    initialLoadComplete ? workoutExercises : undefined
-  );
-
   useEffect(() => {
     console.log("Workout exercises to render:", workoutExercises);
     console.log("Sorted exercise IDs:", sortedExerciseIds);
@@ -543,7 +549,7 @@ const ActiveWorkout = () => {
     }
   }, [saveStatus, autosaveRetries, forceSave]);
 
-  if (isLoading) {
+  if (isLoading || isDraftLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />

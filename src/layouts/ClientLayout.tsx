@@ -53,7 +53,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
               <li>
                 <Link 
                   to="/client-dashboard/leaderboard" 
-                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg relative ${
+                  className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
                     isActive('/leaderboard') 
                       ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
                       : 'text-gray-500 dark:text-gray-400'
@@ -63,14 +63,14 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                     className="w-6 h-6" 
                     strokeWidth={isActive('/leaderboard') ? 2.5 : 2} 
                   />
-                  <span className="text-sm font-medium">Dashboard</span>
+                  <span className="text-xs font-medium">Dashboard</span>
                 </Link>
               </li>
               
               <li>
                 <Link 
                   to="/client-dashboard/workouts" 
-                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg relative ${
+                  className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
                     isActive('/workouts') 
                       ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
                       : 'text-gray-500 dark:text-gray-400'
@@ -80,14 +80,14 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                     className="w-6 h-6" 
                     strokeWidth={isActive('/workouts') ? 2.5 : 2} 
                   />
-                  <span className="text-sm font-medium">Workouts</span>
+                  <span className="text-xs font-medium">Workouts</span>
                 </Link>
               </li>
               
               <li>
                 <Link 
                   to="/client-dashboard/moai" 
-                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg relative ${
+                  className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
                     isActive('/moai') 
                       ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
                       : 'text-gray-500 dark:text-gray-400'
@@ -97,14 +97,14 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                     className="w-6 h-6" 
                     strokeWidth={isActive('/moai') ? 2.5 : 2} 
                   />
-                  <span className="text-sm font-medium">Moai</span>
+                  <span className="text-xs font-medium">Moai</span>
                 </Link>
               </li>
               
               <li>
                 <Link 
                   to="/client-dashboard/notes" 
-                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg relative ${
+                  className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
                     isActive('/notes') 
                       ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
                       : 'text-gray-500 dark:text-gray-400'
@@ -114,14 +114,14 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                     className="w-6 h-6" 
                     strokeWidth={isActive('/notes') ? 2.5 : 2} 
                   />
-                  <span className="text-sm font-medium">Notes</span>
+                  <span className="text-xs font-medium">Notes</span>
                 </Link>
               </li>
               
               <li>
                 <Link 
                   to="/client-dashboard/settings" 
-                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg relative ${
+                  className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
                     isActive('/settings') 
                       ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
                       : 'text-gray-500 dark:text-gray-400'
@@ -131,7 +131,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                     className="w-6 h-6" 
                     strokeWidth={isActive('/settings') ? 2.5 : 2} 
                   />
-                  <span className="text-sm font-medium">Settings</span>
+                  <span className="text-xs font-medium">Settings</span>
                 </Link>
               </li>
             </ul>
@@ -141,3 +141,4 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
     </div>
   );
 };
+

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -36,6 +37,7 @@ const ActiveWorkout = () => {
   const [draftApplied, setDraftApplied] = useState(false);
   const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
   const [draftLoadAttempted, setDraftLoadAttempted] = useState(false);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const getWorkoutExercises = () => {
     if (!workoutData || !workoutData.workout) return [];
@@ -177,7 +179,21 @@ const ActiveWorkout = () => {
   useEffect(() => {
     console.log("ActiveWorkout: Component mounted with workoutCompletionId:", workoutCompletionId);
     console.log("ActiveWorkout: Current user:", user?.id);
-  }, [workoutCompletionId, user?.id]);
+    
+    // Set a safety timeout to prevent permanent loading state
+    loadingTimeoutRef.current = setTimeout(() => {
+      if (!initialLoadComplete && workoutDataLoaded) {
+        console.log("Safety timeout: forcing initialLoadComplete to true after delay");
+        setInitialLoadComplete(true);
+      }
+    }, 5000); // 5 seconds safety timeout
+    
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [workoutCompletionId, user?.id, initialLoadComplete, workoutDataLoaded]);
 
   const getWorkoutId = () => {
     if (!workoutData) return workoutCompletionId;
@@ -226,35 +242,52 @@ const ActiveWorkout = () => {
     }
   }, [workoutData, initialLoadComplete]);
 
+  // Critical effect for initialization logic
+  useEffect(() => {
+    console.log("Initialization check - Status:", {
+      workoutDataLoaded,
+      draftLoaded,
+      draftLoadAttempted,
+      isDraftLoading,
+      hasExerciseStates: Object.keys(exerciseStates || {}).length > 0,
+      initialLoadComplete
+    });
+    
+    if (workoutDataLoaded) {
+      // Case 1: Draft is loaded and has data
+      if (draftLoaded && draftData?.exerciseStates && 
+          Object.keys(draftData.exerciseStates).length > 0) {
+        console.log("Initialization: Using draft data");
+        setExerciseStates(draftData.exerciseStates);
+        setInitialLoadComplete(true);
+      } 
+      // Case 2: Draft loading attempted but no valid draft data found
+      else if (draftLoadAttempted) {
+        console.log("Initialization: No valid draft, using original workout data");
+        setInitialLoadComplete(true);
+      }
+      // Case 3: Draft loading timed out or failed
+      else if (!isDraftLoading && !draftLoaded) {
+        console.log("Initialization: Draft loading failed, proceeding with workout data");
+        setInitialLoadComplete(true);
+      }
+    }
+  }, [
+    workoutDataLoaded, 
+    draftLoaded, 
+    draftLoadAttempted,
+    isDraftLoading,
+    draftData, 
+    exerciseStates, 
+    setExerciseStates
+  ]);
+
   useEffect(() => {
     console.log("Workout exercises to render:", workoutExercises);
     console.log("Sorted exercise IDs:", sortedExerciseIds);
     console.log("Initial load complete:", initialLoadComplete);
     console.log("Exercise states:", exerciseStates);
   }, [workoutExercises, sortedExerciseIds, initialLoadComplete, exerciseStates]);
-
-  useEffect(() => {
-    if (workoutData && workoutDataLoaded) {
-      if (draftLoaded) {
-        if (draftData?.exerciseStates && Object.keys(draftData.exerciseStates).length > 0 && workoutDataLoaded) {
-          console.log("Exercise states updated from draft data");
-          setExerciseStates(draftData.exerciseStates);
-          if (!initialLoadComplete) {
-            setInitialLoadComplete(true);
-            console.log("Initial load complete set to true - with draft data");
-          }
-        } else {
-          console.log("No valid draft data found, initializing with original workout exercises");
-          setInitialLoadComplete(true);
-          console.log("Initial load complete set to true - without draft data");
-        }
-      } else if (!isDraftLoading) {
-        console.log("No draft data available, proceeding with workout data only");
-        setInitialLoadComplete(true);
-        console.log("Initial load complete set to true - draft loading failed/no draft");
-      }
-    }
-  }, [workoutData, workoutDataLoaded, draftLoaded, draftData, isDraftLoading, setExerciseStates]);
 
   const toggleDescriptionExpanded = (exerciseId: string) => {
     setExpandedDescriptions(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));

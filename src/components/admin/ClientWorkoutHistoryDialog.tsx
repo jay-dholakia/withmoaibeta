@@ -1,14 +1,17 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { WorkoutHistoryItem, StandardWorkoutType } from '@/types/workout';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
-import { useQuery } from '@tanstack/react-query';
+import { deleteWorkoutCompletion } from '@/services/workout-delete-service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WorkoutTypeIcon } from '@/components/client/WorkoutTypeIcon';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
+import { toast } from "sonner";
 
 interface ClientWorkoutHistoryDialogProps {
   clientId: string;
@@ -23,6 +26,8 @@ export const ClientWorkoutHistoryDialog = ({
   open, 
   onOpenChange 
 }: ClientWorkoutHistoryDialogProps) => {
+  const queryClient = useQueryClient();
+  
   const { data: workoutHistory, isLoading } = useQuery({
     queryKey: ['client-workout-history', clientId],
     queryFn: () => fetchClientWorkoutHistory(clientId),
@@ -34,9 +39,7 @@ export const ClientWorkoutHistoryDialog = ({
     return format(date, 'MMM d, yyyy');
   };
 
-  // Function to safely get workout type as StandardWorkoutType
   const getWorkoutType = (type: string | undefined): StandardWorkoutType => {
-    // Define a list of valid workout types matching StandardWorkoutType
     const validTypes: StandardWorkoutType[] = [
       'strength', 'cardio', 'bodyweight', 'flexibility', 
       'rest_day', 'custom', 'one_off', 'hiit', 'sport',
@@ -44,10 +47,26 @@ export const ClientWorkoutHistoryDialog = ({
       'volleyball', 'baseball', 'tennis', 'hiking', 'skiing', 'yoga'
     ];
     
-    // If the type is valid, return it; otherwise default to 'custom'
     return (type && validTypes.includes(type as StandardWorkoutType)) 
       ? type as StandardWorkoutType 
       : 'custom';
+  };
+
+  const handleDelete = async (workoutId: string) => {
+    try {
+      const success = await deleteWorkoutCompletion(workoutId);
+      if (success) {
+        toast.success("Workout deleted successfully");
+        queryClient.invalidateQueries({
+          queryKey: ['client-workout-history', clientId]
+        });
+      } else {
+        toast.error("Failed to delete workout");
+      }
+    } catch (error) {
+      console.error("Error deleting workout:", error);
+      toast.error("An error occurred while deleting the workout");
+    }
   };
 
   return (
@@ -67,13 +86,14 @@ export const ClientWorkoutHistoryDialog = ({
                 <TableHead>Workout</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`loading-${index}`}>
-                    {Array.from({ length: 4 }).map((_, cellIndex) => (
+                    {Array.from({ length: 5 }).map((_, cellIndex) => (
                       <TableCell key={`loading-cell-${index}-${cellIndex}`}>
                         <Skeleton className="h-5 w-full" />
                       </TableCell>
@@ -108,11 +128,21 @@ export const ClientWorkoutHistoryDialog = ({
                         Completed
                       </span>
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(workout.id)}
+                        title="Delete workout"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     No workout history found
                   </TableCell>
                 </TableRow>

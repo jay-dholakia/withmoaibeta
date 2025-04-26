@@ -14,7 +14,6 @@ import { RunExercise } from './workout/RunExercise';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import Stopwatch from './Stopwatch';
-import { cn } from '@/lib/utils';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -22,7 +21,6 @@ const ActiveWorkout = () => {
   const navigate = useNavigate();
 
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-  const [draftApplied, setDraftApplied] = useState(false);
 
   const { data: workoutData, isLoading: isWorkoutLoading } = useQuery({
     queryKey: ['active-workout', workoutCompletionId],
@@ -39,12 +37,10 @@ const ActiveWorkout = () => {
   });
 
   const workoutExercises = workoutData?.workout_exercises || [];
-
   const workoutId = workoutData?.id || workoutCompletionId;
 
   const { draftData, draftLoaded, isLoading: isDraftLoading } = useWorkoutDraft({
-    workoutId,
-    onDraftLoaded: () => setDraftApplied(true)
+    workoutId
   });
 
   const {
@@ -61,6 +57,13 @@ const ActiveWorkout = () => {
       setInitialLoadComplete(true);
     }
   }, [workoutData, initialLoadComplete]);
+
+  useEffect(() => {
+    if (draftLoaded && initialLoadComplete) {
+      console.log("Applying loaded draft to exercise states...");
+      setExerciseStates(draftData?.exerciseStates || {});
+    }
+  }, [draftLoaded, initialLoadComplete, draftData, setExerciseStates]);
 
   const { saveStatus } = useAutosave({
     data: exerciseStates,

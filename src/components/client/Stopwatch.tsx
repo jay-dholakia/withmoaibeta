@@ -8,7 +8,7 @@ import { AutosaveStatus } from "@/hooks/useAutosave";
 interface StopwatchProps {
   className?: string;
   saveStatus?: AutosaveStatus;
-  workoutCompletionId?: string;  // Add this to track current workout
+  workoutCompletionId?: string;
 }
 
 const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCompletionId }) => {
@@ -17,10 +17,10 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
 
   // Reset timer when workoutCompletionId changes
   useEffect(() => {
-    // Always start at 0 when a new workout is loaded
+    // Always reset to 0 when a new workout is loaded, but don't start automatically
     setTime(0);
+    setIsRunning(false);
     localStorage.setItem("workout_start_time", Date.now().toString());
-    setIsRunning(true);  // Automatically start the timer when workout loads
   }, [workoutCompletionId]);
 
   useEffect(() => {
@@ -51,10 +51,15 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
 
   const handleReset = () => {
     setTime(0);
+    setIsRunning(false);
     localStorage.setItem("workout_start_time", Date.now().toString());
   };
 
   const toggleRunning = () => {
+    if (!isRunning) {
+      // When starting, set the start time to current time
+      localStorage.setItem("workout_start_time", Date.now().toString());
+    }
     setIsRunning(!isRunning);
   };
   

@@ -1,15 +1,16 @@
-
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Youtube, ArrowRightLeft, Info } from 'lucide-react';
-import { WorkoutExercise, PersonalRecord } from '@/types/workout';
+import { WorkoutExercise, PersonalRecord, Exercise } from '@/types/workout';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { fetchSimilarExercises } from '@/services/exercise-service';
 import { useQuery } from '@tanstack/react-query';
+import { saveWorkoutDraft, updateExerciseIdInDraft } from '@/services/workout-draft-service';
 import VideoDialog from './VideoDialog';
 import { toast } from 'sonner';
+import { useParams } from 'react-router-dom';
 
 interface Props {
   exercise: WorkoutExercise;
@@ -31,20 +32,38 @@ export const StrengthExercise: React.FC<Props> = ({
   onSwapClick
 }) => {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
 
   // Query for similar exercises
-  const { data: similarExercises } = useQuery({
+  const { data: similarExercises, isLoading } = useQuery({
     queryKey: ['similar-exercises', exercise.exercise?.id],
     queryFn: () => fetchSimilarExercises(exercise.exercise?.id || ''),
     enabled: !!exercise.exercise?.id,
   });
 
-  const handleSwapExercise = (newExercise: any) => {
-    onSwapClick({
-      ...exercise,
-      exercise: newExercise,
-    });
-    toast.success(`Swapped to ${newExercise.name}`);
+  const handleSwapExercise = async (newExercise: Exercise) => {
+    try {
+      // Update the exercise in the state through the parent component
+      onSwapClick({
+        ...exercise,
+        exercise: newExercise,
+      });
+
+      // Update the exercise ID in the workout draft
+      if (workoutCompletionId) {
+        await updateExerciseIdInDraft(workoutCompletionId, exercise.id, newExercise.id);
+        console.log('Exercise swap persisted to draft:', {
+          workoutId: workoutCompletionId,
+          originalExerciseId: exercise.id,
+          newExerciseId: newExercise.id
+        });
+      }
+
+      toast.success(`Swapped to ${newExercise.name}`);
+    } catch (error) {
+      console.error('Error swapping exercise:', error);
+      toast.error('Failed to swap exercise');
+    }
   };
 
   return (
@@ -117,8 +136,10 @@ export const StrengthExercise: React.FC<Props> = ({
             <Button 
               variant="outline" 
               size="sm"
+              disabled={isLoading}
             >
-              <ArrowRightLeft className="h-4 w-4 mr-1" /> Swap
+              <ArrowRightLeft className="h-4 w-4 mr-1" /> 
+              {isLoading ? 'Loading...' : 'Swap'}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-56 p-2" side="top">
@@ -131,11 +152,14 @@ export const StrengthExercise: React.FC<Props> = ({
                   onClick={() => handleSwapExercise(similar)}
                 >
                   {similar.name}
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {similar.muscle_group}
+                  </span>
                 </Button>
               ))}
               {(!similarExercises || similarExercises.length === 0) && (
                 <p className="text-sm text-muted-foreground p-2">
-                  No alternative exercises found
+                  No alternative exercises found for this muscle group
                 </p>
               )}
             </div>

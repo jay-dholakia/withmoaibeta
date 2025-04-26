@@ -35,16 +35,20 @@ export const StrengthExercise: React.FC<Props> = ({
   const [isVideoOpen, setIsVideoOpen] = useState(false);
   const [isSwapDialogOpen, setIsSwapDialogOpen] = useState(false);
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
+  const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>(exercise.exercise);
 
   // Query for similar exercises
   const { data: similarExercises, isLoading } = useQuery({
-    queryKey: ['similar-exercises', exercise.exercise?.id],
-    queryFn: () => fetchSimilarExercises(exercise.exercise?.id || ''),
-    enabled: !!exercise.exercise?.id,
+    queryKey: ['similar-exercises', currentExercise?.id],
+    queryFn: () => fetchSimilarExercises(currentExercise?.id || ''),
+    enabled: !!currentExercise?.id,
   });
 
   const handleSwapExercise = async (newExercise: Exercise) => {
     try {
+      // Update the local state first for immediate UI feedback
+      setCurrentExercise(newExercise);
+      
       // Update the exercise in the state through the parent component
       onSwapClick({
         ...exercise,
@@ -65,6 +69,8 @@ export const StrengthExercise: React.FC<Props> = ({
     } catch (error) {
       console.error('Error swapping exercise:', error);
       toast.error('Failed to swap exercise');
+      // Revert the local state on error
+      setCurrentExercise(exercise.exercise);
     }
   };
 
@@ -124,7 +130,7 @@ export const StrengthExercise: React.FC<Props> = ({
       </table>
       
       <div className="flex justify-end mt-2 space-x-2">
-        {exercise.exercise?.youtube_link && (
+        {currentExercise?.youtube_link && (
           <Button 
             variant="outline" 
             size="sm"
@@ -145,20 +151,20 @@ export const StrengthExercise: React.FC<Props> = ({
         </Button>
       </div>
 
-      {exercise.exercise?.youtube_link && (
+      {currentExercise?.youtube_link && (
         <VideoDialog 
           isOpen={isVideoOpen}
           onClose={() => setIsVideoOpen(false)}
-          videoUrl={exercise.exercise.youtube_link}
-          exerciseName={exercise.exercise.name || 'Exercise'}
+          videoUrl={currentExercise.youtube_link}
+          exerciseName={currentExercise.name || 'Exercise'}
         />
       )}
       
       <SwapExerciseDialog
         isOpen={isSwapDialogOpen}
         onClose={() => setIsSwapDialogOpen(false)}
-        exerciseName={exercise.exercise?.name || 'Exercise'}
-        muscleGroup={exercise.exercise?.muscle_group || ''}
+        exerciseName={currentExercise?.name || 'Exercise'}
+        muscleGroup={currentExercise?.muscle_group || ''}
         similarExercises={similarExercises}
         isLoading={isLoading}
         onSwapSelect={handleSwapExercise}
@@ -166,3 +172,4 @@ export const StrengthExercise: React.FC<Props> = ({
     </div>
   );
 };
+

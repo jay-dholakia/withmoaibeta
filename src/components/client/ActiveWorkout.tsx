@@ -34,6 +34,7 @@ const ActiveWorkout = () => {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [workoutDataLoaded, setWorkoutDataLoaded] = useState(false);
   const [draftApplied, setDraftApplied] = useState(false);
+  const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
 
   const getWorkoutExercises = () => {
     if (!workoutData || !workoutData.workout) return [];

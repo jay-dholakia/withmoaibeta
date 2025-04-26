@@ -35,6 +35,7 @@ const ActiveWorkout = () => {
   const [workoutDataLoaded, setWorkoutDataLoaded] = useState(false);
   const [draftApplied, setDraftApplied] = useState(false);
   const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
+  const [draftLoadAttempted, setDraftLoadAttempted] = useState(false);
 
   const getWorkoutExercises = () => {
     if (!workoutData || !workoutData.workout) return [];
@@ -195,6 +196,7 @@ const ActiveWorkout = () => {
         console.log("Draft loaded successfully, preparing to apply to workout state");
         setDraftApplied(true);
       }
+      setDraftLoadAttempted(true);
     }
   });
 
@@ -234,20 +236,22 @@ const ActiveWorkout = () => {
   useEffect(() => {
     if (workoutData && workoutDataLoaded) {
       if (draftLoaded) {
-        if (draftData?.exerciseStates && Object.keys(draftData.exerciseStates).length > 0) {
+        if (draftData?.exerciseStates && Object.keys(draftData.exerciseStates).length > 0 && workoutDataLoaded) {
           console.log("Exercise states updated from draft data");
           setExerciseStates(draftData.exerciseStates);
-          setInitialLoadComplete(true);
-          console.log("Initial Load Complete set to true - with draft data");
+          if (!initialLoadComplete) {
+            setInitialLoadComplete(true);
+            console.log("Initial load complete set to true - with draft data");
+          }
         } else {
           console.log("No valid draft data found, initializing with original workout exercises");
           setInitialLoadComplete(true);
-          console.log("Initial Load Complete set to true - without draft data");
+          console.log("Initial load complete set to true - without draft data");
         }
       } else if (!isDraftLoading) {
         console.log("No draft data available, proceeding with workout data only");
         setInitialLoadComplete(true);
-        console.log("Initial Load Complete set to true - draft loading failed/no draft");
+        console.log("Initial load complete set to true - draft loading failed/no draft");
       }
     }
   }, [workoutData, workoutDataLoaded, draftLoaded, draftData, isDraftLoading, setExerciseStates]);

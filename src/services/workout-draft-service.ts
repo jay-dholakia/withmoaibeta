@@ -9,6 +9,7 @@ const safeParseDraftData = (data: any): any => {
     try {
       return JSON.parse(data);
     } catch (error) {
+      console.error("Error parsing draft data:", error);
       return {};
     }
   }
@@ -23,11 +24,17 @@ export const saveWorkoutDraft = async (
   workoutType: string | null,
   draftData: any
 ): Promise<boolean> => {
-  if (!workoutId) return false;
+  if (!workoutId) {
+    console.error("Cannot save draft: Missing workoutId");
+    return false;
+  }
 
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return false;
+    if (authError || !user) {
+      console.error("Auth error or no user found:", authError);
+      return false;
+    }
     
     const workoutTypeValue = workoutType || 'workout';
     const draftDataToStore = typeof draftData === 'string' 
@@ -35,39 +42,50 @@ export const saveWorkoutDraft = async (
       : draftData;
 
     console.log(`Saving workout draft for workout ${workoutId}`, {
+      userId: user.id,
+      workoutType: workoutTypeValue,
       dataSize: JSON.stringify(draftDataToStore).length,
-      exerciseStatesCount: Object.keys(draftDataToStore.exerciseStates || {}).length,
-      pendingSetsCount: (draftDataToStore.pendingSets || []).length,
-      exercises: Object.keys(draftDataToStore.exerciseStates || {}).map(key => {
-        const exercise = draftDataToStore.exerciseStates[key];
-        const swapInfo = exercise.swapData 
-          ? `[Swapped: ${exercise.swapData.originalExerciseId} → ${exercise.swapData.replacementExerciseId}]` 
-          : '';
-        return {
-          workoutExerciseId: key,
-          exerciseId: exercise.exercise_id,
-          swapInfo
-        };
-      })
+      timestamp: new Date().toISOString()
     });
 
-    const { error } = await supabase
+    // First check if a draft already exists for this workout
+    const { data: existingDraft } = await supabase
       .from("workout_drafts")
-      .upsert({
-        user_id: user.id,
-        workout_id: workoutId,
-        workout_type: workoutTypeValue,
-        draft_data: draftDataToStore,
-        updated_at: new Date().toISOString()
-      }, { 
-        onConflict: "user_id,workout_id" 
-      });
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("workout_id", workoutId)
+      .maybeSingle();
 
-    if (!error) {
+    let result;
+    if (existingDraft) {
+      // Update existing draft
+      result = await supabase
+        .from("workout_drafts")
+        .update({
+          draft_data: draftDataToStore,
+          workout_type: workoutTypeValue,
+          updated_at: new Date().toISOString()
+        })
+        .eq("user_id", user.id)
+        .eq("workout_id", workoutId);
+    } else {
+      // Insert new draft
+      result = await supabase
+        .from("workout_drafts")
+        .insert({
+          user_id: user.id,
+          workout_id: workoutId,
+          workout_type: workoutTypeValue,
+          draft_data: draftDataToStore,
+          updated_at: new Date().toISOString()
+        });
+    }
+
+    if (!result.error) {
       console.log(`Draft successfully saved to Supabase for workout ${workoutId}`);
       return true;
     } else {
-      console.error("Error saving draft to Supabase:", error);
+      console.error("Error saving draft to Supabase:", result.error);
       return false;
     }
   } catch (error) {
@@ -248,17 +266,25 @@ export const getWorkoutDraft = async (
   maxRetries = 5,
   retryInterval = 300
 ): Promise<any | null> => {
-  if (!workoutId) return null;
+  if (!workoutId) {
+    console.error("Cannot get workout draft: Missing workoutId");
+    return null;
+  }
   
   try {
+    console.log(`Attempting to retrieve workout draft for ${workoutId}`);
+    
     for (let i = 0; i <= maxRetries; i++) {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
+        console.error("Auth error or no user found:", authError);
         if (i === maxRetries) return null;
+        console.log(`Retrying after auth error (attempt ${i + 1})`);
         await new Promise(res => setTimeout(res, retryInterval));
         continue;
       }
 
+      console.log(`Fetching draft for workout ${workoutId}, user ${user.id}`);
       const { data, error } = await supabase
         .from("workout_drafts")
         .select("*")
@@ -267,6 +293,7 @@ export const getWorkoutDraft = async (
         .maybeSingle();
 
       if (error) {
+        console.error(`Error fetching draft (attempt ${i + 1}):`, error);
         if (i === maxRetries) return null;
         await new Promise(res => setTimeout(res, retryInterval));
       } else {
@@ -275,12 +302,18 @@ export const getWorkoutDraft = async (
             exerciseStatesCount: Object.keys(safeParseDraftData(data.draft_data).exerciseStates || {}).length,
             updatedAt: data.updated_at
           });
+          
+          // Ensure draft_data is properly parsed
+          const parsedData = safeParseDraftData(data.draft_data);
+          
           return {
             ...data,
-            draft_data: safeParseDraftData(data.draft_data)
+            draft_data: parsedData
           };
+        } else {
+          console.log(`No draft found for workout ${workoutId}`);
+          return null;
         }
-        return null;
       }
     }
   } catch (error) {
@@ -297,11 +330,17 @@ export const getWorkoutDraft = async (
 export const deleteWorkoutDraft = async (
   workoutId: string | null
 ): Promise<boolean> => {
-  if (!workoutId) return false;
+  if (!workoutId) {
+    console.error("Cannot delete draft: Missing workoutId");
+    return false;
+  }
 
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return false;
+    if (authError || !user) {
+      console.error("Auth error or no user found:", authError);
+      return false;
+    }
 
     console.log(`Deleting workout draft for workout ${workoutId}`);
     

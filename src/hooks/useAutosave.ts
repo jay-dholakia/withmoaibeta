@@ -44,6 +44,14 @@ export function useAutosave<T>({
   
   useEffect(() => {
     mountedRef.current = true;
+    
+    // Initialize with current data
+    previousDataRef.current = serializeData(data);
+    console.log('Autosave initialized with data', {
+      dataSize: previousDataRef.current.length,
+      disabled
+    });
+    
     return () => {
       mountedRef.current = false;
       if (timeoutRef.current) {
@@ -95,7 +103,12 @@ export function useAutosave<T>({
         setSaveStatus('saving');
       }
       
-      console.log('Autosaving data:', data);
+      console.log('Autosaving data...', {
+        dataSize: currentSerializedData.length,
+        changesCount: changeCountRef.current,
+        timestamp: new Date().toISOString()
+      });
+      
       const success = await onSave(data);
       
       isSavingRef.current = false;
@@ -154,8 +167,6 @@ export function useAutosave<T>({
           }
         }, debounce);
       }
-    } else {
-      console.log('Data unchanged, skipping autosave');
     }
     
     return () => {

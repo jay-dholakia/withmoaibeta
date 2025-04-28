@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -99,12 +98,14 @@ const App: React.FC = () => {
       <Route path="/coach-dashboard/clients" element={<CoachRoute><CoachClientsPage /></CoachRoute>} />
       <Route path="/coach-dashboard/client-stats" element={<CoachRoute><CoachClientStatsPage /></CoachRoute>} />
 
-      {/* Add a redirect from /client to the client dashboard */}
       <Route path="/client" element={<Navigate to="/client-dashboard/moai" replace />} />
       
       <Route path="/dashboard" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
       <Route path="/client-dashboard/*" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
       <Route path="/client-dashboard/workouts/live-run" element={<ClientRoute><LiveRunPage /></ClientRoute>} />
+      
+      <Route path="/client-profile-editor" element={<Navigate to="/client-dashboard/settings/edit-profile" replace />} />
+      
       <Route path="/profile" element={<ClientRoute><ClientProfilePage /></ClientRoute>} />
       <Route path="/workouts" element={<ClientRoute><ClientWorkoutHistoryPage /></ClientRoute>} />
       <Route path="/workouts/:workoutId" element={<ClientRoute><ClientWorkoutDetailsPage /></ClientRoute>} />

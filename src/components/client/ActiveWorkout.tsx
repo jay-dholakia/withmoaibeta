@@ -623,7 +623,7 @@ const ActiveWorkout = () => {
             <div className="flex-1">
               <CardTitle className="text-lg font-semibold">{exerciseName}</CardTitle>
               {description && (
-                <CardDescription className="mt-1 text-xs line-clamp-2">
+                <CardDescription className="mt-1 text-xs">
                   {description}
                 </CardDescription>
               )}

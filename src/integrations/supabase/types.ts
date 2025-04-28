@@ -1519,6 +1519,7 @@ export type Database = {
           description: string | null
           id: string
           priority: number | null
+          template_id: string | null
           title: string
           week_id: string
           workout_type: Database["public"]["Enums"]["workout_type"] | null
@@ -1529,6 +1530,7 @@ export type Database = {
           description?: string | null
           id?: string
           priority?: number | null
+          template_id?: string | null
           title: string
           week_id: string
           workout_type?: Database["public"]["Enums"]["workout_type"] | null
@@ -1539,11 +1541,19 @@ export type Database = {
           description?: string | null
           id?: string
           priority?: number | null
+          template_id?: string | null
           title?: string
           week_id?: string
           workout_type?: Database["public"]["Enums"]["workout_type"] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "workouts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_workouts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workouts_week_id_fkey"
             columns: ["week_id"]

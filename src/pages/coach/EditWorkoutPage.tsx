@@ -30,6 +30,8 @@ import {
 } from '@/components/ui/dialog';
 import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
 import { Exercise } from '@/types/workout';
+import { supabase } from "@/integrations/supabase/client";
+import { syncTemplateExercisesToProgramWorkouts } from "@/services/program-service";
 
 const EditWorkoutPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -231,65 +233,15 @@ const EditWorkoutPage = () => {
   };
 
   const handleRefreshFromTemplate = async () => {
-    if (!workout?.template_id || !workoutId) return;
-    
-    setIsRefreshing(true);
-    setIsTemplateRefreshDialogOpen(false);
+    if (!workout?.template_id) return;
     
     try {
-      const { data: templateExercises, error: templateError } = await supabase
-        .from('standalone_workout_exercises')
-        .select(`
-          *,
-          exercise:exercise_id(*)
-        `)
-        .eq('workout_id', workout.template_id)
-        .order('order_index', { ascending: true });
-      
-      if (templateError) {
-        throw templateError;
-      }
-      
-      const { error: deleteError } = await supabase
-        .from('workout_exercises')
-        .delete()
-        .eq('workout_id', workoutId);
-      
-      if (deleteError) {
-        throw deleteError;
-      }
-      
-      if (templateExercises && templateExercises.length > 0) {
-        const workoutExercises = templateExercises.map((ex, index) => ({
-          workout_id: workoutId,
-          exercise_id: ex.exercise_id,
-          sets: ex.sets,
-          reps: ex.reps,
-          rest_seconds: ex.rest_seconds,
-          notes: ex.notes,
-          order_index: index,
-          superset_group_id: ex.superset_group_id,
-          superset_order: ex.superset_order
-        }));
-        
-        const { error: insertError } = await supabase
-          .from('workout_exercises')
-          .insert(workoutExercises);
-        
-        if (insertError) {
-          throw insertError;
-        }
-      }
-      
-      const updatedExercises = await fetchWorkoutExercises(workoutId);
-      setExercises(updatedExercises || []);
-      
+      await syncTemplateExercisesToProgramWorkouts(workout.template_id);
       toast.success('Workout exercises refreshed from template');
+      window.location.reload();
     } catch (error) {
       console.error('Error refreshing from template:', error);
-      toast.error('Failed to refresh exercises from template');
-    } finally {
-      setIsRefreshing(false);
+      toast.error('Failed to refresh from template');
     }
   };
 

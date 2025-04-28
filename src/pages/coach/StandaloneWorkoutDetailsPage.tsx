@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -13,6 +14,7 @@ import {
   moveStandaloneWorkoutExerciseUp,
   moveStandaloneWorkoutExerciseDown
 } from '@/services/workout-service';
+import { syncTemplateExercisesToProgramWorkouts } from '@/services/program-service';
 import StandaloneWorkoutForm from '@/components/coach/StandaloneWorkoutForm';
 import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
 import { Exercise } from '@/types/workout';
@@ -34,6 +36,7 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [exercises, setExercises] = useState<any[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     const loadWorkout = async () => {
@@ -82,6 +85,30 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
     toast.success("Workout template updated successfully");
     // Reload the workout to get the latest data
     loadWorkout();
+    
+    // Sync template exercises to program workouts
+    syncExercisesToPrograms();
+  };
+  
+  const syncExercisesToPrograms = async () => {
+    if (!workoutId) return;
+    
+    setIsSyncing(true);
+    
+    try {
+      const success = await syncTemplateExercisesToProgramWorkouts(workoutId);
+      
+      if (success) {
+        toast.success("Template exercises synchronized to all program instances");
+      } else {
+        toast.error("Failed to sync template exercises to program instances");
+      }
+    } catch (error) {
+      console.error("Error syncing template:", error);
+      toast.error("Failed to sync template exercises");
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -114,6 +141,9 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
       
       setIsAddingExercise(false);
       toast.success('Exercise added successfully');
+      
+      // Sync template exercises to program workouts
+      syncExercisesToPrograms();
     } catch (error) {
       console.error('Error adding exercise:', error);
       toast.error('Failed to add exercise');
@@ -135,6 +165,9 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
       setExercises(updatedExercises);
       
       toast.success('Exercise removed from workout');
+      
+      // Sync template exercises to program workouts
+      syncExercisesToPrograms();
     } catch (error) {
       console.error('Error deleting exercise:', error);
       toast.error('Failed to remove exercise');
@@ -152,6 +185,8 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
       const updatedExercises = await moveStandaloneWorkoutExerciseUp(exerciseId, workoutId);
       setExercises(updatedExercises);
       
+      // Sync template exercises to program workouts
+      syncExercisesToPrograms();
     } catch (error) {
       console.error('Error moving exercise up:', error);
       toast.error('Failed to reorder exercise');
@@ -169,6 +204,8 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
       const updatedExercises = await moveStandaloneWorkoutExerciseDown(exerciseId, workoutId);
       setExercises(updatedExercises);
       
+      // Sync template exercises to program workouts
+      syncExercisesToPrograms();
     } catch (error) {
       console.error('Error moving exercise down:', error);
       toast.error('Failed to reorder exercise');
@@ -234,9 +271,17 @@ const StandaloneWorkoutDetailsPage: React.FC = () => {
                     <p className="text-muted-foreground mt-1">Category: {workout.category}</p>
                   )}
                 </div>
-                <Button onClick={handleEdit}>
-                  Edit Template
-                </Button>
+                <div className="flex gap-2">
+                  {isSyncing && (
+                    <Button disabled variant="outline" className="gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Syncing...
+                    </Button>
+                  )}
+                  <Button onClick={handleEdit}>
+                    Edit Template
+                  </Button>
+                </div>
               </div>
               
               {workout.description && (

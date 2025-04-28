@@ -46,6 +46,7 @@ export interface Workout {
   workout_exercises?: WorkoutExercise[];
   workout_type: string;
   priority: number;
+  template_id?: string | null;
 }
 
 export interface PersonalRecord {
@@ -89,6 +90,7 @@ export interface WorkoutBasic {
   workout_exercises?: WorkoutExercise[];
   workout_type: string;
   custom_workout?: boolean;
+  template_id?: string | null;
 }
 
 export interface WorkoutExercise {

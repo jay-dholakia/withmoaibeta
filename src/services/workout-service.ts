@@ -440,6 +440,7 @@ export const createWorkout = async (workoutData: {
   day_of_week: number;
   workout_type?: "cardio" | "strength" | "mobility" | "flexibility";
   priority?: number;
+  template_id?: string | null;
 }) => {
   try {
     const { data, error } = await supabase
@@ -460,6 +461,87 @@ export const createWorkout = async (workoutData: {
 };
 
 /**
+ * Creates a workout from a template
+ */
+export const createWorkoutFromTemplate = async (workoutData: {
+  week_id: string;
+  day_of_week: number;
+  priority?: number;
+  template_id: string;
+}) => {
+  try {
+    // First fetch the template details
+    const { data: template, error: templateError } = await supabase
+      .from('standalone_workouts')
+      .select('*')
+      .eq('id', workoutData.template_id)
+      .single();
+    
+    if (templateError) {
+      throw templateError;
+    }
+    
+    // Create the workout with template reference
+    const { data: workout, error: workoutError } = await supabase
+      .from('workouts')
+      .insert([{
+        week_id: workoutData.week_id,
+        title: template.title,
+        description: template.description,
+        day_of_week: workoutData.day_of_week,
+        workout_type: template.workout_type || 'strength',
+        priority: workoutData.priority || 0,
+        template_id: workoutData.template_id
+      }])
+      .select()
+      .single();
+    
+    if (workoutError) {
+      throw workoutError;
+    }
+    
+    // Get template exercises
+    const { data: templateExercises, error: exercisesError } = await supabase
+      .from('standalone_workout_exercises')
+      .select('*')
+      .eq('workout_id', template.id)
+      .order('order_index', { ascending: true });
+    
+    if (exercisesError) {
+      throw exercisesError;
+    }
+    
+    if (templateExercises && templateExercises.length > 0) {
+      // Create workout exercises from template
+      const workoutExercises = templateExercises.map((ex, index) => ({
+        workout_id: workout.id,
+        exercise_id: ex.exercise_id,
+        sets: ex.sets,
+        reps: ex.reps,
+        rest_seconds: ex.rest_seconds,
+        notes: ex.notes,
+        order_index: index,
+        superset_group_id: ex.superset_group_id,
+        superset_order: ex.superset_order
+      }));
+      
+      const { error: insertError } = await supabase
+        .from('workout_exercises')
+        .insert(workoutExercises);
+      
+      if (insertError) {
+        throw insertError;
+      }
+    }
+    
+    return workout;
+  } catch (error) {
+    console.error('Error creating workout from template:', error);
+    throw error;
+  }
+};
+
+/**
  * Updates a workout
  */
 export const updateWorkout = async (workoutId: string, workoutData: {
@@ -468,6 +550,7 @@ export const updateWorkout = async (workoutId: string, workoutData: {
   day_of_week?: number;
   workout_type?: "cardio" | "strength" | "mobility" | "flexibility";
   priority?: number;
+  template_id?: string | null;
 }) => {
   try {
     const { data, error } = await supabase

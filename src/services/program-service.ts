@@ -37,16 +37,13 @@ export const fetchClientPrograms = async (clientId: string): Promise<any[]> => {
  * Determines if a program assignment is currently active
  */
 const isActiveAssignment = (assignment: ProgramAssignment): boolean => {
-  // Get today's date in YYYY-MM-DD format
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
   
-  // Check if start date is in the past or today
   const startDate = new Date(assignment.start_date);
   const startDateStr = startDate.toISOString().split('T')[0];
   const isStartValid = startDateStr <= todayStr;
   
-  // Check if end date is in the future or not set
   let isEndValid = true;
   if (assignment.end_date) {
     const endDate = new Date(assignment.end_date);
@@ -62,10 +59,8 @@ const isActiveAssignment = (assignment: ProgramAssignment): boolean => {
  */
 const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgram | null> => {
   try {
-    // Fetch basic program data
     console.log("Fetching program details for ID:", programId);
     
-    // Check if we can directly access the program (test for RLS issues)
     const { data: accessTest, error: accessError } = await supabase
       .from('workout_programs')
       .select('id, title')
@@ -79,7 +74,6 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
     if (!accessTest || accessTest.length === 0) {
       console.error('No program access via RLS policies for ID:', programId);
       
-      // Try using program_assignments as a bridge
       const { data: checkAssignment } = await supabase
         .from('program_assignments')
         .select('program_id')
@@ -90,11 +84,9 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
       if (checkAssignment) {
         console.log('Program assignment exists but direct program access failed - RLS policy issue');
         
-        // Log additional RLS debugging info
         console.log('Assignment details:', checkAssignment);
         console.log('Current user ID:', (await supabase.auth.getUser()).data.user?.id);
         
-        // Use our new RPC function to check program assignment
         const { data: isProgramAssigned, error: rpcError } = await supabase.rpc(
           'is_program_assigned_to_user',
           {
@@ -133,7 +125,6 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
 
     console.log("Successfully fetched program data:", programData.title);
     
-    // Fetch program weeks
     const { data: weeksData, error: weeksError } = await supabase
       .from('workout_weeks')
       .select('*')
@@ -147,7 +138,6 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
 
     console.log(`Fetched ${weeksData?.length || 0} weeks for program ${programData.title}`);
     
-    // For each week, fetch the workouts with exercises
     const weeksWithWorkouts = [];
     
     for (const week of weeksData || []) {
@@ -176,10 +166,9 @@ const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgra
       });
     }
     
-    // Return program with week data in the new format and ensure program_type is defined
     return {
       ...programData,
-      program_type: programData.program_type || 'strength', // Ensure program_type is set with fallback
+      program_type: programData.program_type || 'strength',
       weekData: weeksWithWorkouts
     };
   } catch (error) {
@@ -231,12 +220,10 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
   }
   
   try {
-    // Get user email for better logging
     const { data: authData } = await supabase.auth.getUser();
     const userEmail = authData?.user?.email;
     console.log(`Looking up program for user ${userId}${userEmail ? ` (${userEmail})` : ''}`);
     
-    // Get all program assignments for this user
     const assignments = await fetchUserProgramAssignments(userId);
     
     if (!assignments || assignments.length === 0) {
@@ -246,11 +233,9 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
     
     console.log(`Found ${assignments.length} program assignments for user ${userId}`);
     
-    // Find active assignments
     const activeAssignments = assignments.filter(isActiveAssignment);
     console.log(`Found ${activeAssignments.length} active assignments`);
     
-    // Use the most recent active assignment, or fall back to the most recent assignment
     const currentAssignment = activeAssignments.length > 0 
       ? activeAssignments[0] 
       : assignments[0];
@@ -268,7 +253,6 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       return null;
     }
     
-    // Fetch the complete program data
     const programData = await fetchFullProgramDetails(programId);
     
     if (!programData) {
@@ -276,7 +260,6 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
       return null;
     }
     
-    // Construct full program data
     const fullProgramData = {
       ...currentAssignment,
       program: programData
@@ -299,19 +282,17 @@ export const fetchCurrentProgram = async (userId: string): Promise<any | null> =
  */
 export const deleteProgramAssignment = async (assignmentId: string): Promise<boolean> => {
   try {
-    // First, get the assignment details to check if we need to update the client's program
     const { data: assignment, error: fetchError } = await supabase
       .from('program_assignments')
       .select('*')
       .eq('id', assignmentId)
-      .maybeSingle(); // Changed from .single() to .maybeSingle()
+      .maybeSingle();
     
     if (fetchError) {
       console.error('Error fetching assignment details:', fetchError);
       throw fetchError;
     }
     
-    // Delete the assignment
     const { error: deleteError } = await supabase
       .from('program_assignments')
       .delete()
@@ -322,26 +303,22 @@ export const deleteProgramAssignment = async (assignmentId: string): Promise<boo
       throw deleteError;
     }
     
-    // Check if this is the client's current active program and remove it if so
     if (assignment) {
       const { data: clientInfo, error: clientInfoError } = await supabase
         .from('client_workout_info')
         .select('current_program_id')
         .eq('user_id', assignment.user_id)
-        .maybeSingle(); // Changed from .single() to .maybeSingle()
+        .maybeSingle();
       
       if (!clientInfoError && clientInfo && clientInfo.current_program_id === assignment.program_id) {
-        // This was the client's current program, so we need to update
         console.log('Removing current program reference for client:', assignment.user_id);
         try {
-          // Use the RPC function to update the client's program
           await supabase.rpc('update_client_program', {
             user_id_param: assignment.user_id,
             program_id_param: null
           });
         } catch (rpcError) {
           console.error('Error updating client program reference:', rpcError);
-          // This is not critical enough to fail the whole operation
         }
       }
     }
@@ -349,6 +326,96 @@ export const deleteProgramAssignment = async (assignmentId: string): Promise<boo
     return true;
   } catch (error) {
     console.error('Failed to delete program assignment:', error);
+    return false;
+  }
+};
+
+/**
+ * Syncs standalone workout template exercises to all program workouts that use this template
+ * This ensures that when a template is updated, all program workouts using it are also updated
+ */
+export const syncTemplateExercisesToProgramWorkouts = async (templateId: string): Promise<boolean> => {
+  try {
+    console.log(`Syncing template ${templateId} exercises to program workouts...`);
+    
+    const { data: templateExercises, error: templateError } = await supabase
+      .from('standalone_workout_exercises')
+      .select(`
+        *,
+        exercise:exercise_id (*)
+      `)
+      .eq('workout_id', templateId)
+      .order('order_index', { ascending: true });
+    
+    if (templateError) {
+      console.error("Error fetching template exercises:", templateError);
+      return false;
+    }
+    
+    if (!templateExercises || templateExercises.length === 0) {
+      console.log("No exercises found in the template");
+      return true;
+    }
+    
+    console.log(`Found ${templateExercises.length} exercises in template`);
+    
+    const { data: programWorkouts, error: workoutsError } = await supabase
+      .from('workouts')
+      .select('id, template_id')
+      .eq('template_id', templateId);
+    
+    if (workoutsError) {
+      console.error("Error finding program workouts using this template:", workoutsError);
+      return false;
+    }
+    
+    if (!programWorkouts || programWorkouts.length === 0) {
+      console.log("No program workouts found using this template");
+      return true;
+    }
+    
+    console.log(`Found ${programWorkouts.length} program workouts using this template`);
+    
+    for (const workout of programWorkouts) {
+      console.log(`Syncing exercises to program workout ${workout.id}...`);
+      
+      const { error: deleteError } = await supabase
+        .from('workout_exercises')
+        .delete()
+        .eq('workout_id', workout.id);
+      
+      if (deleteError) {
+        console.error(`Error deleting exercises for workout ${workout.id}:`, deleteError);
+        continue;
+      }
+      
+      const workoutExercises = templateExercises.map((template, index) => ({
+        workout_id: workout.id,
+        exercise_id: template.exercise_id,
+        sets: template.sets,
+        reps: template.reps,
+        rest_seconds: template.rest_seconds,
+        notes: template.notes,
+        order_index: index,
+        superset_group_id: template.superset_group_id,
+        superset_order: template.superset_order
+      }));
+      
+      const { error: insertError } = await supabase
+        .from('workout_exercises')
+        .insert(workoutExercises);
+      
+      if (insertError) {
+        console.error(`Error inserting exercises for workout ${workout.id}:`, insertError);
+      } else {
+        console.log(`Successfully synced ${workoutExercises.length} exercises to workout ${workout.id}`);
+      }
+    }
+    
+    console.log("Template sync completed successfully");
+    return true;
+  } catch (error) {
+    console.error("Error syncing template exercises:", error);
     return false;
   }
 };

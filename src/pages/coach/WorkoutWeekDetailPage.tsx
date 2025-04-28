@@ -10,16 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FormEvent } from 'react';
 import { toast } from 'sonner';
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   fetchWorkoutWeek, 
   updateWorkoutWeek,
   fetchWorkoutsForWeek,
   createWorkout,
-  updateWorkout
+  updateWorkout,
+  fetchStandaloneWorkouts
 } from '@/services/workout-service';
 import { deleteWorkout } from '@/services/workout-delete-service';
 import { Workout } from '@/types/workout';
-import { PlusCircle, Edit, Trash2, ChevronRight } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, ChevronRight, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
@@ -41,7 +43,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { EditWeekMetricsForm } from '@/components/coach/EditWeekMetricsForm';
+import { CopyWorkoutWeekDialog } from '@/components/coach/CopyWorkoutWeekDialog';
 
 interface RouteParams {
   [key: string]: string;
@@ -65,8 +76,12 @@ const WorkoutWeekDetailPage = () => {
   const [copyWorkoutId, setCopyWorkoutId] = useState<string | null>(null);
   const [copyTargetWeekId, setCopyTargetWeekId] = useState<string | null>(null);
   const [isCopying, setIsCopying] = useState(false);
+  const [isAddingFromTemplate, setIsAddingFromTemplate] = useState(false);
+  const [standaloneWorkouts, setStandaloneWorkouts] = useState<any[]>([]);
+  const [isCopyWeekModalOpen, setIsCopyWeekModalOpen] = useState(false);
 
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     const loadWeekDetails = async () => {
@@ -97,7 +112,6 @@ const WorkoutWeekDetailPage = () => {
         const workoutsData = await fetchWorkoutsForWeek(weekId);
         setWorkouts(workoutsData);
 
-        // Fetch all weeks for this program (for copy-to functionality)
         if (week && week.program && week.program.id) {
           const { data: allWeeksData, error: allWeeksError } = await supabase
             .from("workout_weeks")
@@ -119,6 +133,22 @@ const WorkoutWeekDetailPage = () => {
 
     loadWeekDetails();
   }, [weekId]);
+
+  useEffect(() => {
+    const loadTemplates = async () => {
+      if (!user?.id) return;
+      try {
+        const templates = await fetchStandaloneWorkouts(user.id);
+        setStandaloneWorkouts(templates);
+      } catch (error) {
+        console.error('Error loading workout templates:', error);
+      }
+    };
+
+    if (isAddingFromTemplate) {
+      loadTemplates();
+    }
+  }, [isAddingFromTemplate, user?.id]);
 
   const handleWeekUpdate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -257,7 +287,6 @@ const WorkoutWeekDetailPage = () => {
     if (!copyWorkoutId || !copyTargetWeekId) return;
     setIsCopying(true);
     try {
-      // 1. Fetch the workout details
       const { data: origWorkout, error: origError } = await supabase
         .from("workouts")
         .select("*")
@@ -265,14 +294,12 @@ const WorkoutWeekDetailPage = () => {
         .maybeSingle();
       if (origError || !origWorkout) throw new Error("Original workout not found");
 
-      // 2. Fetch exercises for the workout
       const { data: origExercises, error: exError } = await supabase
         .from("workout_exercises")
         .select("*")
         .eq("workout_id", copyWorkoutId);
       if (exError) throw new Error("Could not fetch workout exercises");
 
-      // 3. Insert the new workout
       const { data: newWorkout, error: newError } = await supabase
         .from("workouts")
         .insert([
@@ -289,7 +316,6 @@ const WorkoutWeekDetailPage = () => {
         .maybeSingle();
       if (newError || !newWorkout) throw new Error("Could not create workout copy");
 
-      // 4. Copy exercises to the new workout
       if (origExercises && origExercises.length > 0) {
         const exerciseCopies = origExercises.map((ex: any) => ({
           sets: ex.sets,
@@ -316,6 +342,76 @@ const WorkoutWeekDetailPage = () => {
       toast.error(err?.message || "Failed to copy workout");
     } finally {
       setIsCopying(false);
+    }
+  };
+
+  const handleCopyFromTemplate = async (templateId: string) => {
+    if (!weekId) return;
+    
+    try {
+      const { data: origWorkout, error: origError } = await supabase
+        .from("standalone_workouts")
+        .select("*")
+        .eq("id", templateId)
+        .maybeSingle();
+        
+      if (origError || !origWorkout) throw new Error("Template workout not found");
+
+      const { data: origExercises, error: exError } = await supabase
+        .from("standalone_workout_exercises")
+        .select("*")
+        .eq("workout_id", templateId);
+        
+      if (exError) throw new Error("Could not fetch template exercises");
+
+      let workoutType: "strength" | "cardio" | "mobility" | "flexibility" = "strength";
+      if (origWorkout.workout_type === "cardio") workoutType = "cardio";
+      if (origWorkout.workout_type === "mobility") workoutType = "mobility";
+      if (origWorkout.workout_type === "flexibility") workoutType = "flexibility";
+      
+      const { data: newWorkout, error: newError } = await supabase
+        .from("workouts")
+        .insert({
+          week_id: weekId,
+          title: origWorkout.title,
+          description: origWorkout.description,
+          day_of_week: 1,
+          workout_type: workoutType,
+          priority: 0
+        })
+        .select()
+        .single();
+        
+      if (newError || !newWorkout) throw new Error("Could not create workout");
+
+      if (origExercises && origExercises.length > 0) {
+        const exerciseCopies = origExercises.map((ex: any) => ({
+          sets: ex.sets,
+          reps: ex.reps,
+          order_index: ex.order_index,
+          rest_seconds: ex.rest_seconds,
+          notes: ex.notes,
+          exercise_id: ex.exercise_id,
+          workout_id: newWorkout.id,
+          superset_order: ex.superset_order || null,
+          superset_group_id: ex.superset_group_id || null,
+        }));
+
+        const { error: exerciseInsertError } = await supabase
+          .from("workout_exercises")
+          .insert(exerciseCopies);
+          
+        if (exerciseInsertError) throw new Error("Failed to copy exercises");
+      }
+
+      const updatedWorkouts = await fetchWorkoutsForWeek(weekId);
+      setWorkouts(updatedWorkouts);
+      
+      setIsAddingFromTemplate(false);
+      toast.success("Workout added from template successfully");
+    } catch (error: any) {
+      console.error('Error copying workout:', error);
+      toast.error(error.message || "Failed to copy workout");
     }
   };
 
@@ -356,8 +452,17 @@ const WorkoutWeekDetailPage = () => {
         </Button>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Week Details</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCopyWeekModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy Week
+            </Button>
           </CardHeader>
           <CardContent>
             {isEditingMetrics ? (
@@ -439,10 +544,15 @@ const WorkoutWeekDetailPage = () => {
         <Card className="mt-4">
           <CardHeader className="flex justify-between items-center">
             <CardTitle>Workouts</CardTitle>
-            <Button size="sm" onClick={() => setIsWorkoutModalOpen(true)}>
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Add Workout
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => setIsAddingFromTemplate(true)}>
+                Add from Template
+              </Button>
+              <Button size="sm" onClick={() => setIsWorkoutModalOpen(true)}>
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Add Workout
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
@@ -494,6 +604,50 @@ const WorkoutWeekDetailPage = () => {
             </Table>
           </CardContent>
         </Card>
+
+        {isAddingFromTemplate && (
+          <Dialog open={isAddingFromTemplate} onOpenChange={setIsAddingFromTemplate}>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Add Workout from Template</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
+                {standaloneWorkouts.map((template) => (
+                  <Card key={template.id} className="relative">
+                    <CardHeader>
+                      <CardTitle className="text-lg">{template.title}</CardTitle>
+                      {template.category && (
+                        <p className="text-sm text-muted-foreground">
+                          Category: {template.category}
+                        </p>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      {template.description && (
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                          {template.description}
+                        </p>
+                      )}
+                      <div className="flex justify-end">
+                        <Button 
+                          onClick={() => handleCopyFromTemplate(template.id)}
+                          size="sm"
+                        >
+                          Add to Week
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {standaloneWorkouts.length === 0 && (
+                  <div className="col-span-2 text-center py-8 text-muted-foreground">
+                    No workout templates found. Create some in the Templates section.
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {copyWorkoutId && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
@@ -581,6 +735,26 @@ const WorkoutWeekDetailPage = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {weekData && (
+          <CopyWorkoutWeekDialog
+            isOpen={isCopyWeekModalOpen}
+            onClose={() => setIsCopyWeekModalOpen(false)}
+            sourceWeekId={weekId!}
+            sourceWeekNumber={weekData.week_number}
+            allWeeks={allWeeks}
+            onCopyComplete={() => {
+              // Refresh workouts list after copy
+              if (weekId) {
+                const loadWorkouts = async () => {
+                  const workoutsData = await fetchWorkoutsForWeek(weekId);
+                  setWorkouts(workoutsData);
+                };
+                loadWorkouts();
+              }
+            }}
+          />
+        )}
       </div>
     </CoachLayout>
   );

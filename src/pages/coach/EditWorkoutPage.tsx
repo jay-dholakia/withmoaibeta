@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, Plus, Loader2 } from 'lucide-react';
+import { ChevronLeft, Plus, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { 
   fetchWorkout, 
   updateWorkout, 
@@ -15,7 +15,8 @@ import {
   createWorkoutExercise,
   deleteWorkoutExercise,
   moveWorkoutExerciseUp,
-  moveWorkoutExerciseDown
+  moveWorkoutExerciseDown,
+  fetchStandaloneWorkout
 } from '@/services/workout-service';
 import { toast } from 'sonner';
 import { Workout } from '@/types/workout';
@@ -24,9 +25,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
 import { Exercise } from '@/types/workout';
+import { supabase } from "@/integrations/supabase/client";
+import { syncTemplateExercisesToProgramWorkouts } from "@/services/program-service";
 
 const EditWorkoutPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -40,6 +45,9 @@ const EditWorkoutPage = () => {
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [templateDetails, setTemplateDetails] = useState<any>(null);
+  const [isTemplateRefreshDialogOpen, setIsTemplateRefreshDialogOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -65,6 +73,16 @@ const EditWorkoutPage = () => {
           setDayOfWeek(workoutData.day_of_week || 1);
           setWorkoutType(workoutData.workout_type as any || 'strength');
           setPriority(workoutData.priority || 0);
+          
+          if (workoutData.template_id) {
+            try {
+              const templateData = await fetchStandaloneWorkout(workoutData.template_id);
+              setTemplateDetails(templateData);
+              console.log("Template data:", templateData);
+            } catch (err) {
+              console.error("Error loading template details:", err);
+            }
+          }
           
           const exercisesData = await fetchWorkoutExercises(workoutId);
           console.log("Exercises data received:", exercisesData);
@@ -214,6 +232,19 @@ const EditWorkoutPage = () => {
     }
   };
 
+  const handleRefreshFromTemplate = async () => {
+    if (!workout?.template_id) return;
+    
+    try {
+      await syncTemplateExercisesToProgramWorkouts(workout.template_id);
+      toast.success('Workout exercises refreshed from template');
+      window.location.reload();
+    } catch (error) {
+      console.error('Error refreshing from template:', error);
+      toast.error('Failed to refresh from template');
+    }
+  };
+
   if (isLoading) {
     return (
       <CoachLayout>
@@ -240,6 +271,34 @@ const EditWorkoutPage = () => {
         </Button>
 
         <h1 className="text-2xl font-bold mb-6">Edit Workout</h1>
+        
+        {workout?.template_id && templateDetails && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-md p-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-1">
+                <AlertTriangle className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-blue-800">Template-Based Workout</h3>
+                <p className="text-sm mt-1 text-blue-700">
+                  This workout is based on template "{templateDetails.title}". 
+                  Changes made to the template will be automatically available for new program assignments.
+                </p>
+                <div className="mt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-blue-700 border-blue-300 hover:bg-blue-100"
+                    onClick={() => setIsTemplateRefreshDialogOpen(true)}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Refresh From Template
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Card className="mb-8">
           <CardHeader>
@@ -413,6 +472,45 @@ const EditWorkoutPage = () => {
             isSubmitting={isSubmitting}
             buttonText="Add Exercise"
           />
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog 
+        open={isTemplateRefreshDialogOpen} 
+        onOpenChange={setIsTemplateRefreshDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Refresh From Template</DialogTitle>
+            <DialogDescription>
+              This will replace all exercises in this workout with the current exercises from the template.
+              Any custom modifications made to this specific workout will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setIsTemplateRefreshDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRefreshFromTemplate}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh Exercises
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </CoachLayout>

@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { fetchAllClientProfiles } from '@/services/client-service';
+import { fetchAllClientProfiles, createClientProfile } from '@/services/client-service';
 
 interface Client {
   id: string;
@@ -199,6 +199,27 @@ const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
     try {
       console.log("Adding client to group:", selectedClient, "to group:", group.id);
       
+      // First, check if the client has a client_profile
+      const { data: clientProfile, error: profileError } = await supabase
+        .from('client_profiles')
+        .select('id')
+        .eq('id', selectedClient)
+        .maybeSingle();
+        
+      // If no client profile exists, create one
+      if (!clientProfile && !profileError) {
+        console.log("Client profile does not exist. Creating one...");
+        try {
+          await createClientProfile(selectedClient);
+          console.log("Created client profile for:", selectedClient);
+        } catch (createError) {
+          console.error("Error creating client profile:", createError);
+          toast.error('Failed to create client profile');
+          return;
+        }
+      }
+      
+      // Now add the client to the group
       const { error } = await supabase
         .from('group_members')
         .insert([

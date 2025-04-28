@@ -15,6 +15,7 @@ interface UseWorkoutDraftReturn {
   draftData: any | null;
   draftLoaded: boolean;
   refreshDraft: () => Promise<void>;
+  updateExerciseExpansionState: (exerciseId: string, expanded: boolean) => void;
 }
 
 export function useWorkoutDraft({ 
@@ -137,6 +138,27 @@ export function useWorkoutDraft({
       }
     }
   };
+
+  // New function to update exercise expansion state
+  const updateExerciseExpansionState = (exerciseId: string, expanded: boolean) => {
+    if (!draftData || !draftData.exerciseStates) return;
+    
+    setDraftData(prevData => {
+      const updatedExerciseStates = { ...prevData.exerciseStates };
+      
+      if (updatedExerciseStates[exerciseId]) {
+        updatedExerciseStates[exerciseId] = {
+          ...updatedExerciseStates[exerciseId],
+          expanded
+        };
+      }
+      
+      return {
+        ...prevData,
+        exerciseStates: updatedExerciseStates
+      };
+    });
+  };
   
   useEffect(() => {
     isMountedRef.current = true;
@@ -163,6 +185,7 @@ export function useWorkoutDraft({
     isLoading,
     draftData,
     draftLoaded,
-    refreshDraft
+    refreshDraft,
+    updateExerciseExpansionState
   };
 }

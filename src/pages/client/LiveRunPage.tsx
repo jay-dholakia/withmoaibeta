@@ -23,7 +23,7 @@ const LiveRunPage = () => {
             user_id: user.id,
             title: `${summary.distance.toFixed(2)} mile Run`,
             description: `Completed at ${summary.pace.toFixed(2)} min/mile pace`,
-            workout_type: 'running',  // Consistently using 'running' type
+            workout_type: 'live_run',  // Using 'live_run' type for visibility in the calendar
             distance: summary.distance.toFixed(2),
             duration: summary.duration.toString(),
             location: 'Outdoor Run'

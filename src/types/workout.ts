@@ -204,7 +204,8 @@ export const STANDARD_WORKOUT_TYPES = [
   'hiking',
   'skiing',
   'yoga',
-  'running'
+  'running',
+  'live_run'
 ] as const;
 
 export type StandardWorkoutType = typeof STANDARD_WORKOUT_TYPES[number];

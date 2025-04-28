@@ -26,6 +26,8 @@ export const useWorkoutInitialization = ({
   // Use refs for tracking initialization to avoid hook dependency issues
   const attemptedInitializationRef = useRef<boolean>(false);
   const initializedRef = useRef<boolean>(false);
+  const maxInitAttempts = useRef<number>(3);
+  const currentAttempt = useRef<number>(0);
 
   // This effect handles the initialization of workout data
   useEffect(() => {
@@ -39,11 +41,25 @@ export const useWorkoutInitialization = ({
       return;
     }
 
-    // If we're already initialized, don't reinitialize
-    if (initializedRef.current && Object.keys(exerciseStates).length > 0) {
-      console.log("Workout already initialized, skipping");
+    // If we're already initialized and have all expected exercise states, don't reinitialize
+    const allExercisesHaveStates = workoutExercises.length > 0 && 
+      workoutExercises.every(ex => exerciseStates && exerciseStates[ex.id]);
+    
+    if (initializedRef.current && Object.keys(exerciseStates).length > 0 && allExercisesHaveStates) {
+      console.log("Workout already initialized and all exercises have states, skipping");
       return;
     }
+
+    // If we've exhausted our attempts but still don't have all states, force complete anyway
+    if (currentAttempt.current >= maxInitAttempts.current) {
+      console.warn(`Max initialization attempts (${maxInitAttempts.current}) reached, forcing completion`);
+      setInitializationComplete(true);
+      initializedRef.current = true;
+      return;
+    }
+    
+    currentAttempt.current += 1;
+    console.log(`Initialization attempt ${currentAttempt.current}/${maxInitAttempts.current}`);
     
     // Set our attempt flag
     if (!attemptedInitializationRef.current) {
@@ -153,9 +169,93 @@ export const useWorkoutInitialization = ({
       setExerciseStates(initialState);
     }
     
-    // Mark initialization as complete
-    initializedRef.current = true;
-    setInitializationComplete(true);
+    // Do a final verification that all states are properly initialized
+    const finalVerification = setTimeout(() => {
+      const missingExercises = workoutExercises.filter(ex => !exerciseStates[ex.id]);
+      if (missingExercises.length > 0) {
+        console.warn("Final verification found missing exercises:", missingExercises.map(ex => ex.id));
+        // One last attempt to create missing states
+        const updatedStates = { ...exerciseStates };
+        let statesUpdated = false;
+        
+        missingExercises.forEach(exercise => {
+          if (!updatedStates[exercise.id]) {
+            console.log(`Final attempt to add missing exercise: ${exercise.id}`);
+            const exerciseType = exercise.exercise?.exercise_type || 'strength';
+            const exerciseName = (exercise.exercise?.name || '').toLowerCase();
+            const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
+            
+            if (isRunExercise) {
+              updatedStates[exercise.id] = {
+                expanded: true,
+                exercise_id: exercise.exercise?.id,
+                currentExercise: exercise.exercise,
+                sets: [],
+                runData: {
+                  distance: '',
+                  duration: '',
+                  location: '',
+                  completed: false
+                }
+              };
+              statesUpdated = true;
+            } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+              const sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
+                setNumber: i + 1,
+                weight: '',
+                reps: exercise.reps || '',
+                completed: false,
+              }));
+              
+              updatedStates[exercise.id] = {
+                expanded: true,
+                exercise_id: exercise.exercise?.id,
+                currentExercise: exercise.exercise,
+                sets,
+              };
+              statesUpdated = true;
+            } else if (exerciseType === 'cardio') {
+              updatedStates[exercise.id] = {
+                expanded: true,
+                exercise_id: exercise.exercise?.id,
+                currentExercise: exercise.exercise,
+                sets: [],
+                cardioData: {
+                  distance: '',
+                  duration: '',
+                  location: '',
+                  completed: false
+                }
+              };
+              statesUpdated = true;
+            } else if (exerciseType === 'flexibility') {
+              updatedStates[exercise.id] = {
+                expanded: true,
+                exercise_id: exercise.exercise?.id,
+                currentExercise: exercise.exercise,
+                sets: [],
+                flexibilityData: {
+                  duration: '',
+                  completed: false
+                }
+              };
+              statesUpdated = true;
+            }
+          }
+        });
+        
+        if (statesUpdated) {
+          console.log("Updating states after final verification");
+          setExerciseStates(updatedStates);
+        }
+      }
+      
+      // Mark initialization as complete regardless
+      initializedRef.current = true;
+      setInitializationComplete(true);
+    }, 500);
+    
+    return () => clearTimeout(finalVerification);
   }, [workoutDataLoaded, workoutExercises, draftData, draftLoaded, exerciseStates]);
 
   // Helper function to build initial exercise state from workout exercises

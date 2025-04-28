@@ -52,7 +52,7 @@ const RegisterPage = () => {
     if (user && type) {
       console.log('User authenticated, redirecting to dashboard for type:', type);
       if (type === 'client') {
-        navigate('/client-profile-builder');
+        navigate('/client-dashboard/settings/edit-profile');
       } else if (type === 'coach') {
         navigate('/coach-dashboard');
       } else if (type === 'admin') {
@@ -161,7 +161,13 @@ const RegisterPage = () => {
         }
       }
       
-      toast.success('Registration successful!');
+      // If client user type, redirect to profile builder instead of waiting for auth state change
+      if (type === 'client') {
+        toast.success('Registration successful! Please complete your profile.');
+        navigate('/client-profile-builder');
+      } else {
+        toast.success('Registration successful!');
+      }
     } catch (error) {
       console.error('Error in registration:', error);
       toast.error('Registration failed. Please try again.');

@@ -17,7 +17,7 @@ import { Plus, Loader2, GripVertical } from 'lucide-react';
 import { Exercise, StandaloneWorkout, WorkoutExercise } from '@/types/workout';
 import { supabase } from '@/integrations/supabase/client';
 import { syncTemplateExercisesToProgramWorkouts } from '@/services/program-service';
-import { ExerciseSelector } from '@/components/exercise/ExerciseSelector';
+import ExerciseSelector from '@/components/exercise/ExerciseSelector';
 
 const StandaloneWorkoutDetailsPage = () => {
   const navigate = useNavigate();

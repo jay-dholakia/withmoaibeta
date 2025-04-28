@@ -95,15 +95,15 @@ const RunMap: React.FC<RunMapProps> = ({
 
       // Add start and end points if we have locations
       if (locations.length > 0) {
-        const firstPoint = coordinates[0];
-        const lastPoint = coordinates[coordinates.length - 1];
+        const firstPoint = coordinates[0] as [number, number]; // Type assertion to ensure it's a tuple
+        const lastPoint = coordinates[coordinates.length - 1] as [number, number]; // Type assertion to ensure it's a tuple
         
         // Add start marker
         const startMarker = document.createElement('div');
         startMarker.className = 'w-3 h-3 rounded-full bg-green-500 start-marker';
         
         new mapboxgl.Marker(startMarker)
-          .setLngLat([firstPoint[0], firstPoint[1]])
+          .setLngLat(firstPoint)
           .addTo(map.current);
         
         // Add end marker
@@ -111,13 +111,13 @@ const RunMap: React.FC<RunMapProps> = ({
         endMarker.className = 'w-3 h-3 rounded-full bg-red-500 end-marker';
         
         new mapboxgl.Marker(endMarker)
-          .setLngLat([lastPoint[0], lastPoint[1]])
+          .setLngLat(lastPoint)
           .addTo(map.current);
       }
 
       // Fit map to show the entire route with padding
       map.current.fitBounds(
-        [coordinates[0], coordinates[coordinates.length - 1]], 
+        [coordinates[0] as [number, number], coordinates[coordinates.length - 1] as [number, number]], 
         { 
           padding: { top: 50, bottom: 50, left: 50, right: 50 }, 
           maxZoom: 16

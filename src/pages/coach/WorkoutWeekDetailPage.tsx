@@ -15,7 +15,8 @@ import {
   updateWorkoutWeek,
   fetchWorkoutsForWeek,
   createWorkout,
-  updateWorkout
+  updateWorkout,
+  fetchStandaloneWorkouts
 } from '@/services/workout-service';
 import { deleteWorkout } from '@/services/workout-delete-service';
 import { Workout } from '@/types/workout';
@@ -65,8 +66,11 @@ const WorkoutWeekDetailPage = () => {
   const [copyWorkoutId, setCopyWorkoutId] = useState<string | null>(null);
   const [copyTargetWeekId, setCopyTargetWeekId] = useState<string | null>(null);
   const [isCopying, setIsCopying] = useState(false);
+  const [isAddingFromTemplate, setIsAddingFromTemplate] = useState(false);
+  const [standaloneWorkouts, setStandaloneWorkouts] = useState<any[]>([]);
 
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     const loadWeekDetails = async () => {
@@ -119,6 +123,22 @@ const WorkoutWeekDetailPage = () => {
 
     loadWeekDetails();
   }, [weekId]);
+
+  useEffect(() => {
+    const loadTemplates = async () => {
+      if (!user?.id) return;
+      try {
+        const templates = await fetchStandaloneWorkouts(user.id);
+        setStandaloneWorkouts(templates);
+      } catch (error) {
+        console.error('Error loading workout templates:', error);
+      }
+    };
+
+    if (isAddingFromTemplate) {
+      loadTemplates();
+    }
+  }, [isAddingFromTemplate, user?.id]);
 
   const handleWeekUpdate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -319,6 +339,76 @@ const WorkoutWeekDetailPage = () => {
     }
   };
 
+  const handleCopyFromTemplate = async (templateId: string) => {
+    if (!weekId) return;
+    
+    try {
+      // First get the template workout details
+      const { data: origWorkout, error: origError } = await supabase
+        .from("standalone_workouts")
+        .select("*")
+        .eq("id", templateId)
+        .maybeSingle();
+        
+      if (origError || !origWorkout) throw new Error("Template workout not found");
+
+      // Get the exercises for the template
+      const { data: origExercises, error: exError } = await supabase
+        .from("standalone_workout_exercises")
+        .select("*")
+        .eq("workout_id", templateId);
+        
+      if (exError) throw new Error("Could not fetch template exercises");
+
+      // Create the new workout
+      const { data: newWorkout, error: newError } = await supabase
+        .from("workouts")
+        .insert([{
+          week_id: weekId,
+          title: origWorkout.title,
+          description: origWorkout.description,
+          day_of_week: 1, // Default to day 1, can be changed later
+          workout_type: origWorkout.workout_type,
+          priority: 0
+        }])
+        .select()
+        .single();
+        
+      if (newError || !newWorkout) throw new Error("Could not create workout");
+
+      // Copy exercises to the new workout
+      if (origExercises && origExercises.length > 0) {
+        const exerciseCopies = origExercises.map((ex: any) => ({
+          sets: ex.sets,
+          reps: ex.reps,
+          order_index: ex.order_index,
+          rest_seconds: ex.rest_seconds,
+          notes: ex.notes,
+          exercise_id: ex.exercise_id,
+          workout_id: newWorkout.id,
+          superset_order: ex.superset_order || null,
+          superset_group_id: ex.superset_group_id || null,
+        }));
+
+        const { error: exerciseInsertError } = await supabase
+          .from("workout_exercises")
+          .insert(exerciseCopies);
+          
+        if (exerciseInsertError) throw new Error("Failed to copy exercises");
+      }
+
+      // Update the workouts list
+      const updatedWorkouts = await fetchWorkoutsForWeek(weekId);
+      setWorkouts(updatedWorkouts);
+      
+      setIsAddingFromTemplate(false);
+      toast.success("Workout added from template successfully");
+    } catch (error: any) {
+      console.error('Error copying workout:', error);
+      toast.error(error.message || "Failed to copy workout");
+    }
+  };
+
   if (isLoading) {
     return (
       <CoachLayout>
@@ -439,10 +529,15 @@ const WorkoutWeekDetailPage = () => {
         <Card className="mt-4">
           <CardHeader className="flex justify-between items-center">
             <CardTitle>Workouts</CardTitle>
-            <Button size="sm" onClick={() => setIsWorkoutModalOpen(true)}>
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Add Workout
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => setIsAddingFromTemplate(true)}>
+                Add from Template
+              </Button>
+              <Button size="sm" onClick={() => setIsWorkoutModalOpen(true)}>
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Add Workout
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
@@ -494,6 +589,51 @@ const WorkoutWeekDetailPage = () => {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Templates Dialog */}
+        {isAddingFromTemplate && (
+          <Dialog open={isAddingFromTemplate} onOpenChange={setIsAddingFromTemplate}>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Add Workout from Template</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
+                {standaloneWorkouts.map((template) => (
+                  <Card key={template.id} className="relative">
+                    <CardHeader>
+                      <CardTitle className="text-lg">{template.title}</CardTitle>
+                      {template.category && (
+                        <p className="text-sm text-muted-foreground">
+                          Category: {template.category}
+                        </p>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      {template.description && (
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                          {template.description}
+                        </p>
+                      )}
+                      <div className="flex justify-end">
+                        <Button 
+                          onClick={() => handleCopyFromTemplate(template.id)}
+                          size="sm"
+                        >
+                          Add to Week
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {standaloneWorkouts.length === 0 && (
+                  <div className="col-span-2 text-center py-8 text-muted-foreground">
+                    No workout templates found. Create some in the Templates section.
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {copyWorkoutId && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">

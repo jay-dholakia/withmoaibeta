@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutHistoryItem } from '@/types/workout';
@@ -43,6 +42,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import WorkoutJournalSection from './WorkoutJournalSection';
+import RunMap from './workout/RunMap';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -88,7 +88,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
         const processedExercises = new Set<string>();
 
         exerciseSets.forEach(set => {
-          // Make sure we're only accessing workout_exercise as that's what our updated query returns
           const exerciseDetails = set.workout_exercise?.exercise;
           const exerciseId = set.workout_exercise_id;
           
@@ -472,6 +471,16 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                   </div>
                 )}
                 
+                {workout.workout_type === 'running' && workout.id && (
+                  <div className="mt-4 mb-2">
+                    <RunMap 
+                      runId={workout.id} 
+                      height={180} 
+                      className="w-full"
+                    />
+                  </div>
+                )}
+                
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
                   {workout.duration && (
                     <div className="text-muted-foreground">
@@ -481,7 +490,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                   
                   {workout.distance && (
                     <div className="text-muted-foreground">
-                      <span className="font-medium">Distance:</span> {workout.distance}
+                      <span className="font-medium">Distance:</span> {workout.distance} miles
                     </div>
                   )}
                   

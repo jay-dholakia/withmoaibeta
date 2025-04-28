@@ -154,6 +154,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       if (title.includes('hiking')) return 'hiking';
       if (title.includes('skiing')) return 'skiing';
       if (title.includes('yoga')) return 'yoga';
+      if (title.includes('run')) return 'running';
     }
     
     for (const workout of workoutsForDay) {
@@ -176,54 +177,9 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
         if (type === 'hiking') return 'hiking';
         if (type === 'skiing') return 'skiing';
         if (type === 'yoga') return 'yoga';
+        if (type === 'running') return 'running';
+        if (type === 'live_run') return 'running';
       }
-    }
-
-    for (const workout of workoutsForDay) {
-      if (workout.workout?.workout_type) {
-        const workoutType = workout.workout.workout_type.toLowerCase();
-        
-        if (workoutType === 'basketball') return 'basketball';
-        if (workoutType === 'golf') return 'golf';
-        if (workoutType === 'volleyball') return 'volleyball';
-        if (workoutType === 'baseball') return 'baseball';
-        if (workoutType === 'tennis') return 'tennis';
-        if (workoutType === 'hiking') return 'hiking';
-        if (workoutType === 'skiing') return 'skiing';
-        if (workoutType === 'yoga') return 'yoga';
-        
-        if (workoutType === 'strength') return 'strength';
-        if (workoutType === 'cardio') return 'cardio';
-        if (workoutType === 'bodyweight') return 'bodyweight';
-        if (workoutType === 'flexibility') return 'flexibility';
-        if (workoutType === 'hiit') return 'hiit';
-        if (workoutType === 'swimming') return 'swimming';
-        if (workoutType === 'cycling') return 'cycling';
-        if (workoutType === 'dance') return 'dance';
-        if (workoutType === 'custom') return 'custom';
-      }
-    }
-
-    for (const workout of workoutsForDay) {
-      const description = (workout.description || workout.workout?.description || '').toLowerCase();
-      
-      if (description.includes('basketball')) return 'basketball';
-      if (description.includes('golf')) return 'golf';
-      if (description.includes('volleyball')) return 'volleyball';
-      if (description.includes('baseball')) return 'baseball';
-      if (description.includes('tennis')) return 'tennis';
-      if (description.includes('hiking')) return 'hiking';
-      if (description.includes('skiing')) return 'skiing';
-      if (description.includes('yoga')) return 'yoga';
-      
-      if (description.includes('dance')) return 'dance';
-      if (description.includes('swim')) return 'swimming';
-      if (description.includes('cycl') || description.includes('bike')) return 'cycling';
-      if (description.includes('hiit')) return 'hiit';
-      if (description.includes('strength')) return 'strength';
-      if (description.includes('cardio') || description.includes('run')) return 'cardio';
-      if (description.includes('flex') || description.includes('stretch') || description.includes('yoga')) return 'flexibility';
-      if (description.includes('bodyweight')) return 'bodyweight';
     }
 
     return 'custom';

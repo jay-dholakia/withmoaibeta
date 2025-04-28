@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { StandardWorkoutType } from '@/types/workout';
 
@@ -24,6 +25,10 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
         return '💪'; // Muscle emoji
       case 'cardio':
         return '🏃'; // Running emoji 
+      case 'running':
+        return '🏃‍♂️'; // Running emoji with male gender
+      case 'live_run':
+        return '🏃‍♂️'; // Same runner emoji for live runs
       case 'flexibility':
         return '🧘'; // Yoga/flexibility emoji
       case 'rest_day':
@@ -106,6 +111,7 @@ export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.Reac
   { value: 'hiit', label: 'HIIT', icon: '⚡' },
   { value: 'swimming', label: 'Swimming', icon: '🏊' },
   { value: 'cycling', label: 'Cycling', icon: '🚴' },
+  { value: 'running', label: 'Running', icon: '🏃‍♂️' },
   { value: 'dance', label: 'Dance', icon: '💃' },
   { value: 'basketball', label: 'Basketball', icon: '🏀' },
   { value: 'golf', label: 'Golf', icon: '⛳' },

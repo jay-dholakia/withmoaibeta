@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { PersonalRecord } from '@/types/workout';
 
@@ -127,24 +128,40 @@ export const uploadClientAvatar = async (userId: string, file: File): Promise<st
  */
 export const deleteUser = async (userId: string): Promise<boolean> => {
   try {
+    // Delete the user profile first
     const { error: profileError } = await supabase
-      .from('profiles')
+      .from('client_profiles')
       .delete()
       .eq('id', userId);
     
     if (profileError) {
-      console.error("Error deleting user profile:", profileError);
-      throw profileError;
+      console.error("Error deleting client profile:", profileError);
+      // Continue with deletion process even if profile deletion fails
     }
     
-    const { error } = await supabase.auth.admin.deleteUser(userId);
+    // Delete from profiles table
+    const { error: profilesError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+    
+    if (profilesError) {
+      console.error("Error deleting user profile:", profilesError);
+      throw profilesError;
+    }
+    
+    // Use the admin_delete_user RPC function to delete the user
+    const { data, error } = await supabase
+      .rpc('admin_delete_user', {
+        user_id: userId
+      });
     
     if (error) {
-      console.error("Error deleting user from auth:", error);
+      console.error("Error deleting user:", error);
       throw error;
     }
     
-    return true;
+    return data || true;
   } catch (error) {
     console.error("Error in deleteUser:", error);
     throw error;

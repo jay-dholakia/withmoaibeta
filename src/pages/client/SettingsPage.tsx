@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -31,22 +30,17 @@ const SettingsPage = () => {
   };
 
   const handleEditProfile = () => {
-    // Navigate to profile editor with state indicating we came from settings
-    navigate('/client-profile-editor', { state: { from: 'settings' } });
+    navigate('/client-dashboard/settings/edit-profile', { state: { from: 'settings' } });
   };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not provided';
     
-    // Create date from ISO string
     const date = new Date(dateString);
-    
-    // Extract date components from UTC values to avoid timezone issues
     const year = date.getUTCFullYear();
-    const month = date.getUTCMonth() + 1; // Month is 0-indexed
+    const month = date.getUTCMonth() + 1;
     const day = date.getUTCDate();
     
-    // Format as MM/DD/YYYY
     return `${month}/${day}/${year}`;
   };
 
@@ -116,7 +110,6 @@ const SettingsPage = () => {
         </CardFooter>
       </Card>
 
-      {/* Theme Settings Card */}
       <Card>
         <CardHeader>
           <CardTitle>Appearance</CardTitle>
@@ -133,7 +126,6 @@ const SettingsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Legal Documents Card */}
       <Card>
         <CardHeader>
           <CardTitle>Legal</CardTitle>
@@ -159,7 +151,6 @@ const SettingsPage = () => {
         </CardContent>
       </Card>
       
-      {/* Beta Feedback Card */}
       <BetaFeedbackCard />
       
       <Card>

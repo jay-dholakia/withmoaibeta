@@ -45,6 +45,7 @@ import CoachClientsPage from './pages/coach/ClientsPage';
 import PrivacyPolicyPage from './pages/client/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/client/TermsOfServicePage';
 import LiveRunPage from './pages/client/LiveRunPage';
+import ProfileBuilder from './pages/client/ProfileBuilder';
 import NotFound from './pages/NotFound';
 
 const App: React.FC = () => {
@@ -70,7 +71,9 @@ const App: React.FC = () => {
       <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
       <Route path="/privacy-policy" element={<PublicRoute><PrivacyPolicyPage /></PublicRoute>} />
       <Route path="/terms-of-service" element={<PublicRoute><TermsOfServicePage /></PublicRoute>} />
+      <Route path="/client-profile-builder" element={<ClientRoute><ProfileBuilder /></ClientRoute>} />
 
+      {/* Admin routes */}
       <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/admin-dashboard/invitations" element={<AdminRoute><InvitationsPage /></AdminRoute>} />
       <Route path="/admin-dashboard/groups" element={<AdminRoute><GroupsPage /></AdminRoute>} />
@@ -81,6 +84,7 @@ const App: React.FC = () => {
       <Route path="/admin-dashboard/client-stats" element={<AdminRoute><ClientStatsPage /></AdminRoute>} />
       <Route path="/exercise-import" element={<AdminRoute><ExerciseImportPage /></AdminRoute>} />
 
+      {/* Coach routes */}
       <Route path="/coach-dashboard" element={<CoachRoute><CoachDashboard /></CoachRoute>} />
       <Route path="/coach-profile" element={<CoachRoute><CoachProfilePage /></CoachRoute>} />
       <Route path="/coach-dashboard/workouts" element={<CoachRoute><WorkoutProgramPage /></CoachRoute>} />
@@ -99,12 +103,15 @@ const App: React.FC = () => {
       <Route path="/coach-dashboard/clients" element={<CoachRoute><CoachClientsPage /></CoachRoute>} />
       <Route path="/coach-dashboard/client-stats" element={<CoachRoute><CoachClientStatsPage /></CoachRoute>} />
 
-      {/* Add a redirect from /client to the client dashboard */}
+      {/* Client routes */}
       <Route path="/client" element={<Navigate to="/client-dashboard/moai" replace />} />
       
       <Route path="/dashboard" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
       <Route path="/client-dashboard/*" element={<ClientRoute><ClientDashboard /></ClientRoute>} />
       <Route path="/client-dashboard/workouts/live-run" element={<ClientRoute><LiveRunPage /></ClientRoute>} />
+      
+      <Route path="/client-profile-editor" element={<Navigate to="/client-dashboard/settings/edit-profile" replace />} />
+      
       <Route path="/profile" element={<ClientRoute><ClientProfilePage /></ClientRoute>} />
       <Route path="/workouts" element={<ClientRoute><ClientWorkoutHistoryPage /></ClientRoute>} />
       <Route path="/workouts/:workoutId" element={<ClientRoute><ClientWorkoutDetailsPage /></ClientRoute>} />

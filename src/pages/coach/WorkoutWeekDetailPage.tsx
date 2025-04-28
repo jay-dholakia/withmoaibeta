@@ -21,7 +21,7 @@ import {
 } from '@/services/workout-service';
 import { deleteWorkout } from '@/services/workout-delete-service';
 import { Workout } from '@/types/workout';
-import { PlusCircle, Edit, Trash2, ChevronRight } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, ChevronRight, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
@@ -52,6 +52,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { EditWeekMetricsForm } from '@/components/coach/EditWeekMetricsForm';
+import { CopyWorkoutWeekDialog } from '@/components/coach/CopyWorkoutWeekDialog';
 
 interface RouteParams {
   [key: string]: string;
@@ -77,6 +78,7 @@ const WorkoutWeekDetailPage = () => {
   const [isCopying, setIsCopying] = useState(false);
   const [isAddingFromTemplate, setIsAddingFromTemplate] = useState(false);
   const [standaloneWorkouts, setStandaloneWorkouts] = useState<any[]>([]);
+  const [isCopyWeekModalOpen, setIsCopyWeekModalOpen] = useState(false);
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -450,8 +452,17 @@ const WorkoutWeekDetailPage = () => {
         </Button>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Week Details</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCopyWeekModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy Week
+            </Button>
           </CardHeader>
           <CardContent>
             {isEditingMetrics ? (
@@ -724,6 +735,26 @@ const WorkoutWeekDetailPage = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {weekData && (
+          <CopyWorkoutWeekDialog
+            isOpen={isCopyWeekModalOpen}
+            onClose={() => setIsCopyWeekModalOpen(false)}
+            sourceWeekId={weekId!}
+            sourceWeekNumber={weekData.week_number}
+            allWeeks={allWeeks}
+            onCopyComplete={() => {
+              // Refresh workouts list after copy
+              if (weekId) {
+                const loadWorkouts = async () => {
+                  const workoutsData = await fetchWorkoutsForWeek(weekId);
+                  setWorkouts(workoutsData);
+                };
+                loadWorkouts();
+              }
+            }}
+          />
+        )}
       </div>
     </CoachLayout>
   );

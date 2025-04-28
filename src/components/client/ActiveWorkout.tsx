@@ -561,8 +561,35 @@ const ActiveWorkout = () => {
   };
 
   const renderExerciseCard = (exercise: WorkoutExercise) => {
-    if (!exercise || !exerciseStates || !exerciseStates[exercise.id]) {
-      console.log(`No exercise state found for exercise with ID: ${exercise?.id}`);
+    if (!exercise) {
+      console.log(`Cannot render null or undefined exercise`);
+      return null;
+    }
+    
+    if (!exerciseStates || !exerciseStates[exercise.id]) {
+      console.log(`No exercise state found for exercise with ID: ${exercise.id}. Creating fallback state.`);
+      
+      const fallbackState = {
+        expanded: true,
+        exercise_id: exercise.exercise?.id,
+        currentExercise: exercise.exercise,
+        sets: [],
+      };
+      
+      if (exercise.exercise?.exercise_type === 'strength' || exercise.exercise?.exercise_type === 'bodyweight') {
+        fallbackState.sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
+          setNumber: i + 1,
+          weight: '',
+          reps: exercise.reps || '',
+          completed: false,
+        }));
+      }
+      
+      setExerciseStates(prev => ({
+        ...prev,
+        [exercise.id]: fallbackState
+      }));
+      
       return null;
     }
     

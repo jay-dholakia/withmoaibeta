@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { ExerciseStates } from '@/types/active-workout';
 import { WorkoutExercise } from '@/types/workout';
@@ -53,6 +52,21 @@ export const useWorkoutInitialization = ({
     // If we've exhausted our attempts but still don't have all states, force complete anyway
     if (currentAttempt.current >= maxInitAttempts.current) {
       console.warn(`Max initialization attempts (${maxInitAttempts.current}) reached, forcing completion`);
+      
+      // Before forcing completion, make one final attempt to create missing states
+      const missingExercises = workoutExercises.filter(ex => !exerciseStates[ex.id]);
+      if (missingExercises.length > 0) {
+        console.log(`Attempting to create states for ${missingExercises.length} missing exercises before forcing completion`);
+        const finalStates = { ...exerciseStates };
+        
+        missingExercises.forEach(exercise => {
+          finalStates[exercise.id] = createExerciseStateForType(exercise);
+          console.log(`Created final fallback state for exercise ${exercise.id}`);
+        });
+        
+        setExerciseStates(finalStates);
+      }
+      
       setInitializationComplete(true);
       initializedRef.current = true;
       return;
@@ -90,62 +104,7 @@ export const useWorkoutInitialization = ({
         if (!updatedExerciseStates[exercise.id]) {
           console.log(`Adding missing exercise to states: ${exercise.id}`);
           // Add the missing exercise with a default state
-          const exerciseType = exercise.exercise?.exercise_type || 'strength';
-          const exerciseName = (exercise.exercise?.name || '').toLowerCase();
-          const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
-          
-          if (isRunExercise) {
-            updatedExerciseStates[exercise.id] = {
-              expanded: true,
-              exercise_id: exercise.exercise?.id,
-              currentExercise: exercise.exercise,
-              sets: [],
-              runData: {
-                distance: '',
-                duration: '',
-                location: '',
-                completed: false
-              }
-            };
-          } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
-            const sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
-              setNumber: i + 1,
-              weight: '',
-              reps: exercise.reps || '',
-              completed: false,
-            }));
-            
-            updatedExerciseStates[exercise.id] = {
-              expanded: true,
-              exercise_id: exercise.exercise?.id,
-              currentExercise: exercise.exercise,
-              sets,
-            };
-          } else if (exerciseType === 'cardio') {
-            updatedExerciseStates[exercise.id] = {
-              expanded: true,
-              exercise_id: exercise.exercise?.id,
-              currentExercise: exercise.exercise,
-              sets: [],
-              cardioData: {
-                distance: '',
-                duration: '',
-                location: '',
-                completed: false
-              }
-            };
-          } else if (exerciseType === 'flexibility') {
-            updatedExerciseStates[exercise.id] = {
-              expanded: true,
-              exercise_id: exercise.exercise?.id,
-              currentExercise: exercise.exercise,
-              sets: [],
-              flexibilityData: {
-                duration: '',
-                completed: false
-              }
-            };
-          }
+          updatedExerciseStates[exercise.id] = createExerciseStateForType(exercise);
         }
       });
       
@@ -181,66 +140,8 @@ export const useWorkoutInitialization = ({
         missingExercises.forEach(exercise => {
           if (!updatedStates[exercise.id]) {
             console.log(`Final attempt to add missing exercise: ${exercise.id}`);
-            const exerciseType = exercise.exercise?.exercise_type || 'strength';
-            const exerciseName = (exercise.exercise?.name || '').toLowerCase();
-            const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
-            
-            if (isRunExercise) {
-              updatedStates[exercise.id] = {
-                expanded: true,
-                exercise_id: exercise.exercise?.id,
-                currentExercise: exercise.exercise,
-                sets: [],
-                runData: {
-                  distance: '',
-                  duration: '',
-                  location: '',
-                  completed: false
-                }
-              };
-              statesUpdated = true;
-            } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
-              const sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
-                setNumber: i + 1,
-                weight: '',
-                reps: exercise.reps || '',
-                completed: false,
-              }));
-              
-              updatedStates[exercise.id] = {
-                expanded: true,
-                exercise_id: exercise.exercise?.id,
-                currentExercise: exercise.exercise,
-                sets,
-              };
-              statesUpdated = true;
-            } else if (exerciseType === 'cardio') {
-              updatedStates[exercise.id] = {
-                expanded: true,
-                exercise_id: exercise.exercise?.id,
-                currentExercise: exercise.exercise,
-                sets: [],
-                cardioData: {
-                  distance: '',
-                  duration: '',
-                  location: '',
-                  completed: false
-                }
-              };
-              statesUpdated = true;
-            } else if (exerciseType === 'flexibility') {
-              updatedStates[exercise.id] = {
-                expanded: true,
-                exercise_id: exercise.exercise?.id,
-                currentExercise: exercise.exercise,
-                sets: [],
-                flexibilityData: {
-                  duration: '',
-                  completed: false
-                }
-              };
-              statesUpdated = true;
-            }
+            updatedStates[exercise.id] = createExerciseStateForType(exercise);
+            statesUpdated = true;
           }
         });
         
@@ -258,6 +159,83 @@ export const useWorkoutInitialization = ({
     return () => clearTimeout(finalVerification);
   }, [workoutDataLoaded, workoutExercises, draftData, draftLoaded, exerciseStates]);
 
+  // Helper function to create appropriate exercise state based on type
+  const createExerciseStateForType = (exercise: WorkoutExercise) => {
+    if (!exercise || !exercise.exercise) {
+      console.error("Cannot create state for invalid exercise:", exercise);
+      // Return a minimal default state
+      return {
+        expanded: true,
+        sets: [],
+      };
+    }
+    
+    const exerciseType = exercise.exercise?.exercise_type || 'strength';
+    const exerciseName = (exercise.exercise?.name || '').toLowerCase();
+    const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
+    
+    if (isRunExercise) {
+      return {
+        expanded: true,
+        exercise_id: exercise.exercise?.id,
+        currentExercise: exercise.exercise,
+        sets: [],
+        runData: {
+          distance: '',
+          duration: '',
+          location: '',
+          completed: false
+        }
+      };
+    } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+      const sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
+        setNumber: i + 1,
+        weight: '',
+        reps: exercise.reps || '',
+        completed: false,
+      }));
+      
+      return {
+        expanded: true,
+        exercise_id: exercise.exercise?.id,
+        currentExercise: exercise.exercise,
+        sets,
+      };
+    } else if (exerciseType === 'cardio') {
+      return {
+        expanded: true,
+        exercise_id: exercise.exercise?.id,
+        currentExercise: exercise.exercise,
+        sets: [],
+        cardioData: {
+          distance: '',
+          duration: '',
+          location: '',
+          completed: false
+        }
+      };
+    } else if (exerciseType === 'flexibility') {
+      return {
+        expanded: true,
+        exercise_id: exercise.exercise?.id,
+        currentExercise: exercise.exercise,
+        sets: [],
+        flexibilityData: {
+          duration: '',
+          completed: false
+        }
+      };
+    }
+    
+    // Fallback for any unhandled type
+    return {
+      expanded: true,
+      exercise_id: exercise.exercise?.id,
+      currentExercise: exercise.exercise,
+      sets: [],
+    };
+  };
+
   // Helper function to build initial exercise state from workout exercises
   const buildInitialExerciseState = (exercises: WorkoutExercise[], existingStates: ExerciseStates = {}): ExerciseStates => {
     const initialState: ExerciseStates = {...existingStates};
@@ -274,68 +252,12 @@ export const useWorkoutInitialization = ({
         return;
       }
       
-      const exerciseId = exercise.id;
-      const exerciseType = exercise.exercise?.exercise_type || 'strength';
-      const exerciseName = (exercise.exercise?.name || '').toLowerCase();
-      const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
+      initialState[exercise.id] = createExerciseStateForType(exercise);
       
-      if (isRunExercise) {
-        initialState[exerciseId] = {
-          expanded: true,
-          exercise_id: exercise.exercise?.id,
-          currentExercise: exercise.exercise,
-          sets: [],
-          runData: {
-            distance: '',
-            duration: '',
-            location: '',
-            completed: false
-          }
-        };
-      } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
-        const sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
-          setNumber: i + 1,
-          weight: '',
-          reps: exercise.reps || '',
-          completed: false,
-        }));
-        
-        initialState[exerciseId] = {
-          expanded: true,
-          exercise_id: exercise.exercise?.id,
-          currentExercise: exercise.exercise,
-          sets,
-        };
-      } else if (exerciseType === 'cardio') {
-        initialState[exerciseId] = {
-          expanded: true,
-          exercise_id: exercise.exercise?.id,
-          currentExercise: exercise.exercise,
-          sets: [],
-          cardioData: {
-            distance: '',
-            duration: '',
-            location: '',
-            completed: false
-          }
-        };
-      } else if (exerciseType === 'flexibility') {
-        initialState[exerciseId] = {
-          expanded: true,
-          exercise_id: exercise.exercise?.id,
-          currentExercise: exercise.exercise,
-          sets: [],
-          flexibilityData: {
-            duration: '',
-            completed: false
-          }
-        };
-      }
-      
-      console.log(`Initialized exercise state for ${exerciseName}`, {
-        workoutExerciseId: exerciseId,
+      console.log(`Initialized exercise state for ${exercise.exercise?.name || 'unknown'}`, {
+        workoutExerciseId: exercise.id,
         exerciseId: exercise.exercise?.id,
-        exerciseType,
+        exerciseType: exercise.exercise?.exercise_type || 'unknown',
         orderIndex: exercise.order_index
       });
     });

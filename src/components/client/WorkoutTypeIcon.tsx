@@ -27,8 +27,6 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
         return '🏃'; // Running emoji 
       case 'running':
         return '🏃‍♂️'; // Running emoji with male gender
-      case 'live_run':
-        return '🏃‍♂️'; // Running emoji for live runs
       case 'flexibility':
         return '🧘'; // Yoga/flexibility emoji
       case 'rest_day':

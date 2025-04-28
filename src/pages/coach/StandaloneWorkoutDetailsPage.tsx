@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -18,6 +17,7 @@ import { Plus, Loader2, GripVertical } from 'lucide-react';
 import { Exercise, StandaloneWorkout, WorkoutExercise } from '@/types/workout';
 import { supabase } from '@/integrations/supabase/client';
 import { syncTemplateExercisesToProgramWorkouts } from '@/services/program-service';
+import { ExerciseSelector } from '@/components/exercise/ExerciseSelector';
 
 const StandaloneWorkoutDetailsPage = () => {
   const navigate = useNavigate();
@@ -72,7 +72,6 @@ const StandaloneWorkoutDetailsPage = () => {
         setTitle(data.title);
         setDescription(data.description || '');
         
-        // Ensure workout_exercises is treated as an array
         const exercises = Array.isArray(data.workout_exercises) 
           ? data.workout_exercises 
           : [];
@@ -130,7 +129,6 @@ const StandaloneWorkoutDetailsPage = () => {
       setWorkout(prev => prev ? { ...prev, title: title, description: description } : null);
       toast.success('Workout updated successfully');
     
-      // After successful save, sync exercises to program workouts
       if (workoutId) {
         await syncTemplateExercisesToProgramWorkouts(workoutId);
         toast.success('Workout template updated and synced to program workouts');
@@ -241,7 +239,6 @@ const StandaloneWorkoutDetailsPage = () => {
 
   const reorderWorkoutExercises = async (reorderedExercises: WorkoutExercise[], workoutIdParam: string) => {
     try {
-      // Update each exercise with its new order index
       for (const [index, exercise] of reorderedExercises.entries()) {
         await supabase
           .from('standalone_workout_exercises')
@@ -264,17 +261,14 @@ const StandaloneWorkoutDetailsPage = () => {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    // Optimistically update the state
     setWorkoutExercises(items);
 
     try {
-      // Call the reorderExercises function to update the order_index in the database
       await reorderWorkoutExercises(items, workoutId as string);
       toast.success('Workout exercises reordered successfully');
     } catch (error) {
       console.error('Error reordering exercises:', error);
       toast.error('Failed to reorder exercises');
-      // If there's an error, revert the state to the original order
       fetchWorkoutDetails(workoutId as string);
     }
   };

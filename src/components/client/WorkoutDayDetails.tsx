@@ -116,7 +116,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
     const isLoadingMap = loadingMaps[workout.id];
 
     // Get proper workout type
-    const workoutTypeDisplay = workout.workout_type as StandardWorkoutType || 'strength';
+    const workoutTypeDisplay = (workout.workout_type as StandardWorkoutType) || 'strength';
 
     return (
       <Card className="mb-4" key={workout.id}>

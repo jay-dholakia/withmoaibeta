@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FormEvent } from 'react';
 import { toast } from 'sonner';
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   fetchWorkoutWeek, 
   updateWorkoutWeek,
@@ -42,6 +43,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { EditWeekMetricsForm } from '@/components/coach/EditWeekMetricsForm';
 
 interface RouteParams {
@@ -101,7 +110,6 @@ const WorkoutWeekDetailPage = () => {
         const workoutsData = await fetchWorkoutsForWeek(weekId);
         setWorkouts(workoutsData);
 
-        // Fetch all weeks for this program (for copy-to functionality)
         if (week && week.program && week.program.id) {
           const { data: allWeeksData, error: allWeeksError } = await supabase
             .from("workout_weeks")
@@ -277,7 +285,6 @@ const WorkoutWeekDetailPage = () => {
     if (!copyWorkoutId || !copyTargetWeekId) return;
     setIsCopying(true);
     try {
-      // 1. Fetch the workout details
       const { data: origWorkout, error: origError } = await supabase
         .from("workouts")
         .select("*")
@@ -285,14 +292,12 @@ const WorkoutWeekDetailPage = () => {
         .maybeSingle();
       if (origError || !origWorkout) throw new Error("Original workout not found");
 
-      // 2. Fetch exercises for the workout
       const { data: origExercises, error: exError } = await supabase
         .from("workout_exercises")
         .select("*")
         .eq("workout_id", copyWorkoutId);
       if (exError) throw new Error("Could not fetch workout exercises");
 
-      // 3. Insert the new workout
       const { data: newWorkout, error: newError } = await supabase
         .from("workouts")
         .insert([
@@ -309,7 +314,6 @@ const WorkoutWeekDetailPage = () => {
         .maybeSingle();
       if (newError || !newWorkout) throw new Error("Could not create workout copy");
 
-      // 4. Copy exercises to the new workout
       if (origExercises && origExercises.length > 0) {
         const exerciseCopies = origExercises.map((ex: any) => ({
           sets: ex.sets,
@@ -343,7 +347,6 @@ const WorkoutWeekDetailPage = () => {
     if (!weekId) return;
     
     try {
-      // First get the template workout details
       const { data: origWorkout, error: origError } = await supabase
         .from("standalone_workouts")
         .select("*")
@@ -352,7 +355,6 @@ const WorkoutWeekDetailPage = () => {
         
       if (origError || !origWorkout) throw new Error("Template workout not found");
 
-      // Get the exercises for the template
       const { data: origExercises, error: exError } = await supabase
         .from("standalone_workout_exercises")
         .select("*")
@@ -360,23 +362,26 @@ const WorkoutWeekDetailPage = () => {
         
       if (exError) throw new Error("Could not fetch template exercises");
 
-      // Create the new workout
+      let workoutType: "strength" | "cardio" | "mobility" | "flexibility" = "strength";
+      if (origWorkout.workout_type === "cardio") workoutType = "cardio";
+      if (origWorkout.workout_type === "mobility") workoutType = "mobility";
+      if (origWorkout.workout_type === "flexibility") workoutType = "flexibility";
+      
       const { data: newWorkout, error: newError } = await supabase
         .from("workouts")
-        .insert([{
+        .insert({
           week_id: weekId,
           title: origWorkout.title,
           description: origWorkout.description,
-          day_of_week: 1, // Default to day 1, can be changed later
-          workout_type: origWorkout.workout_type,
+          day_of_week: 1,
+          workout_type: workoutType,
           priority: 0
-        }])
+        })
         .select()
         .single();
         
       if (newError || !newWorkout) throw new Error("Could not create workout");
 
-      // Copy exercises to the new workout
       if (origExercises && origExercises.length > 0) {
         const exerciseCopies = origExercises.map((ex: any) => ({
           sets: ex.sets,
@@ -397,7 +402,6 @@ const WorkoutWeekDetailPage = () => {
         if (exerciseInsertError) throw new Error("Failed to copy exercises");
       }
 
-      // Update the workouts list
       const updatedWorkouts = await fetchWorkoutsForWeek(weekId);
       setWorkouts(updatedWorkouts);
       
@@ -590,7 +594,6 @@ const WorkoutWeekDetailPage = () => {
           </CardContent>
         </Card>
 
-        {/* Templates Dialog */}
         {isAddingFromTemplate && (
           <Dialog open={isAddingFromTemplate} onOpenChange={setIsAddingFromTemplate}>
             <DialogContent className="max-w-3xl">

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { ExerciseStates } from '@/types/active-workout';
 import { WorkoutExercise } from '@/types/workout';
@@ -132,9 +133,19 @@ export const useWorkoutInitialization = ({
         }
       });
       
-      // Update with combined state data
-      setExerciseStates(updatedExerciseStates);
-      toast.success("Loaded your saved workout progress");
+      // Verify all exercises have states before setting
+      const allExercisesHaveStates = workoutExercises.every(ex => !!updatedExerciseStates[ex.id]);
+      
+      if (!allExercisesHaveStates) {
+        console.warn("Some exercises still missing states after initialization attempt");
+        // Create missing states as a fallback
+        const completedStates = buildInitialExerciseState(workoutExercises, updatedExerciseStates);
+        setExerciseStates(completedStates);
+      } else {
+        // Update with combined state data
+        setExerciseStates(updatedExerciseStates);
+        toast.success("Loaded your saved workout progress");
+      }
     } else {
       // Otherwise, build exercise states from scratch
       console.log("No draft data found, initializing from workout exercises");
@@ -148,13 +159,18 @@ export const useWorkoutInitialization = ({
   }, [workoutDataLoaded, workoutExercises, draftData, draftLoaded, exerciseStates]);
 
   // Helper function to build initial exercise state from workout exercises
-  const buildInitialExerciseState = (exercises: WorkoutExercise[]): ExerciseStates => {
-    const initialState: ExerciseStates = {};
+  const buildInitialExerciseState = (exercises: WorkoutExercise[], existingStates: ExerciseStates = {}): ExerciseStates => {
+    const initialState: ExerciseStates = {...existingStates};
     
     // Using exercises directly since they should already be sorted by the parent component
     exercises.forEach((exercise) => {
       if (!exercise || !exercise.id) {
         console.error("Exercise missing ID:", exercise);
+        return;
+      }
+      
+      // Skip if this exercise already has a state
+      if (initialState[exercise.id]) {
         return;
       }
       
@@ -215,11 +231,29 @@ export const useWorkoutInitialization = ({
           }
         };
       }
+      
+      console.log(`Initialized exercise state for ${exerciseName}`, {
+        workoutExerciseId: exerciseId,
+        exerciseId: exercise.exercise?.id,
+        exerciseType,
+        orderIndex: exercise.order_index
+      });
     });
     
-    // Log the created states for debugging
-    console.log("Created initial exercise states:", Object.keys(initialState).length);
-    return initialState;
+    if (Object.keys(initialState).length > 0) {
+      console.log("Generated exercise states:", initialState);
+      
+      // Verify all exercises have states
+      const missingExercises = exercises.filter(ex => !initialState[ex.id]);
+      if (missingExercises.length > 0) {
+        console.error("Failed to initialize some exercises:", missingExercises.map(ex => ex.id));
+      }
+      
+      return initialState;
+    } else {
+      console.error("Failed to initialize exercise states - empty object created");
+      return initialState;
+    }
   };
 
   // Log states for debugging
@@ -230,6 +264,14 @@ export const useWorkoutInitialization = ({
         exerciseIds: Object.keys(exerciseStates),
         initializedExerciseIds
       });
+      
+      // Double check all exercises have states
+      if (initializedExerciseIds.length !== Object.keys(exerciseStates).length) {
+        console.warn("Not all exercises have states after initialization!", {
+          expectedCount: initializedExerciseIds.length,
+          actualCount: Object.keys(exerciseStates).length
+        });
+      }
     }
   }, [initializationComplete, exerciseStates, initializedExerciseIds]);
 

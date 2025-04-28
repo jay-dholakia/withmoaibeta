@@ -644,12 +644,6 @@ const ActiveWorkout = () => {
 
         {expanded && (
           <CardContent className="pt-0 px-3 pb-2">
-            {description && (
-              <div className="mb-4 text-sm rounded-md">
-                {description}
-              </div>
-            )}
-            
             {exerciseType === 'strength' && (
               <StrengthExercise 
                 exercise={{

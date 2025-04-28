@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, Edit2, Clock, MapPin, Award, Target, SquarePen, ArrowLeft, Crown } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { WorkoutHistoryItem } from '@/types/workout';
+import { WorkoutHistoryItem, StandardWorkoutType } from '@/types/workout';
 import { WorkoutTypeIcon } from './WorkoutTypeIcon';
 import RunMap from './workout/RunMap';
 import { getRunLocations, RunLocation } from '@/services/run-tracking-service';
@@ -115,12 +115,15 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
     const hasGPSData = isRunningWorkout && runLocations[workout.id] && runLocations[workout.id].length > 0;
     const isLoadingMap = loadingMaps[workout.id];
 
+    // Get proper workout type
+    const workoutTypeDisplay = workout.workout_type as StandardWorkoutType || 'strength';
+
     return (
       <Card className="mb-4" key={workout.id}>
         <CardHeader className="pb-2">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <WorkoutTypeIcon type={workout.workout_type || 'strength'} size={24} />
+              <WorkoutTypeIcon type={workoutTypeDisplay} size="md" />
               <CardTitle className="text-lg">
                 {workout.title || workout.workout?.title || 'Workout'}
               </CardTitle>

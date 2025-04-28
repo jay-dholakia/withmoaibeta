@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { StandardWorkoutType } from '@/types/workout';
 
@@ -57,7 +58,11 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
       case 'skiing':
         return '⛷️'; 
       case 'yoga':
-        return '🧘'; 
+        return '🧘';
+      case 'running':
+        return '🏃‍♂️';
+      case 'cardio_run':
+        return '🏃‍♂️';
       default:
         return '📝'; 
     }
@@ -114,5 +119,7 @@ export const WORKOUT_TYPES: {value: WorkoutType; label: string; icon: React.Reac
   { value: 'tennis', label: 'Tennis', icon: '🎾' },
   { value: 'hiking', label: 'Hiking', icon: '🥾' },
   { value: 'skiing', label: 'Skiing', icon: '⛷️' },
-  { value: 'yoga', label: 'Yoga', icon: '🧘' }
+  { value: 'yoga', label: 'Yoga', icon: '🧘' },
+  { value: 'running', label: 'Running', icon: '🏃‍♂️' },
+  { value: 'cardio_run', label: 'Run', icon: '🏃‍♂️' }
 ];

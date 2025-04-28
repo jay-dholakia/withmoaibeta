@@ -115,7 +115,7 @@ const RunMap: React.FC<RunMapProps> = ({
       startEl.style.border = '2px solid white';
       
       new mapboxgl.Marker(startEl)
-        .setLngLat([firstPoint.longitude, firstPoint.latitude])
+        .setLngLat([locations[0].longitude, locations[0].latitude])
         .addTo(map.current);
       
       // Add end point marker
@@ -128,7 +128,7 @@ const RunMap: React.FC<RunMapProps> = ({
       endEl.style.border = '2px solid white';
       
       new mapboxgl.Marker(endEl)
-        .setLngLat([lastPoint.longitude, lastPoint.latitude])
+        .setLngLat([locations[locations.length - 1].longitude, locations[locations.length - 1].latitude])
         .addTo(map.current);
     };
     

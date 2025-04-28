@@ -481,18 +481,27 @@ export const createWorkoutFromTemplate = async (workoutData: {
       throw templateError;
     }
     
+    // Map template workout_type to a valid workout_type for the workout table
+    let workoutType: 'cardio' | 'strength' | 'mobility' | 'flexibility' = 'strength';
+    
+    if (template.workout_type === 'cardio') {
+      workoutType = 'cardio';
+    } else if (template.workout_type === 'mobility' || template.workout_type === 'flexibility') {
+      workoutType = template.workout_type;
+    }
+    
     // Create the workout with template reference
     const { data: workout, error: workoutError } = await supabase
       .from('workouts')
-      .insert([{
+      .insert({
         week_id: workoutData.week_id,
         title: template.title,
         description: template.description,
         day_of_week: workoutData.day_of_week,
-        workout_type: template.workout_type || 'strength',
+        workout_type: workoutType,
         priority: workoutData.priority || 0,
         template_id: workoutData.template_id
-      }])
+      })
       .select()
       .single();
     

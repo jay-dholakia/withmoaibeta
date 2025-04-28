@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/router';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Card,
@@ -13,19 +14,14 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, GripVertical } from 'lucide-react';
 import { Exercise, StandaloneWorkout, WorkoutExercise } from '@/types/workout';
 import { supabase } from '@/integrations/supabase/client';
-import ExerciseSearchDialog from '@/components/exercise/ExerciseSearchDialog';
-import WorkoutExerciseCard from '@/components/workout/WorkoutExerciseCard';
-import { reorderWorkoutExercises } from '@/services/workout-service';
-import { useUser } from '@/providers/UserProvider';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { syncTemplateExercisesToProgramWorkouts } from '@/services/program-service';
 
 const StandaloneWorkoutDetailsPage = () => {
-  const router = useRouter();
-  const { workoutId } = router.query;
+  const navigate = useNavigate();
+  const { workoutId } = useParams();
   const [workout, setWorkout] = useState<StandaloneWorkout | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -34,11 +30,21 @@ const StandaloneWorkoutDetailsPage = () => {
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useUser();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        setUserId(data.user.id);
+      }
+    };
+    getUserId();
+  }, []);
 
   useEffect(() => {
     if (workoutId) {
-      fetchWorkoutDetails(workoutId as string);
+      fetchWorkoutDetails(workoutId);
     }
   }, [workoutId]);
 
@@ -49,7 +55,7 @@ const StandaloneWorkoutDetailsPage = () => {
         .from('standalone_workouts')
         .select(`
           *,
-          workout_exercises (
+          workout_exercises:standalone_workout_exercises (
             *,
             exercise:exercise_id (*)
           )
@@ -61,10 +67,18 @@ const StandaloneWorkoutDetailsPage = () => {
         throw error;
       }
 
-      setWorkout(data);
-      setTitle(data.title);
-      setDescription(data.description || '');
-      setWorkoutExercises(data.workout_exercises || []);
+      if (data) {
+        setWorkout(data as StandaloneWorkout);
+        setTitle(data.title);
+        setDescription(data.description || '');
+        
+        // Ensure workout_exercises is treated as an array
+        const exercises = Array.isArray(data.workout_exercises) 
+          ? data.workout_exercises 
+          : [];
+        
+        setWorkoutExercises(exercises as WorkoutExercise[]);
+      }
     } catch (error) {
       console.error('Error fetching workout details:', error);
       toast.error('Failed to load workout details');
@@ -85,7 +99,7 @@ const StandaloneWorkoutDetailsPage = () => {
     try {
       setIsSaving(true);
     
-      if (!user?.id) {
+      if (!userId) {
         toast.error('You must be logged in to save a workout.');
         return;
       }
@@ -105,7 +119,7 @@ const StandaloneWorkoutDetailsPage = () => {
         .update({
           title: title,
           description: description,
-          coach_id: user.id
+          coach_id: userId
         })
         .eq('id', workoutId);
       
@@ -113,16 +127,16 @@ const StandaloneWorkoutDetailsPage = () => {
         throw error;
       }
       
-      setWorkout({ ...workout, title: title, description: description });
+      setWorkout(prev => prev ? { ...prev, title: title, description: description } : null);
       toast.success('Workout updated successfully');
     
       // After successful save, sync exercises to program workouts
       if (workoutId) {
-        await syncTemplateExercisesToProgramWorkouts(workoutId as string);
+        await syncTemplateExercisesToProgramWorkouts(workoutId);
         toast.success('Workout template updated and synced to program workouts');
       }
     
-      router.push('/coach/standalone-workouts');
+      navigate('/coach/standalone-workouts');
     } catch (error) {
       console.error('Error saving workout:', error);
       toast.error('Failed to save workout');
@@ -151,7 +165,7 @@ const StandaloneWorkoutDetailsPage = () => {
 
     try {
       const { data, error } = await supabase
-        .from('workout_exercises')
+        .from('standalone_workout_exercises')
         .insert([
           {
             workout_id: workoutId,
@@ -171,8 +185,10 @@ const StandaloneWorkoutDetailsPage = () => {
         throw error;
       }
 
-      setWorkoutExercises([...workoutExercises, data[0]]);
-      toast.success('Exercise added to workout');
+      if (data && data.length > 0) {
+        setWorkoutExercises(prev => [...prev, data[0] as WorkoutExercise]);
+        toast.success('Exercise added to workout');
+      }
     } catch (error) {
       console.error('Error adding exercise to workout:', error);
       toast.error('Failed to add exercise to workout');
@@ -182,7 +198,7 @@ const StandaloneWorkoutDetailsPage = () => {
   const handleUpdateExercise = async (updatedExercise: WorkoutExercise) => {
     try {
       const { error } = await supabase
-        .from('workout_exercises')
+        .from('standalone_workout_exercises')
         .update(updatedExercise)
         .eq('id', updatedExercise.id);
 
@@ -205,7 +221,7 @@ const StandaloneWorkoutDetailsPage = () => {
   const handleDeleteExercise = async (exerciseToDelete: WorkoutExercise) => {
     try {
       const { error } = await supabase
-        .from('workout_exercises')
+        .from('standalone_workout_exercises')
         .delete()
         .eq('id', exerciseToDelete.id);
 
@@ -220,6 +236,22 @@ const StandaloneWorkoutDetailsPage = () => {
     } catch (error) {
       console.error('Error deleting exercise:', error);
       toast.error('Failed to delete exercise');
+    }
+  };
+
+  const reorderWorkoutExercises = async (reorderedExercises: WorkoutExercise[], workoutIdParam: string) => {
+    try {
+      // Update each exercise with its new order index
+      for (const [index, exercise] of reorderedExercises.entries()) {
+        await supabase
+          .from('standalone_workout_exercises')
+          .update({ order_index: index })
+          .eq('id', exercise.id);
+      }
+      return true;
+    } catch (error) {
+      console.error('Error reordering exercises:', error);
+      throw error;
     }
   };
 
@@ -248,11 +280,13 @@ const StandaloneWorkoutDetailsPage = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center h-64">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>;
   }
 
   if (!workout) {
-    return <div>Workout not found</div>;
+    return <div className="text-center py-8">Workout not found</div>;
   }
 
   return (
@@ -311,40 +345,59 @@ const StandaloneWorkoutDetailsPage = () => {
             Add Exercise
           </Button>
 
-          <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="exercises">
-              {(provided) => (
-                <div {...provided.droppableProps} ref={provided.innerRef}>
-                  {workoutExercises.map((exercise, index) => (
-                    <Draggable key={exercise.id} draggableId={exercise.id} index={index}>
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                        >
-                          <WorkoutExerciseCard
-                            exercise={exercise}
-                            onUpdate={handleUpdateExercise}
-                            onDelete={handleDeleteExercise}
-                          />
-                        </div>
+          <div className="mt-4 space-y-4">
+            {workoutExercises.map((exercise, index) => (
+              <div key={exercise.id} className="border rounded-md p-4 hover:bg-muted/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-1 space-x-2">
+                    <GripVertical className="h-5 w-5 text-muted-foreground" />
+                    <div className="flex-1">
+                      <div className="font-medium">{exercise.exercise?.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {exercise.sets} sets × {exercise.reps} reps
+                        {exercise.rest_seconds && ` • ${exercise.rest_seconds}s rest`}
+                      </div>
+                      {exercise.notes && (
+                        <div className="mt-1 text-sm">{exercise.notes}</div>
                       )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleUpdateExercise(exercise)}
+                    >
+                      Edit
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleDeleteExercise(exercise)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
-              )}
-            </Droppable>
-          </DragDropContext>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
-      <ExerciseSearchDialog
-        open={isEditDialogOpen}
-        onClose={handleCloseExerciseDialog}
-        onExerciseSelect={handleExerciseSelect}
-      />
+      {isEditDialogOpen && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md max-h-[80vh] overflow-y-auto p-6">
+            <h2 className="text-xl font-semibold mb-4">Select Exercise</h2>
+            <ExerciseSelector onSelectExercise={handleExerciseSelect} />
+            <div className="mt-4 flex justify-end">
+              <Button variant="outline" onClick={handleCloseExerciseDialog}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

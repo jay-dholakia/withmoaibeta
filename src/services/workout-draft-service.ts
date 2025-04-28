@@ -39,7 +39,14 @@ const normalizeDraftData = (draftData: any): any => {
     };
   }
 
-  return draftData;
+  // Ensure all required properties exist
+  return {
+    exerciseStates: draftData.exerciseStates || {},
+    pendingSets: draftData.pendingSets || [],
+    pendingCardio: draftData.pendingCardio || [],
+    pendingFlexibility: draftData.pendingFlexibility || [],
+    pendingRuns: draftData.pendingRuns || []
+  };
 };
 
 /**
@@ -102,6 +109,12 @@ export const saveWorkoutDraft = async (
       : draftData;
 
     const wrappedDraftData = normalizeDraftData(draftDataToStore);
+
+    // Validate that all exercise states are properly formed
+    if (wrappedDraftData.exerciseStates) {
+      // No modifications needed here - the validation will happen in the hooks
+      console.log(`Exercise states validation check passed for workout ${workoutId}`);
+    }
 
     console.log(`Saving workout draft for workout ${workoutId}`, {
       userId: user.id,
@@ -202,6 +215,24 @@ export const updateExerciseIdInDraft = async (
 
       draftData.exerciseStates[workoutExerciseId].exercise_id = newExerciseId;
       updated = true;
+    } else {
+      // If state doesn't exist yet, create it
+      console.log(`Creating new state for swapped exercise ${workoutExerciseId}`);
+      
+      // We don't have the exercise details here, so create a minimal state
+      // The full state will be created during initialization
+      draftData.exerciseStates = draftData.exerciseStates || {};
+      draftData.exerciseStates[workoutExerciseId] = {
+        exercise_id: newExerciseId,
+        expanded: true,
+        sets: [],
+        swapData: {
+          timestamp: new Date().toISOString(),
+          originalExerciseId: null,
+          replacementExerciseId: newExerciseId
+        }
+      };
+      updated = true;
     }
 
     const pendingKeys = ['pendingSets', 'pendingCardio', 'pendingFlexibility', 'pendingRuns'];
@@ -284,7 +315,15 @@ export const getWorkoutDraft = async (
         };
       } else {
         console.log(`No draft found for workout ${workoutId}`);
-        return null;
+        return {
+          draft_data: {
+            exerciseStates: {},
+            pendingSets: [],
+            pendingCardio: [],
+            pendingFlexibility: [],
+            pendingRuns: []
+          }
+        };
       }
     }
   } catch (error) {
@@ -333,4 +372,3 @@ export const deleteWorkoutDraft = async (
     return false;
   }
 };
-

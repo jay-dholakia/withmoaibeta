@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { trackWorkoutSet, fetchPersonalRecords } from '@/services/client-service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, Save, HelpCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, Save, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft, updateExerciseIdInDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useWorkoutInitialization } from '@/hooks/useWorkoutInitialization';
@@ -196,7 +196,7 @@ const ActiveWorkout = () => {
 
   const workoutId = getWorkoutId();
 
-  const { draftData, draftLoaded, isLoading: isDraftLoading } = useWorkoutDraft({
+  const { draftData, draftLoaded, isLoading: isDraftLoading, updateExerciseExpansionState } = useWorkoutDraft({
     workoutId,
     onDraftLoaded: (loadedDraftData) => {
       console.log("Draft data has finished loading:", loadedDraftData);
@@ -258,6 +258,22 @@ const ActiveWorkout = () => {
 
   const toggleDescriptionExpanded = (exerciseId: string) => {
     setExpandedDescriptions(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));
+  };
+
+  const toggleExerciseExpanded = (exerciseId: string) => {
+    if (!exerciseStates[exerciseId]) return;
+    
+    const newExpandedState = !exerciseStates[exerciseId].expanded;
+    
+    setExerciseStates(prev => ({
+      ...prev,
+      [exerciseId]: {
+        ...prev[exerciseId],
+        expanded: newExpandedState
+      }
+    }));
+    
+    updateExerciseExpansionState(exerciseId, newExpandedState);
   };
 
   const handleCompleteWorkout = async () => {
@@ -561,8 +577,35 @@ const ActiveWorkout = () => {
   };
 
   const renderExerciseCard = (exercise: WorkoutExercise) => {
-    if (!exercise || !exerciseStates || !exerciseStates[exercise.id]) {
-      console.log(`No exercise state found for exercise with ID: ${exercise?.id}`);
+    if (!exercise) {
+      console.log(`Cannot render null or undefined exercise`);
+      return null;
+    }
+    
+    if (!exerciseStates || !exerciseStates[exercise.id]) {
+      console.log(`No exercise state found for exercise with ID: ${exercise.id}. Creating fallback state.`);
+      
+      const fallbackState = {
+        expanded: true,
+        exercise_id: exercise.exercise?.id,
+        currentExercise: exercise.exercise,
+        sets: [],
+      };
+      
+      if (exercise.exercise?.exercise_type === 'strength' || exercise.exercise?.exercise_type === 'bodyweight') {
+        fallbackState.sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
+          setNumber: i + 1,
+          weight: '',
+          reps: exercise.reps || '',
+          completed: false,
+        }));
+      }
+      
+      setExerciseStates(prev => ({
+        ...prev,
+        [exercise.id]: fallbackState
+      }));
+      
       return null;
     }
     
@@ -579,8 +622,8 @@ const ActiveWorkout = () => {
           <div className="flex justify-between items-center">
             <div className="flex-1">
               <CardTitle className="text-lg font-semibold">{exerciseName}</CardTitle>
-              {description && !expandedDescriptions[exercise.id] && (
-                <CardDescription className="mt-1 text-xs line-clamp-2">
+              {description && (
+                <CardDescription className="mt-1 text-xs">
                   {description}
                 </CardDescription>
               )}
@@ -588,25 +631,19 @@ const ActiveWorkout = () => {
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => toggleDescriptionExpanded(exercise.id)} 
+              onClick={() => toggleExerciseExpanded(exercise.id)} 
               className="h-8 w-8"
             >
-              <ChevronRight className={cn("h-5 w-5 transition-transform", expanded ? "rotate-90" : "")} />
+              {expanded ? 
+                <ChevronUp className="h-5 w-5 transition-transform" /> : 
+                <ChevronDown className="h-5 w-5 transition-transform" />
+              }
             </Button>
           </div>
         </CardHeader>
 
         {expanded && (
           <CardContent className="pt-0 px-3 pb-2">
-            {description && (
-              <div className={cn(
-                "mb-4 text-sm rounded-md",
-                expandedDescriptions[exercise.id] ? "bg-muted/50 p-3" : ""
-              )}>
-                {expandedDescriptions[exercise.id] && description}
-              </div>
-            )}
-            
             {exerciseType === 'strength' && (
               <StrengthExercise 
                 exercise={{

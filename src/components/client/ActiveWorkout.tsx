@@ -260,11 +260,7 @@ const ActiveWorkout = () => {
     setExpandedDescriptions(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));
   };
 
-  const handleCompleteWorkout = () => {
-    setIsCompletionDialogOpen(true);
-  };
-
-  const confirmCompleteWorkout = async () => {
+  const handleCompleteWorkout = async () => {
     try {
       let completionId = workoutData?.id;
       
@@ -812,32 +808,6 @@ const ActiveWorkout = () => {
           </Button>
         </div>
       )}
-
-      <Dialog open={isCompletionDialogOpen} onOpenChange={setIsCompletionDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Complete Workout</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to mark this workout as complete?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setIsCompletionDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmCompleteWorkout}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Complete Workout
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

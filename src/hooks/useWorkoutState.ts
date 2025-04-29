@@ -65,11 +65,39 @@ export const useWorkoutState = (
         }
         
         const exerciseId = exercise.id;
-        const exerciseType = exercise.exercise?.exercise_type || 'strength';
+        const exerciseType = exercise.exercise?.exercise_type || '';
         const exerciseName = (exercise.exercise?.name || '').toLowerCase();
+        const exerciseMuscleGroup = (exercise.exercise?.muscle_group || '').toLowerCase();
         const isRunExercise = exerciseName.includes('run') || exerciseName.includes('running');
         
+        // Default to strength type for most exercises
+        let effectiveType = 'strength';
+        
         if (isRunExercise) {
+          effectiveType = 'running';
+        } else if (exerciseType === 'cardio') {
+          effectiveType = 'cardio'; 
+        } else if (exerciseType === 'flexibility') {
+          effectiveType = 'flexibility';
+        } else if (
+          exerciseType === 'strength' || 
+          exerciseType === 'bodyweight' || 
+          exerciseName.includes('press') || 
+          exerciseName.includes('bench') || 
+          exerciseName.includes('squat') || 
+          exerciseName.includes('curl') || 
+          exerciseName.includes('row') || 
+          exerciseName.includes('deadlift') ||
+          exerciseMuscleGroup.includes('chest') ||
+          exerciseMuscleGroup.includes('back') ||
+          exerciseMuscleGroup.includes('legs') ||
+          exerciseMuscleGroup.includes('arms') ||
+          exerciseMuscleGroup.includes('shoulders')
+        ) {
+          effectiveType = 'strength';
+        }
+        
+        if (effectiveType === 'running') {
           initialState[exerciseId] = {
             expanded: true,
             exercise_id: exercise.exercise?.id,
@@ -82,7 +110,7 @@ export const useWorkoutState = (
               completed: false
             }
           };
-        } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+        } else if (effectiveType === 'strength') {
           const sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
             setNumber: i + 1,
             weight: '',
@@ -96,7 +124,7 @@ export const useWorkoutState = (
             currentExercise: exercise.exercise,
             sets,
           };
-        } else if (exerciseType === 'cardio') {
+        } else if (effectiveType === 'cardio') {
           initialState[exerciseId] = {
             expanded: true,
             exercise_id: exercise.exercise?.id,
@@ -109,7 +137,7 @@ export const useWorkoutState = (
               completed: false
             }
           };
-        } else if (exerciseType === 'flexibility') {
+        } else if (effectiveType === 'flexibility') {
           initialState[exerciseId] = {
             expanded: true,
             exercise_id: exercise.exercise?.id,
@@ -120,12 +148,27 @@ export const useWorkoutState = (
               completed: false
             }
           };
+        } else {
+          // Fallback to strength as default
+          const sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
+            setNumber: i + 1,
+            weight: '',
+            reps: exercise.reps || '',
+            completed: false,
+          }));
+          
+          initialState[exerciseId] = {
+            expanded: true,
+            exercise_id: exercise.exercise?.id,
+            currentExercise: exercise.exercise,
+            sets,
+          };
         }
         
         console.log(`Initialized exercise state for ${exerciseName}`, {
           workoutExerciseId: exerciseId,
           exerciseId: exercise.exercise?.id,
-          exerciseType,
+          exerciseType: effectiveType,
           orderIndex: exercise.order_index
         });
       });

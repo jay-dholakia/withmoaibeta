@@ -576,6 +576,44 @@ const ActiveWorkout = () => {
     }
   };
 
+  const isStrengthExercise = (exercise: any): boolean => {
+    if (!exercise || !exercise.currentExercise) return true; // Default to strength
+    
+    const exerciseType = exercise.currentExercise.exercise_type || '';
+    const exerciseName = (exercise.currentExercise.name || '').toLowerCase();
+    const exerciseMuscleGroup = (exercise.currentExercise.muscle_group || '').toLowerCase();
+    
+    // Check name for common strength exercise patterns
+    if (
+      exerciseName.includes('press') || 
+      exerciseName.includes('bench') || 
+      exerciseName.includes('squat') || 
+      exerciseName.includes('curl') || 
+      exerciseName.includes('row') || 
+      exerciseName.includes('deadlift')
+    ) {
+      return true;
+    }
+    
+    // Check muscle group
+    if (
+      exerciseMuscleGroup.includes('chest') ||
+      exerciseMuscleGroup.includes('back') ||
+      exerciseMuscleGroup.includes('legs') ||
+      exerciseMuscleGroup.includes('arms') ||
+      exerciseMuscleGroup.includes('shoulders')
+    ) {
+      return true;
+    }
+    
+    // Check exercise type
+    if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+      return true;
+    }
+    
+    return false;
+  };
+
   const renderExerciseCard = (exercise: WorkoutExercise) => {
     if (!exercise) {
       console.log(`Cannot render null or undefined exercise`);
@@ -589,17 +627,13 @@ const ActiveWorkout = () => {
         expanded: true,
         exercise_id: exercise.exercise?.id,
         currentExercise: exercise.exercise,
-        sets: [],
-      };
-      
-      if (exercise.exercise?.exercise_type === 'strength' || exercise.exercise?.exercise_type === 'bodyweight') {
-        fallbackState.sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
+        sets: Array.from({ length: exercise.sets || 1 }, (_, i) => ({
           setNumber: i + 1,
           weight: '',
           reps: exercise.reps || '',
           completed: false,
-        }));
-      }
+        })),
+      };
       
       setExerciseStates(prev => ({
         ...prev,
@@ -644,7 +678,7 @@ const ActiveWorkout = () => {
 
         {expanded && (
           <CardContent className="pt-0 px-3 pb-2">
-            {exerciseType === 'strength' && (
+            {(exerciseType === 'strength' || isStrengthExercise(exerciseStates[exercise.id])) && (
               <StrengthExercise 
                 exercise={{
                   ...exercise,
@@ -659,36 +693,34 @@ const ActiveWorkout = () => {
               />
             )}
             
-            {exerciseType === 'cardio' && (
+            {exerciseType === 'cardio' && !isStrengthExercise(exerciseStates[exercise.id]) && (
               <CardioExercise 
                 exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
-                formatDurationInput={formatDurationInput}
-                onCardioChange={handleCardioChange}
-                onCardioCompletion={handleCardioCompletion}
-                onVideoClick={handleVideoClick}
+                onDistanceChange={(value) => handleCardioChange(exercise.id, 'distance', value)}
+                onDurationChange={(value) => handleCardioChange(exercise.id, 'duration', value)}
+                onLocationChange={(value) => handleCardioChange(exercise.id, 'location', value)}
+                onCompletionChange={(value) => handleCardioCompletion(exercise.id, value)}
               />
             )}
             
-            {exerciseType === 'flexibility' && (
+            {exerciseType === 'flexibility' && !isStrengthExercise(exerciseStates[exercise.id]) && (
               <FlexibilityExercise 
                 exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
-                formatDurationInput={formatDurationInput}
-                onFlexibilityChange={handleFlexibilityChange}
-                onFlexibilityCompletion={handleFlexibilityCompletion}
-                onVideoClick={handleVideoClick}
+                onDurationChange={(value) => handleFlexibilityChange(exercise.id, 'duration', value)}
+                onCompletionChange={(value) => handleFlexibilityCompletion(exercise.id, value)}
               />
             )}
             
-            {(exerciseName.toLowerCase().includes('run') || exerciseName.toLowerCase().includes('running')) && (
+            {isRunExercise(exerciseStates[exercise.id]) && (
               <RunExercise 
                 exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
-                formatDurationInput={formatDurationInput}
-                onRunChange={handleRunChange}
-                onRunCompletion={handleRunCompletion}
-                onVideoClick={handleVideoClick}
+                onDistanceChange={(value) => handleRunChange(exercise.id, 'distance', value)}
+                onDurationChange={(value) => handleRunChange(exercise.id, 'duration', value)}
+                onLocationChange={(value) => handleRunChange(exercise.id, 'location', value)}
+                onCompletionChange={(value) => handleRunCompletion(exercise.id, value)}
               />
             )}
           </CardContent>

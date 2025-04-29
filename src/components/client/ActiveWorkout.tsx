@@ -697,10 +697,10 @@ const ActiveWorkout = () => {
               <CardioExercise 
                 exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
-                onDistanceChange={(value) => handleCardioChange(exercise.id, 'distance', value)}
-                onDurationChange={(value) => handleCardioChange(exercise.id, 'duration', value)}
-                onLocationChange={(value) => handleCardioChange(exercise.id, 'location', value)}
-                onCompletionChange={(value) => handleCardioCompletion(exercise.id, value)}
+                formatDurationInput={formatDurationInput}
+                onCardioChange={handleCardioChange}
+                onCardioCompletion={handleCardioCompletion}
+                onVideoClick={handleVideoClick}
               />
             )}
             
@@ -708,8 +708,10 @@ const ActiveWorkout = () => {
               <FlexibilityExercise 
                 exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
-                onDurationChange={(value) => handleFlexibilityChange(exercise.id, 'duration', value)}
-                onCompletionChange={(value) => handleFlexibilityCompletion(exercise.id, value)}
+                formatDurationInput={formatDurationInput}
+                onFlexibilityChange={handleFlexibilityChange}
+                onFlexibilityCompletion={handleFlexibilityCompletion}
+                onVideoClick={handleVideoClick}
               />
             )}
             
@@ -717,10 +719,10 @@ const ActiveWorkout = () => {
               <RunExercise 
                 exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
-                onDistanceChange={(value) => handleRunChange(exercise.id, 'distance', value)}
-                onDurationChange={(value) => handleRunChange(exercise.id, 'duration', value)}
-                onLocationChange={(value) => handleRunChange(exercise.id, 'location', value)}
-                onCompletionChange={(value) => handleRunCompletion(exercise.id, value)}
+                formatDurationInput={formatDurationInput}
+                onRunChange={handleRunChange}
+                onRunCompletion={handleRunCompletion}
+                onVideoClick={handleVideoClick}
               />
             )}
           </CardContent>

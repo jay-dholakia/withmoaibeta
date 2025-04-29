@@ -583,15 +583,16 @@ const ActiveWorkout = () => {
     const exerciseName = (exercise.currentExercise.name || '').toLowerCase();
     const exerciseMuscleGroup = (exercise.currentExercise.muscle_group || '').toLowerCase();
     
-    // Check name for common strength exercise patterns
-    if (
-      exerciseName.includes('press') || 
-      exerciseName.includes('bench') || 
-      exerciseName.includes('squat') || 
-      exerciseName.includes('curl') || 
-      exerciseName.includes('row') || 
-      exerciseName.includes('deadlift')
-    ) {
+    // List of terms commonly found in strength exercise names
+    const strengthTerms = [
+      'press', 'bench', 'squat', 'curl', 'row', 'deadlift',
+      'overhead', 'barbell', 'dumbbell', 'machine', 'cable',
+      'pushup', 'pullup', 'chinup', 'extension', 'flexion',
+      'raise', 'fly', 'flye', 'lateral', 'front', 'pushdown'
+    ];
+    
+    // Check if name contains common strength exercise terms
+    if (strengthTerms.some(term => exerciseName.includes(term))) {
       return true;
     }
     
@@ -599,9 +600,13 @@ const ActiveWorkout = () => {
     if (
       exerciseMuscleGroup.includes('chest') ||
       exerciseMuscleGroup.includes('back') ||
-      exerciseMuscleGroup.includes('legs') ||
-      exerciseMuscleGroup.includes('arms') ||
-      exerciseMuscleGroup.includes('shoulders')
+      exerciseMuscleGroup.includes('leg') ||
+      exerciseMuscleGroup.includes('arm') ||
+      exerciseMuscleGroup.includes('shoulder') ||
+      exerciseMuscleGroup.includes('tricep') ||
+      exerciseMuscleGroup.includes('bicep') ||
+      exerciseMuscleGroup.includes('quad') ||
+      exerciseMuscleGroup.includes('hamstring')
     ) {
       return true;
     }
@@ -649,6 +654,16 @@ const ActiveWorkout = () => {
     const exerciseName = currentExercise?.name || exercise.exercise?.name || '';
     const exerciseType = currentExercise?.exercise_type || exercise.exercise?.exercise_type || 'strength';
     const description = currentExercise?.description || exercise.exercise?.description || '';
+
+    // Check for "press" in the exercise name for debugging
+    if (exerciseName.toLowerCase().includes('press')) {
+      console.log(`Press exercise detected: ${exerciseName}`, {
+        exerciseId: exercise.id,
+        exerciseType: exerciseType,
+        sets: exerciseStates[exercise.id].sets?.length,
+        isStrengthByFunction: isStrengthExercise(exerciseStates[exercise.id])
+      });
+    }
 
     return (
       <Card key={exercise.id} className="mb-6">

@@ -17,6 +17,50 @@ export const useWorkoutState = (
   const [sortedExerciseIds, setSortedExerciseIds] = useState<string[]>([]);
   const [initializationAttempted, setInitializationAttempted] = useState(false);
 
+  // Function to determine if an exercise is a strength exercise
+  const determineIfStrengthExercise = (exercise: WorkoutExercise): boolean => {
+    if (!exercise || !exercise.exercise) return true; // Default to strength if uncertain
+    
+    const exerciseType = exercise.exercise.exercise_type || '';
+    const exerciseName = (exercise.exercise.name || '').toLowerCase();
+    const exerciseMuscleGroup = (exercise.exercise.muscle_group || '').toLowerCase();
+    
+    // List of terms commonly found in strength exercise names
+    const strengthTerms = [
+      'press', 'bench', 'squat', 'curl', 'row', 'deadlift',
+      'overhead', 'barbell', 'dumbbell', 'machine', 'cable',
+      'pushup', 'pullup', 'chinup', 'extension', 'flexion',
+      'raise', 'fly', 'flye', 'lateral', 'front', 'pushdown'
+    ];
+    
+    // Check if name contains common strength exercise terms
+    if (strengthTerms.some(term => exerciseName.includes(term))) {
+      return true;
+    }
+    
+    // Check muscle group
+    if (
+      exerciseMuscleGroup.includes('chest') ||
+      exerciseMuscleGroup.includes('back') ||
+      exerciseMuscleGroup.includes('leg') ||
+      exerciseMuscleGroup.includes('arm') ||
+      exerciseMuscleGroup.includes('shoulder') ||
+      exerciseMuscleGroup.includes('tricep') ||
+      exerciseMuscleGroup.includes('bicep') ||
+      exerciseMuscleGroup.includes('quad') ||
+      exerciseMuscleGroup.includes('hamstring')
+    ) {
+      return true;
+    }
+    
+    // Check exercise type
+    if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+      return true;
+    }
+    
+    return false;
+  };
+
   // Initialize state from draft data or create new state
   useEffect(() => {
     // Only try to initialize once we have workout exercises and haven't already initialized
@@ -79,21 +123,7 @@ export const useWorkoutState = (
           effectiveType = 'cardio'; 
         } else if (exerciseType === 'flexibility') {
           effectiveType = 'flexibility';
-        } else if (
-          exerciseType === 'strength' || 
-          exerciseType === 'bodyweight' || 
-          exerciseName.includes('press') || 
-          exerciseName.includes('bench') || 
-          exerciseName.includes('squat') || 
-          exerciseName.includes('curl') || 
-          exerciseName.includes('row') || 
-          exerciseName.includes('deadlift') ||
-          exerciseMuscleGroup.includes('chest') ||
-          exerciseMuscleGroup.includes('back') ||
-          exerciseMuscleGroup.includes('legs') ||
-          exerciseMuscleGroup.includes('arms') ||
-          exerciseMuscleGroup.includes('shoulders')
-        ) {
+        } else if (determineIfStrengthExercise(exercise)) {
           effectiveType = 'strength';
         }
         

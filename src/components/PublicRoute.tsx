@@ -8,13 +8,13 @@ interface PublicRouteProps {
 }
 
 const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
-  const { user, userType, loading } = useAuth();
+  const { user, userType, authLoading } = useAuth();
   const location = useLocation();
   
   // Get the intended destination from location state or use default
   const from = location.state?.from || '/';
   
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <span className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></span>

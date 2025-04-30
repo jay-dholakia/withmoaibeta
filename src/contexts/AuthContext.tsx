@@ -21,7 +21,8 @@ interface AuthContextType {
   signIn: (email: string, password: string, userType: UserType) => Promise<void>;
   signUp: (email: string, password: string, userType: UserType) => Promise<void>;
   signOut: () => Promise<void>;
-  loading: boolean;
+  authLoading: boolean;   // Renamed from loading to authLoading
+  profileLoading: boolean; // New separate loading state for profile
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,13 +32,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userType, setUserType] = useState<UserType | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
   const navigate = useNavigate();
 
   // Set up auth state listener and check for existing session
   useEffect(() => {
     console.log("Setting up auth state listener");
-    setLoading(true);
+    setAuthLoading(true);
 
     // Set up the auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -55,17 +57,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('User type found in metadata:', metadataUserType);
             setUserType(metadataUserType);
             
-            // Still fetch profile for complete data, but don't block on it
-            fetchUserProfile(currentSession.user.id);
+            // Use setTimeout to defer the profile fetch to avoid potential Supabase auth deadlocks
+            setTimeout(() => {
+              fetchUserProfile(currentSession.user.id);
+            }, 0);
           } else {
             // If not in metadata, we must fetch profile
-            fetchUserProfile(currentSession.user.id);
+            setTimeout(() => {
+              fetchUserProfile(currentSession.user.id);
+            }, 0);
           }
         } else {
           // No user session
           setProfile(null);
           setUserType(null);
-          setLoading(false);
+          setAuthLoading(false);
         }
       }
     );
@@ -78,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error) {
           console.error('Error getting session:', error);
           toast.error('Failed to retrieve session');
-          setLoading(false);
+          setAuthLoading(false);
           return;
         }
         
@@ -96,19 +102,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (metadataUserType) {
               console.log('User type found in metadata:', metadataUserType);
               setUserType(metadataUserType);
-              fetchUserProfile(existingSession.user.id);
+              
+              setTimeout(() => {
+                fetchUserProfile(existingSession.user.id);
+              }, 0);
             } else {
-              fetchUserProfile(existingSession.user.id);
+              setTimeout(() => {
+                fetchUserProfile(existingSession.user.id);
+              }, 0);
             }
           } else {
             // No user session
-            setLoading(false);
+            setAuthLoading(false);
           }
         }
       } catch (error) {
         console.error('Error checking session:', error);
         toast.error('Failed to initialize authentication');
-        setLoading(false);
+        setAuthLoading(false);
       }
     };
 
@@ -123,6 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      setProfileLoading(true);
       console.log('Fetching profile for user:', userId);
       
       const { data, error } = await supabase
@@ -168,22 +180,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
     } finally {
-      console.log('Profile fetch complete, resetting loading state');
-      setLoading(false);
+      console.log('Profile fetch complete, resetting loading states');
+      setProfileLoading(false);
+      setAuthLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string, userType: UserType) => {
     try {
       console.log(`Attempting to sign in with email: ${email} and userType: ${userType}`);
-      setLoading(true);
+      setAuthLoading(true);
       
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
         console.error('Authentication error:', error);
         toast.error(error.message || 'Failed to sign in');
-        setLoading(false);
+        setAuthLoading(false);
         return;
       }
       
@@ -201,13 +214,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Authentication error:', error);
       toast.error('An error occurred during sign in');
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, userType: UserType) => {
     try {
-      setLoading(true);
+      setAuthLoading(true);
       
       const { data, error } = await supabase.auth.signUp({ 
         email, 
@@ -222,22 +235,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Authentication error:', error);
         toast.error(error.message || 'Failed to sign up');
-        setLoading(false);
+        setAuthLoading(false);
         return;
       }
       
       toast.success('Registration successful! Please check your email to confirm your account.');
-      setLoading(false);
+      setAuthLoading(false);
     } catch (error) {
       console.error('Authentication error:', error);
       toast.error('An error occurred during sign up');
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
-      setLoading(true);
+      setAuthLoading(true);
       
       try {
         // Try to sign out from Supabase
@@ -262,11 +275,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       navigate('/');
       toast.success('Logged out successfully');
       
-      setLoading(false);
+      setAuthLoading(false);
     } catch (error) {
       console.error('Error during sign out:', error);
       toast.error('An error occurred while signing out');
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
@@ -280,7 +293,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signUp,
         signOut,
-        loading
+        authLoading,
+        profileLoading
       }}
     >
       {children}

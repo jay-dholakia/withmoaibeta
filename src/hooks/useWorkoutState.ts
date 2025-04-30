@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { ExerciseStates, PendingSet, PendingCardio, PendingFlexibility, PendingRun } from '@/types/active-workout';
 import { WorkoutExercise } from '@/types/workout';
@@ -103,7 +102,8 @@ export const useWorkoutState = (
               distance: '',
               duration: '',
               location: '',
-              completed: false
+              completed: false,
+              workout_type: workoutType || 'cardio' // Ensure workout_type is set
             }
           }
         };
@@ -176,7 +176,8 @@ export const useWorkoutState = (
                 distance: '',
                 duration: '',
                 location: '',
-                completed: false
+                completed: false,
+                workout_type: 'running' // Add workout_type
               }
             };
           } else if (effectiveType === 'strength') {
@@ -204,7 +205,8 @@ export const useWorkoutState = (
                 distance: '',
                 duration: '',
                 location: '',
-                completed: false
+                completed: false,
+                workout_type: 'cardio' // Add workout_type
               }
             };
           } else if (effectiveType === 'flexibility') {
@@ -215,7 +217,8 @@ export const useWorkoutState = (
               sets: [],
               flexibilityData: {
                 duration: '',
-                completed: false
+                completed: false,
+                workout_type: 'flexibility' // Add workout_type
               }
             };
           } else {
@@ -256,15 +259,31 @@ export const useWorkoutState = (
             [placeholderId]: {
               expanded: true,
               sets: [],
-              // Add appropriate data based on workout type
+              // Add appropriate data based on workout type with workout_type property
               ...(workoutType === 'cardio' && { 
-                cardioData: { distance: '', duration: '', location: '', completed: false } 
+                cardioData: { 
+                  distance: '', 
+                  duration: '', 
+                  location: '', 
+                  completed: false,
+                  workout_type: 'cardio'
+                } 
               }),
               ...(workoutType === 'flexibility' && { 
-                flexibilityData: { duration: '', completed: false } 
+                flexibilityData: { 
+                  duration: '', 
+                  completed: false,
+                  workout_type: 'flexibility'
+                } 
               }),
               ...(workoutType === 'running' && { 
-                runData: { distance: '', duration: '', location: '', completed: false } 
+                runData: { 
+                  distance: '', 
+                  duration: '', 
+                  location: '', 
+                  completed: false,
+                  workout_type: 'running'
+                } 
               })
             }
           };

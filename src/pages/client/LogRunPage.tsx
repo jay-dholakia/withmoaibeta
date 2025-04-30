@@ -42,7 +42,7 @@ const LogRunPage: React.FC = () => {
         duration: parseInt(duration, 10),
         location,
         notes,
-        workout_type: 'running' // Explicitly set workout_type to 'running'
+        workout_type: 'running' // Add workout_type
       };
       
       const result = await logRunActivity(runData);

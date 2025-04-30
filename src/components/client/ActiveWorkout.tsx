@@ -469,7 +469,8 @@ const ActiveWorkout = () => {
             distance: '',
             duration: '',
             location: '',
-            completed: false
+            completed: false,
+            workout_type: 'cardio' // Add workout_type
           }
         };
       }
@@ -479,7 +480,8 @@ const ActiveWorkout = () => {
           distance: '',
           duration: '',
           location: '',
-          completed: false
+          completed: false,
+          workout_type: 'cardio' // Add workout_type
         };
       }
       
@@ -508,7 +510,8 @@ const ActiveWorkout = () => {
             distance: field === 'distance' ? value : exerciseStates[exerciseId]?.cardioData?.distance || '',
             duration: field === 'duration' ? value : exerciseStates[exerciseId]?.cardioData?.duration || '',
             location: exerciseStates[exerciseId]?.cardioData?.location || '',
-            completed: exerciseStates[exerciseId]?.cardioData?.completed || false
+            completed: exerciseStates[exerciseId]?.cardioData?.completed || false,
+            workout_type: 'cardio' // Add workout_type
           }
         ]);
       }
@@ -527,7 +530,8 @@ const ActiveWorkout = () => {
             distance: '',
             duration: '',
             location: '',
-            completed: false
+            completed: false,
+            workout_type: 'cardio' // Add workout_type
           }
         };
       }
@@ -537,7 +541,8 @@ const ActiveWorkout = () => {
           distance: '',
           duration: '',
           location: '',
-          completed: false
+          completed: false,
+          workout_type: 'cardio' // Add workout_type
         };
       }
       
@@ -567,7 +572,8 @@ const ActiveWorkout = () => {
           distance: currentState?.distance || '',
           duration: currentState?.duration || '',
           location: currentState?.location || '',
-          completed
+          completed,
+          workout_type: 'cardio' // Add workout_type
         }
       ]);
     }

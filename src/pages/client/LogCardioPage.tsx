@@ -63,7 +63,7 @@ const LogCardioPage: React.FC = () => {
         activity_type: activityType,
         duration: parsedDuration,
         notes,
-        workout_type: 'cardio' // Explicitly set workout_type to 'cardio'
+        workout_type: 'cardio' // Add workout_type
       };
       
       console.log("Submitting cardio data:", cardioData);

@@ -1,4 +1,3 @@
-// full, fixed ResourcesManagement.tsx with working resourceForm and return statement
 
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -200,6 +199,126 @@ const ResourcesManagement = () => {
     return <LinkIcon className="h-4 w-4 text-purple-500" />;
   };
 
+  const ResourceForm = () => (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input placeholder="Resource title" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description (optional)</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Brief description of the resource" {...field} value={field.value || ''} />
+              </FormControl>
+              <FormDescription>
+                Briefly describe what this resource is about
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="url"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>URL (optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="https://example.com" {...field} value={field.value || ''} />
+              </FormControl>
+              <FormDescription>
+                Link to the resource
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="tags"
+          render={() => (
+            <FormItem>
+              <div className="mb-4">
+                <FormLabel>Tags (optional)</FormLabel>
+                <FormDescription>
+                  Select tags that best describe this resource
+                </FormDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {RESOURCE_TAGS.map((tag) => (
+                  <FormField
+                    key={tag}
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => {
+                      return (
+                        <FormItem
+                          key={tag}
+                          className="flex flex-row items-start space-x-2 space-y-0"
+                        >
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(tag)}
+                              onCheckedChange={(checked) => {
+                                const updatedTags = checked
+                                  ? [...(field.value || []), tag]
+                                  : (field.value || []).filter((value) => value !== tag);
+                                field.onChange(updatedTags);
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal cursor-pointer">
+                            {tag}
+                          </FormLabel>
+                        </FormItem>
+                      );
+                    }}
+                  />
+                ))}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end pt-2">
+          <DialogClose asChild>
+            <Button type="button" variant="outline" className="mr-2">
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button 
+            type="submit" 
+            disabled={addResourceMutation.isPending || updateResourceMutation.isPending}
+            className="flex items-center gap-1"
+          >
+            {(addResourceMutation.isPending || updateResourceMutation.isPending) && (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            )}
+            {editingResource ? 'Update Resource' : 'Add Resource'}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+
   if (isLoading) {
     return (
       <Card>
@@ -224,12 +343,154 @@ const ResourcesManagement = () => {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Resources</CardTitle>
-        <CardDescription>Add and manage helpful resources for your clients.</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div>
+          <CardTitle>Resources</CardTitle>
+          <CardDescription>Add and manage helpful resources for your clients.</CardDescription>
+        </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-1">
+              <Plus className="h-4 w-4" />
+              Add Resource
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Resource</DialogTitle>
+              <DialogDescription>
+                Add a helpful resource for your clients. This could be a video, article, or tool that they might find useful.
+              </DialogDescription>
+            </DialogHeader>
+            <ResourceForm />
+          </DialogContent>
+        </Dialog>
       </CardHeader>
+      
       <CardContent>
-        <p>Implementation of resources display and forms goes here.</p>
+        {resources && resources.length > 0 ? (
+          <div className="space-y-4">
+            {resources.map((resource) => (
+              <div key={resource.id} className="border rounded-md p-4 shadow-sm">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="mt-0.5 p-1.5 bg-muted rounded-md">
+                      {getIconForResource(resource.url)}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium">{resource.title}</h3>
+                      {resource.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{resource.description}</p>
+                      )}
+                      {resource.url && (
+                        <a 
+                          href={resource.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-sm flex items-center gap-1 mt-1"
+                        >
+                          {resource.url}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                      
+                      {resource.tags && resource.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {resource.tags.map(tag => (
+                            <div key={tag} className="flex items-center bg-muted text-xs px-2 py-1 rounded-full">
+                              <Tag className="h-3 w-3 mr-1 text-muted-foreground" />
+                              {tag}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Dialog open={isEditDialogOpen && editingResource?.id === resource.id} onOpenChange={(open) => {
+                      setIsEditDialogOpen(open);
+                      if (!open) setEditingResource(null);
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleEdit(resource)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Resource</DialogTitle>
+                          <DialogDescription>
+                            Update the details of this resource.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <ResourceForm />
+                      </DialogContent>
+                    </Dialog>
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <span className="sr-only">Delete</span>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Resource</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this resource? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(resource.id)}
+                            className="bg-red-500 hover:bg-red-600"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 border border-dashed rounded-lg">
+            <div className="mx-auto bg-muted w-12 h-12 flex items-center justify-center rounded-full mb-3">
+              <Book className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium mb-1">No resources yet</h3>
+            <p className="text-muted-foreground mb-4">
+              Add helpful resources for your clients to access.
+            </p>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Your First Resource
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Resource</DialogTitle>
+                  <DialogDescription>
+                    Add a helpful resource for your clients. This could be a video, article, or tool that they might find useful.
+                  </DialogDescription>
+                </DialogHeader>
+                <ResourceForm />
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

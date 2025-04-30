@@ -46,18 +46,31 @@ export const CopyWorkoutWeekDialog: React.FC<CopyWorkoutWeekDialogProps> = ({
   const [isCopying, setIsCopying] = useState(false);
   const { user } = useAuth();
 
-  const handleWeekSelect = async (weekId: string) => {
-    const { data: existingWorkouts } = await supabase
-      .from('workouts')
-      .select('id')
-      .eq('week_id', weekId);
+  // Reset state when dialog opens or closes
+  React.useEffect(() => {
+    if (!isOpen) {
+      setTargetWeekId("");
+      setShowOverwriteWarning(false);
+    }
+  }, [isOpen]);
 
-    if (existingWorkouts && existingWorkouts.length > 0) {
-      setTargetWeekId(weekId);
-      setShowOverwriteWarning(true);
-    } else {
-      setTargetWeekId(weekId);
-      handleCopyConfirm(weekId);
+  const handleWeekSelect = async (weekId: string) => {
+    try {
+      const { data: existingWorkouts } = await supabase
+        .from('workouts')
+        .select('id')
+        .eq('week_id', weekId);
+
+      if (existingWorkouts && existingWorkouts.length > 0) {
+        setTargetWeekId(weekId);
+        setShowOverwriteWarning(true);
+      } else {
+        setTargetWeekId(weekId);
+        handleCopyConfirm(weekId);
+      }
+    } catch (error) {
+      console.error("Failed to check existing workouts:", error);
+      toast.error("Failed to check target week data");
     }
   };
 
@@ -126,9 +139,16 @@ export const CopyWorkoutWeekDialog: React.FC<CopyWorkoutWeekDialogProps> = ({
 
       const targetWeek = allWeeks.find(w => w.id === weekIdToCopy);
       toast.success(`Workouts copied from Week ${sourceWeekNumber} to Week ${targetWeek?.week_number}`);
-      onCopyComplete();
-      onClose();
+      
+      // Make sure dialog is closed before calling callback
       setShowOverwriteWarning(false);
+      onClose();
+      
+      // Allow UI to update before triggering callback
+      setTimeout(() => {
+        onCopyComplete();
+      }, 100);
+      
     } catch (error: any) {
       toast.error(error.message || "Failed to copy workouts");
     } finally {
@@ -139,9 +159,19 @@ export const CopyWorkoutWeekDialog: React.FC<CopyWorkoutWeekDialogProps> = ({
   // Filter out the source week from target options
   const targetWeekOptions = allWeeks.filter(week => week.id !== sourceWeekId);
 
+  const handleAlertClose = () => {
+    setShowOverwriteWarning(false);
+  };
+
+  const handleDialogClose = () => {
+    if (!isCopying) {
+      onClose();
+    }
+  };
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={handleDialogClose}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Copy workouts from Week {sourceWeekNumber} to...</DialogTitle>
@@ -168,7 +198,7 @@ export const CopyWorkoutWeekDialog: React.FC<CopyWorkoutWeekDialogProps> = ({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showOverwriteWarning} onOpenChange={setShowOverwriteWarning}>
+      <AlertDialog open={showOverwriteWarning} onOpenChange={handleAlertClose}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -180,11 +210,14 @@ export const CopyWorkoutWeekDialog: React.FC<CopyWorkoutWeekDialogProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowOverwriteWarning(false)}>
+            <AlertDialogCancel onClick={handleAlertClose}>
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleCopyConfirm()}>
-              Continue
+            <AlertDialogAction 
+              onClick={() => handleCopyConfirm()}
+              disabled={isCopying}
+            >
+              {isCopying ? "Copying..." : "Continue"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

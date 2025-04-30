@@ -415,6 +415,24 @@ const WorkoutWeekDetailPage = () => {
     }
   };
 
+  const handleCopyWeekComplete = () => {
+    // Refresh workouts after a successful copy
+    if (weekId) {
+      setIsLoading(true);
+      fetchWorkoutsForWeek(weekId)
+        .then(workoutsData => {
+          setWorkouts(workoutsData);
+        })
+        .catch(error => {
+          console.error('Error refreshing workouts:', error);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+    setIsCopyWeekModalOpen(false);
+  };
+
   if (isLoading) {
     return (
       <CoachLayout>
@@ -743,16 +761,7 @@ const WorkoutWeekDetailPage = () => {
             sourceWeekId={weekId!}
             sourceWeekNumber={weekData.week_number}
             allWeeks={allWeeks}
-            onCopyComplete={() => {
-              // Refresh workouts list after copy
-              if (weekId) {
-                const loadWorkouts = async () => {
-                  const workoutsData = await fetchWorkoutsForWeek(weekId);
-                  setWorkouts(workoutsData);
-                };
-                loadWorkouts();
-              }
-            }}
+            onCopyComplete={handleCopyWeekComplete}
           />
         )}
       </div>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -63,10 +62,10 @@ const App: React.FC = () => {
 
   return (
     <Routes>
-      {/* Updated: Root redirects to our new landing page */}
-      <Route path="/" element={<Navigate to="/landing" replace />} />
+      {/* Root redirects to portals page */}
+      <Route path="/" element={<Navigate to="/portals" replace />} />
       
-      {/* New landing page route */}
+      {/* Keep landing page available as a separate route */}
       <Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
       
       {/* Add portals page route using the HomePage component */}

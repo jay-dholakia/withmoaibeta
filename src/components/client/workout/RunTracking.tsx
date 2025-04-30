@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Play, Square, AlertCircle, ArrowUp } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import '@/types/device-orientation.d.ts';
 
 interface RunTrackingProps {
   runId: string;
@@ -118,7 +119,7 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     if (!isTracking) return;
     
     const handleOrientation = (event: DeviceOrientationEvent) => {
-      if (event.webkitCompassHeading) {
+      if (event.webkitCompassHeading !== undefined) {
         // For iOS devices
         setUserHeading(event.webkitCompassHeading);
       } else if (event.alpha) {

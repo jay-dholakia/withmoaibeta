@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from 'sonner';
 import { useWorkoutDraft } from '@/hooks/useWorkoutDraft';
 import CardioWorkout from './workout/CardioWorkout';
+import { PendingCardio } from '@/types/active-workout';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -35,6 +36,7 @@ const ActiveWorkout = () => {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [workoutDataLoaded, setWorkoutDataLoaded] = useState(false);
   const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
+  const [pendingCardio, setPendingCardio] = useState<PendingCardio[]>([]);
 
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initCompleteForceCounter = useRef<number>(0);
@@ -462,6 +464,7 @@ const ActiveWorkout = () => {
       if (!updatedState[exerciseId]) {
         updatedState[exerciseId] = {
           expanded: true,
+          sets: [],
           cardioData: {
             distance: '',
             duration: '',
@@ -519,6 +522,7 @@ const ActiveWorkout = () => {
       if (!updatedState[exerciseId]) {
         updatedState[exerciseId] = {
           expanded: true,
+          sets: [],
           cardioData: {
             distance: '',
             duration: '',
@@ -966,9 +970,9 @@ const ActiveWorkout = () => {
         )
       ) : (
         <div className="text-center py-12">
-          {sortedExerciseIds.length === 0 && workout?.workout_type === 'cardio' ? (
+          {sortedExerciseIds.length === 0 && workoutData.workout?.workout_type === 'cardio' ? (
             <CardioWorkout
-              workoutId={workout.id}
+              workoutId={workoutData.workout.id}
               formatDurationInput={formatDurationInput}
               onCardioChange={handleCardioChange}
               onCardioCompletion={handleCardioCompletion}
@@ -980,7 +984,7 @@ const ActiveWorkout = () => {
                 ...((exerciseStates['cardio-placeholder'] || {}).cardioData || {})
               }}
               exerciseId={'cardio-placeholder'}
-              workoutTitle={workout.title}
+              workoutTitle={workoutData.workout.title}
             />
           ) : sortedExerciseIds.length === 0 ? (
             <div className="text-center py-12">

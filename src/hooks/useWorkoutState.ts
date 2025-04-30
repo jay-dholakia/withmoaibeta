@@ -97,6 +97,7 @@ export const useWorkoutState = (
         const initialState: ExerciseStates = {
           [cardioPlaceholderId]: {
             expanded: true,
+            sets: [], // Adding this to fix the type error
             cardioData: {
               distance: '',
               duration: '',

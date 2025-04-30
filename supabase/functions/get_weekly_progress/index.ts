@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { formatInTimeZone } from "https://esm.sh/date-fns-tz@3.0.0";
@@ -231,7 +232,7 @@ serve(async (req) => {
       console.log("Program type set to run based on program settings");
     }
 
-    // Count assigned strength workouts for the current week
+    // Count assigned strength/mobility workouts for the current week
     try {
       const { data: assignedWorkouts, error: assignedWorkoutsError } = await supabaseClient
         .from('workouts')
@@ -247,21 +248,44 @@ serve(async (req) => {
         workout => workout.workout_type === 'strength' || workout.workout_type === 'bodyweight'
       ) || [];
       
+      // Filter for mobility/flexibility workout types
+      const assignedMobilityWorkouts = assignedWorkouts?.filter(
+        workout => workout.workout_type === 'flexibility'
+      ) || [];
+      
       const assignedStrengthWorkoutsCount = assignedStrengthWorkouts.length;
+      const assignedMobilityWorkoutsCount = assignedMobilityWorkouts.length;
+      
+      // For run programs, track total strength AND mobility workouts
+      const totalAssignedStrengthMobilityWorkouts = assignedStrengthWorkoutsCount + assignedMobilityWorkoutsCount;
+      
       console.log(`Found ${assignedStrengthWorkoutsCount} assigned strength workouts for week ${currentWeekNumber}`);
+      console.log(`Found ${assignedMobilityWorkoutsCount} assigned mobility workouts for week ${currentWeekNumber}`);
+      console.log(`Total strength & mobility workouts: ${totalAssignedStrengthMobilityWorkouts}`);
     
       // Get target metrics from workout_weeks - ensure we use actual values
       let targetMilesRun = weekData?.target_miles_run || 0;
       let targetCardioMinutes = weekData?.target_cardio_minutes || 60;
-      // Use assigned workout count if available, otherwise fallback to week data or default
+      
+      // For strength programs: use assigned strength workouts count or fallback to manual target or default
       let targetStrengthWorkouts = assignedStrengthWorkoutsCount > 0 
         ? assignedStrengthWorkoutsCount 
         : (weekData?.target_strength_workouts || 5); // Default to 5 if no other values available
-      let targetMobilityWorkouts = weekData?.target_strength_mobility_workouts || 0;
+      
+      // For run programs: Use manual target if available, otherwise use count of assigned workouts
+      let targetMobilityWorkouts = programType === "moai_run"
+        ? (weekData?.target_strength_mobility_workouts !== null
+            ? weekData?.target_strength_mobility_workouts
+            : totalAssignedStrengthMobilityWorkouts > 0 
+              ? totalAssignedStrengthMobilityWorkouts 
+              : 0)
+        : (weekData?.target_strength_mobility_workouts || 0);
       
       console.log("Week Data Details:", {
         weekData: weekData,
-        assignedStrengthWorkoutsCount: assignedStrengthWorkoutsCount,
+        assignedStrengthWorkoutsCount,
+        assignedMobilityWorkoutsCount,
+        totalAssignedStrengthMobilityWorkouts
       });
 
       console.log("Target Strength Workouts Calculation:", {
@@ -271,12 +295,20 @@ serve(async (req) => {
         usingDefaultValue: targetStrengthWorkouts === 5
       });
       
+      console.log("Target Mobility Workouts Calculation:", {
+        finalTarget: targetMobilityWorkouts,
+        fromAssignedCount: totalAssignedStrengthMobilityWorkouts,
+        fromWeekData: weekData?.target_strength_mobility_workouts,
+      });
+      
       console.log("Program targets:", {
+        programType,
         targetMilesRun,
         targetCardioMinutes,
         targetStrengthWorkouts,
         targetMobilityWorkouts,
-        assignedStrengthWorkoutsCount
+        assignedStrengthWorkoutsCount,
+        assignedMobilityWorkoutsCount
       });
       
       // 5. Fetch completed workouts for the week
@@ -314,6 +346,9 @@ serve(async (req) => {
       const mobilityWorkouts = (workoutCompletions || []).filter(
         wc => wc.workout_type === 'flexibility' && wc.user_id === client_id
       ).length;
+      
+      // Total strength and mobility workouts (for run programs)
+      const totalStrengthMobilityWorkouts = strengthWorkouts + mobilityWorkouts;
       
       // Sum run distances from workout completions with workout_type = 'running'
       const milesRun = (workoutCompletions || [])
@@ -357,7 +392,7 @@ serve(async (req) => {
           },
           strength_mobility: { 
             target: targetMobilityWorkouts, 
-            actual: mobilityWorkouts 
+            actual: programType === "moai_run" ? totalStrengthMobilityWorkouts : mobilityWorkouts 
           },
           miles_run: { 
             target: targetMilesRun, 

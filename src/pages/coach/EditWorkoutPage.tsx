@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, Plus, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, Plus, Loader2, RefreshCw, AlertTriangle, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import { 
   fetchWorkout, 
   updateWorkout, 
@@ -174,7 +175,7 @@ const EditWorkoutPage = () => {
     }
   };
 
-  const handleDeleteExercise = async (exerciseId: string, workoutId: string) => {
+  const handleDeleteExercise = async (exerciseId: string) => {
     if (!workoutId) return;
     
     try {
@@ -199,12 +200,15 @@ const EditWorkoutPage = () => {
     
     try {
       setIsSubmitting(true);
+      console.log("Moving exercise up:", exerciseId);
       
-      await moveWorkoutExerciseUp(exerciseId, workoutId);
+      const result = await moveWorkoutExerciseUp(exerciseId, workoutId);
+      console.log("Move up result:", result);
       
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
+      toast.success('Exercise moved up');
     } catch (error) {
       console.error('Error moving exercise up:', error);
       toast.error('Failed to reorder exercise');
@@ -218,12 +222,15 @@ const EditWorkoutPage = () => {
     
     try {
       setIsSubmitting(true);
+      console.log("Moving exercise down:", exerciseId);
       
-      await moveWorkoutExerciseDown(exerciseId, workoutId);
+      const result = await moveWorkoutExerciseDown(exerciseId, workoutId);
+      console.log("Move down result:", result);
       
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
+      toast.success('Exercise moved down');
     } catch (error) {
       console.error('Error moving exercise down:', error);
       toast.error('Failed to reorder exercise');

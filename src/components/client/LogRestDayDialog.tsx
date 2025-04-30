@@ -16,7 +16,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { CalendarIcon, Armchair } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { RestLog, logRestDay } from "@/services/activity-logging-service";
+import { RestDayLog, logRestDay } from "@/services/activity-logging-service";
 
 interface LogRestDayDialogProps {
   open: boolean;
@@ -39,9 +39,10 @@ export const LogRestDayDialog: React.FC<LogRestDayDialogProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
 
-    const restData: RestLog = {
+    const restData: RestDayLog = {
       log_date: date,
-      notes
+      notes,
+      workout_type: 'rest_day'
     };
 
     try {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { CalendarIcon, Armchair, ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { RestLog, logRestDay } from '@/services/activity-logging-service';
+import { RestDayLog, logRestDay } from '@/services/activity-logging-service';
 
 const LogRestDayPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,9 +26,10 @@ const LogRestDayPage: React.FC = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const restData: RestLog = {
+    const restData: RestDayLog = {
       log_date: date,
-      notes
+      notes,
+      workout_type: 'rest_day'
     };
 
     try {

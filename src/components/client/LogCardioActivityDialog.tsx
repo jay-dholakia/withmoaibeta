@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, 
@@ -72,7 +73,8 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
         log_date: date,
         activity_type: activityType,
         duration: parsedDuration,
-        notes
+        notes,
+        workout_type: 'cardio'
       };
       
       console.log("Submitting cardio data from dialog:", cardioData);

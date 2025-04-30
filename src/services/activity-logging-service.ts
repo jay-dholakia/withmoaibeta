@@ -8,7 +8,7 @@ export interface RunLog {
   duration: number;
   location?: string;
   notes?: string;
-  workout_type: string; // Add this property
+  workout_type: string;
 }
 
 export interface CardioLog {
@@ -16,12 +16,97 @@ export interface CardioLog {
   activity_type: string;
   duration: number;
   notes?: string;
-  workout_type: string; // Add this property
+  workout_type: string;
 }
 
 export interface RestDayLog {
   log_date: Date;
   notes?: string;
+  workout_type?: string; // Make this optional for backward compatibility
+}
+
+// Add these missing functions for WorkoutHistoryTab.tsx
+export async function getClientRunActivities(startDate: Date, endDate: Date): Promise<RunLog[]> {
+  try {
+    const { data, error } = await supabase
+      .from('workout_completions')
+      .select('*')
+      .eq('workout_type', 'running')
+      .gte('completed_at', startDate.toISOString())
+      .lte('completed_at', endDate.toISOString())
+      .order('completed_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching run activities:', error);
+      return [];
+    }
+    
+    return data.map(item => ({
+      log_date: new Date(item.completed_at),
+      distance: parseFloat(item.distance || '0'),
+      duration: parseInt(item.duration || '0', 10),
+      location: item.location || '',
+      notes: item.notes || '',
+      workout_type: item.workout_type || 'running'
+    }));
+  } catch (error) {
+    console.error('Error in getClientRunActivities:', error);
+    return [];
+  }
+}
+
+export async function getClientCardioActivities(startDate: Date, endDate: Date): Promise<CardioLog[]> {
+  try {
+    const { data, error } = await supabase
+      .from('workout_completions')
+      .select('*')
+      .eq('workout_type', 'cardio')
+      .gte('completed_at', startDate.toISOString())
+      .lte('completed_at', endDate.toISOString())
+      .order('completed_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching cardio activities:', error);
+      return [];
+    }
+    
+    return data.map(item => ({
+      log_date: new Date(item.completed_at),
+      activity_type: item.title || 'Cardio',
+      duration: parseInt(item.duration || '0', 10),
+      notes: item.notes || '',
+      workout_type: item.workout_type || 'cardio'
+    }));
+  } catch (error) {
+    console.error('Error in getClientCardioActivities:', error);
+    return [];
+  }
+}
+
+export async function getClientRestDays(startDate: Date, endDate: Date): Promise<RestDayLog[]> {
+  try {
+    const { data, error } = await supabase
+      .from('workout_completions')
+      .select('*')
+      .eq('workout_type', 'rest_day')
+      .gte('completed_at', startDate.toISOString())
+      .lte('completed_at', endDate.toISOString())
+      .order('completed_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching rest days:', error);
+      return [];
+    }
+    
+    return data.map(item => ({
+      log_date: new Date(item.completed_at),
+      notes: item.notes || '',
+      workout_type: 'rest_day'
+    }));
+  } catch (error) {
+    console.error('Error in getClientRestDays:', error);
+    return [];
+  }
 }
 
 export async function logRunActivity(runData: RunLog): Promise<boolean> {
@@ -92,7 +177,8 @@ export async function logRestDay(restData: RestDayLog): Promise<boolean> {
         activity_type: 'rest',
         activity_data: {
           date: restData.log_date,
-          notes: restData.notes || ''
+          notes: restData.notes || '',
+          workout_type: restData.workout_type || 'rest_day'
         }
       }
     });

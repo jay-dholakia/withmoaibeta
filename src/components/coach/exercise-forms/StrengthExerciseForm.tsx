@@ -20,6 +20,29 @@ export const StrengthExerciseForm: React.FC<StrengthExerciseFormProps> = ({
   restSeconds,
   setRestSeconds
 }) => {
+  const handleSetsChange = (value: string) => {
+    const numericValue = parseInt(value);
+    if (!isNaN(numericValue) && numericValue > 0) {
+      setSets(numericValue);
+    } else if (value === '') {
+      setSets(1); // Default to 1 if empty
+    }
+  };
+
+  const handleRepsChange = (value: string) => {
+    // Allow any reps format including numbers or text with "s" for seconds
+    setReps(value);
+  };
+
+  const handleRestChange = (value: string) => {
+    const numericValue = parseInt(value);
+    if (!isNaN(numericValue) && numericValue >= 0) {
+      setRestSeconds(numericValue);
+    } else if (value === '') {
+      setRestSeconds(0);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -28,7 +51,7 @@ export const StrengthExerciseForm: React.FC<StrengthExerciseFormProps> = ({
           id="sets"
           type="number"
           value={sets}
-          onChange={(e) => setSets(Number(e.target.value))}
+          onChange={(e) => handleSetsChange(e.target.value)}
           min={1}
           className="w-full text-center"
         />
@@ -46,7 +69,7 @@ export const StrengthExerciseForm: React.FC<StrengthExerciseFormProps> = ({
             <Input
               id="reps"
               value={reps}
-              onChange={(e) => setReps(e.target.value)}
+              onChange={(e) => handleRepsChange(e.target.value)}
               placeholder="e.g., 10 or 30s"
               className="w-full text-center min-w-0 px-2"
               type="text"
@@ -73,7 +96,7 @@ export const StrengthExerciseForm: React.FC<StrengthExerciseFormProps> = ({
           id="rest"
           type="number"
           value={restSeconds}
-          onChange={(e) => setRestSeconds(Number(e.target.value))}
+          onChange={(e) => handleRestChange(e.target.value)}
           min={0}
           className="w-full text-center"
         />

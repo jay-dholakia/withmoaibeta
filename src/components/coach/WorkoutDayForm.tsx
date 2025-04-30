@@ -263,12 +263,21 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     try {
       setIsSubmitting(true);
       
-      const updatedExercises = await moveWorkoutExerciseUp(exerciseId, workoutId);
-      setExercises(updatedExercises);
-      
-    } catch (error) {
-      console.error('Error moving exercise up:', error);
-      toast.error('Failed to reorder exercise');
+      try {
+        const updatedExercises = await moveWorkoutExerciseUp(exerciseId, workoutId);
+        
+        if (Array.isArray(updatedExercises) && updatedExercises.length > 0) {
+          setExercises(updatedExercises);
+          toast.success('Exercise moved up');
+        } else {
+          // Fallback if no exercises are returned
+          const refreshedExercises = await fetchWorkoutExercises(workoutId);
+          setExercises(refreshedExercises);
+        }
+      } catch (error) {
+        console.error('Error moving exercise up:', error);
+        toast.error('Failed to reorder exercise');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -280,12 +289,21 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     try {
       setIsSubmitting(true);
       
-      const updatedExercises = await moveWorkoutExerciseDown(exerciseId, workoutId);
-      setExercises(updatedExercises);
-      
-    } catch (error) {
-      console.error('Error moving exercise down:', error);
-      toast.error('Failed to reorder exercise');
+      try {
+        const updatedExercises = await moveWorkoutExerciseDown(exerciseId, workoutId);
+        
+        if (Array.isArray(updatedExercises) && updatedExercises.length > 0) {
+          setExercises(updatedExercises);
+          toast.success('Exercise moved down');
+        } else {
+          // Fallback if no exercises are returned
+          const refreshedExercises = await fetchWorkoutExercises(workoutId);
+          setExercises(refreshedExercises);
+        }
+      } catch (error) {
+        console.error('Error moving exercise down:', error);
+        toast.error('Failed to reorder exercise');
+      }
     } finally {
       setIsSubmitting(false);
     }

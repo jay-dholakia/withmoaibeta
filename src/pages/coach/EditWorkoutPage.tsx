@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, Plus, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, Plus, Loader2, RefreshCw, AlertTriangle, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import { 
   fetchWorkout, 
   updateWorkout, 
@@ -174,7 +174,7 @@ const EditWorkoutPage = () => {
     }
   };
 
-  const handleDeleteExercise = async (exerciseId: string, workoutId: string) => {
+  const handleDeleteExercise = async (exerciseId: string) => {
     if (!workoutId) return;
     
     try {
@@ -199,15 +199,24 @@ const EditWorkoutPage = () => {
     
     try {
       setIsSubmitting(true);
+      console.log("Moving exercise up:", exerciseId);
       
-      await moveWorkoutExerciseUp(exerciseId, workoutId);
-      
-      const updatedExercises = await fetchWorkoutExercises(workoutId);
-      setExercises(updatedExercises);
-      
-    } catch (error) {
-      console.error('Error moving exercise up:', error);
-      toast.error('Failed to reorder exercise');
+      try {
+        const updatedExercises = await moveWorkoutExerciseUp(exerciseId, workoutId);
+        console.log("Move up result:", updatedExercises);
+        
+        if (Array.isArray(updatedExercises) && updatedExercises.length > 0) {
+          setExercises(updatedExercises);
+          toast.success('Exercise moved up');
+        } else {
+          // Fallback if no exercises are returned
+          const refreshedExercises = await fetchWorkoutExercises(workoutId);
+          setExercises(refreshedExercises);
+        }
+      } catch (error) {
+        console.error('Error moving exercise up:', error);
+        toast.error('Failed to reorder exercise');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -218,15 +227,24 @@ const EditWorkoutPage = () => {
     
     try {
       setIsSubmitting(true);
+      console.log("Moving exercise down:", exerciseId);
       
-      await moveWorkoutExerciseDown(exerciseId, workoutId);
-      
-      const updatedExercises = await fetchWorkoutExercises(workoutId);
-      setExercises(updatedExercises);
-      
-    } catch (error) {
-      console.error('Error moving exercise down:', error);
-      toast.error('Failed to reorder exercise');
+      try {
+        const updatedExercises = await moveWorkoutExerciseDown(exerciseId, workoutId);
+        console.log("Move down result:", updatedExercises);
+        
+        if (Array.isArray(updatedExercises) && updatedExercises.length > 0) {
+          setExercises(updatedExercises);
+          toast.success('Exercise moved down');
+        } else {
+          // Fallback if no exercises are returned
+          const refreshedExercises = await fetchWorkoutExercises(workoutId);
+          setExercises(refreshedExercises);
+        }
+      } catch (error) {
+        console.error('Error moving exercise down:', error);
+        toast.error('Failed to reorder exercise');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -440,7 +458,7 @@ const EditWorkoutPage = () => {
                         <Button 
                           variant="destructive" 
                           size="sm"
-                          onClick={() => handleDeleteExercise(exercise.id, workoutId as string)}
+                          onClick={() => handleDeleteExercise(exercise.id)}
                           disabled={isSubmitting}
                         >
                           Delete

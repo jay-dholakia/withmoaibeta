@@ -21,6 +21,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -110,7 +111,7 @@ const WorkoutExercisesPage = () => {
     }
   };
 
-  const handleDeleteExercise = async (exerciseId: string, workoutId: string) => {
+  const handleDeleteExercise = async (exerciseId: string) => {
     if (!workoutId) return;
     
     try {
@@ -136,13 +137,16 @@ const WorkoutExercisesPage = () => {
     
     try {
       setIsSubmitting(true);
+      console.log("Moving exercise up:", exerciseId);
       
-      await moveWorkoutExerciseUp(exerciseId, workoutId);
+      const result = await moveWorkoutExerciseUp(exerciseId, workoutId);
+      console.log("Move up result:", result);
       
       // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
+      toast.success('Exercise moved up');
     } catch (error) {
       console.error('Error moving exercise up:', error);
       toast.error('Failed to reorder exercise');
@@ -156,13 +160,16 @@ const WorkoutExercisesPage = () => {
     
     try {
       setIsSubmitting(true);
+      console.log("Moving exercise down:", exerciseId);
       
-      await moveWorkoutExerciseDown(exerciseId, workoutId);
+      const result = await moveWorkoutExerciseDown(exerciseId, workoutId);
+      console.log("Move down result:", result);
       
       // Refresh the exercises list
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);
       
+      toast.success('Exercise moved down');
     } catch (error) {
       console.error('Error moving exercise down:', error);
       toast.error('Failed to reorder exercise');
@@ -248,7 +255,7 @@ const WorkoutExercisesPage = () => {
                         <Button 
                           variant="destructive" 
                           size="sm"
-                          onClick={() => handleDeleteExercise(exercise.id, workoutId as string)}
+                          onClick={() => handleDeleteExercise(exercise.id)}
                           disabled={isSubmitting}
                         >
                           Delete
@@ -272,6 +279,9 @@ const WorkoutExercisesPage = () => {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Add Exercise to Workout</DialogTitle>
+            <DialogDescription>
+              Select an exercise to add to this workout
+            </DialogDescription>
           </DialogHeader>
           <ExerciseSelector
             onSelectExercise={() => {}} // We're using the legacy onSelect flow

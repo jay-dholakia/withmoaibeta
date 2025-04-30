@@ -576,6 +576,49 @@ const ActiveWorkout = () => {
     }
   };
 
+  const isStrengthExercise = (exercise: any): boolean => {
+    if (!exercise || !exercise.currentExercise) return true; // Default to strength
+    
+    const exerciseType = exercise.currentExercise.exercise_type || '';
+    const exerciseName = (exercise.currentExercise.name || '').toLowerCase();
+    const exerciseMuscleGroup = (exercise.currentExercise.muscle_group || '').toLowerCase();
+    
+    // List of terms commonly found in strength exercise names
+    const strengthTerms = [
+      'press', 'bench', 'squat', 'curl', 'row', 'deadlift',
+      'overhead', 'barbell', 'dumbbell', 'machine', 'cable',
+      'pushup', 'pullup', 'chinup', 'extension', 'flexion',
+      'raise', 'fly', 'flye', 'lateral', 'front', 'pushdown'
+    ];
+    
+    // Check if name contains common strength exercise terms
+    if (strengthTerms.some(term => exerciseName.includes(term))) {
+      return true;
+    }
+    
+    // Check muscle group
+    if (
+      exerciseMuscleGroup.includes('chest') ||
+      exerciseMuscleGroup.includes('back') ||
+      exerciseMuscleGroup.includes('leg') ||
+      exerciseMuscleGroup.includes('arm') ||
+      exerciseMuscleGroup.includes('shoulder') ||
+      exerciseMuscleGroup.includes('tricep') ||
+      exerciseMuscleGroup.includes('bicep') ||
+      exerciseMuscleGroup.includes('quad') ||
+      exerciseMuscleGroup.includes('hamstring')
+    ) {
+      return true;
+    }
+    
+    // Check exercise type
+    if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
+      return true;
+    }
+    
+    return false;
+  };
+
   const renderExerciseCard = (exercise: WorkoutExercise) => {
     if (!exercise) {
       console.log(`Cannot render null or undefined exercise`);
@@ -589,17 +632,13 @@ const ActiveWorkout = () => {
         expanded: true,
         exercise_id: exercise.exercise?.id,
         currentExercise: exercise.exercise,
-        sets: [],
-      };
-      
-      if (exercise.exercise?.exercise_type === 'strength' || exercise.exercise?.exercise_type === 'bodyweight') {
-        fallbackState.sets = Array.from({ length: exercise.sets || 1 }, (_, i) => ({
+        sets: Array.from({ length: exercise.sets || 1 }, (_, i) => ({
           setNumber: i + 1,
           weight: '',
           reps: exercise.reps || '',
           completed: false,
-        }));
-      }
+        })),
+      };
       
       setExerciseStates(prev => ({
         ...prev,
@@ -615,6 +654,16 @@ const ActiveWorkout = () => {
     const exerciseName = currentExercise?.name || exercise.exercise?.name || '';
     const exerciseType = currentExercise?.exercise_type || exercise.exercise?.exercise_type || 'strength';
     const description = currentExercise?.description || exercise.exercise?.description || '';
+
+    // Check for "press" in the exercise name for debugging
+    if (exerciseName.toLowerCase().includes('press')) {
+      console.log(`Press exercise detected: ${exerciseName}`, {
+        exerciseId: exercise.id,
+        exerciseType: exerciseType,
+        sets: exerciseStates[exercise.id].sets?.length,
+        isStrengthByFunction: isStrengthExercise(exerciseStates[exercise.id])
+      });
+    }
 
     return (
       <Card key={exercise.id} className="mb-6">
@@ -644,7 +693,7 @@ const ActiveWorkout = () => {
 
         {expanded && (
           <CardContent className="pt-0 px-3 pb-2">
-            {exerciseType === 'strength' && (
+            {(exerciseType === 'strength' || isStrengthExercise(exerciseStates[exercise.id])) && (
               <StrengthExercise 
                 exercise={{
                   ...exercise,
@@ -659,7 +708,7 @@ const ActiveWorkout = () => {
               />
             )}
             
-            {exerciseType === 'cardio' && (
+            {exerciseType === 'cardio' && !isStrengthExercise(exerciseStates[exercise.id]) && (
               <CardioExercise 
                 exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
@@ -670,7 +719,7 @@ const ActiveWorkout = () => {
               />
             )}
             
-            {exerciseType === 'flexibility' && (
+            {exerciseType === 'flexibility' && !isStrengthExercise(exerciseStates[exercise.id]) && (
               <FlexibilityExercise 
                 exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}
@@ -681,7 +730,7 @@ const ActiveWorkout = () => {
               />
             )}
             
-            {(exerciseName.toLowerCase().includes('run') || exerciseName.toLowerCase().includes('running')) && (
+            {isRunExercise(exerciseStates[exercise.id]) && (
               <RunExercise 
                 exercise={exercise}
                 exerciseState={exerciseStates[exercise.id]}

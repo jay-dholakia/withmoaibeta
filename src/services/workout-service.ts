@@ -689,39 +689,65 @@ export const deleteWorkoutExercise = async (exerciseId: string) => {
  */
 export const moveWorkoutExerciseUp = async (exerciseId: string, workoutId: string) => {
   try {
-    // Get current exercises
-    const { data: exercises } = await supabase
+    console.log("Service: Moving exercise up", { exerciseId, workoutId });
+    
+    // First, get all exercises for the workout to find the current exercise and its position
+    const { data: exercises, error: exerciseError } = await supabase
       .from('workout_exercises')
-      .select('id, order_index')
+      .select('*')
       .eq('workout_id', workoutId)
       .order('order_index', { ascending: true });
-
-    if (!exercises || exercises.length < 2) {
+    
+    if (exerciseError || !exercises || exercises.length === 0) {
+      console.error("Error fetching exercises:", exerciseError);
+      throw new Error("Could not fetch exercises");
+    }
+    
+    // Find the current exercise
+    const currentExercise = exercises.find(ex => ex.id === exerciseId);
+    if (!currentExercise) {
+      throw new Error("Could not find current exercise in the list");
+    }
+    
+    const currentIndex = exercises.findIndex(ex => ex.id === exerciseId);
+    
+    // If it's already at the top (index 0), do nothing
+    if (currentIndex === 0) {
+      console.log("Exercise already at the top, cannot move up further");
       return exercises;
     }
-
-    const currentIndex = exercises.findIndex(e => e.id === exerciseId);
     
-    if (currentIndex <= 0) {
-      return exercises; // Already at the top
-    }
-
-    const previousExercise = exercises[currentIndex - 1];
-    const currentExercise = exercises[currentIndex];
-
-    // Swap order indices
-    await supabase
+    // Find the exercise above it in the sorted list
+    const aboveExercise = exercises[currentIndex - 1];
+    
+    // Swap their order_index values
+    const currentOrderIndex = currentExercise.order_index;
+    const aboveOrderIndex = aboveExercise.order_index;
+    
+    // Update the current exercise's order_index
+    const { error: updateCurrentError } = await supabase
       .from('workout_exercises')
-      .update({ order_index: currentExercise.order_index })
-      .eq('id', previousExercise.id);
-
-    await supabase
-      .from('workout_exercises')
-      .update({ order_index: previousExercise.order_index })
+      .update({ order_index: aboveOrderIndex })
       .eq('id', exerciseId);
-
+    
+    if (updateCurrentError) {
+      console.error("Error updating current exercise:", updateCurrentError);
+      throw new Error("Failed to update current exercise");
+    }
+    
+    // Update the above exercise's order_index
+    const { error: updateAboveError } = await supabase
+      .from('workout_exercises')
+      .update({ order_index: currentOrderIndex })
+      .eq('id', aboveExercise.id);
+    
+    if (updateAboveError) {
+      console.error("Error updating exercise above:", updateAboveError);
+      throw new Error("Failed to update exercise above");
+    }
+    
     // Get updated exercises
-    const { data: updatedExercises } = await supabase
+    const { data: updatedExercises, error: fetchError } = await supabase
       .from('workout_exercises')
       .select(`
         *,
@@ -729,10 +755,16 @@ export const moveWorkoutExerciseUp = async (exerciseId: string, workoutId: strin
       `)
       .eq('workout_id', workoutId)
       .order('order_index', { ascending: true });
-
+      
+    if (fetchError) {
+      console.error("Error fetching updated exercises:", fetchError);
+      throw new Error("Failed to fetch updated exercises");
+    }
+    
+    console.log("Successfully moved exercise up");
     return updatedExercises || [];
   } catch (error) {
-    console.error('Error moving workout exercise up:', error);
+    console.error("Error in moveWorkoutExerciseUp:", error);
     throw error;
   }
 };
@@ -742,39 +774,64 @@ export const moveWorkoutExerciseUp = async (exerciseId: string, workoutId: strin
  */
 export const moveWorkoutExerciseDown = async (exerciseId: string, workoutId: string) => {
   try {
-    // Get current exercises
-    const { data: exercises } = await supabase
+    console.log("Service: Moving exercise down", { exerciseId, workoutId });
+    
+    // Get all exercises for the workout to find the current exercise and its position
+    const { data: exercises, error: exerciseError } = await supabase
       .from('workout_exercises')
-      .select('id, order_index')
+      .select('*')
       .eq('workout_id', workoutId)
       .order('order_index', { ascending: true });
-
-    if (!exercises || exercises.length < 2) {
+    
+    if (exerciseError || !exercises || exercises.length === 0) {
+      console.error("Error fetching exercises:", exerciseError);
+      throw new Error("Could not fetch exercises");
+    }
+    
+    // Find the current exercise in the sorted array
+    const currentIndex = exercises.findIndex(ex => ex.id === exerciseId);
+    if (currentIndex === -1) {
+      throw new Error("Could not find current exercise in the list");
+    }
+    
+    // If it's already at the bottom, do nothing
+    if (currentIndex === exercises.length - 1) {
+      console.log("Exercise already at the bottom, cannot move down further");
       return exercises;
     }
-
-    const currentIndex = exercises.findIndex(e => e.id === exerciseId);
     
-    if (currentIndex === -1 || currentIndex >= exercises.length - 1) {
-      return exercises; // Already at the bottom or not found
-    }
-
-    const nextExercise = exercises[currentIndex + 1];
+    // Get the current exercise and the one below it
     const currentExercise = exercises[currentIndex];
-
-    // Swap order indices
-    await supabase
+    const belowExercise = exercises[currentIndex + 1];
+    
+    // Swap their order_index values
+    const currentOrderIndex = currentExercise.order_index;
+    const belowOrderIndex = belowExercise.order_index;
+    
+    // Update the current exercise's order_index
+    const { error: updateCurrentError } = await supabase
       .from('workout_exercises')
-      .update({ order_index: currentExercise.order_index })
-      .eq('id', nextExercise.id);
-
-    await supabase
-      .from('workout_exercises')
-      .update({ order_index: nextExercise.order_index })
+      .update({ order_index: belowOrderIndex })
       .eq('id', exerciseId);
-
+    
+    if (updateCurrentError) {
+      console.error("Error updating current exercise:", updateCurrentError);
+      throw new Error("Failed to update current exercise");
+    }
+    
+    // Update the below exercise's order_index
+    const { error: updateBelowError } = await supabase
+      .from('workout_exercises')
+      .update({ order_index: currentOrderIndex })
+      .eq('id', belowExercise.id);
+    
+    if (updateBelowError) {
+      console.error("Error updating exercise below:", updateBelowError);
+      throw new Error("Failed to update exercise below");
+    }
+    
     // Get updated exercises
-    const { data: updatedExercises } = await supabase
+    const { data: updatedExercises, error: fetchError } = await supabase
       .from('workout_exercises')
       .select(`
         *,
@@ -782,10 +839,16 @@ export const moveWorkoutExerciseDown = async (exerciseId: string, workoutId: str
       `)
       .eq('workout_id', workoutId)
       .order('order_index', { ascending: true });
-
+      
+    if (fetchError) {
+      console.error("Error fetching updated exercises:", fetchError);
+      throw new Error("Failed to fetch updated exercises");
+    }
+    
+    console.log("Successfully moved exercise down");
     return updatedExercises || [];
   } catch (error) {
-    console.error('Error moving workout exercise down:', error);
+    console.error("Error in moveWorkoutExerciseDown:", error);
     throw error;
   }
 };

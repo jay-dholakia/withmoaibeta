@@ -37,6 +37,9 @@ export const StrengthExercise: React.FC<Props> = ({
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
   const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>(exercise.exercise);
 
+  // Check if exercise has sets
+  const hasSets = exerciseState && exerciseState.sets && exerciseState.sets.length > 0;
+
   // Update currentExercise if the parent component passes a different exercise
   useEffect(() => {
     if (exercise.exercise && exercise.exercise.id !== currentExercise?.id) {
@@ -83,6 +86,52 @@ export const StrengthExercise: React.FC<Props> = ({
       setCurrentExercise(exercise.exercise);
     }
   };
+
+  // If there are no sets in the exercise state, we should check and alert about potential setup issues
+  if (!hasSets) {
+    console.warn(`Exercise ${exercise.id} (${currentExercise?.name}) has no sets in state:`, exerciseState);
+    
+    // Still try to render something, but with a fallback
+    return (
+      <div className="space-y-3">
+        <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-2">
+          <p className="text-amber-800 text-sm">
+            This exercise needs to be set up properly. Please check the exercise type.
+          </p>
+        </div>
+        <div className="flex justify-end mt-2 space-x-2">
+          {currentExercise?.youtube_link && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setIsVideoOpen(true)}
+            >
+              <Youtube className="h-4 w-4 mr-1" /> Demo
+            </Button>
+          )}
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            disabled={isLoading}
+            onClick={() => setIsSwapDialogOpen(true)}
+          >
+            <ArrowRightLeft className="h-4 w-4 mr-1" /> 
+            {isLoading ? 'Loading...' : 'Swap'}
+          </Button>
+        </div>
+        
+        {currentExercise?.youtube_link && isVideoOpen && (
+          <VideoDialog 
+            isOpen={isVideoOpen}
+            onClose={() => setIsVideoOpen(false)}
+            videoUrl={currentExercise.youtube_link}
+            exerciseName={currentExercise.name || 'Exercise'}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">

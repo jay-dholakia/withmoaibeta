@@ -8,23 +8,23 @@ import { PageTransition } from '@/components/PageTransition';
 import { toast } from 'sonner';
 
 const ClientLogin = () => {
-  const { user, userType, loading } = useAuth();
+  const { user, userType, authLoading } = useAuth();
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     // Only proceed if authentication is complete and we have a client user
-    if (!loading && user && userType === 'client') {
+    if (!authLoading && user && userType === 'client') {
       console.log('ClientLogin: Authenticated user detected:', user.id);
       setIsRedirecting(true);
       
       // Navigate to client dashboard immediately
       navigate('/client-dashboard/moai', { replace: true });
     }
-  }, [user, userType, loading, navigate]);
+  }, [user, userType, authLoading, navigate]);
 
   // If we're already logged in, show a minimal loading state
-  if (isRedirecting || (!loading && user && userType === 'client')) {
+  if (isRedirecting || (!authLoading && user && userType === 'client')) {
     return (
       <AuthLayout 
         variant="client"

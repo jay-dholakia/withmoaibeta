@@ -21,16 +21,19 @@ export interface ExerciseState {
     duration: string;
     location: string;
     completed: boolean;
+    workout_type: string; // Ensure workout_type is saved
   };
   flexibilityData?: {
     duration: string;
     completed: boolean;
+    workout_type: string; // Ensure workout_type is saved
   };
   runData?: {
     distance: string;
     duration: string;
     location: string;
     completed: boolean;
+    workout_type: string; // Ensure workout_type is saved
   };
 }
 
@@ -50,11 +53,15 @@ export interface PendingCardio {
   distance: string;
   duration: string;
   location: string;
+  completed: boolean;
+  workout_type: string; // Ensure workout_type is passed
 }
 
 export interface PendingFlexibility {
   exerciseId: string;
   duration: string;
+  completed: boolean;
+  workout_type: string; // Ensure workout_type is passed
 }
 
 export interface PendingRun {
@@ -62,4 +69,6 @@ export interface PendingRun {
   distance: string;
   duration: string;
   location: string;
+  completed: boolean;
+  workout_type: string; // Ensure workout_type is passed
 }

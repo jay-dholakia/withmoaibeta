@@ -184,7 +184,8 @@ export const useWorkoutInitialization = ({
           distance: '',
           duration: '',
           location: '',
-          completed: false
+          completed: false,
+          workout_type: 'running' // Add workout_type
         }
       };
     } else if (exerciseType === 'strength' || exerciseType === 'bodyweight') {
@@ -211,7 +212,8 @@ export const useWorkoutInitialization = ({
           distance: '',
           duration: '',
           location: '',
-          completed: false
+          completed: false,
+          workout_type: 'cardio' // Add workout_type
         }
       };
     } else if (exerciseType === 'flexibility') {
@@ -222,7 +224,8 @@ export const useWorkoutInitialization = ({
         sets: [],
         flexibilityData: {
           duration: '',
-          completed: false
+          completed: false,
+          workout_type: 'flexibility' // Add workout_type
         }
       };
     }

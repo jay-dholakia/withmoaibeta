@@ -9,7 +9,7 @@ import { Lightbulb } from 'lucide-react';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const { user, userType, loading: authLoading } = useAuth();
+  const { user, userType, authLoading } = useAuth();
   const [localLoading, setLocalLoading] = useState(false);
   const [hasAttemptedRedirect, setHasAttemptedRedirect] = useState(false);
   const [forceSafetyReset, setForceSafetyReset] = useState(false);

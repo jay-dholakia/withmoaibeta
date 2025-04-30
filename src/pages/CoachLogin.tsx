@@ -7,15 +7,15 @@ import { Lightbulb } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const CoachLogin = () => {
-  const { user, userType, loading } = useAuth();
+  const { user, userType, authLoading } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
-    if (user && userType === 'coach' && !loading) {
+    if (user && userType === 'coach' && !authLoading) {
       console.log('Coach authenticated, redirecting to dashboard');
       navigate('/coach-dashboard');
     }
-  }, [user, userType, loading, navigate]);
+  }, [user, userType, authLoading, navigate]);
 
   return (
     <AuthLayout 

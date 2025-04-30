@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Container } from '@/components/ui/container';
 import { useAuth } from '@/contexts/AuthContext';
@@ -116,6 +117,7 @@ const LeaderboardPage = () => {
           if (!isValid(date) || isFuture(date)) return;
           
           const dateKey = formatInTimeZone(date, 'America/Los_Angeles', 'yyyy-MM-dd');
+          console.log(`Processing workout for date key: ${dateKey}`);
           
           if (item.life_happens_pass || item.rest_day) {
             typesMap[dateKey] = 'rest_day';
@@ -124,6 +126,20 @@ const LeaderboardPage = () => {
           
           const workoutType = item.workout_type || item.workout?.workout_type || '';
           
+          // Check for run/distance related data first
+          if (item.distance) {
+            console.log(`Found workout with distance for ${dateKey}: ${item.distance}`);
+            typesMap[dateKey] = 'running';
+            return;
+          }
+          
+          if (workoutType.toLowerCase().includes('run')) {
+            console.log(`Found running workout for ${dateKey}: ${workoutType}`);
+            typesMap[dateKey] = 'running';
+            return;
+          }
+          
+          // Then check for other workout types
           if (workoutType.toLowerCase().includes('basketball')) typesMap[dateKey] = 'basketball';
           else if (workoutType.toLowerCase().includes('golf')) typesMap[dateKey] = 'golf';
           else if (workoutType.toLowerCase().includes('volleyball')) typesMap[dateKey] = 'volleyball';
@@ -141,6 +157,7 @@ const LeaderboardPage = () => {
           else if (workoutType.toLowerCase().includes('dance')) typesMap[dateKey] = 'dance';
           else if (workoutType.toLowerCase().includes('cycl') || workoutType.toLowerCase().includes('bike')) typesMap[dateKey] = 'cycling';
           else if (workoutType.toLowerCase().includes('custom')) typesMap[dateKey] = 'custom';
+          else if (item.title && item.title.toLowerCase().includes('run')) typesMap[dateKey] = 'running';
           else typesMap[dateKey] = 'custom';
         } catch (err) {
           console.error('Error processing workout date:', err, item.completed_at);

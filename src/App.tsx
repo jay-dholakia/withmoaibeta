@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -8,6 +7,7 @@ import AdminLogin from './pages/AdminLogin';
 import PasswordResetRequestPage from './pages/client/PasswordResetRequestPage';
 import ResetPasswordPage from './pages/ResetPassword';
 import RegisterPage from './pages/Register';
+import LandingPage from './pages/LandingPage';
 import HomePage from './pages/Index';
 import ClientDashboard from './pages/client/ClientDashboard';
 import CoachDashboard from './pages/coach/CoachDashboard';
@@ -49,9 +49,9 @@ import ProfileBuilder from './pages/client/ProfileBuilder';
 import NotFound from './pages/NotFound';
 
 const App: React.FC = () => {
-  const { loading } = useAuth();
+  const { authLoading } = useAuth();
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <span className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></span>
@@ -62,7 +62,15 @@ const App: React.FC = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<PublicRoute><HomePage /></PublicRoute>} />
+      {/* Root redirects to portals page */}
+      <Route path="/" element={<Navigate to="/portals" replace />} />
+      
+      {/* Keep landing page available as a separate route */}
+      <Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
+      
+      {/* Add portals page route using the HomePage component */}
+      <Route path="/portals" element={<PublicRoute><HomePage /></PublicRoute>} />
+      
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/admin-login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
       <Route path="/coach-login" element={<PublicRoute><CoachLogin /></PublicRoute>} />

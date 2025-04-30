@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { ChevronLeft, Plus } from 'lucide-react';
+import { ChevronLeft, Plus, Video } from 'lucide-react';
 import { 
   fetchWorkout, 
   fetchWorkoutExercises,
@@ -24,6 +24,7 @@ import {
   DialogDescription
 } from "@/components/ui/dialog";
 import { useAuth } from '@/contexts/AuthContext';
+import { VideoDialog } from '@/components/client/workout/VideoDialog';
 
 const WorkoutExercisesPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -36,6 +37,9 @@ const WorkoutExercisesPage = () => {
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pageLoaded, setPageLoaded] = useState(false);
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [selectedVideoUrl, setSelectedVideoUrl] = useState('');
+  const [selectedExerciseName, setSelectedExerciseName] = useState('');
 
   // Use useEffect with an empty dependency array to track initial page load
   useEffect(() => {
@@ -178,6 +182,16 @@ const WorkoutExercisesPage = () => {
     }
   };
 
+  const handleOpenVideoDialog = (exercise: any) => {
+    if (exercise?.exercise?.youtube_link) {
+      setSelectedVideoUrl(exercise.exercise.youtube_link);
+      setSelectedExerciseName(exercise.exercise?.name || 'Exercise');
+      setVideoDialogOpen(true);
+    } else {
+      toast.info('No video available for this exercise');
+    }
+  };
+
   if (isLoading) {
     return (
       <CoachLayout>
@@ -253,6 +267,15 @@ const WorkoutExercisesPage = () => {
                           Move Down
                         </Button>
                         <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleOpenVideoDialog(exercise)}
+                          disabled={!exercise?.exercise?.youtube_link}
+                        >
+                          <Video className="h-4 w-4 mr-2" />
+                          Video
+                        </Button>
+                        <Button 
                           variant="destructive" 
                           size="sm"
                           onClick={() => handleDeleteExercise(exercise.id)}
@@ -292,6 +315,13 @@ const WorkoutExercisesPage = () => {
           />
         </DialogContent>
       </Dialog>
+
+      <VideoDialog 
+        isOpen={videoDialogOpen} 
+        onClose={() => setVideoDialogOpen(false)}
+        videoUrl={selectedVideoUrl}
+        exerciseName={selectedExerciseName}
+      />
     </CoachLayout>
   );
 };

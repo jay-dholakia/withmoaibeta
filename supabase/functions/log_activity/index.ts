@@ -116,7 +116,7 @@ serve(async (req) => {
             user_id: client_id,
             completed_at: new Date(date).toISOString(),
             title: `${distance} mile run`,
-            workout_type: "running",
+            workout_type: "running", // Explicitly set workout_type to "running"
             notes,
             distance: distance.toString(),
             duration: duration.toString(),
@@ -166,7 +166,7 @@ serve(async (req) => {
             user_id: client_id,
             completed_at: new Date(date).toISOString(),
             title: type,
-            workout_type: "cardio",
+            workout_type: "cardio", // Explicitly set workout_type to "cardio"
             notes,
             duration: duration.toString()
           })
@@ -214,6 +214,7 @@ serve(async (req) => {
             user_id: client_id,
             completed_at: new Date(date).toISOString(),
             title: "Rest Day",
+            workout_type: "rest_day", // Explicitly set workout_type to "rest_day"
             rest_day: true,
             notes
           })

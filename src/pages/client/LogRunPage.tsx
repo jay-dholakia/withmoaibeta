@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,8 @@ const LogRunPage: React.FC = () => {
         distance: parseFloat(distance),
         duration: parseInt(duration, 10),
         location,
-        notes
+        notes,
+        workout_type: 'running' // Add workout_type
       };
       
       const result = await logRunActivity(runData);

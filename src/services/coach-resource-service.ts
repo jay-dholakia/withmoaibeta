@@ -6,8 +6,9 @@ export interface CoachResource {
   coach_id: string;
   title: string;
   description: string | null;
-  url: string;
+  url: string | null;
   tags: string[] | null;
+  resource_type: 'article' | 'product' | 'tip';
   created_at: string;
   updated_at: string;
 }
@@ -30,9 +31,15 @@ export const fetchCoachResources = async (coachId: string): Promise<CoachResourc
 
 // Add a new resource
 export const addCoachResource = async (resource: Omit<CoachResource, 'id' | 'created_at' | 'updated_at'>) => {
+  // For tips, URL should always be null
+  const resourceToAdd = {
+    ...resource,
+    url: resource.resource_type === 'tip' ? null : resource.url
+  };
+  
   const { data, error } = await supabase
     .from('coach_resources')
-    .insert(resource)
+    .insert(resourceToAdd)
     .select()
     .single();
     
@@ -48,11 +55,17 @@ export const addCoachResource = async (resource: Omit<CoachResource, 'id' | 'cre
 export const updateCoachResource = async (
   id: string, 
   coachId: string, 
-  updates: Pick<CoachResource, 'title' | 'description' | 'url' | 'tags'>
+  updates: Pick<CoachResource, 'title' | 'description' | 'url' | 'tags' | 'resource_type'>
 ) => {
+  // For tips, URL should always be null
+  const updatesToApply = {
+    ...updates,
+    url: updates.resource_type === 'tip' ? null : updates.url
+  };
+  
   const { data, error } = await supabase
     .from('coach_resources')
-    .update(updates)
+    .update(updatesToApply)
     .eq('id', id)
     .eq('coach_id', coachId)
     .select()

@@ -51,7 +51,8 @@ export const LogRunActivityDialog: React.FC<LogRunActivityDialogProps> = ({
       distance: parseFloat(distance),
       duration: parseInt(duration, 10),
       location,
-      notes
+      notes,
+      workout_type: 'running'
     };
     
     try {

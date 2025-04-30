@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { saveRunLocation, getRunLocations, RunLocation } from '@/services/run-tracking-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Play, Square, AlertCircle } from 'lucide-react';
+import { Play, Square, AlertCircle, ArrowUp } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import '@/types/device-orientation.d.ts';
 
 interface RunTrackingProps {
   runId: string;
@@ -36,6 +37,7 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     pace: 0
   });
   const currentLocationMarker = useRef<mapboxgl.Marker | null>(null);
+  const [userHeading, setUserHeading] = useState<number | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -111,6 +113,31 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
       if (timer) clearInterval(timer);
     };
   }, [isTracking, startTime]);
+
+  // Add event listener for deviceorientation if available
+  useEffect(() => {
+    if (!isTracking) return;
+    
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      if (event.webkitCompassHeading !== undefined) {
+        // For iOS devices
+        setUserHeading(event.webkitCompassHeading);
+      } else if (event.alpha) {
+        // For Android devices
+        setUserHeading(360 - event.alpha);
+      }
+    };
+
+    if (window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientation', handleOrientation, true);
+    }
+
+    return () => {
+      if (window.DeviceOrientationEvent) {
+        window.removeEventListener('deviceorientation', handleOrientation, true);
+      }
+    };
+  }, [isTracking]);
 
   const startTracking = () => {
     if (!navigator.geolocation) {
@@ -199,7 +226,12 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     if (map.current) {
       map.current.setCenter([newPoint.longitude, newPoint.latitude]);
       
-      addCurrentLocationMarker(newPoint.latitude, newPoint.longitude);
+      // Get heading from position if available
+      if (position.coords.heading) {
+        setUserHeading(position.coords.heading);
+      }
+      
+      addCurrentLocationMarker(newPoint.latitude, newPoint.longitude, userHeading);
     }
     
     setError(null);
@@ -304,7 +336,8 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     const startPoint = points[0];
     const endPoint = points[points.length - 1];
     
-    const markers = document.querySelectorAll('.mapboxgl-marker');
+    // Remove existing start/end markers but keep current location marker
+    const markers = document.querySelectorAll('.mapboxgl-marker:not(.current-location-marker)');
     markers.forEach(marker => marker.remove());
     
     const startMarkerEl = document.createElement('div');
@@ -334,21 +367,48 @@ const RunTracking: React.FC<RunTrackingProps> = ({ runId, onRunComplete }) => {
     }
   };
 
-  const addCurrentLocationMarker = (latitude: number, longitude: number) => {
+  const addCurrentLocationMarker = (latitude: number, longitude: number, heading: number | null) => {
     if (!map.current) return;
 
     if (currentLocationMarker.current) {
       currentLocationMarker.current.remove();
     }
 
+    // Create container for marker
     const markerEl = document.createElement('div');
     markerEl.className = 'mapboxgl-marker current-location-marker';
-    markerEl.style.backgroundColor = '#3887be';
-    markerEl.style.width = '15px';
-    markerEl.style.height = '15px';
-    markerEl.style.borderRadius = '50%';
-    markerEl.style.border = '3px solid white';
-    markerEl.style.boxShadow = '0 0 0 2px rgba(56, 135, 190, 0.5)';
+    markerEl.style.width = '24px';
+    markerEl.style.height = '24px';
+
+    // Create arrow icon
+    const arrowContainer = document.createElement('div');
+    arrowContainer.style.display = 'flex';
+    arrowContainer.style.alignItems = 'center';
+    arrowContainer.style.justifyContent = 'center';
+    arrowContainer.style.width = '100%';
+    arrowContainer.style.height = '100%';
+    arrowContainer.style.backgroundColor = '#3887be';
+    arrowContainer.style.borderRadius = '50%';
+    arrowContainer.style.border = '2px solid white';
+    arrowContainer.style.boxShadow = '0 0 0 2px rgba(56, 135, 190, 0.5)';
+    arrowContainer.style.position = 'relative';
+    
+    const arrow = document.createElement('div');
+    arrow.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="19" x2="12" y2="5"></line>
+      <polyline points="5 12 12 5 19 12"></polyline>
+    </svg>`;
+    arrow.style.display = 'flex';
+    arrow.style.alignItems = 'center';
+    arrow.style.justifyContent = 'center';
+    
+    // Apply rotation if heading is available
+    if (heading !== null) {
+      arrowContainer.style.transform = `rotate(${heading}deg)`;
+    }
+    
+    arrowContainer.appendChild(arrow);
+    markerEl.appendChild(arrowContainer);
 
     currentLocationMarker.current = new mapboxgl.Marker(markerEl)
       .setLngLat([longitude, latitude])

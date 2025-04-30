@@ -23,12 +23,16 @@ const LandingPage = () => {
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link to="/login">
-                <Button size="lg" className="bg-client hover:bg-client/90">
+                <Button size="lg" className="bg-client hover:bg-client/90 shadow-md">
                   Join Now
                 </Button>
               </Link>
               <Link to="/portals">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="border-white text-white bg-white/10 hover:bg-white/20 shadow-md"
+                >
                   Learn More
                 </Button>
               </Link>
@@ -185,12 +189,16 @@ const LandingPage = () => {
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link to="/login">
-              <Button size="lg" className="bg-white text-client hover:bg-gray-100">
+              <Button size="lg" className="bg-white text-client hover:bg-gray-100 shadow-md">
                 Join Now
               </Button>
             </Link>
             <Link to="/coach-login">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-white text-white bg-white/10 hover:bg-white/20 shadow-md"
+              >
                 Coach Login
               </Button>
             </Link>

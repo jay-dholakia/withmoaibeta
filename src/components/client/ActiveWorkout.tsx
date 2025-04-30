@@ -21,6 +21,7 @@ import { RunExercise } from './workout/RunExercise';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useWorkoutDraft } from '@/hooks/useWorkoutDraft';
+import CardioWorkout from './workout/CardioWorkout';
 
 const ActiveWorkout = () => {
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
@@ -457,32 +458,115 @@ const ActiveWorkout = () => {
 
   const handleCardioChange = (exerciseId: string, field: 'distance' | 'duration' | 'location', value: string) => {
     setExerciseStates(prev => {
-      return {
-        ...prev,
-        [exerciseId]: {
-          ...prev[exerciseId],
+      const updatedState = { ...prev };
+      if (!updatedState[exerciseId]) {
+        updatedState[exerciseId] = {
+          expanded: true,
           cardioData: {
-            ...prev[exerciseId].cardioData,
-            [field]: value
+            distance: '',
+            duration: '',
+            location: '',
+            completed: false
           }
-        }
-      };
+        };
+      }
+      
+      if (!updatedState[exerciseId].cardioData) {
+        updatedState[exerciseId].cardioData = {
+          distance: '',
+          duration: '',
+          location: '',
+          completed: false
+        };
+      }
+      
+      updatedState[exerciseId].cardioData![field] = value;
+      return updatedState;
     });
+    
+    if (field === 'distance' || field === 'duration') {
+      // Add cardio to pending changes
+      const existingCardioIndex = pendingCardio.findIndex(p => p.exerciseId === exerciseId);
+      
+      if (existingCardioIndex >= 0) {
+        setPendingCardio(prev => {
+          const updated = [...prev];
+          updated[existingCardioIndex] = {
+            ...updated[existingCardioIndex],
+            [field]: value
+          };
+          return updated;
+        });
+      } else {
+        setPendingCardio(prev => [
+          ...prev,
+          {
+            exerciseId,
+            distance: field === 'distance' ? value : exerciseStates[exerciseId]?.cardioData?.distance || '',
+            duration: field === 'duration' ? value : exerciseStates[exerciseId]?.cardioData?.duration || '',
+            location: exerciseStates[exerciseId]?.cardioData?.location || '',
+            completed: exerciseStates[exerciseId]?.cardioData?.completed || false
+          }
+        ]);
+      }
+    }
   };
 
   const handleCardioCompletion = (exerciseId: string, completed: boolean) => {
     setExerciseStates(prev => {
-      return {
-        ...prev,
-        [exerciseId]: {
-          ...prev[exerciseId],
+      const updatedState = { ...prev };
+      
+      if (!updatedState[exerciseId]) {
+        updatedState[exerciseId] = {
+          expanded: true,
           cardioData: {
-            ...prev[exerciseId].cardioData,
-            completed
+            distance: '',
+            duration: '',
+            location: '',
+            completed: false
           }
-        }
-      };
+        };
+      }
+      
+      if (!updatedState[exerciseId].cardioData) {
+        updatedState[exerciseId].cardioData = {
+          distance: '',
+          duration: '',
+          location: '',
+          completed: false
+        };
+      }
+      
+      updatedState[exerciseId].cardioData!.completed = completed;
+      return updatedState;
     });
+    
+    // Update pending cardio
+    const existingCardioIndex = pendingCardio.findIndex(p => p.exerciseId === exerciseId);
+    
+    if (existingCardioIndex >= 0) {
+      setPendingCardio(prev => {
+        const updated = [...prev];
+        updated[existingCardioIndex] = {
+          ...updated[existingCardioIndex],
+          completed
+        };
+        return updated;
+      });
+    } else {
+      const currentState = exerciseStates[exerciseId]?.cardioData;
+      
+      setPendingCardio(prev => [
+        ...prev,
+        {
+          exerciseId,
+          distance: currentState?.distance || '',
+          duration: currentState?.duration || '',
+          location: currentState?.location || '',
+          completed
+        }
+      ]);
+    }
   };
 
   const handleFlexibilityChange = (exerciseId: string, field: 'duration', value: string) => {
@@ -881,17 +965,34 @@ const ActiveWorkout = () => {
           </div>
         )
       ) : (
-        <div className="text-center py-8">
-          <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-2 text-lg font-medium">No Exercises Found</h3>
-          <p className="text-muted-foreground">This workout doesn't have any exercises.</p>
-          <Button 
-            onClick={() => navigate('/client-dashboard/workouts')}
-            variant="outline"
-            className="mt-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
-          </Button>
+        <div className="text-center py-12">
+          {sortedExerciseIds.length === 0 && workout?.workout_type === 'cardio' ? (
+            <CardioWorkout
+              workoutId={workout.id}
+              formatDurationInput={formatDurationInput}
+              onCardioChange={handleCardioChange}
+              onCardioCompletion={handleCardioCompletion}
+              cardioData={{
+                distance: '',
+                duration: '',
+                location: '',
+                completed: false,
+                ...((exerciseStates['cardio-placeholder'] || {}).cardioData || {})
+              }}
+              exerciseId={'cardio-placeholder'}
+              workoutTitle={workout.title}
+            />
+          ) : sortedExerciseIds.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="inline-flex rounded-full bg-gray-100 p-6 mb-4">
+                <HelpCircle className="h-10 w-10 text-gray-400" />
+              </div>
+              <h2 className="text-2xl font-semibold mb-2">No Exercises Found</h2>
+              <p className="text-muted-foreground">
+                This workout doesn't have any exercises.
+              </p>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

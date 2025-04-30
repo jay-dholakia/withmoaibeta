@@ -131,6 +131,9 @@ const EditWorkoutPage = () => {
         priority
       });
 
+      // If it's a cardio workout and there are no exercises, we don't need to show warnings
+      // since it's now handled automatically for clients
+      
       toast.success('Workout updated successfully');
       
       if (workout?.week_id) {

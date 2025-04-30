@@ -3,7 +3,7 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Youtube, MapPin } from 'lucide-react';
+import { Youtube, MapPin, Timer, Ruler } from 'lucide-react';
 import { WorkoutExercise } from '@/types/workout';
 import {
   Tooltip,
@@ -31,42 +31,51 @@ export const CardioExercise: React.FC<Props> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="block text-xs mb-1">Distance</label>
+      <div>
+        <label className="block text-sm font-medium mb-1">Distance (miles)</label>
+        <div className="relative">
+          <Ruler className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground/70" />
           <Input 
             type="text" 
-            placeholder="e.g., 5 miles"
+            inputMode="decimal"
+            placeholder="3.1"
             value={exerciseState.cardioData?.distance || ''}
             onChange={(e) => onCardioChange(exercise.id, 'distance', e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block text-xs mb-1">Duration (hh:mm:ss)</label>
-          <Input 
-            type="text"
-            placeholder="00:30:00"
-            value={exerciseState.cardioData?.duration || ''}
-            onChange={(e) => onCardioChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
+            className="pl-10 h-12 rounded-md"
           />
         </div>
       </div>
       
       <div>
-        <label className="block text-xs mb-1">Location (optional)</label>
+        <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
         <div className="relative">
-          <MapPin className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Timer className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground/70" />
           <Input 
-            type="text" 
-            placeholder="e.g., Gym, Park Trail"
-            value={exerciseState.cardioData?.location || ''}
-            onChange={(e) => onCardioChange(exercise.id, 'location', e.target.value)}
-            className="pl-8"
+            type="text"
+            inputMode="numeric"
+            placeholder="30"
+            value={exerciseState.cardioData?.duration || ''}
+            onChange={(e) => onCardioChange(exercise.id, 'duration', formatDurationInput(e.target.value))}
+            className="pl-10 h-12 rounded-md"
           />
         </div>
       </div>
       
-      <div className="flex justify-between items-center">
+      <div>
+        <label className="block text-sm font-medium mb-1">Location (optional)</label>
+        <div className="relative">
+          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground/70" />
+          <Input 
+            type="text" 
+            placeholder="Park, trail, neighborhood, etc."
+            value={exerciseState.cardioData?.location || ''}
+            onChange={(e) => onCardioChange(exercise.id, 'location', e.target.value)}
+            className="pl-10 h-12 rounded-md"
+          />
+        </div>
+      </div>
+      
+      <div className="flex justify-between items-center pt-2">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

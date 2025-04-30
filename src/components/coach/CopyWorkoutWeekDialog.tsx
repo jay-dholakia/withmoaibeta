@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,7 +47,7 @@ export const CopyWorkoutWeekDialog: React.FC<CopyWorkoutWeekDialogProps> = ({
   const { user } = useAuth();
 
   // Reset state when dialog opens or closes
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isOpen) {
       setTargetWeekId("");
       setShowOverwriteWarning(false);
@@ -140,18 +140,22 @@ export const CopyWorkoutWeekDialog: React.FC<CopyWorkoutWeekDialogProps> = ({
       const targetWeek = allWeeks.find(w => w.id === weekIdToCopy);
       toast.success(`Workouts copied from Week ${sourceWeekNumber} to Week ${targetWeek?.week_number}`);
       
-      // Make sure dialog is closed before calling callback
+      // Make sure we're properly cleaning up state
       setShowOverwriteWarning(false);
+      setTargetWeekId("");
+      setIsCopying(false);
+      
+      // Close the dialog first
       onClose();
       
-      // Allow UI to update before triggering callback
+      // Wait for next tick before calling the completion callback to ensure dialog is fully closed
       setTimeout(() => {
         onCopyComplete();
-      }, 100);
+      }, 300);
       
     } catch (error: any) {
+      console.error("Copy error:", error);
       toast.error(error.message || "Failed to copy workouts");
-    } finally {
       setIsCopying(false);
     }
   };
@@ -165,6 +169,9 @@ export const CopyWorkoutWeekDialog: React.FC<CopyWorkoutWeekDialogProps> = ({
 
   const handleDialogClose = () => {
     if (!isCopying) {
+      // Clean up state before closing
+      setTargetWeekId("");
+      setShowOverwriteWarning(false);
       onClose();
     }
   };
@@ -191,7 +198,7 @@ export const CopyWorkoutWeekDialog: React.FC<CopyWorkoutWeekDialogProps> = ({
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={onClose} disabled={isCopying}>
+            <Button variant="outline" onClick={handleDialogClose} disabled={isCopying}>
               Cancel
             </Button>
           </DialogFooter>
@@ -210,7 +217,10 @@ export const CopyWorkoutWeekDialog: React.FC<CopyWorkoutWeekDialogProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleAlertClose}>
+            <AlertDialogCancel onClick={() => {
+              setShowOverwriteWarning(false);
+              setTargetWeekId("");
+            }}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 

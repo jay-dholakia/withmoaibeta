@@ -422,9 +422,11 @@ const WorkoutWeekDetailPage = () => {
       fetchWorkoutsForWeek(weekId)
         .then(workoutsData => {
           setWorkouts(workoutsData);
+          toast.success("Workouts refreshed successfully");
         })
         .catch(error => {
           console.error('Error refreshing workouts:', error);
+          toast.error("Failed to refresh workouts");
         })
         .finally(() => {
           setIsLoading(false);

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, Plus, Loader2, RefreshCw, AlertTriangle, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { ChevronLeft, Plus, Loader2, RefreshCw, AlertTriangle, ArrowUp, ArrowDown, Trash2, Video } from 'lucide-react';
 import { 
   fetchWorkout, 
   updateWorkout, 
@@ -32,6 +32,7 @@ import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
 import { Exercise } from '@/types/workout';
 import { supabase } from "@/integrations/supabase/client";
 import { syncTemplateExercisesToProgramWorkouts } from "@/services/program-service";
+import { VideoDialog } from '@/components/client/workout/VideoDialog';
 
 const EditWorkoutPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -48,6 +49,9 @@ const EditWorkoutPage = () => {
   const [templateDetails, setTemplateDetails] = useState<any>(null);
   const [isTemplateRefreshDialogOpen, setIsTemplateRefreshDialogOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [selectedVideoUrl, setSelectedVideoUrl] = useState('');
+  const [selectedExerciseName, setSelectedExerciseName] = useState('');
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -101,6 +105,16 @@ const EditWorkoutPage = () => {
 
     loadWorkoutDetails();
   }, [workoutId, navigate]);
+
+  const handleOpenVideoDialog = (exercise: any) => {
+    if (exercise?.exercise?.youtube_link) {
+      setSelectedVideoUrl(exercise.exercise.youtube_link);
+      setSelectedExerciseName(exercise.exercise?.name || 'Exercise');
+      setVideoDialogOpen(true);
+    } else {
+      toast.info('No video available for this exercise');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -456,6 +470,15 @@ const EditWorkoutPage = () => {
                           Move Down
                         </Button>
                         <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleOpenVideoDialog(exercise)}
+                          disabled={!exercise?.exercise?.youtube_link}
+                        >
+                          <Video className="h-4 w-4 mr-2" />
+                          Video
+                        </Button>
+                        <Button 
                           variant="destructive" 
                           size="sm"
                           onClick={() => handleDeleteExercise(exercise.id)}
@@ -531,6 +554,13 @@ const EditWorkoutPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <VideoDialog 
+        isOpen={videoDialogOpen} 
+        onClose={() => setVideoDialogOpen(false)}
+        videoUrl={selectedVideoUrl}
+        exerciseName={selectedExerciseName}
+      />
     </CoachLayout>
   );
 };

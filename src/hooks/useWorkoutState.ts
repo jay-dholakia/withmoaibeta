@@ -74,6 +74,7 @@ export const useWorkoutState = (
         workoutType
       });
 
+      // Use existing draft data if available
       if (initialDraftData && Object.keys(initialDraftData).length > 0) {
         console.log("Using existing draft data for initialization:", initialDraftData);
         setExerciseStates(initialDraftData);
@@ -136,6 +137,7 @@ export const useWorkoutState = (
         });
         
         setSortedExerciseIds(orderedExerciseIds);
+        console.log("Sorted exercise IDs:", orderedExerciseIds);
         
         sortedExercises.forEach((exercise) => {
           if (!exercise || !exercise.id) {
@@ -161,6 +163,8 @@ export const useWorkoutState = (
           } else if (determineIfStrengthExercise(exercise)) {
             effectiveType = 'strength';
           }
+          
+          console.log(`Initializing exercise: ${exerciseName} (ID: ${exerciseId}) with type ${effectiveType}`);
           
           if (effectiveType === 'running') {
             initialState[exerciseId] = {
@@ -189,6 +193,7 @@ export const useWorkoutState = (
               currentExercise: exercise.exercise,
               sets,
             };
+            console.log(`Initialized strength exercise with ${sets.length} sets`);
           } else if (effectiveType === 'cardio') {
             initialState[exerciseId] = {
               expanded: true,
@@ -229,13 +234,6 @@ export const useWorkoutState = (
               sets,
             };
           }
-          
-          console.log(`Initialized exercise state for ${exerciseName}`, {
-            workoutExerciseId: exerciseId,
-            exerciseId: exercise.exercise?.id,
-            exerciseType: effectiveType,
-            orderIndex: exercise.order_index
-          });
         });
         
         if (Object.keys(initialState).length > 0) {
@@ -248,6 +246,33 @@ export const useWorkoutState = (
           }
         } else {
           console.error("Failed to initialize exercise states - empty object created");
+        }
+      } else {
+        console.warn("No workout exercises available to initialize");
+        // Create a placeholder for empty workouts based on workoutType
+        if (workoutType) {
+          const placeholderId = `${workoutType}-placeholder-${Date.now()}`;
+          const initialState: ExerciseStates = {
+            [placeholderId]: {
+              expanded: true,
+              sets: [],
+              // Add appropriate data based on workout type
+              ...(workoutType === 'cardio' && { 
+                cardioData: { distance: '', duration: '', location: '', completed: false } 
+              }),
+              ...(workoutType === 'flexibility' && { 
+                flexibilityData: { duration: '', completed: false } 
+              }),
+              ...(workoutType === 'running' && { 
+                runData: { distance: '', duration: '', location: '', completed: false } 
+              })
+            }
+          };
+          
+          setExerciseStates(initialState);
+          setSortedExerciseIds([placeholderId]);
+          setWorkoutDataInitialized(true);
+          console.log(`Created placeholder for empty ${workoutType} workout`);
         }
       }
     }

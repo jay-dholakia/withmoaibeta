@@ -56,6 +56,7 @@ export interface PendingCardio {
 export interface PendingFlexibility {
   exerciseId: string;
   duration: string;
+  completed: boolean;
 }
 
 export interface PendingRun {

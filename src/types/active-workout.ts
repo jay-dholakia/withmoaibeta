@@ -63,4 +63,5 @@ export interface PendingRun {
   distance: string;
   duration: string;
   location: string;
+  completed: boolean;
 }

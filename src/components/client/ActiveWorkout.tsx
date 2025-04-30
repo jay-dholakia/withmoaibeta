@@ -921,31 +921,13 @@ const ActiveWorkout = () => {
         <Button variant="ghost" onClick={() => navigate('/client-dashboard/workouts')} className="h-8 w-8 p-0 text-gray-500">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-xl font-bold">{workoutData.workout?.title || "Workout"}</h1>
+        <h1 className="text-xl font-bold">{workoutData?.workout?.title || "Workout"}</h1>
       </div>
 
       {workoutExercises.length > 0 ? (
         exerciseRenderReady || forceShowExercises ? (
           <div className="space-y-6">
             {workoutExercises.map(exercise => renderExerciseCard(exercise))}
-            
-            <div className="fixed bottom-14 left-0 right-0 z-40">
-              <div className="bg-gradient-to-t from-background via-background to-transparent">
-                <div className="container max-w-2xl mx-auto px-4">
-                  <Stopwatch 
-                    className="border-b border-border" 
-                    saveStatus={saveStatus} 
-                    workoutCompletionId={workoutCompletionId}
-                  />
-                  <Button 
-                    onClick={handleCompleteWorkout}
-                    className="w-full mt-3 mb-2 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded-lg shadow-sm"
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" /> Complete Workout
-                  </Button>
-                </div>
-              </div>
-            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[300px] p-4">
@@ -970,7 +952,7 @@ const ActiveWorkout = () => {
         )
       ) : (
         <div className="text-center py-12">
-          {sortedExerciseIds.length === 0 && workoutData.workout?.workout_type === 'cardio' ? (
+          {sortedExerciseIds.length === 0 && workoutData?.workout?.workout_type === 'cardio' ? (
             <CardioWorkout
               workoutId={workoutData.workout.id}
               formatDurationInput={formatDurationInput}
@@ -999,6 +981,25 @@ const ActiveWorkout = () => {
           ) : null}
         </div>
       )}
+
+      {/* Always show the Complete Workout button regardless of workout type */}
+      <div className="fixed bottom-14 left-0 right-0 z-40">
+        <div className="bg-gradient-to-t from-background via-background to-transparent">
+          <div className="container max-w-2xl mx-auto px-4">
+            <Stopwatch 
+              className="border-b border-border" 
+              saveStatus={saveStatus} 
+              workoutCompletionId={workoutCompletionId}
+            />
+            <Button 
+              onClick={handleCompleteWorkout}
+              className="w-full mt-3 mb-2 py-6 bg-primary hover:bg-primary/90 text-white text-lg font-medium rounded-lg shadow-lg"
+            >
+              <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

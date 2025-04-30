@@ -16,6 +16,7 @@ export type ResourceFormValues = {
   description?: string | null;
   url?: string | null;
   tags?: string[] | null;
+  resource_type: 'article' | 'product' | 'tip';
 };
 
 export const useResourceManagement = () => {
@@ -45,7 +46,8 @@ export const useResourceManagement = () => {
         title: values.title,
         description: values.description || null,
         url: values.url || null,
-        tags: values.tags || []
+        tags: values.tags || [],
+        resource_type: values.resource_type
       };
       return addCoachResource(processedValues);
     },
@@ -66,7 +68,8 @@ export const useResourceManagement = () => {
         title: values.title,
         description: values.description || null,
         url: values.url || null,
-        tags: values.tags || []
+        tags: values.tags || [],
+        resource_type: values.resource_type
       };
       return updateCoachResource(id, user.id, processedValues);
     },

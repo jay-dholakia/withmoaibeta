@@ -8,6 +8,7 @@ export interface CoachResource {
   description: string | null;
   url: string | null;
   tags: string[] | null;
+  resource_type: 'article' | 'product' | 'tip';
   created_at: string;
   updated_at: string;
 }
@@ -30,10 +31,12 @@ export const fetchCoachResources = async (coachId: string): Promise<CoachResourc
 
 // Add a new resource
 export const addCoachResource = async (resource: Omit<CoachResource, 'id' | 'created_at' | 'updated_at'>) => {
-  // Make sure empty strings are converted to non-null default value for URL field
+  // Handle URL based on resource type
   const resourceToAdd = {
     ...resource,
-    url: resource.url && resource.url.trim() !== '' ? resource.url : 'https://placeholder.url'
+    url: resource.resource_type === 'tip' ? null : 
+         (resource.url && resource.url.trim() !== '' ? resource.url : 
+          resource.resource_type === 'article' ? 'https://placeholder.url' : null)
   };
   
   const { data, error } = await supabase
@@ -54,12 +57,14 @@ export const addCoachResource = async (resource: Omit<CoachResource, 'id' | 'cre
 export const updateCoachResource = async (
   id: string, 
   coachId: string, 
-  updates: Pick<CoachResource, 'title' | 'description' | 'url' | 'tags'>
+  updates: Pick<CoachResource, 'title' | 'description' | 'url' | 'tags' | 'resource_type'>
 ) => {
-  // Make sure empty strings are converted to non-null default value for URL field
+  // Handle URL based on resource type
   const updatesToApply = {
     ...updates,
-    url: updates.url && updates.url.trim() !== '' ? updates.url : 'https://placeholder.url'
+    url: updates.resource_type === 'tip' ? null : 
+         (updates.url && updates.url.trim() !== '' ? updates.url : 
+          updates.resource_type === 'article' ? 'https://placeholder.url' : null)
   };
   
   const { data, error } = await supabase

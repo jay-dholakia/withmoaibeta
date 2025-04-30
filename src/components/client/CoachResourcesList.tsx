@@ -3,9 +3,19 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Book, Calendar, Info, Link as LinkIcon, Tag } from 'lucide-react';
+import { 
+  ExternalLink, 
+  Book, 
+  Calendar, 
+  Info, 
+  Link as LinkIcon, 
+  Tag, 
+  Loader2, 
+  FileText,
+  ShoppingBag,
+  MessageCircle
+} from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { Loader2 } from 'lucide-react';
 import { fetchCoachResources, CoachResource } from '@/services/coach-resource-service';
 
 interface CoachResourcesListProps {
@@ -19,7 +29,16 @@ const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
     enabled: !!coachId,
   });
 
-  const getIconForResource = (url: string) => {
+  const getIconForResource = (resource: CoachResource) => {
+    const { url, resource_type } = resource;
+    
+    // First determine by resource type
+    if (resource_type === 'article') return <FileText className="h-4 w-4 text-blue-500 dark:text-blue-400" />;
+    if (resource_type === 'product') return <ShoppingBag className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />;
+    if (resource_type === 'tip') return <MessageCircle className="h-4 w-4 text-amber-500 dark:text-amber-400" />;
+    
+    // Fallback to URL-based logic for backward compatibility
+    if (!url) return <Info className="h-4 w-4 text-amber-500 dark:text-amber-400" />;
     if (url.includes('calendar') || url.includes('event') || url.includes('schedule')) {
       return <Calendar className="h-4 w-4 text-blue-500 dark:text-blue-400" />;
     } else if (url.includes('book') || url.includes('pdf') || url.includes('doc')) {
@@ -29,6 +48,13 @@ const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
     } else {
       return <LinkIcon className="h-4 w-4 text-purple-500 dark:text-purple-400" />;
     }
+  };
+
+  const getResourceLabel = (resourceType: string | undefined) => {
+    if (resourceType === 'article') return 'Article';
+    if (resourceType === 'product') return 'Product';
+    if (resourceType === 'tip') return 'Coach\'s Tip';
+    return '';
   };
 
   if (isLoading) {
@@ -76,23 +102,38 @@ const CoachResourcesList: React.FC<CoachResourcesListProps> = ({ coachId }) => {
           <React.Fragment key={resource.id}>
             <div className="flex items-start gap-3">
               <div className="mt-0.5 p-1.5 bg-muted dark:bg-gray-700 rounded-md">
-                {getIconForResource(resource.url)}
+                {getIconForResource(resource)}
               </div>
               <div className="flex-1">
-                <h4 className="font-medium text-sm dark:text-gray-100">{resource.title}</h4>
+                <div className="flex items-center">
+                  <h4 className="font-medium text-sm dark:text-gray-100">{resource.title}</h4>
+                  {resource.resource_type && (
+                    <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
+                      resource.resource_type === 'article' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 
+                      resource.resource_type === 'product' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200' : 
+                      'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                    }`}>
+                      {getResourceLabel(resource.resource_type)}
+                    </span>
+                  )}
+                </div>
+                
                 {resource.description && (
                   <p className="text-sm text-muted-foreground dark:text-gray-300 mt-1">{resource.description}</p>
                 )}
-                <Button 
-                  variant="link" 
-                  className="h-8 px-0 text-blue-600 dark:text-blue-400 flex items-center gap-1"
-                  asChild
-                >
-                  <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                    Visit Resource
-                    <ExternalLink className="h-3 w-3 ml-1" />
-                  </a>
-                </Button>
+                
+                {resource.url && (
+                  <Button 
+                    variant="link" 
+                    className="h-8 px-0 text-blue-600 dark:text-blue-400 flex items-center gap-1"
+                    asChild
+                  >
+                    <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                      {resource.resource_type === 'product' ? 'View Product' : 'Visit Resource'}
+                      <ExternalLink className="h-3 w-3 ml-1" />
+                    </a>
+                  </Button>
+                )}
                 
                 {resource.tags && resource.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">

@@ -19,6 +19,13 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -34,7 +41,10 @@ import {
   Calendar,
   Info,
   Link as LinkIcon,
-  Tag
+  Tag,
+  FileText,
+  ShoppingBag,
+  MessageCircle
 } from 'lucide-react';
 import {
   Dialog,
@@ -65,6 +75,7 @@ const RESOURCE_TAGS = [
 ];
 
 const resourceSchema = z.object({
+  resource_type: z.enum(['article', 'product', 'tip']),
   title: z.string().min(1, "Title is required").max(100, "Title is too long"),
   description: z.string().nullable().optional(),
   url: z.string().optional().nullable().or(z.literal('')),
@@ -83,9 +94,41 @@ const ResourceForm = memo(({
   isSubmitting: boolean, 
   isEditing: boolean 
 }) => {
+  const resourceType = form.watch('resource_type');
+  
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="resource_type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Resource Type</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select resource type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="article">Linked Article</SelectItem>
+                  <SelectItem value="product">Product Recommendation</SelectItem>
+                  <SelectItem value="tip">Coach's Tip (Text Only)</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Select the type of resource you want to add
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
         <FormField
           control={form.control}
           name="title"
@@ -105,38 +148,48 @@ const ResourceForm = memo(({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description (optional)</FormLabel>
+              <FormLabel>Description {resourceType === 'tip' ? "(required)" : "(optional)"}</FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder="Brief description of the resource" 
+                  placeholder={resourceType === 'tip' ? "Enter your coaching tip or note here" : "Brief description of the resource"} 
                   {...field} 
                   value={field.value || ''} 
                 />
               </FormControl>
               <FormDescription>
-                Briefly describe what this resource is about
+                {resourceType === 'tip' 
+                  ? "Share your expertise or advice with your clients" 
+                  : "Briefly describe what this resource is about"}
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="url"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL (optional)</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com" {...field} value={field.value || ''} />
-              </FormControl>
-              <FormDescription>
-                Link to the resource
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {resourceType !== 'tip' && (
+          <FormField
+            control={form.control}
+            name="url"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>URL {resourceType === 'article' ? "(required)" : "(optional)"}</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="https://example.com" 
+                    {...field} 
+                    value={field.value || ''} 
+                  />
+                </FormControl>
+                <FormDescription>
+                  {resourceType === 'article' 
+                    ? "Link to the article or webpage" 
+                    : "Link to purchase or learn more about the product (optional)"}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}
@@ -232,7 +285,13 @@ const ResourcesManagement = () => {
   // Create a stable form reference that won't change on re-renders
   const form = useForm<ResourceFormValues>({
     resolver: zodResolver(resourceSchema),
-    defaultValues: { title: '', description: '', url: '', tags: [] },
+    defaultValues: { 
+      title: '', 
+      description: '', 
+      url: '', 
+      tags: [],
+      resource_type: 'article'
+    },
     mode: 'onChange'
   });
 
@@ -243,11 +302,12 @@ const ResourcesManagement = () => {
         title: editingResource.title,
         description: editingResource.description || '',
         url: editingResource.url || '',
-        tags: editingResource.tags || []
+        tags: editingResource.tags || [],
+        resource_type: editingResource.resource_type || 'article'
       });
     } else if (!isEditDialogOpen && !isAddDialogOpen) {
       // Only reset when dialogs are closed, not on every render
-      form.reset({ title: '', description: '', url: '', tags: [] });
+      form.reset({ title: '', description: '', url: '', tags: [], resource_type: 'article' });
     }
   }, [editingResource, isEditDialogOpen, isAddDialogOpen, form]);
 
@@ -277,11 +337,26 @@ const ResourcesManagement = () => {
     handleCancelEdit();
   }, [handleCancelEdit]);
 
-  const getIconForResource = useCallback((url: string | null) => {
+  const getIconForResource = useCallback((resource: { url: string | null, resource_type: string }) => {
+    const { url, resource_type } = resource;
+    
+    // First determine by resource type
+    if (resource_type === 'article') return <FileText className="h-4 w-4 text-blue-500" />;
+    if (resource_type === 'product') return <ShoppingBag className="h-4 w-4 text-emerald-500" />;
+    if (resource_type === 'tip') return <MessageCircle className="h-4 w-4 text-amber-500" />;
+    
+    // Fallback to URL-based logic for backward compatibility
     if (!url) return <Info className="h-4 w-4 text-amber-500" />;
-    if (url.includes('calendar') || url.includes('event') || url.includes('schedule')) return <Calendar className="h-4 w-4 text-blue-500" />;
-    if (url.includes('book') || url.includes('pdf') || url.includes('doc')) return <Book className="h-4 w-4 text-emerald-500" />;
-    if (url.includes('info') || url.includes('about') || url.includes('faq')) return <Info className="h-4 w-4 text-amber-500" />;
+    if (url.includes('calendar') || url.includes('event') || url.includes('schedule')) {
+      return <Calendar className="h-4 w-4 text-blue-500" />;
+    }
+    if (url.includes('book') || url.includes('pdf') || url.includes('doc')) {
+      return <Book className="h-4 w-4 text-emerald-500" />;
+    }
+    if (url.includes('info') || url.includes('about') || url.includes('faq')) {
+      return <Info className="h-4 w-4 text-amber-500" />;
+    }
+    
     return <LinkIcon className="h-4 w-4 text-purple-500" />;
   }, []);
 
@@ -325,7 +400,7 @@ const ResourcesManagement = () => {
             <DialogHeader>
               <DialogTitle>Add New Resource</DialogTitle>
               <DialogDescription>
-                Add a helpful resource for your clients. This could be a video, article, or tool that they might find useful.
+                Add a helpful resource for your clients. This could be a linked article, product recommendation, or coaching tip.
               </DialogDescription>
             </DialogHeader>
             <ResourceForm 
@@ -346,13 +421,27 @@ const ResourcesManagement = () => {
                 <div className="flex justify-between items-start">
                   <div className="flex items-start gap-3 flex-1">
                     <div className="mt-0.5 p-1.5 bg-muted rounded-md">
-                      {getIconForResource(resource.url)}
+                      {getIconForResource(resource)}
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-medium">{resource.title}</h3>
+                      <div className="flex items-center">
+                        <h3 className="font-medium">{resource.title}</h3>
+                        {resource.resource_type && (
+                          <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
+                            resource.resource_type === 'article' ? 'bg-blue-100 text-blue-800' : 
+                            resource.resource_type === 'product' ? 'bg-emerald-100 text-emerald-800' : 
+                            'bg-amber-100 text-amber-800'
+                          }`}>
+                            {resource.resource_type === 'article' ? 'Article' : 
+                             resource.resource_type === 'product' ? 'Product' : 'Coach\'s Tip'}
+                          </span>
+                        )}
+                      </div>
+                      
                       {resource.description && (
                         <p className="text-sm text-muted-foreground mt-1">{resource.description}</p>
                       )}
+                      
                       {resource.url && (
                         <a 
                           href={resource.url} 
@@ -360,7 +449,7 @@ const ResourcesManagement = () => {
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:underline text-sm flex items-center gap-1 mt-1"
                         >
-                          {resource.url}
+                          {resource.resource_type === 'product' ? 'View Product' : 'Visit Link'}
                           <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
@@ -462,7 +551,7 @@ const ResourcesManagement = () => {
                 <DialogHeader>
                   <DialogTitle>Add New Resource</DialogTitle>
                   <DialogDescription>
-                    Add a helpful resource for your clients. This could be a video, article, or tool that they might find useful.
+                    Add a helpful resource for your clients. This could be a linked article, product recommendation, or coaching tip.
                   </DialogDescription>
                 </DialogHeader>
                 <ResourceForm 

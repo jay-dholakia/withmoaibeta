@@ -201,16 +201,22 @@ const EditWorkoutPage = () => {
       setIsSubmitting(true);
       console.log("Moving exercise up:", exerciseId);
       
-      const result = await moveWorkoutExerciseUp(exerciseId, workoutId);
-      console.log("Move up result:", result);
-      
-      const updatedExercises = await fetchWorkoutExercises(workoutId);
-      setExercises(updatedExercises);
-      
-      toast.success('Exercise moved up');
-    } catch (error) {
-      console.error('Error moving exercise up:', error);
-      toast.error('Failed to reorder exercise');
+      try {
+        const updatedExercises = await moveWorkoutExerciseUp(exerciseId, workoutId);
+        console.log("Move up result:", updatedExercises);
+        
+        if (Array.isArray(updatedExercises) && updatedExercises.length > 0) {
+          setExercises(updatedExercises);
+          toast.success('Exercise moved up');
+        } else {
+          // Fallback if no exercises are returned
+          const refreshedExercises = await fetchWorkoutExercises(workoutId);
+          setExercises(refreshedExercises);
+        }
+      } catch (error) {
+        console.error('Error moving exercise up:', error);
+        toast.error('Failed to reorder exercise');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -223,16 +229,22 @@ const EditWorkoutPage = () => {
       setIsSubmitting(true);
       console.log("Moving exercise down:", exerciseId);
       
-      const result = await moveWorkoutExerciseDown(exerciseId, workoutId);
-      console.log("Move down result:", result);
-      
-      const updatedExercises = await fetchWorkoutExercises(workoutId);
-      setExercises(updatedExercises);
-      
-      toast.success('Exercise moved down');
-    } catch (error) {
-      console.error('Error moving exercise down:', error);
-      toast.error('Failed to reorder exercise');
+      try {
+        const updatedExercises = await moveWorkoutExerciseDown(exerciseId, workoutId);
+        console.log("Move down result:", updatedExercises);
+        
+        if (Array.isArray(updatedExercises) && updatedExercises.length > 0) {
+          setExercises(updatedExercises);
+          toast.success('Exercise moved down');
+        } else {
+          // Fallback if no exercises are returned
+          const refreshedExercises = await fetchWorkoutExercises(workoutId);
+          setExercises(refreshedExercises);
+        }
+      } catch (error) {
+        console.error('Error moving exercise down:', error);
+        toast.error('Failed to reorder exercise');
+      }
     } finally {
       setIsSubmitting(false);
     }

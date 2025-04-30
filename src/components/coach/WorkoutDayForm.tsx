@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -264,19 +263,21 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     try {
       setIsSubmitting(true);
       
-      // We should get an array of exercises back, not a boolean
-      const updatedExercises = await moveWorkoutExerciseUp(exerciseId, workoutId);
-      // Check if we got exercises back, if not fetch the exercises again 
-      if (Array.isArray(updatedExercises)) {
-        setExercises(updatedExercises);
-      } else {
-        const refreshedExercises = await fetchWorkoutExercises(workoutId);
-        setExercises(refreshedExercises);
+      try {
+        const updatedExercises = await moveWorkoutExerciseUp(exerciseId, workoutId);
+        
+        if (Array.isArray(updatedExercises) && updatedExercises.length > 0) {
+          setExercises(updatedExercises);
+          toast.success('Exercise moved up');
+        } else {
+          // Fallback if no exercises are returned
+          const refreshedExercises = await fetchWorkoutExercises(workoutId);
+          setExercises(refreshedExercises);
+        }
+      } catch (error) {
+        console.error('Error moving exercise up:', error);
+        toast.error('Failed to reorder exercise');
       }
-      
-    } catch (error) {
-      console.error('Error moving exercise up:', error);
-      toast.error('Failed to reorder exercise');
     } finally {
       setIsSubmitting(false);
     }
@@ -288,19 +289,21 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     try {
       setIsSubmitting(true);
       
-      // We should get an array of exercises back, not a boolean
-      const updatedExercises = await moveWorkoutExerciseDown(exerciseId, workoutId);
-      // Check if we got exercises back, if not fetch the exercises again
-      if (Array.isArray(updatedExercises)) {
-        setExercises(updatedExercises);
-      } else {
-        const refreshedExercises = await fetchWorkoutExercises(workoutId);
-        setExercises(refreshedExercises);
+      try {
+        const updatedExercises = await moveWorkoutExerciseDown(exerciseId, workoutId);
+        
+        if (Array.isArray(updatedExercises) && updatedExercises.length > 0) {
+          setExercises(updatedExercises);
+          toast.success('Exercise moved down');
+        } else {
+          // Fallback if no exercises are returned
+          const refreshedExercises = await fetchWorkoutExercises(workoutId);
+          setExercises(refreshedExercises);
+        }
+      } catch (error) {
+        console.error('Error moving exercise down:', error);
+        toast.error('Failed to reorder exercise');
       }
-      
-    } catch (error) {
-      console.error('Error moving exercise down:', error);
-      toast.error('Failed to reorder exercise');
     } finally {
       setIsSubmitting(false);
     }

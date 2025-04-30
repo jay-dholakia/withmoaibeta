@@ -12,6 +12,7 @@ import VideoDialog from './VideoDialog';
 import SwapExerciseDialog from './SwapExerciseDialog';
 import { toast } from 'sonner';
 import { useParams } from 'react-router-dom';
+import { getPreviousSetCompletions, SetHistory } from '@/services/activity-logging-service';
 
 interface Props {
   exercise: WorkoutExercise;
@@ -36,6 +37,7 @@ export const StrengthExercise: React.FC<Props> = ({
   const [isSwapDialogOpen, setIsSwapDialogOpen] = useState(false);
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
   const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>(exercise.exercise);
+  const [previousSets, setPreviousSets] = useState<SetHistory[]>([]);
 
   // Check if exercise has sets
   const hasSets = exerciseState && exerciseState.sets && exerciseState.sets.length > 0;
@@ -46,6 +48,23 @@ export const StrengthExercise: React.FC<Props> = ({
       setCurrentExercise(exercise.exercise);
     }
   }, [exercise.exercise]);
+
+  // Fetch previous set completions for this exercise
+  useEffect(() => {
+    const fetchPreviousSets = async () => {
+      if (currentExercise?.id) {
+        try {
+          const sets = await getPreviousSetCompletions(currentExercise.id);
+          setPreviousSets(sets);
+          console.log(`Loaded ${sets.length} previous sets for ${currentExercise.name}`);
+        } catch (error) {
+          console.error('Error loading previous set data:', error);
+        }
+      }
+    };
+    
+    fetchPreviousSets();
+  }, [currentExercise?.id]);
 
   // Query for similar exercises
   const { data: similarExercises, isLoading } = useQuery({
@@ -85,6 +104,11 @@ export const StrengthExercise: React.FC<Props> = ({
       // Revert the local state on error
       setCurrentExercise(exercise.exercise);
     }
+  };
+
+  // Find previous set data for a specific set number
+  const getPreviousSetData = (setNumber: number): SetHistory | undefined => {
+    return previousSets.find(set => set.set_number === setNumber);
   };
 
   // If there are no sets in the exercise state, we should check and alert about potential setup issues
@@ -154,37 +178,40 @@ export const StrengthExercise: React.FC<Props> = ({
           </tr>
         </thead>
         <tbody>
-          {exerciseState.sets.map((set: any, index: number) => (
-            <tr key={`${exercise.id}-set-${index}`} className="h-10">
-              <td className="pl-1 w-8 text-sm">{set.setNumber}</td>
-              <td className="pr-1 w-24">
-                <Input
-                  type="number"
-                  placeholder="reps"
-                  value={set.reps}
-                  onChange={(e) => onSetChange(exercise.id, index, 'reps', e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </td>
-              <td className="pr-1 w-24">
-                <Input
-                  type="number"
-                  placeholder="lbs"
-                  value={set.weight}
-                  onChange={(e) => onSetChange(exercise.id, index, 'weight', e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </td>
-              <td className="text-center">
-                <Checkbox 
-                  id={`set-${exercise.id}-${index}`}
-                  checked={set.completed}
-                  onCheckedChange={(checked) => onSetCompletion(exercise.id, index, checked === true)}
-                  className="h-6 w-6 rounded-full border-2 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                />
-              </td>
-            </tr>
-          ))}
+          {exerciseState.sets.map((set: any, index: number) => {
+            const previousSet = getPreviousSetData(set.setNumber);
+            return (
+              <tr key={`${exercise.id}-set-${index}`} className="h-10">
+                <td className="pl-1 w-8 text-sm">{set.setNumber}</td>
+                <td className="pr-1 w-24">
+                  <Input
+                    type="number"
+                    placeholder={previousSet?.reps || "reps"}
+                    value={set.reps}
+                    onChange={(e) => onSetChange(exercise.id, index, 'reps', e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </td>
+                <td className="pr-1 w-24">
+                  <Input
+                    type="number"
+                    placeholder={previousSet?.weight || "lbs"}
+                    value={set.weight}
+                    onChange={(e) => onSetChange(exercise.id, index, 'weight', e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </td>
+                <td className="text-center">
+                  <Checkbox 
+                    id={`set-${exercise.id}-${index}`}
+                    checked={set.completed}
+                    onCheckedChange={(checked) => onSetCompletion(exercise.id, index, checked === true)}
+                    className="h-6 w-6 rounded-full border-2 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       

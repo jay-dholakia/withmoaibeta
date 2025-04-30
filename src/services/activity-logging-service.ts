@@ -22,7 +22,13 @@ export interface CardioLog {
 export interface RestDayLog {
   log_date: Date;
   notes?: string;
-  workout_type?: string; // Make this optional for backward compatibility
+  workout_type: string;
+}
+
+export interface SetHistory {
+  set_number: number;
+  reps: string;
+  weight: string;
 }
 
 // Add these missing functions for WorkoutHistoryTab.tsx
@@ -195,5 +201,67 @@ export async function logRestDay(restData: RestDayLog): Promise<boolean> {
     console.error('Error logging rest day:', error);
     toast.error('There was a problem logging your rest day');
     return false;
+  }
+}
+
+/**
+ * Get previous set completions for a specific exercise and user
+ * @param exerciseId The ID of the exercise
+ * @param userId The ID of the user
+ * @returns Array of set history objects with set number, reps, and weight
+ */
+export async function getPreviousSetCompletions(exerciseId: string): Promise<SetHistory[]> {
+  try {
+    // First, get the workout exercise IDs that correspond to this exercise
+    const { data: workoutExercises, error: exerciseError } = await supabase
+      .from('workout_exercises')
+      .select('id')
+      .eq('exercise_id', exerciseId);
+
+    if (exerciseError || !workoutExercises || workoutExercises.length === 0) {
+      console.log('No workout exercises found for exercise ID:', exerciseId);
+      return [];
+    }
+
+    const workoutExerciseIds = workoutExercises.map(we => we.id);
+
+    // Then query for the most recent set completions for each set number
+    const { data: setCompletions, error } = await supabase
+      .from('workout_set_completions')
+      .select('set_number, weight, reps_completed, completed_at')
+      .in('workout_exercise_id', workoutExerciseIds)
+      .eq('completed', true)
+      .order('completed_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching previous set completions:', error);
+      return [];
+    }
+
+    if (!setCompletions || setCompletions.length === 0) {
+      console.log('No previous set completions found');
+      return [];
+    }
+
+    // Group by set number and take the most recent for each
+    const setMap = new Map<number, SetHistory>();
+    
+    setCompletions.forEach(set => {
+      const setNumber = set.set_number;
+      
+      if (!setMap.has(setNumber)) {
+        setMap.set(setNumber, {
+          set_number: setNumber,
+          reps: set.reps_completed?.toString() || '',
+          weight: set.weight?.toString() || ''
+        });
+      }
+    });
+
+    // Convert map to array
+    return Array.from(setMap.values());
+  } catch (error) {
+    console.error('Error in getPreviousSetCompletions:', error);
+    return [];
   }
 }

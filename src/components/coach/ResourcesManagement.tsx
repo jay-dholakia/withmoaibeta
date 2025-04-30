@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,7 +87,7 @@ const RESOURCE_TAGS = [
 const resourceSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title is too long"),
   description: z.string().nullable().optional(),
-  url: z.string().url("Must be a valid URL"),
+  url: z.string().url("Must be a valid URL").optional().nullable(),
   tags: z.array(z.string()).optional().nullable(),
 });
 
@@ -116,7 +115,7 @@ const ResourcesManagement = () => {
       form.reset({
         title: editingResource.title,
         description: editingResource.description || '',
-        url: editingResource.url,
+        url: editingResource.url || '',
         tags: editingResource.tags || [],
       });
     } else if (!isEditDialogOpen && !isAddDialogOpen) {
@@ -145,7 +144,7 @@ const ResourcesManagement = () => {
         coach_id: user.id,
         title: values.title,
         description: values.description || null,
-        url: values.url,
+        url: values.url || null,
         tags: values.tags || [],
       });
     },
@@ -168,7 +167,7 @@ const ResourcesManagement = () => {
       return updateCoachResource(id, user.id, {
         title: values.title,
         description: values.description || null,
-        url: values.url,
+        url: values.url || null,
         tags: values.tags || [],
       });
     },
@@ -218,8 +217,10 @@ const ResourcesManagement = () => {
     deleteResourceMutation.mutate(id);
   };
 
-  const getIconForResource = (url: string) => {
-    if (url.includes('calendar') || url.includes('event') || url.includes('schedule')) {
+  const getIconForResource = (url: string | null) => {
+    if (!url) {
+      return <Info className="h-4 w-4 text-amber-500" />;
+    } else if (url.includes('calendar') || url.includes('event') || url.includes('schedule')) {
       return <Calendar className="h-4 w-4 text-blue-500" />;
     } else if (url.includes('book') || url.includes('pdf') || url.includes('doc')) {
       return <Book className="h-4 w-4 text-emerald-500" />;
@@ -277,16 +278,17 @@ const ResourcesManagement = () => {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description (Optional)</FormLabel>
+              <FormLabel>Description</FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder="Enter a brief description of this resource"
+                  placeholder="Enter a description of this resource"
+                  className="min-h-[120px]"
                   {...field}
                   value={field.value || ''}
                 />
               </FormControl>
               <FormDescription>
-                Provide some context about this resource
+                Add detailed information about this resource
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -298,12 +300,12 @@ const ResourcesManagement = () => {
           name="url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>URL</FormLabel>
+              <FormLabel>URL (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="https://example.com/resource" {...field} />
+                <Input placeholder="https://example.com/resource" {...field} value={field.value || ''} />
               </FormControl>
               <FormDescription>
-                The full URL to the resource
+                The URL to the resource, if applicable
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -479,18 +481,22 @@ const ResourcesManagement = () => {
                       </div>
                     </div>
                     {resource.description && (
-                      <p className="text-sm text-muted-foreground mt-1">{resource.description}</p>
+                      <div className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
+                        {resource.description}
+                      </div>
                     )}
-                    <Button
-                      variant="link"
-                      className="h-8 px-0 text-blue-600 flex items-center gap-1"
-                      asChild
-                    >
-                      <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                        {resource.url.length > 40 ? `${resource.url.substring(0, 40)}...` : resource.url}
-                        <ExternalLink className="h-3 w-3 ml-1" />
-                      </a>
-                    </Button>
+                    {resource.url && (
+                      <Button
+                        variant="link"
+                        className="h-8 px-0 text-blue-600 flex items-center gap-1"
+                        asChild
+                      >
+                        <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                          {resource.url.length > 40 ? `${resource.url.substring(0, 40)}...` : resource.url}
+                          <ExternalLink className="h-3 w-3 ml-1" />
+                        </a>
+                      </Button>
+                    )}
                     
                     {resource.tags && resource.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">

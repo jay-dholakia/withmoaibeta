@@ -6,7 +6,7 @@ export interface CoachResource {
   coach_id: string;
   title: string;
   description: string | null;
-  url: string;
+  url: string | null;
   tags: string[] | null;
   created_at: string;
   updated_at: string;

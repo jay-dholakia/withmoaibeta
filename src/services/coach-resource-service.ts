@@ -30,9 +30,15 @@ export const fetchCoachResources = async (coachId: string): Promise<CoachResourc
 
 // Add a new resource
 export const addCoachResource = async (resource: Omit<CoachResource, 'id' | 'created_at' | 'updated_at'>) => {
+  // Make sure empty strings are converted to null for URL field
+  const resourceToAdd = {
+    ...resource,
+    url: resource.url && resource.url.trim() !== '' ? resource.url : null
+  };
+  
   const { data, error } = await supabase
     .from('coach_resources')
-    .insert(resource)
+    .insert(resourceToAdd)
     .select()
     .single();
     
@@ -50,9 +56,15 @@ export const updateCoachResource = async (
   coachId: string, 
   updates: Pick<CoachResource, 'title' | 'description' | 'url' | 'tags'>
 ) => {
+  // Make sure empty strings are converted to null for URL field
+  const updatesToApply = {
+    ...updates,
+    url: updates.url && updates.url.trim() !== '' ? updates.url : null
+  };
+  
   const { data, error } = await supabase
     .from('coach_resources')
-    .update(updates)
+    .update(updatesToApply)
     .eq('id', id)
     .eq('coach_id', coachId)
     .select()

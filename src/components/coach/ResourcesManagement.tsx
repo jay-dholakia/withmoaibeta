@@ -87,7 +87,7 @@ const RESOURCE_TAGS = [
 const resourceSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title is too long"),
   description: z.string().nullable().optional(),
-  url: z.string().url("Must be a valid URL").optional().nullable(),
+  url: z.string().url("Must be a valid URL").optional().nullable().or(z.literal('')),
   tags: z.array(z.string()).optional().nullable(),
 });
 
@@ -144,7 +144,7 @@ const ResourcesManagement = () => {
         coach_id: user.id,
         title: values.title,
         description: values.description || null,
-        url: values.url || null,
+        url: values.url && values.url.trim() !== '' ? values.url : null,
         tags: values.tags || [],
       });
     },
@@ -167,7 +167,7 @@ const ResourcesManagement = () => {
       return updateCoachResource(id, user.id, {
         title: values.title,
         description: values.description || null,
-        url: values.url || null,
+        url: values.url && values.url.trim() !== '' ? values.url : null,
         tags: values.tags || [],
       });
     },
@@ -302,10 +302,10 @@ const ResourcesManagement = () => {
             <FormItem>
               <FormLabel>URL (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="https://example.com/resource" {...field} value={field.value || ''} />
+                <Input placeholder="https://example.com/resource (optional)" {...field} value={field.value || ''} />
               </FormControl>
               <FormDescription>
-                The URL to the resource, if applicable
+                The URL to the resource, if applicable - leave empty if not needed
               </FormDescription>
               <FormMessage />
             </FormItem>

@@ -1,3 +1,4 @@
+
 import { createMachine, assign } from 'xstate';
 import { CoachResource } from '@/services/coach-resource-service';
 
@@ -23,7 +24,7 @@ type ResourcesEvent =
   | { type: 'COMPLETE_SUBMISSION' }
   | { type: 'SUBMISSION_ERROR' };
 
-export const resourcesMachine = createMachine<ResourcesContext, ResourcesEvent>({
+export const resourcesMachine = createMachine({
   id: 'resources',
   initial: 'idle',
   context: {
@@ -32,23 +33,27 @@ export const resourcesMachine = createMachine<ResourcesContext, ResourcesEvent>(
     isAddDialogOpen: false,
     isEditDialogOpen: false,
     isSubmitting: false
+  } as ResourcesContext,
+  types: {
+    context: {} as ResourcesContext,
+    events: {} as ResourcesEvent,
   },
   states: {
     idle: {
       on: {
         LOAD_RESOURCES: {
           actions: assign({
-            resources: (_, event) => event.resources
+            resources: ({ event }) => event.resources
           })
         },
         SET_EDITING_RESOURCE: {
           actions: assign({
-            editingResource: (_, event) => event.resource
+            editingResource: ({ event }) => event.resource
           })
         },
         CLEAR_EDITING_RESOURCE: {
           actions: assign({
-            editingResource: null
+            editingResource: (_) => null
           })
         },
         OPEN_ADD_DIALOG: {
@@ -61,41 +66,41 @@ export const resourcesMachine = createMachine<ResourcesContext, ResourcesEvent>(
     },
     addingResource: {
       entry: assign({
-        isAddDialogOpen: true
+        isAddDialogOpen: (_) => true
       }),
       on: {
         CLOSE_ADD_DIALOG: {
           target: 'idle',
           actions: assign({
-            isAddDialogOpen: false
+            isAddDialogOpen: (_) => false
           })
         },
         START_SUBMISSION: {
           target: 'submitting',
           actions: assign({
-            isSubmitting: true
+            isSubmitting: (_) => true
           })
         }
       }
     },
     editingResource: {
       entry: assign({
-        isEditDialogOpen: true
+        isEditDialogOpen: (_) => true
       }),
       on: {
         CLOSE_EDIT_DIALOG: {
           target: 'idle',
           actions: [
             assign({
-              isEditDialogOpen: false,
-              editingResource: null
+              isEditDialogOpen: (_) => false,
+              editingResource: (_) => null
             })
           ]
         },
         START_SUBMISSION: {
           target: 'submitting',
           actions: assign({
-            isSubmitting: true
+            isSubmitting: (_) => true
           })
         }
       }
@@ -105,16 +110,16 @@ export const resourcesMachine = createMachine<ResourcesContext, ResourcesEvent>(
         COMPLETE_SUBMISSION: {
           target: 'idle',
           actions: assign({
-            isSubmitting: false,
-            isAddDialogOpen: false,
-            isEditDialogOpen: false,
-            editingResource: null
+            isSubmitting: (_) => false,
+            isAddDialogOpen: (_) => false,
+            isEditDialogOpen: (_) => false,
+            editingResource: (_) => null
           })
         },
         SUBMISSION_ERROR: {
           target: 'idle',
           actions: assign({
-            isSubmitting: false
+            isSubmitting: (_) => false
           })
         }
       }

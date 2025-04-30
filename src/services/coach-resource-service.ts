@@ -30,10 +30,10 @@ export const fetchCoachResources = async (coachId: string): Promise<CoachResourc
 
 // Add a new resource
 export const addCoachResource = async (resource: Omit<CoachResource, 'id' | 'created_at' | 'updated_at'>) => {
-  // Make sure empty strings are converted to null for URL field
+  // Make sure empty strings are converted to non-null default value for URL field
   const resourceToAdd = {
     ...resource,
-    url: resource.url && resource.url.trim() !== '' ? resource.url : null
+    url: resource.url && resource.url.trim() !== '' ? resource.url : 'https://placeholder.url'
   };
   
   const { data, error } = await supabase
@@ -56,10 +56,10 @@ export const updateCoachResource = async (
   coachId: string, 
   updates: Pick<CoachResource, 'title' | 'description' | 'url' | 'tags'>
 ) => {
-  // Make sure empty strings are converted to null for URL field
+  // Make sure empty strings are converted to non-null default value for URL field
   const updatesToApply = {
     ...updates,
-    url: updates.url && updates.url.trim() !== '' ? updates.url : null
+    url: updates.url && updates.url.trim() !== '' ? updates.url : 'https://placeholder.url'
   };
   
   const { data, error } = await supabase

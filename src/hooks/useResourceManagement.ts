@@ -43,7 +43,7 @@ export const useResourceManagement = () => {
         coach_id: user.id,
         title: values.title,
         description: values.description || null,
-        url: values.url && values.url.trim() !== '' ? values.url : null,
+        url: values.url || null,
         tags: values.tags || []
       });
     },
@@ -62,7 +62,7 @@ export const useResourceManagement = () => {
       return updateCoachResource(id, user.id, {
         title: values.title,
         description: values.description || null,
-        url: values.url && values.url.trim() !== '' ? values.url : null,
+        url: values.url || null,
         tags: values.tags || []
       });
     },

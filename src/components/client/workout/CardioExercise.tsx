@@ -3,7 +3,7 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Youtube } from 'lucide-react';
+import { Youtube, MapPin } from 'lucide-react';
 import { WorkoutExercise } from '@/types/workout';
 import {
   Tooltip,
@@ -33,7 +33,7 @@ export const CardioExercise: React.FC<Props> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="block text-xs mb-1">Distance (optional)</label>
+          <label className="block text-xs mb-1">Distance</label>
           <Input 
             type="text" 
             placeholder="e.g., 5 miles"
@@ -51,15 +51,21 @@ export const CardioExercise: React.FC<Props> = ({
           />
         </div>
       </div>
+      
       <div>
         <label className="block text-xs mb-1">Location (optional)</label>
-        <Input 
-          type="text" 
-          placeholder="e.g., Gym"
-          value={exerciseState.cardioData?.location || ''}
-          onChange={(e) => onCardioChange(exercise.id, 'location', e.target.value)}
-        />
+        <div className="relative">
+          <MapPin className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input 
+            type="text" 
+            placeholder="e.g., Gym, Park Trail"
+            value={exerciseState.cardioData?.location || ''}
+            onChange={(e) => onCardioChange(exercise.id, 'location', e.target.value)}
+            className="pl-8"
+          />
+        </div>
       </div>
+      
       <div className="flex justify-between items-center">
         <TooltipProvider>
           <Tooltip>

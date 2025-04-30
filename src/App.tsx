@@ -62,7 +62,9 @@ const App: React.FC = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<PublicRoute><HomePage /></PublicRoute>} />
+      {/* Redirect root to login page - this replaces the problematic HomePage route */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/admin-login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
       <Route path="/coach-login" element={<PublicRoute><CoachLogin /></PublicRoute>} />

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
@@ -127,6 +128,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
   const getWorkoutTypeForDay = (day: Date): WorkoutType | undefined => {
     const formattedDate = format(day, 'yyyy-MM-dd');
     
+    // First check if we already have a defined workout type in the provided map
     if (workoutTypesMap && workoutTypesMap[formattedDate]) {
       return workoutTypesMap[formattedDate];
     }
@@ -143,8 +145,15 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       return 'rest_day';
     }
 
+    // Check for specific workout titles first
     for (const workout of workoutsForDay) {
       const title = (workout.title || workout.workout?.title || '').toLowerCase();
+      
+      // Check for running in the title
+      if (title.includes('run') || title.includes('running')) {
+        console.log(`Found running workout for ${formattedDate}: "${title}"`);
+        return 'running';
+      }
       
       if (title.includes('tennis')) return 'tennis';
       if (title.includes('basketball')) return 'basketball';
@@ -154,12 +163,19 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       if (title.includes('hiking')) return 'hiking';
       if (title.includes('skiing')) return 'skiing';
       if (title.includes('yoga')) return 'yoga';
-      if (title.includes('run')) return 'running';
     }
     
+    // Check for workout_type field
     for (const workout of workoutsForDay) {
       if (workout.workout_type) {
         const type = workout.workout_type.toLowerCase();
+        
+        // Check for running in the workout type
+        if (type === 'running' || type === 'run' || type === 'live_run') {
+          console.log(`Found running workout type for ${formattedDate}: "${type}"`);
+          return 'running';
+        }
+        
         if (type === 'strength') return 'strength';
         if (type === 'cardio') return 'cardio';
         if (type === 'bodyweight') return 'bodyweight';
@@ -177,8 +193,14 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
         if (type === 'hiking') return 'hiking';
         if (type === 'skiing') return 'skiing';
         if (type === 'yoga') return 'yoga';
-        if (type === 'running') return 'running';
-        if (type === 'live_run') return 'running';
+      }
+    }
+
+    // Check for distance field which indicates run
+    for (const workout of workoutsForDay) {
+      if (workout.distance) {
+        console.log(`Found workout with distance for ${formattedDate}: distance=${workout.distance}`);
+        return 'running';
       }
     }
 
@@ -196,6 +218,12 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
     return workoutsForDay.map(workout => {
       const title = workout.title || workout.workout?.title || 'Unknown Workout';
       const type = workout.workout_type || workout.workout?.workout_type || 'Unknown Type';
+      
+      // Add distance info for run workouts
+      if (workout.distance) {
+        return `${title} (${workout.distance} miles)`;
+      }
+      
       return `${title} (${type})`;
     }).join('\n');
   };
@@ -294,6 +322,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
   const renderLegend = () => {
     const legendItems = [
       { type: 'strength', label: 'Strength' },
+      { type: 'running', label: 'Running' },
       { type: 'bodyweight', label: 'Bodyweight' },
       { type: 'flexibility', label: 'Flexibility' },
       { type: 'rest_day', label: 'Rest Day' },

@@ -97,10 +97,10 @@ export const useAuthMachine = () => {
         }
       },
       notifyError: (context, event) => {
-        if (event.error?.message) {
-          toast.error(event.error.message);
-        } else if (typeof event.error === 'string') {
-          toast.error(event.error);
+        if (event.data?.message) {
+          toast.error(event.data.message);
+        } else if (typeof event.data === 'string') {
+          toast.error(event.data);
         } else {
           toast.error('An error occurred');
         }

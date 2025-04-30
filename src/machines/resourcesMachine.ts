@@ -39,12 +39,12 @@ export const resourcesMachine = createMachine({
       on: {
         LOAD_RESOURCES: {
           actions: assign({
-            resources: (_, event) => event.resources
+            resources: (_, event: { type: string, resources: CoachResource[] }) => event.resources
           })
         },
         SET_EDITING_RESOURCE: {
           actions: assign({
-            editingResource: (_, event) => event.resource
+            editingResource: (_, event: { type: string, resource: CoachResource }) => event.resource
           })
         },
         CLEAR_EDITING_RESOURCE: {

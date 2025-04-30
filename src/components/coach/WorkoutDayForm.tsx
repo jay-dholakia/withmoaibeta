@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -263,8 +264,15 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     try {
       setIsSubmitting(true);
       
+      // We should get an array of exercises back, not a boolean
       const updatedExercises = await moveWorkoutExerciseUp(exerciseId, workoutId);
-      setExercises(updatedExercises);
+      // Check if we got exercises back, if not fetch the exercises again 
+      if (Array.isArray(updatedExercises)) {
+        setExercises(updatedExercises);
+      } else {
+        const refreshedExercises = await fetchWorkoutExercises(workoutId);
+        setExercises(refreshedExercises);
+      }
       
     } catch (error) {
       console.error('Error moving exercise up:', error);
@@ -280,8 +288,15 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     try {
       setIsSubmitting(true);
       
+      // We should get an array of exercises back, not a boolean
       const updatedExercises = await moveWorkoutExerciseDown(exerciseId, workoutId);
-      setExercises(updatedExercises);
+      // Check if we got exercises back, if not fetch the exercises again
+      if (Array.isArray(updatedExercises)) {
+        setExercises(updatedExercises);
+      } else {
+        const refreshedExercises = await fetchWorkoutExercises(workoutId);
+        setExercises(refreshedExercises);
+      }
       
     } catch (error) {
       console.error('Error moving exercise down:', error);

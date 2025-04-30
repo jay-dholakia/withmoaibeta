@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -447,7 +446,7 @@ const EditWorkoutPage = () => {
                         <Button 
                           variant="destructive" 
                           size="sm"
-                          onClick={() => handleDeleteExercise(exercise.id, workoutId as string)}
+                          onClick={() => handleDeleteExercise(exercise.id)}
                           disabled={isSubmitting}
                         >
                           Delete

@@ -19,7 +19,6 @@ interface Props {
   onFlexibilityChange: (exerciseId: string, field: 'duration', value: string) => void;
   onFlexibilityCompletion: (exerciseId: string, completed: boolean) => void;
   onVideoClick: (url: string, name: string) => void;
-  onToggleExpanded?: (exerciseId: string) => void;
 }
 
 export const FlexibilityExercise: React.FC<Props> = ({
@@ -28,8 +27,7 @@ export const FlexibilityExercise: React.FC<Props> = ({
   formatDurationInput,
   onFlexibilityChange,
   onFlexibilityCompletion,
-  onVideoClick,
-  onToggleExpanded
+  onVideoClick
 }) => {
   return (
     <div className="space-y-4">

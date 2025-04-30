@@ -431,7 +431,7 @@ const ResourcesManagement = () => {
         ) : (
           <div className="space-y-4">
             {resources.map((resource, index) => (
-              <div key={resource.id}>
+              <React.Fragment key={resource.id}>
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 p-1.5 bg-muted rounded-md">
                     {getIconForResource(resource.url)}
@@ -511,7 +511,7 @@ const ResourcesManagement = () => {
                   </div>
                 </div>
                 {index < resources.length - 1 && <Separator />}
-              </div>
+              </React.Fragment>
             ))}
           </div>
         )}

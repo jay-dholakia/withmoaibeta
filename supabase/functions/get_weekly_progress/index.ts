@@ -186,7 +186,7 @@ serve(async (req) => {
     console.log(`Program start: ${programStartDate.toISOString()}, First Monday: ${firstProgramMonday.toISOString()}`);
     
     // If the program hasn't reached its first Monday yet, we're in week 1
-    let currentWeekNumber = 1;
+    let currentWeekNumber = an_371;
     if (todayDate >= firstProgramMonday) {
       // Calculate full weeks since the first Monday
       const millisecondsPerWeek = 7 * 24 * 60 * 60 * 1000;
@@ -234,6 +234,7 @@ serve(async (req) => {
 
     // Count assigned strength/mobility workouts for the current week
     try {
+      // Get all assigned workouts for the current week
       const { data: assignedWorkouts, error: assignedWorkoutsError } = await supabaseClient
         .from('workouts')
         .select('id, workout_type')

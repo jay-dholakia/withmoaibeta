@@ -65,11 +65,6 @@ export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProg
       data.metrics.miles_run = { target: 0, actual: 0 };
     }
 
-    // Count completed strength workouts if needed
-    if (data && clientId) {
-      await updateStrengthWorkoutsCount(data, clientId);
-    }
-
     return data as WeeklyProgressResponse;
   } catch (error) {
     console.error("Failed to fetch weekly progress:", error);
@@ -88,101 +83,5 @@ export const fetchWeeklyProgress = async (clientId?: string): Promise<WeeklyProg
       },
       error: error.message || "Failed to load progress data"
     };
-  }
-};
-
-/**
- * Updates the weekly strength workouts count based on completed workouts
- */
-async function updateStrengthWorkoutsCount(
-  data: WeeklyProgressResponse, 
-  clientId: string
-): Promise<void> {
-  try {
-    // Get the current date in Pacific Time
-    const now = new Date();
-    const todayPT = formatInTimeZone(now, 'America/Los_Angeles', 'yyyy-MM-dd');
-    const today = parseISO(todayPT);
-    
-    // Calculate week boundaries - Monday to Sunday
-    // Calculate the day of week (0-6, where 0 is Sunday)
-    const dayOfWeek = today.getDay();
-    // Calculate days from Monday (if today is Sunday, it's 6 days from Monday)
-    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    
-    // Set the week start to Monday
-    const weekStartDate = new Date(today);
-    weekStartDate.setDate(today.getDate() - daysFromMonday);
-    weekStartDate.setHours(0, 0, 0, 0); // Start of day
-    
-    // End of week is Sunday (start of week + 7 days)
-    const weekEndDate = new Date(weekStartDate);
-    weekEndDate.setDate(weekStartDate.getDate() + 7);
-    
-    // Format dates to ISO strings for database queries
-    const weekStart = weekStartDate.toISOString();
-    const weekEnd = weekEndDate.toISOString();
-    
-    console.log(`Calculating workout counts for week of ${format(weekStartDate, 'yyyy-MM-dd')} to ${format(weekEndDate, 'yyyy-MM-dd')} (Pacific Time)`);
-    console.log(`Week start ISO: ${weekStart}`);
-    console.log(`Week end ISO: ${weekEnd}`);
-
-    // Query for completed strength workouts in this week only
-    const { data: completions, error } = await supabase
-      .from('workout_completions')
-      .select(`
-        id,
-        completed_at,
-        workout_id,
-        workout:workout_id (
-          workout_type
-        ),
-        workout_type
-      `)
-      .eq('user_id', clientId)
-      .gte('completed_at', weekStart)
-      .lt('completed_at', weekEnd)
-      .not('completed_at', 'is', null);
-
-    if (error) {
-      console.error("Error counting completed strength workouts:", error);
-      return;
-    }
-
-    // Count strength workouts within the current week only
-    let strengthCount = 0;
-    
-    if (completions && completions.length > 0) {
-      // Log all found completions to help debug
-      console.log("All workout completions found:", JSON.stringify(completions.map(c => ({
-        id: c.id,
-        completed_at: c.completed_at,
-        workout_type: c.workout_type || (c.workout && c.workout.workout_type)
-      })), null, 2));
-      
-      strengthCount = completions.filter(completion => {
-        // Check workout type from either the completion itself or the associated workout
-        const workoutType = (completion.workout_type || 
-                           (completion.workout && completion.workout.workout_type) || 
-                           '').toLowerCase();
-        
-        return workoutType === 'strength' || workoutType === 'bodyweight';
-      }).length;
-      
-      console.log(`Found ${strengthCount} completed strength workouts this week (Pacific Time)`);
-      
-      // Update the data object with the actual count
-      if (data && data.metrics && data.metrics.strength_workouts) {
-        data.metrics.strength_workouts.actual = strengthCount;
-      }
-    } else {
-      console.log("No workout completions found for the current week");
-      // Reset strength workout count to 0 when no completions are found
-      if (data && data.metrics && data.metrics.strength_workouts) {
-        data.metrics.strength_workouts.actual = 0;
-      }
-    }
-  } catch (err) {
-    console.error("Error updating strength workout count:", err);
   }
 }

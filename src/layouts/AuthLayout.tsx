@@ -26,7 +26,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       <AnimatedBackground variant={variant} />
       
       <header className="w-full py-6 px-4 md:px-6 flex justify-between items-center z-20 relative">
-        <Link to="/" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
+        <Link to="/portals" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft size={18} className="mr-2" />
           <span className="text-sm font-medium">Back to Portals</span>
         </Link>

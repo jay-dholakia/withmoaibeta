@@ -8,6 +8,7 @@ import AdminLogin from './pages/AdminLogin';
 import PasswordResetRequestPage from './pages/client/PasswordResetRequestPage';
 import ResetPasswordPage from './pages/ResetPassword';
 import RegisterPage from './pages/Register';
+import LandingPage from './pages/LandingPage';
 import HomePage from './pages/Index';
 import ClientDashboard from './pages/client/ClientDashboard';
 import CoachDashboard from './pages/coach/CoachDashboard';
@@ -62,8 +63,11 @@ const App: React.FC = () => {
 
   return (
     <Routes>
-      {/* Redirect root to login page - this replaces the problematic HomePage route */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* Updated: Root redirects to our new landing page */}
+      <Route path="/" element={<Navigate to="/landing" replace />} />
+      
+      {/* New landing page route */}
+      <Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
       
       {/* Add portals page route using the HomePage component */}
       <Route path="/portals" element={<PublicRoute><HomePage /></PublicRoute>} />

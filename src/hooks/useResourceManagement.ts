@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -94,13 +94,13 @@ export const useResourceManagement = () => {
     }
   });
   
-  const handleEdit = (resource: CoachResource) => {
+  const handleEdit = useCallback((resource: CoachResource) => {
     setEditingResource(resource);
-  };
+  }, []);
   
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingResource(null);
-  };
+  }, []);
   
   return {
     resources,

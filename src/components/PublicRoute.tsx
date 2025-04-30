@@ -34,9 +34,13 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
     } else if (userType === 'client') {
       return <Navigate to="/client-dashboard/moai" replace />;
     }
+    
+    // If we don't recognize the user type, still redirect to a safe default
+    return <Navigate to="/client-dashboard/moai" replace />;
   }
 
   // If not authenticated, show the requested public route
+  // Make sure we actually render the children and not directly use them as an element
   return <>{children}</>;
 };
 

@@ -207,7 +207,6 @@ export async function logRestDay(restData: RestDayLog): Promise<boolean> {
 /**
  * Get previous set completions for a specific exercise and user
  * @param exerciseId The ID of the exercise
- * @param userId The ID of the user
  * @returns Array of set history objects with set number, reps, and weight
  */
 export async function getPreviousSetCompletions(exerciseId: string): Promise<SetHistory[]> {
@@ -228,10 +227,10 @@ export async function getPreviousSetCompletions(exerciseId: string): Promise<Set
     // Then query for the most recent set completions for each set number
     const { data: setCompletions, error } = await supabase
       .from('workout_set_completions')
-      .select('set_number, weight, reps_completed, completed_at')
+      .select('set_number, weight, reps_completed, created_at')
       .in('workout_exercise_id', workoutExerciseIds)
       .eq('completed', true)
-      .order('completed_at', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching previous set completions:', error);

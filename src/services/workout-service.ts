@@ -709,7 +709,7 @@ export const moveWorkoutExerciseUp = async (exerciseId: string, workoutId: strin
       throw new Error("Could not find current exercise in the list");
     }
     
-    const currentIndex = currentExercise.order_index;
+    const currentIndex = exercises.findIndex(ex => ex.id === exerciseId);
     
     // If it's already at the top (index 0), do nothing
     if (currentIndex === 0) {
@@ -717,18 +717,17 @@ export const moveWorkoutExerciseUp = async (exerciseId: string, workoutId: strin
       return exercises;
     }
     
-    // Find the exercise above it
-    const aboveExercise = exercises.find(ex => ex.order_index === currentIndex - 1);
-    if (!aboveExercise) {
-      console.log("No exercise found above with index", currentIndex - 1);
-      console.log("Available exercises:", exercises.map(e => ({id: e.id, order_index: e.order_index})));
-      throw new Error("Could not find exercise above");
-    }
+    // Find the exercise above it in the sorted list
+    const aboveExercise = exercises[currentIndex - 1];
+    
+    // Swap their order_index values
+    const currentOrderIndex = currentExercise.order_index;
+    const aboveOrderIndex = aboveExercise.order_index;
     
     // Update the current exercise's order_index
     const { error: updateCurrentError } = await supabase
       .from('workout_exercises')
-      .update({ order_index: currentIndex - 1 })
+      .update({ order_index: aboveOrderIndex })
       .eq('id', exerciseId);
     
     if (updateCurrentError) {
@@ -739,7 +738,7 @@ export const moveWorkoutExerciseUp = async (exerciseId: string, workoutId: strin
     // Update the above exercise's order_index
     const { error: updateAboveError } = await supabase
       .from('workout_exercises')
-      .update({ order_index: currentIndex })
+      .update({ order_index: currentOrderIndex })
       .eq('id', aboveExercise.id);
     
     if (updateAboveError) {
@@ -789,33 +788,30 @@ export const moveWorkoutExerciseDown = async (exerciseId: string, workoutId: str
       throw new Error("Could not fetch exercises");
     }
     
-    // Find the current exercise
-    const currentExercise = exercises.find(ex => ex.id === exerciseId);
-    if (!currentExercise) {
+    // Find the current exercise in the sorted array
+    const currentIndex = exercises.findIndex(ex => ex.id === exerciseId);
+    if (currentIndex === -1) {
       throw new Error("Could not find current exercise in the list");
     }
     
-    const currentIndex = currentExercise.order_index;
-    const maxIndex = exercises.length - 1;
-    
     // If it's already at the bottom, do nothing
-    if (currentIndex === maxIndex) {
+    if (currentIndex === exercises.length - 1) {
       console.log("Exercise already at the bottom, cannot move down further");
       return exercises;
     }
     
-    // Find the exercise below it
-    const belowExercise = exercises.find(ex => ex.order_index === currentIndex + 1);
-    if (!belowExercise) {
-      console.log("No exercise found below with index", currentIndex + 1);
-      console.log("Available exercises:", exercises.map(e => ({id: e.id, order_index: e.order_index})));
-      throw new Error("Could not find exercise below");
-    }
+    // Get the current exercise and the one below it
+    const currentExercise = exercises[currentIndex];
+    const belowExercise = exercises[currentIndex + 1];
+    
+    // Swap their order_index values
+    const currentOrderIndex = currentExercise.order_index;
+    const belowOrderIndex = belowExercise.order_index;
     
     // Update the current exercise's order_index
     const { error: updateCurrentError } = await supabase
       .from('workout_exercises')
-      .update({ order_index: currentIndex + 1 })
+      .update({ order_index: belowOrderIndex })
       .eq('id', exerciseId);
     
     if (updateCurrentError) {
@@ -826,7 +822,7 @@ export const moveWorkoutExerciseDown = async (exerciseId: string, workoutId: str
     // Update the below exercise's order_index
     const { error: updateBelowError } = await supabase
       .from('workout_exercises')
-      .update({ order_index: currentIndex })
+      .update({ order_index: currentOrderIndex })
       .eq('id', belowExercise.id);
     
     if (updateBelowError) {

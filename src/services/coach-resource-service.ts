@@ -31,12 +31,10 @@ export const fetchCoachResources = async (coachId: string): Promise<CoachResourc
 
 // Add a new resource
 export const addCoachResource = async (resource: Omit<CoachResource, 'id' | 'created_at' | 'updated_at'>) => {
-  // Handle URL based on resource type
+  // For tips, URL should always be null
   const resourceToAdd = {
     ...resource,
-    url: resource.resource_type === 'tip' ? null : 
-         (resource.url && resource.url.trim() !== '' ? resource.url : 
-          resource.resource_type === 'article' ? 'https://placeholder.url' : null)
+    url: resource.resource_type === 'tip' ? null : resource.url
   };
   
   const { data, error } = await supabase
@@ -59,12 +57,10 @@ export const updateCoachResource = async (
   coachId: string, 
   updates: Pick<CoachResource, 'title' | 'description' | 'url' | 'tags' | 'resource_type'>
 ) => {
-  // Handle URL based on resource type
+  // For tips, URL should always be null
   const updatesToApply = {
     ...updates,
-    url: updates.resource_type === 'tip' ? null : 
-         (updates.url && updates.url.trim() !== '' ? updates.url : 
-          updates.resource_type === 'article' ? 'https://placeholder.url' : null)
+    url: updates.resource_type === 'tip' ? null : updates.url
   };
   
   const { data, error } = await supabase

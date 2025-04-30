@@ -411,7 +411,7 @@ export type Database = {
           tags: string[] | null
           title: string
           updated_at: string
-          url: string
+          url: string | null
         }
         Insert: {
           coach_id: string
@@ -422,7 +422,7 @@ export type Database = {
           tags?: string[] | null
           title: string
           updated_at?: string
-          url: string
+          url?: string | null
         }
         Update: {
           coach_id?: string
@@ -433,7 +433,7 @@ export type Database = {
           tags?: string[] | null
           title?: string
           updated_at?: string
-          url?: string
+          url?: string | null
         }
         Relationships: []
       }

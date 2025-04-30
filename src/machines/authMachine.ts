@@ -43,10 +43,6 @@ export const authMachine = createMachine({
     loading: true,
     redirectTo: null
   } as AuthContext,
-  types: {
-    context: {} as AuthContext,
-    events: {} as AuthEvent,
-  },
   states: {
     initializing: {
       entry: assign({ loading: true }),
@@ -57,8 +53,8 @@ export const authMachine = createMachine({
         SET_SESSION: {
           target: 'authenticated',
           actions: assign({
-            session: ({ event }) => event.session,
-            user: ({ event }) => event.session?.user || null,
+            session: (_, event) => event.session,
+            user: (_, event) => event.session?.user || null,
             loading: (_) => false
           })
         }
@@ -70,15 +66,15 @@ export const authMachine = createMachine({
         onDone: {
           target: 'authenticated',
           actions: assign({
-            session: ({ event }) => event.output.session,
-            user: ({ event }) => event.output.session?.user || null,
+            session: (_, event) => event.output.session,
+            user: (_, event) => event.output.session?.user || null,
             loading: (_) => false
           })
         },
         onError: {
           target: 'unauthenticated',
           actions: assign({ 
-            error: ({ event }) => event.error?.message || 'Failed to get session',
+            error: (_, event) => event.error?.message || 'Failed to get session',
             loading: (_) => false
           })
         }
@@ -102,8 +98,8 @@ export const authMachine = createMachine({
         SET_SESSION: {
           target: 'authenticated',
           actions: assign({
-            session: ({ event }) => event.session,
-            user: ({ event }) => event.session?.user || null
+            session: (_, event) => event.session,
+            user: (_, event) => event.session?.user || null
           })
         }
       }
@@ -115,8 +111,8 @@ export const authMachine = createMachine({
         onDone: {
           target: 'authenticated',
           actions: assign({
-            session: ({ event }) => event.output.session,
-            user: ({ event }) => event.output.user,
+            session: (_, event) => event.output.session,
+            user: (_, event) => event.output.user,
             loading: (_) => false
           })
         },
@@ -124,7 +120,7 @@ export const authMachine = createMachine({
           target: 'unauthenticated',
           actions: [
             assign({ 
-              error: ({ event }) => event.error?.message || 'Failed to sign in',
+              error: (_, event) => event.error?.message || 'Failed to sign in',
               loading: (_) => false
             }),
             'notifyError'
@@ -140,8 +136,8 @@ export const authMachine = createMachine({
           target: 'authenticated',
           actions: [
             assign({
-              session: ({ event }) => event.output.session,
-              user: ({ event }) => event.output.user,
+              session: (_, event) => event.output.session,
+              user: (_, event) => event.output.user,
               loading: (_) => false
             }),
             'notifySuccess'
@@ -151,7 +147,7 @@ export const authMachine = createMachine({
           target: 'unauthenticated',
           actions: [
             assign({ 
-              error: ({ event }) => event.error?.message || 'Failed to sign up',
+              error: (_, event) => event.error?.message || 'Failed to sign up',
               loading: (_) => false
             }),
             'notifyError'
@@ -167,21 +163,19 @@ export const authMachine = createMachine({
         },
         SET_USER_TYPE: {
           actions: assign({
-            userType: ({ event }) => event.userType
+            userType: (_, event) => event.userType
           })
         },
         SET_PROFILE: {
           actions: assign({
-            profile: ({ event }) => event.profile
+            profile: (_, event) => event.profile
           })
         }
       },
-      always: [
-        {
-          target: 'fetchingProfile',
-          guard: ({ context }) => !!context.user && !context.profile && !context.userType
-        }
-      ]
+      always: {
+        target: 'fetchingProfile',
+        cond: (context) => !!context.user && !context.profile && !context.userType
+      }
     },
     fetchingProfile: {
       invoke: {
@@ -189,14 +183,14 @@ export const authMachine = createMachine({
         onDone: {
           target: 'authenticated',
           actions: assign({
-            profile: ({ event }) => event.output,
-            userType: ({ event }) => event.output?.user_type || null
+            profile: (_, event) => event.output,
+            userType: (_, event) => event.output?.user_type || null
           })
         },
         onError: {
           target: 'authenticated',
           actions: [
-            assign({ error: ({ event }) => event.error?.message || 'Failed to fetch profile' }),
+            assign({ error: (_, event) => event.error?.message || 'Failed to fetch profile' }),
             'notifyError'
           ]
         }
@@ -220,7 +214,7 @@ export const authMachine = createMachine({
           target: 'authenticated',
           actions: [
             assign({ 
-              error: ({ event }) => event.error?.message || 'Failed to sign out',
+              error: (_, event) => event.error?.message || 'Failed to sign out',
               loading: (_) => false
             }),
             'notifyError'

@@ -34,21 +34,17 @@ export const resourcesMachine = createMachine({
     isEditDialogOpen: false,
     isSubmitting: false
   } as ResourcesContext,
-  types: {
-    context: {} as ResourcesContext,
-    events: {} as ResourcesEvent,
-  },
   states: {
     idle: {
       on: {
         LOAD_RESOURCES: {
           actions: assign({
-            resources: ({ event }) => event.resources
+            resources: (_, event) => event.resources
           })
         },
         SET_EDITING_RESOURCE: {
           actions: assign({
-            editingResource: ({ event }) => event.resource
+            editingResource: (_, event) => event.resource
           })
         },
         CLEAR_EDITING_RESOURCE: {

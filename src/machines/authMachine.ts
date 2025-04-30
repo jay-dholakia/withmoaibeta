@@ -218,4 +218,3 @@ export const authMachine = createMachine<AuthContext, AuthEvent>({
     }
   }
 });
-

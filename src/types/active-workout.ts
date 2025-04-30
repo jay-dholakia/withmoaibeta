@@ -50,6 +50,7 @@ export interface PendingCardio {
   distance: string;
   duration: string;
   location: string;
+  completed: boolean;
 }
 
 export interface PendingFlexibility {

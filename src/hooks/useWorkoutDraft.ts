@@ -27,7 +27,7 @@ export function useWorkoutDraft({
   const [draftLoaded, setDraftLoaded] = useState<boolean>(false);
   const [loadAttempted, setLoadAttempted] = useState<boolean>(false);
   
-  const { user, loading: authLoading } = useAuth();
+  const { user, authLoading } = useAuth();
   const isMountedRef = useRef<boolean>(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   

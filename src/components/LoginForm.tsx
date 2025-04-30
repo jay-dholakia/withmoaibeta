@@ -28,7 +28,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [isRegistering, setIsRegistering] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
-  const { signIn, signUp, loading: authLoading } = useAuth();
+  const { signIn, signUp, authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formMounted, setFormMounted] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
@@ -254,3 +254,4 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     </motion.div>
   );
 };
+

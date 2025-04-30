@@ -37,13 +37,13 @@ import { Textarea } from '@/components/ui/textarea';
 
 const CoachDashboard = () => {
   console.log("CoachDashboard: Component rendering...");
-  const { user, userType, loading } = useAuth();
+  const { user, userType, authLoading } = useAuth();
   const navigate = useNavigate();
   
   console.log("CoachDashboard: Auth state:", { 
     user: user?.id, 
     userType, 
-    loading 
+    authLoading 
   });
 
   const [isFixingAssignment, setIsFixingAssignment] = useState(false);
@@ -200,7 +200,7 @@ const CoachDashboard = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading) {
     console.log("CoachDashboard: Still loading auth state...");
     return (
       <div className="flex justify-center items-center min-h-screen">

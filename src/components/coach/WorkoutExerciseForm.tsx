@@ -33,7 +33,7 @@ export const WorkoutExerciseForm: React.FC<WorkoutExerciseFormProps> = ({
     initialData?.completed_date ? new Date(initialData.completed_date) : new Date()
   );
   
-  const { user, loading: authLoading } = useAuth();
+  const { user, authLoading } = useAuth();
   const lastErrorToastTimeRef = useRef<number>(0);
   
   const isMounted = useRef(true);

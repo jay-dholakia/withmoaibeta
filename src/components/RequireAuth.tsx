@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,18 +8,18 @@ interface RequireAuthProps {
 }
 
 const RequireAuth: React.FC<RequireAuthProps> = ({ allowedUserTypes, children }) => {
-  const { user, userType, loading } = useAuth();
+  const { user, userType, authLoading } = useAuth();
   const location = useLocation();
   
   console.log("RequireAuth rendering with:", { 
     user: user?.id, 
     userType, 
     allowedTypes: allowedUserTypes,
-    loading,
+    authLoading,
     path: location.pathname
   });
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <span className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></span>

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -89,12 +88,19 @@ const ResourcesManagement = () => {
   const [editingResource, setEditingResource] = useState<CoachResource | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
+  
+  // Stable form reference that won't trigger re-renders
   const form = useForm<ResourceFormValues>({
     resolver: zodResolver(resourceSchema),
     defaultValues: { title: '', description: '', url: '', tags: [] },
   });
 
+  // Using useCallback to prevent unnecessary re-renders
+  const resetForm = useCallback(() => {
+    form.reset({ title: '', description: '', url: '', tags: [] });
+  }, [form]);
+  
+  // Only reset the form when dialog state or editing resource changes
   useEffect(() => {
     if (editingResource && isEditDialogOpen) {
       form.reset({
@@ -104,9 +110,9 @@ const ResourcesManagement = () => {
         tags: editingResource.tags || []
       });
     } else if (!isEditDialogOpen && !isAddDialogOpen) {
-      form.reset({ title: '', description: '', url: '', tags: [] });
+      resetForm();
     }
-  }, [editingResource, isEditDialogOpen, isAddDialogOpen, form]);
+  }, [editingResource, isEditDialogOpen, isAddDialogOpen, form, resetForm]);
 
   const { data: resources, isLoading, error } = useQuery({
     queryKey: ['coach-resources', user?.id],
@@ -124,7 +130,7 @@ const ResourcesManagement = () => {
         coach_id: user.id,
         title: values.title,
         description: values.description || null,
-        url: values.url && values.url.trim() !== '' ? values.url : null,
+        url: values.url || null,
         tags: values.tags || []
       });
     },
@@ -132,7 +138,7 @@ const ResourcesManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['coach-resources', user?.id] });
       toast.success('Resource added successfully');
       setIsAddDialogOpen(false);
-      form.reset();
+      resetForm();
     },
     onError: (error) => {
       toast.error('Failed to add resource: ' + (error as Error).message);
@@ -145,7 +151,7 @@ const ResourcesManagement = () => {
       return updateCoachResource(id, user.id, {
         title: values.title,
         description: values.description || null,
-        url: values.url && values.url.trim() !== '' ? values.url : null,
+        url: values.url || null,
         tags: values.tags || []
       });
     },
@@ -199,7 +205,8 @@ const ResourcesManagement = () => {
     return <LinkIcon className="h-4 w-4 text-purple-500" />;
   };
 
-  const ResourceForm = () => (
+  // Use memo for stable child components to prevent unnecessary re-renders
+  const ResourceForm = useCallback(() => (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
@@ -223,7 +230,11 @@ const ResourcesManagement = () => {
             <FormItem>
               <FormLabel>Description (optional)</FormLabel>
               <FormControl>
-                <Textarea placeholder="Brief description of the resource" {...field} value={field.value || ''} />
+                <Textarea 
+                  placeholder="Brief description of the resource" 
+                  {...field} 
+                  value={field.value || ''} 
+                />
               </FormControl>
               <FormDescription>
                 Briefly describe what this resource is about
@@ -277,9 +288,10 @@ const ResourcesManagement = () => {
                             <Checkbox
                               checked={field.value?.includes(tag)}
                               onCheckedChange={(checked) => {
+                                const currentValue = field.value || [];
                                 const updatedTags = checked
-                                  ? [...(field.value || []), tag]
-                                  : (field.value || []).filter((value) => value !== tag);
+                                  ? [...currentValue, tag]
+                                  : currentValue.filter((value) => value !== tag);
                                 field.onChange(updatedTags);
                               }}
                             />
@@ -317,7 +329,7 @@ const ResourcesManagement = () => {
         </div>
       </form>
     </Form>
-  );
+  ), [form, onSubmit, addResourceMutation.isPending, updateResourceMutation.isPending, editingResource]);
 
   if (isLoading) {
     return (

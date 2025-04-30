@@ -39,13 +39,15 @@ export const useResourceManagement = () => {
   const addResourceMutation = useMutation({
     mutationFn: async (values: ResourceFormValues) => {
       if (!user?.id) throw new Error('Not authenticated');
-      return addCoachResource({
+      // Ensure we're not changing the original values object
+      const processedValues = {
         coach_id: user.id,
         title: values.title,
         description: values.description || null,
         url: values.url || null,
         tags: values.tags || []
-      });
+      };
+      return addCoachResource(processedValues);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['coach-resources', user?.id] });
@@ -59,12 +61,14 @@ export const useResourceManagement = () => {
   const updateResourceMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: ResourceFormValues }) => {
       if (!user?.id) throw new Error('Not authenticated');
-      return updateCoachResource(id, user.id, {
+      // Ensure we're not changing the original values object
+      const processedValues = {
         title: values.title,
         description: values.description || null,
         url: values.url || null,
         tags: values.tags || []
-      });
+      };
+      return updateCoachResource(id, user.id, processedValues);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['coach-resources', user?.id] });

@@ -87,7 +87,7 @@ const RESOURCE_TAGS = [
 const resourceSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title is too long"),
   description: z.string().nullable().optional(),
-  url: z.string().url("Must be a valid URL").optional().nullable().or(z.literal('')),
+  url: z.string().optional().nullable().or(z.literal('')),
   tags: z.array(z.string()).optional().nullable(),
 });
 

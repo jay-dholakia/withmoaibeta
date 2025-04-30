@@ -186,7 +186,7 @@ serve(async (req) => {
     console.log(`Program start: ${programStartDate.toISOString()}, First Monday: ${firstProgramMonday.toISOString()}`);
     
     // If the program hasn't reached its first Monday yet, we're in week 1
-    let currentWeekNumber = an_371;
+    let currentWeekNumber = 1; // Fixed the undefined variable here
     if (todayDate >= firstProgramMonday) {
       // Calculate full weeks since the first Monday
       const millisecondsPerWeek = 7 * 24 * 60 * 60 * 1000;

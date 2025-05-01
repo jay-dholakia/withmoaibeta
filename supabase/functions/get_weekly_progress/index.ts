@@ -339,6 +339,7 @@ serve(async (req) => {
       console.log(`Found ${workoutCompletions?.length || 0} workout completions for week (Pacific Time)`);
       
       // Count completed strength workouts for this specific user
+      // Bug fix: Make sure to properly filter strength and bodyweight workouts
       const strengthWorkouts = (workoutCompletions || []).filter(
         wc => (wc.workout_type === 'strength' || wc.workout_type === 'bodyweight') && wc.user_id === client_id
       ).length;
@@ -350,6 +351,10 @@ serve(async (req) => {
       
       // Total strength and mobility workouts (for run programs)
       const totalStrengthMobilityWorkouts = strengthWorkouts + mobilityWorkouts;
+      
+      console.log("Completed strength workouts this week:", strengthWorkouts);
+      console.log("Completed mobility workouts this week:", mobilityWorkouts);
+      console.log("Total completed strength & mobility workouts:", totalStrengthMobilityWorkouts);
       
       // Sum run distances from workout completions with workout_type = 'running'
       const milesRun = (workoutCompletions || [])

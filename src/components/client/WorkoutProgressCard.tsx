@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -129,10 +128,10 @@ export function WorkoutProgressCard({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="absolute -top-2 -right-2.5" title={`🔥 Completed all workouts ${fireWeeks} week${fireWeeks !== 1 ? 's' : ''}`}>
-                  <div className="relative w-6 h-6">
+                <div className="absolute -top-1.5 -right-1.5" title={`🔥 Completed all workouts ${fireWeeks} week${fireWeeks !== 1 ? 's' : ''}`}>
+                  <div className="relative w-5 h-5">
                     <Flame className="w-full h-full text-orange-500" fill="#f97316" />
-                    <span className="absolute inset-0 flex items-center justify-center pt-1 text-[9px] font-bold text-white z-10 leading-none">
+                    <span className="absolute inset-0 flex items-center justify-center pt-0.5 text-[8px] font-bold text-white z-10 leading-none">
                       {fireWeeks}
                     </span>
                   </div>
@@ -168,7 +167,7 @@ export function WorkoutProgressCard({
                     <TooltipTrigger asChild>
                       <div className="relative">
                         <div className={cn(
-                          "mx-auto w-7 h-7 rounded-full flex items-center justify-center", // Increased from w-6 h-6
+                          "mx-auto w-7 h-7 rounded-full flex items-center justify-center",
                           hasWorkout 
                             ? "bg-blue-100 border border-blue-200" 
                             : restDay 
@@ -178,7 +177,7 @@ export function WorkoutProgressCard({
                           {(hasWorkout || restDay) && workoutType && (
                             <WorkoutTypeIcon
                               type={workoutType}
-                              size="md" // Using medium size for better visibility
+                              size="md"
                               colorOverride={hasWorkout ? "#0EA5E9" : restDay ? "#F59E0B" : undefined}
                             />
                           )}

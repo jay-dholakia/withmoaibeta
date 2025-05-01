@@ -30,3 +30,6 @@ verify_jwt = true
 
 [functions.process-badges-weekly]
 verify_jwt = false
+
+[functions.backfill-fire-badges]
+verify_jwt = true

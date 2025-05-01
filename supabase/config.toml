@@ -1,3 +1,4 @@
+
 project_id = "gjrheltyxjilxcphbzdj"
 
 [functions.nutrition-assistant]
@@ -23,3 +24,6 @@ verify_jwt = true
 
 [functions.twilio-webhook]
 verify_jwt = false
+
+[functions.award-fire-badges]
+verify_jwt = true

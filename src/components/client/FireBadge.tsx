@@ -19,7 +19,7 @@ export const FireBadge: React.FC<FireBadgeProps> = ({ count, isCurrentWeekEarned
             <div className="flex items-center">
               <Flame 
                 className={`h-4 w-4 text-orange-500 ${isCurrentWeekEarned ? 'animate-pulse' : ''}`} 
-                fill={isCurrentWeekEarned ? 'rgba(249, 115, 22, 0.5)' : 'none'}
+                fill="#f97316" // Changed to solid orange fill for all cases
               />
               {count > 1 && (
                 <span className="ml-0.5 text-xs font-medium text-orange-500">

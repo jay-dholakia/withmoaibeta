@@ -106,7 +106,7 @@ export const AwardFireBadgesButton: React.FC<AwardFireBadgesButtonProps> = ({
             {isProcessing ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
-              <Flame className="h-4 w-4 mr-2 text-orange-500" />
+              <Flame className="h-4 w-4 mr-2 text-orange-500" fill="#f97316" />
             )}
             Process Fire Badges
             {lastProcessedTime && (

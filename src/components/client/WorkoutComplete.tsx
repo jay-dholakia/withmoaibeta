@@ -383,6 +383,7 @@ const WorkoutComplete = () => {
               standalone_workout_id: workoutData?.standalone_workout_id,
               user_id: user?.id,
               completed_at: new Date().toISOString(),
+              workout_type: workoutData?.workout?.workout_type || null, // ✅ Add this line
               rating,
               notes
             })

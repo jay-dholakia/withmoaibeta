@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatWeekDateRange } from '@/services/assigned-workouts-service';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Flame } from 'lucide-react';
 
 interface WorkoutProgressCardProps {
   label?: string;
@@ -27,6 +28,7 @@ interface WorkoutProgressCardProps {
   showWeekdayLabels?: boolean;
   showLabelsBelow?: boolean;
   showProgressBar?: boolean;
+  fireWeeks?: number;
 }
 
 export function WorkoutProgressCard({ 
@@ -47,7 +49,8 @@ export function WorkoutProgressCard({
   lastName,
   showWeekdayLabels = false,
   showLabelsBelow = false,
-  showProgressBar = false
+  showProgressBar = false,
+  fireWeeks = 0
 }: WorkoutProgressCardProps) {
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
@@ -94,7 +97,7 @@ export function WorkoutProgressCard({
   
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 relative">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -119,6 +122,28 @@ export function WorkoutProgressCard({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        
+        {fireWeeks > 0 && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="absolute -top-1 -right-1">
+                  <div className="relative">
+                    <Flame className="w-5 h-5 text-orange-500" fill="#f97316" />
+                    <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white z-10">
+                      {fireWeeks}
+                    </div>
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <span className="text-xs">
+                  🔥 Completed all workouts {fireWeeks} week{fireWeeks !== 1 ? 's' : ''}
+                </span>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       
       <div className="flex-1">

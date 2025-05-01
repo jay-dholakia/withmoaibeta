@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useGroupProgressData } from '@/hooks/useGroupProgressData';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { BackgroundFetchIndicator } from './BackgroundFetchIndicator';
+import { useFireBadges } from '@/hooks/useFireBadges';
 
 interface MoaiGroupProgressProps {
   groupId: string;
@@ -32,6 +32,8 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
     isFetchingBackground,
     refreshDataInBackground
   } = useGroupProgressData(groupId);
+  
+  const { badgeCount: currentUserBadgeCount } = useFireBadges(user?.id || '');
 
   // Get current week number from program start date
   React.useEffect(() => {
@@ -159,6 +161,9 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
             const memberData = isCurrentUser 
               ? currentUserData
               : memberWorkoutsData[member.userId];
+              
+            // Get fire badge count for this member
+            const { badgeCount: memberBadgeCount } = useFireBadges(member.userId);
             
             if (!memberData && !isCurrentUser) {
               return (
@@ -189,6 +194,7 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
                   lastName={member.profileData?.last_name}
                   showLabelsBelow={false}
                   className="py-1"
+                  fireWeeks={isCurrentUser ? currentUserBadgeCount : memberBadgeCount}
                 />
                 {index < allMembers.length - 1 && (
                   <div className="py-1">

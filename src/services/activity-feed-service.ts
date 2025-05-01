@@ -18,7 +18,18 @@ export const fetchRecentActivities = async ({
     // Query workout completions that are not rest days or life happens passes
     const { data: activities, error } = await supabase
       .from('workout_completions')
-      .select('*')
+      .select(`
+        *,
+        profiles:user_id (
+          id, first_name, last_name, avatar_url
+        ),
+        workout:workout_id (
+          id, title, description, workout_type
+        ),
+        likes:activity_likes (
+          id, user_id, activity_id, created_at
+        )
+      `)
       .is('rest_day', false)
       .is('life_happens_pass', false)
       .order('completed_at', { ascending: false })
@@ -35,63 +46,8 @@ export const fetchRecentActivities = async ({
       return [];
     }
 
-    // Extract user IDs for batch queries
-    const userIds = activities.map(activity => activity.user_id);
-    console.log(`Found ${activities.length} activities for ${userIds.length} users`);
-    
-    // Fetch client profiles directly
-    const { data: profiles, error: profilesError } = await supabase
-      .from('client_profiles')
-      .select('id, first_name, last_name, avatar_url')
-      .in('id', userIds);
-    
-    if (profilesError) {
-      console.error('Error fetching client profiles:', profilesError);
-      // Continue even if profiles have an error - we'll just have missing profile data
-    }
-
-    // Create a map of user profiles for easy lookup
-    const profileMap = profiles ? 
-      profiles.reduce((map: Record<string, any>, profile: any) => {
-        map[profile.id] = profile;
-        return map;
-      }, {}) : {};
-    
-    console.log(`Found ${profiles?.length || 0} profiles`);
-
-    // Fetch likes in batch
-    const activityIds = activities.map(a => a.id);
-    
-    const { data: allLikes, error: likesError } = await supabase
-      .from('activity_likes')
-      .select('id, user_id, activity_id, created_at')
-      .in('activity_id', activityIds);
-    
-    if (likesError) {
-      console.error('Error fetching likes:', likesError);
-      // Continue even if likes have an error
-    }
-    
-    console.log(`Found ${allLikes?.length || 0} likes`);
-
-    // Combine all data
-    const enrichedActivities = activities.map(activity => {
-      // Add profile data
-      const profile = profileMap[activity.user_id] || null;
-      
-      // Add likes
-      const likes = allLikes ? 
-        allLikes.filter(like => like.activity_id === activity.id) : [];
-      
-      return {
-        ...activity,
-        profiles: profile,
-        likes
-      };
-    });
-
-    console.log(`Returning ${enrichedActivities.length} enriched activities`);
-    return enrichedActivities;
+    console.log(`Returning ${activities.length} enriched activities`);
+    return activities;
   } catch (error) {
     console.error('Error in fetchRecentActivities:', error);
     

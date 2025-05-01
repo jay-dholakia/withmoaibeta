@@ -82,7 +82,7 @@ const ActivityPost: React.FC<ActivityPostProps> = ({ activity, currentUserId }) 
         await likeActivity(activity.id);
       }
       
-      // Fix: Properly invalidate the activity feed query
+      // Fix: Properly invalidate the activity feed query using object syntax
       queryClient.invalidateQueries({ queryKey: ['activity-feed'] });
     } catch (error) {
       // Revert optimistic update on error

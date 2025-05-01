@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,7 +7,7 @@ import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Music, Dumbbell } from 'lucide-react';
+import { Loader2, Music, Dumbbell, Flame } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { fetchCurrentProgram } from '@/services/program-service';
@@ -18,6 +17,9 @@ import { Link } from 'react-router-dom';
 import { getUserBuddies, generateWeeklyBuddies } from '@/services/accountability-buddy-service';
 import { AccountabilityBuddyCard } from '@/components/client/AccountabilityBuddyCard';
 import { BackgroundFetchIndicator } from '@/components/client/BackgroundFetchIndicator';
+import { useFireBadges } from '@/hooks/useFireBadges';
+import { FireBadge } from '@/components/client/FireBadge';
+import { AwardFireBadgesButton } from '@/components/admin/AwardFireBadgesButton';
 
 export default function MoaiPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -26,6 +28,8 @@ export default function MoaiPage() {
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [isGeneratingBuddies, setIsGeneratingBuddies] = useState(false);
   const [isRefreshingGroups, setIsRefreshingGroups] = useState(false);
+  
+  const { badgeCount, isCurrentWeekEarned } = useFireBadges(user?.id || '');
   
   const { data: userGroups, isLoading: isLoadingUserGroups, refetch: refetchUserGroups } = useQuery({
     queryKey: ['user-groups', user?.id],
@@ -158,6 +162,25 @@ export default function MoaiPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-0 pb-1 text-center">
+            {isAdmin && activeGroupId && (
+              <div className="mb-2 flex justify-center">
+                <AwardFireBadgesButton groupId={activeGroupId} />
+              </div>
+            )}
+            
+            {badgeCount > 0 && (
+              <div className="bg-white dark:bg-gray-700 rounded-lg p-3 mb-3 shadow-sm border dark:border-gray-600">
+                <div className="flex items-center justify-center gap-2 mb-1.5">
+                  <Flame className="h-5 w-5 text-orange-500" fill="rgba(249, 115, 22, 0.2)" />
+                  <h3 className="font-semibold dark:text-white">Your Fire Streak</h3>
+                </div>
+                <p className="text-sm text-muted-foreground dark:text-gray-300">
+                  You've completed all assigned workouts for {badgeCount} {badgeCount === 1 ? 'week' : 'weeks'}!
+                  {isCurrentWeekEarned && " You've earned the badge for this week too."}
+                </p>
+              </div>
+            )}
+            
             {groupData.spotify_playlist_url && (
               <Button 
                 variant="outline"

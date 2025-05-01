@@ -527,6 +527,27 @@ export type Database = {
         }
         Relationships: []
       }
+      fire_badges: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       google_calendar_tokens: {
         Row: {
           access_token: string
@@ -1636,6 +1657,18 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      award_fire_badge: {
+        Args: { award_user_id: string; award_week_start: string }
+        Returns: string
+      }
+      check_user_weekly_completion: {
+        Args: { check_user_id: string; week_start_date: string }
+        Returns: boolean
+      }
+      count_user_fire_badges: {
+        Args: { user_id_param: string }
+        Returns: number
+      }
       count_workouts_for_user_and_week: {
         Args: { user_id_param: string; week_number_param: number }
         Returns: number
@@ -1721,6 +1754,10 @@ export type Database = {
           read_by_client: boolean
           coach_first_name: string
         }[]
+      }
+      get_pacific_week_start: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_users_email: {
         Args: { user_ids: string[] }

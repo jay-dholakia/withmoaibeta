@@ -43,9 +43,23 @@ export const useFireBadges = (userId: string) => {
         return { count: countData || 0, current_week: false };
       }
       
+      // If no badge for current week, check if the user would qualify now
+      let wouldQualify = false;
+      if (!currentWeekBadge) {
+        const { data: weekCompletion, error: weekCompletionError } = await supabase
+          .rpc('check_user_weekly_completion', { 
+            check_user_id: userId, 
+            week_start_date: weekStartData 
+          });
+          
+        if (!weekCompletionError) {
+          wouldQualify = !!weekCompletion;
+        }
+      }
+      
       return { 
         count: countData || 0, 
-        current_week: !!currentWeekBadge 
+        current_week: !!currentWeekBadge || wouldQualify 
       };
     },
     enabled: !!userId,
@@ -68,13 +82,14 @@ export const useFireBadges = (userId: string) => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen for INSERT, UPDATE and DELETE
           schema: 'public',
           table: 'fire_badges',
           filter: `user_id=eq.${userId}`
         },
         () => {
-          // Refetch when a new badge is awarded
+          // Refetch when any badge change happens for this user
+          console.log('Fire badge change detected, refetching...');
           refetch();
         }
       )
@@ -85,5 +100,10 @@ export const useFireBadges = (userId: string) => {
     };
   }, [userId, refetch]);
   
-  return { badgeCount, isCurrentWeekEarned };
+  return { 
+    badgeCount, 
+    isCurrentWeekEarned,
+    isLoading,
+    refetch
+  };
 };

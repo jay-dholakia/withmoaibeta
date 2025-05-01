@@ -16,10 +16,7 @@ const ActivityFeedPage = () => {
     data: activities, 
     isLoading, 
     error, 
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage
+    refetch 
   } = useQuery({
     queryKey: ['activity-feed'],
     queryFn: async () => {

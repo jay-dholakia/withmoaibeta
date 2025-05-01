@@ -58,10 +58,18 @@ export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchAct
 
 export const likeActivity = async (activityId: string) => {
   try {
+    // Get current user ID from auth
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
     const { data, error } = await supabase
       .from('activity_likes')
       .insert({
-        activity_id: activityId
+        activity_id: activityId,
+        user_id: user.id
       })
       .select('id');
 
@@ -84,11 +92,19 @@ export const likeActivity = async (activityId: string) => {
 
 export const unlikeActivity = async (activityId: string) => {
   try {
+    // Get current user ID from auth
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
     const { error } = await supabase
       .from('activity_likes')
       .delete()
       .match({ 
         activity_id: activityId,
+        user_id: user.id
       });
 
     if (error) {
@@ -105,11 +121,19 @@ export const unlikeActivity = async (activityId: string) => {
 
 export const addComment = async (activityId: string, content: string) => {
   try {
+    // Get current user ID from auth
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
     const { data, error } = await supabase
       .from('activity_comments')
       .insert({
         activity_id: activityId,
-        content
+        content,
+        user_id: user.id
       })
       .select(`
         *,

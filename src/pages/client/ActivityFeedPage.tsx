@@ -7,6 +7,8 @@ import ActivityPost from '@/components/client/ActivityPost';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ActivityFeedPage = () => {
   const { user } = useAuth();
@@ -17,15 +19,27 @@ const ActivityFeedPage = () => {
     data: initialActivities, 
     isLoading, 
     error, 
-    refetch 
+    refetch,
+    isError
   } = useQuery({
     queryKey: ['activity-feed'],
     queryFn: async () => {
-      const activities = await fetchRecentActivities({ limit: 10 });
-      setActivities(activities); // Set initial activities
-      return activities;
+      try {
+        console.log("Fetching initial activities");
+        const activities = await fetchRecentActivities({ limit: 10 });
+        console.log("Initial activities fetched:", activities.length);
+        if (activities) {
+          setActivities(activities); // Set initial activities
+        }
+        return activities;
+      } catch (err) {
+        console.error("Error in query function:", err);
+        toast.error("Failed to load activities. Please try again later.");
+        return [];
+      }
     },
     staleTime: 1000 * 60, // 1 minute
+    retry: 2,
   });
 
   useEffect(() => {
@@ -36,6 +50,7 @@ const ActivityFeedPage = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'activity_likes' },
         () => {
+          console.log("Received real-time update for likes");
           refetch();
         }
       )
@@ -47,6 +62,7 @@ const ActivityFeedPage = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'activity_comments' },
         () => {
+          console.log("Received real-time update for comments");
           refetch();
         }
       )
@@ -63,16 +79,24 @@ const ActivityFeedPage = () => {
     
     setIsLoadingMore(true);
     try {
+      console.log("Loading more activities from offset:", activities.length);
       const moreActivities = await fetchRecentActivities({
         offset: activities.length,
         limit: 10
       });
       
+      console.log("More activities fetched:", moreActivities?.length || 0);
+      
       // Update activities state with new items
-      setActivities(prevActivities => [...prevActivities, ...moreActivities]);
-      setIsLoadingMore(false);
+      if (moreActivities && moreActivities.length > 0) {
+        setActivities(prevActivities => [...prevActivities, ...moreActivities]);
+      } else {
+        toast.info("No more activities to load");
+      }
     } catch (error) {
       console.error('Error loading more activities:', error);
+      toast.error("Failed to load more activities");
+    } finally {
       setIsLoadingMore(false);
     }
   };
@@ -82,7 +106,8 @@ const ActivityFeedPage = () => {
     if (
       window.innerHeight + document.documentElement.scrollTop >= 
       document.documentElement.offsetHeight - 500 &&
-      !isLoadingMore
+      !isLoadingMore &&
+      activities.length > 0
     ) {
       loadMore();
     }
@@ -93,26 +118,55 @@ const ActivityFeedPage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [activities, isLoadingMore]);
 
+  const renderSkeletons = () => {
+    return Array(3).fill(0).map((_, i) => (
+      <div key={`skeleton-${i}`} className="space-y-3">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        </div>
+        <Skeleton className="h-24 w-full" />
+        <div className="flex justify-between">
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-8 w-20" />
+        </div>
+      </div>
+    ));
+  };
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-client" />
+      <div className="space-y-8 py-4">
+        <h1 className="text-2xl font-bold text-center mb-4">Community Activity</h1>
+        {renderSkeletons()}
       </div>
     );
   }
 
-  if (error) {
+  if (isError || error) {
     return (
-      <div className="text-center p-4 text-red-500">
-        Error loading activity feed. Please try again later.
+      <div className="text-center p-8">
+        <h1 className="text-2xl font-bold mb-4">Community Activity</h1>
+        <div className="text-red-500 dark:text-red-400 mb-4">
+          Unable to load activities. Please try again later.
+        </div>
+        <Button onClick={() => refetch()} variant="outline">
+          Retry
+        </Button>
       </div>
     );
   }
 
   if (!activities || activities.length === 0) {
     return (
-      <div className="text-center p-4 text-gray-500 dark:text-gray-400">
-        No workouts found. Be the first to log a workout!
+      <div className="text-center p-8">
+        <h1 className="text-2xl font-bold mb-4">Community Activity</h1>
+        <div className="text-gray-500 dark:text-gray-400 mb-8">
+          No workouts found. Be the first to log a workout!
+        </div>
       </div>
     );
   }

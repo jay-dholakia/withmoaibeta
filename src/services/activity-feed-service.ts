@@ -8,14 +8,15 @@ interface FetchActivitiesOptions {
 
 export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchActivitiesOptions = {}) => {
   try {
-    // Query workout completions and manually join with other tables using in operator
+    console.log("Fetching activities with limit:", limit, "offset:", offset);
+    
+    // Query workout completions
     const { data: activities, error } = await supabase
       .from('workout_completions')
-      .select('*, user_id')
+      .select('*')
       .is('rest_day', false)
       .is('life_happens_pass', false)
       .order('completed_at', { ascending: false })
-      .limit(limit)
       .range(offset, offset + limit - 1);
 
     if (error) {
@@ -25,55 +26,87 @@ export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchAct
 
     // If no activities, return empty array
     if (!activities || activities.length === 0) {
+      console.log("No activities found");
       return [];
     }
 
     // Extract user IDs for batch queries
     const userIds = activities.map(activity => activity.user_id);
+    console.log(`Found ${activities.length} activities for ${userIds.length} users`);
     
-    // Fetch profiles for all users in one query
-    const { data: profiles } = await supabase
-      .from('client_profiles')  // Using client_profiles instead of profiles
+    // Fetch profiles directly from client_profiles
+    const { data: profiles, error: profilesError } = await supabase
+      .from('client_profiles')
       .select('id, first_name, last_name, avatar_url')
       .in('id', userIds);
     
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      // Continue even if profiles have an error - we'll just have missing profile data
+    }
+
     // Create a map of user profiles for easy lookup
     const profileMap = profiles ? 
       profiles.reduce((map: Record<string, any>, profile: any) => {
         map[profile.id] = profile;
         return map;
       }, {}) : {};
+    
+    console.log(`Found ${profiles?.length || 0} profiles`);
 
     // Fetch likes and comments in batch
-    const { data: allLikes } = await supabase
+    const activityIds = activities.map(a => a.id);
+    
+    const { data: allLikes, error: likesError } = await supabase
       .from('activity_likes')
       .select('id, user_id, activity_id, created_at')
-      .in('activity_id', activities.map(a => a.id));
+      .in('activity_id', activityIds);
     
-    const { data: allComments } = await supabase
+    if (likesError) {
+      console.error('Error fetching likes:', likesError);
+      // Continue even if likes have an error
+    }
+    
+    const { data: allComments, error: commentsError } = await supabase
       .from('activity_comments')
       .select('id, user_id, activity_id, content, created_at')
-      .in('activity_id', activities.map(a => a.id));
+      .in('activity_id', activityIds);
+    
+    if (commentsError) {
+      console.error('Error fetching comments:', commentsError);
+      // Continue even if comments have an error
+    }
+    
+    console.log(`Found ${allLikes?.length || 0} likes and ${allComments?.length || 0} comments`);
 
-    // Get profiles for comment authors
+    // Get profiles for comment authors if we have comments
     const commentUserIds = allComments ? 
       [...new Set(allComments.map(comment => comment.user_id))] : [];
     
-    const { data: commentProfiles } = await supabase
-      .from('client_profiles')  // Using client_profiles instead of profiles
-      .select('id, first_name, last_name, avatar_url')
-      .in('id', commentUserIds);
-    
-    const commentProfileMap = commentProfiles ? 
-      commentProfiles.reduce((map: Record<string, any>, profile: any) => {
-        map[profile.id] = profile;
-        return map;
-      }, {}) : {};
+    let commentProfileMap = {};
+    if (commentUserIds.length > 0) {
+      const { data: commentProfiles, error: commentProfilesError } = await supabase
+        .from('client_profiles')
+        .select('id, first_name, last_name, avatar_url')
+        .in('id', commentUserIds);
+      
+      if (commentProfilesError) {
+        console.error('Error fetching comment profiles:', commentProfilesError);
+      } else {
+        commentProfileMap = commentProfiles ? 
+          commentProfiles.reduce((map: Record<string, any>, profile: any) => {
+            map[profile.id] = profile;
+            return map;
+          }, {}) : {};
+          
+        console.log(`Found ${commentProfiles?.length || 0} comment author profiles`);
+      }
+    }
 
     // Combine all data
     const enrichedActivities = activities.map(activity => {
       // Add profile data
-      const profiles = profileMap[activity.user_id] || null;
+      const profile = profileMap[activity.user_id] || null;
       
       // Add likes
       const likes = allLikes ? 
@@ -90,12 +123,13 @@ export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchAct
       
       return {
         ...activity,
-        profiles,
+        profiles: profile,
         likes,
         comments
       };
     });
 
+    console.log(`Returning ${enrichedActivities.length} enriched activities`);
     return enrichedActivities;
   } catch (error) {
     console.error('Error in fetchRecentActivities:', error);

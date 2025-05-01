@@ -76,54 +76,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Then check for existing session
-    const checkSession = async () => {
-      try {
-        const { data: { session: existingSession }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          toast.error('Failed to retrieve session');
-          setAuthLoading(false);
-          return;
-        }
-        
-        console.log('Initial session check:', existingSession?.user?.id);
-        
-        // Only set the session if we don't already have one
-        // (the onAuthStateChange might have already fired)
-        if (!session) {
-          setSession(existingSession);
-          setUser(existingSession?.user ?? null);
-          
-          if (existingSession?.user) {
-            const metadataUserType = existingSession.user.user_metadata?.user_type as UserType | undefined;
-            
-            if (metadataUserType) {
-              console.log('User type found in metadata:', metadataUserType);
-              setUserType(metadataUserType);
-              
-              setTimeout(() => {
-                fetchUserProfile(existingSession.user.id);
-              }, 0);
-            } else {
-              setTimeout(() => {
-                fetchUserProfile(existingSession.user.id);
-              }, 0);
-            }
-          } else {
-            // No user session
-            setAuthLoading(false);
-          }
-        }
-      } catch (error) {
-        console.error('Error checking session:', error);
-        toast.error('Failed to initialize authentication');
-        setAuthLoading(false);
-      }
-    };
-
-    checkSession();
 
     // Cleanup function
     return () => {

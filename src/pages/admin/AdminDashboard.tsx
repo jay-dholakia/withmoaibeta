@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { BackfillFireBadgesButton } from '@/components/admin/BackfillFireBadgesButton';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -162,6 +164,11 @@ const AdminDashboard: React.FC = () => {
               >
                 Auto-Assign Alternative Exercises
               </Button>
+              <BackfillFireBadgesButton 
+                variant="default" 
+                size="default" 
+                className="w-full" 
+              />
             </div>
           </CardContent>
         </Card>

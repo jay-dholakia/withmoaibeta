@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -140,19 +141,23 @@ export function WorkoutProgressCard({
                     <TooltipTrigger asChild>
                       <div className="relative">
                         <div className={cn(
-                          "mx-auto w-6 h-6 rounded-full flex items-center justify-center", 
-                          "bg-gray-300/50 border border-gray-400/30"
+                          "mx-auto w-7 h-7 rounded-full flex items-center justify-center", // Increased from w-6 h-6
+                          hasWorkout 
+                            ? "bg-blue-100 border border-blue-200" 
+                            : restDay 
+                              ? "bg-amber-100 border border-amber-200"
+                              : "bg-gray-100 border border-gray-200"
                         )}>
                           {(hasWorkout || restDay) && workoutType && (
                             <WorkoutTypeIcon
                               type={workoutType}
-                              className="h-4 w-4"
-                              colorOverride="text-muted-foreground"
+                              size="md" // Using medium size for better visibility
+                              colorOverride={hasWorkout ? "#0EA5E9" : restDay ? "#F59E0B" : undefined}
                             />
                           )}
                           
                           {workoutCount >= 2 && (
-                            <div className="absolute -top-0.5 -right-0.5 bg-client text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold shadow-sm">
+                            <div className="absolute -top-1 -right-1 bg-client text-white text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-sm">
                               {workoutCount}
                             </div>
                           )}

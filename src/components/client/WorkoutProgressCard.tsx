@@ -130,9 +130,9 @@ export function WorkoutProgressCard({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="absolute -top-1.5 -right-1.5" title={`🔥 Completed all workouts ${fireWeeks} week${fireWeeks !== 1 ? 's' : ''}`}>
-                  <div className="relative w-5 h-5">
+                  <div className="relative w-4 h-4">
                     <Flame className="w-full h-full text-orange-500" fill="#f97316" />
-                    <span className="absolute inset-0 flex items-center justify-center pt-1 text-[8px] font-bold text-white z-10 leading-none">
+                    <span className="absolute inset-0 flex items-center justify-center pt-1 text-[7px] font-bold text-white z-10 leading-none">
                       {fireWeeks}
                     </span>
                   </div>
@@ -184,7 +184,7 @@ export function WorkoutProgressCard({
                           )}
                           
                           {workoutCount >= 2 && (
-                            <div className="absolute -top-1 -right-1 bg-client text-white text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-sm">
+                            <div className="absolute -top-1 -right-1 bg-client text-white text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold shadow-sm">
                               {workoutCount}
                             </div>
                           )}

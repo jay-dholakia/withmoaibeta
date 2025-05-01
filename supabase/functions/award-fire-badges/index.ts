@@ -101,6 +101,7 @@ serve(async (req) => {
     const results = await Promise.all(
       users.map(async (user) => {
         try {
+          // Call the updated database function which now checks for 5 distinct workout days
           const { data: badgeId, error: badgeError } = await supabase
             .rpc("award_fire_badge", {
               award_user_id: user.id,

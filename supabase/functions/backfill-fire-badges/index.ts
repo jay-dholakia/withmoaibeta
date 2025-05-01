@@ -98,154 +98,100 @@ serve(async (req) => {
       
       const userBadges = [];
       
-      // Process each program assignment
-      for (const assignment of assignments) {
-        console.log(`Processing program assignment ${assignment.id} (program ${assignment.program_id})`);
+      // Calculate all weeks from first assignment to now
+      const firstAssignmentStartDate = new Date(assignments[0].start_date);
+      const today = new Date();
+      const totalWeeks = Math.ceil((today.getTime() - firstAssignmentStartDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      
+      console.log(`Processing ${totalWeeks} weeks for user ${user.id}`);
+      
+      // Process each week
+      for (let weekOffset = 0; weekOffset < totalWeeks; weekOffset++) {
+        // Calculate week start date (Monday)
+        const weekStartDate = new Date(firstAssignmentStartDate);
+        weekStartDate.setDate(weekStartDate.getDate() + (weekOffset * 7));
         
-        // Get all weeks for this program
-        const { data: weeks, error: weeksError } = await supabase
-          .from('workout_weeks')
-          .select('id, week_number')
-          .eq('program_id', assignment.program_id)
-          .order('week_number', { ascending: true });
+        // Ensure we're looking at a Monday (week start)
+        const dayOffset = weekStartDate.getDay();
+        if (dayOffset !== 1) { // 1 is Monday, 0 is Sunday
+          // If not Monday, adjust to the previous Monday
+          weekStartDate.setDate(weekStartDate.getDate() - ((dayOffset === 0 ? 7 : dayOffset) - 1));
+        }
         
-        if (weeksError) {
-          console.error(`Error fetching program weeks for program ${assignment.program_id}:`, weeksError);
+        const weekStartStr = weekStartDate.toISOString().split('T')[0];
+        
+        // Skip weeks in the future
+        if (weekStartDate > today) {
+          console.log(`Skipping future week: ${weekStartStr}`);
           continue;
         }
         
-        console.log(`Found ${weeks?.length || 0} weeks in program ${assignment.program_id}`);
+        console.log(`Processing week starting ${weekStartStr} for user ${user.id}`);
         
-        if (!weeks || weeks.length === 0) {
+        // Check if badge already exists for this week
+        const { data: existingBadge, error: badgeError } = await supabase
+          .from('fire_badges')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('week_start', weekStartStr)
+          .maybeSingle();
+        
+        if (badgeError) {
+          console.error(`Error checking existing badge for user ${user.id}, week ${weekStartStr}:`, badgeError);
           continue;
         }
         
-        // Calculate the start date of each week based on program_assignment.start_date
-        const assignmentStartDate = new Date(assignment.start_date);
+        if (existingBadge) {
+          console.log(`Badge already exists for user ${user.id}, week ${weekStartStr}, skipping`);
+          continue;
+        }
         
-        // Process each week
-        for (const week of weeks) {
-          // Calculate the Monday of this week (week start date)
-          const weekStartDate = new Date(assignmentStartDate);
-          weekStartDate.setDate(weekStartDate.getDate() + (week.week_number - 1) * 7);
-          
-          // Ensure we're looking at a Monday (week start)
-          const dayOffset = weekStartDate.getDay();
-          if (dayOffset !== 1) { // 1 is Monday, 0 is Sunday
-            // If not Monday, adjust to the previous Monday
-            weekStartDate.setDate(weekStartDate.getDate() - ((dayOffset === 0 ? 7 : dayOffset) - 1));
+        // Count distinct days with workouts (excluding rest days)
+        const weekEndDate = new Date(weekStartDate);
+        weekEndDate.setDate(weekEndDate.getDate() + 6); // 6 days after Monday is Sunday
+        const weekEndStr = weekEndDate.toISOString().split('T')[0];
+        
+        const { data: distinctDays, error: distinctDaysError } = await supabase.rpc(
+          "check_user_weekly_completion",
+          {
+            check_user_id: user.id,
+            week_start_date: weekStartStr
           }
+        );
+        
+        if (distinctDaysError) {
+          console.error(`Error checking completion for user ${user.id}, week ${weekStartStr}:`, distinctDaysError);
+          continue;
+        }
+        
+        if (distinctDays) {
+          console.log(`User ${user.id} logged activities on 5+ distinct days for week ${weekStartStr}`);
           
-          const weekStartStr = weekStartDate.toISOString().split('T')[0];
-          
-          // Calculate the Sunday of this week (week end date)
-          const weekEndDate = new Date(weekStartDate);
-          weekEndDate.setDate(weekEndDate.getDate() + 6); // Sunday is 6 days after Monday
-          const weekEndStr = weekEndDate.toISOString().split('T')[0];
-          
-          console.log(`Processing week ${week.week_number}, date range: ${weekStartStr} to ${weekEndStr}`);
-          
-          // Skip weeks in the future
-          const today = new Date();
-          if (weekStartDate > today) {
-            console.log(`Skipping future week: ${weekStartStr}`);
-            continue;
-          }
-          
-          // Skip weeks outside the program assignment period
-          if (assignment.end_date && weekStartDate > new Date(assignment.end_date)) {
-            console.log(`Skipping week after program end date: ${weekStartStr}`);
-            continue;
-          }
-          
-          // Check if badge already exists for this week
-          const { data: existingBadge, error: badgeError } = await supabase
-            .from('fire_badges')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('week_start', weekStartStr)
-            .maybeSingle();
-          
-          if (badgeError) {
-            console.error(`Error checking existing badge for user ${user.id}, week ${weekStartStr}:`, badgeError);
-            continue;
-          }
-          
-          if (existingBadge) {
-            console.log(`Badge already exists for user ${user.id}, week ${weekStartStr}, skipping`);
-            continue;
-          }
-          
-          // Get all workouts assigned for this week
-          const { data: workouts, error: workoutsError } = await supabase
-            .from('workouts')
-            .select('id')
-            .eq('week_id', week.id);
-          
-          if (workoutsError) {
-            console.error(`Error fetching workouts for week ${week.id}:`, workoutsError);
-            continue;
-          }
-          
-          const workoutCount = workouts?.length || 0;
-          console.log(`Found ${workoutCount} assigned workouts for week ${week.week_number}`);
-          
-          if (workoutCount === 0) {
-            console.log(`No workouts assigned for week ${week.week_number}, skipping`);
-            continue;
-          }
-          
-          // Get completed workouts for this week
-          const workoutIds = workouts.map(w => w.id);
-          
-          // Query completed workouts within the week's date range
-          const { data: completions, error: completionsError } = await supabase
-            .from('workout_completions')
-            .select('id, workout_id')
-            .eq('user_id', user.id)
-            .in('workout_id', workoutIds)
-            .not('completed_at', 'is', null)
-            .gte('completed_at', `${weekStartStr}T00:00:00Z`)
-            .lte('completed_at', `${weekEndStr}T23:59:59Z`);
-          
-          if (completionsError) {
-            console.error(`Error fetching workout completions for user ${user.id}, week ${weekStartStr}:`, completionsError);
-            continue;
-          }
-          
-          const completedCount = completions?.length || 0;
-          console.log(`Found ${completedCount} completed workouts for user ${user.id}, week ${weekStartStr}`);
-          
-          // If all workouts were completed, award a badge
-          if (completedCount >= workoutCount) {
-            console.log(`User ${user.id} completed all ${workoutCount} workouts for week ${weekStartStr}`);
+          if (!dryRun) {
+            const { data: newBadge, error: insertError } = await supabase
+              .from('fire_badges')
+              .insert({
+                user_id: user.id,
+                week_start: weekStartStr,
+                created_at: new Date().toISOString()
+              })
+              .select('id')
+              .single();
             
-            if (!dryRun) {
-              const { data: newBadge, error: insertError } = await supabase
-                .from('fire_badges')
-                .insert({
-                  user_id: user.id,
-                  week_start: weekStartStr,
-                  created_at: new Date().toISOString()
-                })
-                .select('id')
-                .single();
-              
-              if (insertError) {
-                console.error(`Error inserting badge for user ${user.id}, week ${weekStartStr}:`, insertError);
-                userBadges.push({ week: weekStartStr, status: 'error', error: insertError.message });
-              } else {
-                console.log(`Created badge ${newBadge.id} for user ${user.id}, week ${weekStartStr}`);
-                userBadges.push({ week: weekStartStr, status: 'created', badge_id: newBadge.id });
-              }
+            if (insertError) {
+              console.error(`Error inserting badge for user ${user.id}, week ${weekStartStr}:`, insertError);
+              userBadges.push({ week: weekStartStr, status: 'error', error: insertError.message });
             } else {
-              console.log(`[DRY RUN] Would create badge for user ${user.id}, week ${weekStartStr}`);
-              userBadges.push({ week: weekStartStr, status: 'would_create' });
+              console.log(`Created badge ${newBadge.id} for user ${user.id}, week ${weekStartStr}`);
+              userBadges.push({ week: weekStartStr, status: 'created', badge_id: newBadge.id });
             }
           } else {
-            console.log(`User ${user.id} completed only ${completedCount}/${workoutCount} workouts for week ${weekStartStr}`);
-            userBadges.push({ week: weekStartStr, status: 'incomplete', completed: completedCount, total: workoutCount });
+            console.log(`[DRY RUN] Would create badge for user ${user.id}, week ${weekStartStr}`);
+            userBadges.push({ week: weekStartStr, status: 'would_create' });
           }
+        } else {
+          console.log(`User ${user.id} did not log activities on 5+ distinct days for week ${weekStartStr}`);
+          userBadges.push({ week: weekStartStr, status: 'incomplete' });
         }
       }
       

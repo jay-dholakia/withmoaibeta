@@ -12,9 +12,19 @@ serve(async (req) => {
   try {
     console.log("Starting automatic weekly fire badge processing");
     
+    // Get current date in Pacific time for logging
+    const pacificDate = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" })
+    );
+    console.log("Current Pacific time:", pacificDate);
+    
     // Call the award-fire-badges function as an automated run
     const { data, error } = await supabase.functions.invoke('award-fire-badges', {
-      body: { isAutomatedRun: true }
+      body: { 
+        isAutomatedRun: true,
+        // Explicitly indicate processing the previous week when running as a cron job
+        processPreviousWeek: true
+      }
     });
     
     if (error) {
@@ -22,11 +32,13 @@ serve(async (req) => {
     }
     
     console.log("Weekly badge processing completed:", data.message);
+    console.log(`Processed ${data.results?.length || 0} users, awarded ${data.results?.filter(r => r.badgeAwarded).length || 0} new badges`);
     
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: "Weekly badge processing completed", 
+        timestamp: pacificDate.toISOString(),
         details: data 
       }),
       { status: 200, headers: { "Content-Type": "application/json" } }

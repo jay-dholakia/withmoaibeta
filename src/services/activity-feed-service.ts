@@ -33,7 +33,7 @@ export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchAct
     
     // Fetch profiles for all users in one query
     const { data: profiles } = await supabase
-      .from('profiles')
+      .from('client_profiles')  // Using client_profiles instead of profiles
       .select('id, first_name, last_name, avatar_url')
       .in('id', userIds);
     
@@ -60,7 +60,7 @@ export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchAct
       [...new Set(allComments.map(comment => comment.user_id))] : [];
     
     const { data: commentProfiles } = await supabase
-      .from('profiles')
+      .from('client_profiles')  // Using client_profiles instead of profiles
       .select('id, first_name, last_name, avatar_url')
       .in('id', commentUserIds);
     
@@ -175,28 +175,37 @@ export const addComment = async (activityId: string, content: string) => {
       throw new Error('User not authenticated');
     }
     
-    const { data, error } = await supabase
+    // Insert the comment
+    const { data: commentData, error: commentError } = await supabase
       .from('activity_comments')
       .insert({
         activity_id: activityId,
         content,
         user_id: user.id
       })
-      .select(`
-        *,
-        profiles!activity_comments_user_id_fkey (
-          first_name,
-          last_name,
-          avatar_url
-        )
-      `);
+      .select('*');
 
-    if (error) {
-      console.error('Error adding comment:', error);
-      throw error;
+    if (commentError) {
+      console.error('Error adding comment:', commentError);
+      throw commentError;
     }
 
-    return data?.[0] || null;
+    if (!commentData || commentData.length === 0) {
+      throw new Error('Failed to create comment');
+    }
+
+    // Get user profile data
+    const { data: profileData } = await supabase
+      .from('client_profiles')
+      .select('first_name, last_name, avatar_url')
+      .eq('id', user.id)
+      .single();
+
+    // Return comment with profile data
+    return {
+      ...commentData[0],
+      profiles: profileData
+    };
   } catch (error) {
     console.error('Error in addComment:', error);
     return null;

@@ -22,13 +22,14 @@ const ActivityPost: React.FC<ActivityPostProps> = ({ activity, currentUserId }) 
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
 
-  // Check for profiles data structure (from the updated query)
-  const userName = activity.profiles?.first_name 
-    ? `${activity.profiles.first_name} ${activity.profiles.last_name || ''}`
+  // Check for profiles data structure
+  const userProfile = activity.profiles || {};
+  const userName = userProfile.first_name 
+    ? `${userProfile.first_name} ${userProfile.last_name || ''}`
     : 'Anonymous User';
 
-  const userInitials = activity.profiles?.first_name 
-    ? `${activity.profiles.first_name[0]}${activity.profiles.last_name?.[0] || ''}`
+  const userInitials = userProfile.first_name 
+    ? `${userProfile.first_name[0]}${userProfile.last_name?.[0] || ''}`
     : 'AU';
     
   const likes = activity.likes || [];
@@ -94,8 +95,8 @@ const ActivityPost: React.FC<ActivityPostProps> = ({ activity, currentUserId }) 
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
           <Avatar>
-            {activity.profiles?.avatar_url ? (
-              <AvatarImage src={activity.profiles.avatar_url} alt={userName} />
+            {userProfile.avatar_url ? (
+              <AvatarImage src={userProfile.avatar_url} alt={userName} />
             ) : (
               <AvatarFallback className="bg-client text-white dark:bg-blue-700">
                 {userInitials}
@@ -164,42 +165,48 @@ const ActivityPost: React.FC<ActivityPostProps> = ({ activity, currentUserId }) 
         {/* Comments section */}
         {visibleComments.length > 0 && (
           <div className="w-full pt-2 space-y-2 max-h-60 overflow-y-auto">
-            {visibleComments.map((comment: any) => (
-              <div key={comment.id} className="flex gap-2 items-start">
-                <Avatar className="h-6 w-6">
-                  {comment.profiles?.avatar_url ? (
-                    <AvatarImage src={comment.profiles.avatar_url} />
-                  ) : (
-                    <AvatarFallback className="text-xs bg-client text-white dark:bg-blue-700">
-                      {comment.profiles?.first_name?.[0] || 'U'}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-                <div className="flex-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
-                  <div className="flex justify-between">
-                    <span className="font-medium text-xs text-gray-800 dark:text-gray-200">
-                      {comment.profiles?.first_name 
-                        ? `${comment.profiles.first_name} ${comment.profiles.last_name || ''}`
-                        : 'Unknown User'}
-                    </span>
-                    {comment.user_id === currentUserId && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-5 w-5 p-0 text-gray-400"
-                        onClick={() => handleDeleteComment(comment.id)}
-                      >
-                        <Trash2Icon className="h-3 w-3" />
-                      </Button>
+            {visibleComments.map((comment: any) => {
+              const commentProfile = comment.profiles || {};
+              const commentUserName = commentProfile.first_name 
+                ? `${commentProfile.first_name} ${commentProfile.last_name || ''}`
+                : 'Unknown User';
+              const commentUserInitials = commentProfile.first_name?.[0] || 'U';
+              
+              return (
+                <div key={`${comment.id}-${comment.user_id}`} className="flex gap-2 items-start">
+                  <Avatar className="h-6 w-6">
+                    {commentProfile.avatar_url ? (
+                      <AvatarImage src={commentProfile.avatar_url} />
+                    ) : (
+                      <AvatarFallback className="text-xs bg-client text-white dark:bg-blue-700">
+                        {commentUserInitials}
+                      </AvatarFallback>
                     )}
+                  </Avatar>
+                  <div className="flex-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium text-xs text-gray-800 dark:text-gray-200">
+                        {commentUserName}
+                      </span>
+                      {comment.user_id === currentUserId && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-5 w-5 p-0 text-gray-400"
+                          onClick={() => handleDeleteComment(comment.id)}
+                        >
+                          <Trash2Icon className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{comment.content}</p>
+                    <span className="text-xs text-gray-500">
+                      {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                    </span>
                   </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{comment.content}</p>
-                  <span className="text-xs text-gray-500">
-                    {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                  </span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             
             {!showAllComments && comments.length > 2 && (
               <Button 

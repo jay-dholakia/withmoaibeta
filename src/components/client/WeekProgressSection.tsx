@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { formatInTimeZone } from 'date-fns-tz';
+import { useFireBadges } from '@/hooks/useFireBadges';
 
 interface WeekProgressSectionProps {
   showTeam?: boolean;
@@ -37,6 +38,7 @@ export const WeekProgressSection = ({
   const [lifeHappensDates, setLifeHappensDates] = useState<Date[]>([]);
   const [typesMap, setTypesMap] = useState<Record<string, WorkoutType>>(workoutTypesMap);
   const [titlesMap, setTitlesMap] = useState<Record<string, string>>({});
+  const { badgeCount: fireWeeks } = useFireBadges(user?.id || '');
   
   const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   console.log(`User timezone in WeekProgressSection: ${userTimeZone}`);
@@ -231,6 +233,7 @@ export const WeekProgressSection = ({
           lastName={userProfile?.last_name}
           showLabelsBelow={false}
           className="py-2"
+          fireWeeks={fireWeeks}
         />
       </CardContent>
     </Card>

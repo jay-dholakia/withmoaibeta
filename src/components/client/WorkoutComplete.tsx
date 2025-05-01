@@ -383,7 +383,7 @@ const WorkoutComplete = () => {
               standalone_workout_id: workoutData?.standalone_workout_id,
               user_id: user?.id,
               completed_at: new Date().toISOString(),
-              workout_type: workoutData?.workout?.workout_type || null, // ✅ Add this line
+              workout_type: workoutData?.workout?.workout_type || 'strength', // Set a default workout type when not specified
               rating,
               notes
             })
@@ -410,6 +410,7 @@ const WorkoutComplete = () => {
           .update({
             rating,
             notes,
+            workout_type: workoutData?.workout?.workout_type || 'strength', // Ensure workout_type is set when updating too
             completed_at: new Date().toISOString()
           })
           .eq('id', completionId);
@@ -433,6 +434,7 @@ const WorkoutComplete = () => {
         
         queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
         queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
+        queryClient.invalidateQueries({ queryKey: ['weekly-progress'] }); // Invalidate weekly progress to refresh counters
         
         document.dispatchEvent(new Event('workout-completed'));
         

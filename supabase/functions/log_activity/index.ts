@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
@@ -91,12 +92,12 @@ serve(async (req) => {
     let result;
     let workoutCompletionId;
     
-    // Process based on activity type
+    // Process based on activity type - each type results in a SINGLE workout completion
     switch (activity_type) {
       case "run": {
         // Validate run activity data
-        const { date, distance, duration, location, notes } = activity_data;
-        console.log("Processing run activity:", { date, distance, duration, location, notes });
+        const { date, distance, duration, location, notes, workout_type } = activity_data;
+        console.log("Processing run activity:", { date, distance, duration, location, notes, workout_type });
         
         if (!date || !distance || !duration) {
           console.error("Missing required fields for run activity");
@@ -116,7 +117,7 @@ serve(async (req) => {
             user_id: client_id,
             completed_at: new Date(date).toISOString(),
             title: `${distance} mile run`,
-            workout_type: "running", // Explicitly set workout_type to "running"
+            workout_type: workout_type || "running", // Use provided workout_type or default to "running"
             notes,
             distance: distance.toString(),
             duration: duration.toString(),
@@ -145,8 +146,8 @@ serve(async (req) => {
 
       case "cardio": {
         // Validate cardio activity data
-        const { date, activity_type: type, duration, notes } = activity_data;
-        console.log("Processing cardio activity:", { date, type, duration, notes });
+        const { date, activity_type: type, duration, notes, workout_type } = activity_data;
+        console.log("Processing cardio activity:", { date, type, duration, notes, workout_type });
         
         if (!date || !duration || !type) {
           console.error("Missing required fields for cardio activity");
@@ -166,7 +167,7 @@ serve(async (req) => {
             user_id: client_id,
             completed_at: new Date(date).toISOString(),
             title: type,
-            workout_type: "cardio", // Explicitly set workout_type to "cardio"
+            workout_type: workout_type || "cardio", // Use provided workout_type or default to "cardio"
             notes,
             duration: duration.toString()
           })
@@ -193,8 +194,8 @@ serve(async (req) => {
 
       case "rest": {
         // Validate rest activity data
-        const { date, notes } = activity_data;
-        console.log("Processing rest activity:", { date, notes });
+        const { date, notes, workout_type } = activity_data;
+        console.log("Processing rest activity:", { date, notes, workout_type });
         
         if (!date) {
           console.error("Missing required fields for rest activity");
@@ -214,7 +215,7 @@ serve(async (req) => {
             user_id: client_id,
             completed_at: new Date(date).toISOString(),
             title: "Rest Day",
-            workout_type: "rest_day", // Explicitly set workout_type to "rest_day"
+            workout_type: workout_type || "rest_day", // Use provided workout_type or default to "rest_day"
             rest_day: true,
             notes
           })

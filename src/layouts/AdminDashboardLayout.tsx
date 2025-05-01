@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AwardFireBadgesButton } from '@/components/client/AwardFireBadgesButton';
 
 interface AdminDashboardLayoutProps {
   children: ReactNode;
@@ -161,8 +162,9 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
       <div className="flex-1 flex flex-col">
         <PageTransition>
           <main className="flex-1 p-4 md:p-6 pt-20 md:pt-6">
-            <header className="mb-8">
+            <header className="mb-8 flex justify-between items-center">
               <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
+              <AwardFireBadgesButton />
             </header>
             
             {children}

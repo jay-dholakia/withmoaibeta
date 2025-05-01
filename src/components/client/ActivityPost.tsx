@@ -22,12 +22,13 @@ const ActivityPost: React.FC<ActivityPostProps> = ({ activity, currentUserId }) 
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
 
-  const userName = activity.profile?.first_name 
-    ? `${activity.profile.first_name} ${activity.profile.last_name || ''}`
+  // Check for profiles data structure (from the updated query)
+  const userName = activity.profiles?.first_name 
+    ? `${activity.profiles.first_name} ${activity.profiles.last_name || ''}`
     : 'Anonymous User';
 
-  const userInitials = activity.profile?.first_name 
-    ? `${activity.profile.first_name[0]}${activity.profile.last_name?.[0] || ''}`
+  const userInitials = activity.profiles?.first_name 
+    ? `${activity.profiles.first_name[0]}${activity.profiles.last_name?.[0] || ''}`
     : 'AU';
     
   const likes = activity.likes || [];
@@ -93,8 +94,8 @@ const ActivityPost: React.FC<ActivityPostProps> = ({ activity, currentUserId }) 
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
           <Avatar>
-            {activity.profile?.avatar_url ? (
-              <AvatarImage src={activity.profile.avatar_url} alt={userName} />
+            {activity.profiles?.avatar_url ? (
+              <AvatarImage src={activity.profiles.avatar_url} alt={userName} />
             ) : (
               <AvatarFallback className="bg-client text-white dark:bg-blue-700">
                 {userInitials}
@@ -166,19 +167,19 @@ const ActivityPost: React.FC<ActivityPostProps> = ({ activity, currentUserId }) 
             {visibleComments.map((comment: any) => (
               <div key={comment.id} className="flex gap-2 items-start">
                 <Avatar className="h-6 w-6">
-                  {comment.user?.avatar_url ? (
-                    <AvatarImage src={comment.user.avatar_url} />
+                  {comment.profiles?.avatar_url ? (
+                    <AvatarImage src={comment.profiles.avatar_url} />
                   ) : (
                     <AvatarFallback className="text-xs bg-client text-white dark:bg-blue-700">
-                      {comment.user?.first_name?.[0] || 'U'}
+                      {comment.profiles?.first_name?.[0] || 'U'}
                     </AvatarFallback>
                   )}
                 </Avatar>
                 <div className="flex-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
                   <div className="flex justify-between">
                     <span className="font-medium text-xs text-gray-800 dark:text-gray-200">
-                      {comment.user?.first_name 
-                        ? `${comment.user.first_name} ${comment.user.last_name || ''}`
+                      {comment.profiles?.first_name 
+                        ? `${comment.profiles.first_name} ${comment.profiles.last_name || ''}`
                         : 'Unknown User'}
                     </span>
                     {comment.user_id === currentUserId && (

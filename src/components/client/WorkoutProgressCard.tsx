@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatWeekDateRange } from '@/services/assigned-workouts-service';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Flame } from 'lucide-react';
 
 interface WorkoutProgressCardProps {
   label?: string;
@@ -26,6 +27,7 @@ interface WorkoutProgressCardProps {
   showWeekdayLabels?: boolean;
   showLabelsBelow?: boolean;
   showProgressBar?: boolean;
+  fireWeeks?: number;
 }
 
 export function WorkoutProgressCard({ 
@@ -46,7 +48,8 @@ export function WorkoutProgressCard({
   lastName,
   showWeekdayLabels = false,
   showLabelsBelow = false,
-  showProgressBar = false
+  showProgressBar = false,
+  fireWeeks = 0
 }: WorkoutProgressCardProps) {
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
@@ -93,19 +96,21 @@ export function WorkoutProgressCard({
   
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 relative">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Avatar className="h-8 w-8 border">
-                <AvatarImage 
-                  src={avatarUrl || ''} 
-                  alt={displayName} 
-                />
-                <AvatarFallback className="bg-client/80 text-white text-xs">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative overflow-visible">
+                <Avatar className="h-8 w-8 border">
+                  <AvatarImage 
+                    src={avatarUrl || ''} 
+                    alt={displayName} 
+                  />
+                  <AvatarFallback className="bg-client/80 text-white text-xs pl-1 pr-1">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
             </TooltipTrigger>
             <TooltipContent side="right">
               <span className="text-sm font-medium">
@@ -118,6 +123,28 @@ export function WorkoutProgressCard({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        
+        {fireWeeks > 0 && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="absolute -top-1.5 -right-1.5" title={`🔥 Logged workouts on 5+ days for ${fireWeeks} week${fireWeeks !== 1 ? 's' : ''}`}>
+                  <div className="relative w-5 h-5">
+                    <Flame className="w-full h-full text-orange-500" fill="#f97316" />
+                    <span className="absolute inset-0 flex items-center justify-center pt-1.5 text-[7px] font-bold text-white z-10 leading-none">
+                      {fireWeeks}
+                    </span>
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <span className="text-xs">
+                  🔥 Logged activities on 5+ days for {fireWeeks} week{fireWeeks !== 1 ? 's' : ''}
+                </span>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       
       <div className="flex-1">
@@ -140,19 +167,23 @@ export function WorkoutProgressCard({
                     <TooltipTrigger asChild>
                       <div className="relative">
                         <div className={cn(
-                          "mx-auto w-6 h-6 rounded-full flex items-center justify-center", 
-                          "bg-gray-300/50 border border-gray-400/30"
+                          "mx-auto w-7 h-7 rounded-full flex items-center justify-center",
+                          hasWorkout 
+                            ? "bg-blue-100 border border-blue-200" 
+                            : restDay 
+                              ? "bg-amber-100 border border-amber-200"
+                              : "bg-gray-100 border border-gray-200"
                         )}>
                           {(hasWorkout || restDay) && workoutType && (
                             <WorkoutTypeIcon
                               type={workoutType}
-                              className="h-4 w-4"
-                              colorOverride="text-muted-foreground"
+                              size="md"
+                              colorOverride={hasWorkout ? "#0EA5E9" : restDay ? "#F59E0B" : undefined}
                             />
                           )}
                           
                           {workoutCount >= 2 && (
-                            <div className="absolute -top-0.5 -right-0.5 bg-client text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold shadow-sm">
+                            <div className="absolute -top-1 -right-1 bg-client text-white text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold shadow-sm">
                               {workoutCount}
                             </div>
                           )}

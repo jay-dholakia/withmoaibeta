@@ -15,7 +15,10 @@ import { fetchUserGroups } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
 import { getUserBuddies, generateWeeklyBuddies } from '@/services/accountability-buddy-service';
 import { AccountabilityBuddyCard } from '@/components/client/AccountabilityBuddyCard';
-import { BuddyDisplayInfo } from '@/services/accountability-buddy-service';
+import { BackgroundFetchIndicator } from '@/components/client/BackgroundFetchIndicator';
+import { useFireBadges } from '@/hooks/useFireBadges';
+import { FireBadge } from '@/components/client/FireBadge';
+import { AwardFireBadgesButton } from '@/components/admin/AwardFireBadgesButton';
 
 const VALID_TABS = ['progress', 'members', 'coach'];
 const DEFAULT_TAB = 'progress';
@@ -28,11 +31,14 @@ export default function MoaiPage() {
   const [currentWeekNumber, setCurrentWeekNumber] = useState<number>(1);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [isGeneratingBuddies, setIsGeneratingBuddies] = useState(false);
+  const [isRefreshingGroups, setIsRefreshingGroups] = useState(false);
 
   const currentQueryTab = searchParams.get('tab');
   const activeTab = currentQueryTab && VALID_TABS.includes(currentQueryTab) ? currentQueryTab : DEFAULT_TAB;
 
-  const { data: userGroups, isLoading: isLoadingUserGroups } = useQuery({
+  const { badgeCount, isCurrentWeekEarned } = useFireBadges(user?.id || '');
+
+  const { data: userGroups, isLoading: isLoadingUserGroups, refetch: refetchUserGroups } = useQuery({
     queryKey: ['user-groups', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -41,8 +47,19 @@ export default function MoaiPage() {
       console.log("User groups:", groups);
       return groups;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: !!user?.id,
   });
+
+  // Refresh groups data when navigating back to the page
+  useEffect(() => {
+    if (userGroups?.length) {
+      setIsRefreshingGroups(true);
+      refetchUserGroups().finally(() => {
+        setIsRefreshingGroups(false);
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (groupId) {
@@ -71,6 +88,7 @@ export default function MoaiPage() {
       console.log("Fetched group data:", data);
       return data;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: !!activeGroupId,
   });
 
@@ -80,6 +98,7 @@ export default function MoaiPage() {
       if (!user?.id) return null;
       return await fetchCurrentProgram(user.id);
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: !!user?.id,
   });
 
@@ -89,6 +108,7 @@ export default function MoaiPage() {
       if (!activeGroupId || !user?.id) return [];
       return await getUserBuddies(activeGroupId, user.id);
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: !!activeGroupId && !!user?.id,
   });
 
@@ -161,11 +181,20 @@ export default function MoaiPage() {
       {groupData && (
         <Card className="border-none shadow-none bg-slate-50 dark:bg-gray-800/50">
           <CardHeader className="text-center py-1 px-4">
-            <CardTitle className="text-xl md:text-2xl font-semibold dark:text-white">
-              {groupData.name}
-            </CardTitle>
+            <div className="flex justify-center items-center">
+              <CardTitle className="text-xl md:text-2xl font-semibold dark:text-white">
+                {groupData.name}
+              </CardTitle>
+              <BackgroundFetchIndicator isLoading={isRefreshingGroups} />
+            </div>
           </CardHeader>
           <CardContent className="pt-0 pb-1 text-center">
+            {isAdmin && activeGroupId && (
+              <div className="mb-2 flex justify-center">
+                <AwardFireBadgesButton groupId={activeGroupId} />
+              </div>
+            )}
+            
             {groupData.spotify_playlist_url && (
               <Button
                 variant="outline"

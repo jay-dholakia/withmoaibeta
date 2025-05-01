@@ -5,6 +5,8 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import MoaiMemberWeeklyActivity from './MoaiMemberWeeklyActivity';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useFireBadges } from '@/hooks/useFireBadges';
+import { FireBadge } from './FireBadge';
 
 interface MemberProps {
   member: {
@@ -22,6 +24,7 @@ interface MemberProps {
 
 const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { badgeCount, isCurrentWeekEarned } = useFireBadges(member.userId);
   
   const firstName = member.profileData?.first_name || member.email.split('@')[0];
   const lastName = member.profileData?.last_name || '';
@@ -70,11 +73,16 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <div>
+          <div className="flex items-center">
             <span className="font-medium whitespace-nowrap dark:text-white">
               {displayName}
               {member.isCurrentUser && <span className="text-xs ml-1.5 text-muted-foreground dark:text-gray-300">(You)</span>}
             </span>
+            {badgeCount > 0 && (
+              <div className="ml-2">
+                <FireBadge count={badgeCount} isCurrentWeekEarned={isCurrentWeekEarned} />
+              </div>
+            )}
           </div>
         </div>
         

@@ -7,7 +7,7 @@ import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Music, Dumbbell } from 'lucide-react';
+import { Loader2, Music, Dumbbell, Flame } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { fetchCurrentProgram } from '@/services/program-service';
@@ -20,6 +20,8 @@ import { BuddyDisplayInfo } from '@/services/accountability-buddy-service';
 const VALID_TABS = ['progress', 'members', 'coach'];
 const DEFAULT_TAB = 'progress';
 import { BackgroundFetchIndicator } from '@/components/client/BackgroundFetchIndicator';
+import { useFireBadges } from '@/hooks/useFireBadges';
+import { FireBadge } from '@/components/client/FireBadge';
 
 export default function MoaiPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -34,6 +36,12 @@ export default function MoaiPage() {
   const activeTab = currentQueryTab && VALID_TABS.includes(currentQueryTab) ? currentQueryTab : DEFAULT_TAB;
   const [isRefreshingGroups, setIsRefreshingGroups] = useState(false);
 
+  
+  // Fire badge for current user
+  const { badgeCount, isCurrentWeekEarned } = user?.id ? 
+    useFireBadges(user.id) : 
+    { badgeCount: 0, isCurrentWeekEarned: false };
+  
   const { data: userGroups, isLoading: isLoadingUserGroups, refetch: refetchUserGroups } = useQuery({
     queryKey: ['user-groups', user?.id],
     queryFn: async () => {
@@ -186,6 +194,21 @@ export default function MoaiPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-0 pb-1 text-center">
+            {/* Badge explanation card */}
+            {user?.id && (
+              <Card className="mb-3 bg-white dark:bg-gray-700 p-3 shadow-sm">
+                <div className="flex items-center justify-center gap-3">
+                  <FireBadge userId={user.id} showTooltip={false} size={24} />
+                  <div className="text-sm text-left">
+                    <p className="font-medium">Fire Badges</p>
+                    <p className="text-muted-foreground dark:text-gray-300">
+                      Complete all workouts in a week to earn a badge. You have {badgeCount} {badgeCount === 1 ? 'badge' : 'badges'}.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
+            
             {groupData.spotify_playlist_url && (
               <Button
                 variant="outline"

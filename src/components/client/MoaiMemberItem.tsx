@@ -77,8 +77,8 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
               {member.isCurrentUser && <span className="text-xs ml-1.5 text-muted-foreground dark:text-gray-300">(You)</span>}
             </span>
             
-            {/* Fire Badge */}
-            <FireBadge userId={member.userId} className="ml-1" />
+            {/* Fire Badge - made more visible */}
+            <FireBadge userId={member.userId} className="ml-1" size={20} />
           </div>
         </div>
         

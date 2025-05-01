@@ -10,11 +10,41 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BackgroundFetchIndicator } from '@/components/client/BackgroundFetchIndicator';
 import { useIsMobile } from '@/lib/hooks';
+import { WorkoutHistoryItem } from '@/types/workout';
+
+// Define type for our activity feed data
+type ActivityFeedItem = WorkoutHistoryItem & {
+  profiles?: {
+    id?: string;
+    first_name?: string;
+    last_name?: string;
+    avatar_url?: string;
+  } | null;
+  likes?: Array<{
+    id: string;
+    user_id: string;
+    activity_id: string;
+    created_at: string;
+  }>;
+  comments?: Array<{
+    id: string;
+    user_id: string;
+    activity_id: string;
+    content: string;
+    created_at: string;
+    profiles?: {
+      id?: string;
+      first_name?: string;
+      last_name?: string;
+      avatar_url?: string;
+    } | null;
+  }>;
+};
 
 const ActivityFeedPage = () => {
   const { user } = useAuth();
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [activities, setActivities] = useState<any[]>([]);
+  const [activities, setActivities] = useState<ActivityFeedItem[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const isMobile = useIsMobile();
   
@@ -31,7 +61,7 @@ const ActivityFeedPage = () => {
     queryFn: async () => {
       try {
         console.log("Fetching initial activities");
-        const activities = await fetchRecentActivities({ limit: 20 });
+        const activities = await fetchRecentActivities({ limit: 20 }) as ActivityFeedItem[];
         console.log("Initial activities fetched:", activities?.length || 0);
         
         if (activities && activities.length > 0) {
@@ -63,7 +93,7 @@ const ActivityFeedPage = () => {
       const moreActivities = await fetchRecentActivities({
         offset: activities.length,
         limit: 20
-      });
+      }) as ActivityFeedItem[];
       
       console.log("More activities fetched:", moreActivities?.length || 0);
       
@@ -194,4 +224,3 @@ const ActivityFeedPage = () => {
 };
 
 export default ActivityFeedPage;
-

@@ -141,7 +141,7 @@ export function WorkoutProgressCard({
                     <TooltipTrigger asChild>
                       <div className="relative">
                         <div className={cn(
-                          "mx-auto w-9 h-9 rounded-full flex items-center justify-center", // Increased from w-7 h-7
+                          "mx-auto w-7 h-7 rounded-full flex items-center justify-center", // Increased from w-6 h-6
                           hasWorkout 
                             ? "bg-blue-100 border border-blue-200" 
                             : restDay 
@@ -151,13 +151,13 @@ export function WorkoutProgressCard({
                           {(hasWorkout || restDay) && workoutType && (
                             <WorkoutTypeIcon
                               type={workoutType}
-                              size="md" // Using medium size which is now larger
+                              size="md" // Using medium size for better visibility
                               colorOverride={hasWorkout ? "#0EA5E9" : restDay ? "#F59E0B" : undefined}
                             />
                           )}
                           
                           {workoutCount >= 2 && (
-                            <div className="absolute -top-1.5 -right-1.5 bg-client text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-sm">
+                            <div className="absolute -top-1 -right-1 bg-client text-white text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-sm">
                               {workoutCount}
                             </div>
                           )}

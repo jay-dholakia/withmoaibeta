@@ -1,7 +1,6 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { fetchRecentActivities } from '@/services/activity-feed-service';
 import ActivityPost from '@/components/client/ActivityPost';
 import { Loader2 } from 'lucide-react';
@@ -43,72 +42,48 @@ type ActivityFeedItem = WorkoutHistoryItem & {
 
 const ActivityFeedPage = () => {
   const { user } = useAuth();
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [activities, setActivities] = useState<ActivityFeedItem[]>([]);
-  const [hasMore, setHasMore] = useState(true);
   const isMobile = useIsMobile();
   
-  // Main query to fetch initial activities
-  const { 
-    data: initialActivities, 
-    isLoading, 
-    error, 
+  // Use useInfiniteQuery instead of useQuery
+  const {
+    data, // Data is now structured as { pages: [page1, page2, ...], pageParams: [...] }
+    fetchNextPage, // Function to fetch the next page
+    hasNextPage, // Boolean indicating if there's a next page
+    isLoading, // Initial loading state
+    isFetchingNextPage, // Loading state for subsequent pages
+    error,
     refetch,
     isError,
-    isFetching
-  } = useQuery({
+    isFetching, // Represents fetching state for initial load or background refresh
+  } = useInfiniteQuery({
     queryKey: ['activity-feed'],
-    queryFn: async () => {
-      try {
-        console.log("Fetching initial activities");
-        const activities = await fetchRecentActivities({ limit: 20 }) as ActivityFeedItem[];
-        console.log("Initial activities fetched:", activities?.length || 0);
-        
-        if (activities && activities.length > 0) {
-          setActivities(activities); // Set initial activities
-          setHasMore(activities.length === 20); // If we got less than requested, there are no more
-        } else {
-          setHasMore(false);
-        }
-        
-        return activities || [];
-      } catch (err) {
-        console.error("Error in query function:", err);
-        toast.error("Failed to load activities. Please try again later.");
-        throw err;
-      }
+    queryFn: async ({ pageParam = 0 }) => { // pageParam starts at 0 (or undefined, handled as 0)
+      console.log(`Fetching activities with offset: ${pageParam}`);
+      const limit = 20;
+      // Fetch activities using the pageParam as offset
+      const activities = await fetchRecentActivities({ offset: pageParam, limit }) as ActivityFeedItem[];
+      console.log(`Fetched ${activities?.length || 0} activities`);
+      // Return the fetched activities and the next offset
+      return {
+        activities: activities || [],
+        nextOffset: activities && activities.length === limit ? pageParam + limit : undefined,
+      };
     },
+    // Define how to get the next page parameter from the previous page's data
+    getNextPageParam: (lastPage) => lastPage.nextOffset,
+    initialPageParam: 0, // Start fetching from offset 0
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 3,
     retryDelay: attempt => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30 * 1000),
   });
 
-  // Function to load more activities
-  const loadMore = async () => {
-    if (isLoadingMore || !activities || activities.length === 0) return;
-    
-    setIsLoadingMore(true);
-    try {
-      console.log("Loading more activities from offset:", activities.length);
-      const moreActivities = await fetchRecentActivities({
-        offset: activities.length,
-        limit: 20
-      }) as ActivityFeedItem[];
-      
-      console.log("More activities fetched:", moreActivities?.length || 0);
-      
-      if (moreActivities && moreActivities.length > 0) {
-        setActivities(prevActivities => [...prevActivities, ...moreActivities]);
-        setHasMore(moreActivities.length === 20); // If we got less than requested, there are no more
-      } else {
-        setHasMore(false);
-        toast.info("You've reached the end of the activity feed");
-      }
-    } catch (error) {
-      console.error('Error loading more activities:', error);
-      toast.error("Failed to load more activities. Please try again.");
-    } finally {
-      setIsLoadingMore(false);
+  // Flatten the pages array to get a single list of activities
+  const activities = data?.pages.flatMap(page => page.activities) ?? [];
+
+  // Update loadMore function to use fetchNextPage
+  const loadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
   };
 
@@ -138,12 +113,12 @@ const ActivityFeedPage = () => {
       <div className="text-red-500 dark:text-red-400 mb-4">
         Unable to load activities. Please try again.
       </div>
-      <Button 
-        onClick={() => refetch()} 
+      <Button
+        onClick={() => refetch()} // Use refetch from useInfiniteQuery
         variant="outline"
-        disabled={isFetching}
+        disabled={isFetching} // Disable button while fetching
       >
-        Retry {isFetching && <BackgroundFetchIndicator isLoading={isFetching} />}
+        Retry {isFetching && !isFetchingNextPage && <BackgroundFetchIndicator isLoading={true} />}
       </Button>
     </div>
   );
@@ -152,12 +127,13 @@ const ActivityFeedPage = () => {
     <div className="text-center p-8 bg-background rounded-lg border">
       <h1 className="text-2xl font-bold mb-4">Community Activity</h1>
       <div className="text-gray-500 dark:text-gray-400 mb-8">
-        No workouts found. Be the first to log a workout!
+        No community activity found yet.
       </div>
     </div>
   );
 
   // Main rendering logic
+  // Use isLoading for initial load skeleton
   if (isLoading) {
     return (
       <div className="space-y-4 py-4">
@@ -167,10 +143,12 @@ const ActivityFeedPage = () => {
     );
   }
 
+  // Use isError for error state
   if (isError || error) {
     return renderError();
   }
 
+  // Check flattened activities array for empty state
   if (!activities || activities.length === 0) {
     return renderEmpty();
   }
@@ -178,43 +156,49 @@ const ActivityFeedPage = () => {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-center mb-4">Community Activity</h1>
-      
+
       <div className="space-y-4">
+        {/* Map over the flattened activities array */}
         {activities.map(activity => (
-          <ActivityPost 
-            key={activity.id} 
-            activity={activity} 
+          <ActivityPost
+            key={activity.id}
+            activity={activity}
             currentUserId={user?.id || ''}
           />
         ))}
       </div>
-      
-      {isFetching && !isLoadingMore && (
+
+      {/* Show background fetch indicator only during refetches, not initial load or next page fetch */}
+      {isFetching && !isLoading && !isFetchingNextPage && (
         <div className="flex justify-center p-4">
           <BackgroundFetchIndicator isLoading={true} size={6} />
         </div>
       )}
-      
-      {isLoadingMore && (
+
+      {/* Show loader when fetching the next page */}
+      {isFetchingNextPage && (
         <div className="flex justify-center p-4">
           <Loader2 className="h-6 w-6 animate-spin text-client" />
         </div>
       )}
 
-      {hasMore && !isLoadingMore && (
+      {/* Show Load More button if there is a next page and not currently fetching */}
+      {hasNextPage && !isFetchingNextPage && (
         <div className="flex justify-center mt-4 mb-8">
-          <Button 
-            onClick={loadMore} 
-            variant="default" 
+          <Button
+            onClick={loadMore}
+            variant="default"
             size={isMobile ? "sm" : "default"}
             className="bg-client hover:bg-client/90 text-white"
+            disabled={isFetchingNextPage} // Disable button while fetching next page
           >
             Load More Activities
           </Button>
         </div>
       )}
-      
-      {!hasMore && activities.length > 0 && (
+
+      {/* Show end message if there are activities but no next page */}
+      {!hasNextPage && activities.length > 0 && (
         <p className="text-center text-gray-500 dark:text-gray-400 pb-4">
           You've reached the end of the activity feed
         </p>

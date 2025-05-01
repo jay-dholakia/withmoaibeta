@@ -1,11 +1,10 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Music, Dumbbell } from 'lucide-react';
@@ -14,18 +13,25 @@ import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { fetchCurrentProgram } from '@/services/program-service';
 import { fetchUserGroups } from '@/services/moai-service';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
 import { getUserBuddies, generateWeeklyBuddies } from '@/services/accountability-buddy-service';
 import { AccountabilityBuddyCard } from '@/components/client/AccountabilityBuddyCard';
 import { BuddyDisplayInfo } from '@/services/accountability-buddy-service';
 
+const VALID_TABS = ['progress', 'members', 'coach'];
+const DEFAULT_TAB = 'progress';
+
 export default function MoaiPage() {
   const { groupId } = useParams<{ groupId: string }>();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile } = useAuth();
   const [currentWeekNumber, setCurrentWeekNumber] = useState<number>(1);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [isGeneratingBuddies, setIsGeneratingBuddies] = useState(false);
-  
+
+  const currentQueryTab = searchParams.get('tab');
+  const activeTab = currentQueryTab && VALID_TABS.includes(currentQueryTab) ? currentQueryTab : DEFAULT_TAB;
+
   const { data: userGroups, isLoading: isLoadingUserGroups } = useQuery({
     queryKey: ['user-groups', user?.id],
     queryFn: async () => {
@@ -37,16 +43,20 @@ export default function MoaiPage() {
     },
     enabled: !!user?.id,
   });
-  
+
   useEffect(() => {
     if (groupId) {
       setActiveGroupId(groupId);
-    } else if (userGroups && userGroups.length > 0) {
-      console.log("Setting active group to first group:", userGroups[0].id);
-      setActiveGroupId(userGroups[0].id);
+      if (!currentQueryTab || !VALID_TABS.includes(currentQueryTab)) {
+        setSearchParams({ tab: DEFAULT_TAB }, { replace: true });
+      }
+    } else if (userGroups && userGroups.length > 0 && !isLoadingUserGroups) {
+      const firstGroupId = userGroups[0].id;
+      console.log("Redirecting to first group:", firstGroupId);
+      navigate(`/client-dashboard/moai/${firstGroupId}`, { replace: true });
     }
-  }, [groupId, userGroups]);
-  
+  }, [groupId, userGroups, isLoadingUserGroups, navigate, currentQueryTab, setSearchParams]);
+
   const { data: groupData, isLoading: isLoadingGroup } = useQuery({
     queryKey: ['moai-group', activeGroupId],
     queryFn: async () => {
@@ -56,14 +66,14 @@ export default function MoaiPage() {
         .select('*, group_coaches(*)')
         .eq('id', activeGroupId)
         .single();
-      
+
       if (error) throw error;
       console.log("Fetched group data:", data);
       return data;
     },
     enabled: !!activeGroupId,
   });
-  
+
   const { data: currentProgram, isLoading: isLoadingProgram } = useQuery({
     queryKey: ['current-program', user?.id],
     queryFn: async () => {
@@ -72,7 +82,7 @@ export default function MoaiPage() {
     },
     enabled: !!user?.id,
   });
-  
+
   const { data: buddies, isLoading: isLoadingBuddies, refetch: refetchBuddies } = useQuery({
     queryKey: ['accountability-buddies', activeGroupId, user?.id],
     queryFn: async () => {
@@ -81,9 +91,9 @@ export default function MoaiPage() {
     },
     enabled: !!activeGroupId && !!user?.id,
   });
-  
+
   const isAdmin = profile?.user_type === 'admin';
-  
+
   useEffect(() => {
     if (currentProgram?.start_date) {
       const startDate = new Date(currentProgram.start_date);
@@ -91,16 +101,16 @@ export default function MoaiPage() {
       setCurrentWeekNumber(weekNumber);
     }
   }, [currentProgram]);
-  
+
   const handleOpenSpotifyPlaylist = () => {
     if (groupData?.spotify_playlist_url) {
       window.open(groupData.spotify_playlist_url, '_blank');
     }
   };
-  
+
   const refreshBuddies = useCallback(async () => {
     if (!activeGroupId) return;
-    
+
     setIsGeneratingBuddies(true);
     try {
       await generateWeeklyBuddies(activeGroupId);
@@ -111,7 +121,15 @@ export default function MoaiPage() {
       setIsGeneratingBuddies(false);
     }
   }, [activeGroupId, refetchBuddies]);
-  
+
+  const handleTabChange = (newTab: string) => {
+    setSearchParams({ tab: newTab }, { replace: true });
+  };
+
+  const handleGroupChange = (newGroupId: string) => {
+    navigate(`/client-dashboard/moai/${newGroupId}`, { replace: true });
+  };
+
   if (isLoadingGroup || isLoadingProgram || isLoadingUserGroups) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -119,8 +137,8 @@ export default function MoaiPage() {
       </div>
     );
   }
-  
-  if ((!activeGroupId || !groupData) && (!userGroups || userGroups.length === 0)) {
+
+  if (!activeGroupId && (!userGroups || userGroups.length === 0)) {
     return (
       <div className="flex flex-col justify-center items-center h-64 space-y-4">
         <p className="text-muted-foreground text-center dark:text-gray-300">No groups found. You aren't assigned to any Moai group yet.</p>
@@ -128,7 +146,16 @@ export default function MoaiPage() {
       </div>
     );
   }
-  
+
+  if (!groupData && activeGroupId) {
+     return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-client dark:text-blue-300" />
+        <span className="ml-2">Loading group details...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       {groupData && (
@@ -140,9 +167,9 @@ export default function MoaiPage() {
           </CardHeader>
           <CardContent className="pt-0 pb-1 text-center">
             {groupData.spotify_playlist_url && (
-              <Button 
+              <Button
                 variant="outline"
-                size="sm" 
+                size="sm"
                 onClick={handleOpenSpotifyPlaylist}
                 className="bg-white hover:bg-green-50 mb-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
               >
@@ -150,7 +177,7 @@ export default function MoaiPage() {
                 <span>Team Spotify Playlist</span>
               </Button>
             )}
-            
+
             {activeGroupId && (
               <AccountabilityBuddyCard
                 buddies={buddies || []}
@@ -163,12 +190,12 @@ export default function MoaiPage() {
           </CardContent>
         </Card>
       )}
-      
+
       {userGroups && userGroups.length > 1 && (
         <div className="flex justify-center mb-2">
           <select
             value={activeGroupId || ''}
-            onChange={(e) => setActiveGroupId(e.target.value)}
+            onChange={(e) => handleGroupChange(e.target.value)}
             className="px-2 py-1 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
           >
             {userGroups.map(group => (
@@ -179,20 +206,24 @@ export default function MoaiPage() {
           </select>
         </div>
       )}
-      
+
       <Card className="dark:bg-gray-800 dark:border-gray-700">
         <CardContent className="p-0">
-          <Tabs defaultValue="progress" className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={handleTabChange}
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-3 dark:bg-gray-700">
               <TabsTrigger value="progress" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Progress</TabsTrigger>
               <TabsTrigger value="members" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Members</TabsTrigger>
               <TabsTrigger value="coach" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Coach</TabsTrigger>
             </TabsList>
-            
+
             {user && (
               <div className="px-4 pt-2 pb-1">
-                <Button 
-                  asChild 
+                <Button
+                  asChild
                   className="w-full flex items-center justify-center gap-2 bg-client hover:bg-client/90 dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
                 >
                   <Link to="/client-dashboard/workouts">
@@ -202,10 +233,10 @@ export default function MoaiPage() {
                 </Button>
               </div>
             )}
-            
+
             <TabsContent value="progress" className="pt-1">
-              <MoaiGroupProgress 
-                groupId={activeGroupId || ''} 
+              <MoaiGroupProgress
+                groupId={activeGroupId || ''}
                 currentProgram={currentProgram}
               />
             </TabsContent>

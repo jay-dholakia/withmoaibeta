@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import MoaiMemberWeeklyActivity from './MoaiMemberWeeklyActivity';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { FireBadge } from './FireBadge';
 
 interface MemberProps {
   member: {
@@ -70,11 +71,14 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <div>
+          <div className="flex items-center gap-1.5">
             <span className="font-medium whitespace-nowrap dark:text-white">
               {displayName}
               {member.isCurrentUser && <span className="text-xs ml-1.5 text-muted-foreground dark:text-gray-300">(You)</span>}
             </span>
+            
+            {/* Fire Badge */}
+            <FireBadge userId={member.userId} className="ml-1" />
           </div>
         </div>
         

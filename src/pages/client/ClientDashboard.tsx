@@ -6,7 +6,7 @@ import WorkoutsPage from './WorkoutsPage';
 import MoaiPage from './MoaiPage';
 import LeaderboardPage from './LeaderboardPage';
 import SettingsPage from './SettingsPage';
-import NotesPage from './NotesPage';
+import ActivityFeedPage from './ActivityFeedPage';
 import ProfileEditor from './ProfileEditor';
 import PrivacyPolicyPage from './PrivacyPolicyPage';
 import TermsOfServicePage from './TermsOfServicePage';
@@ -24,11 +24,12 @@ const ClientDashboard = () => {
           <Route path="moai" element={<MoaiPage />} />
           <Route path="moai/:groupId" element={<MoaiPage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route path="activity-feed" element={<ActivityFeedPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="settings/edit-profile" element={<ProfileEditor />} />
           <Route path="settings/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="settings/terms-of-service" element={<TermsOfServicePage />} />
-          <Route path="notes" element={<NotesPage />} />
+          <Route path="notes" element={<Navigate to="/client-dashboard/activity-feed" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>

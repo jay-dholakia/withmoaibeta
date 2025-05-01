@@ -4,8 +4,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutGrid,
   DumbbellIcon,
-  Mountain,  // Updated import
-  BananaIcon,
+  Mountain,
+  Globe,
   Settings
 } from 'lucide-react';
 import { Toaster } from 'sonner';
@@ -103,18 +103,18 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
               
               <li>
                 <Link 
-                  to="/client-dashboard/notes" 
+                  to="/client-dashboard/activity-feed" 
                   className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
-                    isActive('/notes') 
+                    isActive('/activity-feed') 
                       ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
                       : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  <BananaIcon 
+                  <Globe 
                     className="w-6 h-6" 
-                    strokeWidth={isActive('/notes') ? 2.5 : 2} 
+                    strokeWidth={isActive('/activity-feed') ? 2.5 : 2} 
                   />
-                  <span className="text-xs font-medium">Nutrition</span>
+                  <span className="text-xs font-medium">Community</span>
                 </Link>
               </li>
               

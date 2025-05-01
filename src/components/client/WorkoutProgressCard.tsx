@@ -101,15 +101,17 @@ export function WorkoutProgressCard({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Avatar className="h-8 w-8 border">
-                <AvatarImage 
-                  src={avatarUrl || ''} 
-                  alt={displayName} 
-                />
-                <AvatarFallback className="bg-client/80 text-white text-xs">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative overflow-visible">
+                <Avatar className="h-8 w-8 border">
+                  <AvatarImage 
+                    src={avatarUrl || ''} 
+                    alt={displayName} 
+                  />
+                  <AvatarFallback className="bg-client/80 text-white text-xs pl-1 pr-1">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
             </TooltipTrigger>
             <TooltipContent side="right">
               <span className="text-sm font-medium">
@@ -127,12 +129,12 @@ export function WorkoutProgressCard({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="absolute -top-1 -right-1">
-                  <div className="relative">
-                    <Flame className="w-5 h-5 text-orange-500" fill="#f97316" />
-                    <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white z-10">
+                <div className="absolute -top-1 -right-1.5" title={`🔥 Completed all workouts ${fireWeeks} week${fireWeeks !== 1 ? 's' : ''}`}>
+                  <div className="relative w-4 h-4">
+                    <Flame className="w-full h-full text-orange-500" fill="#f97316" />
+                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white z-10 leading-none">
                       {fireWeeks}
-                    </div>
+                    </span>
                   </div>
                 </div>
               </TooltipTrigger>

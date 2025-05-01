@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Flame } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import MoaiMemberWeeklyActivity from './MoaiMemberWeeklyActivity';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -55,15 +55,37 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Avatar className="h-10 w-10 border dark:border-gray-600">
-                  <AvatarImage 
-                    src={member.profileData?.avatar_url || ''} 
-                    alt={displayName} 
-                  />
-                  <AvatarFallback className="bg-client/80 text-white">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="h-10 w-10 border dark:border-gray-600">
+                    <AvatarImage 
+                      src={member.profileData?.avatar_url || ''} 
+                      alt={displayName} 
+                    />
+                    <AvatarFallback className="bg-client/80 text-white">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  {badgeCount > 0 && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center">
+                            <Flame className="absolute w-4 h-4 text-orange-300 opacity-90" fill="#f97316" />
+                            <span className="relative z-10 text-xs font-bold text-white">
+                              {badgeCount}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                          <p className="text-sm">
+                            🔥 Completed all workouts {badgeCount} {badgeCount === 1 ? 'week' : 'weeks'}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
               </TooltipTrigger>
               <TooltipContent side="right" className="dark:bg-gray-700 dark:text-white dark:border-gray-600">
                 <span className="font-medium whitespace-nowrap">

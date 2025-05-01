@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,7 +8,7 @@ import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Music, Dumbbell, Flame } from 'lucide-react';
+import { Loader2, Music, Dumbbell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { fetchCurrentProgram } from '@/services/program-service';
@@ -196,19 +197,6 @@ export default function MoaiPage() {
             {isAdmin && activeGroupId && (
               <div className="mb-2 flex justify-center">
                 <AwardFireBadgesButton groupId={activeGroupId} />
-              </div>
-            )}
-            
-            {badgeCount > 0 && (
-              <div className="bg-white dark:bg-gray-700 rounded-lg p-3 mb-3 shadow-sm border dark:border-gray-600">
-                <div className="flex items-center justify-center gap-2 mb-1.5">
-                  <Flame className="h-5 w-5 text-orange-500" fill="rgba(249, 115, 22, 0.2)" />
-                  <h3 className="font-semibold dark:text-white">Your Fire Streak</h3>
-                </div>
-                <p className="text-sm text-muted-foreground dark:text-gray-300">
-                  You've completed all assigned workouts for {badgeCount} {badgeCount === 1 ? 'week' : 'weeks'}!
-                  {isCurrentWeekEarned && " You've earned the badge for this week too."}
-                </p>
               </div>
             )}
             

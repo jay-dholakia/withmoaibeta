@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 interface FetchActivitiesOptions {
@@ -58,7 +59,7 @@ export const fetchRecentActivities = async ({
     
     console.log(`Found ${profiles?.length || 0} profiles`);
 
-    // Fetch likes and comments in batch
+    // Fetch likes in batch
     const activityIds = activities.map(a => a.id);
     
     const { data: allLikes, error: likesError } = await supabase
@@ -71,41 +72,7 @@ export const fetchRecentActivities = async ({
       // Continue even if likes have an error
     }
     
-    const { data: allComments, error: commentsError } = await supabase
-      .from('activity_comments')
-      .select('id, user_id, activity_id, content, created_at')
-      .in('activity_id', activityIds);
-    
-    if (commentsError) {
-      console.error('Error fetching comments:', commentsError);
-      // Continue even if comments have an error
-    }
-    
-    console.log(`Found ${allLikes?.length || 0} likes and ${allComments?.length || 0} comments`);
-
-    // Get profiles for comment authors
-    const commentUserIds = allComments ? 
-      [...new Set(allComments.map(comment => comment.user_id))] : [];
-    
-    let commentProfileMap = {};
-    if (commentUserIds.length > 0) {
-      const { data: commentProfiles, error: commentProfilesError } = await supabase
-        .from('client_profiles')
-        .select('id, first_name, last_name, avatar_url')
-        .in('id', commentUserIds);
-      
-      if (commentProfilesError) {
-        console.error('Error fetching comment profiles:', commentProfilesError);
-      } else {
-        commentProfileMap = commentProfiles ? 
-          commentProfiles.reduce((map: Record<string, any>, profile: any) => {
-            map[profile.id] = profile;
-            return map;
-          }, {}) : {};
-          
-        console.log(`Found ${commentProfiles?.length || 0} comment author profiles`);
-      }
-    }
+    console.log(`Found ${allLikes?.length || 0} likes`);
 
     // Combine all data
     const enrichedActivities = activities.map(activity => {
@@ -116,20 +83,10 @@ export const fetchRecentActivities = async ({
       const likes = allLikes ? 
         allLikes.filter(like => like.activity_id === activity.id) : [];
       
-      // Add comments with author profiles
-      const comments = allComments ? 
-        allComments
-          .filter(comment => comment.activity_id === activity.id)
-          .map(comment => ({
-            ...comment,
-            profiles: commentProfileMap[comment.user_id] || null
-          })) : [];
-      
       return {
         ...activity,
         profiles: profile,
-        likes,
-        comments
+        likes
       };
     });
 
@@ -217,71 +174,6 @@ export const unlikeActivity = async (activityId: string) => {
     return true;
   } catch (error) {
     console.error('Error in unlikeActivity:', error);
-    return false;
-  }
-};
-
-export const addComment = async (activityId: string, content: string) => {
-  try {
-    // Get current user ID from auth
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-    
-    // Insert the comment
-    const { data: commentData, error: commentError } = await supabase
-      .from('activity_comments')
-      .insert({
-        activity_id: activityId,
-        content,
-        user_id: user.id
-      })
-      .select('*');
-
-    if (commentError) {
-      console.error('Error adding comment:', commentError);
-      throw commentError;
-    }
-
-    if (!commentData || commentData.length === 0) {
-      throw new Error('Failed to create comment');
-    }
-
-    // Get user profile data
-    const { data: profileData } = await supabase
-      .from('client_profiles')
-      .select('first_name, last_name, avatar_url')
-      .eq('id', user.id)
-      .single();
-
-    // Return comment with profile data
-    return {
-      ...commentData[0],
-      profiles: profileData
-    };
-  } catch (error) {
-    console.error('Error in addComment:', error);
-    throw error;
-  }
-};
-
-export const deleteComment = async (commentId: string) => {
-  try {
-    const { error } = await supabase
-      .from('activity_comments')
-      .delete()
-      .match({ id: commentId });
-
-    if (error) {
-      console.error('Error deleting comment:', error);
-      throw error;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error in deleteComment:', error);
     return false;
   }
 };

@@ -27,15 +27,15 @@ const ActivityFeedPage = () => {
       try {
         console.log("Fetching initial activities");
         const activities = await fetchRecentActivities({ limit: 10 });
-        console.log("Initial activities fetched:", activities.length);
-        if (activities) {
+        console.log("Initial activities fetched:", activities?.length || 0);
+        if (activities && activities.length > 0) {
           setActivities(activities); // Set initial activities
         }
-        return activities;
+        return activities || [];
       } catch (err) {
         console.error("Error in query function:", err);
         toast.error("Failed to load activities. Please try again later.");
-        return [];
+        throw err;
       }
     },
     staleTime: 1000 * 60, // 1 minute

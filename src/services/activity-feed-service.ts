@@ -10,7 +10,7 @@ export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchAct
   try {
     console.log("Fetching activities with limit:", limit, "offset:", offset);
     
-    // Query workout completions
+    // Query workout completions that are not rest days or life happens passes
     const { data: activities, error } = await supabase
       .from('workout_completions')
       .select('*')
@@ -34,14 +34,14 @@ export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchAct
     const userIds = activities.map(activity => activity.user_id);
     console.log(`Found ${activities.length} activities for ${userIds.length} users`);
     
-    // Fetch profiles directly from client_profiles
+    // Fetch client profiles directly
     const { data: profiles, error: profilesError } = await supabase
       .from('client_profiles')
       .select('id, first_name, last_name, avatar_url')
       .in('id', userIds);
     
     if (profilesError) {
-      console.error('Error fetching profiles:', profilesError);
+      console.error('Error fetching client profiles:', profilesError);
       // Continue even if profiles have an error - we'll just have missing profile data
     }
 
@@ -79,7 +79,7 @@ export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchAct
     
     console.log(`Found ${allLikes?.length || 0} likes and ${allComments?.length || 0} comments`);
 
-    // Get profiles for comment authors if we have comments
+    // Get profiles for comment authors
     const commentUserIds = allComments ? 
       [...new Set(allComments.map(comment => comment.user_id))] : [];
     
@@ -133,7 +133,7 @@ export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchAct
     return enrichedActivities;
   } catch (error) {
     console.error('Error in fetchRecentActivities:', error);
-    return [];
+    throw error;
   }
 };
 
@@ -167,7 +167,7 @@ export const likeActivity = async (activityId: string) => {
     return data?.[0] || null;
   } catch (error) {
     console.error('Error in likeActivity:', error);
-    return null;
+    throw error;
   }
 };
 
@@ -242,7 +242,7 @@ export const addComment = async (activityId: string, content: string) => {
     };
   } catch (error) {
     console.error('Error in addComment:', error);
-    return null;
+    throw error;
   }
 };
 

@@ -71,12 +71,12 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
   const getFontSize = () => {
     switch (size) {
       case 'sm':
-        return '12px';
+        return '14px'; // Increased from 12px
       case 'lg':
-        return '18px';
+        return '22px'; // Increased from 18px
       case 'md':
       default:
-        return '14px';
+        return '18px'; // Increased from 14px
     }
   };
 
@@ -93,7 +93,11 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
         style={{ 
           fontSize: getFontSize(), 
           lineHeight: 1,
-          color: colorOverride 
+          color: colorOverride || '#0EA5E9', // Default to a bright blue if no color override
+          textShadow: '0 0 1px rgba(0,0,0,0.1)', // Subtle text shadow for better visibility
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       >
         {getIconForType()}

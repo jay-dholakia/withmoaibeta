@@ -31,37 +31,36 @@ export default function MoaiPage() {
   const [currentWeekNumber, setCurrentWeekNumber] = useState<number>(1);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [isGeneratingBuddies, setIsGeneratingBuddies] = useState(false);
-const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
-const [isGeneratingBuddies, setIsGeneratingBuddies] = useState(false);
-const [isRefreshingGroups, setIsRefreshingGroups] = useState(false);
+  const [isRefreshingGroups, setIsRefreshingGroups] = useState(false);
 
-const currentQueryTab = searchParams.get('tab');
-const activeTab = currentQueryTab && VALID_TABS.includes(currentQueryTab) ? currentQueryTab : DEFAULT_TAB;
+  const currentQueryTab = searchParams.get('tab');
+  const activeTab = currentQueryTab && VALID_TABS.includes(currentQueryTab) ? currentQueryTab : DEFAULT_TAB;
 
-const { badgeCount, isCurrentWeekEarned } = useFireBadges(user?.id || '');
+  const { badgeCount, isCurrentWeekEarned } = useFireBadges(user?.id || '');
 
-const { data: userGroups, isLoading: isLoadingUserGroups, refetch: refetchUserGroups } = useQuery({
-  queryKey: ['user-groups', user?.id],
-  queryFn: async () => {
-    if (!user?.id) return [];
-    console.log("Fetching user groups for:", user.id);
-    const groups = await fetchUserGroups(user.id);
-    console.log("User groups:", groups);
-    return groups;
-  },
-  staleTime: 5 * 60 * 1000, // 5 minutes
-  enabled: !!user?.id,
-});
+  const { data: userGroups, isLoading: isLoadingUserGroups, refetch: refetchUserGroups } = useQuery({
+    queryKey: ['user-groups', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      console.log("Fetching user groups for:", user.id);
+      const groups = await fetchUserGroups(user.id);
+      console.log("User groups:", groups);
+      return groups;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!user?.id,
+  });
 
-// Refresh groups data when navigating back to the page
-useEffect(() => {
-  if (userGroups?.length) {
-    setIsRefreshingGroups(true);
-    refetchUserGroups().finally(() => {
-      setIsRefreshingGroups(false);
-    });
-  }
-}, []);
+  // Refresh groups data when navigating back to the page
+  useEffect(() => {
+    if (userGroups?.length) {
+      setIsRefreshingGroups(true);
+      refetchUserGroups().finally(() => {
+        setIsRefreshingGroups(false);
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (groupId) {
       setActiveGroupId(groupId);

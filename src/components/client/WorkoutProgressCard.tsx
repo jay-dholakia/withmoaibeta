@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -131,7 +132,7 @@ export function WorkoutProgressCard({
                 <div className="absolute -top-1.5 -right-1.5" title={`🔥 Completed all workouts ${fireWeeks} week${fireWeeks !== 1 ? 's' : ''}`}>
                   <div className="relative w-5 h-5">
                     <Flame className="w-full h-full text-orange-500" fill="#f97316" />
-                    <span className="absolute inset-0 flex items-center justify-center pt-0.5 text-[8px] font-bold text-white z-10 leading-none">
+                    <span className="absolute inset-0 flex items-center justify-center pt-1 text-[8px] font-bold text-white z-10 leading-none">
                       {fireWeeks}
                     </span>
                   </div>

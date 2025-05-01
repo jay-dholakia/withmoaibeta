@@ -6,6 +6,7 @@ interface ProcessFireBadgesOptions {
   groupId?: string;  // Optional: process only users from a specific group
   weekStart?: string; // Optional: process for a specific week
   isAutomatedRun?: boolean; // Is this an automated scheduled run
+  processPreviousWeek?: boolean; // Explicitly process previous week
 }
 
 // CORS headers for browser clients
@@ -27,9 +28,9 @@ serve(async (req) => {
 
   try {
     const options: ProcessFireBadgesOptions = await req.json().catch(() => ({}));
-    const { groupId, weekStart, isAutomatedRun = false } = options;
+    const { groupId, weekStart, isAutomatedRun = false, processPreviousWeek = false } = options;
 
-    console.log("Processing fire badges:", { groupId, weekStart, isAutomatedRun });
+    console.log("Processing fire badges:", { groupId, weekStart, isAutomatedRun, processPreviousWeek });
 
     // Get the current week start date if not provided
     const weekStartDate = weekStart || 
@@ -82,21 +83,17 @@ serve(async (req) => {
     console.log(`Processing ${users.length} users for week ${weekStartDate}`);
     
     // For automated runs, check if we need to process past week
-    // This handles the case where the auto-run executes near the week boundary
     let processWeekStart = weekStartDate;
-    if (isAutomatedRun) {
+    
+    if (isAutomatedRun || processPreviousWeek) {
       // If today is Monday and early morning, we probably want to process the previous week
-      const today = new Date();
-      const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday
-      const hourOfDay = today.getHours();
-      
-      // If it's early Monday morning, process for the previous week
-      if (dayOfWeek === 1 && hourOfDay < 6) {
+      // Or if processPreviousWeek is true, process the previous week regardless
+      if (processPreviousWeek || shouldProcessPreviousWeek()) {
         // Calculate previous week's Monday
         const prevWeekDate = new Date(weekStartDate);
         prevWeekDate.setDate(prevWeekDate.getDate() - 7);
         processWeekStart = prevWeekDate.toISOString().split('T')[0];
-        console.log(`Early Monday detected, processing for previous week: ${processWeekStart}`);
+        console.log(`Processing for previous week: ${processWeekStart}`);
       }
     }
     
@@ -133,7 +130,8 @@ serve(async (req) => {
       JSON.stringify({ 
         message: `Processed ${users.length} users, awarded ${badgesAwarded} new badges`,
         results,
-        automated: isAutomatedRun
+        automated: isAutomatedRun,
+        weekProcessed: processWeekStart
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -146,4 +144,18 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-})
+});
+
+// Helper function to determine if we should process the previous week
+// This handles the case where the cron job runs early Monday
+function shouldProcessPreviousWeek(): boolean {
+  const pacificDate = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" })
+  );
+  
+  const dayOfWeek = pacificDate.getDay(); // 0 is Sunday, 1 is Monday
+  const hourOfDay = pacificDate.getHours();
+  
+  // If it's early Monday morning (before 6 AM), process for previous week
+  return dayOfWeek === 1 && hourOfDay < 6;
+}

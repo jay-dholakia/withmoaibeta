@@ -29,6 +29,7 @@ const ClientDashboard = () => {
           <Route path="settings/edit-profile" element={<ProfileEditor />} />
           <Route path="settings/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="settings/terms-of-service" element={<TermsOfServicePage />} />
+          <Route path="notes" element={<Navigate to="/client-dashboard/activity-feed" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>

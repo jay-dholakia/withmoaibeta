@@ -5,9 +5,21 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
 interface ProcessFireBadgesOptions {
   groupId?: string;  // Optional: process only users from a specific group
   weekStart?: string; // Optional: process for a specific week
+  isAutomatedRun?: boolean; // Is this an automated scheduled run
 }
 
+// CORS headers for browser clients
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders, status: 200 });
+  }
+
   // Create a Supabase client with the Admin key
   const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
@@ -15,9 +27,9 @@ serve(async (req) => {
 
   try {
     const options: ProcessFireBadgesOptions = await req.json().catch(() => ({}));
-    const { groupId, weekStart } = options;
+    const { groupId, weekStart, isAutomatedRun = false } = options;
 
-    console.log("Processing fire badges:", { groupId, weekStart });
+    console.log("Processing fire badges:", { groupId, weekStart, isAutomatedRun });
 
     // Get the current week start date if not provided
     const weekStartDate = weekStart || 
@@ -47,7 +59,7 @@ serve(async (req) => {
       if (userIds.length === 0) {
         return new Response(
           JSON.stringify({ message: "No members found in the specified group" }),
-          { status: 200, headers: { "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
@@ -63,11 +75,30 @@ serve(async (req) => {
     if (!users || users.length === 0) {
       return new Response(
         JSON.stringify({ message: "No users found to process" }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     console.log(`Processing ${users.length} users for week ${weekStartDate}`);
+    
+    // For automated runs, check if we need to process past week
+    // This handles the case where the auto-run executes near the week boundary
+    let processWeekStart = weekStartDate;
+    if (isAutomatedRun) {
+      // If today is Monday and early morning, we probably want to process the previous week
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday
+      const hourOfDay = today.getHours();
+      
+      // If it's early Monday morning, process for the previous week
+      if (dayOfWeek === 1 && hourOfDay < 6) {
+        // Calculate previous week's Monday
+        const prevWeekDate = new Date(weekStartDate);
+        prevWeekDate.setDate(prevWeekDate.getDate() - 7);
+        processWeekStart = prevWeekDate.toISOString().split('T')[0];
+        console.log(`Early Monday detected, processing for previous week: ${processWeekStart}`);
+      }
+    }
     
     // Process each user
     const results = await Promise.all(
@@ -76,7 +107,7 @@ serve(async (req) => {
           const { data: badgeId, error: badgeError } = await supabase
             .rpc("award_fire_badge", {
               award_user_id: user.id,
-              award_week_start: weekStartDate
+              award_week_start: processWeekStart
             });
             
           if (badgeError) {
@@ -101,9 +132,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         message: `Processed ${users.length} users, awarded ${badgesAwarded} new badges`,
-        results 
+        results,
+        automated: isAutomatedRun
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
     
   } catch (error) {
@@ -111,7 +143,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 })

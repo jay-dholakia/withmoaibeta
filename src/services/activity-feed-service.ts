@@ -8,33 +8,10 @@ interface FetchActivitiesOptions {
 
 export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchActivitiesOptions = {}) => {
   try {
-    // Updated query to reference the correct relationship between tables
+    // Query workout completions and manually join with other tables using in operator
     const { data: activities, error } = await supabase
       .from('workout_completions')
-      .select(`
-        *,
-        profiles(
-          first_name, 
-          last_name,
-          avatar_url
-        ),
-        likes:activity_likes(
-          id,
-          user_id,
-          created_at
-        ),
-        comments:activity_comments(
-          id,
-          user_id,
-          content,
-          created_at,
-          profiles(
-            first_name,
-            last_name,
-            avatar_url
-          )
-        )
-      `)
+      .select('*, user_id')
       .is('rest_day', false)
       .is('life_happens_pass', false)
       .order('completed_at', { ascending: false })
@@ -46,7 +23,80 @@ export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchAct
       throw error;
     }
 
-    return activities || [];
+    // If no activities, return empty array
+    if (!activities || activities.length === 0) {
+      return [];
+    }
+
+    // Extract user IDs for batch queries
+    const userIds = activities.map(activity => activity.user_id);
+    
+    // Fetch profiles for all users in one query
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, avatar_url')
+      .in('id', userIds);
+    
+    // Create a map of user profiles for easy lookup
+    const profileMap = profiles ? 
+      profiles.reduce((map: Record<string, any>, profile: any) => {
+        map[profile.id] = profile;
+        return map;
+      }, {}) : {};
+
+    // Fetch likes and comments in batch
+    const { data: allLikes } = await supabase
+      .from('activity_likes')
+      .select('id, user_id, activity_id, created_at')
+      .in('activity_id', activities.map(a => a.id));
+    
+    const { data: allComments } = await supabase
+      .from('activity_comments')
+      .select('id, user_id, activity_id, content, created_at')
+      .in('activity_id', activities.map(a => a.id));
+
+    // Get profiles for comment authors
+    const commentUserIds = allComments ? 
+      [...new Set(allComments.map(comment => comment.user_id))] : [];
+    
+    const { data: commentProfiles } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, avatar_url')
+      .in('id', commentUserIds);
+    
+    const commentProfileMap = commentProfiles ? 
+      commentProfiles.reduce((map: Record<string, any>, profile: any) => {
+        map[profile.id] = profile;
+        return map;
+      }, {}) : {};
+
+    // Combine all data
+    const enrichedActivities = activities.map(activity => {
+      // Add profile data
+      const profiles = profileMap[activity.user_id] || null;
+      
+      // Add likes
+      const likes = allLikes ? 
+        allLikes.filter(like => like.activity_id === activity.id) : [];
+      
+      // Add comments with author profiles
+      const comments = allComments ? 
+        allComments
+          .filter(comment => comment.activity_id === activity.id)
+          .map(comment => ({
+            ...comment,
+            profiles: commentProfileMap[comment.user_id] || null
+          })) : [];
+      
+      return {
+        ...activity,
+        profiles,
+        likes,
+        comments
+      };
+    });
+
+    return enrichedActivities;
   } catch (error) {
     console.error('Error in fetchRecentActivities:', error);
     return [];

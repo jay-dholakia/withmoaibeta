@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 interface FetchActivitiesOptions {
@@ -17,7 +18,21 @@ export const fetchRecentActivities = async ({
     // Query workout completions that are not rest days or life happens passes
     const { data: activities, error } = await supabase
       .from('workout_completions')
-      .select('*')
+      .select(`
+        id, 
+        user_id, 
+        workout_id, 
+        completed_at, 
+        notes, 
+        rating, 
+        rest_day, 
+        life_happens_pass,
+        title, 
+        description, 
+        workout_type,
+        duration, 
+        distance
+      `)
       .is('rest_day', false)
       .is('life_happens_pass', false)
       .order('completed_at', { ascending: false })
@@ -34,102 +49,78 @@ export const fetchRecentActivities = async ({
       return [];
     }
 
-    // Extract user IDs for batch queries
+    // Fetch profiles and workouts separately with the collected IDs
     const userIds = activities.map(activity => activity.user_id);
-    console.log(`Found ${activities.length} activities for ${userIds.length} users`);
+    const workoutIds = activities.filter(a => a.workout_id).map(a => a.workout_id);
     
-    // Fetch client profiles directly
+    // Get client_profiles data instead of profiles
     const { data: profiles, error: profilesError } = await supabase
       .from('client_profiles')
-      .select('id, first_name, last_name, avatar_url')
+      .select(`
+        id, first_name, last_name, avatar_url
+      `)
       .in('id', userIds);
-    
+      
     if (profilesError) {
       console.error('Error fetching client profiles:', profilesError);
-      // Continue even if profiles have an error - we'll just have missing profile data
-    }
-
-    // Create a map of user profiles for easy lookup
-    const profileMap = profiles ? 
-      profiles.reduce((map: Record<string, any>, profile: any) => {
-        map[profile.id] = profile;
-        return map;
-      }, {}) : {};
-    
-    console.log(`Found ${profiles?.length || 0} profiles`);
-
-    // Fetch likes and comments in batch
-    const activityIds = activities.map(a => a.id);
-    
-    const { data: allLikes, error: likesError } = await supabase
-      .from('activity_likes')
-      .select('id, user_id, activity_id, created_at')
-      .in('activity_id', activityIds);
-    
-    if (likesError) {
-      console.error('Error fetching likes:', likesError);
-      // Continue even if likes have an error
     }
     
-    const { data: allComments, error: commentsError } = await supabase
-      .from('activity_comments')
-      .select('id, user_id, activity_id, content, created_at')
-      .in('activity_id', activityIds);
-    
-    if (commentsError) {
-      console.error('Error fetching comments:', commentsError);
-      // Continue even if comments have an error
-    }
-    
-    console.log(`Found ${allLikes?.length || 0} likes and ${allComments?.length || 0} comments`);
-
-    // Get profiles for comment authors
-    const commentUserIds = allComments ? 
-      [...new Set(allComments.map(comment => comment.user_id))] : [];
-    
-    let commentProfileMap = {};
-    if (commentUserIds.length > 0) {
-      const { data: commentProfiles, error: commentProfilesError } = await supabase
-        .from('client_profiles')
-        .select('id, first_name, last_name, avatar_url')
-        .in('id', commentUserIds);
-      
-      if (commentProfilesError) {
-        console.error('Error fetching comment profiles:', commentProfilesError);
+    // Get workouts data if there are any workout IDs
+    let workouts = [];
+    if (workoutIds.length > 0) {
+      const { data: workoutsData, error: workoutsError } = await supabase
+        .from('workouts')
+        .select(`
+          id, title, description, workout_type
+        `)
+        .in('id', workoutIds);
+        
+      if (workoutsError) {
+        console.error('Error fetching workouts:', workoutsError);
       } else {
-        commentProfileMap = commentProfiles ? 
-          commentProfiles.reduce((map: Record<string, any>, profile: any) => {
-            map[profile.id] = profile;
-            return map;
-          }, {}) : {};
-          
-        console.log(`Found ${commentProfiles?.length || 0} comment author profiles`);
+        workouts = workoutsData || [];
       }
     }
-
-    // Combine all data
+    
+    // Get likes for all activities
+    const activityIds = activities.map(activity => activity.id);
+    const { data: likes, error: likesError } = await supabase
+      .from('activity_likes')
+      .select(`
+        id, user_id, activity_id, created_at
+      `)
+      .in('activity_id', activityIds);
+      
+    if (likesError) {
+      console.error('Error fetching likes:', likesError);
+    }
+    
+    // Map profiles and workouts to activities
+    const profilesMap = (profiles || []).reduce((map, profile) => {
+      map[profile.id] = profile;
+      return map;
+    }, {});
+    
+    const workoutsMap = workouts.reduce((map, workout) => {
+      map[workout.id] = workout;
+      return map;
+    }, {});
+    
+    const likesMap = (likes || []).reduce((map, like) => {
+      if (!map[like.activity_id]) {
+        map[like.activity_id] = [];
+      }
+      map[like.activity_id].push(like);
+      return map;
+    }, {});
+    
+    // Enrich activities with related data
     const enrichedActivities = activities.map(activity => {
-      // Add profile data
-      const profile = profileMap[activity.user_id] || null;
-      
-      // Add likes
-      const likes = allLikes ? 
-        allLikes.filter(like => like.activity_id === activity.id) : [];
-      
-      // Add comments with author profiles
-      const comments = allComments ? 
-        allComments
-          .filter(comment => comment.activity_id === activity.id)
-          .map(comment => ({
-            ...comment,
-            profiles: commentProfileMap[comment.user_id] || null
-          })) : [];
-      
       return {
         ...activity,
-        profiles: profile,
-        likes,
-        comments
+        profiles: profilesMap[activity.user_id] || null,
+        workout: activity.workout_id ? workoutsMap[activity.workout_id] || null : null,
+        likes: likesMap[activity.id] || []
       };
     });
 
@@ -217,71 +208,6 @@ export const unlikeActivity = async (activityId: string) => {
     return true;
   } catch (error) {
     console.error('Error in unlikeActivity:', error);
-    return false;
-  }
-};
-
-export const addComment = async (activityId: string, content: string) => {
-  try {
-    // Get current user ID from auth
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-    
-    // Insert the comment
-    const { data: commentData, error: commentError } = await supabase
-      .from('activity_comments')
-      .insert({
-        activity_id: activityId,
-        content,
-        user_id: user.id
-      })
-      .select('*');
-
-    if (commentError) {
-      console.error('Error adding comment:', commentError);
-      throw commentError;
-    }
-
-    if (!commentData || commentData.length === 0) {
-      throw new Error('Failed to create comment');
-    }
-
-    // Get user profile data
-    const { data: profileData } = await supabase
-      .from('client_profiles')
-      .select('first_name, last_name, avatar_url')
-      .eq('id', user.id)
-      .single();
-
-    // Return comment with profile data
-    return {
-      ...commentData[0],
-      profiles: profileData
-    };
-  } catch (error) {
-    console.error('Error in addComment:', error);
-    throw error;
-  }
-};
-
-export const deleteComment = async (commentId: string) => {
-  try {
-    const { error } = await supabase
-      .from('activity_comments')
-      .delete()
-      .match({ id: commentId });
-
-    if (error) {
-      console.error('Error deleting comment:', error);
-      throw error;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error in deleteComment:', error);
     return false;
   }
 };

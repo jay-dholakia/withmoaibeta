@@ -82,8 +82,8 @@ const ActivityPost: React.FC<ActivityPostProps> = ({ activity, currentUserId }) 
         await likeActivity(activity.id);
       }
       
-      // Invalidate the activity feed query to refresh data
-      queryClient.invalidateQueries(['activity-feed']);
+      // Fix: Properly invalidate the activity feed query
+      queryClient.invalidateQueries({ queryKey: ['activity-feed'] });
     } catch (error) {
       // Revert optimistic update on error
       setIsLikedLocally(wasLiked);

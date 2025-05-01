@@ -132,7 +132,7 @@ export function WorkoutProgressCard({
                 <div className="absolute -top-2 -right-2.5" title={`🔥 Completed all workouts ${fireWeeks} week${fireWeeks !== 1 ? 's' : ''}`}>
                   <div className="relative w-6 h-6">
                     <Flame className="w-full h-full text-orange-500" fill="#f97316" />
-                    <span className="absolute inset-0 flex items-center justify-center pt-0.5 text-[10px] font-bold text-white z-10 leading-none">
+                    <span className="absolute inset-0 flex items-center justify-center pt-1 text-[9px] font-bold text-white z-10 leading-none">
                       {fireWeeks}
                     </span>
                   </div>

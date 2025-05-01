@@ -31,11 +31,11 @@ export const FireBadge: React.FC<FireBadgeProps> = ({ count, isCurrentWeekEarned
         </TooltipTrigger>
         <TooltipContent side="right" className="dark:bg-gray-700 dark:text-white dark:border-gray-600">
           <p className="text-sm">
-            {count} {count === 1 ? 'week' : 'weeks'} of completing all assigned workouts
+            {count} {count === 1 ? 'week' : 'weeks'} of logging activities on 5+ days
             {isCurrentWeekEarned ? ' (including this week)' : ''}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Badges are awarded automatically at the end of each week
+            Fire badges are earned by logging workouts on at least 5 different days in a week
           </p>
         </TooltipContent>
       </Tooltip>

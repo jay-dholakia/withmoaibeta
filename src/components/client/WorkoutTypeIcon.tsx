@@ -71,12 +71,12 @@ export const WorkoutTypeIcon: React.FC<WorkoutTypeIconProps> = ({
   const getFontSize = () => {
     switch (size) {
       case 'sm':
-        return '14px'; // Increased from 12px
+        return '16px'; // Increased from 14px
       case 'lg':
-        return '22px'; // Increased from 18px
+        return '26px'; // Increased from 22px
       case 'md':
       default:
-        return '18px'; // Increased from 14px
+        return '22px'; // Increased from 18px
     }
   };
 

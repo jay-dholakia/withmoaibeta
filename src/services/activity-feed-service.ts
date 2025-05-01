@@ -8,15 +8,12 @@ interface FetchActivitiesOptions {
 
 export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchActivitiesOptions = {}) => {
   try {
+    // Fix the query to use properly established foreign key relationships
     const { data: activities, error } = await supabase
       .from('workout_completions')
       .select(`
         *,
-        user:user_id (
-          id, 
-          email
-        ),
-        profile:profiles!workout_completions_user_id_fkey (
+        profiles!workout_completions_user_id_fkey (
           first_name, 
           last_name,
           avatar_url
@@ -31,7 +28,7 @@ export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchAct
           user_id,
           content,
           created_at,
-          user:profiles!activity_comments_user_id_fkey (
+          profiles!activity_comments_user_id_fkey (
             first_name,
             last_name,
             avatar_url
@@ -137,7 +134,7 @@ export const addComment = async (activityId: string, content: string) => {
       })
       .select(`
         *,
-        user:profiles!activity_comments_user_id_fkey (
+        profiles!activity_comments_user_id_fkey (
           first_name,
           last_name,
           avatar_url

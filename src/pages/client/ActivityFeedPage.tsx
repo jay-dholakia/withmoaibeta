@@ -7,13 +7,15 @@ import { Card } from '@/components/ui/card';
 import ActivityPost from '@/components/client/ActivityPost';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
 
 const ActivityFeedPage = () => {
   const { user } = useAuth();
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [activities, setActivities] = useState<any[]>([]);
   
   const { 
-    data: activities, 
+    data: initialActivities, 
     isLoading, 
     error, 
     refetch 
@@ -21,6 +23,7 @@ const ActivityFeedPage = () => {
     queryKey: ['activity-feed'],
     queryFn: async () => {
       const activities = await fetchRecentActivities({ limit: 10 });
+      setActivities(activities); // Set initial activities
       return activities;
     },
     staleTime: 1000 * 60, // 1 minute
@@ -66,8 +69,8 @@ const ActivityFeedPage = () => {
         limit: 10
       });
       
-      // Update your activities state with the new items
-      // This would typically be done using your query library's methods
+      // Update activities state with new items
+      setActivities(prevActivities => [...prevActivities, ...moreActivities]);
       setIsLoadingMore(false);
     } catch (error) {
       console.error('Error loading more activities:', error);
@@ -132,6 +135,18 @@ const ActivityFeedPage = () => {
       {isLoadingMore && (
         <div className="flex justify-center p-4">
           <Loader2 className="h-6 w-6 animate-spin text-client" />
+        </div>
+      )}
+
+      {activities.length > 0 && !isLoadingMore && (
+        <div className="flex justify-center mt-4 mb-8">
+          <Button 
+            onClick={loadMore} 
+            variant="outline"
+            className="text-client border-client hover:bg-client/10"
+          >
+            Load More
+          </Button>
         </div>
       )}
     </div>

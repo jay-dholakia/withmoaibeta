@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface FireBadge {
   id: string;
@@ -69,6 +70,27 @@ export const useFireBadges = (userId: string) => {
     };
 
     fetchFireBadges();
+    
+    // Set up a subscription to listen for badge changes
+    const channel = supabase
+      .channel('fire-badge-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'fire_badges',
+          filter: `user_id=eq.${userId}`
+        }, 
+        () => {
+          // Refetch badges when there are changes
+          fetchFireBadges();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   return {

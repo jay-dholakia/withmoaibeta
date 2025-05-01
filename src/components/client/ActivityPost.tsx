@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -7,6 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { likeActivity, unlikeActivity } from '@/services/activity-feed-service';
 import { WorkoutTypeIcon } from './WorkoutTypeIcon';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ActivityPostProps {
   activity: any;
@@ -14,6 +16,7 @@ interface ActivityPostProps {
 }
 
 const ActivityPost: React.FC<ActivityPostProps> = ({ activity, currentUserId }) => {
+  const queryClient = useQueryClient();
   const likes = activity.likes || [];
 
   const [likesCount, setLikesCount] = useState(likes.length);
@@ -56,6 +59,8 @@ const ActivityPost: React.FC<ActivityPostProps> = ({ activity, currentUserId }) 
       } else {
         await likeActivity(activity.id);
       }
+      // Invalidate and refetch queries for activity feed to get updated data
+      queryClient.invalidateQueries({ queryKey: ['activity-feed'] });
     } catch (error) {
       setHasLiked(wasLiked);
       setLikesCount(likes.length);
@@ -133,4 +138,3 @@ const ActivityPost: React.FC<ActivityPostProps> = ({ activity, currentUserId }) 
 };
 
 export default ActivityPost;
-

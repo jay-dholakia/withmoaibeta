@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'; // Remove useRef
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,8 +20,8 @@ interface AuthContextType {
   signIn: (email: string, password: string, userType: UserType) => Promise<void>;
   signUp: (email: string, password: string, userType: UserType) => Promise<void>;
   signOut: () => Promise<void>;
-  authLoading: boolean;   // Renamed from loading to authLoading
-  profileLoading: boolean; // New separate loading state for profile
+  authLoading: boolean;   // Represents overall auth + initial profile load state
+  profileLoading: boolean; // Represents ongoing profile fetch state
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,150 +31,138 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userType, setUserType] = useState<UserType | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true); // True until initial auth check is done
+  const [profileLoading, setProfileLoading] = useState(false); // True specifically during profile fetch
   const navigate = useNavigate();
 
-  // Set up auth state listener and check for existing session
-  useEffect(() => {
-    console.log("Setting up auth state listener");
-    setAuthLoading(true);
+  // Define fetchUserProfile using useCallback
+  const fetchUserProfile = useCallback(async (userId: string) => {
+    setProfileLoading(true);
+    console.log('Fetching profile for user:', userId);
+    // Reset profile/userType before fetching
+    setProfile(null);
+    setUserType(null);
+    try {
+      const { data, error, status } = await supabase
+        .from('profiles')
+        .select('id, user_type, created_at')
+        .eq('id', userId)
+        .single();
 
-    // Set up the auth state listener first
+      if (error && status !== 406) {
+        console.error('Error fetching user profile:', error);
+        toast.error('Error fetching user profile');
+        // State already cleared
+      } else if (data) {
+        console.log('Profile loaded:', data);
+        setProfile(data as Profile);
+        setUserType(data.user_type as UserType);
+      } else {
+        console.warn('No profile found for user:', userId, 'Status:', status);
+         // State already cleared
+      }
+    } catch (error) {
+      console.error('Exception during fetchUserProfile:', error);
+      toast.error('An unexpected error occurred while fetching your profile.');
+       // State already cleared
+    } finally {
+      setProfileLoading(false);
+      // Note: authLoading is now primarily handled by the auth state listener effect
+      console.log('Profile fetch attempt finished.');
+    }
+  }, []); // No dependencies needed
+
+  // Effect for listening to Supabase auth changes
+  useEffect(() => {
+    setAuthLoading(true); // Start loading on initial setup
+    console.log("Setting up auth state listener");
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log('Auth state changed:', event, currentSession?.user?.id);
-        
-        // Update session and user state
+
+        // Update session and user state immediately
         setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        if (currentSession?.user) {
-          // Extract userType from metadata if available
-          const metadataUserType = currentSession.user.user_metadata?.user_type as UserType | undefined;
-          if (metadataUserType) {
-            console.log('User type found in metadata:', metadataUserType);
-            setUserType(metadataUserType);
-            
-            // Use setTimeout to defer the profile fetch to avoid potential Supabase auth deadlocks
-            setTimeout(() => {
-              fetchUserProfile(currentSession.user.id);
-            }, 0);
-          } else {
-            // If not in metadata, we must fetch profile
-            setTimeout(() => {
-              fetchUserProfile(currentSession.user.id);
-            }, 0);
-          }
-        } else {
-          // No user session
+        const currentUser = currentSession?.user ?? null;
+        setUser(currentUser);
+
+        // Attempt to set userType from session data if available
+        const sessionUserType = currentUser?.user_metadata?.user_type as UserType | undefined;
+        if (sessionUserType) {
+          console.log('Setting userType from session metadata:', sessionUserType);
+          setUserType(sessionUserType);
+        } else if (!currentUser) {
+          // If user logs out or session is invalid, clear profile state here explicitly
+          console.log('User signed out or no session, clearing profile and userType.');
           setProfile(null);
           setUserType(null);
-          setAuthLoading(false);
+          setProfileLoading(false); // Ensure profile loading stops
+        } else {
+          // User exists but no user_type in metadata, profile fetch will handle it.
+          // Clear potentially stale userType if metadata didn't provide it.
+          setUserType(null);
+          console.log('User exists but user_type not found in session metadata. Profile fetch will handle.');
         }
+
+
+        // Set authLoading to false once the initial check is done (session is known)
+        // Profile loading is handled separately now.
+        setAuthLoading(false);
+        console.log('Auth check complete.');
       }
     );
-
 
     // Cleanup function
     return () => {
       console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Only run once on mount
 
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      setProfileLoading(true);
-      console.log('Fetching profile for user:', userId);
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        
-        // Check if the error is because the profile doesn't exist
-        if (error.code === 'PGRST116') {
-          console.log('Profile not found for user:', userId);
-          
-          // Try to get user_type from user metadata instead
-          const { data: userData } = await supabase.auth.getUser();
-          const metadataUserType = userData?.user?.user_metadata?.user_type as UserType | undefined;
-          
-          if (metadataUserType) {
-            console.log('Using user_type from metadata:', metadataUserType);
-            setUserType(metadataUserType);
-          }
-        } else {
-          toast.error('Error fetching user profile');
-        }
-      } else if (data) {
-        console.log('Profile loaded:', data);
-        setProfile(data as Profile);
-        setUserType(data.user_type as UserType);
-      } else {
-        console.warn('No profile found for user:', userId);
-        
-        // Try to get user_type from user metadata instead
-        const { data: userData } = await supabase.auth.getUser();
-        const metadataUserType = userData?.user?.user_metadata?.user_type as UserType | undefined;
-        
-        if (metadataUserType) {
-          console.log('Using user_type from metadata:', metadataUserType);
-          setUserType(metadataUserType);
-        }
-      }
-    } catch (error) {
-      console.error('Error in fetchUserProfile:', error);
-    } finally {
-      console.log('Profile fetch complete, resetting loading states');
-      setProfileLoading(false);
-      setAuthLoading(false);
+  // Effect for fetching profile when user ID changes
+  useEffect(() => {
+    const userId = user?.id;
+    if (userId) {
+      console.log(`User ID detected: ${userId}. Triggering profile fetch.`);
+      fetchUserProfile(userId); // This will fetch the definitive profile and userType
+    } else {
+      // Ensure profile is cleared if user becomes null after being set
+      // This case is also handled in onAuthStateChange, but good to be defensive
+      setProfile(null);
+      setUserType(null);
+      setProfileLoading(false); // Stop loading if user becomes null
     }
-  };
+    // Adding fetchUserProfile to dependencies is important if it weren't stable (useCallback handles this)
+  }, [user?.id, fetchUserProfile]);
 
   const signIn = async (email: string, password: string, userType: UserType) => {
+    // Let the onAuthStateChange listener handle loading states
+    console.log(`Attempting to sign in with email: ${email} and userType: ${userType}`);
     try {
-      console.log(`Attempting to sign in with email: ${email} and userType: ${userType}`);
-      setAuthLoading(true);
-      
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      
+
       if (error) {
-        console.error('Authentication error:', error);
+        console.error('Authentication error during sign in:', error);
         toast.error(error.message || 'Failed to sign in');
-        setAuthLoading(false);
         return;
       }
-      
+
       console.log('Sign in successful, user ID:', data.user?.id);
       toast.success('Sign in successful!');
-      
-      // User metadata should have the user_type, use it immediately for faster UI updates
-      if (data.user?.user_metadata?.user_type) {
-        const metadataUserType = data.user.user_metadata.user_type as UserType;
-        console.log('Using user_type from metadata:', metadataUserType);
-        setUserType(metadataUserType);
-      }
-      
-      // The auth state listener will handle loading state reset
+      // The onAuthStateChange listener will trigger and handle state updates.
+
     } catch (error) {
-      console.error('Authentication error:', error);
+      console.error('Exception during sign in:', error);
       toast.error('An error occurred during sign in');
-      setAuthLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, userType: UserType) => {
+    // Let the onAuthStateChange listener handle loading states if auth state changes
+    console.log(`Attempting to sign up with email: ${email} and userType: ${userType}`);
     try {
-      setAuthLoading(true);
-      
-      const { data, error } = await supabase.auth.signUp({ 
-        email, 
+      const { data, error } = await supabase.auth.signUp({
+        email,
         password,
         options: {
           data: {
@@ -183,55 +170,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       });
-      
+
       if (error) {
-        console.error('Authentication error:', error);
+        console.error('Authentication error during sign up:', error);
         toast.error(error.message || 'Failed to sign up');
-        setAuthLoading(false);
         return;
       }
-      
+
+      // Sign up doesn't usually change the auth state immediately (needs confirmation)
       toast.success('Registration successful! Please check your email to confirm your account.');
-      setAuthLoading(false);
+
     } catch (error) {
-      console.error('Authentication error:', error);
+      console.error('Exception during sign up:', error);
       toast.error('An error occurred during sign up');
-      setAuthLoading(false);
     }
   };
 
   const signOut = async () => {
+    // Let the onAuthStateChange listener handle loading states
+    console.log('Attempting to sign out');
     try {
-      setAuthLoading(true);
-      
-      try {
-        // Try to sign out from Supabase
-        const { error } = await supabase.auth.signOut();
-        
-        if (error) {
-          console.error('Error during sign out:', error);
-          // Don't throw the error, just log it and continue with reset
-        }
-      } catch (error) {
-        // Catch any errors with the signOut call
-        console.error('Exception during sign out:', error);
-        // Continue with local state reset even if the API call fails
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        // Log error but proceed with navigation/toast
+        console.error('Error during Supabase sign out:', error);
+        toast.error('Error signing out from server, clearing local session.');
       }
-      
-      // Always reset auth state regardless of API success
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setUserType(null);
-      
-      navigate('/');
+
+      // The onAuthStateChange listener will trigger with a null session
+      // and handle resetting state (session, user, profile, userType, loading states).
+      navigate('/'); // Navigate immediately
       toast.success('Logged out successfully');
-      
-      setAuthLoading(false);
+
     } catch (error) {
-      console.error('Error during sign out:', error);
+      console.error('Exception during sign out:', error);
       toast.error('An error occurred while signing out');
-      setAuthLoading(false);
     }
   };
 
@@ -245,6 +219,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signUp,
         signOut,
+        // Combine authLoading and profileLoading for a simpler overall loading state?
+        // Or keep them separate if you need to distinguish between auth check and profile fetch.
+        // Let's keep them separate for now as the interface defines them separately.
         authLoading,
         profileLoading
       }}

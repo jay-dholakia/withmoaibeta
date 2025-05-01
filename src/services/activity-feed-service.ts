@@ -1,12 +1,16 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface FetchActivitiesOptions {
   limit?: number;
   offset?: number;
+  retryCount?: number;
 }
 
-export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchActivitiesOptions = {}) => {
+export const fetchRecentActivities = async ({ 
+  limit = 20, 
+  offset = 0,
+  retryCount = 0
+}: FetchActivitiesOptions = {}) => {
   try {
     console.log("Fetching activities with limit:", limit, "offset:", offset);
     
@@ -133,6 +137,23 @@ export const fetchRecentActivities = async ({ limit = 10, offset = 0 }: FetchAct
     return enrichedActivities;
   } catch (error) {
     console.error('Error in fetchRecentActivities:', error);
+    
+    // Implement retry logic with exponential backoff for transient errors
+    if (retryCount < 3) {
+      const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
+      console.log(`Retrying after ${delay}ms (attempt ${retryCount + 1}/3)`);
+      
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve(fetchRecentActivities({ 
+            limit, 
+            offset, 
+            retryCount: retryCount + 1 
+          }));
+        }, delay);
+      });
+    }
+    
     throw error;
   }
 };

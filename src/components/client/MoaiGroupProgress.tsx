@@ -13,6 +13,7 @@ import { useGroupProgressData } from '@/hooks/useGroupProgressData';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { BackgroundFetchIndicator } from './BackgroundFetchIndicator';
 import { useFireBadges } from '@/hooks/useFireBadges';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MoaiGroupProgressProps {
   groupId: string;
@@ -33,7 +34,38 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
     refreshDataInBackground
   } = useGroupProgressData(groupId);
   
+  // Get badge counts for current user
   const { badgeCount: currentUserBadgeCount } = useFireBadges(user?.id || '');
+  
+  // Get badge counts for all group members at once
+  const { data: memberBadgeCounts } = useQuery({
+    queryKey: ['member-badges', groupId],
+    queryFn: async () => {
+      if (!groupMembers || groupMembers.length === 0) return {};
+      
+      const badgeCounts: Record<string, number> = {};
+      
+      for (const member of groupMembers) {
+        if (!member.userId) continue;
+        
+        try {
+          const { data, error } = await supabase
+            .rpc('count_user_fire_badges', { user_id_param: member.userId });
+            
+          if (!error && data !== null) {
+            badgeCounts[member.userId] = data;
+          }
+        } catch (error) {
+          console.error(`Error fetching badge count for member ${member.userId}:`, error);
+          badgeCounts[member.userId] = 0;
+        }
+      }
+      
+      return badgeCounts;
+    },
+    enabled: !!groupMembers && groupMembers.length > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   // Get current week number from program start date
   React.useEffect(() => {
@@ -162,8 +194,10 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
               ? currentUserData
               : memberWorkoutsData[member.userId];
               
-            // Get fire badge count for this member
-            const { badgeCount: memberBadgeCount } = useFireBadges(member.userId);
+            // Get fire badge count for this member from pre-fetched data
+            const memberBadgeCount = isCurrentUser 
+              ? currentUserBadgeCount 
+              : (memberBadgeCounts?.[member.userId] || 0);
             
             if (!memberData && !isCurrentUser) {
               return (
@@ -194,7 +228,7 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
                   lastName={member.profileData?.last_name}
                   showLabelsBelow={false}
                   className="py-1"
-                  fireWeeks={isCurrentUser ? currentUserBadgeCount : memberBadgeCount}
+                  fireWeeks={memberBadgeCount}
                 />
                 {index < allMembers.length - 1 && (
                   <div className="py-1">

@@ -16,7 +16,6 @@ export const fetchRecentActivities = async ({
     console.log("Fetching activities with limit:", limit, "offset:", offset);
     
     // Query workout completions that are not rest days or life happens passes
-    // Using explicit join syntax instead of nested select to avoid foreign key issues
     const { data: activities, error } = await supabase
       .from('workout_completions')
       .select(`
@@ -54,16 +53,16 @@ export const fetchRecentActivities = async ({
     const userIds = activities.map(activity => activity.user_id);
     const workoutIds = activities.filter(a => a.workout_id).map(a => a.workout_id);
     
-    // Get profiles data
+    // Get client_profiles data instead of profiles
     const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
+      .from('client_profiles')
       .select(`
         id, first_name, last_name, avatar_url
       `)
       .in('id', userIds);
       
     if (profilesError) {
-      console.error('Error fetching profiles:', profilesError);
+      console.error('Error fetching client profiles:', profilesError);
     }
     
     // Get workouts data if there are any workout IDs

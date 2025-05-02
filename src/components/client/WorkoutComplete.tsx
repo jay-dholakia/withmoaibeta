@@ -51,6 +51,13 @@ const WorkoutComplete = () => {
     };
   }, [userTimeout]);
 
+  useEffect(() => {
+    if (workoutCompletionId) {
+      // Clear persisted timer state for this workout
+      localStorage.removeItem(`workout_timer_${workoutCompletionId}`);
+    }
+  }, [workoutCompletionId]);
+
   const { saveStatus } = useAutosave({
     data: { notes, rating },
     onSave: async (data) => {

@@ -11,31 +11,113 @@ interface StopwatchProps {
   workoutCompletionId?: string;
 }
 
+interface TimerState {
+  isRunning: boolean;
+  startTimestamp: number | null;
+  accumulatedTime: number;
+}
+
 const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCompletionId }) => {
   const [time, setTime] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-
-  // Reset timer when workoutCompletionId changes
+  
+  const timerKey = `workout_timer_${workoutCompletionId || 'default'}`;
+  
+  // Load persisted timer state when component mounts
   useEffect(() => {
-    // Always reset to 0 when a new workout is loaded, but don't start automatically
-    setTime(0);
-    setIsRunning(false);
-    localStorage.setItem("workout_start_time", Date.now().toString());
-  }, [workoutCompletionId]);
+    const loadTimerState = () => {
+      try {
+        const persistedState = localStorage.getItem(timerKey);
+        
+        if (persistedState) {
+          const { isRunning, startTimestamp, accumulatedTime } = JSON.parse(persistedState) as TimerState;
+          
+          if (isRunning && startTimestamp) {
+            // Timer was running, calculate elapsed time since it was started plus previously accumulated time
+            const elapsedSinceStart = Math.floor((Date.now() - startTimestamp) / 1000);
+            setTime(accumulatedTime + elapsedSinceStart);
+            setIsRunning(true);
+          } else {
+            // Timer was paused
+            setTime(accumulatedTime);
+            setIsRunning(false);
+          }
+        } else {
+          // No persisted state, reset timer
+          setTime(0);
+          setIsRunning(false);
+        }
+      } catch (error) {
+        console.error("Error loading timer state:", error);
+        setTime(0);
+        setIsRunning(false);
+      }
+    };
+    
+    // Reset when workoutCompletionId changes
+    if (workoutCompletionId) {
+      loadTimerState();
+    } else {
+      setTime(0);
+      setIsRunning(false);
+    }
+    
+    return () => {
+      // Persist current state on component unmount
+      persistTimerState();
+    };
+  }, [workoutCompletionId, timerKey]);
+
+  // Persist timer state whenever it changes
+  const persistTimerState = () => {
+    try {
+      const state: TimerState = {
+        isRunning,
+        startTimestamp: isRunning ? Date.now() - (time * 1000) : null,
+        accumulatedTime: time
+      };
+      
+      localStorage.setItem(timerKey, JSON.stringify(state));
+    } catch (error) {
+      console.error("Error persisting timer state:", error);
+    }
+  };
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     
     if (isRunning) {
+      // Store current timestamp and accumulated time for precise timing
+      const startTimestamp = Date.now() - (time * 1000);
+      
       interval = setInterval(() => {
-        setTime(prevTime => prevTime + 1);
-      }, 1000);
+        const elapsedSeconds = Math.floor((Date.now() - startTimestamp) / 1000);
+        setTime(elapsedSeconds);
+      }, 100); // Update more frequently for smoother display
+      
+      // Update persisted state when timer starts
+      const state: TimerState = {
+        isRunning: true,
+        startTimestamp,
+        accumulatedTime: time
+      };
+      localStorage.setItem(timerKey, JSON.stringify(state));
+    } else {
+      // Update persisted state when timer stops
+      persistTimerState();
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning]);
+  }, [isRunning, timerKey]);
+
+  // Update persisted state when time changes
+  useEffect(() => {
+    if (!isRunning) {
+      persistTimerState();
+    }
+  }, [time, isRunning]);
 
   const formatTime = (seconds: number): string => {
     const hrs = Math.floor(seconds / 3600);
@@ -52,14 +134,30 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
   const handleReset = () => {
     setTime(0);
     setIsRunning(false);
-    localStorage.setItem("workout_start_time", Date.now().toString());
+    
+    // Clear persisted state on reset
+    localStorage.removeItem(timerKey);
   };
 
   const toggleRunning = () => {
     if (!isRunning) {
-      // When starting, set the start time to current time
-      localStorage.setItem("workout_start_time", Date.now().toString());
+      // When starting, persist the current state with updated startTimestamp
+      const state: TimerState = {
+        isRunning: true,
+        startTimestamp: Date.now() - (time * 1000),
+        accumulatedTime: time
+      };
+      localStorage.setItem(timerKey, JSON.stringify(state));
+    } else {
+      // When pausing, update the accumulated time
+      const state: TimerState = {
+        isRunning: false,
+        startTimestamp: null,
+        accumulatedTime: time
+      };
+      localStorage.setItem(timerKey, JSON.stringify(state));
     }
+    
     setIsRunning(!isRunning);
   };
   

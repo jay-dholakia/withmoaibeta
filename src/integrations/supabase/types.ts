@@ -892,16 +892,19 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_admin: boolean | null
           user_type: string
         }
         Insert: {
           created_at?: string
           id: string
+          is_admin?: boolean | null
           user_type: string
         }
         Update: {
           created_at?: string
           id?: string
+          is_admin?: boolean | null
           user_type?: string
         }
         Relationships: []
@@ -1834,6 +1837,10 @@ export type Database = {
           exercises_completed: number
           cardio_minutes_completed: number
         }[]
+      }
+      is_admin: {
+        Args: { check_user_id?: string }
+        Returns: boolean
       }
       is_coach_for_client: {
         Args: { coach_id: string; client_id: string }

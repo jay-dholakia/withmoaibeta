@@ -2,6 +2,8 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { Loader2 } from 'lucide-react';
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -9,9 +11,10 @@ interface AdminRouteProps {
 
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const { user, userType, authLoading, profileLoading } = useAuth();
+  const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const location = useLocation();
   
-  if (authLoading) {
+  if (authLoading || profileLoading || isAdminLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <span className="animate-spin rounded-full h-12 w-12 border-b-2 border-admin"></span>
@@ -20,22 +23,13 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     );
   }
 
-  // While profile is loading but authentication is confirmed, show a different message
-  if (!authLoading && profileLoading && user) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <span className="animate-spin rounded-full h-12 w-12 border-b-2 border-admin"></span>
-        <span className="ml-3">Loading profile...</span>
-      </div>
-    );
-  }
-
-  if (!user || userType !== 'admin') {
-    console.log("AdminRoute: Access denied, redirecting to login", { userType });
+  if (!user || !isAdmin) {
+    console.log("AdminRoute: Access denied, redirecting to login", { userType, isAdmin });
     // Remember the current location so we can redirect back after login
     return <Navigate to="/admin-login" state={{ from: location }} replace />;
   }
 
+  console.log("AdminRoute: Access granted for admin user");
   return <>{children}</>;
 };
 

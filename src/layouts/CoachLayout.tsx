@@ -1,11 +1,14 @@
+
 import React from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { PageTransition } from '@/components/PageTransition';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, User, Home, Dumbbell, Users, BarChart3, Award, Heart, FileText, LayoutTemplate, Database, Menu } from 'lucide-react';
+import { useAdminTools } from '@/contexts/AdminToolsContext';
+import { LogOut, User, Home, Dumbbell, Users, BarChart3, Award, Heart, FileText, LayoutTemplate, Database, Menu, Shield } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/lib/hooks';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CoachLayoutProps {
   children: React.ReactNode;
@@ -13,6 +16,7 @@ interface CoachLayoutProps {
 
 export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
   const { signOut, user } = useAuth();
+  const { isAdmin, showAdminTools, toggleAdminTools } = useAdminTools();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -38,11 +42,19 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
     { icon: <FileText className="w-5 h-5" />, label: 'Profile', path: '/coach-profile' },
   ];
 
+  // Admin-only items
+  const adminNavItems = isAdmin && showAdminTools ? [
+    { icon: <Shield className="w-5 h-5" />, label: 'Admin Tools', path: '/admin-tools' },
+  ] : [];
+
+  // Combine regular and admin items
+  const allNavItems = [...navItems, ...adminNavItems];
+
   const isMobile = useIsMobile();
 
   const NavigationItems = () => (
     <div className={`flex ${isMobile ? 'flex-col' : 'overflow-x-auto'} gap-2`}>
-      {navItems.map((item) => (
+      {allNavItems.map((item) => (
         <Link
           key={item.path}
           to={item.path}
@@ -52,6 +64,7 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
               'bg-accent text-accent-foreground font-medium' : 
               'hover:bg-accent/50'
             }
+            ${item.path === '/admin-tools' ? 'bg-red-100 hover:bg-red-200 text-red-900' : ''}
           `}
         >
           {item.icon}
@@ -71,6 +84,25 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
                 Coach Portal
               </Link>
               <div className="flex items-center gap-4">
+                {isAdmin && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={showAdminTools ? "default" : "ghost"}
+                          size="sm"
+                          onClick={toggleAdminTools}
+                          className={`${showAdminTools ? 'bg-red-600 hover:bg-red-700 text-white' : 'text-muted-foreground'}`}
+                        >
+                          <Shield className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{showAdminTools ? 'Hide Admin Tools' : 'Show Admin Tools (Shift+A)'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
                 <div className="flex items-center gap-2">
                   <User className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground hidden md:inline-block">

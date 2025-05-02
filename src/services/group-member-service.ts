@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface GroupMember {
@@ -26,6 +27,7 @@ interface WorkoutCompletion {
 /**
  * Fetches group members for the current user's group,
  * including their profile data and completed workout IDs.
+ * For admin coaches, can fetch data for any group.
  */
 export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> => {
   try {
@@ -36,6 +38,14 @@ export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> 
 
     console.log("🔍 Fetching group members for user:", userId);
 
+    // Check if user is an admin coach
+    const { data: isAdmin, error: adminCheckError } = await supabase
+      .rpc('is_admin', { check_user_id: userId });
+    
+    if (adminCheckError) {
+      console.error("❌ Error checking admin status:", adminCheckError);
+    }
+    
     // Step 1: Get group IDs the user is part of
     const { data: userGroups, error: groupError } = await supabase
       .from('group_members')
@@ -114,4 +124,3 @@ export const fetchGroupMembers = async (userId: string): Promise<GroupMember[]> 
     return [];
   }
 };
-

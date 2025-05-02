@@ -11,6 +11,7 @@ export const useIsAdmin = () => {
     queryFn: async () => {
       if (!user) return false;
       
+      // Use the is_admin server function to check admin status
       const { data, error } = await supabase
         .rpc('is_admin', { check_user_id: user.id });
       

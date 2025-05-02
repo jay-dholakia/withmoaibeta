@@ -37,6 +37,8 @@ const ActiveWorkout = () => {
   const [workoutDataLoaded, setWorkoutDataLoaded] = useState(false);
   const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
   const [pendingCardio, setPendingCardio] = useState<PendingCardio[]>([]);
+  const [isSavingWorkout, setIsSavingWorkout] = useState(false);
+  const [isWorkoutCompleted, setIsWorkoutCompleted] = useState(false);
 
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initCompleteForceCounter = useRef<number>(0);
@@ -280,31 +282,57 @@ const ActiveWorkout = () => {
   };
 
   const handleCompleteWorkout = async () => {
+    // Prevent multiple submissions
+    if (isSavingWorkout || isWorkoutCompleted) {
+      return;
+    }
+
     try {
+      setIsSavingWorkout(true);
       let completionId = workoutData?.id;
       
       if (!completionId) {
-        const { data: newCompletion, error: completionError } = await supabase
+        // Check if a completion already exists for this workout and user
+        const { data: existingCompletion, error: existingError } = await supabase
           .from('workout_completions')
-          .insert({
-            workout_id: workoutData?.workout_id || workoutCompletionId,
-            standalone_workout_id: workoutData?.standalone_workout_id,
-            user_id: user?.id,
-            completed_at: new Date().toISOString()
-          })
-          .select()
-          .single();
+          .select('id')
+          .eq('workout_id', workoutData?.workout_id || workoutCompletionId)
+          .eq('user_id', user?.id)
+          .eq('completed_at', new Date().toISOString().split('T')[0], { ascending: false })
+          .maybeSingle();
+        
+        if (existingError) {
+          console.error("Error checking existing completions:", existingError);
+        }
+        
+        if (existingCompletion) {
+          console.log("Found existing completion for today:", existingCompletion);
+          completionId = existingCompletion.id;
+          toast.info("Using existing workout completion from today");
+        } else {
+          // Create a new completion
+          const { data: newCompletion, error: completionError } = await supabase
+            .from('workout_completions')
+            .insert({
+              workout_id: workoutData?.workout_id || workoutCompletionId,
+              standalone_workout_id: workoutData?.standalone_workout_id,
+              user_id: user?.id,
+              completed_at: new Date().toISOString()
+            })
+            .select()
+            .single();
 
-        if (completionError) {
-          console.error("Error creating workout completion:", completionError);
-          throw completionError;
+          if (completionError) {
+            console.error("Error creating workout completion:", completionError);
+            throw completionError;
+          }
+          
+          if (!newCompletion) {
+            throw new Error("Failed to create workout completion");
+          }
+          
+          completionId = newCompletion.id;
         }
-        
-        if (!newCompletion) {
-          throw new Error("Failed to create workout completion");
-        }
-        
-        completionId = newCompletion.id;
       }
 
       const savePromises = [];
@@ -399,10 +427,26 @@ const ActiveWorkout = () => {
         console.log(`Successfully saved ${savePromises.length} workout records`);
       }
 
+      // Mark the workout as completed
+      setIsWorkoutCompleted(true);
+      
+      // Clear workout draft after successful completion
+      try {
+        const workoutId = getWorkoutId();
+        await deleteWorkoutDraft(workoutId, 'workout');
+        console.log("Workout draft deleted successfully");
+      } catch (draftError) {
+        console.error("Error deleting workout draft:", draftError);
+        // Continue with navigation even if draft deletion fails
+      }
+
+      // Navigate to the completion page
       navigate(`/client-dashboard/workouts/complete/${completionId}`);
     } catch (error) {
       console.error("Error saving workout data:", error);
       toast.error("There was an error saving your workout data");
+      setIsSavingWorkout(false);
+      setIsWorkoutCompleted(false);
     }
   };
 
@@ -999,9 +1043,18 @@ const ActiveWorkout = () => {
             />
             <Button 
               onClick={handleCompleteWorkout}
+              disabled={isSavingWorkout || isWorkoutCompleted}
               className="w-full mt-3 mb-2 py-6 bg-primary hover:bg-primary/90 text-white text-lg font-medium rounded-lg shadow-lg"
             >
-              <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
+              {isSavingWorkout ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
+                </>
+              )}
             </Button>
           </div>
         </div>

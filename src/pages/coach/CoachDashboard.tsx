@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Users, Dumbbell, BarChart3, Award, Heart, FileText, RefreshCw, Plus, AlertCircle } from 'lucide-react';
@@ -15,7 +16,7 @@ import {
 } from '@/services/coach-service';
 import {
   fetchCoachGroups,
-  fixCoachGroupAssignment
+  ensureCoachGroupAssignment
 } from '@/services/coach-group-service';
 import {
   fetchAllGroups,
@@ -134,7 +135,7 @@ const CoachDashboard = () => {
     
     setIsFixingAssignment(true);
     try {
-      const result = await fixCoachGroupAssignment(user.id, groupId);
+      const result = await ensureCoachGroupAssignment(user.id, groupId);
       
       if (result) {
         toast.success('Group assignment fixed successfully!');

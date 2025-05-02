@@ -38,6 +38,18 @@ const WorkoutComplete = () => {
   const [draftLoadAttempted, setDraftLoadAttempted] = useState(false);
   const [emoji, setEmoji] = useState<string | null>(null);
 
+  // Always show the share dialog after a successful navigate to this page
+  useEffect(() => {
+    // We wait 500ms to ensure the data is loaded
+    const timer = setTimeout(() => {
+      if (workoutData && !isLoading) {
+        setShowShareDialog(true);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [workoutCompletionId, workoutData, isLoading]);
+
   const isMountedRef = React.useRef(true);
   
   useEffect(() => {

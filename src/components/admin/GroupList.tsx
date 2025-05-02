@@ -77,8 +77,9 @@ const GroupList: React.FC = () => {
   const [isGeneratingBuddies, setIsGeneratingBuddies] = useState<Record<string, boolean>>({});
 
   const { data: groups, isLoading, error, refetch } = useQuery({
-    queryKey: ['groups'],
+    queryKey: ['admin-groups'],
     queryFn: fetchGroups,
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 
   useEffect(() => {

@@ -32,6 +32,7 @@ import {
   PaginationPrevious
 } from '@/components/ui/pagination';
 import { fetchCoachMessagesForClient } from '@/services/coach-client-message-service';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 interface Group {
   id: string;
@@ -57,6 +58,7 @@ interface SortConfig {
 
 const ClientsPage = () => {
   const { user } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const queryClient = useQueryClient();
   const [selectedGroupId, setSelectedGroupId] = useState<string | 'all'>('all');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -89,12 +91,12 @@ const ClientsPage = () => {
   });
 
   const { data: groups, isLoading: isLoadingGroups, error: groupsError } = useQuery({
-    queryKey: ['coach-groups', user?.id],
+    queryKey: ['coach-groups', user?.id, isAdmin],
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
       try {
-        console.log('Fetching groups for coach:', user.id);
-        const groupData = await fetchCoachGroups(user.id);
+        console.log('Fetching groups for coach:', user.id, 'isAdmin:', isAdmin);
+        const groupData = await fetchCoachGroups(user.id, isAdmin);
         console.log('Fetched groups:', groupData);
         return groupData;
       } catch (error) {

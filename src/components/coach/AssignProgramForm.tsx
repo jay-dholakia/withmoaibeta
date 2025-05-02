@@ -61,6 +61,7 @@ export const AssignProgramForm: React.FC<AssignProgramFormProps> = ({
   const [clients, setClients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [clientsLoading, setClientsLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -79,9 +80,19 @@ export const AssignProgramForm: React.FC<AssignProgramFormProps> = ({
         const programsData = await fetchWorkoutPrograms(user?.id);
         setPrograms(programsData);
         
-        const clientsData = await fetchAllClients();
-        setClients(clientsData);
-        console.log("Fetched clients with full info:", clientsData);
+        const loadClients = async () => {
+          try {
+            const clientsData = await fetchAllClients();
+            setClients(clientsData);
+          } catch (error) {
+            console.error('Error loading clients:', error);
+            toast.error('Failed to load clients');
+          } finally {
+            setClientsLoading(false);
+          }
+        };
+        
+        loadClients();
         
         setIsLoading(false);
       } catch (error) {
@@ -123,8 +134,7 @@ export const AssignProgramForm: React.FC<AssignProgramFormProps> = ({
         program_id: values.programId,
         user_id: values.clientId,
         assigned_by: user.id,
-        start_date: format(values.startDate, 'yyyy-MM-dd'),
-        end_date: null
+        start_date: format(values.startDate, 'yyyy-MM-dd')
       });
       
       toast.success('Program assigned successfully');

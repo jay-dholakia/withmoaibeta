@@ -253,7 +253,6 @@ export const assignProgramToUser = async (data: {
         user_id: data.user_id,
         assigned_by: data.assigned_by,
         start_date: data.start_date,
-        end_date: null
       })
       .select()
       .single();
@@ -381,76 +380,71 @@ export const fetchAllClients = async () => {
 };
 
 /**
- * Sync template exercises to program workouts
+ * Fetch client's program assignments
  */
-export const syncTemplateExercisesToProgramWorkouts = async (templateId: string) => {
+export const fetchClientPrograms = async (userId: string) => {
   try {
-    const { data: workouts, error: workoutsError } = await supabase
-      .from('workouts')
-      .select('id')
-      .eq('template_id', templateId);
+    const { data, error } = await supabase
+      .from('program_assignments')
+      .select(`
+        *,
+        program:program_id (
+          id,
+          title,
+          description,
+          weeks,
+          program_type
+        )
+      `)
+      .eq('user_id', userId)
+      .order('start_date', { ascending: false });
       
-    if (workoutsError) {
-      console.error('Error fetching workouts with template:', workoutsError);
-      throw workoutsError;
+    if (error) {
+      console.error('Error fetching client programs:', error);
+      throw error;
     }
     
-    if (!workouts || workouts.length === 0) {
-      return []; // No workouts using this template
-    }
-    
-    // For each workout, delete existing exercises and copy from template
-    for (const workout of workouts) {
-      // Delete existing exercises
-      const { error: deleteError } = await supabase
-        .from('workout_exercises')
-        .delete()
-        .eq('workout_id', workout.id);
-        
-      if (deleteError) {
-        console.error(`Error deleting exercises for workout ${workout.id}:`, deleteError);
-        continue; // Skip to next workout on error
-      }
-      
-      // Get template exercises
-      const { data: templateExercises, error: templateError } = await supabase
-        .from('standalone_workout_exercises')
-        .select('*')
-        .eq('workout_id', templateId)
-        .order('order_index', { ascending: true });
-        
-      if (templateError || !templateExercises) {
-        console.error(`Error fetching template exercises for ${templateId}:`, templateError);
-        continue;
-      }
-      
-      // Create new exercises from template
-      if (templateExercises.length > 0) {
-        const newExercises = templateExercises.map(ex => ({
-          workout_id: workout.id,
-          exercise_id: ex.exercise_id,
-          sets: ex.sets,
-          reps: ex.reps,
-          rest_seconds: ex.rest_seconds,
-          notes: ex.notes,
-          order_index: ex.order_index,
-          superset_group_id: ex.superset_group_id,
-          superset_order: ex.superset_order
-        }));
-        
-        const { error: insertError } = await supabase
-          .from('workout_exercises')
-          .insert(newExercises);
-          
-        if (insertError) {
-          console.error(`Error inserting exercises for workout ${workout.id}:`, insertError);
-        }
-      }
-    }
-    
-    return workouts;
+    return data || [];
   } catch (error) {
-    console.error('Error in syncTemplateExercisesToProgramWorkouts:', error);
+    console.error('Error in fetchClientPrograms:', error);
     throw error;
+  }
+};
+
+/**
+ * Fetch a user's current assigned program
+ */
+export const fetchCurrentProgram = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('program_assignments')
+      .select(`
+        *,
+        program:program_id (
+          id,
+          title,
+          description,
+          weeks,
+          program_type
+        )
+      `)
+      .eq('user_id', userId)
+      .is('end_date', null)
+      .single();
+      
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No current program assigned
+        return null;
+      }
+      console.error('Error fetching current program:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in fetchCurrentProgram:', error);
+    // Return null instead of throwing, since not having a program is a valid state
+    return null;
   }
 };

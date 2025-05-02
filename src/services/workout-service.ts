@@ -1,395 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Exercise, Workout, WorkoutExercise, StandardWorkoutType } from "@/types/workout";
 
 /**
- * Creates a new workout
+ * Fetches all exercises.
  */
-export const createWorkout = async (workoutData: {
-  week_id: string;
-  title: string;
-  description?: string | null;
-  workout_type?: "strength" | "cardio" | "flexibility" | "mobility" | StandardWorkoutType;
-  priority?: number;
-  template_id?: string;
-}) => {
-  try {
-    const { data, error } = await supabase
-      .from('workouts')
-      .insert({
-        week_id: workoutData.week_id,
-        title: workoutData.title,
-        description: workoutData.description || null,
-        workout_type: workoutData.workout_type || 'strength',
-        priority: workoutData.priority || 0,
-        template_id: workoutData.template_id
-      })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error creating workout:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error in createWorkout:', error);
-    throw error;
-  }
-};
-
-/**
- * Fetches workout by ID
- */
-export const fetchWorkout = async (id: string): Promise<Workout | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('workouts')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (error) {
-      console.error('Error fetching workout:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error in fetchWorkout:', error);
-    throw error;
-  }
-};
-
-/**
- * Fetches standalone workout by ID
- */
-export const fetchStandaloneWorkout = async (id: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('standalone_workouts')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (error) {
-      console.error('Error fetching standalone workout:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error in fetchStandaloneWorkout:', error);
-    throw error;
-  }
-};
-
-/**
- * Updates a workout
- */
-export const updateWorkout = async (id: string, workoutData: {
-  title?: string;
-  description?: string | null;
-  workout_type?: "strength" | "cardio" | "flexibility" | "mobility";
-  priority?: number;
-}) => {
-  try {
-    const { data, error } = await supabase
-      .from('workouts')
-      .update(workoutData)
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating workout:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error in updateWorkout:', error);
-    throw error;
-  }
-};
-
-/**
- * Deletes a workout
- */
-export const deleteWorkout = async (id: string) => {
-  try {
-    const { error } = await supabase
-      .from('workouts')
-      .delete()
-      .eq('id', id);
-      
-    if (error) {
-      console.error('Error deleting workout:', error);
-      throw error;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error in deleteWorkout:', error);
-    throw error;
-  }
-};
-
-/**
- * Fetches workouts for a week
- */
-export const fetchWorkoutsForWeek = async (weekId: string): Promise<Workout[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('workouts')
-      .select('*')
-      .eq('week_id', weekId)
-      .order('priority', { ascending: true });
-      
-    if (error) {
-      console.error('Error fetching workouts for week:', error);
-      throw error;
-    }
-    
-    return data || [];
-  } catch (error) {
-    console.error('Error in fetchWorkoutsForWeek:', error);
-    throw error;
-  }
-};
-
-/**
- * Fetches workout exercises for a workout
- */
-export const fetchWorkoutExercises = async (workoutId: string): Promise<WorkoutExercise[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('workout_exercises')
-      .select(`
-        *,
-        exercise:exercise_id (*)
-      `)
-      .eq('workout_id', workoutId)
-      .order('order_index', { ascending: true });
-      
-    if (error) {
-      console.error('Error fetching workout exercises:', error);
-      throw error;
-    }
-    
-    return data || [];
-  } catch (error) {
-    console.error('Error in fetchWorkoutExercises:', error);
-    throw error;
-  }
-};
-
-/**
- * Create workout exercise
- */
-export const createWorkoutExercise = async (data: {
-  workout_id: string;
-  exercise_id: string;
-  sets: number;
-  reps: string;
-  rest_seconds?: number | null;
-  notes?: string | null;
-  order_index: number;
-  superset_group_id?: string | null;
-  superset_order?: number | null;
-}) => {
-  try {
-    const { data: exercise, error } = await supabase
-      .from('workout_exercises')
-      .insert({
-        workout_id: data.workout_id,
-        exercise_id: data.exercise_id,
-        sets: data.sets,
-        reps: data.reps,
-        rest_seconds: data.rest_seconds || null,
-        notes: data.notes || null,
-        order_index: data.order_index,
-        superset_group_id: data.superset_group_id || null,
-        superset_order: data.superset_order || null
-      })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error creating workout exercise:', error);
-      throw error;
-    }
-    
-    return exercise;
-  } catch (error) {
-    console.error('Error in createWorkoutExercise:', error);
-    throw error;
-  }
-};
-
-/**
- * Delete workout exercise
- */
-export const deleteWorkoutExercise = async (id: string) => {
-  try {
-    const { error } = await supabase
-      .from('workout_exercises')
-      .delete()
-      .eq('id', id);
-      
-    if (error) {
-      console.error('Error deleting workout exercise:', error);
-      throw error;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error in deleteWorkoutExercise:', error);
-    throw error;
-  }
-};
-
-/**
- * Move workout exercise up (decrease order_index)
- */
-export const moveWorkoutExerciseUp = async (id: string, workoutId: string) => {
-  try {
-    // Get current exercise
-    const { data: exerciseData, error: exerciseError } = await supabase
-      .from('workout_exercises')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (exerciseError || !exerciseData) {
-      console.error('Error fetching exercise:', exerciseError);
-      throw exerciseError || new Error('Exercise not found');
-    }
-    
-    const currentOrderIndex = exerciseData.order_index;
-    
-    if (currentOrderIndex === 0) {
-      // Already at the top, nothing to do
-      return fetchWorkoutExercises(workoutId);
-    }
-    
-    // Find the exercise above this one
-    const { data: aboveExercise, error: aboveError } = await supabase
-      .from('workout_exercises')
-      .select('*')
-      .eq('workout_id', workoutId)
-      .eq('order_index', currentOrderIndex - 1)
-      .single();
-      
-    if (aboveError || !aboveExercise) {
-      console.error('Error finding exercise above:', aboveError);
-      throw aboveError || new Error('Exercise above not found');
-    }
-    
-    // Swap order indices
-    const { error: updateCurrentError } = await supabase
-      .from('workout_exercises')
-      .update({ order_index: currentOrderIndex - 1 })
-      .eq('id', id);
-      
-    if (updateCurrentError) {
-      console.error('Error updating current exercise:', updateCurrentError);
-      throw updateCurrentError;
-    }
-    
-    const { error: updateAboveError } = await supabase
-      .from('workout_exercises')
-      .update({ order_index: currentOrderIndex })
-      .eq('id', aboveExercise.id);
-      
-    if (updateAboveError) {
-      console.error('Error updating above exercise:', updateAboveError);
-      throw updateAboveError;
-    }
-    
-    // Fetch updated exercises
-    return await fetchWorkoutExercises(workoutId);
-  } catch (error) {
-    console.error('Error moving workout exercise up:', error);
-    throw error;
-  }
-};
-
-/**
- * Move workout exercise down (increase order_index)
- */
-export const moveWorkoutExerciseDown = async (id: string, workoutId: string) => {
-  try {
-    // Get current exercise
-    const { data: exerciseData, error: exerciseError } = await supabase
-      .from('workout_exercises')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (exerciseError || !exerciseData) {
-      console.error('Error fetching exercise:', exerciseError);
-      throw exerciseError || new Error('Exercise not found');
-    }
-    
-    const currentOrderIndex = exerciseData.order_index;
-    
-    // Find the exercise below this one
-    const { data: belowExercise, error: belowError } = await supabase
-      .from('workout_exercises')
-      .select('*')
-      .eq('workout_id', workoutId)
-      .eq('order_index', currentOrderIndex + 1)
-      .single();
-      
-    if (belowError) {
-      // Check if this was a "not found" error - could mean we're already at the bottom
-      if (belowError.code === 'PGRST116') {
-        // Already at the bottom, nothing to do
-        return fetchWorkoutExercises(workoutId);
-      }
-      console.error('Error finding exercise below:', belowError);
-      throw belowError;
-    }
-    
-    if (!belowExercise) {
-      // No exercise below, nothing to do
-      return fetchWorkoutExercises(workoutId);
-    }
-    
-    // Swap order indices
-    const { error: updateCurrentError } = await supabase
-      .from('workout_exercises')
-      .update({ order_index: currentOrderIndex + 1 })
-      .eq('id', id);
-      
-    if (updateCurrentError) {
-      console.error('Error updating current exercise:', updateCurrentError);
-      throw updateCurrentError;
-    }
-    
-    const { error: updateBelowError } = await supabase
-      .from('workout_exercises')
-      .update({ order_index: currentOrderIndex })
-      .eq('id', belowExercise.id);
-      
-    if (updateBelowError) {
-      console.error('Error updating below exercise:', updateBelowError);
-      throw updateBelowError;
-    }
-    
-    // Fetch updated exercises
-    return await fetchWorkoutExercises(workoutId);
-  } catch (error) {
-    console.error('Error moving workout exercise down:', error);
-    throw error;
-  }
-};
-
-/**
- * Fetches all exercises
- */
-export const fetchAllExercises = async (): Promise<Exercise[]> => {
+export const fetchExercises = async () => {
   try {
     const { data, error } = await supabase
       .from('exercises')
@@ -403,227 +17,131 @@ export const fetchAllExercises = async (): Promise<Exercise[]> => {
     
     return data || [];
   } catch (error) {
-    console.error('Error in fetchAllExercises:', error);
+    console.error('Error in fetchExercises:', error);
     throw error;
   }
 };
 
 /**
- * Fetches exercises by category
+ * Fetches a single exercise by ID.
  */
-export const fetchExercisesByCategory = async (category: string): Promise<Exercise[]> => {
+export const fetchExerciseById = async (exerciseId: string) => {
   try {
     const { data, error } = await supabase
       .from('exercises')
       .select('*')
-      .eq('category', category)
-      .order('name', { ascending: true });
+      .eq('id', exerciseId)
+      .single();
       
     if (error) {
-      console.error('Error fetching exercises by category:', error);
+      console.error('Error fetching exercise:', error);
       throw error;
     }
     
-    return data || [];
+    return data;
   } catch (error) {
-    console.error('Error in fetchExercisesByCategory:', error);
+    console.error('Error in fetchExerciseById:', error);
     throw error;
   }
 };
 
 /**
- * Fetches exercise categories
+ * Creates a new exercise.
  */
-export const fetchExerciseCategories = async (): Promise<string[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('exercises')
-      .select('category')
-      .order('category', { ascending: true });
-      
-    if (error) {
-      console.error('Error fetching exercise categories:', error);
-      throw error;
-    }
-    
-    // Extract unique categories
-    const categories = [...new Set(data.map(item => item.category))];
-    return categories;
-  } catch (error) {
-    console.error('Error in fetchExerciseCategories:', error);
-    throw error;
-  }
-};
-
-/**
- * Fetches all exercise muscle groups
- */
-export const fetchExerciseMuscleGroups = async (): Promise<string[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('exercises')
-      .select('muscle_group')
-      .order('muscle_group', { ascending: true });
-      
-    if (error) {
-      console.error('Error fetching exercise muscle groups:', error);
-      throw error;
-    }
-    
-    // Extract unique muscle groups and filter out nulls
-    const muscleGroups = [...new Set(data.filter(item => item.muscle_group).map(item => item.muscle_group))];
-    return muscleGroups;
-  } catch (error) {
-    console.error('Error in fetchExerciseMuscleGroups:', error);
-    throw error;
-  }
-};
-
-/**
- * Creates a new exercise
- */
-export const createExercise = async (exerciseData: {
+export const createExercise = async (data: {
   name: string;
-  category: string;
+  youtube_link?: string | null;
+  muscle_group: string;
   description?: string | null;
-  exercise_type: string;
-  log_type?: string;
-  youtube_link?: string;
-  muscle_group?: string | null;
 }) => {
   try {
-    // First check if an exercise with this name already exists
-    const { data: existingExercises } = await supabase
-      .from('exercises')
-      .select('name')
-      .ilike('name', exerciseData.name)
-      .limit(1);
-      
-    if (existingExercises && existingExercises.length > 0) {
-      return {
-        isDuplicate: true,
-        message: 'An exercise with this name already exists'
-      };
-    }
-    
-    const { data, error } = await supabase
+    const { data: exercise, error } = await supabase
       .from('exercises')
       .insert({
-        name: exerciseData.name,
-        category: exerciseData.category,
-        description: exerciseData.description || null,
-        exercise_type: exerciseData.exercise_type,
-        log_type: exerciseData.log_type || 'weight_reps',
-        youtube_link: exerciseData.youtube_link || null,
-        muscle_group: exerciseData.muscle_group || null
+        name: data.name,
+        youtube_link: data.youtube_link,
+        muscle_group: data.muscle_group,
+        description: data.description
       })
       .select()
       .single();
       
     if (error) {
       console.error('Error creating exercise:', error);
-      return { error: error.message };
+      throw error;
     }
     
-    return { exercise: data };
-  } catch (error: any) {
+    return exercise;
+  } catch (error) {
     console.error('Error in createExercise:', error);
-    return { error: error.message };
-  }
-};
-
-/**
- * Fetch workout weeks for a program
- */
-export const fetchWorkoutWeeks = async (programId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('workout_weeks')
-      .select('*')
-      .eq('program_id', programId)
-      .order('week_number', { ascending: true });
-      
-    if (error) {
-      console.error('Error fetching workout weeks:', error);
-      throw error;
-    }
-    
-    return data || [];
-  } catch (error) {
-    console.error('Error in fetchWorkoutWeeks:', error);
     throw error;
   }
 };
 
 /**
- * Creates a workout template
+ * Updates an existing exercise.
  */
-export const createWorkoutTemplate = async (templateData: {
-  title: string;
-  description?: string;
-  workout_type?: "strength" | "cardio" | "flexibility" | "mobility";
-  coach_id: string;
+export const updateExercise = async (exerciseId: string, data: {
+  name?: string;
+  youtube_link?: string | null;
+  muscle_group?: string;
+  description?: string | null;
 }) => {
   try {
-    const { data, error } = await supabase
-      .from('standalone_workouts')
-      .insert({
-        ...templateData,
-        workout_type: templateData.workout_type || 'strength'
+    const { data: exercise, error } = await supabase
+      .from('exercises')
+      .update({
+        name: data.name,
+        youtube_link: data.youtube_link,
+        muscle_group: data.muscle_group,
+        description: data.description
       })
+      .eq('id', exerciseId)
       .select()
       .single();
       
     if (error) {
-      console.error('Error creating workout template:', error);
+      console.error('Error updating exercise:', error);
       throw error;
     }
     
-    return data;
+    return exercise;
   } catch (error) {
-    console.error('Error in createWorkoutTemplate:', error);
+    console.error('Error in updateExercise:', error);
     throw error;
   }
 };
 
 /**
- * Updates a workout template
+ * Deletes an exercise by ID.
  */
-export const updateWorkoutTemplate = async (id: string, templateData: {
-  title?: string;
-  description?: string;
-  workout_type?: "strength" | "cardio" | "flexibility" | "mobility";
-  category?: string;
-}) => {
+export const deleteExercise = async (exerciseId: string) => {
   try {
-    const { data, error } = await supabase
-      .from('standalone_workouts')
-      .update(templateData)
-      .eq('id', id)
-      .select()
-      .single();
+    const { error } = await supabase
+      .from('exercises')
+      .delete()
+      .eq('id', exerciseId);
       
     if (error) {
-      console.error('Error updating workout template:', error);
+      console.error('Error deleting exercise:', error);
       throw error;
     }
     
-    return data;
+    return true;
   } catch (error) {
-    console.error('Error in updateWorkoutTemplate:', error);
+    console.error('Error in deleteExercise:', error);
     throw error;
   }
 };
 
 /**
- * Fetches standalone workouts (templates)
+ * Fetches all standalone workouts.
  */
-export const fetchStandaloneWorkouts = async (coachId: string) => {
+export const fetchStandaloneWorkouts = async () => {
   try {
     const { data, error } = await supabase
       .from('standalone_workouts')
       .select('*')
-      .eq('coach_id', coachId)
       .order('created_at', { ascending: false });
       
     if (error) {
@@ -639,573 +157,45 @@ export const fetchStandaloneWorkouts = async (coachId: string) => {
 };
 
 /**
- * Fetches standalone workout exercise
+ * Fetches a single standalone workout by ID.
  */
-export const fetchStandaloneWorkoutExercises = async (workoutId: string) => {
+export const fetchStandaloneWorkoutById = async (workoutId: string) => {
   try {
     const { data, error } = await supabase
-      .from('standalone_workout_exercises')
-      .select(`
-        *,
-        exercise:exercise_id (*)
-      `)
-      .eq('workout_id', workoutId)
-      .order('order_index', { ascending: true });
-      
-    if (error) {
-      console.error('Error fetching standalone workout exercises:', error);
-      throw error;
-    }
-    
-    return data || [];
-  } catch (error) {
-    console.error('Error in fetchStandaloneWorkoutExercises:', error);
-    throw error;
-  }
-};
-
-/**
- * Create standalone workout exercise
- */
-export const createStandaloneWorkoutExercise = async (exerciseData: {
-  workout_id: string;
-  exercise_id: string;
-  sets?: number;
-  reps?: string;
-  rest_seconds?: number;
-  notes?: string;
-  order_index: number;
-  superset_group_id?: string;
-  superset_order?: number;
-}) => {
-  try {
-    const { data, error } = await supabase
-      .from('standalone_workout_exercises')
-      .insert(exerciseData)
-      .select()
+      .from('standalone_workouts')
+      .select('*')
+      .eq('id', workoutId)
       .single();
       
     if (error) {
-      console.error('Error creating standalone workout exercise:', error);
+      console.error('Error fetching standalone workout:', error);
       throw error;
     }
     
     return data;
   } catch (error) {
-    console.error('Error in createStandaloneWorkoutExercise:', error);
+    console.error('Error in fetchStandaloneWorkoutById:', error);
     throw error;
   }
 };
 
 /**
- * Delete standalone workout exercise
- */
-export const deleteStandaloneWorkoutExercise = async (id: string) => {
-  try {
-    const { error } = await supabase
-      .from('standalone_workout_exercises')
-      .delete()
-      .eq('id', id);
-      
-    if (error) {
-      console.error('Error deleting standalone workout exercise:', error);
-      throw error;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error in deleteStandaloneWorkoutExercise:', error);
-    throw error;
-  }
-};
-
-/**
- * Move standalone workout exercise up (decrease order_index)
- */
-export const moveStandaloneWorkoutExerciseUp = async (id: string, workoutId: string) => {
-  try {
-    // Get current exercise
-    const { data: exerciseData, error: exerciseError } = await supabase
-      .from('standalone_workout_exercises')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (exerciseError || !exerciseData) {
-      console.error('Error fetching exercise:', exerciseError);
-      throw exerciseError || new Error('Exercise not found');
-    }
-    
-    const currentOrderIndex = exerciseData.order_index;
-    
-    if (currentOrderIndex === 0) {
-      // Already at the top, nothing to do
-      return fetchStandaloneWorkoutExercises(workoutId);
-    }
-    
-    // Find the exercise above this one
-    const { data: aboveExercise, error: aboveError } = await supabase
-      .from('standalone_workout_exercises')
-      .select('*')
-      .eq('workout_id', workoutId)
-      .eq('order_index', currentOrderIndex - 1)
-      .single();
-      
-    if (aboveError || !aboveExercise) {
-      console.error('Error finding exercise above:', aboveError);
-      throw aboveError || new Error('Exercise above not found');
-    }
-    
-    // Swap order indices
-    const { error: updateCurrentError } = await supabase
-      .from('standalone_workout_exercises')
-      .update({ order_index: currentOrderIndex - 1 })
-      .eq('id', id);
-      
-    if (updateCurrentError) {
-      console.error('Error updating current exercise:', updateCurrentError);
-      throw updateCurrentError;
-    }
-    
-    const { error: updateAboveError } = await supabase
-      .from('standalone_workout_exercises')
-      .update({ order_index: currentOrderIndex })
-      .eq('id', aboveExercise.id);
-      
-    if (updateAboveError) {
-      console.error('Error updating above exercise:', updateAboveError);
-      throw updateAboveError;
-    }
-    
-    // Fetch updated exercises
-    return await fetchStandaloneWorkoutExercises(workoutId);
-  } catch (error) {
-    console.error('Error moving standalone workout exercise up:', error);
-    throw error;
-  }
-};
-
-/**
- * Move standalone workout exercise down (increase order_index)
- */
-export const moveStandaloneWorkoutExerciseDown = async (id: string, workoutId: string) => {
-  try {
-    // Get current exercise
-    const { data: exerciseData, error: exerciseError } = await supabase
-      .from('standalone_workout_exercises')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (exerciseError || !exerciseData) {
-      console.error('Error fetching exercise:', exerciseError);
-      throw exerciseError || new Error('Exercise not found');
-    }
-    
-    const currentOrderIndex = exerciseData.order_index;
-    
-    // Find the exercise below this one
-    const { data: belowExercise, error: belowError } = await supabase
-      .from('standalone_workout_exercises')
-      .select('*')
-      .eq('workout_id', workoutId)
-      .eq('order_index', currentOrderIndex + 1)
-      .single();
-      
-    if (belowError) {
-      // Check if this was a "not found" error - could mean we're already at the bottom
-      if (belowError.code === 'PGRST116') {
-        // Already at the bottom, nothing to do
-        return fetchStandaloneWorkoutExercises(workoutId);
-      }
-      console.error('Error finding exercise below:', belowError);
-      throw belowError;
-    }
-    
-    if (!belowExercise) {
-      // No exercise below, nothing to do
-      return fetchStandaloneWorkoutExercises(workoutId);
-    }
-    
-    // Swap order indices
-    const { error: updateCurrentError } = await supabase
-      .from('standalone_workout_exercises')
-      .update({ order_index: currentOrderIndex + 1 })
-      .eq('id', id);
-      
-    if (updateCurrentError) {
-      console.error('Error updating current exercise:', updateCurrentError);
-      throw updateCurrentError;
-    }
-    
-    const { error: updateBelowError } = await supabase
-      .from('standalone_workout_exercises')
-      .update({ order_index: currentOrderIndex })
-      .eq('id', belowExercise.id);
-      
-    if (updateBelowError) {
-      console.error('Error updating below exercise:', updateBelowError);
-      throw updateBelowError;
-    }
-    
-    // Fetch updated exercises
-    return await fetchStandaloneWorkoutExercises(workoutId);
-  } catch (error) {
-    console.error('Error moving standalone workout exercise down:', error);
-    throw error;
-  }
-};
-
-/**
- * Create workout week
- */
-export const createWorkoutWeek = async (weekData: {
-  program_id: string;
-  title: string;
-  description?: string;
-  week_number: number;
-  target_strength_workouts?: number;
-  target_cardio_minutes?: number;
-  target_miles_run?: number;
-  target_strength_mobility_workouts?: number;
-}) => {
-  try {
-    const { data, error } = await supabase
-      .from('workout_weeks')
-      .insert(weekData)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error creating workout week:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error in createWorkoutWeek:', error);
-    throw error;
-  }
-};
-
-/**
- * Fetch workout week
- */
-export const fetchWorkoutWeek = async (id: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('workout_weeks')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (error) {
-      console.error('Error fetching workout week:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error in fetchWorkoutWeek:', error);
-    throw error;
-  }
-};
-
-/**
- * Update workout week
- */
-export const updateWorkoutWeek = async (id: string, weekData: {
-  title?: string;
-  description?: string;
-  target_strength_workouts?: number;
-  target_cardio_minutes?: number;
-  target_miles_run?: number;
-  target_strength_mobility_workouts?: number;
-}) => {
-  try {
-    const { data, error } = await supabase
-      .from('workout_weeks')
-      .update(weekData)
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating workout week:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error in updateWorkoutWeek:', error);
-    throw error;
-  }
-};
-
-/**
- * Delete workout week
- */
-export const deleteWorkoutWeek = async (id: string) => {
-  try {
-    // First, delete all workouts in this week
-    const workouts = await fetchWorkoutsForWeek(id);
-    
-    for (const workout of workouts) {
-      await deleteWorkout(workout.id);
-    }
-    
-    // Then delete the week itself
-    const { error } = await supabase
-      .from('workout_weeks')
-      .delete()
-      .eq('id', id);
-      
-    if (error) {
-      console.error('Error deleting workout week:', error);
-      throw error;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error in deleteWorkoutWeek:', error);
-    throw error;
-  }
-};
-
-/**
- * Copy workout week
- */
-export const copyWorkoutWeek = async (sourceWeekId: string, targetWeekId: string) => {
-  try {
-    // Fetch source workouts
-    const sourceWorkouts = await fetchWorkoutsForWeek(sourceWeekId);
-    
-    // Create new workouts in target week
-    for (const sourceWorkout of sourceWorkouts) {
-      // Create the workout
-      const newWorkout = await createWorkout({
-        week_id: targetWeekId,
-        title: sourceWorkout.title,
-        description: sourceWorkout.description,
-        workout_type: sourceWorkout.workout_type as any,
-        priority: sourceWorkout.priority,
-        template_id: sourceWorkout.template_id
-      });
-      
-      // Copy exercises
-      const sourceExercises = await fetchWorkoutExercises(sourceWorkout.id);
-      
-      for (const sourceExercise of sourceExercises) {
-        await createWorkoutExercise({
-          workout_id: newWorkout.id,
-          exercise_id: sourceExercise.exercise_id,
-          sets: sourceExercise.sets,
-          reps: sourceExercise.reps,
-          rest_seconds: sourceExercise.rest_seconds,
-          notes: sourceExercise.notes,
-          order_index: sourceExercise.order_index,
-          superset_group_id: sourceExercise.superset_group_id,
-          superset_order: sourceExercise.superset_order
-        });
-      }
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error copying workout week:', error);
-    throw error;
-  }
-};
-
-/**
- * Reorder workouts in a week
- */
-export const reorderWorkouts = async (weekId: string, workoutIds: string[]) => {
-  try {
-    // Update priority for each workout
-    for (let i = 0; i < workoutIds.length; i++) {
-      const { error } = await supabase
-        .from('workouts')
-        .update({ priority: i })
-        .eq('id', workoutIds[i]);
-        
-      if (error) {
-        console.error(`Error updating workout ${workoutIds[i]} priority:`, error);
-        throw error;
-      }
-    }
-    
-    // Fetch updated workouts
-    return await fetchWorkoutsForWeek(weekId);
-  } catch (error) {
-    console.error('Error reordering workouts:', error);
-    throw error;
-  }
-};
-
-/**
- * Create multiple workouts at once
- */
-export const createMultipleWorkouts = async (workouts: Array<{
-  week_id: string;
-  title: string;
-  description?: string;
-  workout_type?: "strength" | "cardio" | "flexibility" | "mobility";
-  priority?: number;
-  template_id?: string;
-}>) => {
-  try {
-    const { data, error } = await supabase
-      .from('workouts')
-      .insert(workouts.map(workout => ({
-        ...workout,
-        workout_type: workout.workout_type || 'strength'
-      })))
-      .select();
-      
-    if (error) {
-      console.error('Error creating multiple workouts:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error in createMultipleWorkouts:', error);
-    throw error;
-  }
-};
-
-/**
- * Create workout from template
- */
-export const createWorkoutFromTemplate = async (templateId: string, weekId: string, priority: number = 0) => {
-  try {
-    // First, get the template
-    const template = await fetchStandaloneWorkout(templateId);
-    
-    if (!template) {
-      throw new Error('Template not found');
-    }
-    
-    // Create the workout
-    const workout = await createWorkout({
-      week_id: weekId,
-      title: template.title,
-      description: template.description,
-      workout_type: template.workout_type as any,
-      priority,
-      template_id: templateId
-    });
-    
-    // Get template exercises
-    const templateExercises = await fetchStandaloneWorkoutExercises(templateId);
-    
-    // Create exercises for the new workout
-    for (const exercise of templateExercises) {
-      await createWorkoutExercise({
-        workout_id: workout.id,
-        exercise_id: exercise.exercise_id,
-        sets: exercise.sets || 3,
-        reps: exercise.reps || '8-12',
-        rest_seconds: exercise.rest_seconds,
-        notes: exercise.notes,
-        order_index: exercise.order_index,
-        superset_group_id: exercise.superset_group_id,
-        superset_order: exercise.superset_order
-      });
-    }
-    
-    return workout;
-  } catch (error) {
-    console.error('Error creating workout from template:', error);
-    throw error;
-  }
-};
-
-/**
- * Gets all exercise alternatives
- */
-export const getExerciseAlternatives = async (exerciseId: string) => {
-  try {
-    const { data, error } = await supabase
-      .rpc('get_exercise_alternatives', { exercise_id_param: exerciseId });
-    
-    if (error) {
-      console.error('Error getting exercise alternatives:', error);
-      throw error;
-    }
-    
-    return data || [];
-  } catch (error) {
-    console.error('Error in getExerciseAlternatives:', error);
-    throw error;
-  }
-};
-
-/**
- * Duplicates a workout
- */
-export const duplicateWorkout = async (sourceId: string, weekId: string, workoutData: {
-  title: string;
-  description: string | null;
-  workout_type: string;
-  priority: number;
-  template_id?: string | null;
-}) => {
-  try {
-    // Create the new workout
-    const newWorkout = await createWorkout({
-      week_id: weekId,
-      title: workoutData.title,
-      description: workoutData.description,
-      workout_type: workoutData.workout_type as any,
-      priority: workoutData.priority,
-      template_id: workoutData.template_id
-    });
-    
-    // Copy exercises
-    const exercises = await fetchWorkoutExercises(sourceId);
-    
-    for (const exercise of exercises) {
-      await createWorkoutExercise({
-        workout_id: newWorkout.id,
-        exercise_id: exercise.exercise_id,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        rest_seconds: exercise.rest_seconds,
-        notes: exercise.notes,
-        order_index: exercise.order_index,
-        superset_group_id: exercise.superset_group_id,
-        superset_order: exercise.superset_order
-      });
-    }
-    
-    return newWorkout;
-  } catch (error) {
-    console.error('Error duplicating workout:', error);
-    throw error;
-  }
-};
-
-/**
- * Create a standalone workout
+ * Creates a new standalone workout.
  */
 export const createStandaloneWorkout = async (data: {
   title: string;
   description?: string | null;
-  coach_id: string;
-  category?: string;
-  workout_type: string;
+  workout_type: "strength" | "cardio" | "flexibility" | "mobility";
+  category: string;
 }) => {
   try {
     const { data: workout, error } = await supabase
       .from('standalone_workouts')
       .insert({
         title: data.title,
-        description: data.description || null,
-        coach_id: data.coach_id,
-        category: data.category || null,
-        workout_type: data.workout_type
+        description: data.description,
+        workout_type: data.workout_type,
+        category: data.category
       })
       .select()
       .single();
@@ -1223,13 +213,13 @@ export const createStandaloneWorkout = async (data: {
 };
 
 /**
- * Update a standalone workout
+ * Updates an existing standalone workout.
  */
-export const updateStandaloneWorkout = async (id: string, data: {
+export const updateStandaloneWorkout = async (workoutId: string, data: {
   title?: string;
   description?: string | null;
-  category?: string | null;
-  workout_type?: string;
+  workout_type?: "strength" | "cardio" | "flexibility" | "mobility";
+  category?: string;
 }) => {
   try {
     const { data: workout, error } = await supabase
@@ -1237,10 +227,10 @@ export const updateStandaloneWorkout = async (id: string, data: {
       .update({
         title: data.title,
         description: data.description,
-        category: data.category,
-        workout_type: data.workout_type
+        workout_type: data.workout_type,
+        category: data.category
       })
-      .eq('id', id)
+      .eq('id', workoutId)
       .select()
       .single();
       
@@ -1257,86 +247,14 @@ export const updateStandaloneWorkout = async (id: string, data: {
 };
 
 /**
- * Update workout exercise
+ * Deletes a standalone workout by ID.
  */
-export const updateWorkoutExercise = async (exerciseId: string, data: {
-  sets?: number;
-  reps?: string;
-  rest_seconds?: number | null;
-  notes?: string | null;
-  superset_group_id?: string | null;
-  superset_order?: number | null;
-}) => {
-  try {
-    const { data: exercise, error } = await supabase
-      .from('workout_exercises')
-      .update({
-        sets: data.sets,
-        reps: data.reps,
-        rest_seconds: data.rest_seconds,
-        notes: data.notes,
-        superset_group_id: data.superset_group_id,
-        superset_order: data.superset_order
-      })
-      .eq('id', exerciseId)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating workout exercise:', error);
-      throw error;
-    }
-    
-    return exercise;
-  } catch (error) {
-    console.error('Error in updateWorkoutExercise:', error);
-    throw error;
-  }
-};
-
-/**
- * Update standalone workout exercise
- */
-export const updateStandaloneWorkoutExercise = async (id: string, data: {
-  sets?: number;
-  reps?: string;
-  rest_seconds?: number | null;
-  notes?: string | null;
-}) => {
-  try {
-    const { data: exercise, error } = await supabase
-      .from('standalone_workout_exercises')
-      .update({
-        sets: data.sets,
-        reps: data.reps,
-        rest_seconds: data.rest_seconds,
-        notes: data.notes
-      })
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating standalone workout exercise:', error);
-      throw error;
-    }
-    
-    return exercise;
-  } catch (error) {
-    console.error('Error in updateStandaloneWorkoutExercise:', error);
-    throw error;
-  }
-};
-
-/**
- * Deletes a standalone workout
- */
-export const deleteStandaloneWorkout = async (id: string) => {
+export const deleteStandaloneWorkout = async (workoutId: string) => {
   try {
     const { error } = await supabase
       .from('standalone_workouts')
       .delete()
-      .eq('id', id);
+      .eq('id', workoutId);
       
     if (error) {
       console.error('Error deleting standalone workout:', error);
@@ -1351,323 +269,194 @@ export const deleteStandaloneWorkout = async (id: string) => {
 };
 
 /**
- * Fetch workout program
+ * Fetches all standalone workout exercises for a given workout ID.
  */
-export const fetchWorkoutProgram = async (id: string) => {
+export const fetchStandaloneWorkoutExercises = async (workoutId: string) => {
   try {
     const { data, error } = await supabase
-      .from('workout_programs')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (error) {
-      console.error('Error fetching workout program:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error in fetchWorkoutProgram:', error);
-    throw error;
-  }
-};
-
-/**
- * Create workout program
- */
-export const createWorkoutProgram = async (programData: {
-  title: string;
-  description?: string;
-  weeks: number;
-  program_type: string;
-  coach_id: string;
-}) => {
-  try {
-    const { data, error } = await supabase
-      .from('workout_programs')
-      .insert(programData)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error creating workout program:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error in createWorkoutProgram:', error);
-    throw error;
-  }
-};
-
-/**
- * Update workout program
- */
-export const updateWorkoutProgram = async (id: string, programData: {
-  title?: string;
-  description?: string;
-  weeks?: number;
-  program_type?: string;
-}) => {
-  try {
-    const { data, error } = await supabase
-      .from('workout_programs')
-      .update(programData)
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating workout program:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error in updateWorkoutProgram:', error);
-    throw error;
-  }
-};
-
-/**
- * Delete workout program
- */
-export const deleteWorkoutProgram = async (id: string) => {
-  try {
-    const { error } = await supabase
-      .from('workout_programs')
-      .delete()
-      .eq('id', id);
-      
-    if (error) {
-      console.error('Error deleting workout program:', error);
-      throw error;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error in deleteWorkoutProgram:', error);
-    throw error;
-  }
-};
-
-/**
- * Fetch workout programs
- */
-export const fetchWorkoutPrograms = async (coachId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('workout_programs')
-      .select('*')
-      .eq('coach_id', coachId)
-      .order('created_at', { ascending: false });
-      
-    if (error) {
-      console.error('Error fetching workout programs:', error);
-      throw error;
-    }
-    
-    return data || [];
-  } catch (error) {
-    console.error('Error in fetchWorkoutPrograms:', error);
-    throw error;
-  }
-};
-
-/**
- * Get workout program assignment count
- */
-export const getWorkoutProgramAssignmentCount = async (programId: string) => {
-  try {
-    const { count, error } = await supabase
-      .from('program_assignments')
-      .select('*', { count: 'exact', head: true })
-      .eq('program_id', programId);
-      
-    if (error) {
-      console.error('Error getting program assignment count:', error);
-      throw error;
-    }
-    
-    return count || 0;
-  } catch (error) {
-    console.error('Error in getWorkoutProgramAssignmentCount:', error);
-    throw error;
-  }
-};
-
-/**
- * Fetch assigned users
- */
-export const fetchAssignedUsers = async (programId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('program_assignments')
+      .from('standalone_workout_exercises')
       .select(`
         *,
-        user:user_id (
+        exercise:exercise_id (
           id,
-          email,
-          profile:client_profiles!inner(
-            first_name,
-            last_name
-          )
+          name,
+          youtube_link,
+          muscle_group,
+          description
         )
       `)
-      .eq('program_id', programId);
+      .eq('workout_id', workoutId)
+      .order('order_index', { ascending: true });
       
     if (error) {
-      console.error('Error fetching assigned users:', error);
+      console.error('Error fetching standalone workout exercises:', error);
       throw error;
     }
     
     return data || [];
   } catch (error) {
-    console.error('Error in fetchAssignedUsers:', error);
+    console.error('Error in fetchStandaloneWorkoutExercises:', error);
     throw error;
   }
 };
 
 /**
- * Assign program to user
+ * Fetches a single standalone workout exercise by ID.
  */
-export const assignProgramToUser = async (assignmentData: {
-  program_id: string;
-  user_id: string;
-  assigned_by: string;
-  start_date: string;
-  end_date: string | null;
-}) => {
+export const fetchStandaloneWorkoutExerciseById = async (exerciseId: string) => {
   try {
     const { data, error } = await supabase
-      .from('program_assignments')
-      .insert(assignmentData)
-      .select()
+      .from('standalone_workout_exercises')
+      .select('*')
+      .eq('id', exerciseId)
       .single();
       
     if (error) {
-      console.error('Error assigning program to user:', error);
+      console.error('Error fetching standalone workout exercise:', error);
       throw error;
     }
     
     return data;
   } catch (error) {
-    console.error('Error in assignProgramToUser:', error);
+    console.error('Error in fetchStandaloneWorkoutExerciseById:', error);
     throw error;
   }
 };
 
 /**
- * Delete program assignment
+ * Creates a new standalone workout exercise.
  */
-export const deleteProgramAssignment = async (id: string) => {
+export const createStandaloneWorkoutExercise = async (data: {
+  workout_id: string;
+  exercise_id: string;
+  sets: number;
+  reps: string;
+  rest_seconds?: number | null;
+  notes?: string | null;
+  order_index: number;
+  superset_group_id?: string | null;
+  superset_order?: number | null;
+}) => {
   try {
-    const { error } = await supabase
-      .from('program_assignments')
-      .delete()
-      .eq('id', id);
+    const { data: workoutExercise, error } = await supabase
+      .from('standalone_workout_exercises')
+      .insert({
+        workout_id: data.workout_id,
+        exercise_id: data.exercise_id,
+        sets: data.sets,
+        reps: data.reps,
+        rest_seconds: data.rest_seconds,
+        notes: data.notes,
+        order_index: data.order_index,
+        superset_group_id: data.superset_group_id,
+        superset_order: data.superset_order
+      })
+      .select()
+      .single();
       
     if (error) {
-      console.error('Error deleting program assignment:', error);
+      console.error('Error creating standalone workout exercise:', error);
+      throw error;
+    }
+    
+    return workoutExercise;
+  } catch (error) {
+    console.error('Error in createStandaloneWorkoutExercise:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates an existing standalone workout exercise.
+ */
+export const updateStandaloneWorkoutExercise = async (exerciseId: string, data: {
+  sets?: number;
+  reps?: string;
+  rest_seconds?: number | null;
+  notes?: string | null;
+  order_index?: number;
+  superset_group_id?: string | null;
+  superset_order?: number | null;
+}) => {
+  try {
+    const { data: workoutExercise, error } = await supabase
+      .from('standalone_workout_exercises')
+      .update({
+        sets: data.sets,
+        reps: data.reps,
+        rest_seconds: data.rest_seconds,
+        notes: data.notes,
+        order_index: data.order_index,
+        superset_group_id: data.superset_group_id,
+        superset_order: data.superset_order
+      })
+      .eq('id', exerciseId)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error updating standalone workout exercise:', error);
+      throw error;
+    }
+    
+    return workoutExercise;
+  } catch (error) {
+    console.error('Error in updateStandaloneWorkoutExercise:', error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes a standalone workout exercise by ID.
+ */
+export const deleteStandaloneWorkoutExercise = async (exerciseId: string) => {
+  try {
+    const { error } = await supabase
+      .from('standalone_workout_exercises')
+      .delete()
+      .eq('id', exerciseId);
+      
+    if (error) {
+      console.error('Error deleting standalone workout exercise:', error);
       throw error;
     }
     
     return true;
   } catch (error) {
-    console.error('Error in deleteProgramAssignment:', error);
+    console.error('Error in deleteStandaloneWorkoutExercise:', error);
     throw error;
   }
 };
 
 /**
- * Fetch all clients
+ * Fetches all workouts.
  */
-export const fetchAllClients = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select(`
-        id,
-        user_type,
-        auth_user:id (
-          email
-        ),
-        client_profile:client_profiles(
-          first_name,
-          last_name
-        )
-      `)
-      .eq('user_type', 'client');
-      
-    if (error) {
-      console.error('Error fetching all clients:', error);
-      throw error;
-    }
-    
-    // Format the data for easier use
-    const clientsData = data?.map(client => ({
-      id: client.id,
-      email: client.auth_user?.email,
-      first_name: client.client_profile?.[0]?.first_name || null,
-      last_name: client.client_profile?.[0]?.last_name || null,
-      user_type: client.user_type
-    })) || [];
-    
-    return clientsData;
-  } catch (error) {
-    console.error('Error in fetchAllClients:', error);
-    throw error;
-  }
-};
-
-/**
- * Fetch workouts (with filters)
- */
-export const fetchWorkouts = async (filters: { [key: string]: any } = {}) => {
-  try {
-    let query = supabase.from('workouts').select('*');
-    
-    // Apply filters
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        query = query.eq(key, value);
-      }
-    });
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error('Error fetching workouts:', error);
-      throw error;
-    }
-    
-    return data || [];
-  } catch (error) {
-    console.error('Error in fetchWorkouts:', error);
-    throw error;
-  }
-};
-
-/**
- * Fetches workouts for a week
- */
-export const fetchWorkouts = async (weekId: string) => {
+export const fetchWorkouts = async () => {
   try {
     const { data, error } = await supabase
       .from('workouts')
       .select(`
-        id, 
-        title, 
-        description, 
-        workout_type,
-        priority,
-        template_id,
-        created_at
+        *,
+        week:week_id (
+          id,
+          title,
+          week_number,
+          program:program_id (
+            id,
+            title
+          )
+        ),
+        workout_exercises (
+          *,
+          exercise:exercise_id (
+            id,
+            name,
+            youtube_link,
+            muscle_group
+          )
+        )
       `)
-      .eq('week_id', weekId)
-      .order('priority', { ascending: true });
+      .order('created_at', { ascending: false });
       
     if (error) {
       console.error('Error fetching workouts:', error);
@@ -1677,6 +466,553 @@ export const fetchWorkouts = async (weekId: string) => {
     return data || [];
   } catch (error) {
     console.error('Error in fetchWorkouts:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches a single workout by ID.
+ */
+export const fetchWorkoutById = async (workoutId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select(`
+        *,
+        week:week_id (
+          id,
+          title,
+          week_number,
+          program:program_id (
+            id,
+            title
+          )
+        ),
+        workout_exercises (
+          *,
+          exercise:exercise_id (
+            id,
+            name,
+            youtube_link,
+            muscle_group
+          )
+        )
+      `)
+      .eq('id', workoutId)
+      .single();
+      
+    if (error) {
+      console.error('Error fetching workout:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in fetchWorkoutById:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new workout
+ */
+export const createWorkout = async (data: {
+  workout_type: "strength" | "cardio" | "flexibility" | "mobility";
+  week_id: string;
+  day_of_week: number; // Added day_of_week property
+  title: string;
+  description?: string;
+  priority?: number;
+  template_id?: string;
+}) => {
+  try {
+    const { data: workout, error } = await supabase
+      .from('workouts')
+      .insert({
+        workout_type: data.workout_type,
+        week_id: data.week_id,
+        day_of_week: data.day_of_week, // Use the day_of_week property
+        title: data.title,
+        description: data.description,
+        priority: data.priority || 0,
+        template_id: data.template_id
+      })
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error creating workout:', error);
+      throw error;
+    }
+    
+    return workout;
+  } catch (error) {
+    console.error('Error in createWorkout:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates an existing workout.
+ */
+export const updateWorkout = async (workoutId: string, data: {
+  workout_type?: "strength" | "cardio" | "flexibility" | "mobility";
+  title?: string;
+  description?: string;
+  priority?: number;
+  template_id?: string;
+}) => {
+  try {
+    const { data: workout, error } = await supabase
+      .from('workouts')
+      .update({
+        workout_type: data.workout_type,
+        title: data.title,
+        description: data.description,
+        priority: data.priority,
+        template_id: data.template_id
+      })
+      .eq('id', workoutId)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error updating workout:', error);
+      throw error;
+    }
+    
+    return workout;
+  } catch (error) {
+    console.error('Error in updateWorkout:', error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes a workout by ID.
+ */
+export const deleteWorkout = async (workoutId: string) => {
+  try {
+    const { error } = await supabase
+      .from('workouts')
+      .delete()
+      .eq('id', workoutId);
+      
+    if (error) {
+      console.error('Error deleting workout:', error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in deleteWorkout:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches all workout exercises for a given workout ID.
+ */
+export const fetchWorkoutExercises = async (workoutId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select(`
+        *,
+        exercise:exercise_id (
+          id,
+          name,
+          youtube_link,
+          muscle_group,
+          description
+        )
+      `)
+      .eq('workout_id', workoutId)
+      .order('order_index', { ascending: true });
+      
+    if (error) {
+      console.error('Error fetching workout exercises:', error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in fetchWorkoutExercises:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches a single workout exercise by ID.
+ */
+export const fetchWorkoutExerciseById = async (exerciseId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('id', exerciseId)
+      .single();
+      
+    if (error) {
+      console.error('Error fetching workout exercise:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in fetchWorkoutExerciseById:', error);
+    throw error;
+  }
+};
+
+/**
+ * Creates a new workout exercise.
+ */
+export const createWorkoutExercise = async (data: {
+  workout_id: string;
+  exercise_id: string;
+  sets: number;
+  reps: string;
+  rest_seconds?: number | null;
+  notes?: string | null;
+  order_index: number;
+  superset_group_id?: string | null;
+  superset_order?: number | null;
+}) => {
+  try {
+    const { data: workoutExercise, error } = await supabase
+      .from('workout_exercises')
+      .insert({
+        workout_id: data.workout_id,
+        exercise_id: data.exercise_id,
+        sets: data.sets,
+        reps: data.reps,
+        rest_seconds: data.rest_seconds,
+        notes: data.notes,
+        order_index: data.order_index,
+		superset_group_id: data.superset_group_id,
+        superset_order: data.superset_order
+      })
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error creating workout exercise:', error);
+      throw error;
+    }
+    
+    return workoutExercise;
+  } catch (error) {
+    console.error('Error in createWorkoutExercise:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates an existing workout exercise.
+ */
+export const updateWorkoutExercise = async (exerciseId: string, data: {
+  sets?: number;
+  reps?: string;
+  rest_seconds?: number | null;
+  notes?: string | null;
+  order_index?: number;
+  superset_group_id?: string | null;
+  superset_order?: number | null;
+}) => {
+  try {
+    const { data: workoutExercise, error } = await supabase
+      .from('workout_exercises')
+      .update({
+        sets: data.sets,
+        reps: data.reps,
+        rest_seconds: data.rest_seconds,
+        notes: data.notes,
+        order_index: data.order_index,
+		superset_group_id: data.superset_group_id,
+        superset_order: data.superset_order
+      })
+      .eq('id', exerciseId)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error updating workout exercise:', error);
+      throw error;
+    }
+    
+    return workoutExercise;
+  } catch (error) {
+    console.error('Error in updateWorkoutExercise:', error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes a workout exercise by ID.
+ */
+export const deleteWorkoutExercise = async (exerciseId: string) => {
+  try {
+    const { error } = await supabase
+      .from('workout_exercises')
+      .delete()
+      .eq('id', exerciseId);
+      
+    if (error) {
+      console.error('Error deleting workout exercise:', error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in deleteWorkoutExercise:', error);
+    throw error;
+  }
+};
+
+/**
+ * Reorder workout exercises
+ */
+export const reorderWorkoutExercises = async (exercises: { id: string; order_index: number }[]) => {
+  try {
+    // Use a single database call to update all exercises
+    const updates = exercises.map(exercise => ({
+      id: exercise.id,
+      order_index: exercise.order_index,
+    }));
+    
+    const { error } = await supabase
+      .from('workout_exercises')
+      .upsert(updates);
+      
+    if (error) {
+      console.error('Error reordering workout exercises:', error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in reorderWorkoutExercises:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get next available priority
+ */
+export const getNextAvailablePriority = async (weekId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('priority')
+      .eq('week_id', weekId)
+      .order('priority', { ascending: false })
+      .limit(1);
+      
+    if (error) {
+      console.error('Error fetching workouts:', error);
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      return 1;
+    }
+    
+    return data[0].priority + 1;
+  } catch (error) {
+    console.error('Error in getNextAvailablePriority:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches workouts for a specific week
+ */
+export const fetchWorkoutsByWeekId = async (weekId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select(`
+        *,
+        week:week_id (
+          id,
+          title,
+          week_number,
+          program:program_id (
+            id,
+            title,
+            program_type
+          )
+        ),
+        workout_exercises (
+          *,
+          exercise:exercise_id (
+            id,
+            name,
+            youtube_link,
+            muscle_group
+          )
+        )
+      `)
+      .eq('week_id', weekId)
+      .order('day_of_week', { ascending: true });
+      
+    if (error) {
+      console.error('Error fetching workouts:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in fetchWorkouts:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create multiple workouts at once
+ */
+export const createWorkouts = async (workouts: {
+  workout_type: "strength" | "cardio" | "flexibility" | "mobility";
+  week_id: string;
+  day_of_week: number; // Added day_of_week property
+  title: string;
+  description?: string;
+  priority?: number;
+  template_id?: string;
+}[]) => {
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .insert(workouts)
+      .select();
+      
+    if (error) {
+      console.error('Error creating workouts:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in createWorkouts:', error);
+    throw error;
+  }
+};
+
+export interface Exercise {
+  id: string;
+  created_at: string;
+  name: string;
+  youtube_link?: string;
+  muscle_group: string;
+  description?: string;
+  alternative_exercises?: Exercise[];
+}
+
+// Update the WorkoutExercise interface to include the superset properties
+export interface WorkoutExercise {
+  id: string;
+  workout_id: string;
+  exercise_id: string;
+  sets: number;
+  reps: string;
+  rest_seconds?: number;
+  notes?: string;
+  order_index: number;
+  superset_group_id?: string; // Added missing property
+  superset_order?: number;     // Added missing property
+  created_at: string;
+  exercise?: Exercise;
+}
+
+/**
+ * Assign alternative exercises
+ */
+export const assignAlternativeExercises = async (exerciseId: string, alternativeExerciseIds: string[]) => {
+  try {
+    // Delete existing alternative exercises
+    const { error: deleteError } = await supabase
+      .from('alternative_exercises')
+      .delete()
+      .eq('exercise_id', exerciseId);
+      
+    if (deleteError) {
+      console.error('Error deleting existing alternative exercises:', deleteError);
+      throw deleteError;
+    }
+    
+    // Insert new alternative exercises
+    const newAlternativeExercises = alternativeExerciseIds.map(alternativeExerciseId => ({
+      exercise_id: exerciseId,
+      alternative_exercise_id: alternativeExerciseId
+    }));
+    
+    const { data, error } = await supabase
+      .from('alternative_exercises')
+      .insert(newAlternativeExercises)
+      .select();
+      
+    if (error) {
+      console.error('Error assigning alternative exercises:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in assignAlternativeExercises:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch alternative exercises
+ */
+export const fetchAlternativeExercises = async (exerciseId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('alternative_exercises')
+      .select(`
+        *,
+        alternative_exercise:alternative_exercise_id (
+          id,
+          name,
+          youtube_link,
+          muscle_group,
+          description
+        )
+      `)
+      .eq('exercise_id', exerciseId);
+      
+    if (error) {
+      console.error('Error fetching alternative exercises:', error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in fetchAlternativeExercises:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete alternative exercises
+ */
+export const deleteAlternativeExercises = async (exerciseId: string) => {
+  try {
+    const { error } = await supabase
+      .from('alternative_exercises')
+      .delete()
+      .eq('exercise_id', exerciseId);
+      
+    if (error) {
+      console.error('Error deleting alternative exercises:', error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in deleteAlternativeExercises:', error);
     throw error;
   }
 };

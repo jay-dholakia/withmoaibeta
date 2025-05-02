@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWorkoutProgram, assignProgramToUser } from '@/services/program-service';
@@ -34,8 +35,7 @@ const ProgramAssignmentPage = () => {
         program_id: programId,
         user_id: userId,
         assigned_by: user.id,
-        start_date: format(startDate, 'yyyy-MM-dd'),
-        end_date: null
+        start_date: format(startDate, 'yyyy-MM-dd')
       });
       
       toast.success(`Program assigned successfully`);

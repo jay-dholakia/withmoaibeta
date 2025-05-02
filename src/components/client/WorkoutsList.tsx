@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { fetchAssignedWorkouts } from '@/services/workout-history-service';
-import { WorkoutHistoryItem } from '@/types/workout';
+
+import React, { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
@@ -9,150 +8,150 @@ import { Loader2, Filter, ChevronDown, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { WorkoutCard } from './WorkoutCard';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { fetchCurrentProgram } from '@/services/program-service';
-import { ProgramProgressSection } from './ProgramProgressSection';
-import { fetchGroupMembers, GroupMember } from '@/services/group-member-service';
 import { LogActivityButtons } from './LogActivityButtons';
 import LifeHappensButton from './LifeHappensButton';
 import { formatInTimeZone } from 'date-fns-tz';
-import { addDays, startOfWeek } from 'date-fns';
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useQuery } from '@tanstack/react-query';
+import { fetchAssignedWorkouts } from '@/services/workout-history-service';
+import { fetchCurrentProgram } from '@/services/program-service';
+import { fetchGroupMembers } from '@/services/group-member-service';
+import { WorkoutHistoryItem } from '@/types/workout';
+import { ProgramProgressSection } from './ProgramProgressSection';
 
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
   
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [weekFilter, setWeekFilter] = useState<string>("");
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
-  const [currentProgram, setCurrentProgram] = useState<any | null>(null);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
-  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const selectRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const loadWorkoutsAndProgram = async () => {
-      console.log("WorkoutsList: Loading workouts and program");
-      if (!user || !user.id) {
-        console.error("WorkoutsList: Cannot load workouts - User or user ID is missing", { user });
-        setError('User not authenticated properly. Please try logging in again.');
-        setIsLoading(false);
-        return;
-      }
-      
+  // Fetch group members
+  const { data: groupMembers = [] } = useQuery({
+    queryKey: ['group-members', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      console.log("WorkoutsList: Fetching group members");
       try {
-        console.log("WorkoutsList: Loading assigned workouts for user:", user.id);
-        setIsLoading(true);
-        setError(null);
-        
-        // Load group members first
-        try {
-          console.log("WorkoutsList: Fetching group members");
-          const members = await fetchGroupMembers(user.id);
-          console.log("WorkoutsList: Group members loaded:", members);
-          setGroupMembers(members);
-        } catch (groupError) {
-          console.error('WorkoutsList: Error loading group members:', groupError);
-          // Continue even if group members fail to load
-        }
-        
-        let program = null;
-        try {
-          console.log("WorkoutsList: Fetching current program");
-          program = await fetchCurrentProgram(user.id);
-          console.log("WorkoutsList: Program data received:", program);
-        } catch (programError) {
-          console.error('WorkoutsList: Error loading program:', programError);
-          // Continue even if program fails to load
-        }
-        
-        let assignedWorkouts: WorkoutHistoryItem[] = [];
-        try {
-          console.log("WorkoutsList: Calling fetchAssignedWorkouts");
-          assignedWorkouts = await fetchAssignedWorkouts(user.id);
-          console.log("WorkoutsList: Assigned workouts loaded:", assignedWorkouts.length);
-        } catch (workoutsError) {
-          console.error('WorkoutsList: Error loading assigned workouts:', workoutsError);
-          throw workoutsError; // Rethrow to be caught by outer catch
-        }
-        
-        setCurrentProgram(program);
-        setWorkouts(assignedWorkouts);
-        
-        const weeksSet = new Set<number>();
-        
-        assignedWorkouts.forEach(workout => {
-          if (workout.workout?.week && workout.workout.week.week_number) {
-            weeksSet.add(workout.workout.week.week_number);
-          }
-        });
-        
-        const extractedWeeks = Array.from(weeksSet);
-        console.log("WorkoutsList: Extracted week numbers:", extractedWeeks);
-        setAvailableWeeks(extractedWeeks);
-        
-        if (extractedWeeks.length > 0) {
-          const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
-          
-          let currentWeekNumber = 1;
-          if (program && program.start_date) {
-            // Use Pacific Time to calculate current week
-            const nowPT = new Date();
-            
-            // Get program start date in Pacific Time
-            const startDatePT = new Date(formatInTimeZone(new Date(program.start_date), 'America/Los_Angeles', 'yyyy-MM-dd'));
-            
-            // Adjust program start to nearest Monday (week start)
-            const programStartDay = startDatePT.getDay();
-            const daysUntilFirstMonday = programStartDay === 0 ? 1 : (programStartDay === 1 ? 0 : 8 - programStartDay);
-            const firstProgramMonday = new Date(startDatePT);
-            firstProgramMonday.setDate(startDatePT.getDate() + daysUntilFirstMonday);
-            firstProgramMonday.setHours(0, 0, 0, 0);
-            
-            // Calculate weeks since first Monday
-            const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-            let weeksSinceStart = 0;
-            
-            // If program hasn't reached first Monday yet, we're in week 1
-            if (nowPT >= firstProgramMonday) {
-              weeksSinceStart = Math.floor((nowPT.getTime() - firstProgramMonday.getTime()) / msPerWeek);
-            }
-            
-            currentWeekNumber = weeksSinceStart + 1;
-            
-            console.log(`WorkoutsList: Program start date: ${startDatePT.toISOString()}, first Monday: ${firstProgramMonday.toISOString()}, current week: ${currentWeekNumber}`);
-          }
-          
-          // Ensure week number is within program bounds
-          currentWeekNumber = Math.min(
-            Math.max(1, currentWeekNumber),
-            program?.weeks || 4
-          );
-          
-          const weekExists = sortedWeeks.includes(currentWeekNumber);
-          const initialWeek = weekExists ? currentWeekNumber : sortedWeeks[0];
-          console.log(`WorkoutsList: Setting initial week filter to ${weekExists ? 'current' : 'first available'} week: ${initialWeek}`);
-          
-          setTimeout(() => {
-            setWeekFilter(initialWeek.toString());
-          }, 0);
-        }
-        
-        setIsLoading(false);
+        const members = await fetchGroupMembers(user.id);
+        console.log("WorkoutsList: Group members loaded:", members);
+        return members;
       } catch (error) {
-        console.error('WorkoutsList: Error loading workouts:', error);
-        setError('Failed to load your assigned workouts');
-        toast.error('There was a problem loading your workouts');
-        setIsLoading(false);
+        console.error('WorkoutsList: Error loading group members:', error);
+        return [];
       }
-    };
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 15, // 15 minutes
+  });
 
-    loadWorkoutsAndProgram();
-  }, [user]);
+  // Fetch current program
+  const { data: currentProgram } = useQuery({
+    queryKey: ['current-program', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      console.log("WorkoutsList: Fetching current program");
+      try {
+        const program = await fetchCurrentProgram(user.id);
+        console.log("WorkoutsList: Program data received:", program);
+        return program;
+      } catch (error) {
+        console.error('WorkoutsList: Error loading program:', error);
+        return null;
+      }
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 10, // 10 minutes
+  });
+
+  // Fetch assigned workouts
+  const { 
+    data: workouts = [], 
+    isLoading, 
+    error 
+  } = useQuery({
+    queryKey: ['assigned-workouts', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      console.log("WorkoutsList: Calling fetchAssignedWorkouts");
+      try {
+        const assignedWorkouts = await fetchAssignedWorkouts(user.id);
+        console.log("WorkoutsList: Assigned workouts loaded:", assignedWorkouts.length);
+        return assignedWorkouts;
+      } catch (error) {
+        console.error('WorkoutsList: Error loading assigned workouts:', error);
+        throw error;
+      }
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes before refetching
+    gcTime: 1000 * 60 * 10, // 10 minutes before garbage collection
+    onSuccess: (data) => {
+      // Extract available weeks
+      const weeksSet = new Set<number>();
+      data.forEach(workout => {
+        if (workout.workout?.week && workout.workout.week.week_number) {
+          weeksSet.add(workout.workout.week.week_number);
+        }
+      });
+      
+      const extractedWeeks = Array.from(weeksSet);
+      console.log("WorkoutsList: Extracted week numbers:", extractedWeeks);
+      setAvailableWeeks(extractedWeeks);
+      
+      if (extractedWeeks.length > 0) {
+        const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
+        
+        let currentWeekNumber = 1;
+        if (currentProgram && currentProgram.start_date) {
+          // Use Pacific Time to calculate current week
+          const nowPT = new Date();
+          
+          // Get program start date in Pacific Time
+          const startDatePT = new Date(formatInTimeZone(new Date(currentProgram.start_date), 'America/Los_Angeles', 'yyyy-MM-dd'));
+          
+          // Adjust program start to nearest Monday (week start)
+          const programStartDay = startDatePT.getDay();
+          const daysUntilFirstMonday = programStartDay === 0 ? 1 : (programStartDay === 1 ? 0 : 8 - programStartDay);
+          const firstProgramMonday = new Date(startDatePT);
+          firstProgramMonday.setDate(startDatePT.getDate() + daysUntilFirstMonday);
+          firstProgramMonday.setHours(0, 0, 0, 0);
+          
+          // Calculate weeks since first Monday
+          const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+          let weeksSinceStart = 0;
+          
+          // If program hasn't reached first Monday yet, we're in week 1
+          if (nowPT >= firstProgramMonday) {
+            weeksSinceStart = Math.floor((nowPT.getTime() - firstProgramMonday.getTime()) / msPerWeek);
+          }
+          
+          currentWeekNumber = weeksSinceStart + 1;
+          
+          console.log(`WorkoutsList: Program start date: ${startDatePT.toISOString()}, first Monday: ${firstProgramMonday.toISOString()}, current week: ${currentWeekNumber}`);
+        }
+        
+        // Ensure week number is within program bounds
+        currentWeekNumber = Math.min(
+          Math.max(1, currentWeekNumber),
+          currentProgram?.weeks || 4
+        );
+        
+        const weekExists = sortedWeeks.includes(currentWeekNumber);
+        const initialWeek = weekExists ? currentWeekNumber : sortedWeeks[0];
+        console.log(`WorkoutsList: Setting initial week filter to ${weekExists ? 'current' : 'first available'} week: ${initialWeek}`);
+        
+        setTimeout(() => {
+          setWeekFilter(initialWeek.toString());
+        }, 0);
+      }
+    }
+  });
 
   const filteredWorkouts = React.useMemo(() => {
     if (!weekFilter) {
@@ -215,16 +214,12 @@ const WorkoutsList = () => {
     navigate(`/client-dashboard/workouts/active/${workoutId}`);
   }, [navigate]);
 
-  const isWorkoutCompleted = (workoutId: string): boolean => {
-    const workout = workouts.find(w => w.id === workoutId);
-    return !!workout?.completed_at;
-  };
-
   const isLifeHappensPass = (workout: any): boolean => {
     return workout?.life_happens_pass === true || workout?.workout_type === 'life_happens';
   };
 
-  useEffect(() => {
+  // Check URL params for calendar status
+  React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const calendarStatus = urlParams.get('calendar');
     const error = urlParams.get('error');
@@ -238,7 +233,8 @@ const WorkoutsList = () => {
     }
   }, [navigate]);
 
-  useEffect(() => {
+  // Handle click outside select dropdown
+  React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
         closeSelectDropdown();
@@ -266,7 +262,7 @@ const WorkoutsList = () => {
   if (error) {
     return (
       <div className="py-10 text-center">
-        <p className="text-red-500 dark:text-red-400 mb-4">{error}</p>
+        <p className="text-red-500 dark:text-red-400 mb-4">Failed to load your assigned workouts</p>
         <Button onClick={() => window.location.reload()}>
           Try Again
         </Button>

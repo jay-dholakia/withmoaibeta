@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -6,17 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   ChevronLeft, 
   Plus, 
-  Calendar, 
-  Clock, 
   Users,
   Edit,
-  Trash2,
-  LayoutTemplate,
-  Dumbbell
+  Dumbbell,
+  ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchWorkoutProgram, fetchWorkoutWeeks } from '@/services/workout-service';
+import { fetchWorkoutProgram, fetchWorkoutWeeks, fetchWorkoutsForWeek } from '@/services/workout-service';
 import { Badge } from '@/components/ui/badge';
 
 const WorkoutProgramDetailPage = () => {
@@ -28,6 +26,7 @@ const WorkoutProgramDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [program, setProgram] = useState<any>(null);
   const [weeks, setWeeks] = useState<any[]>([]);
+  const [weekWorkouts, setWeekWorkouts] = useState<Record<string, any[]>>({});
 
   console.log("WorkoutProgramDetailPage: Component rendered with programId:", programId);
   console.log("WorkoutProgramDetailPage: Current Auth User:", user?.id);
@@ -72,6 +71,16 @@ const WorkoutProgramDetailPage = () => {
           setWeeks([]);
         } else {
           setWeeks(weeksData);
+          
+          // Fetch workouts for each week
+          const workoutsData: Record<string, any[]> = {};
+          
+          for (const week of weeksData) {
+            const weekWorkouts = await fetchWorkoutsForWeek(week.id);
+            workoutsData[week.id] = weekWorkouts || [];
+          }
+          
+          setWeekWorkouts(workoutsData);
         }
         
       } catch (error) {
@@ -85,6 +94,25 @@ const WorkoutProgramDetailPage = () => {
     
     loadProgramDetails();
   }, [programId, navigate]);
+
+  // Function to get workout type badge
+  const getWorkoutTypeBadge = (type: string) => {
+    const typeColors: Record<string, string> = {
+      cardio: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+      strength: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+      mobility: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+      flexibility: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
+    };
+    
+    return (
+      <Badge 
+        variant="outline" 
+        className={`ml-2 ${typeColors[type] || 'bg-gray-100 text-gray-800'}`}
+      >
+        {type?.charAt(0).toUpperCase() + type?.slice(1)}
+      </Badge>
+    );
+  };
 
   console.log("WorkoutProgramDetailPage: Current state:", { 
     isLoading, 
@@ -209,30 +237,62 @@ const WorkoutProgramDetailPage = () => {
             {program.weeks && Array.from({ length: program.weeks }, (_, i) => {
               const weekNumber = i + 1;
               const weekEntry = weeks.find(w => w.week_number === weekNumber);
+              const weekId = weekEntry?.id;
+              const workouts = weekId ? weekWorkouts[weekId] || [] : [];
               
               return (
                 <Card key={weekNumber} className={weekEntry ? 'border-slate-200' : 'border-dashed border-slate-300'}>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Week {weekNumber}</CardTitle>
+                    <CardTitle className="text-lg flex justify-between items-center">
+                      <span>Week {weekNumber}</span>
+                      {weekEntry && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => navigate(`/workout-weeks/${weekEntry.id}`)}
+                          className="h-8"
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </CardTitle>
                     {weekEntry && weekEntry.title && weekEntry.title !== `Week ${weekNumber}` && (
                       <p className="text-sm text-muted-foreground">{weekEntry.title}</p>
                     )}
                   </CardHeader>
                   <CardContent className="pb-4">
                     {weekEntry ? (
-                      <>
+                      <div>
                         {weekEntry.description && (
-                          <p className="text-sm text-muted-foreground">{weekEntry.description}</p>
+                          <p className="text-sm text-muted-foreground mb-3">{weekEntry.description}</p>
                         )}
+                        
+                        {workouts.length > 0 ? (
+                          <div className="space-y-2">
+                            <h3 className="text-sm font-medium">Workouts:</h3>
+                            <ul className="space-y-1.5">
+                              {workouts.map(workout => (
+                                <li key={workout.id} className="text-sm flex items-center">
+                                  <span>Day {workout.day_of_week}: {workout.title}</span>
+                                  {workout.workout_type && getWorkoutTypeBadge(workout.workout_type)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic mt-2">No workouts added yet</p>
+                        )}
+                        
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          className="mt-2"
+                          className="mt-3"
                           onClick={() => navigate(`/workout-weeks/${weekEntry.id}`)}
                         >
-                          View Details
+                          <Edit className="h-3.5 w-3.5 mr-2" />
+                          Edit Week
                         </Button>
-                      </>
+                      </div>
                     ) : (
                       <div className="text-center py-2">
                         <p className="text-sm text-muted-foreground italic mb-2">No content added yet</p>

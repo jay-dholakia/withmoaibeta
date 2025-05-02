@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -9,6 +9,7 @@ import { PlusCircle } from 'lucide-react';
 import { fetchWorkoutPrograms, deleteWorkoutProgram } from '@/services/workout-service';
 import { WorkoutProgram } from '@/types/workout';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,29 +24,20 @@ import {
 const WorkoutProgramsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [programs, setPrograms] = useState<WorkoutProgram[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [deleteProgramId, setDeleteProgramId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    const loadPrograms = async () => {
-      if (!user?.id) return;
-      
-      try {
-        // Pass true as the second parameter to fetch all programs, not just the current coach's programs
-        const data = await fetchWorkoutPrograms(user.id, true);
-        setPrograms(data);
-      } catch (error) {
-        console.error('Error loading workout programs:', error);
-        toast.error('Failed to load workout programs');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadPrograms();
-  }, [user?.id]);
+  const { data: programs = [], isLoading } = useQuery({
+    queryKey: ['workout-programs', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return await fetchWorkoutPrograms(user.id, true);
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 15, // 15 minutes
+  });
 
   const handleDeleteProgram = async () => {
     if (!deleteProgramId) return;
@@ -54,11 +46,8 @@ const WorkoutProgramsPage = () => {
       setIsDeleting(true);
       await deleteWorkoutProgram(deleteProgramId);
       
-      // Update programs list
-      if (user?.id) {
-        const updatedPrograms = await fetchWorkoutPrograms(user.id, true);
-        setPrograms(updatedPrograms);
-      }
+      // Invalidate and refetch programs
+      queryClient.invalidateQueries({ queryKey: ['workout-programs', user?.id] });
       
       toast.success('Workout program deleted successfully');
     } catch (error) {

@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { PlusCircle } from 'lucide-react';
@@ -18,22 +18,10 @@ import { LogActivityButtons } from './LogActivityButtons';
 
 const WorkoutHistoryTab = () => {
   const { user } = useAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [recentActivities, setRecentActivities] = useState<Array<{
-    type: 'run' | 'cardio' | 'rest',
-    date: Date,
-    title: string,
-    subtitle: string
-  }>>([]);
+  const queryClient = useQueryClient();
   
-  const refreshData = useCallback(() => {
-    setRefreshKey(prev => prev + 1);
-    // Also trigger a refresh of the weekly progress data
-    document.dispatchEvent(new Event('refresh-weekly-progress'));
-  }, []);
-  
-  const { data: workoutHistory, refetch } = useQuery({
-    queryKey: ['client-workouts', user?.id, refreshKey],
+  const { data: workoutHistory = [] } = useQuery({
+    queryKey: ['client-workouts', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       console.log('Fetching workout history for user:', user.id);
@@ -47,19 +35,25 @@ const WorkoutHistoryTab = () => {
       }
     },
     enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  useEffect(() => {
-    const fetchRecentActivities = async () => {
-      if (!user?.id) return;
+  const refreshData = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['client-workouts', user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['recent-activities', user?.id] });
+    // Trigger a refresh of the weekly progress data
+    document.dispatchEvent(new Event('refresh-weekly-progress'));
+  }, [queryClient, user?.id]);
+
+  const { data: recentActivities = [] } = useQuery({
+    queryKey: ['recent-activities', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
       
       // Convert date range to Pacific Time and ensure week starts on Monday
       const now = new Date();
       const todayPT = formatInTimeZone(now, 'America/Los_Angeles', 'yyyy-MM-dd');
       const today = new Date(todayPT);
-      
-      // Get start of week (Monday) in Pacific Time
-      const weekStartPT = startOfWeek(today, { weekStartsOn: 1 });
       
       // Go back 7 days from today for recent activities
       const sevenDaysAgo = subDays(today, 7);
@@ -92,14 +86,15 @@ const WorkoutHistoryTab = () => {
           }))
         ].sort((a, b) => b.date.getTime() - a.date.getTime());
         
-        setRecentActivities(combinedActivities);
+        return combinedActivities;
       } catch (error) {
         console.error('Error fetching recent activities:', error);
+        return [];
       }
-    };
-    
-    fetchRecentActivities();
-  }, [user?.id, refreshKey]);
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+  });
 
   return (
     <div>
@@ -150,10 +145,7 @@ const WorkoutHistoryTab = () => {
       
       <button 
         className="hidden" 
-        onClick={() => {
-          refetch(); 
-          console.log('Refreshing workout history data');
-        }}
+        onClick={refreshData}
         id="refresh-workout-history"
       />
     </div>

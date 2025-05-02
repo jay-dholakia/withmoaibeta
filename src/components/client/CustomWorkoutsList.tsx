@@ -1,18 +1,17 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Dumbbell, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchCustomWorkouts, CustomWorkout } from '@/services/client-custom-workout-service';
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from 'date-fns';
+import { useCustomWorkouts } from '@/hooks/useCustomWorkouts';
 
 const CustomWorkoutsList = () => {
-  const [customWorkouts, setCustomWorkouts] = useState<CustomWorkout[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
+  const { sortedWorkouts: customWorkouts, isLoading } = useCustomWorkouts();
 
   const toggleWorkoutDetails = (workoutId: string) => {
     setExpandedWorkouts(prev => ({
@@ -20,28 +19,6 @@ const CustomWorkoutsList = () => {
       [workoutId]: !prev[workoutId]
     }));
   };
-
-  useEffect(() => {
-    const loadCustomWorkouts = async () => {
-      try {
-        const data = await fetchCustomWorkouts();
-        // Sort workouts by workout_date (if available) or created_at date
-        const sortedWorkouts = data.sort((a, b) => {
-          const dateA = a.workout_date ? new Date(a.workout_date) : new Date(a.created_at);
-          const dateB = b.workout_date ? new Date(b.workout_date) : new Date(b.created_at);
-          return dateB.getTime() - dateA.getTime(); // Most recent first
-        });
-        setCustomWorkouts(sortedWorkouts);
-      } catch (error) {
-        console.error('Error loading custom workouts:', error);
-        toast.error('Failed to load your custom workouts');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadCustomWorkouts();
-  }, []);
 
   // Function to get day of week label from date
   const getDayOfWeek = (dateString: string | null) => {
@@ -160,4 +137,4 @@ const CustomWorkoutsList = () => {
   );
 };
 
-export default CustomWorkoutsList;
+export default React.memo(CustomWorkoutsList);

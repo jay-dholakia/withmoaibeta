@@ -17,7 +17,8 @@ import {
   fetchWorkoutsForWeek,
   createWorkout,
   updateWorkout,
-  fetchStandaloneWorkouts
+  fetchStandaloneWorkouts,
+  duplicateWorkout
 } from '@/services/workout-service';
 import { deleteWorkout } from '@/services/workout-delete-service';
 import { Workout } from '@/types/workout';
@@ -479,7 +480,7 @@ const WorkoutWeekDetailPage = () => {
       const workout = workouts.find(w => w.id === id);
       if (!workout) return;
       
-      const newWorkout = await duplicateWorkout(id, weekId, {
+      const newWorkout = await duplicateWorkout(id, weekId!, {
         title: `${workout.title} (Copy)`,
         description: workout.description,
         workout_type: workout.workout_type,
@@ -501,7 +502,7 @@ const WorkoutWeekDetailPage = () => {
 
   const refreshWorkouts = async () => {
     try {
-      const workoutsData = await fetchWorkoutsForWeek(weekId);
+      const workoutsData = await fetchWorkoutsForWeek(weekId!);
       setWorkouts(workoutsData);
     } catch (error) {
       console.error('Error refreshing workouts:', error);
@@ -843,14 +844,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({ weekId, workoutId, onCreate, 
   useEffect(() => {
     const loadWorkoutDetails = async () => {
       if (workoutId) {
-        // const workout = await fetchWorkout(workoutId);
-        // if (workout) {
-        //   setTitle(workout.title);
-        //   setDescription(workout.description || '');
-        //   setDayOfWeek(workout.day_of_week);
-        //   setWorkoutType(workout.workout_type);
-        //   setPriority(workout.priority || 0);
-        // }
+        // fetch workout details if editing
       } else {
         setTitle('');
         setDescription('');

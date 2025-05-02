@@ -1,3 +1,4 @@
+
 export interface Exercise {
   id: string;
   name: string;
@@ -7,6 +8,7 @@ export interface Exercise {
   exercise_type: string; 
   youtube_link?: string;
   muscle_group: string | null;
+  log_type?: string;
 }
 
 export interface WorkoutProgram {

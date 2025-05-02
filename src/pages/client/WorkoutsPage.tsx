@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
 import ActiveWorkout from '@/components/client/ActiveWorkout';
 import WorkoutComplete from '@/components/client/WorkoutComplete';
@@ -17,6 +17,9 @@ import NotFound from '@/pages/NotFound';
 import { Suspense, lazy } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Storage key for the last visited workout page
+const LAST_WORKOUT_PATH_KEY = 'last_workout_path';
+
 // Loading fallback component
 const LoadingFallback = () => (
   <div className="w-full p-4">
@@ -31,10 +34,48 @@ const LoadingFallback = () => (
 
 const WorkoutsPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   
   console.log("WorkoutsPage: Component rendering with path:", location.pathname);
   
+  // Store the current path whenever it changes
+  useEffect(() => {
+    // Only store non-dynamic paths (don't store specific workout IDs)
+    // This prevents redirecting to potentially completed/expired workouts
+    if (location.pathname === '/client-dashboard/workouts' ||
+        location.pathname === '/client-dashboard/workouts/create' ||
+        location.pathname === '/client-dashboard/workouts/one-off' ||
+        location.pathname === '/client-dashboard/workouts/log-run' ||
+        location.pathname === '/client-dashboard/workouts/log-cardio' ||
+        location.pathname === '/client-dashboard/workouts/log-rest') {
+      localStorage.setItem(LAST_WORKOUT_PATH_KEY, location.pathname);
+      console.log("WorkoutsPage: Saved path to localStorage:", location.pathname);
+    }
+    
+    // For active workouts, save the full path including ID
+    if (location.pathname.includes('/active/') || 
+        location.pathname.includes('/complete/') || 
+        location.pathname.includes('/custom/')) {
+      localStorage.setItem(LAST_WORKOUT_PATH_KEY, location.pathname);
+      console.log("WorkoutsPage: Saved workout path to localStorage:", location.pathname);
+    }
+  }, [location.pathname]);
+  
+  // On initial load, check if we should redirect
+  useEffect(() => {
+    // Only redirect if we're at the root workouts page
+    if (location.pathname === '/client-dashboard/workouts') {
+      const lastPath = localStorage.getItem(LAST_WORKOUT_PATH_KEY);
+      
+      // Only navigate if there's a saved path that's different from current
+      if (lastPath && lastPath !== location.pathname) {
+        console.log("WorkoutsPage: Navigating to last path:", lastPath);
+        navigate(lastPath, { replace: true });
+      }
+    }
+  }, [location.pathname, navigate]);
+
   const { data: currentProgram } = useQuery({
     queryKey: ['current-program', user?.id],
     queryFn: async () => {

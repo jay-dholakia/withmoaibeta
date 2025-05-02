@@ -1,8 +1,8 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
@@ -16,9 +16,46 @@ import { format, subDays, startOfWeek } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { LogActivityButtons } from './LogActivityButtons';
 
+// Storage key to remember scroll position
+const WORKOUT_HISTORY_SCROLL_POS = 'workout_history_scroll';
+
 const WorkoutHistoryTab = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const location = useLocation();
+  
+  // Save and restore scroll position
+  useEffect(() => {
+    const savedScrollPos = localStorage.getItem(WORKOUT_HISTORY_SCROLL_POS);
+    
+    if (savedScrollPos) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(savedScrollPos, 10));
+      }, 100);
+    }
+    
+    const handleScroll = () => {
+      localStorage.setItem(WORKOUT_HISTORY_SCROLL_POS, window.scrollY.toString());
+    };
+    
+    // Debounce scroll events to avoid excessive localStorage writes
+    let scrollTimeout: number | null = null;
+    const debouncedScroll = () => {
+      if (scrollTimeout !== null) {
+        clearTimeout(scrollTimeout);
+      }
+      scrollTimeout = window.setTimeout(handleScroll, 300);
+    };
+    
+    window.addEventListener('scroll', debouncedScroll);
+    
+    return () => {
+      window.removeEventListener('scroll', debouncedScroll);
+      if (scrollTimeout !== null) {
+        clearTimeout(scrollTimeout);
+      }
+    };
+  }, []);
   
   const { data: workoutHistory = [] } = useQuery({
     queryKey: ['client-workouts', user?.id],

@@ -1,5 +1,6 @@
-import React from 'react';
-import { Route, Routes, Navigate } from 'react-router-dom';
+
+import React, { useEffect } from 'react';
+import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/ClientLogin'; 
 import CoachLogin from './pages/CoachLogin';
@@ -48,8 +49,26 @@ import LiveRunPage from './pages/client/LiveRunPage';
 import ProfileBuilder from './pages/client/ProfileBuilder';
 import NotFound from './pages/NotFound';
 
+// Storage key for last client dashboard location
+const LAST_APP_PATH_KEY = 'last_app_path';
+
 const App: React.FC = () => {
-  const { authLoading } = useAuth();
+  const { authLoading, user } = useAuth();
+  const location = useLocation();
+
+  // Remember the last path the user was on
+  useEffect(() => {
+    // Only save meaningful paths that aren't login/register related
+    if (!location.pathname.includes('login') &&
+        !location.pathname.includes('register') &&
+        !location.pathname.includes('reset') &&
+        !location.pathname.includes('portals') &&
+        location.pathname !== '/' &&
+        location.pathname !== '/landing') {
+      
+      localStorage.setItem(LAST_APP_PATH_KEY, location.pathname);
+    }
+  }, [location.pathname]);
 
   if (authLoading) {
     return (
@@ -58,6 +77,24 @@ const App: React.FC = () => {
         <span className="ml-3">Loading application...</span>
       </div>
     );
+  }
+
+  // Redirect to last path if logged in and going to root
+  if (user && (location.pathname === '/' || location.pathname === '/portals')) {
+    const lastPath = localStorage.getItem(LAST_APP_PATH_KEY);
+    
+    if (lastPath) {
+      return <Navigate to={lastPath} replace />;
+    }
+    
+    // Default paths for different user types
+    if (user.app_metadata?.role === 'admin') {
+      return <Navigate to="/admin-dashboard" replace />;
+    } else if (user.app_metadata?.role === 'coach') {
+      return <Navigate to="/coach-dashboard" replace />;
+    } else {
+      return <Navigate to="/client-dashboard/moai" replace />;
+    }
   }
 
   return (

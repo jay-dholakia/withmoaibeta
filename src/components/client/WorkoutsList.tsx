@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Filter, ChevronDown, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,11 +18,16 @@ import { fetchGroupMembers } from '@/services/group-member-service';
 import { WorkoutHistoryItem } from '@/types/workout';
 import { ProgramProgressSection } from './ProgramProgressSection';
 
+// Storage key for the week filter preference
+const WEEK_FILTER_KEY = 'workout_week_filter';
+
 const WorkoutsList = () => {
   console.log("WorkoutsList: Component rendering");
   
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
   const [weekFilter, setWeekFilter] = useState<string>("");
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
@@ -92,6 +97,14 @@ const WorkoutsList = () => {
     gcTime: 1000 * 60 * 10, // 10 minutes before garbage collection
   });
 
+  // Save week filter to localStorage whenever it changes
+  useEffect(() => {
+    if (weekFilter) {
+      localStorage.setItem(WEEK_FILTER_KEY, weekFilter);
+      console.log("WorkoutsList: Saved week filter to localStorage:", weekFilter);
+    }
+  }, [weekFilter]);
+
   // Process workout data when available
   React.useEffect(() => {
     if (!workouts.length || !currentProgram) return;
@@ -111,6 +124,19 @@ const WorkoutsList = () => {
     if (extractedWeeks.length > 0) {
       const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
       
+      // Check if there's a stored week filter
+      const storedWeekFilter = localStorage.getItem(WEEK_FILTER_KEY);
+      
+      // If we have a stored filter and it's in the available weeks, use it
+      if (storedWeekFilter && sortedWeeks.includes(parseInt(storedWeekFilter, 10))) {
+        console.log(`WorkoutsList: Restoring saved week filter: ${storedWeekFilter}`);
+        setTimeout(() => {
+          setWeekFilter(storedWeekFilter);
+        }, 0);
+        return;
+      }
+      
+      // Otherwise calculate current week as before
       let currentWeekNumber = 1;
       if (currentProgram && currentProgram.start_date) {
         // Use Pacific Time to calculate current week

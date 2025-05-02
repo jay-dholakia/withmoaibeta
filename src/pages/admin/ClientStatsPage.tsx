@@ -1,53 +1,118 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { ChevronDownIcon, Search, FilterIcon, ArrowUpDown } from 'lucide-react';
-import { fetchAllClients } from '@/services/program-service';
+import { RefreshCw, Search, UserSquare, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Filter, CalendarDays, History } from 'lucide-react';
+import { fetchAllClients } from '@/services/workout-service';
+import { fetchClientWorkoutStats } from '@/services/admin-client-stats-service';
+import { format, isValid } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { debounce } from '@/lib/utils';
+import { formatInTimeZone } from 'date-fns-tz';
+import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/lib/hooks';
+import { ClientWorkoutHistoryDialog } from '@/components/admin/ClientWorkoutHistoryDialog';
+
+interface ClientStats {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  groups: { id: string; name: string }[];
+  last_workout_date: string | null;
+  assigned_workouts_this_week: number;
+  activities_this_week: number;
+  total_activities: number;
+}
+
+type SortField = 'name' | 'lastWorkout' | 'assignedWorkouts' | 'activitiesWeek' | 'totalActivities';
+type SortDirection = 'asc' | 'desc';
 
 const ClientStatsPage = () => {
-  const [clients, setClients] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [sortField, setSortField] = useState<string>('last_workout');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [filterWorkouts, setFilterWorkouts] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [groupFilter, setGroupFilter] = useState<string[]>([]);
+  const [activityFilter, setActivityFilter] = useState<string>('all'); // 'all', 'active', 'inactive'
+  const [selectedClient, setSelectedClient] = useState<{ id: string; name: string } | null>(null);
 
-  useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        setIsLoading(true);
-        const data = await fetchAllClients();
-        setClients(data);
-      } catch (error) {
-        console.error('Error fetching clients:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const { 
+    data: clients, 
+    isLoading: isLoadingClients, 
+    refetch: refetchClients 
+  } = useQuery({
+    queryKey: ['clients'],
+    queryFn: fetchAllClients,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-    fetchClients();
-  }, []);
+  const {
+    data: clientStats,
+    isLoading: isLoadingStats,
+    refetch: refetchStats
+  } = useQuery({
+    queryKey: ['client-stats'],
+    queryFn: fetchClientWorkoutStats,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  const handleSort = (field: string) => {
-    if (field === sortField) {
+  const handleRefresh = () => {
+    refetchClients();
+    refetchStats();
+  };
+
+  const combinedData: ClientStats[] = useMemo(() => {
+    if (!clients || !clientStats) return [];
+    
+    return clients.map(client => {
+      const stats = clientStats.find(stat => stat.id === client.id) || {
+        groups: [],
+        last_workout_date: null,
+        assigned_workouts_this_week: 0,
+        activities_this_week: 0,
+        total_activities: 0
+      };
+      
+      return {
+        id: client.id,
+        email: client.email,
+        first_name: client.first_name || null,
+        last_name: client.last_name || null,
+        groups: stats.groups || [],
+        last_workout_date: stats.last_workout_date,
+        assigned_workouts_this_week: stats.assigned_workouts_this_week || 0,
+        activities_this_week: stats.activities_this_week || 0,
+        total_activities: stats.total_activities || 0
+      };
+    });
+  }, [clients, clientStats]);
+
+  const allGroups = useMemo(() => {
+    if (!combinedData) return [];
+    
+    const groupSet = new Set<string>();
+    combinedData.forEach(client => {
+      client.groups.forEach(group => groupSet.add(group.name));
+    });
+    
+    return Array.from(groupSet);
+  }, [combinedData]);
+
+  const handleSearchChange = debounce((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, 300);
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
@@ -55,222 +120,363 @@ const ClientStatsPage = () => {
     }
   };
 
-  const filteredClients = React.useMemo(() => {
-    let filtered = [...clients];
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="ml-1 h-4 w-4" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="ml-1 h-4 w-4" /> 
+      : <ArrowDown className="ml-1 h-4 w-4" />;
+  };
+
+  const toggleGroupFilter = (groupName: string) => {
+    setGroupFilter(prev => 
+      prev.includes(groupName) 
+        ? prev.filter(g => g !== groupName) 
+        : [...prev, groupName]
+    );
+  };
+
+  const isWorkoutStale = (lastWorkoutDate: string | null) => {
+    if (!lastWorkoutDate) return false;
+    const date = new Date(lastWorkoutDate);
+    if (!isValid(date)) return false;
     
-    // Apply search filter
-    if (searchTerm) {
-      const lowercasedSearch = searchTerm.toLowerCase();
-      filtered = filtered.filter(client => 
-        client.email?.toLowerCase().includes(lowercasedSearch) ||
-        client.first_name?.toLowerCase().includes(lowercasedSearch) ||
-        client.last_name?.toLowerCase().includes(lowercasedSearch)
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    return date < twoDaysAgo;
+  };
+
+  const filteredAndSortedClients = useMemo(() => {
+    let result = [...combinedData];
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(client => 
+        client.email.toLowerCase().includes(query) || 
+        (client.first_name && client.first_name.toLowerCase().includes(query)) ||
+        (client.last_name && client.last_name.toLowerCase().includes(query))
       );
     }
     
-    // Apply workout count filter
-    if (filterWorkouts === 'active') {
-      filtered = filtered.filter(client => 
-        client.total_workouts_completed > 0
-      );
-    } else if (filterWorkouts === 'inactive') {
-      filtered = filtered.filter(client => 
-        client.total_workouts_completed === 0
-      );
-    } else if (filterWorkouts === 'new') {
-      filtered = filtered.filter(client => 
-        !client.last_workout_at
+    if (groupFilter.length > 0) {
+      result = result.filter(client => 
+        client.groups.some(group => groupFilter.includes(group.name))
       );
     }
     
-    return filtered;
-  }, [clients, searchTerm, filterWorkouts]);
-  
-  const sortedClients = React.useMemo(() => {
-    let sorted = [...filteredClients];
+    if (activityFilter !== 'all') {
+      result = result.filter(client => {
+        const isActive = client.last_workout_date && 
+          new Date(client.last_workout_date) > new Date(Date.now() - 14 * 24 * 60 * 60 * 1000); // 2 weeks
+        
+        return activityFilter === 'active' ? isActive : !isActive;
+      });
+    }
     
-    switch(sortField) {
-      case 'name':
-        sorted.sort((a, b) => {
-          const nameA = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
-          const nameB = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
-          return sortDirection === 'asc' 
-            ? nameA.localeCompare(nameB)
-            : nameB.localeCompare(nameA);
-        });
-        break;
-      case 'email':
-        sorted.sort((a, b) => {
-          return sortDirection === 'asc'
-            ? a.email.localeCompare(b.email)
-            : b.email.localeCompare(a.email);
-        });
-        break;
-      case 'workouts':
-        sorted.sort((a, b) => {
-          const countA = a.total_workouts_completed || 0;
-          const countB = b.total_workouts_completed || 0;
-          return sortDirection === 'asc' ? countA - countB : countB - countA;
-        });
-        break;
-      case 'last_workout':
-      default:
-        sorted.sort((a, b) => {
-          // Handle nulls for last_workout_at
-          if (!a.last_workout_at && !b.last_workout_at) return 0;
-          if (!a.last_workout_at) return sortDirection === 'asc' ? -1 : 1;
-          if (!b.last_workout_at) return sortDirection === 'asc' ? 1 : -1;
+    result.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'name':
+          const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim() || a.email;
+          const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim() || b.email;
+          comparison = nameA.localeCompare(nameB);
+          break;
           
-          const dateA = new Date(a.last_workout_at).getTime();
-          const dateB = new Date(b.last_workout_at).getTime();
-          return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
-        });
-    }
+        case 'lastWorkout':
+          const dateA = a.last_workout_date ? new Date(a.last_workout_date).getTime() : 0;
+          const dateB = b.last_workout_date ? new Date(b.last_workout_date).getTime() : 0;
+          comparison = dateA - dateB;
+          break;
+          
+        case 'assignedWorkouts':
+          comparison = a.assigned_workouts_this_week - b.assigned_workouts_this_week;
+          break;
+          
+        case 'activitiesWeek':
+          comparison = a.activities_this_week - b.activities_this_week;
+          break;
+          
+        case 'totalActivities':
+          comparison = a.total_activities - b.total_activities;
+          break;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
     
-    return sorted;
-  }, [filteredClients, sortField, sortDirection]);
-  
-  const getLastWorkoutText = React.useMemo(() => {
-    return (lastWorkoutAt: string | null) => {
-      if (!lastWorkoutAt) return 'Never';
-      
-      const lastWorkout = new Date(lastWorkoutAt);
-      const now = new Date();
-      const diffTime = Math.abs(now.getTime() - lastWorkout.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays === 0) return 'Today';
-      if (diffDays === 1) return 'Yesterday';
-      if (diffDays < 7) return `${diffDays} days ago`;
-      if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-      if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-      return `${Math.floor(diffDays / 365)} years ago`;
+    return result;
+  }, [combinedData, searchQuery, sortField, sortDirection, groupFilter, activityFilter]);
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Never";
+    
+    const date = new Date(dateString);
+    if (!isValid(date)) return "Invalid date";
+    
+    return format(date, "MMM d, yyyy");
+  };
+
+  const weekDateRange = useMemo(() => {
+    const now = new Date();
+    const todayPT = formatInTimeZone(now, 'America/Los_Angeles', 'yyyy-MM-dd');
+    const datePT = new Date(todayPT + 'T00:00:00');
+    
+    const dayOfWeek = datePT.getDay(); 
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    
+    const startOfWeekPT = new Date(datePT);
+    startOfWeekPT.setDate(datePT.getDate() - daysFromMonday);
+    
+    const endOfWeekPT = new Date(startOfWeekPT);
+    endOfWeekPT.setDate(startOfWeekPT.getDate() + 6);
+    
+    return {
+      start: format(startOfWeekPT, 'MMM d, yyyy'),
+      end: format(endOfWeekPT, 'MMM d, yyyy')
     };
   }, []);
-  
+
+  const isMobile = useIsMobile();
+
+  const formatDisplayName = (firstName: string | null, lastName: string | null, email: string): string => {
+    if (!firstName) return email;
+    return `${firstName} ${lastName ? lastName.charAt(0) + '.' : ''}`.trim();
+  };
+
   return (
     <AdminDashboardLayout title="Client Statistics">
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row justify-between gap-4 pb-4">
-          <div className="relative w-full md:w-64">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div className="relative w-full md:w-72">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search clients..."
               className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
+              defaultValue={searchQuery}
             />
           </div>
-          <div className="flex gap-2 flex-shrink-0">
+          
+          <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-1">
-                  <FilterIcon className="h-4 w-4 mr-1" />
-                  {filterWorkouts === 'active' && "Active Clients"}
-                  {filterWorkouts === 'inactive' && "Inactive Clients"}
-                  {filterWorkouts === 'new' && "New Clients"}
-                  {filterWorkouts === null && "All Clients"}
-                  <ChevronDownIcon className="h-4 w-4 ml-1" />
+                <Button variant="outline" size="sm" className="flex items-center gap-1">
+                  <Filter className="h-4 w-4" />
+                  Activity
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setFilterWorkouts(null)}>
+              <DropdownMenuContent align="end" className="bg-white">
+                <DropdownMenuCheckboxItem
+                  checked={activityFilter === 'all'}
+                  onCheckedChange={() => setActivityFilter('all')}
+                >
                   All Clients
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterWorkouts('active')}>
-                  Active Clients
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterWorkouts('inactive')}>
-                  Inactive Clients
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterWorkouts('new')}>
-                  New Clients
-                </DropdownMenuItem>
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={activityFilter === 'active'}
+                  onCheckedChange={() => setActivityFilter('active')}
+                >
+                  Active (last 2 weeks)
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={activityFilter === 'inactive'}
+                  onCheckedChange={() => setActivityFilter('inactive')}
+                >
+                  Inactive
+                </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center gap-1">
+                  <UserSquare className="h-4 w-4" />
+                  Groups {groupFilter.length > 0 && `(${groupFilter.length})`}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-white">
+                {allGroups.length === 0 ? (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">No groups found</div>
+                ) : (
+                  allGroups.map(groupName => (
+                    <DropdownMenuCheckboxItem
+                      key={groupName}
+                      checked={groupFilter.includes(groupName)}
+                      onCheckedChange={() => toggleGroupFilter(groupName)}
+                    >
+                      {groupName}
+                    </DropdownMenuCheckboxItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <Button onClick={handleRefresh} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
           </div>
         </div>
-        
-        {isLoading ? (
-          <div className="text-center py-8">Loading client data...</div>
-        ) : sortedClients.length > 0 ? (
-          <div className="border rounded-md">
-            <Table>
-              <TableHeader>
+
+        <div className="rounded-md border">
+          <div className="bg-muted/50 px-4 py-2.5 flex items-center border-b">
+            <CalendarDays className="h-4 w-4 mr-2" />
+            <span className="text-sm font-medium">
+              Current Week: {weekDateRange.start} - {weekDateRange.end} (Pacific Time)
+            </span>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead 
+                  className="cursor-pointer hover:bg-muted/40 transition-colors"
+                  onClick={() => toggleSort('name')}
+                >
+                  <div className="flex items-center">
+                    Client
+                    {getSortIcon('name')}
+                  </div>
+                </TableHead>
+                {!isMobile && (
+                  <TableHead>
+                    <div className="flex items-center">
+                      <UserSquare className="h-4 w-4 mr-1" />
+                      Groups
+                    </div>
+                  </TableHead>
+                )}
+                <TableHead 
+                  className="cursor-pointer hover:bg-muted/40 transition-colors"
+                  onClick={() => toggleSort('lastWorkout')}
+                >
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    Last Workout
+                    {getSortIcon('lastWorkout')}
+                  </div>
+                </TableHead>
+                {!isMobile && (
+                  <>
+                    <TableHead
+                      className="cursor-pointer hover:bg-muted/40 transition-colors"
+                      onClick={() => toggleSort('assignedWorkouts')}
+                    >
+                      <div className="flex items-center">
+                        This Week's Workouts
+                        {getSortIcon('assignedWorkouts')}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer hover:bg-muted/40 transition-colors"
+                      onClick={() => toggleSort('activitiesWeek')}
+                    >
+                      <div className="flex items-center">
+                        This Week's Activities
+                        {getSortIcon('activitiesWeek')}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer hover:bg-muted/40 transition-colors"
+                      onClick={() => toggleSort('totalActivities')}
+                    >
+                      <div className="flex items-center">
+                        Total Activities
+                        {getSortIcon('totalActivities')}
+                      </div>
+                    </TableHead>
+                  </>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoadingClients || isLoadingStats ? (
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={`loading-${index}`}>
+                    {Array.from({ length: isMobile ? 2 : 6 }).map((_, cellIndex) => (
+                      <TableCell key={`loading-cell-${index}-${cellIndex}`}>
+                        <Skeleton className="h-5 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : filteredAndSortedClients.length === 0 ? (
                 <TableRow>
-                  <TableHead 
-                    className="cursor-pointer"
-                    onClick={() => handleSort('name')}
-                  >
-                    <div className="flex items-center">
-                      Name
-                      <ArrowUpDown className="ml-1 h-4 w-4" />
-                    </div>
-                  </TableHead>
-                  <TableHead 
-                    className="cursor-pointer"
-                    onClick={() => handleSort('email')}
-                  >
-                    <div className="flex items-center">
-                      Email
-                      <ArrowUpDown className="ml-1 h-4 w-4" />
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="text-right cursor-pointer"
-                    onClick={() => handleSort('workouts')}
-                  >
-                    <div className="flex items-center justify-end">
-                      Workouts
-                      <ArrowUpDown className="ml-1 h-4 w-4" />
-                    </div>
-                  </TableHead>
-                  <TableHead 
-                    className="text-right cursor-pointer"
-                    onClick={() => handleSort('last_workout')}
-                  >
-                    <div className="flex items-center justify-end">
-                      Last Activity
-                      <ArrowUpDown className="ml-1 h-4 w-4" />
-                    </div>
-                  </TableHead>
+                  <TableCell colSpan={isMobile ? 2 : 6} className="text-center py-8 text-muted-foreground">
+                    No clients found
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedClients.map((client) => (
+              ) : (
+                filteredAndSortedClients.map((client) => (
                   <TableRow key={client.id}>
                     <TableCell>
                       <div>
-                        {`${client.first_name || ''} ${client.last_name || ''}`.trim() || 
-                          <span className="text-muted-foreground italic">No name</span>
-                        }
+                        <div className="font-medium">
+                          {formatDisplayName(client.first_name, client.last_name, client.email)}
+                        </div>
+                        <div className="text-sm text-muted-foreground">{client.email}</div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {client.email}
-                      {!client.last_workout_at && 
-                        <Badge variant="outline" className="ml-2 bg-muted text-xs">
-                          New
-                        </Badge>
-                      }
+                    
+                    {!isMobile && (
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {client.groups.length === 0 ? (
+                            <span className="text-muted-foreground text-sm">None</span>
+                          ) : (
+                            client.groups.map((group) => (
+                              <Badge key={group.id} variant="outline" className="bg-muted/30">
+                                {group.name}
+                              </Badge>
+                            ))
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                    
+                    <TableCell className={cn(
+                      isWorkoutStale(client.last_workout_date) && "text-red-500 font-medium"
+                    )}>
+                      {formatDate(client.last_workout_date)}
                     </TableCell>
-                    <TableCell className="text-right">
-                      {client.total_workouts_completed || 0}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {getLastWorkoutText(client.last_workout_at)}
-                    </TableCell>
+                    
+                    {!isMobile && (
+                      <>
+                        <TableCell>{client.assigned_workouts_this_week}</TableCell>
+                        <TableCell>{client.activities_this_week}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-between">
+                            <span>{client.total_activities}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="ml-4"
+                              onClick={() => setSelectedClient({
+                                id: client.id,
+                                name: formatDisplayName(client.first_name, client.last_name, client.email)
+                              })}
+                            >
+                              <History className="h-4 w-4 mr-1" />
+                              History
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </>
+                    )}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            No clients found matching your criteria
-          </div>
-        )}
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
+      <ClientWorkoutHistoryDialog
+        clientId={selectedClient?.id || ''}
+        clientName={selectedClient?.name || ''}
+        open={!!selectedClient}
+        onOpenChange={(open) => !open && setSelectedClient(null)}
+      />
     </AdminDashboardLayout>
   );
 };

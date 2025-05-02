@@ -55,6 +55,7 @@ const EditWorkoutPage = () => {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [dayOfWeek, setDayOfWeek] = useState(1);
   const [workoutType, setWorkoutType] = useState<"cardio" | "strength" | "mobility" | "flexibility">('strength');
   const [priority, setPriority] = useState(0);
 
@@ -73,6 +74,7 @@ const EditWorkoutPage = () => {
           setWorkout(workoutData);
           setTitle(workoutData.title || '');
           setDescription(workoutData.description || '');
+          setDayOfWeek(workoutData.day_of_week || 1);
           setWorkoutType(workoutData.workout_type as any || 'strength');
           setPriority(workoutData.priority || 0);
           
@@ -124,9 +126,13 @@ const EditWorkoutPage = () => {
       await updateWorkout(workoutId, {
         title,
         description: description || null,
+        day_of_week: dayOfWeek,
         workout_type: workoutType,
         priority
       });
+
+      // If it's a cardio workout and there are no exercises, we don't need to show warnings
+      // since it's now handled automatically for clients
       
       toast.success('Workout updated successfully');
       
@@ -353,6 +359,25 @@ const EditWorkoutPage = () => {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                 />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="day-of-week">Day of Week</Label>
+                <Select 
+                  value={String(dayOfWeek)} 
+                  onValueChange={(value) => setDayOfWeek(Number(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select day" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 7 }, (_, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>
+                        Day {i + 1}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="grid gap-2">

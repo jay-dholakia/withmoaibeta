@@ -1,13 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchWorkoutProgram, assignProgramToUser } from '@/services/program-service';
+import { fetchWorkoutProgram } from '@/services/workout-service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { assignProgramToUser } from '@/services/workout-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProgramAssignmentForm } from '@/components/coach/ProgramAssignmentForm';
 
@@ -35,7 +36,8 @@ const ProgramAssignmentPage = () => {
         program_id: programId,
         user_id: userId,
         assigned_by: user.id,
-        start_date: format(startDate, 'yyyy-MM-dd')
+        start_date: format(startDate, 'yyyy-MM-dd'),
+        end_date: null
       });
       
       toast.success(`Program assigned successfully`);

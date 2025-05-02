@@ -1,12 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CoachLayout } from '@/layouts/CoachLayout';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
-import { toast } from "sonner";
+import { CoachLayout } from '@/layouts/CoachLayout';
+import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutProgramList } from '@/components/coach/WorkoutProgramList';
-import { fetchWorkoutPrograms, deleteWorkoutProgram } from '@/services/program-service';
+import { PlusCircle } from 'lucide-react';
+import { fetchWorkoutPrograms, deleteWorkoutProgram } from '@/services/workout-service';
+import { WorkoutProgram } from '@/types/workout';
+import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,80 +21,78 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const WorkoutProgramsPage: React.FC = () => {
-  const [programs, setPrograms] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+const WorkoutProgramsPage = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [deleteProgramId, setDeleteProgramId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    loadPrograms();
-  }, []);
+  const { data: programs = [], isLoading } = useQuery({
+    queryKey: ['workout-programs', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return await fetchWorkoutPrograms(user.id, true);
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 15, // 15 minutes
+  });
 
-  const loadPrograms = async () => {
-    setIsLoading(true);
-    try {
-      const programsData = await fetchWorkoutPrograms();
-      setPrograms(programsData);
-    } catch (error) {
-      console.error('Error loading programs:', error);
-      toast.error('Failed to load workout programs');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    setDeleteId(id);
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteId) return;
+  const handleDeleteProgram = async () => {
+    if (!deleteProgramId) return;
     
-    setIsDeleting(true);
     try {
-      await deleteWorkoutProgram(deleteId);
-      setPrograms(prev => prev.filter(p => p.id !== deleteId));
-      toast.success('Program deleted successfully');
+      setIsDeleting(true);
+      await deleteWorkoutProgram(deleteProgramId);
+      
+      // Invalidate and refetch programs
+      queryClient.invalidateQueries({ queryKey: ['workout-programs', user?.id] });
+      
+      toast.success('Workout program deleted successfully');
     } catch (error) {
       console.error('Error deleting program:', error);
-      toast.error('Failed to delete program');
+      toast.error('Failed to delete workout program');
     } finally {
-      setDeleteId(null);
       setIsDeleting(false);
+      setDeleteProgramId(null);
     }
   };
 
   return (
     <CoachLayout>
-      <div className="container mx-auto p-4">
+      <div className="w-full px-4">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Workout Programs</h1>
-          <Button onClick={() => navigate('/coach-dashboard/workouts/create')}>
-            <PlusCircle className="w-4 h-4 mr-2" />
-            Create Program
-          </Button>
+          <h1 className="text-2xl font-bold text-left">Workout Programs</h1>
+          <div className="flex gap-2">
+            <Button onClick={() => navigate('/coach-dashboard/workouts/create')} className="gap-2">
+              <PlusCircle className="h-4 w-4" />
+              Create Program
+            </Button>
+          </div>
         </div>
 
-        {isLoading ? (
-          <div className="text-center py-12">Loading workout programs...</div>
-        ) : (
-          <WorkoutProgramList programs={programs} onDelete={handleDelete} />
-        )}
+        <WorkoutProgramList 
+          programs={programs} 
+          isLoading={isLoading} 
+          onDeleteProgram={setDeleteProgramId} 
+        />
 
-        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialog 
+          open={deleteProgramId !== null}
+          onOpenChange={(open) => !open && setDeleteProgramId(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogTitle>Delete Workout Program</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the workout program and all associated data.
+                Are you sure you want to delete this workout program and all its contents? This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmDelete}
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteProgram}
                 disabled={isDeleting}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >

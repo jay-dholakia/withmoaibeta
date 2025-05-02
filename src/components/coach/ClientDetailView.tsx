@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
@@ -240,7 +239,10 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                           </TableCell>
                           <TableCell className="font-medium">
                             {entry.workout?.title || (entry.rest_day ? 'Rest Day' : 'One-off Workout')}
-                            {entry.workout?.week?.week_number ? `, Week ${entry.workout.week.week_number}` : ''}
+                            <div className="text-xs text-muted-foreground">
+                              {entry.workout?.day_of_week !== undefined ? DAYS_OF_WEEK[entry.workout.day_of_week] : ''}
+                              {entry.workout?.week?.week_number ? `, Week ${entry.workout.week.week_number}` : ''}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {entry.workout?.week?.program?.title || 'N/A'}

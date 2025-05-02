@@ -113,18 +113,18 @@ export const CreateExerciseForm = ({
         log_type: data.log_type
       });
       
-      if (result && result.error) {
+      if (result.error) {
         toast.error('Failed to create exercise');
         console.error('Error creating exercise:', result.error);
         return;
       }
       
-      if (result && result.isDuplicate) {
-        toast.error('An exercise with this name already exists');
-        return;
-      }
-      
-      if (result && result.exercise) {
+      if (result.isDuplicate) {
+        toast.warning(`Exercise "${data.name}" already exists!`);
+        if (onExerciseCreated && result.exercise) {
+          onExerciseCreated(result.exercise);
+        }
+      } else if (result.exercise) {
         toast.success(`Exercise "${data.name}" created successfully!`);
         if (onExerciseCreated) {
           onExerciseCreated(result.exercise);
@@ -165,7 +165,7 @@ export const CreateExerciseForm = ({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="category"
@@ -173,8 +173,8 @@ export const CreateExerciseForm = ({
                 <FormItem>
                   <FormLabel>Category *</FormLabel>
                   <Select
-                    value={field.value}
                     onValueChange={field.onChange}
+                    defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -182,7 +182,7 @@ export const CreateExerciseForm = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {EXERCISE_CATEGORIES.map(category => (
+                      {EXERCISE_CATEGORIES.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
@@ -193,63 +193,7 @@ export const CreateExerciseForm = ({
                 </FormItem>
               )}
             />
-            
-            <FormField
-              control={form.control}
-              name="exercise_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Exercise Type *</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select exercise type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {EXERCISE_TYPES.map(type => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="log_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Log Type *</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select how to log this exercise" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {LOG_TYPES.map(type => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -257,18 +201,81 @@ export const CreateExerciseForm = ({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Describe how to perform the exercise"
-                      className="resize-none"
-                      {...field}
+                    <Textarea 
+                      placeholder="Exercise description" 
+                      {...field} 
+                      value={field.value || ''}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            <DialogFooter>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="exercise_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Exercise Type</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {EXERCISE_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="log_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Logging Type</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="How to log it" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {LOG_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+              </DialogClose>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>

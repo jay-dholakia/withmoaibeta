@@ -1,391 +1,152 @@
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  ChevronLeft, 
+  Plus, 
+  Users,
+  Edit,
+  Dumbbell,
+  ArrowRight
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  fetchWorkoutProgram,
-  updateWorkoutProgram,
-  deleteWorkoutProgram,
-  fetchWorkoutWeeks
-} from '@/services/program-service';
-import {
-  fetchWorkoutsByWeekId,
-  createWorkout,
-  updateWorkout,
-  deleteWorkout,
-  createWorkouts,
-  Workout as WorkoutType
-} from '@/services/workout-service';
-import { WorkoutDay } from '@/components/coach/WorkoutDay';
-import { WorkoutWeekForm } from '@/components/coach/WorkoutWeekForm';
-import { WorkoutForm } from '@/components/coach/WorkoutForm';
+import { fetchWorkoutProgram, fetchWorkoutWeeks, fetchWorkoutsForWeek } from '@/services/workout-service';
+import { Badge } from '@/components/ui/badge';
 
-const formSchema = z.object({
-  title: z.string().min(2, {
-    message: "Title must be at least 2 characters.",
-  }),
-  description: z.string().optional(),
-  program_type: z.enum(['strength', 'run']).default('strength'),
-  weeks: z.number().min(1, {
-    message: "Weeks must be at least 1.",
-  }),
-})
-
-const WorkoutProgramDetailPage: React.FC = () => {
+const WorkoutProgramDetailPage = () => {
   const { programId } = useParams<{ programId: string }>();
-  const navigate = useNavigate();
   const { user } = useAuth();
-
-  const [program, setProgram] = useState<any>(null);
+  const navigate = useNavigate();
+  
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [program, setProgram] = useState<any>(null);
   const [weeks, setWeeks] = useState<any[]>([]);
-  const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
-  const [workouts, setWorkouts] = useState<WorkoutType[]>([]);
-  const [isCreatingWeek, setIsCreatingWeek] = useState(false);
-  const [isCreatingWorkout, setIsCreatingWorkout] = useState(false);
-  const [nextPriority, setNextPriority] = useState(0);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [weekWorkouts, setWeekWorkouts] = useState<Record<string, any[]>>({});
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-      program_type: 'strength',
-      weeks: 4
-    },
-  })
+  console.log("WorkoutProgramDetailPage: Component rendered with programId:", programId);
+  console.log("WorkoutProgramDetailPage: Current Auth User:", user?.id);
 
   useEffect(() => {
     const loadProgramDetails = async () => {
-      if (!programId) return;
-
-      setIsLoading(true);
+      if (!programId) {
+        console.error("No program ID provided in URL parameters");
+        setError("No program ID provided");
+        setIsLoading(false);
+        return;
+      }
+      
+      if (programId === 'create') {
+        console.error("Invalid program ID: 'create' is not a valid UUID");
+        setError("Invalid program ID");
+        setIsLoading(false);
+        return;
+      }
+      
       try {
+        console.log("Fetching program details for ID:", programId);
+        setIsLoading(true);
+        
         const programData = await fetchWorkoutProgram(programId);
+        console.log("Program data received:", programData);
+        
+        if (!programData) {
+          console.error("Program not found");
+          setError("Program not found or you don't have access to it");
+          setIsLoading(false);
+          return;
+        }
+        
         setProgram(programData);
-
-        form.setValue('title', programData.title);
-        form.setValue('description', programData.description || '');
-        form.setValue('program_type', programData.program_type || 'strength');
-        form.setValue('weeks', programData.weeks);
+        
+        const weeksData = await fetchWorkoutWeeks(programId);
+        console.log("Weeks data received:", weeksData);
+        
+        if (!weeksData) {
+          console.warn("Weeks data is null or undefined, setting empty array");
+          setWeeks([]);
+        } else {
+          setWeeks(weeksData);
+          
+          // Fetch workouts for each week
+          const workoutsData: Record<string, any[]> = {};
+          
+          for (const week of weeksData) {
+            const weekWorkouts = await fetchWorkoutsForWeek(week.id);
+            workoutsData[week.id] = weekWorkouts || [];
+          }
+          
+          setWeekWorkouts(workoutsData);
+        }
+        
       } catch (error) {
         console.error('Error loading program details:', error);
+        setError("Failed to load program details. Please try again.");
+        toast.error('Failed to load program details');
       } finally {
         setIsLoading(false);
       }
     };
-
+    
     loadProgramDetails();
-  }, [programId, form]);
+  }, [programId, navigate]);
 
-  useEffect(() => {
-    const loadWeeks = async () => {
-      if (!programId) return;
-
-      try {
-        const weeksData = await fetchWorkoutWeeks(programId);
-        setWeeks(weeksData);
-      } catch (error) {
-        console.error('Error loading weeks:', error);
-      }
+  // Function to get workout type badge
+  const getWorkoutTypeBadge = (type: string) => {
+    const typeColors: Record<string, string> = {
+      cardio: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+      strength: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+      mobility: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+      flexibility: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
     };
-
-    loadWeeks();
-  }, [programId]);
-
-  useEffect(() => {
-    const loadWorkouts = async () => {
-      if (!selectedWeekId) return;
-
-      try {
-        const workoutsData = await fetchWorkoutsByWeekId(selectedWeekId);
-        setWorkouts(workoutsData || []);
-      } catch (error) {
-        console.error('Error loading workouts:', error);
-      }
-    };
-
-    loadWorkouts();
-  }, [selectedWeekId]);
-
-  useEffect(() => {
-    // Calculate the next available priority when workouts change
-    if (workouts && workouts.length > 0) {
-      const maxPriority = workouts.reduce((max, workout) => {
-        return workout.priority && workout.priority > max ? workout.priority : max;
-      }, 0);
-      setNextPriority(maxPriority + 1);
-    } else {
-      setNextPriority(0);
-    }
-  }, [workouts]);
-
-  const handleWeekSelect = (weekId: string) => {
-    setSelectedWeekId(weekId);
+    
+    return (
+      <Badge 
+        variant="outline" 
+        className={`ml-2 ${typeColors[type] || 'bg-gray-100 text-gray-800'}`}
+      >
+        {type?.charAt(0).toUpperCase() + type?.slice(1)}
+      </Badge>
+    );
   };
 
-  const handleUpdateProgram = async (values: any) => {
-    if (!programId) return;
-
-    try {
-      setIsLoading(true);
-      await updateWorkoutProgram(programId, {
-        title: values.title,
-        description: values.description,
-        program_type: values.program_type,
-        weeks: values.weeks
-      });
-
-      setProgram({
-        ...program,
-        title: values.title,
-        description: values.description,
-        program_type: values.program_type,
-        weeks: values.weeks
-      });
-      toast.success('Program updated successfully');
-    } catch (error) {
-      console.error('Error updating program:', error);
-      toast.error('Failed to update program');
-    } finally {
-      setIsLoading(false);
-      setIsEditing(false);
-    }
-  };
-
-  const handleDeleteProgram = async () => {
-    if (!programId) return;
-
-    try {
-      setIsDeleting(true);
-      await deleteWorkoutProgram(programId);
-      toast.success('Program deleted successfully');
-      navigate('/coach-dashboard/workouts');
-    } catch (error) {
-      console.error('Error deleting program:', error);
-      toast.error('Failed to delete program');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleCreateWeek = async (values: any) => {
-    if (!programId) return;
-
-    setIsCreatingWeek(true);
-    try {
-      // Create week
-      // toast.success('Workout week created successfully');
-      await loadWeeksData();
-    } catch (error) {
-      console.error('Error creating workout week:', error);
-      toast.error('Failed to create workout week');
-    } finally {
-      setIsCreatingWeek(false);
-    }
-  };
-
-  const loadWeeksData = async () => {
-    if (!programId) return;
-
-    try {
-      const weeksData = await fetchWorkoutWeeks(programId);
-      setWeeks(weeksData);
-    } catch (error) {
-      console.error('Error loading weeks:', error);
-    }
-  };
-
-  const handleUpdateWorkout = async (workoutId: string, values: any) => {
-    try {
-      await updateWorkout(workoutId, values);
-      toast.success('Workout updated successfully');
-      await loadWorkoutsData();
-    } catch (error) {
-      console.error('Error updating workout:', error);
-      toast.error('Failed to update workout');
-    }
-  };
-
-  const handleDeleteWorkout = async (workoutId: string) => {
-    try {
-      await deleteWorkout(workoutId);
-      toast.success('Workout deleted successfully');
-      await loadWorkoutsData();
-    } catch (error) {
-      console.error('Error deleting workout:', error);
-      toast.error('Failed to delete workout');
-    }
-  };
-
-  const loadWorkoutsData = async () => {
-    if (!selectedWeekId) return;
-
-    try {
-      const workoutsData = await fetchWorkoutsByWeekId(selectedWeekId);
-      setWorkouts(workoutsData || []);
-    } catch (error) {
-      console.error('Error loading workouts:', error);
-    }
-  };
-
-  const createWorkoutsFormSchema = z.object({
-    workouts: z.array(
-      z.object({
-        week_id: z.string(),
-        title: z.string(),
-        description: z.string().optional(),
-        workout_type: z.enum(['strength', 'cardio', 'flexibility', 'mobility']),
-        priority: z.number(),
-        day_of_week: z.number()
-      })
-    )
+  console.log("WorkoutProgramDetailPage: Current state:", { 
+    isLoading, 
+    error, 
+    programExists: !!program,
+    weeksCount: weeks?.length 
   });
 
-  const createWorkouts = async () => {
-    if (!selectedWeekId) return;
-
-    setIsCreatingWorkout(true);
-    try {
-      // Get template days
-      const templateDays = [
-        { title: 'Monday', description: 'Strength Training', workout_type: 'strength' },
-        { title: 'Tuesday', description: 'Cardio', workout_type: 'cardio' },
-        { title: 'Wednesday', description: 'Rest or Active Recovery', workout_type: 'flexibility' },
-        { title: 'Thursday', description: 'Strength Training', workout_type: 'strength' },
-        { title: 'Friday', description: 'Cardio', workout_type: 'cardio' },
-        { title: 'Saturday', description: 'Active Recovery', workout_type: 'mobility' },
-        { title: 'Sunday', description: 'Rest', workout_type: 'flexibility' },
-      ];
-
-      // Create batch of default workouts for the week
-      const defaultWorkouts = templateDays.map((day, index) => ({
-        week_id: selectedWeekId,
-        title: day.title,
-        description: day.description,
-        workout_type: day.workout_type,
-        priority: index,
-        day_of_week: index + 1 // Add the day_of_week property
-      }));
-
-      // Validate the workouts array against the schema
-      const validatedWorkouts = createWorkoutsFormSchema.safeParse({ workouts: defaultWorkouts });
-
-      if (!validatedWorkouts.success) {
-        console.error("Validation Error", validatedWorkouts.error);
-        toast.error("Validation failed. Check console for details.");
-        return;
-      }
-
-      // If validation passes, proceed to create the workouts
-      await createWorkouts(validatedWorkouts.data.workouts);
-
-      toast.success('Default workouts created successfully');
-      await loadWorkoutsData();
-    } catch (error) {
-      console.error('Error creating default workouts:', error);
-      toast.error('Failed to create default workouts');
-    } finally {
-      setIsCreatingWorkout(false);
-    }
-  };
-
-  const workoutFormSchema = z.object({
-    week_id: z.string(),
-    title: z.string().min(2, {
-      message: "Title must be at least 2 characters.",
-    }),
-    description: z.string().optional(),
-    workout_type: z.enum(['strength', 'cardio', 'flexibility', 'mobility']).default('strength'),
-    priority: z.number(),
-    day_of_week: z.number()
-  });
-
-  const createWorkout = async () => {
-    if (!selectedWeekId) return;
-
-    setIsCreatingWorkout(true);
-    try {
-      const workoutForm = useForm<z.infer<typeof workoutFormSchema>>({
-        resolver: zodResolver(workoutFormSchema),
-        defaultValues: {
-          week_id: selectedWeekId,
-          title: 'New Workout',
-          description: '',
-          workout_type: 'strength',
-          priority: nextPriority,
-          day_of_week: nextPriority + 1 // Add the day_of_week property
-        },
-      });
-
-      const formData = workoutForm.getValues();
-
-      const newWorkout = {
-        week_id: selectedWeekId,
-        title: formData.title,
-        description: formData.description,
-        workout_type: formData.workout_type,
-        priority: nextPriority,
-        day_of_week: nextPriority + 1 // Add the day_of_week property
-      };
-
-      await createWorkout(newWorkout);
-
-      toast.success('Workout created successfully');
-      await loadWorkoutsData();
-    } catch (error) {
-      console.error('Error creating workout:', error);
-      toast.error('Failed to create workout');
-    } finally {
-      setIsCreatingWorkout(false);
-    }
-  };
+  if (error) {
+    return (
+      <CoachLayout>
+        <div className="container mx-auto px-4 py-6">
+          <div className="text-center p-10">
+            <h2 className="text-xl font-semibold mb-4 text-red-500">Error</h2>
+            <p className="mb-6">{error}</p>
+            <Button onClick={() => navigate('/coach-dashboard/workouts')}>
+              Back to Programs
+            </Button>
+          </div>
+        </div>
+      </CoachLayout>
+    );
+  }
 
   if (isLoading) {
     return (
       <CoachLayout>
-        <div className="container mx-auto p-4">
-          Loading program details...
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex justify-center items-center h-64">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+              <p>Loading program details...</p>
+            </div>
+          </div>
         </div>
       </CoachLayout>
     );
@@ -394,263 +155,165 @@ const WorkoutProgramDetailPage: React.FC = () => {
   if (!program) {
     return (
       <CoachLayout>
-        <div className="container mx-auto p-4">
-          Program not found
+        <div className="container mx-auto px-4 py-6">
+          <div className="text-center p-10">
+            <h2 className="text-xl font-medium mb-2">Program not found</h2>
+            <p className="text-muted-foreground mb-4">
+              The program you're looking for doesn't exist or you don't have permission to view it.
+            </p>
+            <Button onClick={() => navigate('/coach-dashboard/workouts')}>
+              Back to Programs
+            </Button>
+          </div>
         </div>
       </CoachLayout>
     );
   }
 
+  const ProgramTypeIcon = program?.program_type === 'run' ? '🏃' : <Dumbbell className="h-3.5 w-3.5" />;
+
   return (
     <CoachLayout>
-      <div className="container mx-auto p-4">
-        <Button variant="ghost" onClick={() => navigate('/coach-dashboard/workouts')}>
+      <div className="container mx-auto px-4 py-6">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="mb-6 gap-1" 
+          onClick={() => navigate('/coach-dashboard/workouts')}
+        >
+          <ChevronLeft className="h-4 w-4" />
           Back to Programs
         </Button>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{program.title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="details" className="w-full space-y-4">
-              <TabsList>
-                <TabsTrigger value="details">Program Details</TabsTrigger>
-                <TabsTrigger value="weeks">Workout Weeks</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="details" className="space-y-4">
-                {isEditing ? (
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleUpdateProgram)} className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="title"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Title</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Workout Program Title" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Description</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Workout Program Description" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="program_type"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Program Type</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a program type" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="strength">Strength</SelectItem>
-                                <SelectItem value="run">Run</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormDescription>
-                              This is the program type.
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="weeks"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Weeks</FormLabel>
-                            <FormControl>
-                              <Input type="number" placeholder="Number of Weeks" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="flex justify-end">
-                        <Button variant="ghost" onClick={() => setIsEditing(false)}>
-                          Cancel
-                        </Button>
-                        <Button type="submit" disabled={isLoading}>
-                          {isLoading ? (
-                            <>
-                              Updating <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                            </>
-                          ) : 'Update Program'}
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
+        
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">{program.title}</h1>
+              <Badge variant="outline" className="flex items-center gap-1">
+                {typeof ProgramTypeIcon === 'string' ? (
+                  <span className="mr-1">{ProgramTypeIcon}</span>
                 ) : (
-                  <>
-                    <p>Description: {program.description || 'No description'}</p>
-                    <p>Weeks: {program.weeks}</p>
-                    <p>Type: {program.program_type}</p>
-                    <div className="flex gap-2">
-                      <Button onClick={() => setIsEditing(true)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Program
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Program
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete this program and remove all of its data.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction disabled={isDeleting} onClick={handleDeleteProgram}>
-                              {isDeleting ? (
-                                <>
-                                  Deleting <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                                </>
-                              ) : 'Delete'}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </>
+                  ProgramTypeIcon
                 )}
-              </TabsContent>
-
-              <TabsContent value="weeks">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-lg font-semibold">Workout Weeks</h2>
-                    <Button onClick={() => setIsCreatingWeek(true)}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create Week
-                    </Button>
-                  </div>
-
-                  {isCreatingWeek && (
-                    <Card>
-                      <CardContent>
-                        <WorkoutWeekForm
-                          programId={programId}
-                          onCreate={handleCreateWeek}
-                          onCancel={() => setIsCreatingWeek(false)}
-                        />
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {weeks.length === 0 ? (
-                    <Card>
-                      <CardContent className="text-center">
-                        No workout weeks created yet.
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {weeks.map((week) => (
-                        <Card
-                          key={week.id}
-                          className={`cursor-pointer ${selectedWeekId === week.id ? 'border-2 border-primary' : ''}`}
-                          onClick={() => handleWeekSelect(week.id)}
+                <span>Moai {program.program_type === 'run' ? 'Run' : 'Strength'}</span>
+              </Badge>
+            </div>
+            {program.description && (
+              <p className="text-muted-foreground mt-1">{program.description}</p>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate(`/coach-dashboard/workouts/${programId}/assign`)}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Assign
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate(`/coach-dashboard/workouts/${programId}/edit`)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          </div>
+        </div>
+        
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-xl font-semibold">Program Weeks</h2>
+            {program.weeks && (
+              <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-slate-100">
+                {weeks.length}/{program.weeks} Weeks
+              </span>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {program.weeks && Array.from({ length: program.weeks }, (_, i) => {
+              const weekNumber = i + 1;
+              const weekEntry = weeks.find(w => w.week_number === weekNumber);
+              const weekId = weekEntry?.id;
+              const workouts = weekId ? weekWorkouts[weekId] || [] : [];
+              
+              return (
+                <Card key={weekNumber} className={weekEntry ? 'border-slate-200' : 'border-dashed border-slate-300'}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex justify-between items-center">
+                      <span>Week {weekNumber}</span>
+                      {weekEntry && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => navigate(`/workout-weeks/${weekEntry.id}`)}
+                          className="h-8"
                         >
-                          <CardHeader>
-                            <CardTitle>Week {week.week_number}</CardTitle>
-                            <CardDescription>{week.title}</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <p>Start Date: {week.start_date}</p>
-                            <p>End Date: {week.end_date}</p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {selectedWeekId && (
-                  <div className="mt-8 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-xl font-semibold">Workouts for Week</h3>
-                      <div className="flex gap-2">
-                        <Button onClick={createWorkouts} disabled={isCreatingWorkout}>
-                          {isCreatingWorkout ? (
-                            <>
-                              Creating <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="mr-2 h-4 w-4" />
-                              Create Default Workouts
-                            </>
-                          )}
+                          <ArrowRight className="h-4 w-4" />
                         </Button>
-                        <Button onClick={createWorkout} disabled={isCreatingWorkout}>
-                          {isCreatingWorkout ? (
-                            <>
-                              Creating <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="mr-2 h-4 w-4" />
-                              Create Workout
-                            </>
-                          )}
+                      )}
+                    </CardTitle>
+                    {weekEntry && weekEntry.title && weekEntry.title !== `Week ${weekNumber}` && (
+                      <p className="text-sm text-muted-foreground">{weekEntry.title}</p>
+                    )}
+                  </CardHeader>
+                  <CardContent className="pb-4">
+                    {weekEntry ? (
+                      <div>
+                        {weekEntry.description && (
+                          <p className="text-sm text-muted-foreground mb-3">{weekEntry.description}</p>
+                        )}
+                        
+                        {workouts.length > 0 ? (
+                          <div className="space-y-2">
+                            <h3 className="text-sm font-medium">Workouts:</h3>
+                            <ul className="space-y-1.5">
+                              {workouts.map(workout => (
+                                <li key={workout.id} className="text-sm flex items-center">
+                                  <span>{workout.title}</span>
+                                  {workout.workout_type && getWorkoutTypeBadge(workout.workout_type)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic mt-2">No workouts added yet</p>
+                        )}
+                        
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="mt-3"
+                          onClick={() => navigate(`/workout-weeks/${weekEntry.id}`)}
+                        >
+                          <Edit className="h-3.5 w-3.5 mr-2" />
+                          Edit Week
                         </Button>
                       </div>
-                    </div>
-
-                    {workouts.length === 0 ? (
-                      <Card>
-                        <CardContent className="text-center">
-                          No workouts created for this week yet.
-                        </CardContent>
-                      </Card>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {workouts.map((workout) => (
-                          <WorkoutDay
-                            key={workout.id}
-                            workout={workout}
-                            onUpdate={handleUpdateWorkout}
-                            onDelete={handleDeleteWorkout}
-                          />
-                        ))}
+                      <div className="text-center py-2">
+                        <p className="text-sm text-muted-foreground italic mb-2">No content added yet</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/coach-dashboard/workouts/${programId}/create-week`, { 
+                            state: { weekNumber }
+                          })}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Content
+                        </Button>
                       </div>
                     )}
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </CoachLayout>
   );

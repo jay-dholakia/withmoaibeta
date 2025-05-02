@@ -7,7 +7,6 @@ export interface Exercise {
   exercise_type: string; 
   youtube_link?: string;
   muscle_group: string | null;
-  log_type?: string;
 }
 
 export interface WorkoutProgram {
@@ -40,6 +39,7 @@ export interface WorkoutWeek {
 export interface Workout {
   id: string;
   week_id: string;
+  day_of_week: number;
   title: string;
   description: string | null;
   created_at: string;
@@ -76,6 +76,7 @@ export interface WorkoutBasic {
   id: string;
   title: string;
   description?: string;
+  day_of_week: number;
   week_id: string;
   priority?: number;
   week?: {
@@ -110,8 +111,6 @@ export interface WorkoutExercise {
   duration?: string;
   location?: string;
   completed_date?: string;
-  superset_group_id?: string | null;
-  superset_order?: number | null;
 }
 
 export interface ProgramAssignment {
@@ -206,17 +205,13 @@ export const STANDARD_WORKOUT_TYPES = [
   'skiing',
   'yoga',
   'running',
-  'live_run',
-  'mobility'
+  'live_run'
 ] as const;
 
 export type StandardWorkoutType = typeof STANDARD_WORKOUT_TYPES[number];
 
 export const PROGRAM_TYPES = ['strength', 'run'] as const;
 export type ProgramType = typeof PROGRAM_TYPES[number];
-
-// Define a type for workout types specifically used in workout forms
-export type WorkoutFormType = "strength" | "cardio" | "flexibility" | "mobility" | StandardWorkoutType;
 
 export interface ClientProfile {
   id?: string;

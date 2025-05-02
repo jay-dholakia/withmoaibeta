@@ -28,7 +28,7 @@ import {
 import { CalendarIcon, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { fetchWorkoutPrograms, fetchAllClients, assignProgramToUser } from '@/services/program-service';
+import { fetchWorkoutPrograms, fetchAllClients, assignProgramToUser } from '@/services/workout-service';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -61,7 +61,6 @@ export const AssignProgramForm: React.FC<AssignProgramFormProps> = ({
   const [clients, setClients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [clientsLoading, setClientsLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -80,19 +79,9 @@ export const AssignProgramForm: React.FC<AssignProgramFormProps> = ({
         const programsData = await fetchWorkoutPrograms(user?.id);
         setPrograms(programsData);
         
-        const loadClients = async () => {
-          try {
-            const clientsData = await fetchAllClients();
-            setClients(clientsData);
-          } catch (error) {
-            console.error('Error loading clients:', error);
-            toast.error('Failed to load clients');
-          } finally {
-            setClientsLoading(false);
-          }
-        };
-        
-        loadClients();
+        const clientsData = await fetchAllClients();
+        setClients(clientsData);
+        console.log("Fetched clients with full info:", clientsData);
         
         setIsLoading(false);
       } catch (error) {
@@ -134,7 +123,8 @@ export const AssignProgramForm: React.FC<AssignProgramFormProps> = ({
         program_id: values.programId,
         user_id: values.clientId,
         assigned_by: user.id,
-        start_date: format(values.startDate, 'yyyy-MM-dd')
+        start_date: format(values.startDate, 'yyyy-MM-dd'),
+        end_date: null
       });
       
       toast.success('Program assigned successfully');

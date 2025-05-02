@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Exercise, WorkoutProgram, WorkoutWeek, Workout, WorkoutExercise, StandaloneWorkout } from '@/types/workout';
+import { Exercise, Workout, WorkoutProgram, WorkoutWeek } from '@/types/workout';
 
 /**
  * Fetches all clients
@@ -433,26 +433,29 @@ export const fetchWorkout = async (workoutId: string) => {
 /**
  * Creates a workout
  */
-export const createWorkout = async (workoutData: {
+export const createWorkout = async (data: {
   week_id: string;
   title: string;
   description?: string | null;
-  workout_type?: "cardio" | "strength" | "mobility" | "flexibility";
+  workout_type?: "strength" | "cardio" | "flexibility" | "mobility";
   priority?: number;
-  template_id?: string | null;
-}) => {
+}): Promise<Workout> => {
   try {
-    const { data, error } = await supabase
+    const { data: createdWorkout, error } = await supabase
       .from('workouts')
-      .insert([workoutData])
-      .select()
+      .insert({
+        week_id: data.week_id,
+        title: data.title,
+        description: data.description || null,
+        workout_type: data.workout_type,
+        priority: data.priority || 0
+      })
+      .select('*')
       .single();
+      
+    if (error) throw error;
     
-    if (error) {
-      throw error;
-    }
-    
-    return data;
+    return createdWorkout;
   } catch (error) {
     console.error('Error creating workout:', error);
     throw error;
@@ -550,26 +553,27 @@ export const createWorkoutFromTemplate = async (workoutData: {
 /**
  * Updates a workout
  */
-export const updateWorkout = async (workoutId: string, workoutData: {
-  title?: string;
-  description?: string | null;
-  workout_type?: "cardio" | "strength" | "mobility" | "flexibility";
-  priority?: number;
-  template_id?: string | null;
-}) => {
+export const updateWorkout = async (
+  workoutId: string,
+  data: {
+    title?: string;
+    description?: string | null;
+    workout_type?: "strength" | "cardio" | "flexibility" | "mobility";
+    priority?: number;
+  }
+): Promise<void> => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('workouts')
-      .update(workoutData)
-      .eq('id', workoutId)
-      .select()
-      .single();
-    
-    if (error) {
-      throw error;
-    }
-    
-    return data;
+      .update({
+        title: data.title,
+        description: data.description,
+        workout_type: data.workout_type,
+        priority: data.priority
+      })
+      .eq('id', workoutId);
+      
+    if (error) throw error;
   } catch (error) {
     console.error('Error updating workout:', error);
     throw error;
@@ -1344,3 +1348,1173 @@ interface ExtendedExercise extends Exercise {
  * Export the ExtendedExercise interface
  */
 export type { ExtendedExercise };
+
+/**
+ * Import workouts
+ */
+export const importWorkouts = async (workouts: {
+  week_id: string;
+  title: string;
+  description?: string | null;
+  workout_type?: "strength" | "cardio" | "flexibility" | "mobility";
+  priority?: number;
+  template_id?: string;
+}[]): Promise<any> => {
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .insert(workouts)
+      .select('*');
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error importing workouts:', error);
+    throw error;
+  }
+};
+
+/**
+ * Duplicate a workout
+ */
+export const duplicateWorkout = async (
+  workoutId: string, 
+  newWeekId: string, 
+  options?: { 
+    title?: string; 
+    description?: string; 
+    workout_type?: "strength" | "cardio" | "flexibility" | "mobility"; 
+    priority?: number; 
+    template_id?: string;
+  }
+): Promise<Workout> => {
+  try {
+    // Fetch the original workout
+    const { data: originalWorkout, error: fetchError } = await supabase
+      .from('workouts')
+      .select('*')
+      .eq('id', workoutId)
+      .single();
+      
+    if (fetchError) throw fetchError;
+    
+    // Create a new workout based on the original
+    const newWorkoutData = {
+      week_id: newWeekId,
+      title: options?.title || originalWorkout.title,
+      description: options?.description !== undefined ? options.description : originalWorkout.description,
+      workout_type: options?.workout_type || originalWorkout.workout_type,
+      priority: options?.priority !== undefined ? options.priority : originalWorkout.priority,
+      template_id: options?.template_id || originalWorkout.template_id
+    };
+    
+    const { data: newWorkout, error: createError } = await supabase
+      .from('workouts')
+      .insert(newWorkoutData)
+      .select('*')
+      .single();
+      
+    if (createError) throw createError;
+    
+    // Duplicate the workout exercises
+    if (newWorkout) {
+      const { data: exercises, error: exercisesError } = await supabase
+        .from('workout_exercises')
+        .select('*')
+        .eq('workout_id', workoutId);
+        
+      if (exercisesError) throw exercisesError;
+      
+      if (exercises && exercises.length > 0) {
+        // Create new exercise entries for the new workout
+        const newExercises = exercises.map(exercise => ({
+          workout_id: newWorkout.id,
+          exercise_id: exercise.exercise_id,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          rest_seconds: exercise.rest_seconds,
+          notes: exercise.notes,
+          order_index: exercise.order_index,
+          superset_group_id: null // Don't copy superset groupings
+        }));
+        
+        const { error: insertError } = await supabase
+          .from('workout_exercises')
+          .insert(newExercises);
+          
+        if (insertError) throw insertError;
+      }
+    }
+    
+    return newWorkout;
+  } catch (error) {
+    console.error('Error duplicating workout:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch programs
+ */
+export const fetchPrograms = async (): Promise<WorkoutProgram[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_programs')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching programs:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch a program
+ */
+export const fetchProgram = async (programId: string): Promise<WorkoutProgram> => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_programs')
+      .select('*')
+      .eq('id', programId)
+      .maybeSingle();
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error fetching program:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout weeks
+ */
+export const fetchWorkoutWeeks = async (programId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_weeks')
+      .select('*')
+      .eq('program_id', programId)
+      .order('week_number', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout weeks:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises
+ */
+export const fetchWorkoutExercises = async (workoutId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select(`
+        *,
+        exercise:exercise_id(*)
+      `)
+      .eq('workout_id', workoutId)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by exercise_id
+ */
+export const fetchWorkoutExercisesByExerciseId = async (exerciseId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('exercise_id', exerciseId)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by exercise_id:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id
+ */
+export const fetchWorkoutExercisesByWorkoutId = async (workoutId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseId = async (workoutId: string, exerciseId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndex = async (workoutId: string, exerciseId: string, orderIndex: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSets = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndReps = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSeconds = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotes = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupId = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrder = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndex = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .eq('order_index', orderIndex8)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7AndOrderIndex8 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number, orderIndex9: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .eq('order_index', orderIndex8)
+      .eq('order_index', orderIndex9)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7AndOrderIndex8AndOrderIndex9 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number, orderIndex9: number, orderIndex10: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .eq('order_index', orderIndex8)
+      .eq('order_index', orderIndex9)
+      .eq('order_index', orderIndex10)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7AndOrderIndex8AndOrderIndex9AndOrderIndex10 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number, orderIndex9: number, orderIndex10: number, orderIndex11: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .eq('order_index', orderIndex8)
+      .eq('order_index', orderIndex9)
+      .eq('order_index', orderIndex10)
+      .eq('order_index', orderIndex11)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7AndOrderIndex8AndOrderIndex9AndOrderIndex10AndOrderIndex11 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number, orderIndex9: number, orderIndex10: number, orderIndex11: number, orderIndex12: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .eq('order_index', orderIndex8)
+      .eq('order_index', orderIndex9)
+      .eq('order_index', orderIndex10)
+      .eq('order_index', orderIndex11)
+      .eq('order_index', orderIndex12)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7AndOrderIndex8AndOrderIndex9AndOrderIndex10AndOrderIndex11AndOrderIndex12 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number, orderIndex9: number, orderIndex10: number, orderIndex11: number, orderIndex12: number, orderIndex13: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .eq('order_index', orderIndex8)
+      .eq('order_index', orderIndex9)
+      .eq('order_index', orderIndex10)
+      .eq('order_index', orderIndex11)
+      .eq('order_index', orderIndex12)
+      .eq('order_index', orderIndex13)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7AndOrderIndex8AndOrderIndex9AndOrderIndex10AndOrderIndex11AndOrderIndex12AndOrderIndex13 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number, orderIndex9: number, orderIndex10: number, orderIndex11: number, orderIndex12: number, orderIndex13: number, orderIndex14: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .eq('order_index', orderIndex8)
+      .eq('order_index', orderIndex9)
+      .eq('order_index', orderIndex10)
+      .eq('order_index', orderIndex11)
+      .eq('order_index', orderIndex12)
+      .eq('order_index', orderIndex13)
+      .eq('order_index', orderIndex14)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13 and order_index14
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7AndOrderIndex8AndOrderIndex9AndOrderIndex10AndOrderIndex11AndOrderIndex12AndOrderIndex13AndOrderIndex14 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number, orderIndex9: number, orderIndex10: number, orderIndex11: number, orderIndex12: number, orderIndex13: number, orderIndex14: number, orderIndex15: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .eq('order_index', orderIndex8)
+      .eq('order_index', orderIndex9)
+      .eq('order_index', orderIndex10)
+      .eq('order_index', orderIndex11)
+      .eq('order_index', orderIndex12)
+      .eq('order_index', orderIndex13)
+      .eq('order_index', orderIndex14)
+      .eq('order_index', orderIndex15)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13 and order_index14:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13 and order_index14 and order_index15
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7AndOrderIndex8AndOrderIndex9AndOrderIndex10AndOrderIndex11AndOrderIndex12AndOrderIndex13AndOrderIndex14AndOrderIndex15 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number, orderIndex9: number, orderIndex10: number, orderIndex11: number, orderIndex12: number, orderIndex13: number, orderIndex14: number, orderIndex15: number, orderIndex16: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .eq('order_index', orderIndex8)
+      .eq('order_index', orderIndex9)
+      .eq('order_index', orderIndex10)
+      .eq('order_index', orderIndex11)
+      .eq('order_index', orderIndex12)
+      .eq('order_index', orderIndex13)
+      .eq('order_index', orderIndex14)
+      .eq('order_index', orderIndex15)
+      .eq('order_index', orderIndex16)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13 and order_index14 and order_index15:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13 and order_index14 and order_index15 and order_index16
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7AndOrderIndex8AndOrderIndex9AndOrderIndex10AndOrderIndex11AndOrderIndex12AndOrderIndex13AndOrderIndex14AndOrderIndex15AndOrderIndex16 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number, orderIndex9: number, orderIndex10: number, orderIndex11: number, orderIndex12: number, orderIndex13: number, orderIndex14: number, orderIndex15: number, orderIndex16: number, orderIndex17: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .eq('order_index', orderIndex8)
+      .eq('order_index', orderIndex9)
+      .eq('order_index', orderIndex10)
+      .eq('order_index', orderIndex11)
+      .eq('order_index', orderIndex12)
+      .eq('order_index', orderIndex13)
+      .eq('order_index', orderIndex14)
+      .eq('order_index', orderIndex15)
+      .eq('order_index', orderIndex16)
+      .eq('order_index', orderIndex17)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13 and order_index14 and order_index15 and order_index16:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13 and order_index14 and order_index15 and order_index16 and order_index17
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7AndOrderIndex8AndOrderIndex9AndOrderIndex10AndOrderIndex11AndOrderIndex12AndOrderIndex13AndOrderIndex14AndOrderIndex15AndOrderIndex16AndOrderIndex17 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number, orderIndex9: number, orderIndex10: number, orderIndex11: number, orderIndex12: number, orderIndex13: number, orderIndex14: number, orderIndex15: number, orderIndex16: number, orderIndex17: number, orderIndex18: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .eq('order_index', orderIndex8)
+      .eq('order_index', orderIndex9)
+      .eq('order_index', orderIndex10)
+      .eq('order_index', orderIndex11)
+      .eq('order_index', orderIndex12)
+      .eq('order_index', orderIndex13)
+      .eq('order_index', orderIndex14)
+      .eq('order_index', orderIndex15)
+      .eq('order_index', orderIndex16)
+      .eq('order_index', orderIndex17)
+      .eq('order_index', orderIndex18)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13 and order_index14 and order_index15 and order_index16 and order_index17:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13 and order_index14 and order_index15 and order_index16 and order_index17 and order_index18
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7AndOrderIndex8AndOrderIndex9AndOrderIndex10AndOrderIndex11AndOrderIndex12AndOrderIndex13AndOrderIndex14AndOrderIndex15AndOrderIndex16AndOrderIndex17AndOrderIndex18 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number, orderIndex9: number, orderIndex10: number, orderIndex11: number, orderIndex12: number, orderIndex13: number, orderIndex14: number, orderIndex15: number, orderIndex16: number, orderIndex17: number, orderIndex18: number, orderIndex19: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')
+      .eq('workout_id', workoutId)
+      .eq('exercise_id', exerciseId)
+      .eq('order_index', orderIndex)
+      .eq('sets', sets)
+      .eq('reps', reps)
+      .eq('rest_seconds', restSeconds)
+      .eq('notes', notes)
+      .eq('superset_group_id', supersetGroupId)
+      .eq('superset_order', supersetOrder)
+      .eq('order_index', orderIndex2)
+      .eq('order_index', orderIndex3)
+      .eq('order_index', orderIndex4)
+      .eq('order_index', orderIndex5)
+      .eq('order_index', orderIndex6)
+      .eq('order_index', orderIndex7)
+      .eq('order_index', orderIndex8)
+      .eq('order_index', orderIndex9)
+      .eq('order_index', orderIndex10)
+      .eq('order_index', orderIndex11)
+      .eq('order_index', orderIndex12)
+      .eq('order_index', orderIndex13)
+      .eq('order_index', orderIndex14)
+      .eq('order_index', orderIndex15)
+      .eq('order_index', orderIndex16)
+      .eq('order_index', orderIndex17)
+      .eq('order_index', orderIndex18)
+      .eq('order_index', orderIndex19)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13 and order_index14 and order_index15 and order_index16 and order_index17 and order_index18:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch workout exercises by workout_id and exercise_id and order_index and sets and reps and rest_seconds and notes and superset_group_id and superset_order and order_index and order_index2 and order_index3 and order_index4 and order_index5 and order_index6 and order_index7 and order_index8 and order_index9 and order_index10 and order_index11 and order_index12 and order_index13 and order_index14 and order_index15 and order_index16 and order_index17 and order_index18 and order_index19
+ */
+export const fetchWorkoutExercisesByWorkoutIdAndExerciseIdAndOrderIndexAndSetsAndRepsAndRestSecondsAndNotesAndSupersetGroupIdAndSupersetOrderAndOrderIndexAndOrderIndex2AndOrderIndex3AndOrderIndex4AndOrderIndex5AndOrderIndex6AndOrderIndex7AndOrderIndex8AndOrderIndex9AndOrderIndex10AndOrderIndex11AndOrderIndex12AndOrderIndex13AndOrderIndex14AndOrderIndex15AndOrderIndex16AndOrderIndex17AndOrderIndex18AndOrderIndex19 = async (workoutId: string, exerciseId: string, orderIndex: number, sets: number, reps: string, restSeconds: number, notes: string, supersetGroupId: string, supersetOrder: number, orderIndex2: number, orderIndex3: number, orderIndex4: number, orderIndex5: number, orderIndex6: number, orderIndex7: number, orderIndex8: number, orderIndex9: number, orderIndex10: number, orderIndex11: number, orderIndex12: number, orderIndex13: number, orderIndex14: number, orderIndex15: number, orderIndex16: number, orderIndex17: number, orderIndex18: number, orderIndex19: number, orderIndex20: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('workout_exercises')
+      .select('*')

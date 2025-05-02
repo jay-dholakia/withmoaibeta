@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,6 @@ interface WorkoutCardProps {
   currentUserId: string;
   onStartWorkout: (workoutId: string) => void;
   completed?: boolean;
-  dayOfWeek?: number;
   exercises?: any[];
   isLifeHappensPass?: boolean;
 }
@@ -45,7 +45,6 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   currentUserId,
   onStartWorkout,
   completed = false,
-  dayOfWeek,
   exercises = [],
   isLifeHappensPass = false
 }) => {
@@ -92,13 +91,16 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
                         {member.profile_picture_url && (
                           <AvatarImage src={member.profile_picture_url} alt={member.name} />
                         )}
-                        <AvatarFallback className="bg-client/80 text-white text-xs">
+                        <AvatarFallback className="bg-muted-foreground/20 text-foreground">
                           {getMemberInitials(member.name)}
                         </AvatarFallback>
                       </Avatar>
                     </TooltipTrigger>
-                    <TooltipContent className="dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
-                      <p>{member.name} {hasCompleted ? '(Completed)' : '(Not Completed)'}</p>
+                    <TooltipContent className="py-1 px-2" side="top">
+                      <p className="text-xs">{member.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {hasCompleted ? 'Completed' : 'Not completed'}
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 );
@@ -108,67 +110,60 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         )}
       </CardHeader>
       
-      <CardContent className="px-3 pb-1 pt-0">
-        {description && !isLifeHappensPass && (
-          <p className="text-xs text-muted-foreground dark:text-gray-300">{description}</p>
-        )}
-        
-        {isLifeHappensPass && (
-          <p className="text-xs text-muted-foreground dark:text-gray-300">Workout credit used via Life Happens Pass</p>
-        )}
-        
-        {exercises && exercises.length > 0 && !isLifeHappensPass && (
-          <Collapsible
-            open={isExpanded}
-            onOpenChange={setIsExpanded}
-            className="mt-1 space-y-1"
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground dark:text-gray-300">
-                {exercises.length} exercise{exercises.length !== 1 ? 's' : ''}
-              </p>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700">
-                  {isExpanded ? (
-                    <ChevronUp className="h-3 w-3" />
-                  ) : (
-                    <ChevronDown className="h-3 w-3" />
-                  )}
-                  <span className="sr-only">Toggle exercises</span>
-                </Button>
+      <CardContent className="px-3 pb-0">
+        {description && (
+          <Collapsible open={isExpanded}>
+            <CollapsibleContent>
+              <p className="text-sm text-muted-foreground pb-3">{description}</p>
+            </CollapsibleContent>
+            {description.length > 0 && (
+              <CollapsibleTrigger 
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center py-1 w-full justify-center"
+                onClick={() => setIsExpanded(!isExpanded)}
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronUp className="h-3 w-3 mr-1" /> Show Less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3 w-3 mr-1" /> Show More
+                  </>
+                )}
               </CollapsibleTrigger>
-            </div>
-            
-            <CollapsibleContent className="space-y-0.5">
-              {exercises.map((exercise, index) => (
-                <div 
-                  key={exercise.id || index}
-                  className="text-xs py-0.5 border-t first:border-t-0 border-gray-100 dark:border-gray-700"
-                >
-                  <p className="font-medium dark:text-gray-200">{exercise.title || exercise.exercise?.name}</p>
-                  <p className="text-muted-foreground dark:text-gray-400">
-                    {exercise.sets} {exercise.sets === 1 ? 'set' : 'sets'} × {exercise.reps}
-                  </p>
+            )}
+          </Collapsible>
+        )}
+        
+        {exercises && exercises.length > 0 && (
+          <div className="pb-3">
+            <p className="text-xs text-muted-foreground mb-1">
+              {exercises.length} {exercises.length === 1 ? 'exercise' : 'exercises'}
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {exercises.slice(0, 3).map((exercise) => (
+                <div key={exercise.id} className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                  {exercise.exercise?.name || 'Exercise'}
                 </div>
               ))}
-            </CollapsibleContent>
-          </Collapsible>
+              {exercises.length > 3 && (
+                <div className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                  +{exercises.length - 3} more
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </CardContent>
       
-      <CardFooter className="p-2 flex flex-col gap-1">
+      <CardFooter className="px-3 py-3 pt-2 border-t border-border/50">
         <Button 
-          className={cn(
-            "w-full h-10 py-2 text-sm outline-none focus:outline-none",
-            isCurrentUserCompleted 
-              ? "bg-gray-400 hover:bg-gray-500 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200" 
-              : "dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
-          )}
-          size="default"
-          onClick={() => onStartWorkout(workoutId)}
-          disabled={isCurrentUserCompleted}
+          onClick={() => onStartWorkout(workoutId)} 
+          className="w-full" 
+          variant={isCurrentUserCompleted ? "secondary" : "default"}
+          size="sm"
         >
-          {isCurrentUserCompleted ? 'Workout Completed' : 'Log Workout'}
+          {isCurrentUserCompleted ? "View Completed" : "Start Workout"}
         </Button>
       </CardFooter>
     </Card>

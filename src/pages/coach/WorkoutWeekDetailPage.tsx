@@ -195,7 +195,6 @@ const WorkoutWeekDetailPage = () => {
         week_id: weekId!,
         title: data.title,
         description: data.description || null,
-        day_of_week: data.day_of_week,
         workout_type: workoutType,
         priority: data.priority || 0
       });
@@ -219,7 +218,6 @@ const WorkoutWeekDetailPage = () => {
       await updateWorkout(workoutId, {
         title: data.title,
         description: data.description || null,
-        day_of_week: data.day_of_week,
         workout_type: workoutType,
         priority: data.priority || 0
       });
@@ -307,7 +305,6 @@ const WorkoutWeekDetailPage = () => {
             week_id: copyTargetWeekId,
             title: origWorkout.title + " (Copy)",
             description: origWorkout.description,
-            day_of_week: origWorkout.day_of_week,
             workout_type: origWorkout.workout_type,
             priority: origWorkout.priority,
           },
@@ -375,7 +372,6 @@ const WorkoutWeekDetailPage = () => {
           week_id: weekId,
           title: origWorkout.title,
           description: origWorkout.description,
-          day_of_week: 1,
           workout_type: workoutType,
           priority: 0
         })
@@ -454,6 +450,67 @@ const WorkoutWeekDetailPage = () => {
       </CoachLayout>
     );
   }
+
+  const createWorkoutFn = async () => {
+    setIsCreatingWorkout(true);
+    
+    try {
+      const newWorkout = await createWorkout({
+        week_id: weekId,
+        title: 'New Workout',
+        description: '',
+        workout_type: 'strength',
+        priority: 0 // Default to highest priority
+      });
+      
+      navigate(`/coach-dashboard/workouts/${weekId}/edit/${newWorkout.id}`);
+    } catch (error) {
+      console.error('Error creating workout:', error);
+      toast.error('Failed to create workout');
+    } finally {
+      setIsCreatingWorkout(false);
+    }
+  };
+
+  const duplicateWorkoutFn = async (id: string) => {
+    setDuplicatingWorkoutId(id);
+    
+    try {
+      const workout = workouts.find(w => w.id === id);
+      if (!workout) return;
+      
+      const newWorkout = await duplicateWorkout(id, weekId, {
+        title: `${workout.title} (Copy)`,
+        description: workout.description,
+        workout_type: workout.workout_type,
+        priority: workout.priority,
+        template_id: workout.template_id
+      });
+      
+      if (newWorkout) {
+        toast.success('Workout duplicated successfully');
+        refreshWorkouts();
+      }
+    } catch (error) {
+      console.error('Error duplicating workout:', error);
+      toast.error('Failed to duplicate workout');
+    } finally {
+      setDuplicatingWorkoutId(null);
+    }
+  };
+
+  const refreshWorkouts = async () => {
+    try {
+      const workoutsData = await fetchWorkoutsForWeek(weekId);
+      setWorkouts(workoutsData);
+    } catch (error) {
+      console.error('Error refreshing workouts:', error);
+      toast.error('Failed to refresh workouts');
+    }
+  };
+
+  const [isCreatingWorkout, setIsCreatingWorkout] = useState(false);
+  const [duplicatingWorkoutId, setDuplicatingWorkoutId] = useState<string | null>(null);
 
   return (
     <CoachLayout>
@@ -579,7 +636,6 @@ const WorkoutWeekDetailPage = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
-                  <TableHead>Day of Week</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -588,7 +644,6 @@ const WorkoutWeekDetailPage = () => {
                 {workouts.map((workout) => (
                   <TableRow key={workout.id}>
                     <TableCell>{workout.title}</TableCell>
-                    <TableCell>{workout.day_of_week}</TableCell>
                     <TableCell>{workout.workout_type}</TableCell>
                     <TableCell className="text-right flex gap-1">
                       <Button
@@ -782,7 +837,6 @@ interface WorkoutFormProps {
 const WorkoutForm: React.FC<WorkoutFormProps> = ({ weekId, workoutId, onCreate, onUpdate, onCancel }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [dayOfWeek, setDayOfWeek] = useState(1);
   const [workoutType, setWorkoutType] = useState<"cardio" | "strength" | "mobility" | "flexibility">('strength');
   const [priority, setPriority] = useState(0);
 
@@ -800,7 +854,6 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({ weekId, workoutId, onCreate, 
       } else {
         setTitle('');
         setDescription('');
-        setDayOfWeek(1);
         setWorkoutType('strength');
         setPriority(0);
       }
@@ -814,7 +867,6 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({ weekId, workoutId, onCreate, 
     const data = {
       title,
       description,
-      day_of_week: dayOfWeek,
       workout_type: workoutType,
       priority,
     };
@@ -845,21 +897,6 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({ weekId, workoutId, onCreate, 
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
-      </div>
-      <div>
-        <Label htmlFor="dayOfWeek">Day of Week</Label>
-        <Select value={String(dayOfWeek)} onValueChange={(value) => setDayOfWeek(Number(value))}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a day" />
-          </SelectTrigger>
-          <SelectContent>
-            {Array.from({ length: 7 }, (_, i) => i + 1).map((day) => (
-              <SelectItem key={day} value={String(day)}>
-                Day {day}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
       <div>
         <Label htmlFor="workoutType">Workout Type</Label>

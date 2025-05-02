@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistoryItem } from "@/types/workout";
 import { format, addDays } from "date-fns";
@@ -124,7 +125,7 @@ const fetchWorkoutsFromPrograms = async (
   // Get all workouts in these weeks
   const { data: workouts, error: workoutsError } = await supabase
     .from('workouts')
-    .select('id, title, description, day_of_week, week_id, workout_type')
+    .select('id, title, description, week_id, workout_type')
     .in('week_id', weekIds);
   
   if (workoutsError) {
@@ -188,7 +189,6 @@ const createPlaceholdersForProgramsWithoutWeeks = async (
               id: assignment.program_id,
               title: `Program: ${program.title}`,
               description: "No workouts have been created for this program yet.",
-              day_of_week: 0,
               week_id: "",
               week: null,
               workout_type: 'strength' // Default workout type for placeholder

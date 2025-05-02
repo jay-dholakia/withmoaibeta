@@ -59,7 +59,6 @@ const MoaiMemberWeeklyActivity: React.FC<MemberWeeklyActivityProps> = ({ userId,
             id: item.workout_id || '',
             title: item.workout.title || item.title || 'Workout',
             description: item.workout.description || item.description,
-            day_of_week: 0, // Default value since we don't have this info
             week_id: '', // Default value since we don't have this info
             workout_type: item.workout.workout_type || item.workout_type || 'strength'
           } : null,

@@ -213,7 +213,8 @@ const WorkoutsList = () => {
         return priorityA - priorityB;
       }
       
-      return (a.workout?.day_of_week ?? 0) - (b.workout?.day_of_week ?? 0);
+      // Since day_of_week is removed, just return 0 to keep original order
+      return 0;
     });
   }, [workouts, weekFilter]);
 
@@ -384,7 +385,6 @@ const WorkoutsList = () => {
                       currentUserId={user?.id || ''}
                       onStartWorkout={handleStartWorkout}
                       completed={!!workout.completed_at}
-                      dayOfWeek={workout.workout?.day_of_week}
                       exercises={workout.workout?.workout_exercises || []}
                       isLifeHappensPass={isLifeHappensPass(workout)}
                     />
@@ -412,7 +412,6 @@ const WorkoutsList = () => {
                       currentUserId={user?.id || ''}
                       onStartWorkout={handleStartWorkout}
                       completed={!!workout.completed_at}
-                      dayOfWeek={workout.workout?.day_of_week}
                       exercises={workout.workout?.workout_exercises || []}
                       isLifeHappensPass={isLifeHappensPass(workout)}
                     />

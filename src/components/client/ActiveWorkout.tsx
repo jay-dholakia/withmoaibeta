@@ -37,6 +37,8 @@ const ActiveWorkout = () => {
   const [workoutDataLoaded, setWorkoutDataLoaded] = useState(false);
   const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
   const [pendingCardio, setPendingCardio] = useState<PendingCardio[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [completionProcessed, setCompletionProcessed] = useState(false);
 
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initCompleteForceCounter = useRef<number>(0);
@@ -280,7 +282,31 @@ const ActiveWorkout = () => {
   };
 
   const handleCompleteWorkout = async () => {
+    // Prevent duplicate submissions
+    if (isSubmitting || completionProcessed) {
+      return;
+    }
+
     try {
+      setIsSubmitting(true);
+      
+      // Check if the workout is already completed
+      if (workoutData?.id) {
+        const { data: existingCompletion, error: checkError } = await supabase
+          .from('workout_completions')
+          .select('id')
+          .eq('id', workoutData.id)
+          .eq('user_id', user?.id)
+          .maybeSingle();
+          
+        if (existingCompletion) {
+          console.log('Workout already completed, navigating to completion page');
+          setCompletionProcessed(true);
+          navigate(`/client-dashboard/workouts/complete/${existingCompletion.id}`);
+          return;
+        }
+      }
+
       let completionId = workoutData?.id;
       
       if (!completionId) {
@@ -399,10 +425,13 @@ const ActiveWorkout = () => {
         console.log(`Successfully saved ${savePromises.length} workout records`);
       }
 
+      setCompletionProcessed(true);
       navigate(`/client-dashboard/workouts/complete/${completionId}`);
     } catch (error) {
       console.error("Error saving workout data:", error);
       toast.error("There was an error saving your workout data");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -639,7 +668,7 @@ const ActiveWorkout = () => {
     });
   };
 
-  const handleVideoClick = (url: string, exerciseName: string) => {
+  const handleVideoClick = (url: string) => {
     window.open(url, '_blank');
   };
 
@@ -999,9 +1028,18 @@ const ActiveWorkout = () => {
             />
             <Button 
               onClick={handleCompleteWorkout}
+              disabled={isSubmitting || completionProcessed}
               className="w-full mt-3 mb-2 py-6 bg-primary hover:bg-primary/90 text-white text-lg font-medium rounded-lg shadow-lg"
             >
-              <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
+                </>
+              )}
             </Button>
           </div>
         </div>

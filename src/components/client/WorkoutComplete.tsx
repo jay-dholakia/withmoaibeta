@@ -211,6 +211,18 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
+  // Now that workoutData and isLoading are defined, we can use them in useEffect
+  useEffect(() => {
+    // We wait 500ms to ensure the data is loaded
+    const timer = setTimeout(() => {
+      if (workoutData && !isLoading) {
+        setShowShareDialog(true);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [workoutCompletionId, workoutData, isLoading]);
+
   const { data: personalRecords, isLoading: isLoadingPRs } = useQuery({
     queryKey: ['personal-records', user?.id, workoutCompletionId],
     queryFn: async () => {

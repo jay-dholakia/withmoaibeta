@@ -309,6 +309,9 @@ const ActiveWorkout = () => {
 
       let completionId = workoutData?.id;
       
+      // Determine the workout type
+      const defaultWorkoutType = workoutData?.workout?.workout_type || 'strength';
+      
       if (!completionId) {
         const { data: newCompletion, error: completionError } = await supabase
           .from('workout_completions')
@@ -316,7 +319,8 @@ const ActiveWorkout = () => {
             workout_id: workoutData?.workout_id || workoutCompletionId,
             standalone_workout_id: workoutData?.standalone_workout_id,
             user_id: user?.id,
-            completed_at: new Date().toISOString()
+            completed_at: new Date().toISOString(),
+            workout_type: defaultWorkoutType // Ensure workout_type is set to the default or "strength"
           })
           .select()
           .single();
@@ -331,6 +335,19 @@ const ActiveWorkout = () => {
         }
         
         completionId = newCompletion.id;
+      } else {
+        // If completion already exists, ensure workout_type is set correctly
+        const { error: updateError } = await supabase
+          .from('workout_completions')
+          .update({
+            workout_type: defaultWorkoutType,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', completionId);
+          
+        if (updateError) {
+          console.error("Error updating workout completion type:", updateError);
+        }
       }
 
       const savePromises = [];

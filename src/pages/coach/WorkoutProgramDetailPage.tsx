@@ -273,7 +273,7 @@ const WorkoutProgramDetailPage = () => {
                             <ul className="space-y-1.5">
                               {workouts.map(workout => (
                                 <li key={workout.id} className="text-sm flex items-center">
-                                  <span>Day {workout.day_of_week}: {workout.title}</span>
+                                  <span>{workout.title}</span>
                                   {workout.workout_type && getWorkoutTypeBadge(workout.workout_type)}
                                 </li>
                               ))}

@@ -74,14 +74,16 @@ Deno.serve(async (req) => {
       const content = await file.text();
       const parsedExercises = JSON.parse(content);
       
-      // Validate each exercise
+      // Validate and normalize each exercise
       parsedExercises.forEach((exercise: Exercise) => {
+        // Validate YouTube URL
         if (exercise.youtube_link && !isValidUrl(exercise.youtube_link)) {
           invalidUrlExercises.push(exercise.name);
           exercise.youtube_link = null; // Set invalid URLs to null
         }
         
-        // Ensure empty values are explicitly set to null
+        // Explicitly set empty values to null
+        // This is crucial for ensuring that empty values in the import will overwrite existing data
         Object.keys(exercise).forEach((key) => {
           const value = exercise[key as keyof Exercise];
           if (value === '' || value === undefined) {
@@ -137,11 +139,13 @@ Deno.serve(async (req) => {
           category: values[categoryIndex],
         };
         
-        // Important change: Explicitly set null for empty values instead of skipping them
-        // This ensures empty cells will clear existing values in the database
+        // Explicitly set all fields from CSV, with empty strings becoming null
+        // This ensures that fields not in the CSV will be set to null and overwrite existing values
         
         if (descriptionIndex >= 0) {
           exercise.description = values[descriptionIndex] || null;
+        } else {
+          exercise.description = null;
         }
         
         if (exerciseTypeIndex >= 0) {
@@ -152,6 +156,8 @@ Deno.serve(async (req) => {
 
         if (muscleGroupIndex >= 0) {
           exercise.muscle_group = values[muscleGroupIndex] || null;
+        } else {
+          exercise.muscle_group = null;
         }
 
         if (youtubeLinkIndex >= 0) {
@@ -164,6 +170,8 @@ Deno.serve(async (req) => {
           } else {
             exercise.youtube_link = null;
           }
+        } else {
+          exercise.youtube_link = null;
         }
         
         if (logTypeIndex >= 0) {
@@ -209,7 +217,8 @@ Deno.serve(async (req) => {
         }
 
         if (existingExercises && existingExercises.length > 0) {
-          // Create update object that explicitly includes null values for empty fields
+          // Create update object with explicit null values for empty fields
+          // This is crucial for overwriting existing values with null when fields are empty in import
           const updateObject = {
             name: exercise.name,
             category: exercise.category,

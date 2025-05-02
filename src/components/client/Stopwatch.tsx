@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PlayCircle, PauseCircle, RefreshCw, Save } from "lucide-react";
@@ -20,6 +19,7 @@ interface TimerState {
 const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCompletionId }) => {
   const [time, setTime] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [initialized, setInitialized] = useState<boolean>(false);
   
   const timerKey = `workout_timer_${workoutCompletionId || 'default'}`;
   
@@ -47,29 +47,36 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
           setTime(0);
           setIsRunning(false);
         }
+        setInitialized(true);
       } catch (error) {
         console.error("Error loading timer state:", error);
         setTime(0);
         setIsRunning(false);
+        setInitialized(true);
       }
     };
     
-    // Reset when workoutCompletionId changes
+    // Load timer state when workoutCompletionId changes
     if (workoutCompletionId) {
       loadTimerState();
     } else {
       setTime(0);
       setIsRunning(false);
+      setInitialized(true);
     }
     
     return () => {
       // Persist current state on component unmount
-      persistTimerState();
+      if (initialized) {
+        persistTimerState();
+      }
     };
   }, [workoutCompletionId, timerKey]);
 
   // Persist timer state whenever it changes
   const persistTimerState = () => {
+    if (!initialized) return; // Don't persist until fully initialized
+    
     try {
       const state: TimerState = {
         isRunning,
@@ -86,7 +93,7 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     
-    if (isRunning) {
+    if (isRunning && initialized) {
       // Store current timestamp and accumulated time for precise timing
       const startTimestamp = Date.now() - (time * 1000);
       
@@ -102,7 +109,7 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
         accumulatedTime: time
       };
       localStorage.setItem(timerKey, JSON.stringify(state));
-    } else {
+    } else if (initialized) {
       // Update persisted state when timer stops
       persistTimerState();
     }
@@ -110,14 +117,27 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, timerKey]);
+  }, [isRunning, initialized, timerKey]);
 
-  // Update persisted state when time changes
+  // Update persisted state when time changes significantly
   useEffect(() => {
-    if (!isRunning) {
+    if (!isRunning && initialized) {
       persistTimerState();
     }
-  }, [time, isRunning]);
+  }, [time, isRunning, initialized]);
+
+  // Ensure timer state is persisted when window is about to unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      persistTimerState();
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isRunning, time]);
 
   const formatTime = (seconds: number): string => {
     const hrs = Math.floor(seconds / 3600);

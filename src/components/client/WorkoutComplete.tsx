@@ -386,6 +386,9 @@ const WorkoutComplete = () => {
       if (!workoutCompletionId) return null;
       console.log("Attempting to complete workout with ID:", workoutCompletionId);
       
+      // Clear the timer data when completing the workout
+      localStorage.removeItem(`workout_timer_${workoutCompletionId}`);
+      
       if (notes.trim()) {
         await addToJournal(notes);
       }
@@ -444,11 +447,14 @@ const WorkoutComplete = () => {
     },
     onSuccess: (completionId) => {
       if (completionId) {
+        // Clean up all workout related data
         deleteWorkoutDraft(workoutCompletionId);
         try {
           sessionStorage.removeItem(`workout_draft_${workoutCompletionId}`);
+          // Ensure timer data is removed on successful completion
+          localStorage.removeItem(`workout_timer_${workoutCompletionId}`);
         } catch (e) {
-          console.warn("Failed to remove draft from sessionStorage:", e);
+          console.warn("Failed to remove data from storage:", e);
         }
         
         queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });

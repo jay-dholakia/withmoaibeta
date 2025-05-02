@@ -1,4 +1,3 @@
-
 export interface Exercise {
   id: string;
   name: string;
@@ -111,6 +110,8 @@ export interface WorkoutExercise {
   duration?: string;
   location?: string;
   completed_date?: string;
+  superset_group_id?: string | null;
+  superset_order?: number | null;
 }
 
 export interface ProgramAssignment {
@@ -205,13 +206,17 @@ export const STANDARD_WORKOUT_TYPES = [
   'skiing',
   'yoga',
   'running',
-  'live_run'
+  'live_run',
+  'mobility'
 ] as const;
 
 export type StandardWorkoutType = typeof STANDARD_WORKOUT_TYPES[number];
 
 export const PROGRAM_TYPES = ['strength', 'run'] as const;
 export type ProgramType = typeof PROGRAM_TYPES[number];
+
+// Define a type for workout types specifically used in workout forms
+export type WorkoutFormType = "strength" | "cardio" | "flexibility" | "mobility" | StandardWorkoutType;
 
 export interface ClientProfile {
   id?: string;

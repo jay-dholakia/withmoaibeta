@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AdminDashboardLayout } from '@/layouts/AdminDashboardLayout';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Search, UserSquare, Calendar, ArrowUpDown, ArrowUp, ArrowDown, Filter, CalendarDays, History } from 'lucide-react';
-import { fetchAllClients } from '@/services/workout-service';
+import { fetchAllClients } from '@/services/program-service';
 import { fetchClientWorkoutStats } from '@/services/admin-client-stats-service';
 import { format, isValid } from 'date-fns';
 import { Badge } from '@/components/ui/badge';

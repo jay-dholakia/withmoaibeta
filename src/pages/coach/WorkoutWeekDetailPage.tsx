@@ -457,9 +457,9 @@ const WorkoutWeekDetailPage = () => {
     
     try {
       const newWorkout = await createWorkout({
-        week_id: weekId,
+        week_id: weekId!,
         title: 'New Workout',
-        description: '',
+        description: null,
         workout_type: 'strength',
         priority: 0 // Default to highest priority
       });

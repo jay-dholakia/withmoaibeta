@@ -28,7 +28,7 @@ import {
 import { CalendarIcon, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { fetchWorkoutPrograms, fetchAllClients, assignProgramToUser } from '@/services/workout-service';
+import { fetchWorkoutPrograms, fetchAllClients, assignProgramToUser } from '@/services/program-service';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';

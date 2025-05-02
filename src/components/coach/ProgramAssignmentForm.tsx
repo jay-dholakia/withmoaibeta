@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { format, getDay, nextMonday } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { fetchAllClients, fetchAssignedUsers, deleteProgramAssignment } from '@/services/workout-service';
+import { fetchAllClients, fetchAssignedUsers, deleteProgramAssignment } from '@/services/program-service';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -6,7 +5,7 @@ import { AssignProgramForm } from '@/components/coach/AssignProgramForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Users, Trash2 } from 'lucide-react';
-import { fetchAssignedUsers, fetchWorkoutProgram, fetchAllClients, deleteProgramAssignment } from '@/services/workout-service';
+import { fetchAssignedUsers, fetchWorkoutProgram, fetchAllClients, deleteProgramAssignment } from '@/services/program-service';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';

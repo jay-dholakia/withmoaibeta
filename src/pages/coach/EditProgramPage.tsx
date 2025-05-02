@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { WorkoutProgramForm } from '@/components/coach/WorkoutProgramForm';
-import { fetchWorkoutProgram, updateWorkoutProgram } from '@/services/workout-service';
+import { fetchWorkoutProgram, updateWorkoutProgram } from '@/services/program-service';
 import { toast } from 'sonner';
 
 const EditProgramPage = () => {

@@ -113,13 +113,18 @@ export const CreateExerciseForm = ({
         log_type: data.log_type
       });
       
-      if (result.error) {
+      if (result && result.error) {
         toast.error('Failed to create exercise');
         console.error('Error creating exercise:', result.error);
         return;
       }
       
-      if (result.exercise) {
+      if (result && result.isDuplicate) {
+        toast.error('An exercise with this name already exists');
+        return;
+      }
+      
+      if (result && result.exercise) {
         toast.success(`Exercise "${data.name}" created successfully!`);
         if (onExerciseCreated) {
           onExerciseCreated(result.exercise);

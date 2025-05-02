@@ -1,6 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { Exercise, Workout, WorkoutExercise } from "@/types/workout";
+import { Exercise, Workout, WorkoutExercise, StandardWorkoutType } from "@/types/workout";
 
 /**
  * Creates a new workout
@@ -8,8 +7,8 @@ import { Exercise, Workout, WorkoutExercise } from "@/types/workout";
 export const createWorkout = async (workoutData: {
   week_id: string;
   title: string;
-  description?: string;
-  workout_type?: "strength" | "cardio" | "flexibility" | "mobility";
+  description?: string | null;
+  workout_type?: "strength" | "cardio" | "flexibility" | "mobility" | StandardWorkoutType;
   priority?: number;
   template_id?: string;
 }) => {
@@ -17,8 +16,12 @@ export const createWorkout = async (workoutData: {
     const { data, error } = await supabase
       .from('workouts')
       .insert({
-        ...workoutData,
-        workout_type: workoutData.workout_type || 'strength'
+        week_id: workoutData.week_id,
+        title: workoutData.title,
+        description: workoutData.description || null,
+        workout_type: workoutData.workout_type || 'strength',
+        priority: workoutData.priority || 0,
+        template_id: workoutData.template_id
       })
       .select()
       .single();
@@ -184,21 +187,31 @@ export const fetchWorkoutExercises = async (workoutId: string): Promise<WorkoutE
 /**
  * Create workout exercise
  */
-export const createWorkoutExercise = async (exerciseData: {
+export const createWorkoutExercise = async (data: {
   workout_id: string;
   exercise_id: string;
   sets: number;
   reps: string;
-  rest_seconds?: number;
-  notes?: string;
+  rest_seconds?: number | null;
+  notes?: string | null;
   order_index: number;
-  superset_group_id?: string;
-  superset_order?: number;
+  superset_group_id?: string | null;
+  superset_order?: number | null;
 }) => {
   try {
-    const { data, error } = await supabase
+    const { data: exercise, error } = await supabase
       .from('workout_exercises')
-      .insert(exerciseData)
+      .insert({
+        workout_id: data.workout_id,
+        exercise_id: data.exercise_id,
+        sets: data.sets,
+        reps: data.reps,
+        rest_seconds: data.rest_seconds || null,
+        notes: data.notes || null,
+        order_index: data.order_index,
+        superset_group_id: data.superset_group_id || null,
+        superset_order: data.superset_order || null
+      })
       .select()
       .single();
       
@@ -207,7 +220,7 @@ export const createWorkoutExercise = async (exerciseData: {
       throw error;
     }
     
-    return data;
+    return exercise;
   } catch (error) {
     console.error('Error in createWorkoutExercise:', error);
     throw error;
@@ -472,28 +485,50 @@ export const fetchExerciseMuscleGroups = async (): Promise<string[]> => {
 export const createExercise = async (exerciseData: {
   name: string;
   category: string;
-  description?: string;
+  description?: string | null;
   exercise_type: string;
-  muscle_group?: string;
-  youtube_link?: string;
   log_type?: string;
-}): Promise<any> => {
+  youtube_link?: string;
+  muscle_group?: string | null;
+}) => {
   try {
+    // First check if an exercise with this name already exists
+    const { data: existingExercises } = await supabase
+      .from('exercises')
+      .select('name')
+      .ilike('name', exerciseData.name)
+      .limit(1);
+      
+    if (existingExercises && existingExercises.length > 0) {
+      return {
+        isDuplicate: true,
+        message: 'An exercise with this name already exists'
+      };
+    }
+    
     const { data, error } = await supabase
       .from('exercises')
-      .insert(exerciseData)
+      .insert({
+        name: exerciseData.name,
+        category: exerciseData.category,
+        description: exerciseData.description || null,
+        exercise_type: exerciseData.exercise_type,
+        log_type: exerciseData.log_type || 'weight_reps',
+        youtube_link: exerciseData.youtube_link || null,
+        muscle_group: exerciseData.muscle_group || null
+      })
       .select()
       .single();
       
     if (error) {
       console.error('Error creating exercise:', error);
-      return { error };
+      return { error: error.message };
     }
     
     return { exercise: data };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in createExercise:', error);
-    return { error };
+    return { error: error.message };
   }
 };
 
@@ -1155,19 +1190,22 @@ export const duplicateWorkout = async (sourceId: string, weekId: string, workout
 /**
  * Create a standalone workout
  */
-export const createStandaloneWorkout = async (workoutData: {
+export const createStandaloneWorkout = async (data: {
   title: string;
-  description?: string;
-  workout_type?: "strength" | "cardio" | "flexibility" | "mobility";
+  description?: string | null;
   coach_id: string;
   category?: string;
+  workout_type: string;
 }) => {
   try {
-    const { data, error } = await supabase
+    const { data: workout, error } = await supabase
       .from('standalone_workouts')
       .insert({
-        ...workoutData,
-        workout_type: workoutData.workout_type || 'strength'
+        title: data.title,
+        description: data.description || null,
+        coach_id: data.coach_id,
+        category: data.category || null,
+        workout_type: data.workout_type
       })
       .select()
       .single();
@@ -1177,7 +1215,7 @@ export const createStandaloneWorkout = async (workoutData: {
       throw error;
     }
     
-    return data;
+    return workout;
   } catch (error) {
     console.error('Error in createStandaloneWorkout:', error);
     throw error;
@@ -1187,16 +1225,21 @@ export const createStandaloneWorkout = async (workoutData: {
 /**
  * Update a standalone workout
  */
-export const updateStandaloneWorkout = async (id: string, workoutData: {
+export const updateStandaloneWorkout = async (id: string, data: {
   title?: string;
-  description?: string;
-  workout_type?: "strength" | "cardio" | "flexibility" | "mobility";
-  category?: string;
+  description?: string | null;
+  category?: string | null;
+  workout_type?: string;
 }) => {
   try {
-    const { data, error } = await supabase
+    const { data: workout, error } = await supabase
       .from('standalone_workouts')
-      .update(workoutData)
+      .update({
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        workout_type: data.workout_type
+      })
       .eq('id', id)
       .select()
       .single();
@@ -1206,7 +1249,7 @@ export const updateStandaloneWorkout = async (id: string, workoutData: {
       throw error;
     }
     
-    return data;
+    return workout;
   } catch (error) {
     console.error('Error in updateStandaloneWorkout:', error);
     throw error;
@@ -1216,18 +1259,26 @@ export const updateStandaloneWorkout = async (id: string, workoutData: {
 /**
  * Update workout exercise
  */
-export const updateWorkoutExercise = async (id: string, exerciseData: {
+export const updateWorkoutExercise = async (exerciseId: string, data: {
   sets?: number;
   reps?: string;
   rest_seconds?: number | null;
   notes?: string | null;
-  order_index?: number;
+  superset_group_id?: string | null;
+  superset_order?: number | null;
 }) => {
   try {
-    const { data, error } = await supabase
+    const { data: exercise, error } = await supabase
       .from('workout_exercises')
-      .update(exerciseData)
-      .eq('id', id)
+      .update({
+        sets: data.sets,
+        reps: data.reps,
+        rest_seconds: data.rest_seconds,
+        notes: data.notes,
+        superset_group_id: data.superset_group_id,
+        superset_order: data.superset_order
+      })
+      .eq('id', exerciseId)
       .select()
       .single();
       
@@ -1236,7 +1287,7 @@ export const updateWorkoutExercise = async (id: string, exerciseData: {
       throw error;
     }
     
-    return data;
+    return exercise;
   } catch (error) {
     console.error('Error in updateWorkoutExercise:', error);
     throw error;
@@ -1246,17 +1297,21 @@ export const updateWorkoutExercise = async (id: string, exerciseData: {
 /**
  * Update standalone workout exercise
  */
-export const updateStandaloneWorkoutExercise = async (id: string, exerciseData: {
+export const updateStandaloneWorkoutExercise = async (id: string, data: {
   sets?: number;
   reps?: string;
   rest_seconds?: number | null;
   notes?: string | null;
-  order_index?: number;
 }) => {
   try {
-    const { data, error } = await supabase
+    const { data: exercise, error } = await supabase
       .from('standalone_workout_exercises')
-      .update(exerciseData)
+      .update({
+        sets: data.sets,
+        reps: data.reps,
+        rest_seconds: data.rest_seconds,
+        notes: data.notes
+      })
       .eq('id', id)
       .select()
       .single();
@@ -1266,7 +1321,7 @@ export const updateStandaloneWorkoutExercise = async (id: string, exerciseData: 
       throw error;
     }
     
-    return data;
+    return exercise;
   } catch (error) {
     console.error('Error in updateStandaloneWorkoutExercise:', error);
     throw error;
@@ -1274,7 +1329,7 @@ export const updateStandaloneWorkoutExercise = async (id: string, exerciseData: 
 };
 
 /**
- * Delete standalone workout
+ * Deletes a standalone workout
  */
 export const deleteStandaloneWorkout = async (id: string) => {
   try {
@@ -1583,6 +1638,37 @@ export const fetchWorkouts = async (filters: { [key: string]: any } = {}) => {
     
     const { data, error } = await query;
     
+    if (error) {
+      console.error('Error fetching workouts:', error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in fetchWorkouts:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches workouts for a week
+ */
+export const fetchWorkouts = async (weekId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select(`
+        id, 
+        title, 
+        description, 
+        workout_type,
+        priority,
+        template_id,
+        created_at
+      `)
+      .eq('week_id', weekId)
+      .order('priority', { ascending: true });
+      
     if (error) {
       console.error('Error fetching workouts:', error);
       throw error;

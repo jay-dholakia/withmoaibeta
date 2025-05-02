@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,14 +93,19 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
         else setWorkoutType('strength');
       }
       
-      const workoutExercises = await fetchWorkoutExercises(workoutId);
-      setExercises(workoutExercises);
-      
-      const expandedState: Record<string, boolean> = {};
-      workoutExercises.forEach(exercise => {
-        expandedState[exercise.id] = true;
-      });
-      setExerciseListExpanded(expandedState);
+      try {
+        const workoutExercises = await fetchWorkoutExercises(workoutId);
+        setExercises(workoutExercises);
+        
+        const expandedState: Record<string, boolean> = {};
+        workoutExercises.forEach(exercise => {
+          expandedState[exercise.id] = true;
+        });
+        setExerciseListExpanded(expandedState);
+      } catch (error) {
+        console.error('Error loading workout exercises:', error);
+        setExercises([]);
+      }
       
       setIsLoading(false);
     } catch (error) {
@@ -214,12 +220,7 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
     try {
       setIsSubmitting(true);
       
-      await updateWorkoutExercise(exerciseId, {
-        sets: data.sets,
-        reps: data.reps,
-        rest_seconds: data.rest_seconds,
-        notes: data.notes
-      });
+      await updateWorkoutExercise(exerciseId, data);
       
       const updatedExercises = await fetchWorkoutExercises(workoutId);
       setExercises(updatedExercises);

@@ -1,421 +1,456 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { ProgramAssignment, WorkoutExercise, WorkoutProgram, WorkoutWeek } from "@/types/workout";
 
 /**
- * Fetches all programs assigned to a client
+ * Fetch all workout programs
  */
-export const fetchClientPrograms = async (clientId: string): Promise<any[]> => {
+export const fetchWorkoutPrograms = async () => {
   try {
     const { data, error } = await supabase
-      .from('program_assignments')
-      .select(`
-        id,
-        start_date,
-        end_date,
-        user_id,
-        program_id,
-        program:program_id (
-          id,
-          title,
-          description,
-          weeks,
-          program_type
-        )
-      `)
-      .eq('user_id', clientId)
-      .order('start_date', { ascending: false });
+      .from('workout_programs')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('Error fetching workout programs:', error);
+      throw error;
+    }
     
-    if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error("Error fetching client programs:", error);
-    return [];
+    console.error('Error in fetchWorkoutPrograms:', error);
+    throw error;
   }
 };
 
 /**
- * Determines if a program assignment is currently active
+ * Fetch a specific workout program by ID
  */
-const isActiveAssignment = (assignment: ProgramAssignment): boolean => {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  
-  const startDate = new Date(assignment.start_date);
-  const startDateStr = startDate.toISOString().split('T')[0];
-  const isStartValid = startDateStr <= todayStr;
-  
-  let isEndValid = true;
-  if (assignment.end_date) {
-    const endDate = new Date(assignment.end_date);
-    const endDateStr = endDate.toISOString().split('T')[0];
-    isEndValid = endDateStr >= todayStr;
-  }
-  
-  return isStartValid && isEndValid;
-};
-
-/**
- * Fetches program details including weeks and workouts
- */
-const fetchFullProgramDetails = async (programId: string): Promise<WorkoutProgram | null> => {
+export const fetchWorkoutProgram = async (programId: string) => {
   try {
-    console.log("Fetching program details for ID:", programId);
-    
-    const { data: accessTest, error: accessError } = await supabase
-      .from('workout_programs')
-      .select('id, title')
-      .eq('id', programId);
-    
-    if (accessError) {
-      console.error('Access error checking program - RLS issue detected:', accessError);
-      return null;
-    }
-    
-    if (!accessTest || accessTest.length === 0) {
-      console.error('No program access via RLS policies for ID:', programId);
-      
-      const { data: checkAssignment } = await supabase
-        .from('program_assignments')
-        .select('program_id')
-        .eq('program_id', programId)
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
-        .maybeSingle();
-      
-      if (checkAssignment) {
-        console.log('Program assignment exists but direct program access failed - RLS policy issue');
-        
-        console.log('Assignment details:', checkAssignment);
-        console.log('Current user ID:', (await supabase.auth.getUser()).data.user?.id);
-        
-        const { data: isProgramAssigned, error: rpcError } = await supabase.rpc(
-          'is_program_assigned_to_user',
-          {
-            program_id_param: programId,
-            user_id_param: (await supabase.auth.getUser()).data.user?.id
-          }
-        );
-        
-        if (rpcError) {
-          console.error('RPC check error:', rpcError);
-        } else {
-          console.log('Program is assigned to user per RPC function:', isProgramAssigned);
-        }
-      } else {
-        console.log('No program assignment found - no RLS access expected');
-      }
-      
-      return null;
-    }
-    
-    const { data: programData, error: programError } = await supabase
+    const { data, error } = await supabase
       .from('workout_programs')
       .select('*')
       .eq('id', programId)
-      .maybeSingle(); 
-    
-    if (programError) {
-      console.error('Error fetching program details:', programError);
-      return null;
-    }
-    
-    if (!programData) {
-      console.error('No program found with ID:', programId);
-      return null;
-    }
-
-    console.log("Successfully fetched program data:", programData.title);
-    
-    const { data: weeksData, error: weeksError } = await supabase
-      .from('workout_weeks')
-      .select('*')
-      .eq('program_id', programId)
-      .order('week_number', { ascending: true });
-    
-    if (weeksError) {
-      console.error('Error fetching program weeks:', weeksError);
-      return null;
-    }
-
-    console.log(`Fetched ${weeksData?.length || 0} weeks for program ${programData.title}`);
-    
-    const weeksWithWorkouts = [];
-    
-    for (const week of weeksData || []) {
-      const { data: workoutsData, error: workoutsError } = await supabase
-        .from('workouts')
-        .select(`
-          *,
-          workout_exercises (
-            *,
-            exercise:exercise_id (*)
-          )
-        `)
-        .eq('week_id', week.id)
-        .order('day_of_week', { ascending: true });
+      .single();
       
-      if (workoutsError) {
-        console.error(`Error fetching workouts for week ${week.week_number}:`, workoutsError);
-        continue;
-      }
-
-      console.log(`Week ${week.week_number}: fetched ${workoutsData?.length || 0} workouts`);
-      
-      weeksWithWorkouts.push({
-        ...week,
-        workouts: workoutsData || []
-      });
-    }
-    
-    return {
-      ...programData,
-      program_type: programData.program_type || 'strength',
-      weekData: weeksWithWorkouts
-    };
-  } catch (error) {
-    console.error("Error fetching full program details:", error);
-    return null;
-  }
-};
-
-/**
- * Fetches all program assignments for a user
- */
-const fetchUserProgramAssignments = async (userId: string): Promise<ProgramAssignment[] | null> => {
-  try {
-    console.log("Raw program assignments query result:");
-    const { data, error } = await supabase
-      .from('program_assignments')
-      .select('id, program_id, start_date, end_date, user_id, assigned_by, created_at')
-      .eq('user_id', userId)
-      .order('start_date', { ascending: false });
-    
     if (error) {
-      console.error('Error fetching program assignments:', error);
-      return null;
-    }
-    
-    console.log(data);
-    console.log(`Found ${data?.length || 0} program assignments`);
-    
-    if (data && data.length > 0) {
-      console.log("Program IDs:", data.map(d => d.program_id));
+      console.error('Error fetching workout program:', error);
+      throw error;
     }
     
     return data;
   } catch (error) {
-    console.error("Error in fetchUserProgramAssignments:", error);
-    return null;
+    console.error('Error in fetchWorkoutProgram:', error);
+    throw error;
   }
 };
 
 /**
- * Fetches the current active program for a user
+ * Create a new workout program
  */
-export const fetchCurrentProgram = async (userId: string): Promise<any | null> => {
-  console.log("Fetching current program for user:", userId);
-  
-  if (!userId) {
-    console.error("Cannot fetch current program: No user ID provided");
-    return null;
-  }
-  
+export const createWorkoutProgram = async (data: {
+  title: string;
+  weeks: number;
+  description?: string | null;
+  coach_id: string;
+  program_type?: string;
+}) => {
   try {
-    const { data: authData } = await supabase.auth.getUser();
-    const userEmail = authData?.user?.email;
-    console.log(`Looking up program for user ${userId}${userEmail ? ` (${userEmail})` : ''}`);
-    
-    const assignments = await fetchUserProgramAssignments(userId);
-    
-    if (!assignments || assignments.length === 0) {
-      console.log(`No program assignments found for user ${userId}`);
-      return null;
-    }
-    
-    console.log(`Found ${assignments.length} program assignments for user ${userId}`);
-    
-    const activeAssignments = assignments.filter(isActiveAssignment);
-    console.log(`Found ${activeAssignments.length} active assignments`);
-    
-    const currentAssignment = activeAssignments.length > 0 
-      ? activeAssignments[0] 
-      : assignments[0];
-    
-    if (activeAssignments.length === 0 && assignments.length > 0) {
-      console.log("No active assignments found. Using most recent assignment as fallback:", currentAssignment.id);
-    } else {
-      console.log("Using active assignment:", currentAssignment.id);
-    }
-    
-    const programId = currentAssignment.program_id;
-    
-    if (!programId) {
-      console.log("No program ID found in assignment");
-      return null;
-    }
-    
-    const programData = await fetchFullProgramDetails(programId);
-    
-    if (!programData) {
-      console.log("No program details found for program ID:", programId);
-      return null;
-    }
-    
-    const fullProgramData = {
-      ...currentAssignment,
-      program: programData
-    };
-    
-    console.log("Successfully built program data:", 
-      fullProgramData.program.title, 
-      "with", fullProgramData.program.weekData?.length || 0, "weeks"
-    );
-    
-    return fullProgramData;
-  } catch (err) {
-    console.error("Error in fetchCurrentProgram:", err);
-    return null;
-  }
-};
-
-/**
- * Deletes a program assignment and updates the client's current program if needed
- */
-export const deleteProgramAssignment = async (assignmentId: string): Promise<boolean> => {
-  try {
-    const { data: assignment, error: fetchError } = await supabase
-      .from('program_assignments')
-      .select('*')
-      .eq('id', assignmentId)
-      .maybeSingle();
-    
-    if (fetchError) {
-      console.error('Error fetching assignment details:', fetchError);
-      throw fetchError;
-    }
-    
-    const { error: deleteError } = await supabase
-      .from('program_assignments')
-      .delete()
-      .eq('id', assignmentId);
-    
-    if (deleteError) {
-      console.error('Error deleting program assignment:', deleteError);
-      throw deleteError;
-    }
-    
-    if (assignment) {
-      const { data: clientInfo, error: clientInfoError } = await supabase
-        .from('client_workout_info')
-        .select('current_program_id')
-        .eq('user_id', assignment.user_id)
-        .maybeSingle();
+    const { data: program, error } = await supabase
+      .from('workout_programs')
+      .insert({
+        title: data.title,
+        weeks: data.weeks,
+        description: data.description || null,
+        coach_id: data.coach_id,
+        program_type: data.program_type || 'strength'
+      })
+      .select()
+      .single();
       
-      if (!clientInfoError && clientInfo && clientInfo.current_program_id === assignment.program_id) {
-        console.log('Removing current program reference for client:', assignment.user_id);
-        try {
-          await supabase.rpc('update_client_program', {
-            user_id_param: assignment.user_id,
-            program_id_param: null
-          });
-        } catch (rpcError) {
-          console.error('Error updating client program reference:', rpcError);
-        }
-      }
+    if (error) {
+      console.error('Error creating workout program:', error);
+      throw error;
+    }
+    
+    return program;
+  } catch (error) {
+    console.error('Error in createWorkoutProgram:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update a workout program
+ */
+export const updateWorkoutProgram = async (programId: string, data: {
+  title?: string;
+  weeks?: number;
+  description?: string | null;
+  program_type?: string;
+}) => {
+  try {
+    const { data: program, error } = await supabase
+      .from('workout_programs')
+      .update({
+        title: data.title,
+        weeks: data.weeks,
+        description: data.description,
+        program_type: data.program_type
+      })
+      .eq('id', programId)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error updating workout program:', error);
+      throw error;
+    }
+    
+    return program;
+  } catch (error) {
+    console.error('Error in updateWorkoutProgram:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a workout program
+ */
+export const deleteWorkoutProgram = async (programId: string) => {
+  try {
+    const { error } = await supabase
+      .from('workout_programs')
+      .delete()
+      .eq('id', programId);
+      
+    if (error) {
+      console.error('Error deleting workout program:', error);
+      throw error;
     }
     
     return true;
   } catch (error) {
-    console.error('Failed to delete program assignment:', error);
-    return false;
+    console.error('Error in deleteWorkoutProgram:', error);
+    throw error;
   }
 };
 
 /**
- * Syncs standalone workout template exercises to all program workouts that use this template
- * This ensures that when a template is updated, all program workouts using it are also updated
+ * Fetch all workout program weeks
  */
-export const syncTemplateExercisesToProgramWorkouts = async (templateId: string): Promise<boolean> => {
+export const fetchWorkoutWeeks = async (programId: string) => {
   try {
-    console.log(`Syncing template ${templateId} exercises to program workouts...`);
-    
-    const { data: templateExercises, error: templateError } = await supabase
-      .from('standalone_workout_exercises')
+    const { data, error } = await supabase
+      .from('workout_weeks')
       .select(`
         *,
-        exercise:exercise_id (*)
+        program:program_id (
+          title,
+          id,
+          program_type
+        )
       `)
-      .eq('workout_id', templateId)
-      .order('order_index', { ascending: true });
-    
-    if (templateError) {
-      console.error("Error fetching template exercises:", templateError);
-      return false;
-    }
-    
-    if (!templateExercises || templateExercises.length === 0) {
-      console.log("No exercises found in the template");
-      return true;
-    }
-    
-    console.log(`Found ${templateExercises.length} exercises in template`);
-    
-    const { data: programWorkouts, error: workoutsError } = await supabase
-      .from('workouts')
-      .select('id, template_id')
-      .eq('template_id', templateId);
-    
-    if (workoutsError) {
-      console.error("Error finding program workouts using this template:", workoutsError);
-      return false;
-    }
-    
-    if (!programWorkouts || programWorkouts.length === 0) {
-      console.log("No program workouts found using this template");
-      return true;
-    }
-    
-    console.log(`Found ${programWorkouts.length} program workouts using this template`);
-    
-    for (const workout of programWorkouts) {
-      console.log(`Syncing exercises to program workout ${workout.id}...`);
+      .eq('program_id', programId)
+      .order('week_number', { ascending: true });
       
+    if (error) {
+      console.error('Error fetching workout weeks:', error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in fetchWorkoutWeeks:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get program assignment count
+ */
+export const getWorkoutProgramAssignmentCount = async (programIds: string[]) => {
+  if (!programIds || programIds.length === 0) {
+    return {};
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from('program_assignments')
+      .select('program_id')
+      .in('program_id', programIds)
+      .is('end_date', null);
+      
+    if (error) {
+      console.error('Error fetching program assignments:', error);
+      throw error;
+    }
+    
+    // Count assignments per program
+    const counts: Record<string, number> = {};
+    
+    programIds.forEach(id => {
+      counts[id] = 0;
+    });
+    
+    if (data) {
+      data.forEach(assignment => {
+        if (counts[assignment.program_id] !== undefined) {
+          counts[assignment.program_id]++;
+        }
+      });
+    }
+    
+    return counts;
+  } catch (error) {
+    console.error('Error in getWorkoutProgramAssignmentCount:', error);
+    return {};
+  }
+};
+
+/**
+ * Assign a program to a user
+ */
+export const assignProgramToUser = async (data: {
+  program_id: string;
+  user_id: string;
+  assigned_by: string;
+  start_date: string;
+}) => {
+  try {
+    // First check if there's an existing assignment for this user
+    const { data: existingAssignments, error: fetchError } = await supabase
+      .from('program_assignments')
+      .select('id')
+      .eq('user_id', data.user_id)
+      .is('end_date', null);
+      
+    if (fetchError) {
+      console.error('Error checking existing assignments:', fetchError);
+      throw fetchError;
+    }
+    
+    // If existing assignments, update them to set end_date
+    if (existingAssignments && existingAssignments.length > 0) {
+      const { error: updateError } = await supabase
+        .from('program_assignments')
+        .update({ end_date: new Date().toISOString().split('T')[0] })
+        .eq('user_id', data.user_id)
+        .is('end_date', null);
+        
+      if (updateError) {
+        console.error('Error updating existing assignments:', updateError);
+        throw updateError;
+      }
+    }
+    
+    // Create the new assignment
+    const { data: assignment, error } = await supabase
+      .from('program_assignments')
+      .insert({
+        program_id: data.program_id,
+        user_id: data.user_id,
+        assigned_by: data.assigned_by,
+        start_date: data.start_date,
+        end_date: null
+      })
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error assigning program:', error);
+      throw error;
+    }
+    
+    return assignment;
+  } catch (error) {
+    console.error('Error in assignProgramToUser:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch users assigned to a program
+ */
+export const fetchAssignedUsers = async (programId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('program_assignments')
+      .select(`
+        *,
+        user:user_id (
+          email,
+          id
+        )
+      `)
+      .eq('program_id', programId)
+      .is('end_date', null);
+      
+    if (error) {
+      console.error('Error fetching assigned users:', error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in fetchAssignedUsers:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a program assignment
+ */
+export const deleteProgramAssignment = async (assignmentId: string) => {
+  try {
+    const { error } = await supabase
+      .from('program_assignments')
+      .delete()
+      .eq('id', assignmentId);
+      
+    if (error) {
+      console.error('Error deleting program assignment:', error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in deleteProgramAssignment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch all clients
+ */
+export const fetchAllClients = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        user_type,
+        client:id (
+          first_name,
+          last_name
+        )
+      `)
+      .eq('user_type', 'client');
+      
+    if (error) {
+      console.error('Error fetching clients:', error);
+      throw error;
+    }
+    
+    // Get emails for clients
+    const userIds = data.map(profile => profile.id);
+    
+    if (userIds.length === 0) {
+      return [];
+    }
+    
+    const { data: userData, error: userError } = await supabase.rpc(
+      'get_users_email',
+      { user_ids: userIds }
+    );
+    
+    if (userError) {
+      console.error('Error fetching user emails:', userError);
+      throw userError;
+    }
+    
+    // Merge data
+    const clients = data.map(profile => {
+      const user = userData.find(u => u.id === profile.id);
+      
+      return {
+        id: profile.id,
+        email: user?.email || '',
+        first_name: profile.client?.first_name || '',
+        last_name: profile.client?.last_name || '',
+        user_type: profile.user_type
+      };
+    });
+    
+    return clients;
+  } catch (error) {
+    console.error('Error in fetchAllClients:', error);
+    throw error;
+  }
+};
+
+/**
+ * Sync template exercises to program workouts
+ */
+export const syncTemplateExercisesToProgramWorkouts = async (templateId: string) => {
+  try {
+    const { data: workouts, error: workoutsError } = await supabase
+      .from('workouts')
+      .select('id')
+      .eq('template_id', templateId);
+      
+    if (workoutsError) {
+      console.error('Error fetching workouts with template:', workoutsError);
+      throw workoutsError;
+    }
+    
+    if (!workouts || workouts.length === 0) {
+      return []; // No workouts using this template
+    }
+    
+    // For each workout, delete existing exercises and copy from template
+    for (const workout of workouts) {
+      // Delete existing exercises
       const { error: deleteError } = await supabase
         .from('workout_exercises')
         .delete()
         .eq('workout_id', workout.id);
-      
+        
       if (deleteError) {
         console.error(`Error deleting exercises for workout ${workout.id}:`, deleteError);
+        continue; // Skip to next workout on error
+      }
+      
+      // Get template exercises
+      const { data: templateExercises, error: templateError } = await supabase
+        .from('standalone_workout_exercises')
+        .select('*')
+        .eq('workout_id', templateId)
+        .order('order_index', { ascending: true });
+        
+      if (templateError || !templateExercises) {
+        console.error(`Error fetching template exercises for ${templateId}:`, templateError);
         continue;
       }
       
-      const workoutExercises = templateExercises.map((template, index) => ({
-        workout_id: workout.id,
-        exercise_id: template.exercise_id,
-        sets: template.sets,
-        reps: template.reps,
-        rest_seconds: template.rest_seconds,
-        notes: template.notes,
-        order_index: index,
-        superset_group_id: template.superset_group_id,
-        superset_order: template.superset_order
-      }));
-      
-      const { error: insertError } = await supabase
-        .from('workout_exercises')
-        .insert(workoutExercises);
-      
-      if (insertError) {
-        console.error(`Error inserting exercises for workout ${workout.id}:`, insertError);
-      } else {
-        console.log(`Successfully synced ${workoutExercises.length} exercises to workout ${workout.id}`);
+      // Create new exercises from template
+      if (templateExercises.length > 0) {
+        const newExercises = templateExercises.map(ex => ({
+          workout_id: workout.id,
+          exercise_id: ex.exercise_id,
+          sets: ex.sets,
+          reps: ex.reps,
+          rest_seconds: ex.rest_seconds,
+          notes: ex.notes,
+          order_index: ex.order_index,
+          superset_group_id: ex.superset_group_id,
+          superset_order: ex.superset_order
+        }));
+        
+        const { error: insertError } = await supabase
+          .from('workout_exercises')
+          .insert(newExercises);
+          
+        if (insertError) {
+          console.error(`Error inserting exercises for workout ${workout.id}:`, insertError);
+        }
       }
     }
     
-    console.log("Template sync completed successfully");
-    return true;
+    return workouts;
   } catch (error) {
-    console.error("Error syncing template exercises:", error);
-    return false;
+    console.error('Error in syncTemplateExercisesToProgramWorkouts:', error);
+    throw error;
   }
 };

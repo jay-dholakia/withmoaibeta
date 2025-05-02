@@ -1,126 +1,91 @@
+
 import React, { useState, useEffect } from 'react';
-import { WorkoutProgram } from '@/types/workout';
+import { Link } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar, Users, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { getWorkoutProgramAssignmentCount } from '@/services/workout-service';
+import { getWorkoutProgramAssignmentCount } from '@/services/program-service';
 
 interface WorkoutProgramListProps {
-  programs: WorkoutProgram[];
-  isLoading: boolean;
-  onDeleteProgram?: (programId: string) => void;
+  programs: any[];
+  onDelete?: (id: string) => void;
+  showActions?: boolean;
 }
 
-export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({ 
-  programs, 
-  isLoading, 
-  onDeleteProgram 
-}) => {
-  const navigate = useNavigate();
+export const WorkoutProgramList = ({ programs, onDelete, showActions = true }: WorkoutProgramListProps) => {
   const [assignmentCounts, setAssignmentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    const fetchAssignmentCounts = async () => {
-      if (programs.length === 0) return;
-      
+    const loadAssignmentCounts = async () => {
       try {
         const programIds = programs.map(program => program.id);
-        const counts = await getWorkoutProgramAssignmentCount(programIds);
-        setAssignmentCounts(counts || {});
+        
+        if (programIds.length > 0) {
+          const counts = await getWorkoutProgramAssignmentCount(programIds);
+          setAssignmentCounts(counts || {});
+        }
       } catch (error) {
-        console.error('Error fetching assignment counts:', error);
-        setAssignmentCounts({});
+        console.error('Error loading program assignment counts:', error);
       }
     };
 
-    if (programs.length > 0) {
-      fetchAssignmentCounts();
-    }
+    loadAssignmentCounts();
   }, [programs]);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="border rounded-lg p-6 animate-pulse">
-            <div className="h-6 bg-muted/60 rounded w-1/3 mb-3"></div>
-            <div className="h-4 bg-muted/60 rounded w-2/3 mb-6"></div>
-            <div className="flex gap-4">
-              <div className="h-8 bg-muted/60 rounded w-24"></div>
-              <div className="h-8 bg-muted/60 rounded w-24"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (programs.length === 0) {
-    return (
-      <div className="text-center p-10 border rounded-lg bg-muted/10">
-        <h3 className="font-medium text-lg mb-2">No workout programs yet</h3>
-        <p className="text-muted-foreground mb-6">Create your first workout program to get started</p>
-        <Button 
-          onClick={() => navigate('/coach-dashboard/workouts/create')}
-          className="gap-2"
-        >
-          <PlusCircle className="h-4 w-4" />
-          Create Workout Program
-        </Button>
-      </div>
-    );
+  if (!programs || programs.length === 0) {
+    return <div className="text-center py-12 text-muted-foreground">No workout programs found.</div>;
   }
 
   return (
-    <div className="space-y-4">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {programs.map((program) => (
-        <div key={program.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-          <h3 className="font-medium text-lg text-left">{program.title}</h3>
-          <div className="flex flex-wrap gap-2 mb-4">
-            <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              {program.weeks} {program.weeks === 1 ? 'week' : 'weeks'}
-            </span>
-            <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <Users className="h-3 w-3" />
-              {assignmentCounts[program.id] || 0} {assignmentCounts[program.id] === 1 ? 'client' : 'clients'} assigned
-            </span>
-            <span className="bg-muted px-2 py-1 rounded-full text-xs">
-              Created: {new Date(program.created_at).toLocaleDateString()}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => navigate(`/coach-dashboard/workouts/${program.id}`)}
-            >
-              View Details
+        <Card key={program.id} className="transition-all hover:shadow-md">
+          <CardHeader className="pb-2">
+            <div className="flex justify-between">
+              <CardTitle className="text-lg">{program.title}</CardTitle>
+              <Badge variant={program.program_type === 'run' ? 'destructive' : 'secondary'}>
+                {program.program_type === 'run' ? 'Run' : 'Strength'}
+              </Badge>
+            </div>
+            <CardDescription>{program.weeks} week program</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm line-clamp-2">
+              {program.description || 'No description provided.'}
+            </p>
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">
+                {assignmentCounts[program.id] || 0} clients assigned
+              </p>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-between pt-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/coach-dashboard/workouts/${program.id}`}>
+                View Details
+              </Link>
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate(`/coach-dashboard/workouts/${program.id}/assign`)}
-            >
-              <Users className="h-4 w-4 mr-1" />
-              Assign to Clients
-            </Button>
-            {onDeleteProgram && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/40"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteProgram(program.id);
-                }}
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete
-              </Button>
+            {showActions && (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={`/coach-dashboard/workouts/${program.id}/edit`}>
+                    Edit
+                  </Link>
+                </Button>
+                {onDelete && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => onDelete(program.id)}
+                  >
+                    Delete
+                  </Button>
+                )}
+              </div>
             )}
-          </div>
-        </div>
+          </CardFooter>
+        </Card>
       ))}
     </div>
   );

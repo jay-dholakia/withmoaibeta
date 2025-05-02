@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
-import { DAYS_OF_WEEK } from "@/types/workout";
+import { DAYS_OF_WEEK, StandardWorkoutType } from "@/types/workout";
 import { ExerciseSelector } from './ExerciseSelector';
 import { WorkoutExerciseForm } from './WorkoutExerciseForm';
 import { toast } from "sonner";
@@ -46,7 +45,7 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
-  const [workoutType, setWorkoutType] = useState<WorkoutType>('strength');
+  const [workoutType, setWorkoutType] = useState<StandardWorkoutType>('strength');
   
   const [exercises, setExercises] = useState<any[]>([]);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
@@ -74,17 +73,8 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
       setCategory(workout.category || '');
       
       if (workout.workout_type) {
-        const normalizedType = workout.workout_type.toLowerCase();
-        
-        if (normalizedType.includes('strength')) setWorkoutType('strength');
-        else if (normalizedType.includes('body') || normalizedType.includes('weight')) setWorkoutType('bodyweight');
-        else if (normalizedType.includes('cardio') || normalizedType.includes('hiit')) setWorkoutType('cardio');
-        else if (normalizedType.includes('flex') || normalizedType.includes('yoga') || 
-                normalizedType.includes('recovery')) setWorkoutType('flexibility');
-        else if (normalizedType.includes('rest')) setWorkoutType('rest_day');
-        else if (normalizedType.includes('custom')) setWorkoutType('custom');
-        else if (normalizedType.includes('one')) setWorkoutType('one_off');
-        else setWorkoutType('strength');
+        const normalizedType = workout.workout_type.toLowerCase() as StandardWorkoutType;
+        setWorkoutType(normalizedType);
       }
       
       try {
@@ -337,7 +327,7 @@ const StandaloneWorkoutForm: React.FC<StandaloneWorkoutFormProps> = ({
             <Select 
               value={workoutType} 
               onValueChange={(value: string) => {
-                setWorkoutType(value as WorkoutType);
+                setWorkoutType(value as StandardWorkoutType);
               }}
             >
               <SelectTrigger id="type">

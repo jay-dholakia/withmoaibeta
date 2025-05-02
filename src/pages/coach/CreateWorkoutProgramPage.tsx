@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutProgramForm } from '@/components/coach/WorkoutProgramForm';
-import { createWorkoutProgram } from '@/services/workout-service';
+import { createWorkoutProgram } from '@/services/program-service';
 import { toast } from 'sonner';
 
 const CreateWorkoutProgramPage = () => {

@@ -514,7 +514,7 @@ const ActiveWorkout = () => {
             duration: '',
             location: '',
             completed: false,
-            workout_type: 'cardio' // Add workout_type
+            workout_type: 'cardio'
           }
         };
       }
@@ -525,7 +525,7 @@ const ActiveWorkout = () => {
           duration: '',
           location: '',
           completed: false,
-          workout_type: 'cardio' // Add workout_type
+          workout_type: 'cardio'
         };
       }
       
@@ -555,7 +555,7 @@ const ActiveWorkout = () => {
             duration: field === 'duration' ? value : exerciseStates[exerciseId]?.cardioData?.duration || '',
             location: exerciseStates[exerciseId]?.cardioData?.location || '',
             completed: exerciseStates[exerciseId]?.cardioData?.completed || false,
-            workout_type: 'cardio' // Add workout_type
+            workout_type: 'cardio'
           }
         ]);
       }
@@ -575,7 +575,7 @@ const ActiveWorkout = () => {
             duration: '',
             location: '',
             completed: false,
-            workout_type: 'cardio' // Add workout_type
+            workout_type: 'cardio'
           }
         };
       }
@@ -586,7 +586,7 @@ const ActiveWorkout = () => {
           duration: '',
           location: '',
           completed: false,
-          workout_type: 'cardio' // Add workout_type
+          workout_type: 'cardio'
         };
       }
       
@@ -617,7 +617,7 @@ const ActiveWorkout = () => {
           duration: currentState?.duration || '',
           location: currentState?.location || '',
           completed,
-          workout_type: 'cardio' // Add workout_type
+          workout_type: 'cardio'
         }
       ]);
     }
@@ -683,7 +683,7 @@ const ActiveWorkout = () => {
     });
   };
 
-  const handleVideoClick = (url: string, exerciseName: string) => {
+  const handleVideoClick = (url: string) => {
     window.open(url, '_blank');
   };
 

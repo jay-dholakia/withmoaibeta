@@ -44,7 +44,6 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [dayOfWeek, setDayOfWeek] = useState(0);
   const [workoutType, setWorkoutType] = useState<WorkoutDayFormWorkoutType>('strength');
   const [priority, setPriority] = useState(0);
   const [workoutCount, setWorkoutCount] = useState(0);
@@ -81,7 +80,6 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
       const workout = await fetchWorkout(workoutId);
       setTitle(workout.title);
       setDescription(workout.description || '');
-      setDayOfWeek(workout.day_of_week);
       setPriority(workout.priority || 0);
       
       if (workout.workout_type) {
@@ -153,7 +151,6 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
         await updateWorkout(workoutId, {
           title,
           description: description || null,
-          day_of_week: dayOfWeek,
           workout_type: workoutType,
           priority
         });
@@ -162,7 +159,6 @@ const WorkoutDayForm: React.FC<WorkoutDayFormProps> = ({
           week_id: weekId,
           title,
           description: description || null,
-          day_of_week: dayOfWeek,
           workout_type: workoutType,
           priority
         });

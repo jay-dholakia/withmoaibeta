@@ -39,7 +39,6 @@ export interface WorkoutWeek {
 export interface Workout {
   id: string;
   week_id: string;
-  day_of_week: number;
   title: string;
   description: string | null;
   created_at: string;
@@ -76,7 +75,6 @@ export interface WorkoutBasic {
   id: string;
   title: string;
   description?: string;
-  day_of_week: number;
   week_id: string;
   priority?: number;
   week?: {

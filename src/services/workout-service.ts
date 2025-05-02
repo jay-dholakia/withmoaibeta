@@ -372,7 +372,7 @@ export const fetchWorkoutsForWeek = async (weekId: string) => {
       .from('workouts')
       .select('*')
       .eq('week_id', weekId)
-      .order('day_of_week', { ascending: true });
+      .order('priority', { ascending: true });
     
     if (error) {
       throw error;
@@ -394,7 +394,7 @@ export const fetchWorkouts = async (weekId: string) => {
       .from('workouts')
       .select('*')
       .eq('week_id', weekId)
-      .order('day_of_week', { ascending: true });
+      .order('priority', { ascending: true });
     
     if (error) {
       throw error;
@@ -437,7 +437,6 @@ export const createWorkout = async (workoutData: {
   week_id: string;
   title: string;
   description?: string | null;
-  day_of_week: number;
   workout_type?: "cardio" | "strength" | "mobility" | "flexibility";
   priority?: number;
   template_id?: string | null;
@@ -465,7 +464,6 @@ export const createWorkout = async (workoutData: {
  */
 export const createWorkoutFromTemplate = async (workoutData: {
   week_id: string;
-  day_of_week: number;
   priority?: number;
   template_id: string;
 }) => {
@@ -497,7 +495,6 @@ export const createWorkoutFromTemplate = async (workoutData: {
         week_id: workoutData.week_id,
         title: template.title,
         description: template.description,
-        day_of_week: workoutData.day_of_week,
         workout_type: workoutType,
         priority: workoutData.priority || 0,
         template_id: workoutData.template_id
@@ -556,7 +553,6 @@ export const createWorkoutFromTemplate = async (workoutData: {
 export const updateWorkout = async (workoutId: string, workoutData: {
   title?: string;
   description?: string | null;
-  day_of_week?: number;
   workout_type?: "cardio" | "strength" | "mobility" | "flexibility";
   priority?: number;
   template_id?: string | null;

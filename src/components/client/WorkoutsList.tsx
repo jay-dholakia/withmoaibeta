@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -91,67 +90,71 @@ const WorkoutsList = () => {
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 5, // 5 minutes before refetching
     gcTime: 1000 * 60 * 10, // 10 minutes before garbage collection
-    onSuccess: (data) => {
-      // Extract available weeks
-      const weeksSet = new Set<number>();
-      data.forEach(workout => {
-        if (workout.workout?.week && workout.workout.week.week_number) {
-          weeksSet.add(workout.workout.week.week_number);
-        }
-      });
-      
-      const extractedWeeks = Array.from(weeksSet);
-      console.log("WorkoutsList: Extracted week numbers:", extractedWeeks);
-      setAvailableWeeks(extractedWeeks);
-      
-      if (extractedWeeks.length > 0) {
-        const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
-        
-        let currentWeekNumber = 1;
-        if (currentProgram && currentProgram.start_date) {
-          // Use Pacific Time to calculate current week
-          const nowPT = new Date();
-          
-          // Get program start date in Pacific Time
-          const startDatePT = new Date(formatInTimeZone(new Date(currentProgram.start_date), 'America/Los_Angeles', 'yyyy-MM-dd'));
-          
-          // Adjust program start to nearest Monday (week start)
-          const programStartDay = startDatePT.getDay();
-          const daysUntilFirstMonday = programStartDay === 0 ? 1 : (programStartDay === 1 ? 0 : 8 - programStartDay);
-          const firstProgramMonday = new Date(startDatePT);
-          firstProgramMonday.setDate(startDatePT.getDate() + daysUntilFirstMonday);
-          firstProgramMonday.setHours(0, 0, 0, 0);
-          
-          // Calculate weeks since first Monday
-          const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-          let weeksSinceStart = 0;
-          
-          // If program hasn't reached first Monday yet, we're in week 1
-          if (nowPT >= firstProgramMonday) {
-            weeksSinceStart = Math.floor((nowPT.getTime() - firstProgramMonday.getTime()) / msPerWeek);
-          }
-          
-          currentWeekNumber = weeksSinceStart + 1;
-          
-          console.log(`WorkoutsList: Program start date: ${startDatePT.toISOString()}, first Monday: ${firstProgramMonday.toISOString()}, current week: ${currentWeekNumber}`);
-        }
-        
-        // Ensure week number is within program bounds
-        currentWeekNumber = Math.min(
-          Math.max(1, currentWeekNumber),
-          currentProgram?.weeks || 4
-        );
-        
-        const weekExists = sortedWeeks.includes(currentWeekNumber);
-        const initialWeek = weekExists ? currentWeekNumber : sortedWeeks[0];
-        console.log(`WorkoutsList: Setting initial week filter to ${weekExists ? 'current' : 'first available'} week: ${initialWeek}`);
-        
-        setTimeout(() => {
-          setWeekFilter(initialWeek.toString());
-        }, 0);
-      }
-    }
   });
+
+  // Process workout data when available
+  React.useEffect(() => {
+    if (!workouts.length || !currentProgram) return;
+    
+    // Extract available weeks
+    const weeksSet = new Set<number>();
+    workouts.forEach(workout => {
+      if (workout.workout?.week && workout.workout.week.week_number) {
+        weeksSet.add(workout.workout.week.week_number);
+      }
+    });
+    
+    const extractedWeeks = Array.from(weeksSet);
+    console.log("WorkoutsList: Extracted week numbers:", extractedWeeks);
+    setAvailableWeeks(extractedWeeks);
+    
+    if (extractedWeeks.length > 0) {
+      const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
+      
+      let currentWeekNumber = 1;
+      if (currentProgram && currentProgram.start_date) {
+        // Use Pacific Time to calculate current week
+        const nowPT = new Date();
+        
+        // Get program start date in Pacific Time
+        const startDatePT = new Date(formatInTimeZone(new Date(currentProgram.start_date), 'America/Los_Angeles', 'yyyy-MM-dd'));
+        
+        // Adjust program start to nearest Monday (week start)
+        const programStartDay = startDatePT.getDay();
+        const daysUntilFirstMonday = programStartDay === 0 ? 1 : (programStartDay === 1 ? 0 : 8 - programStartDay);
+        const firstProgramMonday = new Date(startDatePT);
+        firstProgramMonday.setDate(startDatePT.getDate() + daysUntilFirstMonday);
+        firstProgramMonday.setHours(0, 0, 0, 0);
+        
+        // Calculate weeks since first Monday
+        const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+        let weeksSinceStart = 0;
+        
+        // If program hasn't reached first Monday yet, we're in week 1
+        if (nowPT >= firstProgramMonday) {
+          weeksSinceStart = Math.floor((nowPT.getTime() - firstProgramMonday.getTime()) / msPerWeek);
+        }
+        
+        currentWeekNumber = weeksSinceStart + 1;
+        
+        console.log(`WorkoutsList: Program start date: ${startDatePT.toISOString()}, first Monday: ${firstProgramMonday.toISOString()}, current week: ${currentWeekNumber}`);
+      }
+      
+      // Ensure week number is within program bounds
+      currentWeekNumber = Math.min(
+        Math.max(1, currentWeekNumber),
+        currentProgram?.weeks || 4
+      );
+      
+      const weekExists = sortedWeeks.includes(currentWeekNumber);
+      const initialWeek = weekExists ? currentWeekNumber : sortedWeeks[0];
+      console.log(`WorkoutsList: Setting initial week filter to ${weekExists ? 'current' : 'first available'} week: ${initialWeek}`);
+      
+      setTimeout(() => {
+        setWeekFilter(initialWeek.toString());
+      }, 0);
+    }
+  }, [workouts, currentProgram]);
 
   const filteredWorkouts = React.useMemo(() => {
     if (!weekFilter) {

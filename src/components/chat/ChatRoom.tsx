@@ -117,7 +117,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   };
 
   return (
-    <div className={cn("w-full h-full flex flex-col", isMobile ? "h-[calc(100vh-190px)]" : "h-[600px]")}>
+    <div className={cn("w-full h-full flex flex-col", isMobile ? "h-[calc(100vh-200px)]" : "h-[600px]")}>
       {!isMobile && (
         <CardHeader className="px-4 py-3 border-b">
           <CardTitle className="text-lg">{roomName}</CardTitle>
@@ -194,7 +194,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
         )}
       </div>
       
-      <div className="p-2 md:p-3 border-t">
+      <div className="p-2 md:p-3 border-t mt-auto">
         <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
           <Input
             placeholder="Type a message..."

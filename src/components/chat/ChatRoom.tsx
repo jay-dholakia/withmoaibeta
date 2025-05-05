@@ -17,12 +17,14 @@ interface ChatRoomProps {
   roomId: string;
   isDirectMessage?: boolean;
   roomName: string;
+  isMobile?: boolean;
 }
 
 export const ChatRoom: React.FC<ChatRoomProps> = ({ 
   roomId, 
   isDirectMessage = false,
-  roomName 
+  roomName,
+  isMobile = false
 }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -115,12 +117,14 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   };
 
   return (
-    <Card className="w-full h-[600px] flex flex-col">
-      <CardHeader className="px-4 py-3 border-b">
-        <CardTitle className="text-lg">{roomName}</CardTitle>
-      </CardHeader>
+    <div className={cn("w-full h-full flex flex-col", isMobile ? "h-[calc(100vh-190px)]" : "h-[600px]")}>
+      {!isMobile && (
+        <CardHeader className="px-4 py-3 border-b">
+          <CardTitle className="text-lg">{roomName}</CardTitle>
+        </CardHeader>
+      )}
       
-      <CardContent className="flex-1 p-0 overflow-hidden">
+      <div className="flex-1 overflow-hidden">
         {isLoading ? (
           <div className="h-full flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -130,7 +134,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
             <p>No messages yet. Start the conversation!</p>
           </div>
         ) : (
-          <ScrollArea ref={scrollAreaRef} className="h-full w-full p-4">
+          <ScrollArea className="h-full w-full p-4">
             <div className="space-y-4">
               {messages.map((message) => {
                 const isCurrentUser = message.sender_id === user?.id;
@@ -151,7 +155,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                       )}
                       
                       <div className={cn(
-                        "rounded-lg px-4 py-2 space-y-1",
+                        "rounded-lg px-3 py-2 space-y-1",
                         isCurrentUser 
                           ? "bg-client text-white" 
                           : "bg-muted"
@@ -162,7 +166,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                           </p>
                         )}
                         <div className="space-y-1">
-                          <p>{message.content}</p>
+                          <p className="text-sm md:text-base">{message.content}</p>
                           <p className={cn(
                             "text-xs opacity-70",
                             isCurrentUser ? "text-white" : "text-muted-foreground"
@@ -188,9 +192,9 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
             </div>
           </ScrollArea>
         )}
-      </CardContent>
+      </div>
       
-      <CardFooter className="p-3 border-t">
+      <div className="p-2 md:p-3 border-t">
         <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
           <Input
             placeholder="Type a message..."
@@ -211,7 +215,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
             )}
           </Button>
         </form>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
-};
+}

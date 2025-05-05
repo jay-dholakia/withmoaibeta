@@ -30,6 +30,25 @@ export type ChatRoom = {
 export const fetchGroupChatRooms = async (userId: string): Promise<ChatRoom[]> => {
   if (!userId) return [];
   
+  // First, get the groups that the user is a member of
+  const { data: userGroups, error: groupError } = await supabase
+    .from("group_members")
+    .select("group_id")
+    .eq("user_id", userId);
+
+  if (groupError) {
+    console.error("Error fetching user groups:", groupError);
+    return [];
+  }
+
+  if (!userGroups || userGroups.length === 0) {
+    return [];
+  }
+
+  // Extract the group IDs into an array
+  const groupIds = userGroups.map(item => item.group_id);
+  
+  // Then fetch the chat rooms for these groups
   const { data, error } = await supabase
     .from("chat_rooms")
     .select(`
@@ -40,12 +59,7 @@ export const fetchGroupChatRooms = async (userId: string): Promise<ChatRoom[]> =
       created_at
     `)
     .eq("is_group_chat", true)
-    .in("group_id", 
-      supabase
-        .from("group_members")
-        .select("group_id")
-        .eq("user_id", userId)
-    );
+    .in("group_id", groupIds);
 
   if (error) {
     console.error("Error fetching group chat rooms:", error);

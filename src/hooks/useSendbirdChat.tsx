@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChatMessage, subscribeToRoom, fetchMessages, sendMessage } from '@/services/chat-service';
+import { ChatMessage, subscribeToRoom, fetchMessages, sendMessage } from '@/services/chat';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export const useSendbirdChat = (channelUrl: string) => {

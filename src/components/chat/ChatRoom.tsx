@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Loader2, Send } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { ChatMessage, fetchMessages, sendMessage, subscribeToRoom } from "@/services/chat-service";
+import { ChatMessage, fetchMessages, sendMessage, subscribeToRoom } from "@/services/chat";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

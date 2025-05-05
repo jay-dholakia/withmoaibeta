@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ChatRoom } from "@/services/chat-service";
+import { ChatRoom } from "@/services/chat";
 import { MessageSquare, Users } from "lucide-react";
 
 interface ChatSidebarProps {

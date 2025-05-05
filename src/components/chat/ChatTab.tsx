@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, PlusCircle } from "lucide-react";
-import { ChatRoom as ChatRoomType, fetchAllChatRooms, createDirectMessageRoom } from "@/services/chat-service";
+import { ChatRoom as ChatRoomType, fetchAllChatRooms, createDirectMessageRoom } from "@/services/chat";
 import { ChatRoom } from "./ChatRoom";
 import { ChatSidebar } from "./ChatSidebar";
 import { Button } from "@/components/ui/button";

@@ -1,48 +1,58 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { connectToSendbird, disconnectFromSendbird, getMessages, sendMessage } from '@/services/sendbird-service';
+import { supabase } from '@/integrations/supabase/client';
+import { ChatMessage, subscribeToRoom, fetchMessages, sendMessage } from '@/services/chat-service';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
-export const useSendbirdChat = (channelUrl?: string) => {
-  const [messages, setMessages] = useState<any[]>([]);
+export const useSendbirdChat = (channelUrl: string) => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
 
   useEffect(() => {
-    const initializeChat = async () => {
-      if (!user?.id || !channelUrl) return;
-      
+    let channel: RealtimeChannel | null = null;
+
+    const fetchInitialMessages = async () => {
       try {
         setIsLoading(true);
-        await connectToSendbird(user.id);
-        const initialMessages = await getMessages(channelUrl);
-        setMessages(initialMessages);
+        const fetchedMessages = await fetchMessages(channelUrl);
+        setMessages(fetchedMessages);
+        setError(null);
+
+        // Subscribe to new messages
+        channel = subscribeToRoom(channelUrl, (newMessage) => {
+          setMessages(prev => [...prev, newMessage]);
+        });
       } catch (err) {
-        console.error('Error initializing chat:', err);
-        setError('Failed to initialize chat');
+        console.error('Error fetching messages:', err);
+        setError('Failed to load messages. Please try again later.');
       } finally {
         setIsLoading(false);
       }
     };
 
-    initializeChat();
+    if (channelUrl) {
+      fetchInitialMessages();
+    }
 
     return () => {
-      disconnectFromSendbird();
+      if (channel) {
+        channel.unsubscribe();
+      }
     };
-  }, [user?.id, channelUrl]);
+  }, [channelUrl]);
 
-  const sendChatMessage = async (message: string) => {
-    if (!channelUrl) return;
+  const sendChatMessage = async (content: string) => {
+    if (!content.trim()) return;
     
     try {
-      const sentMessage = await sendMessage(channelUrl, message);
-      setMessages(prev => [...prev, sentMessage]);
-      return sentMessage;
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) throw new Error('Not authenticated');
+      
+      const result = await sendMessage(channelUrl, content, data.user.id);
+      return result;
     } catch (err) {
       console.error('Error sending message:', err);
-      setError('Failed to send message');
       throw err;
     }
   };

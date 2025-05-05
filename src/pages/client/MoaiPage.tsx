@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MoaiMembersTab from '@/components/client/MoaiMembersTab';
 import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
-import { ChatTab } from '@/components/chat/ChatTab';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -22,7 +21,7 @@ import { useFireBadges } from '@/hooks/useFireBadges';
 import { FireBadge } from '@/components/client/FireBadge';
 import { AwardFireBadgesButton } from '@/components/admin/AwardFireBadgesButton';
 
-const VALID_TABS = ['progress', 'members', 'coach', 'chat'];
+const VALID_TABS = ['progress', 'members', 'coach'];
 const DEFAULT_TAB = 'progress';
 
 export default function MoaiPage() {
@@ -152,6 +151,10 @@ export default function MoaiPage() {
     navigate(`/client-dashboard/moai/${newGroupId}`, { replace: true });
   };
 
+  const handleChatClick = () => {
+    navigate(`/client-dashboard/chat/${activeGroupId}`);
+  };
+
   if (isLoadingGroup || isLoadingProgram || isLoadingUserGroups) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -197,17 +200,29 @@ export default function MoaiPage() {
               </div>
             )}
             
-            {groupData.spotify_playlist_url && (
+            <div className="flex flex-wrap gap-2 justify-center mb-2">
+              {groupData.spotify_playlist_url && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenSpotifyPlaylist}
+                  className="bg-white hover:bg-green-50 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                >
+                  <Music className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
+                  <span>Team Spotify Playlist</span>
+                </Button>
+              )}
+
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleOpenSpotifyPlaylist}
-                className="bg-white hover:bg-green-50 mb-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                onClick={handleChatClick}
+                className="bg-white hover:bg-blue-50 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
               >
-                <Music className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
-                <span>Team Spotify Playlist</span>
+                <MessageSquare className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400" />
+                <span>Team Chat</span>
               </Button>
-            )}
+            </div>
 
             {activeGroupId && (
               <AccountabilityBuddyCard
@@ -245,14 +260,10 @@ export default function MoaiPage() {
             onValueChange={handleTabChange}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-4 dark:bg-gray-700">
+            <TabsList className="grid w-full grid-cols-3 dark:bg-gray-700">
               <TabsTrigger value="progress" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Progress</TabsTrigger>
               <TabsTrigger value="members" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Members</TabsTrigger>
               <TabsTrigger value="coach" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Coach</TabsTrigger>
-              <TabsTrigger value="chat" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">
-                <MessageSquare className="h-4 w-4 mr-1" />
-                Chat
-              </TabsTrigger>
             </TabsList>
 
             {user && (
@@ -280,11 +291,6 @@ export default function MoaiPage() {
             </TabsContent>
             <TabsContent value="coach">
               <MoaiCoachTab groupId={activeGroupId || ''} />
-            </TabsContent>
-            <TabsContent value="chat">
-              {activeGroupId && (
-                <ChatTab groupId={activeGroupId} />
-              )}
             </TabsContent>
           </Tabs>
         </CardContent>

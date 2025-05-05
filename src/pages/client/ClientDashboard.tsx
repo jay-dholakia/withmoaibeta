@@ -4,6 +4,7 @@ import { Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-
 import { ClientLayout } from '@/layouts/ClientLayout';
 import WorkoutsPage from './WorkoutsPage';
 import MoaiPage from './MoaiPage';
+import ChatPage from './ChatPage';
 import LeaderboardPage from './LeaderboardPage';
 import SettingsPage from './SettingsPage';
 import ActivityFeedPage from './ActivityFeedPage';
@@ -58,6 +59,7 @@ const ClientDashboard = () => {
           <Route path="workouts/*" element={<WorkoutsPage />} />
           <Route path="moai" element={<MoaiPage />} />
           <Route path="moai/:groupId" element={<MoaiPage />} />
+          <Route path="chat/:groupId?" element={<ChatPage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="activity-feed" element={<ActivityFeedPage />} />
           <Route path="settings" element={<SettingsPage />} />

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatMessage, fetchMessages, sendMessage, subscribeToRoom } from "@/services/chat";
 import { formatDistanceToNow } from "date-fns";
@@ -18,13 +18,15 @@ interface ChatRoomProps {
   isDirectMessage?: boolean;
   roomName: string;
   isMobile?: boolean;
+  onBack?: () => void;
 }
 
 export const ChatRoom: React.FC<ChatRoomProps> = ({ 
   roomId, 
   isDirectMessage = false,
   roomName,
-  isMobile = false
+  isMobile = false,
+  onBack
 }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -118,11 +120,22 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {!isMobile && (
-        <CardHeader className="px-4 py-3 border-b">
+      <CardHeader className="px-4 py-3 border-b flex flex-row items-center justify-between">
+        <div className="flex items-center">
+          {!isMobile && onBack && (
+            <Button 
+              variant="ghost" 
+              onClick={onBack}
+              size="sm"
+              className="mr-2 flex items-center"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+          )}
           <CardTitle className="text-lg">{roomName}</CardTitle>
-        </CardHeader>
-      )}
+        </div>
+      </CardHeader>
       
       <div className="flex-1 overflow-hidden">
         {isLoading ? (

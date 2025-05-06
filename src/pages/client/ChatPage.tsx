@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChatRoom } from "@/components/chat/ChatRoom";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
@@ -72,18 +71,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-88px)] md:h-[calc(100vh-80px)] overflow-hidden">
-      <div className="flex justify-between items-center p-2">
-        <Button 
-          variant="ghost" 
-          onClick={handleBackClick}
-          className="flex items-center"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Moai
-        </Button>
-      </div>
-      
+    <div className="flex flex-col h-[calc(100vh-88px)] md:h-[calc(100vh-80px)]">      
       <div className="flex flex-1 overflow-hidden border rounded-lg dark:border-gray-700 dark:bg-gray-800">
         {isMobile ? (
           <div className="w-full flex flex-col h-full">
@@ -102,7 +90,16 @@ export default function ChatPage() {
                   />
                 </SheetContent>
               </Sheet>
-              <div className="font-medium truncate">
+              <div className="font-medium truncate flex items-center">
+                <Button 
+                  variant="ghost" 
+                  onClick={handleBackClick}
+                  className="mr-2 flex items-center"
+                  size="sm"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Back
+                </Button>
                 {activeRoom?.is_group_chat 
                   ? activeRoom.name 
                   : (activeRoom?.other_user_name || "Direct Message")}
@@ -116,6 +113,7 @@ export default function ChatPage() {
                   isDirectMessage={!activeRoom.is_group_chat}
                   roomName={activeRoom.is_group_chat ? activeRoom.name : (activeRoom.other_user_name || "Direct Message")}
                   isMobile={isMobile}
+                  onBack={handleBackClick}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center">
@@ -141,6 +139,7 @@ export default function ChatPage() {
                   isDirectMessage={!activeRoom.is_group_chat}
                   roomName={activeRoom.is_group_chat ? activeRoom.name : (activeRoom.other_user_name || "Direct Message")}
                   isMobile={isMobile}
+                  onBack={handleBackClick}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center">

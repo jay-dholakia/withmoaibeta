@@ -24,9 +24,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const buddyChats = rooms.filter(room => room.is_buddy_chat);
 
   const getInitials = (name: string) => {
-    return name
-      .split(" ")[0][0]
-      .toUpperCase();
+    return name.charAt(0).toUpperCase();
   };
 
   // Extract first name from a full name
@@ -50,24 +48,28 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               </h3>
             </div>
             <div className="space-y-1">
-              {buddyChats.map((room) => (
-                <Button
-                  key={room.id}
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start px-4",
-                    activeRoomId === room.id && "bg-accent"
-                  )}
-                  onClick={() => onSelectRoom(room.id)}
-                >
-                  <Avatar className="h-6 w-6 mr-2">
-                    <AvatarFallback className="bg-orange-500 text-primary-foreground text-xs">
-                      {getInitials(room.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="truncate">{room.name}</span>
-                </Button>
-              ))}
+              {buddyChats.map((room) => {
+                const roomName = room.name.split(" &").map(name => getFirstName(name.trim())).join(", ");
+                
+                return (
+                  <Button
+                    key={room.id}
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start px-4",
+                      activeRoomId === room.id && "bg-accent"
+                    )}
+                    onClick={() => onSelectRoom(room.id)}
+                  >
+                    <Avatar className="h-6 w-6 mr-2">
+                      <AvatarFallback className="bg-orange-500 text-primary-foreground text-xs">
+                        {getInitials(room.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="truncate">{roomName}</span>
+                  </Button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -128,7 +130,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     <Avatar className="h-6 w-6 mr-2">
                       <AvatarImage src={room.other_user_avatar || ""} />
                       <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
-                        {firstName ? firstName[0] : "?"}
+                        {firstName.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <span className="truncate">{firstName}</span>

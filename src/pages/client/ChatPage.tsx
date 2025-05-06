@@ -93,6 +93,9 @@ export default function ChatPage() {
     if (!activeRoom) return "";
     
     if (activeRoom.is_group_chat) {
+      if (activeRoom.is_buddy_chat) {
+        return activeRoom.name.split(" &").map(name => getFirstName(name.trim())).join(", ");
+      }
       return activeRoom.name;
     } else {
       return activeRoom.other_user_name ? getFirstName(activeRoom.other_user_name) : "Direct Message";

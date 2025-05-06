@@ -103,6 +103,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
 
   // Extract first name from full name
   const getFirstName = (fullName: string) => {
+    if (!fullName) return "Unknown";
     return fullName.split(" ")[0];
   };
 
@@ -119,13 +120,21 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
     }
   };
 
-  // Get first name for room display
-  const displayRoomName = isDirectMessage && roomName ? getFirstName(roomName) : roomName;
+  // Get display name for the room header
+  const getDisplayRoomName = () => {
+    if (isDirectMessage) {
+      return getFirstName(roomName);
+    } else if (roomName.includes(" &")) {
+      // This is likely a buddy chat room
+      return roomName.split(" &").map(name => getFirstName(name.trim())).join(", ");
+    }
+    return roomName;
+  };
 
   return (
     <div className="flex flex-col h-full">
       <CardHeader className="px-4 py-3 border-b shrink-0">
-        <CardTitle className="text-lg">{displayRoomName}</CardTitle>
+        <CardTitle className="text-lg">{getDisplayRoomName()}</CardTitle>
       </CardHeader>
       
       <div className="flex-1 overflow-hidden">

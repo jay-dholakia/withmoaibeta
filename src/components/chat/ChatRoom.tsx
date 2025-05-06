@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -104,6 +105,21 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   const getFirstName = (fullName: string) => {
     if (!fullName) return "Unknown";
     return fullName.split(" ")[0];
+  };
+
+  // Get initials from name
+  const getInitials = (name: string) => {
+    if (!name) return "?";
+    return name.charAt(0).toUpperCase();
+  };
+
+  // Format message timestamp
+  const formatMessageTime = (timestamp: string) => {
+    try {
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+    } catch (e) {
+      return "";
+    }
   };
 
   // Get display name for the room header

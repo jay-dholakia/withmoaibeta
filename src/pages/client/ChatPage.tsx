@@ -72,8 +72,8 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
+    <div className="flex flex-col h-[calc(100vh-88px)] md:h-[calc(100vh-80px)] overflow-hidden">
+      <div className="flex justify-between items-center p-2">
         <Button 
           variant="ghost" 
           onClick={handleBackClick}
@@ -84,77 +84,73 @@ export default function ChatPage() {
         </Button>
       </div>
       
-      <Card className="dark:bg-gray-800 dark:border-gray-700">
-        <CardContent className="p-0">
-          <div className="flex h-[calc(100vh-160px)] md:h-[600px]">
-            {isMobile ? (
-              <div className="w-full flex flex-col">
-                <div className="flex items-center p-2 border-b">
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon" className="mr-2">
-                        <Menu className="h-5 w-5" />
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="p-0 w-[250px]">
-                      <ChatSidebar 
-                        rooms={chatRooms} 
-                        activeRoomId={activeRoomId} 
-                        onSelectRoom={handleSelectRoom}
-                      />
-                    </SheetContent>
-                  </Sheet>
-                  <div className="font-medium truncate">
-                    {activeRoom?.is_group_chat 
-                      ? activeRoom.name 
-                      : (activeRoom?.other_user_name || "Direct Message")}
-                  </div>
-                </div>
-                
-                <div className="flex-1 overflow-hidden">
-                  {activeRoom && activeRoomId ? (
-                    <ChatRoom 
-                      roomId={activeRoomId}
-                      isDirectMessage={!activeRoom.is_group_chat}
-                      roomName={activeRoom.is_group_chat ? activeRoom.name : (activeRoom.other_user_name || "Direct Message")}
-                      isMobile={isMobile}
-                    />
-                  ) : (
-                    <div className="h-full flex items-center justify-center">
-                      <p className="text-muted-foreground">Select a conversation to start chatting</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="w-64 border-r">
+      <div className="flex flex-1 overflow-hidden border rounded-lg dark:border-gray-700 dark:bg-gray-800">
+        {isMobile ? (
+          <div className="w-full flex flex-col h-full">
+            <div className="flex items-center p-2 border-b">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="mr-2">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-[250px]">
                   <ChatSidebar 
                     rooms={chatRooms} 
                     activeRoomId={activeRoomId} 
                     onSelectRoom={handleSelectRoom}
                   />
+                </SheetContent>
+              </Sheet>
+              <div className="font-medium truncate">
+                {activeRoom?.is_group_chat 
+                  ? activeRoom.name 
+                  : (activeRoom?.other_user_name || "Direct Message")}
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-hidden">
+              {activeRoom && activeRoomId ? (
+                <ChatRoom 
+                  roomId={activeRoomId}
+                  isDirectMessage={!activeRoom.is_group_chat}
+                  roomName={activeRoom.is_group_chat ? activeRoom.name : (activeRoom.other_user_name || "Direct Message")}
+                  isMobile={isMobile}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-muted-foreground">Select a conversation to start chatting</p>
                 </div>
-                
-                <div className="flex-1">
-                  {activeRoom && activeRoomId ? (
-                    <ChatRoom 
-                      roomId={activeRoomId}
-                      isDirectMessage={!activeRoom.is_group_chat}
-                      roomName={activeRoom.is_group_chat ? activeRoom.name : (activeRoom.other_user_name || "Direct Message")}
-                      isMobile={isMobile}
-                    />
-                  ) : (
-                    <div className="h-full flex items-center justify-center">
-                      <p className="text-muted-foreground">Select a conversation to start chatting</p>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        ) : (
+          <>
+            <div className="w-64 border-r">
+              <ChatSidebar 
+                rooms={chatRooms} 
+                activeRoomId={activeRoomId} 
+                onSelectRoom={handleSelectRoom}
+              />
+            </div>
+            
+            <div className="flex-1">
+              {activeRoom && activeRoomId ? (
+                <ChatRoom 
+                  roomId={activeRoomId}
+                  isDirectMessage={!activeRoom.is_group_chat}
+                  roomName={activeRoom.is_group_chat ? activeRoom.name : (activeRoom.other_user_name || "Direct Message")}
+                  isMobile={isMobile}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-muted-foreground">Select a conversation to start chatting</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

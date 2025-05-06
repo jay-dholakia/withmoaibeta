@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -117,7 +117,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   };
 
   return (
-    <div className={cn("w-full h-full flex flex-col", isMobile ? "h-[calc(100vh-200px)]" : "h-[600px]")}>
+    <div className="flex flex-col h-full overflow-hidden">
       {!isMobile && (
         <CardHeader className="px-4 py-3 border-b">
           <CardTitle className="text-lg">{roomName}</CardTitle>

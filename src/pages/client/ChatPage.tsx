@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAllChatRooms } from "@/services/chat";
 import { ChatRoom as ChatRoomType } from "@/services/chat";
-import { Menu } from "lucide-react";
+import { Menu, ArrowLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 

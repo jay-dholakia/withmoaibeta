@@ -83,6 +83,22 @@ export default function ChatPage() {
     }
   };
 
+  // Extract first name from full name
+  const getFirstName = (fullName: string) => {
+    return fullName ? fullName.split(" ")[0] : "";
+  };
+
+  // Get display name for the active room
+  const getActiveRoomDisplayName = () => {
+    if (!activeRoom) return "";
+    
+    if (activeRoom.is_group_chat) {
+      return activeRoom.name;
+    } else {
+      return activeRoom.other_user_name ? getFirstName(activeRoom.other_user_name) : "Direct Message";
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">      
       <div className="flex flex-1 border rounded-lg dark:border-gray-700 dark:bg-gray-800">
@@ -113,9 +129,7 @@ export default function ChatPage() {
                   <ArrowLeft className="h-4 w-4 mr-1" />
                   Back
                 </Button>
-                {activeRoom?.is_group_chat 
-                  ? activeRoom.name 
-                  : (activeRoom?.other_user_name || "Direct Message")}
+                {getActiveRoomDisplayName()}
               </div>
             </div>
             

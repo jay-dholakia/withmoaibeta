@@ -51,9 +51,12 @@ const ClientDashboard = () => {
     }
   }, [location.pathname, navigate]);
   
+  // Check if current route is chat page to apply special styling
+  const isChatRoute = location.pathname.includes('/client-dashboard/chat');
+  
   return (
     <ClientLayout>
-      <div className="w-full">
+      <div className={`w-full ${isChatRoute ? 'h-full' : ''}`}>
         <Routes>
           <Route index element={<Navigate to="moai" replace />} />
           <Route path="workouts/*" element={<WorkoutsPage />} />

@@ -7,7 +7,7 @@ import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAllChatRooms } from "@/services/chat";
 import { ChatRoom as ChatRoomType } from "@/services/chat";
-import { ArrowLeft, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -71,7 +71,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-88px)] md:h-[calc(100vh-80px)]">      
+    <div className="h-full flex flex-col">      
       <div className="flex flex-1 overflow-hidden border rounded-lg dark:border-gray-700 dark:bg-gray-800">
         {isMobile ? (
           <div className="w-full flex flex-col h-full">

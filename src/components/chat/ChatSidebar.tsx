@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatRoom } from "@/services/chat";
-import { MessageSquare, Users } from "lucide-react";
+import { MessageSquare, Users, UserPlus } from "lucide-react";
 
 interface ChatSidebarProps {
   rooms: ChatRoom[];
@@ -19,8 +19,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSelectRoom,
 }) => {
   // Group rooms by type
-  const groupChats = rooms.filter(room => room.is_group_chat);
+  const groupChats = rooms.filter(room => room.is_group_chat && !room.is_buddy_chat);
   const directMessages = rooms.filter(room => !room.is_group_chat);
+  const buddyChats = rooms.filter(room => room.is_buddy_chat);
 
   const getInitials = (name: string) => {
     return name
@@ -38,6 +39,37 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       </div>
       
       <ScrollArea className="flex-1">
+        {buddyChats.length > 0 && (
+          <div className="py-2">
+            <div className="px-4 py-2">
+              <h3 className="text-sm font-medium text-muted-foreground flex items-center">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Accountability Buddies
+              </h3>
+            </div>
+            <div className="space-y-1">
+              {buddyChats.map((room) => (
+                <Button
+                  key={room.id}
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start px-4",
+                    activeRoomId === room.id && "bg-accent"
+                  )}
+                  onClick={() => onSelectRoom(room.id)}
+                >
+                  <Avatar className="h-6 w-6 mr-2">
+                    <AvatarFallback className="bg-orange-500 text-primary-foreground text-xs">
+                      {getInitials(room.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">{room.name}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+        
         {groupChats.length > 0 && (
           <div className="py-2">
             <div className="px-4 py-2">

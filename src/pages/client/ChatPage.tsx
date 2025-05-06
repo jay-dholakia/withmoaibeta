@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChatRoom } from "@/components/chat/ChatRoom";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
@@ -20,6 +20,8 @@ export default function ChatPage() {
   const [activeRoom, setActiveRoom] = useState<ChatRoomType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
+  const buddyChatId = searchParams.get('buddy');
 
   useEffect(() => {
     const loadChatRooms = async () => {
@@ -30,19 +32,30 @@ export default function ChatPage() {
         const rooms = await fetchAllChatRooms(user.id);
         setChatRooms(rooms);
         
-        // Select the group chat room by default if groupId is provided
+        // Handle room selection priority:
+        // 1. Buddy chat room from URL parameter
+        // 2. Group chat room from URL parameter
+        // 3. First available room
+        
+        if (buddyChatId) {
+          const buddyRoom = rooms.find(room => room.id === buddyChatId && room.is_buddy_chat);
+          if (buddyRoom) {
+            setActiveRoomId(buddyRoom.id);
+            setActiveRoom(buddyRoom);
+            return;
+          }
+        }
+        
         if (groupId) {
           const groupRoom = rooms.find(room => room.is_group_chat && room.group_id === groupId);
           if (groupRoom) {
             setActiveRoomId(groupRoom.id);
             setActiveRoom(groupRoom);
-          } else if (rooms.length > 0) {
-            // Fallback to the first room if group chat room not found
-            setActiveRoomId(rooms[0].id);
-            setActiveRoom(rooms[0]);
+            return;
           }
-        } else if (rooms.length > 0) {
-          // If no groupId is specified, select the first room
+        }
+        
+        if (rooms.length > 0) {
           setActiveRoomId(rooms[0].id);
           setActiveRoom(rooms[0]);
         }
@@ -54,7 +67,7 @@ export default function ChatPage() {
     };
     
     loadChatRooms();
-  }, [user?.id, groupId]);
+  }, [user?.id, groupId, buddyChatId]);
 
   const handleSelectRoom = (roomId: string) => {
     setActiveRoomId(roomId);
@@ -111,9 +124,8 @@ export default function ChatPage() {
                 <ChatRoom 
                   roomId={activeRoomId}
                   isDirectMessage={!activeRoom.is_group_chat}
-                  roomName={activeRoom.is_group_chat ? activeRoom.name : (activeRoom.other_user_name || "Direct Message")}
+                  roomName={activeRoom.name}
                   isMobile={isMobile}
-                  onBack={handleBackClick}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center">
@@ -137,7 +149,7 @@ export default function ChatPage() {
                 <ChatRoom 
                   roomId={activeRoomId}
                   isDirectMessage={!activeRoom.is_group_chat}
-                  roomName={activeRoom.is_group_chat ? activeRoom.name : (activeRoom.other_user_name || "Direct Message")}
+                  roomName={activeRoom.name}
                   isMobile={isMobile}
                 />
               ) : (

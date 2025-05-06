@@ -1,24 +1,23 @@
 
-import { RealtimeChannel } from "@supabase/supabase-js";
-
-export type ChatMessage = {
-  id: string;
-  sender_id: string;
-  sender_name?: string;
-  sender_avatar?: string;
-  content: string;
-  created_at: string;
-  room_id: string;
-  is_direct_message: boolean;
-};
-
-export type ChatRoom = {
+export interface ChatRoom {
   id: string;
   name: string;
   is_group_chat: boolean;
+  created_at: string;
   group_id?: string;
   other_user_id?: string;
   other_user_name?: string;
-  other_user_avatar?: string;
+  other_user_avatar?: string | null;
+  is_buddy_chat?: boolean;
+  buddy_ids?: string[];
+}
+
+export interface ChatMessage {
+  id: string;
+  room_id: string;
+  sender_id: string;
+  sender_name?: string;
+  sender_avatar?: string | null;
+  content: string;
   created_at: string;
-};
+}

@@ -134,12 +134,13 @@ export const fetchDirectMessageRooms = async (userId: string): Promise<ChatRoom[
  * Fetches all chat rooms for the user
  */
 export const fetchAllChatRooms = async (userId: string): Promise<ChatRoom[]> => {
-  const [groupRooms, dmRooms] = await Promise.all([
+  const [groupRooms, dmRooms, buddyRooms] = await Promise.all([
     fetchGroupChatRooms(userId),
-    fetchDirectMessageRooms(userId)
+    fetchDirectMessageRooms(userId),
+    fetchBuddyChatRooms(userId)
   ]);
   
-  return [...groupRooms, ...dmRooms];
+  return [...groupRooms, ...dmRooms, ...buddyRooms];
 };
 
 /**
@@ -163,4 +164,197 @@ export const createDirectMessageRoom = async (
   }
   
   return data as string;
+};
+
+/**
+ * Fetches or creates a chat room for accountability buddies
+ */
+export const getBuddyChatRoom = async (
+  buddies: string[]
+): Promise<string | null> => {
+  if (!buddies || buddies.length < 2) return null;
+  
+  // Sort the buddy IDs to ensure consistency
+  const sortedBuddyIds = [...buddies].sort();
+  
+  // Create a name for the chat room
+  const roomName = `Accountability Buddies Chat`;
+  const idString = sortedBuddyIds.join('_');
+  
+  try {
+    // Check if a buddy chat room already exists with these members
+    const { data: existingRooms } = await supabase
+      .from("chat_rooms")
+      .select("id")
+      .eq("is_group_chat", true)
+      .eq("buddy_chat", true)
+      .eq("buddy_id_string", idString);
+    
+    if (existingRooms && existingRooms.length > 0) {
+      return existingRooms[0].id;
+    }
+    
+    // Create a new chat room if one doesn't exist
+    const { data: newRoom, error: roomError } = await supabase
+      .from("chat_rooms")
+      .insert({
+        name: roomName,
+        is_group_chat: true,
+        buddy_chat: true,
+        buddy_id_string: idString
+      })
+      .select("id")
+      .single();
+    
+    if (roomError) {
+      console.error("Error creating buddy chat room:", roomError);
+      return null;
+    }
+    
+    // Add all buddies to the chat room members
+    const memberships = sortedBuddyIds.map(buddyId => ({
+      room_id: newRoom.id,
+      user_id: buddyId
+    }));
+    
+    const { error: membersError } = await supabase
+      .from("chat_room_members")
+      .insert(memberships);
+    
+    if (membersError) {
+      console.error("Error adding members to buddy chat room:", membersError);
+      // Don't return null here, as the room was created successfully
+    }
+    
+    return newRoom.id;
+  } catch (error) {
+    console.error("Error in getBuddyChatRoom:", error);
+    return null;
+  }
+};
+
+/**
+ * Fetches buddy chat rooms for the user
+ */
+export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> => {
+  if (!userId) return [];
+  
+  try {
+    // First get the current week
+    const monday = new Date();
+    monday.setDate(monday.getDate() - monday.getDay() + 1); // First day is Monday
+    const weekStart = monday.toISOString().split('T')[0];
+    
+    // Find the user's accountability buddies for this week
+    const { data: buddyPairings, error: buddyError } = await supabase
+      .from("accountability_buddies")
+      .select("*")
+      .eq("week_start", weekStart)
+      .or(`user_id_1.eq.${userId},user_id_2.eq.${userId},user_id_3.eq.${userId}`);
+    
+    if (buddyError || !buddyPairings || buddyPairings.length === 0) {
+      console.log("No buddy pairings found for this week:", buddyError);
+      return [];
+    }
+    
+    const buddyRooms: ChatRoom[] = [];
+    
+    for (const pairing of buddyPairings) {
+      // Get all buddy IDs in this pairing (including current user)
+      const buddyIds = [pairing.user_id_1, pairing.user_id_2, pairing.user_id_3]
+        .filter(id => id !== null) as string[];
+      
+      // Create a consistent string of sorted IDs to identify this buddy group
+      const idString = [...buddyIds].sort().join('_');
+      
+      // Check if a chat room exists for these buddies
+      const { data: rooms } = await supabase
+        .from("chat_rooms")
+        .select("*")
+        .eq("is_group_chat", true)
+        .eq("buddy_chat", true)
+        .eq("buddy_id_string", idString);
+      
+      if (rooms && rooms.length > 0) {
+        // Get member names for the chat room display
+        const memberNames: string[] = [];
+        
+        for (const buddyId of buddyIds) {
+          if (buddyId === userId) continue; // Skip current user
+          
+          const { data: profile } = await supabase
+            .from("client_profiles")
+            .select("first_name, last_name")
+            .eq("id", buddyId)
+            .single();
+          
+          if (profile) {
+            const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+            memberNames.push(name);
+          }
+        }
+        
+        let roomName = "Accountability Buddies";
+        if (memberNames.length > 0) {
+          roomName = `You, ${memberNames.join(' & ')}`;
+          if (roomName.length > 35) {
+            roomName = `You & ${memberNames.length} accountability buddies`;
+          }
+        }
+        
+        buddyRooms.push({
+          id: rooms[0].id,
+          name: roomName,
+          is_group_chat: true,
+          is_buddy_chat: true,
+          created_at: rooms[0].created_at,
+          buddy_ids: buddyIds.filter(id => id !== userId)
+        });
+      } else {
+        // Create a new chat room for these buddies
+        const roomId = await getBuddyChatRoom(buddyIds);
+        
+        if (roomId) {
+          const memberNames: string[] = [];
+          
+          for (const buddyId of buddyIds) {
+            if (buddyId === userId) continue;
+            
+            const { data: profile } = await supabase
+              .from("client_profiles")
+              .select("first_name, last_name")
+              .eq("id", buddyId)
+              .single();
+            
+            if (profile) {
+              const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+              memberNames.push(name);
+            }
+          }
+          
+          let roomName = "Accountability Buddies";
+          if (memberNames.length > 0) {
+            roomName = `You, ${memberNames.join(' & ')}`;
+            if (roomName.length > 35) {
+              roomName = `You & ${memberNames.length} accountability buddies`;
+            }
+          }
+          
+          buddyRooms.push({
+            id: roomId,
+            name: roomName,
+            is_group_chat: true,
+            is_buddy_chat: true,
+            created_at: new Date().toISOString(),
+            buddy_ids: buddyIds.filter(id => id !== userId)
+          });
+        }
+      }
+    }
+    
+    return buddyRooms;
+  } catch (error) {
+    console.error("Error fetching buddy chat rooms:", error);
+    return [];
+  }
 };

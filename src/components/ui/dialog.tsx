@@ -39,6 +39,22 @@ const DialogContent = React.forwardRef<
     setMounted(true);
   }, []);
 
+  // Check if DialogTitle is included in children
+  const hasDialogTitle = React.Children.toArray(children).some(
+    (child) => React.isValidElement(child) && 
+    (child.type === DialogHeader || 
+     (React.isValidElement(child.props.children) && 
+      child.props.children.type === DialogTitle))
+  );
+
+  // Add an invisible DialogTitle if none is found
+  const enhancedChildren = !hasDialogTitle ? (
+    <>
+      <DialogTitle className="sr-only">Dialog</DialogTitle>
+      {children}
+    </>
+  ) : children;
+
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -51,7 +67,7 @@ const DialogContent = React.forwardRef<
         )}
         {...props}
       >
-        {children}
+        {enhancedChildren}
         <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>

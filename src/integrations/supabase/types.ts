@@ -213,6 +213,7 @@ export type Database = {
       }
       chat_rooms: {
         Row: {
+          buddy_id_string: string | null
           created_at: string | null
           group_id: string | null
           id: string
@@ -221,6 +222,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          buddy_id_string?: string | null
           created_at?: string | null
           group_id?: string | null
           id?: string
@@ -229,6 +231,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          buddy_id_string?: string | null
           created_at?: string | null
           group_id?: string | null
           id?: string

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ChatRoom } from "./types";
 
@@ -187,7 +186,6 @@ export const getBuddyChatRoom = async (
       .from("chat_rooms")
       .select("id")
       .eq("is_group_chat", true)
-      .eq("buddy_chat", true)
       .eq("buddy_id_string", idString);
     
     if (existingRooms && existingRooms.length > 0) {
@@ -200,7 +198,6 @@ export const getBuddyChatRoom = async (
       .insert({
         name: roomName,
         is_group_chat: true,
-        buddy_chat: true,
         buddy_id_string: idString
       })
       .select("id")
@@ -209,15 +206,6 @@ export const getBuddyChatRoom = async (
     if (roomError) {
       console.error("Error creating buddy chat room:", roomError);
       return null;
-    }
-    
-    // Add all buddies to the chat room members
-    // Instead of using .from("chat_room_members"), use a different approach
-    // since chat_room_members table doesn't exist in the schema
-    for (const buddyId of sortedBuddyIds) {
-      // Store the membership info in the chat rooms table or another associated table
-      // For now, we'll assume the buddy_ids array in the ChatRoom type is enough
-      console.log(`Adding user ${buddyId} to buddy chat room ${newRoom.id}`);
     }
     
     return newRoom.id;
@@ -266,7 +254,6 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
         .from("chat_rooms")
         .select("*")
         .eq("is_group_chat", true)
-        .eq("buddy_chat", true)
         .eq("buddy_id_string", idString);
       
       if (rooms && rooms.length > 0) {
@@ -302,7 +289,8 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
           is_group_chat: true,
           is_buddy_chat: true,
           created_at: rooms[0].created_at,
-          buddy_ids: buddyIds.filter(id => id !== userId)
+          buddy_ids: buddyIds.filter(id => id !== userId),
+          buddy_id_string: idString
         });
       } else {
         // Create a new chat room for these buddies
@@ -340,7 +328,8 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
             is_group_chat: true,
             is_buddy_chat: true,
             created_at: new Date().toISOString(),
-            buddy_ids: buddyIds.filter(id => id !== userId)
+            buddy_ids: buddyIds.filter(id => id !== userId),
+            buddy_id_string: idString
           });
         }
       }
@@ -352,4 +341,3 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
     return [];
   }
 };
-

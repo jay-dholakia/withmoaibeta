@@ -11,7 +11,6 @@ export interface ChatRoom {
   is_buddy_chat?: boolean;
   buddy_ids?: string[];
   buddy_id_string?: string;
-  buddy_chat?: boolean;
 }
 
 export interface ChatMessage {

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -50,15 +49,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <div className="space-y-1">
               {buddyChats.map((room) => {
                 // Filter out empty names and format the display properly
-                const roomName = room.name
+                const buddyNames = room.name
                   .split(" &")
                   .map(name => name.trim())
                   .filter(name => name.length > 0 && name !== "You" && name !== "you")
-                  .map(name => getFirstName(name))
-                  .join(", ");
+                  .map(name => getFirstName(name));
                 
-                // Format properly with "You" and others
-                const displayName = roomName.length > 0 ? `You, ${roomName}` : "You";
+                // Format properly with "You" and others, avoiding empty commas
+                const displayName = buddyNames.length > 0 ? `You, ${buddyNames.join(", ")}` : "You";
                 
                 return (
                   <Button

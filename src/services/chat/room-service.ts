@@ -271,13 +271,13 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
           
           if (profile) {
             const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
-            memberNames.push(name);
+            if (name) memberNames.push(name);
           }
         }
         
-        let roomName = "Accountability Buddies";
+        let roomName = "You";
         if (memberNames.length > 0) {
-          roomName = `You, ${memberNames.join(' & ')}`;
+          roomName = `You & ${memberNames.join(' & ')}`;
           if (roomName.length > 35) {
             roomName = `You & ${memberNames.length} accountability buddies`;
           }
@@ -310,13 +310,13 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
             
             if (profile) {
               const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
-              memberNames.push(name);
+              if (name) memberNames.push(name);
             }
           }
           
-          let roomName = "Accountability Buddies";
+          let roomName = "You";
           if (memberNames.length > 0) {
-            roomName = `You, ${memberNames.join(' & ')}`;
+            roomName = `You & ${memberNames.join(' & ')}`;
             if (roomName.length > 35) {
               roomName = `You & ${memberNames.length} accountability buddies`;
             }

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Loader2, Send, ArrowLeft } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatMessage, fetchMessages, sendMessage, subscribeToRoom } from "@/services/chat";
 import { formatDistanceToNow } from "date-fns";
@@ -104,19 +104,6 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   const getFirstName = (fullName: string) => {
     if (!fullName) return "Unknown";
     return fullName.split(" ")[0];
-  };
-
-  const getInitials = (name: string) => {
-    if (!name) return "?";
-    return name.charAt(0).toUpperCase();
-  };
-
-  const formatMessageTime = (timestamp: string) => {
-    try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-    } catch (e) {
-      return "";
-    }
   };
 
   // Get display name for the room header

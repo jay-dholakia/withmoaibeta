@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -94,7 +93,15 @@ export default function ChatPage() {
     
     if (activeRoom.is_group_chat) {
       if (activeRoom.is_buddy_chat) {
-        return activeRoom.name.split(" &").map(name => getFirstName(name.trim())).join(", ");
+        // Filter out empty names and format the buddy chat name properly
+        const buddyNames = activeRoom.name
+          .split(" &")
+          .map(name => name.trim())
+          .filter(name => name.length > 0 && name !== "You" && name !== "you")
+          .map(name => getFirstName(name));
+          
+        // Format it as "You, Name1, Name2" or just "You" if no other names
+        return buddyNames.length > 0 ? `You, ${buddyNames.join(", ")}` : "You";
       }
       return activeRoom.name;
     } else {

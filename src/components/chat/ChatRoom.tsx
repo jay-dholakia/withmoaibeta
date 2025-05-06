@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -125,8 +124,15 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
     if (isDirectMessage) {
       return getFirstName(roomName);
     } else if (roomName.includes(" &")) {
-      // This is likely a buddy chat room
-      return roomName.split(" &").map(name => getFirstName(name.trim())).join(", ");
+      // Filter out empty names and format the buddy chat name properly
+      const buddyNames = roomName
+        .split(" &")
+        .map(name => name.trim())
+        .filter(name => name.length > 0 && name !== "You" && name !== "you")
+        .map(name => getFirstName(name));
+        
+      // Format properly with "You" and others
+      return buddyNames.length > 0 ? `You, ${buddyNames.join(", ")}` : "You";
     }
     return roomName;
   };

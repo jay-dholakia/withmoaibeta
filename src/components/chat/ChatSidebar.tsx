@@ -49,7 +49,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </div>
             <div className="space-y-1">
               {buddyChats.map((room) => {
-                const roomName = room.name.split(" &").map(name => getFirstName(name.trim())).join(", ");
+                // Filter out empty names and format the display properly
+                const roomName = room.name
+                  .split(" &")
+                  .map(name => name.trim())
+                  .filter(name => name.length > 0 && name !== "You" && name !== "you")
+                  .map(name => getFirstName(name))
+                  .join(", ");
+                
+                // Format properly with "You" and others
+                const displayName = roomName.length > 0 ? `You, ${roomName}` : "You";
                 
                 return (
                   <Button
@@ -66,7 +75,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         {getInitials(room.name)}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="truncate">{roomName}</span>
+                    <span className="truncate">{displayName}</span>
                   </Button>
                 );
               })}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -71,7 +72,7 @@ export default function ChatPage() {
 
   return (
     <div className="h-full flex flex-col">      
-      <div className="flex flex-1 overflow-hidden border rounded-lg dark:border-gray-700 dark:bg-gray-800">
+      <div className="flex flex-1 border rounded-lg dark:border-gray-700 dark:bg-gray-800">
         {isMobile ? (
           <div className="w-full flex flex-col h-full">
             <div className="flex items-center p-2 border-b">
@@ -138,7 +139,6 @@ export default function ChatPage() {
                   isDirectMessage={!activeRoom.is_group_chat}
                   roomName={activeRoom.is_group_chat ? activeRoom.name : (activeRoom.other_user_name || "Direct Message")}
                   isMobile={isMobile}
-                  onBack={handleBackClick}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center">

@@ -119,22 +119,9 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <CardHeader className="px-4 py-3 border-b flex flex-row items-center justify-between">
-        <div className="flex items-center">
-          {!isMobile && onBack && (
-            <Button 
-              variant="ghost" 
-              onClick={onBack}
-              size="sm"
-              className="mr-2 flex items-center"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Button>
-          )}
-          <CardTitle className="text-lg">{roomName}</CardTitle>
-        </div>
+    <div className="flex flex-col h-full">
+      <CardHeader className="px-4 py-3 border-b shrink-0">
+        <CardTitle className="text-lg">{roomName}</CardTitle>
       </CardHeader>
       
       <div className="flex-1 overflow-hidden">
@@ -207,7 +194,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
         )}
       </div>
       
-      <div className="p-2 md:p-3 border-t mt-auto">
+      <div className="p-2 md:p-3 border-t mt-auto sticky bottom-0 bg-background">
         <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
           <Input
             placeholder="Type a message..."

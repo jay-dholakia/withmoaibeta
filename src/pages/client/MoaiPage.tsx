@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,7 +8,7 @@ import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Music, Dumbbell, MessageSquare } from 'lucide-react';
+import { Loader2, Music, Dumbbell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { fetchCurrentProgram } from '@/services/program-service';
@@ -150,11 +151,6 @@ export default function MoaiPage() {
     navigate(`/client-dashboard/moai/${newGroupId}`, { replace: true });
   };
 
-  const handleChatClick = () => {
-    // Pass the group ID as a query parameter
-    navigate(`/client-dashboard/chat/${activeGroupId}?fromGroup=${activeGroupId}`);
-  };
-
   if (isLoadingGroup || isLoadingProgram || isLoadingUserGroups) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -212,16 +208,8 @@ export default function MoaiPage() {
                   <span>Team Spotify Playlist</span>
                 </Button>
               )}
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleChatClick}
-                className="bg-white hover:bg-blue-50 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-              >
-                <MessageSquare className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400" />
-                <span>Team Chat</span>
-              </Button>
+              
+              {/* Team Chat Button removed from here */}
             </div>
 
             {activeGroupId && (

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,7 +27,7 @@ const WorkoutsList = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient(); // Add queryClient for cache management
+  const queryClient = useQueryClient();
   
   const [weekFilter, setWeekFilter] = useState<string>("");
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
@@ -318,6 +317,20 @@ const WorkoutsList = () => {
     };
   }, [closeSelectDropdown]);
 
+  // Setup event listener for workout completion event
+  useEffect(() => {
+    const handleWorkoutCompletedEvent = () => {
+      console.log("WorkoutsList: Global workout-completed event received");
+      queryClient.invalidateQueries({ queryKey: ['assigned-workouts', user?.id] });
+    };
+    
+    document.addEventListener('workout-completed', handleWorkoutCompletedEvent);
+    
+    return () => {
+      document.removeEventListener('workout-completed', handleWorkoutCompletedEvent);
+    };
+  }, [queryClient, user?.id]);
+
   const pendingWorkouts = localWorkoutState.pending;
   const completedWorkouts = localWorkoutState.completed;
 
@@ -341,8 +354,7 @@ const WorkoutsList = () => {
     );
   }
 
-  console.log("WorkoutsList: Rendering with group members:", groupMembers);
-
+  // Move this out of the function body
   const allGroupMembers = groupMembers.some(member => member.id === user?.id)
     ? groupMembers
     : [
@@ -356,20 +368,6 @@ const WorkoutsList = () => {
       ];
 
   console.log("WorkoutsList: Final group members for cards:", allGroupMembers);
-
-  // Setup event listener for workout completion event - moved outside of render
-  useEffect(() => {
-    const handleWorkoutCompletedEvent = () => {
-      console.log("WorkoutsList: Global workout-completed event received");
-      queryClient.invalidateQueries({ queryKey: ['assigned-workouts', user?.id] });
-    };
-    
-    document.addEventListener('workout-completed', handleWorkoutCompletedEvent);
-    
-    return () => {
-      document.removeEventListener('workout-completed', handleWorkoutCompletedEvent);
-    };
-  }, [queryClient, user?.id]);
 
   return (
     <div className="space-y-4">

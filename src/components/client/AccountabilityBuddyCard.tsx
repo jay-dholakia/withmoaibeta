@@ -8,6 +8,7 @@ import { BuddyDisplayInfo } from '@/services/accountability-buddy-service';
 import { useNavigate } from 'react-router-dom';
 import { getBuddyChatRoom } from '@/services/chat/room-service';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface AccountabilityBuddyCardProps {
   buddies: BuddyDisplayInfo[];
@@ -35,12 +36,22 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
   };
   
   const handleChatWithBuddies = async () => {
-    if (!user?.id || buddies.length === 0) return;
+    if (!user?.id) {
+      toast.error("You must be logged in to chat with buddies");
+      return;
+    }
+    
+    if (buddies.length === 0) {
+      toast.error("No buddies assigned for this week");
+      return;
+    }
     
     setIsCreatingChat(true);
     try {
       // Get all buddy IDs including the current user
       const allBuddyIds = [user.id, ...buddies.map(b => b.userId)];
+      
+      console.log("Creating buddy chat with IDs:", allBuddyIds);
       
       // Create or get the buddy chat room
       const roomId = await getBuddyChatRoom(allBuddyIds);
@@ -48,9 +59,12 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
       if (roomId) {
         // Navigate to the chat page with the room ID
         navigate(`/client-dashboard/chat?buddy=${roomId}`);
+      } else {
+        toast.error("Couldn't create buddy chat room");
       }
     } catch (error) {
       console.error("Error creating buddy chat:", error);
+      toast.error("Failed to open buddy chat");
     } finally {
       setIsCreatingChat(false);
     }
@@ -103,24 +117,22 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
               ))}
             </div>
             
-            {buddies.length > 0 && (
-              <div className="mt-3 flex justify-center">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleChatWithBuddies}
-                  disabled={isCreatingChat}
-                  className="flex items-center gap-1 text-xs"
-                >
-                  {isCreatingChat ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <MessageSquare className="h-3 w-3" />
-                  )}
-                  <span>Chat with {buddies.length > 1 ? 'Buddies' : 'Buddy'}</span>
-                </Button>
-              </div>
-            )}
+            <div className="mt-3 flex justify-center">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleChatWithBuddies}
+                disabled={isCreatingChat}
+                className="flex items-center gap-1 text-xs"
+              >
+                {isCreatingChat ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <MessageSquare className="h-3 w-3" />
+                )}
+                <span>Chat with {buddies.length > 1 ? 'Buddies' : 'Buddy'}</span>
+              </Button>
+            </div>
           </>
         )}
       </CardContent>

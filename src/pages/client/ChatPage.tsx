@@ -10,6 +10,7 @@ import { ChatRoom as ChatRoomType } from "@/services/chat";
 import { Menu, ArrowLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { toast } from "sonner";
 
 export default function ChatPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -38,11 +39,16 @@ export default function ChatPage() {
         // 3. First available room
         
         if (buddyChatId) {
+          console.log("Looking for buddy chat room:", buddyChatId);
           const buddyRoom = rooms.find(room => room.id === buddyChatId && room.is_buddy_chat);
           if (buddyRoom) {
+            console.log("Found buddy chat room:", buddyRoom);
             setActiveRoomId(buddyRoom.id);
             setActiveRoom(buddyRoom);
             return;
+          } else {
+            console.log("Buddy chat room not found");
+            toast.error("The buddy chat room could not be found");
           }
         }
         
@@ -61,6 +67,7 @@ export default function ChatPage() {
         }
       } catch (error) {
         console.error("Error loading chat rooms:", error);
+        toast.error("Failed to load chat rooms");
       } finally {
         setIsLoading(false);
       }

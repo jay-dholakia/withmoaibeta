@@ -23,14 +23,21 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const directMessages = rooms.filter(room => !room.is_group_chat);
   const buddyChats = rooms.filter(room => room.is_buddy_chat);
 
+  console.log("Chat rooms by category:", {
+    all: rooms.length,
+    groupChats: groupChats.length,
+    directMessages: directMessages.length,
+    buddyChats: buddyChats.length
+  });
+
   const getInitials = (name: string) => {
-    return name
-      .split(" ")[0][0]
-      .toUpperCase();
+    if (!name) return "?";
+    return name.split(" ")[0][0].toUpperCase();
   };
 
   // Extract first name from a full name
   const getFirstName = (fullName: string) => {
+    if (!fullName) return "Unknown";
     return fullName.split(" ")[0];
   };
 

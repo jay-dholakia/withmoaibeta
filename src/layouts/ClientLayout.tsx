@@ -22,6 +22,10 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   const isChatRoute = location.pathname.includes('/chat');
 
   const isActive = (path: string) => {
+    // Special case for moai - also consider chat routes as part of moai
+    if (path === '/moai' && (location.pathname.includes('/moai') || location.pathname.includes('/chat'))) {
+      return true;
+    }
     return location.pathname.includes(path);
   };
 

@@ -35,6 +35,12 @@ const ClientDashboard = () => {
       localStorage.setItem(LAST_CLIENT_TAB_KEY, basePath);
       console.log('ClientDashboard: Saved tab path:', basePath);
     }
+    
+    // Special case for chat - associate it with moai
+    if (location.pathname.includes('/client-dashboard/chat')) {
+      localStorage.setItem(LAST_CLIENT_TAB_KEY, '/client-dashboard/moai');
+      console.log('ClientDashboard: Chat route detected, saving moai tab');
+    }
   }, [location.pathname]);
   
   // Redirect to last tab if landing on index

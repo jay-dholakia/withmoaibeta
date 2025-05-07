@@ -44,7 +44,8 @@ export const fetchPersonalRecords = async (userId: string): Promise<PersonalReco
 
   return data.map(record => ({
     ...record,
-    exercise_name: record.exercise?.name
+    exercise_name: record.exercise?.name,
+    created_at: record.achieved_at || record.created_at || new Date().toISOString()
   })) as PersonalRecord[];
 };
 
@@ -71,7 +72,8 @@ export const fetchExercisePersonalRecord = async (userId: string, exerciseId: st
   
   return {
     ...data,
-    exercise_name: data.exercise?.name
+    exercise_name: data.exercise?.name,
+    created_at: data.achieved_at || data.created_at || new Date().toISOString()
   } as PersonalRecord;
 };
 
@@ -221,10 +223,21 @@ export const completeWorkout = async (workoutId: string, userId: string, data: a
 /**
  * Track workout set
  */
-export const trackWorkoutSet = async (setData: any): Promise<void> => {
+export const trackWorkoutSet = async (
+  workoutExerciseId: string, 
+  workoutCompletionId: string, 
+  setNumber: number, 
+  setData: any
+): Promise<void> => {
   const { error } = await supabase
     .from('workout_set_completions')
-    .insert([setData]);
+    .insert([{
+      workout_exercise_id: workoutExerciseId,
+      workout_completion_id: workoutCompletionId,
+      set_number: setNumber,
+      ...setData,
+      user_id: (await supabase.auth.getUser()).data.user?.id
+    }]);
 
   if (error) {
     console.error("Error tracking workout set:", error);

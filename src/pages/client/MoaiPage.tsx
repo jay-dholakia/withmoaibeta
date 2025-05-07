@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import MoaiMembersTab from '@/components/client/MoaiMembersTab';
+import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,12 +17,10 @@ import { getUserBuddies, generateWeeklyBuddies } from '@/services/accountability
 import { AccountabilityBuddyCard } from '@/components/client/AccountabilityBuddyCard';
 import { BackgroundFetchIndicator } from '@/components/client/BackgroundFetchIndicator';
 import { useFireBadges } from '@/hooks/useFireBadges';
+import { FireBadge } from '@/components/client/FireBadge';
 import { AwardFireBadgesButton } from '@/components/admin/AwardFireBadgesButton';
-import { ChatTab } from '@/components/chat/ChatTab';
-import ActivityFeedPage from './ActivityFeedPage';
 
-// Update valid tabs to replace "members" with "chat" and "coach" with "community"
-const VALID_TABS = ['progress', 'chat', 'community'];
+const VALID_TABS = ['progress', 'members', 'coach'];
 const DEFAULT_TAB = 'progress';
 
 export default function MoaiPage() {
@@ -237,8 +237,8 @@ export default function MoaiPage() {
           >
             <TabsList className="grid w-full grid-cols-3 dark:bg-gray-700">
               <TabsTrigger value="progress" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Progress</TabsTrigger>
-              <TabsTrigger value="chat" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Chat</TabsTrigger>
-              <TabsTrigger value="community" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Community</TabsTrigger>
+              <TabsTrigger value="members" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Members</TabsTrigger>
+              <TabsTrigger value="coach" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Coach</TabsTrigger>
             </TabsList>
 
             <TabsContent value="progress" className="pt-1">
@@ -272,12 +272,11 @@ export default function MoaiPage() {
               )}
             </TabsContent>
             
-            <TabsContent value="chat">
-              {activeGroupId && <ChatTab groupId={activeGroupId} />}
+            <TabsContent value="members">
+              <MoaiMembersTab groupId={activeGroupId || ''} />
             </TabsContent>
-            
-            <TabsContent value="community" className="pt-4 px-4">
-              <ActivityFeedPage inTab={true} />
+            <TabsContent value="coach">
+              <MoaiCoachTab groupId={activeGroupId || ''} />
             </TabsContent>
           </Tabs>
         </CardContent>

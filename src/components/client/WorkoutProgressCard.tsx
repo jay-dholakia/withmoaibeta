@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WorkoutTypeIcon, WorkoutType } from './WorkoutTypeIcon';
@@ -6,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatWeekDateRange } from '@/services/assigned-workouts-service';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Flame } from 'lucide-react';
+import { Flame, Users } from 'lucide-react';
 
 interface WorkoutProgressCardProps {
   label?: string;
@@ -28,6 +29,7 @@ interface WorkoutProgressCardProps {
   showLabelsBelow?: boolean;
   showProgressBar?: boolean;
   fireWeeks?: number;
+  isBuddy?: boolean;
 }
 
 export function WorkoutProgressCard({ 
@@ -49,7 +51,8 @@ export function WorkoutProgressCard({
   showWeekdayLabels = false,
   showLabelsBelow = false,
   showProgressBar = false,
-  fireWeeks = 0
+  fireWeeks = 0,
+  isBuddy = false
 }: WorkoutProgressCardProps) {
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 1 });
@@ -101,7 +104,10 @@ export function WorkoutProgressCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="relative overflow-visible">
-                <Avatar className="h-8 w-8 border">
+                <Avatar className={cn(
+                  "h-8 w-8 border",
+                  isBuddy ? "ring-2 ring-amber-400 dark:ring-amber-500" : ""
+                )}>
                   <AvatarImage 
                     src={avatarUrl || ''} 
                     alt={displayName} 
@@ -110,12 +116,19 @@ export function WorkoutProgressCard({
                     {initials}
                   </AvatarFallback>
                 </Avatar>
+                
+                {isBuddy && (
+                  <div className="absolute -top-1 -right-1 bg-amber-400 dark:bg-amber-500 text-amber-950 text-[8px] rounded-full w-4 h-4 flex items-center justify-center">
+                    <Users className="w-3 h-3" />
+                  </div>
+                )}
               </div>
             </TooltipTrigger>
             <TooltipContent side="right">
               <span className="text-sm font-medium">
                 {displayName}
                 {isCurrentUser && <span className="text-xs ml-1 text-muted-foreground">(You)</span>}
+                {isBuddy && <span className="text-xs ml-1 text-amber-600 font-medium"> • Your buddy</span>}
               </span>
               <div className="text-xs text-muted-foreground">
                 {count}/{total} workouts completed
@@ -128,7 +141,7 @@ export function WorkoutProgressCard({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="absolute -top-1.5 -right-1.5" title={`🔥 Logged workouts on 5+ days for ${fireWeeks} week${fireWeeks !== 1 ? 's' : ''}`}>
+                <div className="absolute -top-1.5 -left-1.5" title={`🔥 Logged workouts on 5+ days for ${fireWeeks} week${fireWeeks !== 1 ? 's' : ''}`}>
                   <div className="relative w-5 h-5">
                     <Flame className="w-full h-full text-orange-500" fill="#f97316" />
                     <span className="absolute inset-0 flex items-center justify-center pt-1.5 text-[7px] font-bold text-white z-10 leading-none">
@@ -196,6 +209,7 @@ export function WorkoutProgressCard({
                         <div>
                           <span className="font-medium">{displayName}</span>
                           {isCurrentUser && <span className="text-xs ml-1 text-muted-foreground">(You)</span>}
+                          {isBuddy && <span className="text-xs ml-1 text-amber-600 font-medium"> • Your buddy</span>}
                         </div>
                         {hasWorkout && workoutTitle ? (
                           <>

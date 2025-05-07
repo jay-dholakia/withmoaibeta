@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -208,19 +207,7 @@ export default function MoaiPage() {
                   <span>Team Spotify Playlist</span>
                 </Button>
               )}
-              
-              {/* Team Chat Button removed from here */}
             </div>
-
-            {activeGroupId && (
-              <AccountabilityBuddyCard
-                buddies={buddies || []}
-                isAdmin={isAdmin}
-                groupId={activeGroupId}
-                onRefresh={refreshBuddies}
-                loading={isGeneratingBuddies || isLoadingBuddies}
-              />
-            )}
           </CardContent>
         </Card>
       )}
@@ -254,26 +241,37 @@ export default function MoaiPage() {
               <TabsTrigger value="coach" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Coach</TabsTrigger>
             </TabsList>
 
-            {user && (
-              <div className="px-4 pt-2 pb-1">
-                <Button
-                  asChild
-                  className="w-full flex items-center justify-center gap-2 bg-client hover:bg-client/90 dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
-                >
-                  <Link to="/client-dashboard/workouts">
-                    <Dumbbell className="h-4 w-4" />
-                    Log a Workout
-                  </Link>
-                </Button>
-              </div>
-            )}
-
             <TabsContent value="progress" className="pt-1">
               <MoaiGroupProgress
                 groupId={activeGroupId || ''}
                 currentProgram={currentProgram}
               />
+              
+              {activeGroupId && (
+                <AccountabilityBuddyCard
+                  buddies={buddies || []}
+                  isAdmin={isAdmin}
+                  groupId={activeGroupId}
+                  onRefresh={refreshBuddies}
+                  loading={isGeneratingBuddies || isLoadingBuddies}
+                />
+              )}
+              
+              {user && (
+                <div className="px-4 pt-2 pb-4">
+                  <Button
+                    asChild
+                    className="w-full flex items-center justify-center gap-2 bg-client hover:bg-client/90 dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
+                  >
+                    <Link to="/client-dashboard/workouts">
+                      <Dumbbell className="h-4 w-4" />
+                      Log a Workout
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </TabsContent>
+            
             <TabsContent value="members">
               <MoaiMembersTab groupId={activeGroupId || ''} />
             </TabsContent>

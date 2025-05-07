@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -111,7 +112,7 @@ const WorkoutsList = () => {
   }, [weekFilter]);
 
   // Process workout data when available
-  React.useEffect(() => {
+  useEffect(() => {
     if (!workouts.length || !currentProgram) return;
     
     // Extract available weeks
@@ -289,7 +290,7 @@ const WorkoutsList = () => {
   };
 
   // Check URL params for calendar status
-  React.useEffect(() => {
+  useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const calendarStatus = urlParams.get('calendar');
     const error = urlParams.get('error');
@@ -304,7 +305,7 @@ const WorkoutsList = () => {
   }, [navigate]);
 
   // Handle click outside select dropdown
-  React.useEffect(() => {
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
         closeSelectDropdown();
@@ -356,7 +357,7 @@ const WorkoutsList = () => {
 
   console.log("WorkoutsList: Final group members for cards:", allGroupMembers);
 
-  // Setup event listener for workout completion event
+  // Setup event listener for workout completion event - moved outside of render
   useEffect(() => {
     const handleWorkoutCompletedEvent = () => {
       console.log("WorkoutsList: Global workout-completed event received");

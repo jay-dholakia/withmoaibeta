@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -61,15 +60,12 @@ export default function ChatPage() {
       }
       
       if (buddyChatId) {
-        console.log("Looking for buddy chat room:", buddyChatId);
         const buddyRoom = rooms.find(room => room.id === buddyChatId && room.is_buddy_chat);
         if (buddyRoom) {
-          console.log("Found buddy chat room:", buddyRoom);
           setActiveRoomId(buddyRoom.id);
           setActiveRoom(buddyRoom);
           return;
         } else {
-          console.log("Buddy chat room not found");
           toast.error("The buddy chat room could not be found");
         }
       }

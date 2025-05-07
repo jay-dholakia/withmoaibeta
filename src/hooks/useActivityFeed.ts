@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export interface ActivityPost {
   id: string;
-  created_at: string;
+  created_at?: string;
   user_id: string;
   content?: string;
   workout_id?: string;
@@ -27,6 +27,15 @@ export interface ActivityPost {
   likes?: {
     user_id: string;
   }[];
+  has_liked?: boolean;
+  life_happens_pass?: boolean;
+  rest_day?: boolean;
+  custom_workout_id?: string;
+  title?: string;
+  standalone_workout_id?: string;
+  rating?: number;
+  location?: string;
+  started_at?: string;
 }
 
 export function useActivityFeed() {
@@ -90,12 +99,13 @@ export function useActivityFeed() {
         const activityLikes = likes ? likes.filter(like => like.activity_id === activity.id) : [];
         return {
           ...activity,
+          created_at: activity.completed_at, // Add created_at from completed_at
           likes: activityLikes,
           has_liked: activityLikes.some(like => like.user_id === user.id)
         };
       }) : [];
       
-      return activitiesWithLikes as ActivityPost[];
+      return activitiesWithLikes as unknown as ActivityPost[];
     },
     staleTime: 60000, // 1 minute
     enabled: !!user?.id,

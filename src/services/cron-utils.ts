@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { startOfWeek, format, isMonday } from 'date-fns';
-import { generateWeeklyBuddies } from './accountability-buddy-service';
+import { isMonday } from 'date-fns';
+import { generateWeeklyBuddies, getCurrentWeekStart } from './accountability-buddy-service';
 
 /**
  * Run weekly maintenance tasks
@@ -93,8 +93,7 @@ export const runWeeklyMaintenance = async (): Promise<{
 export const checkAndGenerateBuddies = async (groupId: string): Promise<boolean> => {
   try {
     // Get the start of the current week (Monday)
-    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
-    const weekStartDate = format(monday, 'yyyy-MM-dd');
+    const weekStartDate = getCurrentWeekStart();
     
     // Check if pairings already exist for this week
     const { data: existingPairings, error: checkError } = await supabase

@@ -21,12 +21,19 @@ export interface BuddyDisplayInfo {
   lastName: string | null;
 }
 
+/**
+ * Get the current week's start date (Monday) in YYYY-MM-DD format
+ */
+export const getCurrentWeekStart = (): string => {
+  const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+  return format(monday, 'yyyy-MM-dd');
+};
+
 export const getGroupWeeklyBuddies = async (
   groupId: string
 ): Promise<AccountabilityBuddy[]> => {
   try {
-    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
-    const weekStartDate = format(monday, 'yyyy-MM-dd');
+    const weekStartDate = getCurrentWeekStart();
 
     const { data, error } = await supabase
       .from('accountability_buddies')
@@ -108,8 +115,7 @@ export const generateWeeklyBuddies = async (
   forceRegenerate: boolean = true
 ): Promise<boolean> => {
   try {
-    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
-    const weekStartDate = format(monday, 'yyyy-MM-dd');
+    const weekStartDate = getCurrentWeekStart();
 
     const { data: groupMembers, error: membersError } = await supabase
       .from('group_members')

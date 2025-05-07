@@ -1,7 +1,7 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ChatRoom } from "./types";
 import type { RealtimeChannel, PostgrestSingleResponse } from "@supabase/supabase-js";
+import { getCurrentWeekStart } from "../accountability-buddy-service";
 
 /**
  * Fetches group chat rooms for the user
@@ -172,15 +172,15 @@ export const createDirectMessageRoom = async (
  */
 export const getBuddyChatRoom = async (
   buddies: string[],
-  pairingId: string
+  pairingRecordId: string
 ): Promise<string | null> => {
   if (!buddies || buddies.length < 2) {
     console.error("Cannot create buddy chat with fewer than 2 users");
     return null;
   }
   
-  if (!pairingId) {
-    console.error("Accountability buddy pairing ID is required to create buddy chat room");
+  if (!pairingRecordId) {
+    console.error("Accountability buddy pairing record ID is required to create buddy chat room");
     return null;
   }
   
@@ -193,7 +193,7 @@ export const getBuddyChatRoom = async (
       .from("chat_rooms")
       .select("id")
       .eq("is_group_chat", true)
-      .eq("group_id", pairingId);
+      .eq("group_id", pairingRecordId);
     
     if (existingError) {
       console.error("Error checking for existing buddy chat rooms:", existingError);
@@ -206,7 +206,7 @@ export const getBuddyChatRoom = async (
     }
     
     // Create a new chat room if one doesn't exist
-    console.log("Creating new buddy chat room for buddies with pairing ID:", pairingId);
+    console.log("Creating new buddy chat room for buddies with pairing ID:", pairingRecordId);
     
     // Sort the buddy IDs to ensure consistency for the buddy_id_string
     const sortedBuddyIds = [...buddies].sort();
@@ -218,7 +218,7 @@ export const getBuddyChatRoom = async (
         name: roomName,
         is_group_chat: true,
         buddy_id_string: idString,
-        group_id: pairingId
+        group_id: pairingRecordId
       })
       .select("id")
       .single();
@@ -247,10 +247,8 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
   if (!userId) return [];
   
   try {
-    // First get the current week
-    const monday = new Date();
-    monday.setDate(monday.getDate() - monday.getDay() + 1); // First day is Monday
-    const weekStart = monday.toISOString().split('T')[0];
+    // Get the current week start date (Monday)
+    const weekStart = getCurrentWeekStart();
     
     console.log(`Fetching buddy pairings for week starting ${weekStart} for user ${userId}`);
     

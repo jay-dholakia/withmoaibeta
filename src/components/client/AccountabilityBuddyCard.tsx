@@ -57,10 +57,8 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
       // Get all buddy IDs including the current user
       const allBuddyIds = [user.id, ...buddies.map(b => b.userId)];
       
-      // First find the accountability_buddies record for this grouping
-      const monday = new Date();
-      monday.setDate(monday.getDate() - monday.getDay() + 1); // Set to Monday
-      const weekStart = monday.toISOString().split('T')[0];
+      // First find the accountability_buddies record for this group
+      const weekStart = getCurrentWeekStart();
       
       console.log("Finding accountability buddies record for week:", weekStart);
       
@@ -104,6 +102,13 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
     } finally {
       setIsCreatingChat(false);
     }
+  };
+
+  // Helper function to get the current week start date
+  const getCurrentWeekStart = (): string => {
+    const monday = new Date();
+    monday.setDate(monday.getDate() - monday.getDay() + 1); // Set to Monday
+    return monday.toISOString().split('T')[0];
   };
 
   return (

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAllChatRooms } from "@/services/chat";
 import { ChatRoom as ChatRoomType } from "@/services/chat";
-import { Menu, ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
@@ -158,8 +159,8 @@ export default function ChatPage() {
             <div className="flex items-center p-2 border-b">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="mr-2">
-                    <Menu className="h-5 w-5" />
+                  <Button variant="ghost" size="icon" className="ml-0 mr-2">
+                    <ArrowRight className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-[250px]">

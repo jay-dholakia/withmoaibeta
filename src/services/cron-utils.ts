@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, format, isMonday } from 'date-fns';
-import { generateWeeklyBuddies } from './accountability-buddy-service';
+import { generateWeeklyBuddies, getCurrentWeekStartDate } from './accountability-buddy-service';
 
 /**
  * Run weekly maintenance tasks
@@ -92,14 +92,8 @@ export const runWeeklyMaintenance = async (): Promise<{
  */
 export const checkAndGenerateBuddies = async (groupId: string): Promise<boolean> => {
   try {
-    // Get the start of the current week (Monday)
-    // Make sure we're using the same format as in the fetchBuddyChatRooms function
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate days to Monday
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
-    const weekStartDate = monday.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+    // Get the start of the current week (Monday) using the shared function
+    const weekStartDate = getCurrentWeekStartDate();
     
     console.log("Checking for buddy pairings for week starting:", weekStartDate);
     

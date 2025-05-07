@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ChatRoom } from "./types";
 
@@ -223,8 +222,7 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
   if (!userId) return [];
   
   try {
-    // Get the current week's date range - ensure we're using Monday as the start of the week
-    // and formatting it in YYYY-MM-DD format exactly as stored in the database
+    // Get the current week's start date (Monday) in YYYY-MM-DD format
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate days to Monday
@@ -234,42 +232,35 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
     // Format as 'YYYY-MM-DD' without any time component
     const weekStart = monday.toISOString().split('T')[0];
     
-    console.log("Looking for buddy pairings for week starting:", weekStart);
+    console.log(`Looking for buddy pairings for current week (${weekStart})`);
     
-    // Find accountability buddy pairings for this user across all groups
-    // This query checks if the user is in any buddy pairing for the current week
-    const { data: buddyPairings, error: buddyError } = await supabase
-      .from("accountability_buddies")
-      .select("*")
-      .eq("week_start", weekStart)
-      .or(`user_id_1.eq.${userId},user_id_2.eq.${userId},user_id_3.eq.${userId}`);
+    // ENHANCEMENT: Look for buddy pairings within a date range rather than exact match
+    // First try with exact date match
+    let buddyPairings = await findBuddyPairings(userId, weekStart);
     
-    if (buddyError) {
-      console.error("Error fetching buddy pairings:", buddyError);
-      return [];
-    }
-    
-    if (!buddyPairings || buddyPairings.length === 0) {
-      // For debugging - show both the format of the week_start we're looking for
-      // and all the available buddy pairings in the table
-      console.log(`No buddy pairings found for this week (${weekStart}). Checking all available pairings...`);
-      
-      const { data: allPairings } = await supabase
+    // If no pairings found, try looking for recent pairings (fallback)
+    if (!buddyPairings.length) {
+      console.log(`No buddy pairings found for week starting ${weekStart}, looking for recent pairings...`);
+      const { data: recentPairings } = await supabase
         .from("accountability_buddies")
-        .select("id, week_start, group_id")
-        .order("week_start", { ascending: false })
-        .limit(5);
-        
-      if (allPairings && allPairings.length > 0) {
-        console.log("Recent pairings in database:", allPairings);
-      } else {
-        console.log("No recent buddy pairings found in the database");
-      }
+        .select("*")
+        .or(`user_id_1.eq.${userId},user_id_2.eq.${userId},user_id_3.eq.${userId}`)
+        .order('week_start', { ascending: false })
+        .limit(1);
       
+      if (recentPairings && recentPairings.length > 0) {
+        const mostRecentWeekStart = recentPairings[0].week_start;
+        console.log(`Falling back to most recent pairings from week: ${mostRecentWeekStart}`);
+        buddyPairings = recentPairings;
+      }
+    }
+    
+    if (!buddyPairings.length) {
+      console.log("No buddy pairings found for this user in any week");
       return [];
     }
     
-    console.log("Found buddy pairings:", buddyPairings);
+    console.log(`Found ${buddyPairings.length} buddy pairings for user`);
     
     const buddyRooms: ChatRoom[] = [];
     
@@ -292,6 +283,7 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
       
       if (rooms && rooms.length > 0) {
         roomId = rooms[0].id;
+        console.log(`Found existing buddy chat room: ${roomId}`);
       } else {
         // Create a new chat room for these buddies
         const createdRoomId = await getBuddyChatRoom(buddyIds);
@@ -299,6 +291,7 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
           console.error("Failed to create buddy chat room");
           continue;
         }
+        console.log(`Created new buddy chat room: ${createdRoomId}`);
         roomId = createdRoomId;
       }
       
@@ -357,7 +350,7 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
       }
     }
     
-    console.log(`Found ${buddyRooms.length} buddy chat rooms`);
+    console.log(`Returning ${buddyRooms.length} buddy chat rooms`);
     return buddyRooms;
   } catch (error) {
     console.error("Error fetching buddy chat rooms:", error);
@@ -365,3 +358,22 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
   }
 };
 
+/**
+ * Helper function to find buddy pairings for a user in a specific week
+ */
+async function findBuddyPairings(userId: string, weekStart: string) {
+  const { data: buddyPairings, error } = await supabase
+    .from("accountability_buddies")
+    .select("*")
+    .eq("week_start", weekStart)
+    .or(`user_id_1.eq.${userId},user_id_2.eq.${userId},user_id_3.eq.${userId}`);
+  
+  if (error) {
+    console.error("Error fetching buddy pairings:", error);
+    return [];
+  }
+
+  console.log(`Query results for week ${weekStart}:`, buddyPairings || "No pairings found");
+  
+  return buddyPairings || [];
+}

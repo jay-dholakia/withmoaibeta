@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { getUserBuddies, generateWeeklyBuddies } from '@/services/accountability-buddy-service';
+import { getUserBuddies, generateWeeklyBuddies, getCurrentWeekStartDate } from '@/services/accountability-buddy-service';
 import { checkAndGenerateBuddies } from '@/services/cron-utils';
 import { BuddyDisplayInfo } from '@/services/accountability-buddy-service';
 
@@ -20,11 +20,15 @@ export function useAccountabilityBuddies(
       setError(null);
       
       try {
+        console.log(`Loading accountability buddies for user ${userId} in group ${groupId}`);
+        console.log(`Current week starts on: ${getCurrentWeekStartDate()}`);
+        
         // First check if we need to generate new buddies for this week
         await checkAndGenerateBuddies(groupId);
         
         // Then load the user's buddies
         const userBuddies = await getUserBuddies(groupId, userId);
+        console.log(`Found ${userBuddies.length} buddies for user`);
         setBuddies(userBuddies);
       } catch (err) {
         console.error('Error loading accountability buddies:', err);

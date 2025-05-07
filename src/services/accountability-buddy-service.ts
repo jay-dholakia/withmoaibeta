@@ -21,18 +21,25 @@ export interface BuddyDisplayInfo {
   lastName: string | null;
 }
 
+/**
+ * Helper function to get current week start date in YYYY-MM-DD format
+ * This ensures we use the same date format across all functions
+ */
+export const getCurrentWeekStartDate = (): string => {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate days to Monday
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset);
+  return monday.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+};
+
 export const getGroupWeeklyBuddies = async (
   groupId: string
 ): Promise<AccountabilityBuddy[]> => {
   try {
-    // Calculate the start of the week (Monday) in YYYY-MM-DD format
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate days to Monday
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
-    const weekStartDate = monday.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
-
+    // Use the common date function
+    const weekStartDate = getCurrentWeekStartDate();
     console.log("Fetching buddy pairings for week starting:", weekStartDate);
 
     const { data, error } = await supabase
@@ -46,6 +53,9 @@ export const getGroupWeeklyBuddies = async (
       return [];
     }
 
+    // Debug: Log raw results
+    console.log(`Found ${data?.length || 0} buddy pairings for group ${groupId}, week ${weekStartDate}`, data);
+    
     return data || [];
   } catch (err) {
     console.error('Unexpected error in getGroupWeeklyBuddies:', err);
@@ -61,6 +71,7 @@ export const getUserBuddies = async (
     const buddyPairings = await getGroupWeeklyBuddies(groupId);
 
     if (!buddyPairings || buddyPairings.length === 0) {
+      console.log("No buddy pairings found for this group and week");
       return [];
     }
 
@@ -72,6 +83,7 @@ export const getUserBuddies = async (
     );
 
     if (!userPairing) {
+      console.log(`User ${userId} not found in any buddy pairings`);
       return [];
     }
 
@@ -82,6 +94,7 @@ export const getUserBuddies = async (
     ].filter(id => id && id !== userId) as string[];
 
     if (buddyIds.length === 0) {
+      console.log("No buddies found for this user");
       return [];
     }
 
@@ -115,14 +128,8 @@ export const generateWeeklyBuddies = async (
   forceRegenerate: boolean = true
 ): Promise<boolean> => {
   try {
-    // Calculate the start of the week (Monday) in YYYY-MM-DD format
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate days to Monday
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
-    const weekStartDate = monday.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
-
+    // Use the common date function
+    const weekStartDate = getCurrentWeekStartDate();
     console.log("Generating buddy pairings for week starting:", weekStartDate);
 
     const { data: groupMembers, error: membersError } = await supabase
@@ -195,10 +202,10 @@ export const generateWeeklyBuddies = async (
       }
     }
 
-    // Insert pairings one by one to handle potential conflicts
+    // Insert pairings and log the results
     for (const pairing of pairings) {
       try {
-        const { error: insertError } = await supabase
+        const { data, error: insertError } = await supabase
           .from('accountability_buddies')
           .insert([pairing])
           .select();
@@ -208,6 +215,8 @@ export const generateWeeklyBuddies = async (
           // Continue with next pairing even if this one fails
           continue;
         }
+        
+        console.log('Successfully inserted buddy pairing:', data);
       } catch (insertErr) {
         console.error('Unexpected error inserting buddy pairing:', insertErr);
         // Continue with next pairing even if this one fails
@@ -221,4 +230,3 @@ export const generateWeeklyBuddies = async (
     return false;
   }
 };
-

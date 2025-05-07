@@ -1,5 +1,4 @@
 
-import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,17 +7,26 @@ export interface ActivityPost {
   id: string;
   created_at: string;
   user_id: string;
-  content: string;
+  content?: string;
   workout_id?: string;
   workout_type?: string;
   workout_name?: string;
-  user_profile?: {
+  profiles?: {
     first_name?: string;
     last_name?: string;
     avatar_url?: string;
   };
-  likes_count?: number;
-  has_liked?: boolean;
+  description?: string;
+  notes?: string;
+  duration?: string;
+  distance?: string;
+  completed_at?: string;
+  workout?: {
+    title?: string;
+  };
+  likes?: {
+    user_id: string;
+  }[];
 }
 
 export function useActivityFeed() {
@@ -51,24 +59,43 @@ export function useActivityFeed() {
       
       const memberIds = [...new Set(groupMembers.map(m => m.user_id))];
       
-      // Get activities from these users
+      // Get activities from these users - using workout_completions which exists in the schema
       const { data: activities, error: activitiesError } = await supabase
-        .from('activity_feed')
+        .from('workout_completions')
         .select(`
           *,
-          user_profile:client_profiles(
+          profiles:client_profiles(
             first_name,
             last_name,
             avatar_url
           )
         `)
         .in('user_id', memberIds)
-        .order('created_at', { ascending: false })
+        .order('completed_at', { ascending: false })
         .limit(20);
       
       if (activitiesError) throw activitiesError;
       
-      return activities || [];
+      // Get the likes for these activities
+      const activityIds = activities ? activities.map(a => a.id) : [];
+      const { data: likes, error: likesError } = await supabase
+        .from('activity_likes')
+        .select('activity_id, user_id')
+        .in('activity_id', activityIds);
+      
+      if (likesError) throw likesError;
+      
+      // Attach likes to each activity
+      const activitiesWithLikes = activities ? activities.map(activity => {
+        const activityLikes = likes ? likes.filter(like => like.activity_id === activity.id) : [];
+        return {
+          ...activity,
+          likes: activityLikes,
+          has_liked: activityLikes.some(like => like.user_id === user.id)
+        };
+      }) : [];
+      
+      return activitiesWithLikes as ActivityPost[];
     },
     staleTime: 60000, // 1 minute
     enabled: !!user?.id,

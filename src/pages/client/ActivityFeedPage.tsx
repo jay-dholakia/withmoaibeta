@@ -3,7 +3,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useActivityFeed } from '@/hooks/useActivityFeed';
-import { ActivityPost } from '@/components/client/ActivityPost';
+import ActivityPost from '@/components/client/ActivityPost';
 import { Loader2 } from 'lucide-react';
 
 interface ActivityFeedPageProps {
@@ -47,7 +47,7 @@ export default function ActivityFeedPage({ inTab = false }: ActivityFeedPageProp
     return (
       <div className="space-y-4">
         {posts.map((post) => (
-          <ActivityPost key={post.id} post={post} />
+          <ActivityPost key={post.id} activity={post} currentUserId={user?.id || ''} />
         ))}
       </div>
     );
@@ -61,7 +61,7 @@ export default function ActivityFeedPage({ inTab = false }: ActivityFeedPageProp
       </CardHeader>
       <CardContent className="space-y-4">
         {posts.map((post) => (
-          <ActivityPost key={post.id} post={post} />
+          <ActivityPost key={post.id} activity={post} currentUserId={user?.id || ''} />
         ))}
       </CardContent>
     </Card>

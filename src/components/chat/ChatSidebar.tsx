@@ -220,19 +220,19 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         )}
         
         <div className="py-2">
-          <div className="px-4 py-2 flex justify-between items-center">
+          <div className="px-4 py-2 flex items-center justify-between">
             <h3 className="text-sm font-medium text-muted-foreground flex items-center">
               <MessageSquare className="h-4 w-4 mr-2" />
               Direct Messages
             </h3>
             <Button 
-              variant="outline" 
-              size="sm"
-              className="h-7 w-7 rounded-full flex items-center justify-center p-1 border-client hover:bg-client/10"
+              variant="ghost" 
+              size="icon"
+              className="h-6 w-6 p-0 ml-1 hover:bg-muted"
               onClick={handleOpenNewDmDialog}
               aria-label="New Direct Message"
             >
-              <Plus className="h-5 w-5 text-client" />
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
           <div className="space-y-1">

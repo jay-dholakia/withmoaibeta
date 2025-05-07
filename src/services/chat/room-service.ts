@@ -217,7 +217,6 @@ export const getBuddyChatRoom = async (
       .insert({
         name: roomName,
         is_group_chat: true,
-        is_buddy_chat: true,
         buddy_id_string: idString,
         group_id: groupId
       })
@@ -301,7 +300,12 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
  * Process buddy pairings to create chat rooms
  */
 const processBuddyPairings = async (
-  buddyPairings: any[], // Changed from using generic type to any[] to avoid deep type instantiation
+  buddyPairings: Array<{
+    user_id_1: string;
+    user_id_2: string;
+    user_id_3: string | null;
+    group_id: string;
+  }>,
   userId: string
 ): Promise<ChatRoom[]> => {
   const buddyRooms: ChatRoom[] = [];
@@ -313,20 +317,12 @@ const processBuddyPairings = async (
   for (const pairing of buddyPairings) {
     try {
       // Get all buddy IDs in this pairing (including current user)
-      // Using explicit null check instead of filter with type predicate
-      const buddyIdList: Array<string | null> = [
-        pairing.user_id_1, 
-        pairing.user_id_2, 
-        pairing.user_id_3
-      ];
-      
-      // Filter out nulls and convert to string[]
       const buddyIds: string[] = [];
-      for (const id of buddyIdList) {
-        if (id !== null && id !== undefined) {
-          buddyIds.push(id);
-        }
-      }
+      
+      // Add valid IDs to our array
+      if (pairing.user_id_1) buddyIds.push(pairing.user_id_1);
+      if (pairing.user_id_2) buddyIds.push(pairing.user_id_2);
+      if (pairing.user_id_3) buddyIds.push(pairing.user_id_3);
     
       // Create a consistent string of sorted IDs to identify this buddy group
       const idString = [...buddyIds].sort().join('_');
@@ -344,7 +340,6 @@ const processBuddyPairings = async (
         .from("chat_rooms")
         .select("*")
         .eq("is_group_chat", true)
-        .eq("is_buddy_chat", true)
         .eq("buddy_id_string", idString)
         .eq("group_id", groupId);
     
@@ -363,7 +358,6 @@ const processBuddyPairings = async (
           id: rooms[0].id,
           name: roomName,
           is_group_chat: true,
-          is_buddy_chat: true,
           group_id: groupId,
           created_at: rooms[0].created_at,
           buddy_ids: buddyIds.filter(id => id !== userId),
@@ -378,7 +372,6 @@ const processBuddyPairings = async (
             id: roomId,
             name: roomName,
             is_group_chat: true,
-            is_buddy_chat: true,
             group_id: groupId,
             created_at: new Date().toISOString(),
             buddy_ids: buddyIds.filter(id => id !== userId),

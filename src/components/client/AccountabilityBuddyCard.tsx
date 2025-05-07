@@ -113,44 +113,54 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
   return (
     <Card className="bg-muted/40 dark:bg-gray-800/50 mb-2">
       <CardContent className="p-4">
+        {/* Rearranged header row with buddies on the right */}
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-sm font-medium">Weekly Accountability Buddies</h3>
           
-          {isAdmin && onRefresh && (
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={onRefresh}
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3 w-3" />
+          {loading ? (
+            <div className="flex justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : buddies.length === 0 ? (
+            <div className="text-xs text-muted-foreground">
+              No buddies assigned
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1 justify-end">
+              {buddies.map((buddy) => (
+                <Avatar key={buddy.userId} className="h-8 w-8">
+                  <AvatarImage src={buddy.avatarUrl || ''} alt={buddy.name} />
+                  <AvatarFallback>{getInitials(buddy.firstName, buddy.lastName)}</AvatarFallback>
+                </Avatar>
+              ))}
+              
+              {isAdmin && onRefresh && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={onRefresh}
+                  disabled={loading}
+                  className="h-8 w-8 p-0 ml-1"
+                >
+                  {loading ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3" />
+                  )}
+                  <span className="sr-only">Refresh buddies</span>
+                </Button>
               )}
-              <span className="sr-only">Refresh buddies</span>
-            </Button>
+            </div>
           )}
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-2">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : buddies.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-1">
-            No accountability buddies assigned for this week.
-          </p>
-        ) : (
+        {/* Show names and chat button below if buddies exist */}
+        {!loading && buddies.length > 0 && (
           <>
             <div className="flex flex-wrap gap-2 justify-center">
               {buddies.map((buddy) => (
-                <div key={buddy.userId} className="flex flex-col items-center">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={buddy.avatarUrl || ''} alt={buddy.name} />
-                    <AvatarFallback>{getInitials(buddy.firstName, buddy.lastName)}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs mt-1 whitespace-nowrap max-w-[80px] truncate">
+                <div key={`name-${buddy.userId}`} className="text-center">
+                  <span className="text-xs whitespace-nowrap max-w-[80px] truncate block">
                     {formatName(buddy.firstName, buddy.lastName)}
                   </span>
                 </div>

@@ -25,6 +25,7 @@ export default function ChatPage() {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const buddyChatId = searchParams.get('buddy');
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   const loadChatRooms = useCallback(async (isRefresh = false) => {
     if (!user?.id) return;
@@ -36,7 +37,9 @@ export default function ChatPage() {
     }
     
     try {
+      console.log("Fetching chat rooms for user:", user.id);
       const rooms = await fetchAllChatRooms(user.id);
+      console.log("Fetched chat rooms:", rooms);
       setChatRooms(rooms);
       
       // Handle room selection priority:
@@ -63,7 +66,7 @@ export default function ChatPage() {
         }
       }
       
-      // Check for buddy chat rooms first
+      // Check for buddy chat rooms first - always prioritize buddy chats
       const buddyRooms = rooms.filter(room => room.is_buddy_chat);
       if (buddyRooms.length > 0) {
         setActiveRoomId(buddyRooms[0].id);
@@ -83,12 +86,17 @@ export default function ChatPage() {
       console.error("Error loading chat rooms:", error);
       if (isRefresh) {
         toast.error("Failed to refresh chats");
+      } else if (loadAttempt < 2) {
+        // Retry loading once more after a short delay
+        setTimeout(() => {
+          setLoadAttempt(prev => prev + 1);
+        }, 2000);
       }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user?.id, groupId, buddyChatId]);
+  }, [user?.id, groupId, buddyChatId, loadAttempt]);
 
   useEffect(() => {
     loadChatRooms();
@@ -155,6 +163,9 @@ export default function ChatPage() {
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-client" />
               <p className="text-muted-foreground">Loading your chats...</p>
+              {loadAttempt > 0 && (
+                <p className="text-xs text-muted-foreground">Retry attempt {loadAttempt}/2...</p>
+              )}
             </div>
           </div>
         ) : (

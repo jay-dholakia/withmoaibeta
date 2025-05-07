@@ -1,32 +1,96 @@
+export interface Exercise {
+  id: string;
+  name: string;
+  category: string;
+  description: string | null;
+  created_at?: string;
+  exercise_type: string; 
+  youtube_link?: string;
+  muscle_group: string | null;
+}
+
+export interface WorkoutProgram {
+  id: string;
+  title: string;
+  description: string | null;
+  weeks: number;
+  coach_id: string;
+  created_at: string;
+  updated_at: string;
+  program_type: string;
+  weekData?: WorkoutWeek[];
+}
+
+export interface WorkoutWeek {
+  id: string;
+  program_id: string;
+  week_number: number;
+  title: string;
+  description: string | null;
+  created_at: string;
+  program?: {
+    title: string;
+    id: string;
+    program_type?: string;
+  } | null;
+  workouts?: Workout[];
+}
+
+export interface Workout {
+  id: string;
+  week_id: string;
+  day_of_week: number;
+  title: string;
+  description: string | null;
+  created_at: string;
+  workout_exercises?: WorkoutExercise[];
+  workout_type: string;
+  priority: number;
+  template_id?: string | null;
+}
 
 export interface PersonalRecord {
   id: string;
   user_id: string;
   exercise_id: string;
   weight: number;
-  reps: number;
+  reps?: number;
+  achieved_at: string;
   workout_completion_id?: string;
-  created_at: string;
-  exercise?: {
-    id: string;
-    name: string;
-    category: string;
-  };
   exercise_name?: string;
-  achieved_at?: string; // Added for compatibility with responses
 }
 
-// Define missing workout-related types
-export interface Exercise {
+export interface StandaloneWorkout {
   id: string;
-  name: string;
-  category: string;
-  exercise_type?: string;
+  title: string;
+  description: string | null;
+  coach_id: string;
+  created_at: string;
+  updated_at?: string;
+  category?: string;
+  workout_exercises?: WorkoutExercise[];
+  workout_type: string;
+}
+
+export interface WorkoutBasic {
+  id: string;
+  title: string;
   description?: string;
-  youtube_link?: string;
-  muscle_group?: string;
-  log_type?: string;
-  created_at?: string;
+  day_of_week: number;
+  week_id: string;
+  priority?: number;
+  week?: {
+    week_number: number;
+    program?: {
+      id: string;
+      title: string;
+      program_type?: string;
+    }
+  } | null;
+  workout_exercises?: WorkoutExercise[];
+  workout_type: string;
+  custom_workout?: boolean;
+  template_id?: string | null;
 }
 
 export interface WorkoutExercise {
@@ -35,33 +99,28 @@ export interface WorkoutExercise {
   exercise_id: string;
   sets: number;
   reps: string;
-  rest_seconds?: number;
-  notes?: string;
+  rest_seconds: number | null;
+  notes: string | null;
   order_index: number;
-  superset_group_id?: string;
-  superset_order?: number;
-  created_at?: string;
+  created_at: string;
   exercise?: Exercise;
+  workout?: Workout;
+  title?: string;
+  workout_type?: string;
+  distance?: string;
+  duration?: string;
+  location?: string;
+  completed_date?: string;
 }
 
-export interface WorkoutHistoryItem {
+export interface ProgramAssignment {
   id: string;
+  program_id: string;
   user_id: string;
-  workout_id?: string;
-  started_at: string;
-  completed_at?: string;
-  title?: string;
-  description?: string;
-  workout_type?: string;
-  life_happens_pass?: boolean;
-  standalone_workout_id?: string;
-  custom_workout_id?: string;
-  rest_day?: boolean;
-  duration?: string;
-  distance?: string;
-  location?: string;
-  notes?: string;
-  rating?: number;
+  assigned_by: string;
+  start_date: string;
+  end_date: string | null;
+  created_at: string;
 }
 
 export interface WorkoutSetCompletion {
@@ -69,74 +128,107 @@ export interface WorkoutSetCompletion {
   workout_completion_id: string;
   workout_exercise_id: string;
   set_number: number;
-  weight?: number;
   reps_completed?: number;
+  weight?: number;
   completed: boolean;
+  duration?: string;
+  distance?: string;
+  location?: string;
   notes?: string;
   created_at: string;
+  user_id?: string;
+  completed_date?: string;
+}
+
+export interface WorkoutHistoryItem {
+  id: string;
+  completed_at: string;
+  notes?: string;
+  rating?: number;
   user_id: string;
+  workout_id: string;
+  workout?: WorkoutBasic | null;
+  life_happens_pass?: boolean;
+  rest_day?: boolean;
+  workout_set_completions?: WorkoutSetCompletion[];
+  custom_workout_id?: string;
+  title?: string;
+  description?: string;
+  workout_type?: string;
+  duration?: string;
+  distance?: string;
+  location?: string;
+  completed_date?: string;
+}
+
+export interface WorkoutActivityType {
+  id: string;
+  type: StandardWorkoutType;
+  title: string; 
+  description?: string;
+  date: Date;
+  notes?: string;
   distance?: string;
   duration?: string;
   location?: string;
 }
 
-export interface Workout {
-  id: string;
-  title: string;
-  description?: string;
-  day_of_week: number;
-  week_id: string;
-  workout_type?: 'strength' | 'cardio' | 'mobility' | 'flexibility';
-  priority?: number;
-  template_id?: string;
-  created_at?: string;
-  workout_exercises?: WorkoutExercise[];
-}
-
-export interface WorkoutWeek {
-  id: string;
-  title: string;
-  description?: string;
-  week_number: number;
-  program_id: string;
-  target_strength_workouts?: number;
-  target_cardio_minutes?: number;
-  target_miles_run?: number;
-  target_strength_mobility_workouts?: number;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface WorkoutProgram {
-  id: string;
-  title: string;
-  description?: string;
-  weeks: number;
-  coach_id: string;
-  program_type: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface StandaloneWorkout {
-  id: string;
-  title: string;
-  description?: string;
-  coach_id: string;
-  workout_type?: string;
-  category?: string;
-  created_at?: string;
-  updated_at?: string;
-  standalone_workout_exercises?: WorkoutExercise[];
-}
-
-export type StandardWorkoutType = 'strength' | 'cardio' | 'mobility' | 'flexibility';
-
-export const STANDARD_WORKOUT_TYPES: StandardWorkoutType[] = [
-  'strength',
-  'cardio',
-  'mobility',
-  'flexibility'
+export const DAYS_OF_WEEK = [
+  'Sunday',
+  'Monday', 
+  'Tuesday', 
+  'Wednesday', 
+  'Thursday', 
+  'Friday', 
+  'Saturday'
 ];
 
-export const DAYS_OF_WEEK = [1, 2, 3, 4, 5, 6, 7];
+export const STANDARD_WORKOUT_TYPES = [
+  'strength',
+  'bodyweight',
+  'cardio',
+  'flexibility',
+  'rest_day',
+  'custom',
+  'one_off',
+  'hiit',
+  'sport',
+  'swimming',
+  'cycling',
+  'dance',
+  'basketball',
+  'golf',
+  'volleyball',
+  'baseball',
+  'tennis',
+  'hiking',
+  'skiing',
+  'yoga',
+  'running',
+  'live_run'
+] as const;
+
+export type StandardWorkoutType = typeof STANDARD_WORKOUT_TYPES[number];
+
+export const PROGRAM_TYPES = ['strength', 'run'] as const;
+export type ProgramType = typeof PROGRAM_TYPES[number];
+
+export interface ClientProfile {
+  id?: string;
+  first_name: string | null;
+  last_name: string | null;
+  city: string | null;
+  state: string | null;
+  birthday: string | null;
+  height: string | null;
+  weight: string | null;
+  avatar_url: string | null;
+  fitness_goals: string[];
+  favorite_movements: string[];
+  profile_completed: boolean;
+  created_at?: string;
+  updated_at?: string;
+  event_type?: string | null;
+  event_date?: string | null; 
+  event_name?: string | null;
+}

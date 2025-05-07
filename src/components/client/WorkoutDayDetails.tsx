@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { WorkoutHistoryItem, PersonalRecord } from '@/types/workout';
+import { WorkoutHistoryItem } from '@/types/workout';
 import { format, isValid, parseISO } from 'date-fns';
 import { FileX, Edit, Save, X, ChevronDown, ChevronUp, Trash2, Calendar } from 'lucide-react';
 import { WorkoutTypeIcon, WORKOUT_TYPES } from './WorkoutTypeIcon';
@@ -47,14 +47,9 @@ import RunMap from './workout/RunMap';
 interface WorkoutDayDetailsProps {
   date: Date;
   workouts: WorkoutHistoryItem[];
-  personalRecords?: PersonalRecord[]; // Added personalRecords prop
 }
 
-export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ 
-  date, 
-  workouts,
-  personalRecords = [] // Default to empty array if not provided
-}) => {
+export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, workouts }) => {
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
@@ -131,10 +126,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
       }
     }
   }, [expandedWorkoutId, displayedWorkouts]);
-
-  useEffect(() => {
-    console.log('WorkoutDayDetails received personal records:', personalRecords);
-  }, [personalRecords]);
 
   if (!date || !isValid(date)) {
     return (
@@ -298,39 +289,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
   const handleExercisesSaved = () => {
     document.getElementById('refresh-workout-history')?.click();
     setEditingExercises(false);
-  };
-
-  const findPersonalRecordForExercise = (exerciseId: string): PersonalRecord | undefined => {
-    // Add debugging to verify personal records data
-    console.log('Looking for PR for exercise:', exerciseId);
-    console.log('Available personal records:', personalRecords);
-    
-    // Check if we have any personal records
-    if (!personalRecords || personalRecords.length === 0) {
-      console.log('No personal records available');
-      return undefined;
-    }
-    
-    // First try direct match on the exercise_id
-    let record = personalRecords.find(pr => pr.exercise_id === exerciseId);
-    
-    // If we didn't find a match, it might be because we're passing the workout_exercise_id
-    // instead of the actual exercise_id from the exercise table
-    if (!record) {
-      // Try to find the base exercise ID from exercise data
-      const exerciseData = exerciseGroups[expandedWorkoutId as string]?.[exerciseId]?.sets?.[0]?.workout_exercise?.exercise;
-      if (exerciseData && exerciseData.id) {
-        console.log('Found base exercise ID:', exerciseData.id, 'for workout exercise ID:', exerciseId);
-        record = personalRecords.find(pr => pr.exercise_id === exerciseData.id);
-      }
-    }
-    
-    if (record) {
-      console.log('Found PR:', record);
-    } else {
-      console.log('No PR found for this exercise');
-    }
-    return record;
   };
 
   if (displayedWorkouts.length === 0) {
@@ -502,172 +460,208 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
                         {workout.title || workout.workout?.title || 'Unnamed Workout'}
                       </h3>
                     </div>
-                    
-                    {workout.description && (
-                      <p className="text-muted-foreground text-sm">
-                        {workout.description}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {isWorkoutEditable(workout) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => handleEditWorkout(workout)}
-                        disabled={!!editingWorkoutId}
-                      >
-                        <Edit className="h-3 w-3 mr-1" /> Edit
-                      </Button>
-                    )}
-
-                    <Button
-                      variant={expandedWorkoutId === workout.id ? "secondary" : "ghost"}
-                      size="sm"
-                      className="h-7"
-                      onClick={() => toggleWorkoutExpand(workout.id)}
-                    >
-                      {expandedWorkoutId === workout.id ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </Button>
                   </div>
                 </div>
-
-                <div className="flex flex-wrap gap-x-4 mt-3 text-xs text-muted-foreground">
-                  {workout.completed_at && (
-                    <div>
-                      {new Date(workout.completed_at).toLocaleDateString()}
-                    </div>
-                  )}
-                  
+                
+                {(workout.description || workout.workout?.description) && (
+                  <div className="mt-3">
+                    <p className="text-sm text-muted-foreground">
+                      {workout.description || workout.workout?.description}
+                    </p>
+                  </div>
+                )}
+                
+                {workout.workout_type === 'running' && workout.id && (
+                  <div className="mt-4 mb-2">
+                    <RunMap 
+                      runId={workout.id} 
+                      height={180} 
+                      className="w-full"
+                    />
+                  </div>
+                )}
+                
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
                   {workout.duration && (
-                    <div>
-                      Duration: {workout.duration} mins
+                    <div className="text-muted-foreground">
+                      <span className="font-medium">Duration:</span> {workout.duration} minutes
+                    </div>
+                  )}
+                  
+                  {workout.distance && (
+                    <div className="text-muted-foreground">
+                      <span className="font-medium">Distance:</span> {workout.distance} miles
+                    </div>
+                  )}
+                  
+                  {workout.location && (
+                    <div className="text-muted-foreground">
+                      <span className="font-medium">Location:</span> {workout.location}
                     </div>
                   )}
                 </div>
-
-                {expandedWorkoutId === workout.id && (
-                  <div className="mt-4 space-y-4">
-                    <div>
-                      {workout.notes && (
-                        <div className="bg-gray-50 p-3 rounded-md mt-2 text-sm">
-                          <div className="font-medium mb-1">Notes:</div>
-                          <p className="text-muted-foreground">{workout.notes}</p>
-                        </div>
-                      )}
+                
+                {expandedWorkoutId === workout.id && workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-medium">Exercise Details</h4>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleEditExercises(workout)}
+                      >
+                        <Edit className="h-3.5 w-3.5 mr-1" />
+                        Edit Exercises
+                      </Button>
                     </div>
                     
-                    {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-sm mb-2">Exercise Details:</h4>
-                        <div className="space-y-3">
-                          {Object.entries(exerciseGroups[workout.id] || {}).map(([exerciseId, exerciseData]: [string, any]) => {
-                            // Find personal record for this exercise - log the process for debugging
-                            console.log(`Looking for PR for exercise group: ${exerciseId} with name ${exerciseData.name}`);
+                    {exerciseGroups[workout.id] ? (
+                      <div className="space-y-3">
+                        {Object.entries(exerciseGroups[workout.id]).map(([exerciseId, group]: [string, any]) => (
+                          <div key={exerciseId} className="bg-muted/50 p-2 rounded-md">
+                            <div className="font-medium">
+                              {group.name || "Unknown Exercise"}
+                            </div>
                             
-                            // Try to find the PR using the base exercise ID if available
-                            const baseExerciseId = exerciseData.sets?.[0]?.workout_exercise?.exercise?.id;
-                            console.log('Base exercise ID (from sets):', baseExerciseId);
-                            
-                            let personalRecord;
-                            if (baseExerciseId) {
-                              personalRecord = personalRecords.find(pr => pr.exercise_id === baseExerciseId);
-                              console.log('PR lookup by base exercise ID:', personalRecord ? 'Found' : 'Not found');
-                            }
-                            
-                            // If still no PR found, try using the exercise ID directly
-                            if (!personalRecord) {
-                              personalRecord = findPersonalRecordForExercise(exerciseId);
-                            }
-                            
-                            return (
-                              <div key={exerciseId} className="border rounded-md p-3">
-                                <div className="font-medium">{exerciseData.name}</div>
+                            {group.type === 'cardio' ? (
+                              <div className="text-sm mt-1">
+                                <span className="text-muted-foreground">Duration: </span>
+                                {group.sets[0]?.duration || 'Not recorded'}
                                 
-                                {personalRecord && (
-                                  <div className="bg-blue-50 p-2 rounded-md text-xs flex items-center my-2">
-                                    <span className="font-bold text-blue-700">
-                                      Personal Record: {personalRecord.weight} lbs × {personalRecord.reps || 1} {personalRecord.reps !== 1 ? 'reps' : 'rep'}
-                                    </span>
+                                {group.sets[0]?.distance && (
+                                  <div className="mt-1">
+                                    <span className="text-muted-foreground">Distance: </span>
+                                    {group.sets[0].distance}
                                   </div>
                                 )}
                                 
-                                <Table className="mt-2">
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead className="w-16 py-2">Set</TableHead>
-                                      <TableHead className="w-20 py-2">Weight</TableHead>
-                                      <TableHead className="w-16 py-2">Reps</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {exerciseData.sets.map((set: any) => (
-                                      <TableRow key={set.id}>
-                                        <TableCell className="py-1.5">{set.set_number}</TableCell>
-                                        <TableCell className="py-1.5">
-                                          {set.weight ? `${set.weight} lbs` : '-'}
-                                        </TableCell>
-                                        <TableCell className="py-1.5">
-                                          {set.reps_completed || '-'}
-                                        </TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
+                                {group.sets[0]?.notes && (
+                                  <div className="mt-1">
+                                    <span className="text-muted-foreground">Notes: </span>
+                                    {group.sets[0].notes}
+                                  </div>
+                                )}
                               </div>
-                            );
-                          })}
-                        </div>
+                            ) : (
+                              <Table className="mt-1">
+                                <TableHeader>
+                                  <TableRow className="hover:bg-transparent">
+                                    <TableHead className="w-1/4 h-8 py-1 px-2">Set</TableHead>
+                                    <TableHead className="w-1/4 h-8 py-1 px-2">Reps</TableHead>
+                                    <TableHead className="w-1/2 h-8 py-1 px-2">Weight</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {group.sets.sort((a: any, b: any) => a.set_number - b.set_number).map((set: any) => (
+                                    <TableRow key={set.id}>
+                                      <TableCell className="py-1 px-2">{set.set_number}</TableCell>
+                                      <TableCell className="py-1 px-2">{set.reps_completed || '-'}</TableCell>
+                                      <TableCell className="py-1 px-2">{set.weight ? `${set.weight} lbs` : '-'}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            )}
+                            
+                            {group.type !== 'cardio' && group.sets[0]?.notes && (
+                              <div className="text-xs mt-2">
+                                <span className="text-muted-foreground">Notes: </span>
+                                {group.sets[0].notes}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground text-center py-2">
+                        Loading exercise details...
                       </div>
                     )}
-                    
-                    <div className="flex justify-end space-x-2 pt-2">
-                      {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditExercises(workout)}
-                          disabled={editingExercises}
-                        >
-                          <Edit className="h-3.5 w-3.5 mr-1.5" /> Edit Exercises
-                        </Button>
-                      )}
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            disabled={isDeleting}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete workout record?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. The workout will be permanently removed 
-                              from your history and statistics.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteWorkout(workout.id)}>
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
                   </div>
                 )}
+                
+                {workout.rest_day && (
+                  <div className="mt-3 text-sm bg-muted inline-block px-2 py-1 rounded-md">
+                    Rest Day
+                  </div>
+                )}
+                
+                {workout.life_happens_pass && (
+                  <div className="mt-3 text-sm bg-muted inline-block px-2 py-1 rounded-md">
+                    Life Happens Pass Used
+                  </div>
+                )}
+
+                <div className="mt-4 border-t pt-3 -mx-4 px-4 -mb-4 bg-gray-50/50 rounded-b-lg">
+                  <div className="flex justify-between items-center">
+                    {workout.workout_set_completions && workout.workout_set_completions.length > 0 && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => toggleWorkoutExpand(workout.id)}
+                        className="text-xs text-gray-700 hover:bg-transparent"
+                      >
+                        {expandedWorkoutId === workout.id ? (
+                          <>
+                            <ChevronUp className="h-4 w-4 mr-1" />
+                            Collapse
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4 mr-1" />
+                            Expand
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    {!workout.workout_set_completions || workout.workout_set_completions.length === 0 ? (
+                      <div></div>
+                    ) : null}
+
+                    {isWorkoutEditable(workout) && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleEditWorkout(workout)}
+                        className="text-xs text-gray-700 hover:bg-transparent"
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        {!!workout.workout_id ? 'Edit Date' : 'Edit'}
+                      </Button>
+                    )}
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-xs text-destructive hover:bg-transparent"
+                          disabled={isDeleting}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Workout</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this workout? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteWorkout(workout.id)}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
               </>
             )}
           </CardContent>

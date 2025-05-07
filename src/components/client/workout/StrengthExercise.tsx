@@ -37,17 +37,6 @@ export const StrengthExercise: React.FC<Props> = ({
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
   const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>(exercise.exercise);
 
-  // Add debugging to verify personal record data
-  useEffect(() => {
-    console.log('StrengthExercise rendering with PR:', personalRecord);
-    console.log('Exercise ID:', exercise.id);
-    console.log('Exercise details:', exercise.exercise);
-    
-    if (exercise.exercise?.id) {
-      console.log('Base exercise ID (the one that should match PRs):', exercise.exercise.id);
-    }
-  }, [personalRecord, exercise]);
-
   // Check if exercise has sets
   const hasSets = exerciseState && exerciseState.sets && exerciseState.sets.length > 0;
 
@@ -147,7 +136,7 @@ export const StrengthExercise: React.FC<Props> = ({
   return (
     <div className="space-y-3">
       {personalRecord && (
-        <div className="bg-blue-50 p-2 rounded-md text-xs flex items-center mb-2">
+        <div className="bg-gray-50 p-2 rounded-md text-xs flex items-center mb-2">
           <Info className="h-4 w-4 mr-1.5 text-blue-500" />
           <span>
             <span className="font-semibold">PR:</span> {personalRecord.weight} lbs x {personalRecord.reps || 1} {personalRecord.reps !== 1 ? 'reps' : 'rep'}

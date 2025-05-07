@@ -5,9 +5,8 @@ import { ClientLayout } from '@/layouts/ClientLayout';
 import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import { Card, CardContent } from '@/components/ui/card';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
-import { fetchPersonalRecords, fetchExercisePersonalRecord } from '@/services/client-service';
 import { useAuth } from '@/contexts/AuthContext';
-import { WorkoutHistoryItem, PersonalRecord } from '@/types/workout';
+import { WorkoutHistoryItem } from '@/types/workout';
 
 // Helper function to process life happens passes
 const processWorkoutHistory = (workouts: WorkoutHistoryItem[]): WorkoutHistoryItem[] => {
@@ -30,7 +29,6 @@ const ClientWorkoutDetailsPage: React.FC = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
-  const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -39,24 +37,9 @@ const ClientWorkoutDetailsPage: React.FC = () => {
       
       setIsLoading(true);
       try {
-        console.log("Fetching workout history for user:", user.id);
         const workoutHistory = await fetchClientWorkoutHistory(user.id);
-        console.log("Fetched workouts:", workoutHistory);
-        
         // Process workouts to ensure life happens passes are displayed correctly
-        const processedWorkouts = processWorkoutHistory(workoutHistory);
-        setWorkouts(processedWorkouts);
-
-        // Fetch personal records for the user
-        console.log("Fetching personal records for user:", user.id);
-        const records = await fetchPersonalRecords(user.id);
-        console.log("Fetched personal records:", records);
-        setPersonalRecords(records);
-        
-        // Log the structure of the first personal record to help with debugging
-        if (records && records.length > 0) {
-          console.log("Sample personal record structure:", JSON.stringify(records[0], null, 2));
-        }
+        setWorkouts(processWorkoutHistory(workoutHistory));
       } catch (error) {
         console.error('Error fetching workout history:', error);
       } finally {
@@ -80,8 +63,7 @@ const ClientWorkoutDetailsPage: React.FC = () => {
         ) : (
           <WorkoutDayDetails 
             date={selectedDate} 
-            workouts={workouts}
-            personalRecords={personalRecords} 
+            workouts={workouts} 
           />
         )}
       </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { ChatRoom as ChatRoomType } from "@/services/chat";
 import { Menu, ArrowLeft, Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
@@ -39,15 +40,26 @@ export default function ChatPage() {
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [isCreatingDm, setIsCreatingDm] = useState(false);
   const [userGroups, setUserGroups] = useState<{ id: string, name: string }[]>([]);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadChatRooms = async () => {
       if (!user?.id) return;
       
       setIsLoading(true);
+      setLoadingError(null);
       try {
+        console.log("Loading chat rooms for user:", user.id);
         const rooms = await fetchAllChatRooms(user.id);
+        console.log("Fetched chat rooms:", rooms);
         setChatRooms(rooms);
+        
+        // Group rooms by type for logging
+        const buddyRooms = rooms.filter(room => room.is_buddy_chat);
+        const groupChats = rooms.filter(room => room.is_group_chat && !room.is_buddy_chat);
+        const directMessages = rooms.filter(room => !room.is_group_chat);
+        
+        console.log(`Found ${buddyRooms.length} buddy rooms, ${groupChats.length} group chats, and ${directMessages.length} direct messages`);
         
         // Handle room selection priority:
         // 1. Buddy chat room from URL parameter
@@ -55,29 +67,44 @@ export default function ChatPage() {
         // 3. First available room
         
         if (buddyChatId) {
+          console.log("Looking for buddy chat room with ID:", buddyChatId);
           const buddyRoom = rooms.find(room => room.id === buddyChatId && room.is_buddy_chat);
           if (buddyRoom) {
+            console.log("Found buddy chat room, setting as active:", buddyRoom);
             setActiveRoomId(buddyRoom.id);
             setActiveRoom(buddyRoom);
             return;
+          } else {
+            console.log("Buddy chat room not found with ID:", buddyChatId);
           }
         }
         
         if (groupId) {
+          console.log("Looking for group chat room with group ID:", groupId);
           const groupRoom = rooms.find(room => room.is_group_chat && room.group_id === groupId);
           if (groupRoom) {
+            console.log("Found group chat room, setting as active:", groupRoom);
             setActiveRoomId(groupRoom.id);
             setActiveRoom(groupRoom);
             return;
+          } else {
+            console.log("Group chat room not found with group ID:", groupId);
           }
         }
         
-        if (rooms.length > 0) {
+        // If no specific room is selected, prioritize buddy chats
+        if (buddyRooms.length > 0) {
+          console.log("Setting first buddy room as active:", buddyRooms[0]);
+          setActiveRoomId(buddyRooms[0].id);
+          setActiveRoom(buddyRooms[0]);
+        } else if (rooms.length > 0) {
+          console.log("Setting first available room as active:", rooms[0]);
           setActiveRoomId(rooms[0].id);
           setActiveRoom(rooms[0]);
         }
       } catch (error) {
         console.error("Error loading chat rooms:", error);
+        setLoadingError("Failed to load chat rooms. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -91,13 +118,15 @@ export default function ChatPage() {
       if (!user?.id) return;
       
       try {
+        console.log("Fetching user groups for:", user.id);
         const { data: groups, error } = await supabase
           .from('group_members')
           .select('group_id, groups:group_id(id, name)')
           .eq('user_id', user.id);
           
         if (error) {
-          throw error;
+          console.error("Error fetching user groups:", error);
+          return;
         }
         
         if (groups && groups.length > 0) {
@@ -106,7 +135,10 @@ export default function ChatPage() {
             name: g.groups.name
           }));
           
+          console.log("Found user groups:", formattedGroups);
           setUserGroups(formattedGroups);
+        } else {
+          console.log("No groups found for user");
         }
       } catch (error) {
         console.error("Error fetching user groups:", error);
@@ -121,6 +153,7 @@ export default function ChatPage() {
     
     setIsLoadingMembers(true);
     try {
+      console.log("Loading members for group:", selectedGroupId);
       // Fetch members of this group
       const { data: memberIds, error: memberError } = await supabase
         .from("group_members")
@@ -128,10 +161,12 @@ export default function ChatPage() {
         .eq("group_id", selectedGroupId);
       
       if (memberError) {
+        console.error("Error fetching group members:", memberError);
         throw memberError;
       }
       
       if (memberIds && memberIds.length > 0) {
+        console.log(`Found ${memberIds.length} members in the group`);
         const profiles: GroupMember[] = [];
         
         // For each member, get their profile info
@@ -216,10 +251,12 @@ export default function ChatPage() {
           }
         }
         
+        console.log(`Found ${profiles.length} member profiles to display`);
         setGroupMembers(profiles);
       }
     } catch (error) {
       console.error("Error loading group members:", error);
+      toast.error("Failed to load group members");
     } finally {
       setIsLoadingMembers(false);
     }
@@ -313,6 +350,26 @@ export default function ChatPage() {
     }
   };
 
+  const handleRetry = () => {
+    if (user?.id) {
+      setIsLoading(true);
+      setLoadingError(null);
+      fetchAllChatRooms(user.id)
+        .then(rooms => {
+          setChatRooms(rooms);
+          if (rooms.length > 0) {
+            setActiveRoomId(rooms[0].id);
+            setActiveRoom(rooms[0]);
+          }
+        })
+        .catch(error => {
+          console.error("Error retrying chat room load:", error);
+          setLoadingError("Failed to load chat rooms. Please try again.");
+        })
+        .finally(() => setIsLoading(false));
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">      
       <div className="flex flex-1 border rounded-lg dark:border-gray-700 dark:bg-gray-800">
@@ -349,7 +406,16 @@ export default function ChatPage() {
             </div>
             
             <div className="flex-1 overflow-hidden">
-              {activeRoom && activeRoomId ? (
+              {isLoading ? (
+                <div className="h-full flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-client" />
+                </div>
+              ) : loadingError ? (
+                <div className="h-full flex flex-col items-center justify-center p-4">
+                  <p className="text-destructive mb-2">{loadingError}</p>
+                  <Button variant="outline" onClick={handleRetry}>Try Again</Button>
+                </div>
+              ) : activeRoom && activeRoomId ? (
                 <ChatRoom 
                   roomId={activeRoomId}
                   isDirectMessage={!activeRoom.is_group_chat}
@@ -375,7 +441,16 @@ export default function ChatPage() {
             </div>
             
             <div className="flex-1">
-              {activeRoom && activeRoomId ? (
+              {isLoading ? (
+                <div className="h-full flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-client" />
+                </div>
+              ) : loadingError ? (
+                <div className="h-full flex flex-col items-center justify-center p-4">
+                  <p className="text-destructive mb-2">{loadingError}</p>
+                  <Button variant="outline" onClick={handleRetry}>Try Again</Button>
+                </div>
+              ) : activeRoom && activeRoomId ? (
                 <ChatRoom 
                   roomId={activeRoomId}
                   isDirectMessage={!activeRoom.is_group_chat}
@@ -396,6 +471,9 @@ export default function ChatPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New Direct Message</DialogTitle>
+            <DialogDescription>
+              Select a group member to start a conversation
+            </DialogDescription>
           </DialogHeader>
           
           {userGroups.length > 0 && (

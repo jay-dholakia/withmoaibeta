@@ -226,12 +226,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </h3>
             <Button 
               variant="ghost" 
-              size="sm" 
+              size="icon" 
               className="h-6 w-6 p-0"
               onClick={handleOpenNewDmDialog}
+              aria-label="New Message"
             >
               <Plus className="h-4 w-4" />
-              <span className="sr-only">New Message</span>
             </Button>
           </div>
           <div className="space-y-1">
@@ -250,7 +250,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     onClick={() => onSelectRoom(room.id)}
                   >
                     <Avatar className="h-6 w-6 mr-2">
-                      <AvatarImage src={room.other_user_avatar || ""} />
+                      <AvatarImage src={room.other_user_avatar || ""} alt={firstName} />
                       <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
                         {firstName ? firstName[0] : "?"}
                       </AvatarFallback>
@@ -297,7 +297,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     disabled={isCreatingDm}
                   >
                     <Avatar className="h-8 w-8 mr-3">
-                      <AvatarImage src={member.avatar_url || ""} />
+                      <AvatarImage src={member.avatar_url || ""} alt={member.first_name} />
                       <AvatarFallback className="bg-secondary text-secondary-foreground">
                         {member.first_name?.[0] || "?"}
                       </AvatarFallback>

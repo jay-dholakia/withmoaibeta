@@ -9,8 +9,8 @@ export interface ChatRoom {
   other_user_name?: string;
   other_user_avatar?: string | null;
   is_buddy_chat?: boolean;
+  accountability_pairing_id?: string;
   buddy_ids?: string[];
-  buddy_id_string?: string;
 }
 
 export interface ChatMessage {

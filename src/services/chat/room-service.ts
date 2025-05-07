@@ -192,8 +192,8 @@ export const getBuddyChatRoom = async (
     const { data: existingRooms, error: existingError } = await supabase
       .from("chat_rooms")
       .select("id")
-      .eq("is_group_chat", true)
-      .eq("group_id", pairingRecordId);
+      .eq("is_buddy_chat", true)
+      .eq("accountability_pairing_id", pairingRecordId);
     
     if (existingError) {
       console.error("Error checking for existing buddy chat rooms:", existingError);
@@ -210,15 +210,14 @@ export const getBuddyChatRoom = async (
     
     // Sort the buddy IDs to ensure consistency for the buddy_id_string
     const sortedBuddyIds = [...buddies].sort();
-    const idString = sortedBuddyIds.join('_');
     
     const { data: newRoom, error: roomError } = await supabase
       .from("chat_rooms")
       .insert({
         name: roomName,
         is_group_chat: true,
-        buddy_id_string: idString,
-        group_id: pairingRecordId
+        is_buddy_chat: true,
+        accountability_pairing_id: pairingRecordId
       })
       .select("id")
       .single();
@@ -331,15 +330,12 @@ const processBuddyPairings = async (
         continue;
       }
       
-      // Sort buddy IDs for a consistent buddy_id_string
-      const idString = [...buddyIds].sort().join('_');
-      
       // Check if a chat room exists for this accountability buddy pairing ID
       const { data: rooms, error: roomsError } = await supabase
         .from("chat_rooms")
         .select("*")
-        .eq("is_group_chat", true)
-        .eq("group_id", pairingId);
+        .eq("is_buddy_chat", true)
+        .eq("accountability_pairing_id", pairingId);
       
       if (roomsError) {
         console.error("Error fetching chat rooms for buddies:", roomsError);
@@ -356,10 +352,11 @@ const processBuddyPairings = async (
           id: rooms[0].id,
           name: roomName,
           is_group_chat: true,
-          group_id: pairingId,
+          is_buddy_chat: true,
+          group_id: pairing.group_id,
+          accountability_pairing_id: pairingId,
           created_at: rooms[0].created_at,
           buddy_ids: buddyIds.filter(id => id !== userId),
-          buddy_id_string: idString
         });
       } else {
         // Create a new chat room for these buddies
@@ -370,10 +367,11 @@ const processBuddyPairings = async (
             id: roomId,
             name: roomName,
             is_group_chat: true,
-            group_id: pairingId,
+            is_buddy_chat: true,
+            group_id: pairing.group_id,
+            accountability_pairing_id: pairingId,
             created_at: new Date().toISOString(),
             buddy_ids: buddyIds.filter(id => id !== userId),
-            buddy_id_string: idString
           });
         }
       }

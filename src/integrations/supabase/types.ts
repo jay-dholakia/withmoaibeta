@@ -213,33 +213,43 @@ export type Database = {
       }
       chat_rooms: {
         Row: {
-          buddy_id_string: string | null
+          accountability_pairing_id: string | null
           created_at: string | null
           group_id: string | null
           id: string
+          is_buddy_chat: boolean | null
           is_group_chat: boolean
           name: string
           updated_at: string | null
         }
         Insert: {
-          buddy_id_string?: string | null
+          accountability_pairing_id?: string | null
           created_at?: string | null
           group_id?: string | null
           id?: string
+          is_buddy_chat?: boolean | null
           is_group_chat?: boolean
           name: string
           updated_at?: string | null
         }
         Update: {
-          buddy_id_string?: string | null
+          accountability_pairing_id?: string | null
           created_at?: string | null
           group_id?: string | null
           id?: string
+          is_buddy_chat?: boolean | null
           is_group_chat?: boolean
           name?: string
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "chat_rooms_accountability_pairing_id_fkey"
+            columns: ["accountability_pairing_id"]
+            isOneToOne: false
+            referencedRelation: "accountability_buddies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "chat_rooms_group_id_fkey"
             columns: ["group_id"]

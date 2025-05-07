@@ -10,6 +10,7 @@ export interface ChatRoom {
   is_buddy_chat?: boolean;
   accountability_pairing_id?: string;
   buddy_ids?: string[];
+  group_id?: string; // Add this property back as optional
 }
 
 export interface ChatMessage {

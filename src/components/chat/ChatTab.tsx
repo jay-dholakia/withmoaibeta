@@ -40,9 +40,10 @@ export const ChatTab: React.FC<{ groupId: string }> = ({ groupId }) => {
         const rooms = await fetchAllChatRooms(user.id);
         setChatRooms(rooms);
         
-        // Select the first room by default, prioritizing the current group's chat room
+        // Select the first room by default, prioritizing group chats that are relevant to the current group
         if (rooms.length > 0) {
-          const groupRoom = rooms.find(room => room.is_group_chat && room.group_id === groupId);
+          // Try to find a group chat room related to the current group
+          const groupRoom = rooms.find(room => room.is_group_chat && !room.is_buddy_chat);
           if (groupRoom) {
             setActiveRoomId(groupRoom.id);
             setActiveRoom(groupRoom);

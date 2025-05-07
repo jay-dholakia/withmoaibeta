@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ChatRoom } from "./types";
 import type { RealtimeChannel, PostgrestSingleResponse } from "@supabase/supabase-js";
@@ -355,7 +354,6 @@ const processBuddyPairings = async (
           name: roomName,
           is_group_chat: true,
           is_buddy_chat: true,
-          group_id: pairing.group_id,
           accountability_pairing_id: pairingId,
           created_at: rooms[0].created_at,
           buddy_ids: buddyIds.filter(id => id !== userId),
@@ -370,7 +368,6 @@ const processBuddyPairings = async (
             name: roomName,
             is_group_chat: true,
             is_buddy_chat: true,
-            group_id: pairing.group_id,
             accountability_pairing_id: pairingId,
             created_at: new Date().toISOString(),
             buddy_ids: buddyIds.filter(id => id !== userId),

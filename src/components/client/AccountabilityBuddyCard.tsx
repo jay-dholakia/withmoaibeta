@@ -36,6 +36,12 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
     return (first + last).toUpperCase();
   };
   
+  // Format name to show full first name and first initial of last name
+  const formatName = (firstName?: string | null, lastName?: string | null) => {
+    if (!firstName) return "";
+    return `${firstName}${lastName ? ` ${lastName[0]}.` : ""}`;
+  };
+  
   const handleChatWithBuddies = async () => {
     if (!user?.id) {
       toast.error("You must be logged in to chat with buddies");
@@ -145,7 +151,7 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
                     <AvatarFallback>{getInitials(buddy.firstName, buddy.lastName)}</AvatarFallback>
                   </Avatar>
                   <span className="text-xs mt-1 whitespace-nowrap max-w-[80px] truncate">
-                    {buddy.name}
+                    {formatName(buddy.firstName, buddy.lastName)}
                   </span>
                 </div>
               ))}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -155,13 +156,13 @@ export default function ChatPage() {
       <div className="flex flex-1 border rounded-lg dark:border-gray-700 dark:bg-gray-800">
         {isMobile ? (
           <div className="w-full flex flex-col h-full relative">
-            {/* Vertically centered arrow button */}
+            {/* Moved arrow button to the lower quadrant */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 h-10 w-6 p-0 rounded-r-md rounded-l-none border border-gray-300 dark:border-gray-500 bg-secondary/30"
+                  className="absolute left-0 bottom-1/4 transform z-10 h-10 w-6 p-0 rounded-r-md rounded-l-none border border-gray-300 dark:border-gray-500 bg-secondary/30"
                 >
                   <ArrowRight className="h-4 w-4 text-muted-foreground" />
                 </Button>
@@ -175,12 +176,12 @@ export default function ChatPage() {
                     onChatCreated={handleChatCreated}
                   />
                   
-                  {/* Left-pointing arrow button to close sidebar */}
+                  {/* Left-pointing arrow button to close sidebar - also moved to bottom quadrant */}
                   <SheetClose asChild>
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="absolute right-0 top-1/2 transform -translate-y-1/2 h-10 w-6 p-0 rounded-l-md rounded-r-none border border-gray-300 dark:border-gray-500 bg-secondary/30"
+                      className="absolute right-0 bottom-1/4 transform h-10 w-6 p-0 rounded-l-md rounded-r-none border border-gray-300 dark:border-gray-500 bg-secondary/30"
                     >
                       <ArrowLeft className="h-4 w-4 text-muted-foreground" />
                     </Button>

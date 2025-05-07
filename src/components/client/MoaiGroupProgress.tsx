@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -246,7 +245,7 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
                   showLabelsBelow={false}
                   className={cn(
                     "py-1", 
-                    isBuddy ? "bg-amber-50 dark:bg-amber-900/20 rounded-md px-2 -mx-2" : ""
+                    isBuddy ? "bg-green-50 dark:bg-green-900/20 rounded-md px-2 -mx-2" : ""
                   )}
                   fireWeeks={memberBadgeCount}
                   isBuddy={isBuddy}

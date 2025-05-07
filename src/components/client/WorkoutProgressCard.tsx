@@ -106,7 +106,7 @@ export function WorkoutProgressCard({
               <div className="relative overflow-visible">
                 <Avatar className={cn(
                   "h-8 w-8 border",
-                  isBuddy ? "ring-2 ring-amber-400 dark:ring-amber-500" : ""
+                  isBuddy ? "ring-2 ring-green-500 dark:ring-green-600" : ""
                 )}>
                   <AvatarImage 
                     src={avatarUrl || ''} 
@@ -118,7 +118,7 @@ export function WorkoutProgressCard({
                 </Avatar>
                 
                 {isBuddy && (
-                  <div className="absolute -top-1 -right-1 bg-amber-400 dark:bg-amber-500 text-amber-950 text-[8px] rounded-full w-4 h-4 flex items-center justify-center">
+                  <div className="absolute -top-1 -right-1 bg-green-500 dark:bg-green-600 text-green-950 text-[8px] rounded-full w-4 h-4 flex items-center justify-center">
                     <Users className="w-3 h-3" />
                   </div>
                 )}
@@ -128,7 +128,7 @@ export function WorkoutProgressCard({
               <span className="text-sm font-medium">
                 {displayName}
                 {isCurrentUser && <span className="text-xs ml-1 text-muted-foreground">(You)</span>}
-                {isBuddy && <span className="text-xs ml-1 text-amber-600 font-medium"> • Your buddy</span>}
+                {isBuddy && <span className="text-xs ml-1 text-green-600 font-medium"> • Your buddy</span>}
               </span>
               <div className="text-xs text-muted-foreground">
                 {count}/{total} workouts completed
@@ -209,7 +209,7 @@ export function WorkoutProgressCard({
                         <div>
                           <span className="font-medium">{displayName}</span>
                           {isCurrentUser && <span className="text-xs ml-1 text-muted-foreground">(You)</span>}
-                          {isBuddy && <span className="text-xs ml-1 text-amber-600 font-medium"> • Your buddy</span>}
+                          {isBuddy && <span className="text-xs ml-1 text-green-600 font-medium"> • Your buddy</span>}
                         </div>
                         {hasWorkout && workoutTitle ? (
                           <>

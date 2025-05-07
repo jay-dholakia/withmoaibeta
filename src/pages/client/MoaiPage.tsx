@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -208,8 +207,6 @@ export default function MoaiPage() {
                   <span>Team Spotify Playlist</span>
                 </Button>
               )}
-              
-              {/* Team Chat Button removed from here */}
             </div>
 
             {activeGroupId && (

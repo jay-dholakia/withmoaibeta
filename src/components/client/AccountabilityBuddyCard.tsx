@@ -10,6 +10,7 @@ import { getBuddyChatRoom } from '@/services/chat/room-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AccountabilityBuddyCardProps {
   buddies: BuddyDisplayInfo[];
@@ -28,6 +29,7 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [isCreatingChat, setIsCreatingChat] = React.useState(false);
   
   const getInitials = (firstName?: string | null, lastName?: string | null) => {
@@ -113,80 +115,74 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
   return (
     <Card className="bg-muted/40 dark:bg-gray-800/50 mb-2">
       <CardContent className="p-4">
-        {/* Header row with buddies on the right */}
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="text-sm font-medium">Weekly Accountability Buddies</h3>
+        {/* Responsive layout for header and buddies */}
+        <div className={`${isMobile ? 'flex flex-col' : 'flex justify-between'} mb-3`}>
+          <h3 className="text-sm font-medium mb-2 mr-4 flex-shrink-0">
+            Weekly Accountability Buddies
+          </h3>
           
-          {loading ? (
-            <div className="flex justify-center">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : buddies.length === 0 ? (
-            <div className="text-xs text-muted-foreground">
-              No buddies assigned
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-1 justify-end">
-              {buddies.map((buddy) => (
-                <Avatar key={buddy.userId} className="h-8 w-8">
-                  <AvatarImage src={buddy.avatarUrl || ''} alt={buddy.name} />
-                  <AvatarFallback>{getInitials(buddy.firstName, buddy.lastName)}</AvatarFallback>
-                </Avatar>
-              ))}
-              
-              {isAdmin && onRefresh && (
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={onRefresh}
-                  disabled={loading}
-                  className="h-8 w-8 p-0 ml-1"
-                >
-                  {loading ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3 w-3" />
-                  )}
-                  <span className="sr-only">Refresh buddies</span>
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Show names aligned under their respective avatars */}
-        {!loading && buddies.length > 0 && (
-          <>
-            <div className="flex justify-end mt-1 gap-2 flex-wrap">
-              {buddies.map((buddy) => (
-                <div 
-                  key={`name-${buddy.userId}`} 
-                  className="flex flex-col items-center w-8"
-                >
-                  <span className="text-xs text-center truncate w-full" title={formatName(buddy.firstName, buddy.lastName)}>
-                    {formatName(buddy.firstName, buddy.lastName)}
-                  </span>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-3 flex justify-center">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleChatWithBuddies}
-                disabled={isCreatingChat}
-                className="flex items-center gap-1 text-xs"
-              >
-                {isCreatingChat ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <MessageSquare className="h-3 w-3" />
+          <div className={`${isMobile ? 'flex justify-start' : 'flex justify-end'}`}>
+            {loading ? (
+              <div className="flex justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : buddies.length === 0 ? (
+              <div className="text-xs text-muted-foreground">
+                No buddies assigned
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {buddies.map((buddy) => (
+                  <div key={buddy.userId} className="flex flex-col items-center">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={buddy.avatarUrl || ''} alt={buddy.name} />
+                      <AvatarFallback>{getInitials(buddy.firstName, buddy.lastName)}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs mt-1 max-w-[72px] text-center break-words">
+                      {formatName(buddy.firstName, buddy.lastName)}
+                    </span>
+                  </div>
+                ))}
+                
+                {isAdmin && onRefresh && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={onRefresh}
+                    disabled={loading}
+                    className="h-8 w-8 p-0 ml-1 self-start"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3 w-3" />
+                    )}
+                    <span className="sr-only">Refresh buddies</span>
+                  </Button>
                 )}
-                <span>Chat with {buddies.length > 1 ? 'Buddies' : 'Buddy'}</span>
-              </Button>
-            </div>
-          </>
+              </div>
+            )}
+          </div>
+        </div>
+            
+        {/* Chat button if buddies exist */}
+        {!loading && buddies.length > 0 && (
+          <div className="mt-2 flex justify-center">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleChatWithBuddies}
+              disabled={isCreatingChat}
+              className="flex items-center gap-1 text-xs"
+            >
+              {isCreatingChat ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <MessageSquare className="h-3 w-3" />
+              )}
+              <span>Chat with {buddies.length > 1 ? 'Buddies' : 'Buddy'}</span>
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>

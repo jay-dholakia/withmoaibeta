@@ -8,7 +8,7 @@ import { fetchAllChatRooms } from "@/services/chat";
 import { ChatRoom as ChatRoomType } from "@/services/chat";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { toast } from "sonner";
 
 export default function ChatPage() {
@@ -166,13 +166,26 @@ export default function ChatPage() {
                   <ArrowRight className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-[250px]">
-                <ChatSidebar 
-                  rooms={chatRooms} 
-                  activeRoomId={activeRoomId} 
-                  onSelectRoom={handleSelectRoom}
-                  onChatCreated={handleChatCreated}
-                />
+              <SheetContent side="left" className="p-0 w-[250px]" hideCloseButton>
+                <div className="relative h-full">
+                  <ChatSidebar 
+                    rooms={chatRooms} 
+                    activeRoomId={activeRoomId} 
+                    onSelectRoom={handleSelectRoom}
+                    onChatCreated={handleChatCreated}
+                  />
+                  
+                  {/* Left-pointing arrow button to close sidebar */}
+                  <SheetClose asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute right-0 top-1/2 transform -translate-y-1/2 h-10 w-6 p-0 rounded-l-md rounded-r-none border border-gray-300 dark:border-gray-500 bg-secondary/30"
+                    >
+                      <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </SheetClose>
+                </div>
               </SheetContent>
             </Sheet>
             

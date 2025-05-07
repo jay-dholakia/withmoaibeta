@@ -25,11 +25,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   const getInitials = (name: string) => {
     return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2);
+      .split(" ")[0][0]
+      .toUpperCase();
+  };
+
+  // Extract first name from a full name
+  const getFirstName = (fullName: string) => {
+    return fullName.split(" ")[0];
   };
 
   return (
@@ -110,25 +112,29 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               </h3>
             </div>
             <div className="space-y-1">
-              {directMessages.map((room) => (
-                <Button
-                  key={room.id}
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start px-4",
-                    activeRoomId === room.id && "bg-accent"
-                  )}
-                  onClick={() => onSelectRoom(room.id)}
-                >
-                  <Avatar className="h-6 w-6 mr-2">
-                    <AvatarImage src={room.other_user_avatar || ""} />
-                    <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
-                      {room.other_user_name ? getInitials(room.other_user_name) : "??"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="truncate">{room.other_user_name}</span>
-                </Button>
-              ))}
+              {directMessages.map((room) => {
+                const firstName = room.other_user_name ? getFirstName(room.other_user_name) : "Unknown";
+                
+                return (
+                  <Button
+                    key={room.id}
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start px-4",
+                      activeRoomId === room.id && "bg-accent"
+                    )}
+                    onClick={() => onSelectRoom(room.id)}
+                  >
+                    <Avatar className="h-6 w-6 mr-2">
+                      <AvatarImage src={room.other_user_avatar || ""} />
+                      <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
+                        {firstName ? firstName[0] : "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="truncate">{firstName}</span>
+                  </Button>
+                );
+              })}
             </div>
           </div>
         )}

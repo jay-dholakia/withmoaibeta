@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,12 +21,14 @@ interface ChatSidebarProps {
   rooms: ChatRoom[];
   activeRoomId: string | null;
   onSelectRoom: (roomId: string) => void;
+  onChatCreated?: (roomId: string) => void;
 }
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   rooms,
   activeRoomId,
   onSelectRoom,
+  onChatCreated,
 }) => {
   const { user } = useAuth();
   const [isNewDmDialogOpen, setIsNewDmDialogOpen] = useState(false);
@@ -140,7 +141,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       const roomId = await createDirectMessageRoom(user.id, userId);
       if (roomId) {
         setIsNewDmDialogOpen(false);
-        onSelectRoom(roomId);
+        
+        // Call the onChatCreated callback to refresh rooms and immediately redirect
+        if (onChatCreated) {
+          onChatCreated(roomId);
+        } else {
+          // Fall back to just selecting the room if no callback provided
+          onSelectRoom(roomId);
+        }
+        
         toast.success("Direct message created");
       } else {
         toast.error("Failed to create direct message");

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChatRoom } from "@/components/chat/ChatRoom";
@@ -25,59 +24,70 @@ export default function ChatPage() {
   const buddyChatId = searchParams.get('buddy');
   const directMessageId = searchParams.get('dm');
 
-  useEffect(() => {
-    const loadChatRooms = async () => {
-      if (!user?.id) return;
-      
-      setIsLoading(true);
-      try {
-        const rooms = await fetchAllChatRooms(user.id);
-        setChatRooms(rooms);
-        
-        // Handle room selection priority:
-        // 1. Direct message from URL parameter
-        // 2. Buddy chat room from URL parameter
-        // 3. First available room
-        
-        if (directMessageId) {
-          const dmRoom = rooms.find(room => room.id === directMessageId && !room.is_group_chat);
-          if (dmRoom) {
-            setActiveRoomId(dmRoom.id);
-            setActiveRoom(dmRoom);
-            return;
-          } else {
-            toast.error("The direct message room could not be found");
-          }
-        }
-        
-        if (buddyChatId) {
-          console.log("Looking for buddy chat room:", buddyChatId);
-          const buddyRoom = rooms.find(room => room.id === buddyChatId && room.is_buddy_chat);
-          if (buddyRoom) {
-            console.log("Found buddy chat room:", buddyRoom);
-            setActiveRoomId(buddyRoom.id);
-            setActiveRoom(buddyRoom);
-            return;
-          } else {
-            console.log("Buddy chat room not found");
-            toast.error("The buddy chat room could not be found");
-          }
-        }
-        
-        if (rooms.length > 0) {
-          setActiveRoomId(rooms[0].id);
-          setActiveRoom(rooms[0]);
-        }
-      } catch (error) {
-        console.error("Error loading chat rooms:", error);
-        toast.error("Failed to load chat rooms");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Function to load chat rooms that can be called multiple times
+  const loadChatRooms = useCallback(async (newRoomIdToSelect?: string) => {
+    if (!user?.id) return;
     
+    setIsLoading(true);
+    try {
+      const rooms = await fetchAllChatRooms(user.id);
+      setChatRooms(rooms);
+      
+      // Handle room selection based on provided ID or priority
+      if (newRoomIdToSelect) {
+        // If we have a specific room ID to select, prioritize it
+        const newRoom = rooms.find(room => room.id === newRoomIdToSelect);
+        if (newRoom) {
+          setActiveRoomId(newRoomIdToSelect);
+          setActiveRoom(newRoom);
+          // Update URL to include the new room ID
+          navigate(`/client-dashboard/chat/${newRoomIdToSelect}`, { replace: true });
+          return;
+        }
+      }
+      
+      // Otherwise use existing priority logic
+      if (directMessageId) {
+        const dmRoom = rooms.find(room => room.id === directMessageId && !room.is_group_chat);
+        if (dmRoom) {
+          setActiveRoomId(dmRoom.id);
+          setActiveRoom(dmRoom);
+          return;
+        } else {
+          toast.error("The direct message room could not be found");
+        }
+      }
+      
+      if (buddyChatId) {
+        console.log("Looking for buddy chat room:", buddyChatId);
+        const buddyRoom = rooms.find(room => room.id === buddyChatId && room.is_buddy_chat);
+        if (buddyRoom) {
+          console.log("Found buddy chat room:", buddyRoom);
+          setActiveRoomId(buddyRoom.id);
+          setActiveRoom(buddyRoom);
+          return;
+        } else {
+          console.log("Buddy chat room not found");
+          toast.error("The buddy chat room could not be found");
+        }
+      }
+      
+      if (rooms.length > 0) {
+        setActiveRoomId(rooms[0].id);
+        setActiveRoom(rooms[0]);
+      }
+    } catch (error) {
+      console.error("Error loading chat rooms:", error);
+      toast.error("Failed to load chat rooms");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, directMessageId, buddyChatId, navigate]);
+
+  // Initial load of chat rooms
+  useEffect(() => {
     loadChatRooms();
-  }, [user?.id, buddyChatId, directMessageId]);
+  }, [loadChatRooms]);
 
   const handleSelectRoom = (roomId: string) => {
     // If it's already the active room, no need to update
@@ -87,6 +97,14 @@ export default function ChatPage() {
     setActiveRoomId(roomId);
     const room = chatRooms.find(r => r.id === roomId);
     setActiveRoom(room || null);
+    
+    // Update URL to include the selected room ID
+    navigate(`/client-dashboard/chat/${roomId}`, { replace: true });
+  };
+
+  // Handle new chat creation - refresh rooms and select the new room
+  const handleChatCreated = async (roomId: string) => {
+    await loadChatRooms(roomId);
   };
 
   const handleBackClick = () => {
@@ -117,18 +135,6 @@ export default function ChatPage() {
     }
   };
 
-  // Handle refreshing the chat rooms list (useful after creating a new DM)
-  const refreshChatRooms = async () => {
-    if (!user?.id) return;
-    
-    try {
-      const rooms = await fetchAllChatRooms(user.id);
-      setChatRooms(rooms);
-    } catch (error) {
-      console.error("Error refreshing chat rooms:", error);
-    }
-  };
-
   return (
     <div className="h-full flex flex-col">      
       <div className="flex flex-1 border rounded-lg dark:border-gray-700 dark:bg-gray-800">
@@ -146,6 +152,7 @@ export default function ChatPage() {
                     rooms={chatRooms} 
                     activeRoomId={activeRoomId} 
                     onSelectRoom={handleSelectRoom}
+                    onChatCreated={handleChatCreated}
                   />
                 </SheetContent>
               </Sheet>
@@ -185,6 +192,7 @@ export default function ChatPage() {
                 rooms={chatRooms} 
                 activeRoomId={activeRoomId} 
                 onSelectRoom={handleSelectRoom}
+                onChatCreated={handleChatCreated}
               />
             </div>
             

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, PlusCircle } from "lucide-react";
 import { ChatRoom as ChatRoomType, fetchAllChatRooms, createDirectMessageRoom } from "@/services/chat";
@@ -31,36 +30,47 @@ export const ChatTab: React.FC<{ groupId: string }> = ({ groupId }) => {
   const [isNewDmDialogOpen, setIsNewDmDialogOpen] = useState(false);
   const [isCreatingDm, setIsCreatingDm] = useState(false);
   
-  useEffect(() => {
-    const loadChatRooms = async () => {
-      if (!user?.id) return;
-      
-      setIsLoading(true);
-      try {
-        const rooms = await fetchAllChatRooms(user.id);
-        setChatRooms(rooms);
-        
-        // Select the first room by default, prioritizing group chats that are relevant to the current group
-        if (rooms.length > 0) {
-          // Try to find a group chat room related to the current group
-          const groupRoom = rooms.find(room => room.is_group_chat && !room.is_buddy_chat);
-          if (groupRoom) {
-            setActiveRoomId(groupRoom.id);
-            setActiveRoom(groupRoom);
-          } else {
-            setActiveRoomId(rooms[0].id);
-            setActiveRoom(rooms[0]);
-          }
-        }
-      } catch (error) {
-        console.error("Error loading chat rooms:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Create a reusable function to load chat rooms
+  const loadChatRooms = useCallback(async (newRoomIdToSelect?: string) => {
+    if (!user?.id) return;
     
+    setIsLoading(true);
+    try {
+      const rooms = await fetchAllChatRooms(user.id);
+      setChatRooms(rooms);
+      
+      // Select the new room if provided, otherwise follow existing logic
+      if (newRoomIdToSelect) {
+        const newRoom = rooms.find(room => room.id === newRoomIdToSelect);
+        if (newRoom) {
+          setActiveRoomId(newRoomIdToSelect);
+          setActiveRoom(newRoom);
+          return;
+        }
+      }
+      
+      // Existing room selection logic
+      if (rooms.length > 0) {
+        const groupRoom = rooms.find(room => room.is_group_chat && !room.is_buddy_chat);
+        if (groupRoom) {
+          setActiveRoomId(groupRoom.id);
+          setActiveRoom(groupRoom);
+        } else {
+          setActiveRoomId(rooms[0].id);
+          setActiveRoom(rooms[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading chat rooms:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
+  
+  // Initial load
+  useEffect(() => {
     loadChatRooms();
-  }, [user?.id, groupId]);
+  }, [loadChatRooms, groupId]);
   
   useEffect(() => {
     const loadGroupMembers = async () => {
@@ -181,6 +191,11 @@ export const ChatTab: React.FC<{ groupId: string }> = ({ groupId }) => {
     setActiveRoom(room || null);
   };
   
+  // Handle new chat creation - refresh rooms and select the new room
+  const handleChatCreated = async (roomId: string) => {
+    await loadChatRooms(roomId);
+  };
+  
   const handleCreateDirectMessage = async (memberId: string) => {
     if (!user?.id) return;
     
@@ -188,18 +203,9 @@ export const ChatTab: React.FC<{ groupId: string }> = ({ groupId }) => {
     try {
       const roomId = await createDirectMessageRoom(user.id, memberId);
       if (roomId) {
-        // Refresh chat rooms
-        const rooms = await fetchAllChatRooms(user.id);
-        setChatRooms(rooms);
-        
-        // Select the new room
-        const room = rooms.find(r => r.id === roomId);
-        if (room) {
-          setActiveRoomId(roomId);
-          setActiveRoom(room);
-        }
-        
         setIsNewDmDialogOpen(false);
+        // Refresh chat rooms and immediately switch to the new room
+        await loadChatRooms(roomId);
       } else {
         toast.error("Failed to create direct message");
       }
@@ -300,7 +306,8 @@ export const ChatTab: React.FC<{ groupId: string }> = ({ groupId }) => {
         <ChatSidebar 
           rooms={chatRooms} 
           activeRoomId={activeRoomId} 
-          onSelectRoom={handleSelectRoom} 
+          onSelectRoom={handleSelectRoom}
+          onChatCreated={handleChatCreated}
         />
       </div>
       

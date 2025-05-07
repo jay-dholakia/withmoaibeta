@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,6 +38,9 @@ const WorkoutsList = () => {
     pending: WorkoutHistoryItem[];
     completed: WorkoutHistoryItem[];
   }>({ pending: [], completed: [] });
+  
+  // Flag to track if initial week filter has been set
+  const initialFilterSet = useRef(false);
 
   // Fetch group members
   const { data: groupMembers = [] } = useQuery({
@@ -126,7 +130,8 @@ const WorkoutsList = () => {
     console.log("WorkoutsList: Extracted week numbers:", extractedWeeks);
     setAvailableWeeks(extractedWeeks);
     
-    if (extractedWeeks.length > 0) {
+    // Only set the week filter once when data is first available
+    if (extractedWeeks.length > 0 && !initialFilterSet.current) {
       const sortedWeeks = [...extractedWeeks].sort((a, b) => a - b);
       
       // Check if there's a stored week filter
@@ -135,9 +140,8 @@ const WorkoutsList = () => {
       // If we have a stored filter and it's in the available weeks, use it
       if (storedWeekFilter && sortedWeeks.includes(parseInt(storedWeekFilter, 10))) {
         console.log(`WorkoutsList: Restoring saved week filter: ${storedWeekFilter}`);
-        setTimeout(() => {
-          setWeekFilter(storedWeekFilter);
-        }, 0);
+        setWeekFilter(storedWeekFilter);
+        initialFilterSet.current = true;
         return;
       }
       
@@ -181,9 +185,8 @@ const WorkoutsList = () => {
       const initialWeek = weekExists ? currentWeekNumber : sortedWeeks[0];
       console.log(`WorkoutsList: Setting initial week filter to ${weekExists ? 'current' : 'first available'} week: ${initialWeek}`);
       
-      setTimeout(() => {
-        setWeekFilter(initialWeek.toString());
-      }, 0);
+      setWeekFilter(initialWeek.toString());
+      initialFilterSet.current = true;
     }
   }, [workouts, currentProgram]);
 

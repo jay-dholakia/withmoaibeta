@@ -461,7 +461,8 @@ const WorkoutComplete = () => {
         queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
         queryClient.invalidateQueries({ queryKey: ['weekly-progress'] }); // Invalidate weekly progress to refresh counters
         
-        document.dispatchEvent(new Event('workout-completed'));
+        // Dispatch a custom event to notify other components about workout completion
+        document.dispatchEvent(new CustomEvent('workout-completed'));
         
         setShowShareDialog(true);
       } else {

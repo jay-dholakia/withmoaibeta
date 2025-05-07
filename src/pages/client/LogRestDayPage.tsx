@@ -36,6 +36,8 @@ const LogRestDayPage: React.FC = () => {
       const result = await logRestDay(restData);
 
       if (result) {
+        // Dispatch workout-completed event to update the UI immediately
+        document.dispatchEvent(new CustomEvent('workout-completed'));
         navigate('/client-dashboard/workouts');
       }
     } catch (error) {

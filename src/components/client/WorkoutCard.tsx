@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ interface WorkoutCardProps {
   dayOfWeek?: number;
   exercises?: any[];
   isLifeHappensPass?: boolean;
+  onWorkoutCompleted?: (workoutId: string) => void; // New prop for handling completion
 }
 
 const getMemberInitials = (name: string): string => {
@@ -47,11 +49,31 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   completed = false,
   dayOfWeek,
   exercises = [],
-  isLifeHappensPass = false
+  isLifeHappensPass = false,
+  onWorkoutCompleted, // New prop
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isCurrentUserCompleted = completed || 
+  const [isLocallyCompleted, setIsLocallyCompleted] = useState(completed);
+  const isCurrentUserCompleted = isLocallyCompleted || 
     groupMembers.find(member => member.id === currentUserId)?.completed_workout_ids.includes(workoutId);
+
+  // Handle workout start with completion callback
+  const handleStartWorkout = () => {
+    onStartWorkout(workoutId);
+    
+    // Set up event listener for workout completion
+    const handleCompletion = () => {
+      setIsLocallyCompleted(true);
+      if (onWorkoutCompleted) {
+        onWorkoutCompleted(workoutId);
+      }
+      // Remove the event listener after it's been triggered
+      document.removeEventListener('workout-completed', handleCompletion);
+    };
+    
+    // Listen for the workout-completed event
+    document.addEventListener('workout-completed', handleCompletion);
+  };
 
   return (
     <Card className={cn(
@@ -165,7 +187,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
               : "dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
           )}
           size="default"
-          onClick={() => onStartWorkout(workoutId)}
+          onClick={handleStartWorkout}
           disabled={isCurrentUserCompleted}
         >
           {isCurrentUserCompleted ? 'Workout Completed' : 'Log Workout'}

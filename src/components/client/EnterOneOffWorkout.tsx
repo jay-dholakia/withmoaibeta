@@ -50,8 +50,12 @@ const EnterOneOffWorkout = () => {
         completed_at: date.toISOString()
       };
       
-      await createOneOffWorkoutCompletion(workoutData);
+      const result = await createOneOffWorkoutCompletion(workoutData);
       toast.success('Workout logged successfully!');
+      
+      // Dispatch workout-completed event to update the UI immediately
+      document.dispatchEvent(new CustomEvent('workout-completed'));
+      
       navigate('/client-dashboard/workouts');
     } catch (error) {
       console.error('Error logging workout:', error);

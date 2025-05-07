@@ -11,7 +11,7 @@ import { LogActivityButtons } from './LogActivityButtons';
 import LifeHappensButton from './LifeHappensButton';
 import { formatInTimeZone } from 'date-fns-tz';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchAssignedWorkouts } from '@/services/workout-history-service';
 import { fetchCurrentProgram } from '@/services/program-service';
 import { fetchGroupMembers } from '@/services/group-member-service';
@@ -27,11 +27,16 @@ const WorkoutsList = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient(); // Add queryClient for cache management
   
   const [weekFilter, setWeekFilter] = useState<string>("");
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
+  const [localWorkoutState, setLocalWorkoutState] = useState<{
+    pending: WorkoutHistoryItem[];
+    completed: WorkoutHistoryItem[];
+  }>({ pending: [], completed: [] });
 
   // Fetch group members
   const { data: groupMembers = [] } = useQuery({
@@ -217,6 +222,17 @@ const WorkoutsList = () => {
     });
   }, [workouts, weekFilter]);
 
+  // Update local workout state when filteredWorkouts changes
+  useEffect(() => {
+    const pending = filteredWorkouts.filter(workout => !workout.completed_at);
+    const completed = filteredWorkouts.filter(workout => !!workout.completed_at);
+    
+    setLocalWorkoutState({
+      pending,
+      completed
+    });
+  }, [filteredWorkouts]);
+
   const handleWeekFilterChange = useCallback((value: string) => {
     console.log(`Setting week filter to: ${value}`);
     setWeekFilter(value);
@@ -242,6 +258,31 @@ const WorkoutsList = () => {
   const handleStartWorkout = useCallback((workoutId: string) => {
     navigate(`/client-dashboard/workouts/active/${workoutId}`);
   }, [navigate]);
+
+  // Handler for workout completion
+  const handleWorkoutCompleted = useCallback((workoutId: string) => {
+    console.log("WorkoutsList: Workout completed:", workoutId);
+    
+    // Optimistically update the local state
+    setLocalWorkoutState(prevState => {
+      const workout = prevState.pending.find(w => w.id === workoutId);
+      
+      if (!workout) return prevState;
+      
+      const updatedWorkout = {
+        ...workout,
+        completed_at: new Date().toISOString()
+      };
+      
+      return {
+        pending: prevState.pending.filter(w => w.id !== workoutId),
+        completed: [updatedWorkout, ...prevState.completed]
+      };
+    });
+    
+    // Invalidate the query to get fresh data on the next render
+    queryClient.invalidateQueries({ queryKey: ['assigned-workouts', user?.id] });
+  }, [queryClient, user?.id]);
 
   const isLifeHappensPass = (workout: any): boolean => {
     return workout?.life_happens_pass === true || workout?.workout_type === 'life_happens';
@@ -276,8 +317,8 @@ const WorkoutsList = () => {
     };
   }, [closeSelectDropdown]);
 
-  const pendingWorkouts = filteredWorkouts.filter(workout => !workout.completed_at);
-  const completedWorkouts = filteredWorkouts.filter(workout => !!workout.completed_at);
+  const pendingWorkouts = localWorkoutState.pending;
+  const completedWorkouts = localWorkoutState.completed;
 
   if (isLoading) {
     return (
@@ -314,6 +355,20 @@ const WorkoutsList = () => {
       ];
 
   console.log("WorkoutsList: Final group members for cards:", allGroupMembers);
+
+  // Setup event listener for workout completion event
+  useEffect(() => {
+    const handleWorkoutCompletedEvent = () => {
+      console.log("WorkoutsList: Global workout-completed event received");
+      queryClient.invalidateQueries({ queryKey: ['assigned-workouts', user?.id] });
+    };
+    
+    document.addEventListener('workout-completed', handleWorkoutCompletedEvent);
+    
+    return () => {
+      document.removeEventListener('workout-completed', handleWorkoutCompletedEvent);
+    };
+  }, [queryClient, user?.id]);
 
   return (
     <div className="space-y-4">
@@ -387,6 +442,7 @@ const WorkoutsList = () => {
                       dayOfWeek={workout.workout?.day_of_week}
                       exercises={workout.workout?.workout_exercises || []}
                       isLifeHappensPass={isLifeHappensPass(workout)}
+                      onWorkoutCompleted={handleWorkoutCompleted}
                     />
                   </div>
                 ))}

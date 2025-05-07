@@ -5,7 +5,7 @@ import { ClientLayout } from '@/layouts/ClientLayout';
 import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import { Card, CardContent } from '@/components/ui/card';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
-import { fetchPersonalRecords } from '@/services/client-service';
+import { fetchPersonalRecords, fetchExercisePersonalRecord } from '@/services/client-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutHistoryItem, PersonalRecord } from '@/types/workout';
 
@@ -52,6 +52,11 @@ const ClientWorkoutDetailsPage: React.FC = () => {
         const records = await fetchPersonalRecords(user.id);
         console.log("Fetched personal records:", records);
         setPersonalRecords(records);
+        
+        // Log the structure of the first personal record to help with debugging
+        if (records && records.length > 0) {
+          console.log("Sample personal record structure:", JSON.stringify(records[0], null, 2));
+        }
       } catch (error) {
         console.error('Error fetching workout history:', error);
       } finally {

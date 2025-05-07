@@ -42,6 +42,10 @@ export const StrengthExercise: React.FC<Props> = ({
     console.log('StrengthExercise rendering with PR:', personalRecord);
     console.log('Exercise ID:', exercise.id);
     console.log('Exercise details:', exercise.exercise);
+    
+    if (exercise.exercise?.id) {
+      console.log('Base exercise ID (the one that should match PRs):', exercise.exercise.id);
+    }
   }, [personalRecord, exercise]);
 
   // Check if exercise has sets

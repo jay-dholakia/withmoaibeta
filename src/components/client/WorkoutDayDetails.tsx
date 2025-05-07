@@ -132,6 +132,10 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
     }
   }, [expandedWorkoutId, displayedWorkouts]);
 
+  useEffect(() => {
+    console.log('WorkoutDayDetails received personal records:', personalRecords);
+  }, [personalRecords]);
+
   if (!date || !isValid(date)) {
     return (
       <Card className="text-center py-6">
@@ -307,7 +311,20 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
       return undefined;
     }
     
-    const record = personalRecords.find(pr => pr.exercise_id === exerciseId);
+    // First try direct match on the exercise_id
+    let record = personalRecords.find(pr => pr.exercise_id === exerciseId);
+    
+    // If we didn't find a match, it might be because we're passing the workout_exercise_id
+    // instead of the actual exercise_id from the exercise table
+    if (!record) {
+      // Try to find the base exercise ID from exercise data
+      const exerciseData = exerciseGroups[expandedWorkoutId as string]?.[exerciseId]?.sets?.[0]?.workout_exercise?.exercise;
+      if (exerciseData && exerciseData.id) {
+        console.log('Found base exercise ID:', exerciseData.id, 'for workout exercise ID:', exerciseId);
+        record = personalRecords.find(pr => pr.exercise_id === exerciseData.id);
+      }
+    }
+    
     if (record) {
       console.log('Found PR:', record);
     } else {
@@ -551,8 +568,23 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
                         <h4 className="font-medium text-sm mb-2">Exercise Details:</h4>
                         <div className="space-y-3">
                           {Object.entries(exerciseGroups[workout.id] || {}).map(([exerciseId, exerciseData]: [string, any]) => {
-                            // Find personal record for this exercise
-                            const personalRecord = findPersonalRecordForExercise(exerciseId);
+                            // Find personal record for this exercise - log the process for debugging
+                            console.log(`Looking for PR for exercise group: ${exerciseId} with name ${exerciseData.name}`);
+                            
+                            // Try to find the PR using the base exercise ID if available
+                            const baseExerciseId = exerciseData.sets?.[0]?.workout_exercise?.exercise?.id;
+                            console.log('Base exercise ID (from sets):', baseExerciseId);
+                            
+                            let personalRecord;
+                            if (baseExerciseId) {
+                              personalRecord = personalRecords.find(pr => pr.exercise_id === baseExerciseId);
+                              console.log('PR lookup by base exercise ID:', personalRecord ? 'Found' : 'Not found');
+                            }
+                            
+                            // If still no PR found, try using the exercise ID directly
+                            if (!personalRecord) {
+                              personalRecord = findPersonalRecordForExercise(exerciseId);
+                            }
                             
                             return (
                               <div key={exerciseId} className="border rounded-md p-3">

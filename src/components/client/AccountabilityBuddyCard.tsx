@@ -113,7 +113,7 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
   return (
     <Card className="bg-muted/40 dark:bg-gray-800/50 mb-2">
       <CardContent className="p-4">
-        {/* Rearranged header row with buddies on the right */}
+        {/* Header row with buddies on the right */}
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-sm font-medium">Weekly Accountability Buddies</h3>
           
@@ -154,13 +154,16 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
           )}
         </div>
 
-        {/* Show names and chat button below if buddies exist */}
+        {/* Show names aligned under their respective avatars */}
         {!loading && buddies.length > 0 && (
           <>
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex justify-end mt-1 gap-2 flex-wrap">
               {buddies.map((buddy) => (
-                <div key={`name-${buddy.userId}`} className="text-center">
-                  <span className="text-xs whitespace-nowrap max-w-[80px] truncate block">
+                <div 
+                  key={`name-${buddy.userId}`} 
+                  className="flex flex-col items-center w-8"
+                >
+                  <span className="text-xs text-center truncate w-full" title={formatName(buddy.firstName, buddy.lastName)}>
                     {formatName(buddy.firstName, buddy.lastName)}
                   </span>
                 </div>

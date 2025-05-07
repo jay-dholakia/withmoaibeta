@@ -152,7 +152,8 @@ export default function MoaiPage() {
   };
 
   const handleChatClick = () => {
-    navigate(`/client-dashboard/chat/${activeGroupId}`);
+    // Pass the group ID as a query parameter
+    navigate(`/client-dashboard/chat/${activeGroupId}?fromGroup=${activeGroupId}`);
   };
 
   if (isLoadingGroup || isLoadingProgram || isLoadingUserGroups) {

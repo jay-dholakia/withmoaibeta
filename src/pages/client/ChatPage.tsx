@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ export default function ChatPage() {
   const [searchParams] = useSearchParams();
   const buddyChatId = searchParams.get('buddy');
   const directMessageId = searchParams.get('dm');
+  const fromGroupId = searchParams.get('fromGroup');
 
   // Function to load chat rooms that can be called multiple times
   const loadChatRooms = useCallback(async (newRoomIdToSelect?: string) => {
@@ -72,6 +74,16 @@ export default function ChatPage() {
         }
       }
       
+      // If we have a roomId in the URL path, use that
+      if (groupId) {
+        const roomById = rooms.find(room => room.id === groupId);
+        if (roomById) {
+          setActiveRoomId(roomById.id);
+          setActiveRoom(roomById);
+          return;
+        }
+      }
+      
       if (rooms.length > 0) {
         setActiveRoomId(rooms[0].id);
         setActiveRoom(rooms[0]);
@@ -82,7 +94,7 @@ export default function ChatPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, directMessageId, buddyChatId, navigate]);
+  }, [user?.id, directMessageId, buddyChatId, groupId, navigate]);
 
   // Initial load of chat rooms
   useEffect(() => {
@@ -108,9 +120,16 @@ export default function ChatPage() {
   };
 
   const handleBackClick = () => {
-    if (groupId) {
-      navigate(`/client-dashboard/moai/${groupId}`);
-    } else {
+    // If we came from a specific group, go back to that group
+    if (fromGroupId) {
+      navigate(`/client-dashboard/moai/${fromGroupId}`);
+    } 
+    // If we're currently in a group chat and know its group ID, use that
+    else if (activeRoom?.group_id) {
+      navigate(`/client-dashboard/moai/${activeRoom.group_id}`);
+    } 
+    // Default fallback
+    else {
       navigate('/client-dashboard/moai');
     }
   };

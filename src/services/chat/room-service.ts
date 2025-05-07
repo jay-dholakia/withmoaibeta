@@ -34,7 +34,8 @@ export const fetchGroupChatRooms = async (userId: string): Promise<ChatRoom[]> =
       id,
       name,
       is_group_chat,
-      created_at
+      created_at,
+      group_id
     `)
     .eq("is_group_chat", true)
     .eq("is_buddy_chat", false);

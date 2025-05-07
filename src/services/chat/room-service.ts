@@ -87,7 +87,7 @@ export const fetchDirectMessageRooms = async (userId: string): Promise<ChatRoom[
       .from("profiles")
       .select("user_type")
       .eq("id", otherUserId)
-      .single();
+      .maybeSingle();
     
     let otherUserName = "Unknown User";
     let otherUserAvatar = null;
@@ -98,7 +98,7 @@ export const fetchDirectMessageRooms = async (userId: string): Promise<ChatRoom[
         .from("coach_profiles")
         .select("first_name, last_name, avatar_url")
         .eq("id", otherUserId)
-        .single();
+        .maybeSingle();
       
       if (coachProfile) {
         otherUserName = `${coachProfile.first_name || ''} ${coachProfile.last_name || ''}`.trim();
@@ -109,7 +109,7 @@ export const fetchDirectMessageRooms = async (userId: string): Promise<ChatRoom[
         .from("client_profiles")
         .select("first_name, last_name, avatar_url")
         .eq("id", otherUserId)
-        .single();
+        .maybeSingle();
       
       if (clientProfile) {
         otherUserName = `${clientProfile.first_name || ''} ${clientProfile.last_name || ''}`.trim();
@@ -171,10 +171,16 @@ export const createDirectMessageRoom = async (
  * Fetches or creates a chat room for accountability buddies
  */
 export const getBuddyChatRoom = async (
-  buddies: string[]
+  buddies: string[],
+  groupId: string
 ): Promise<string | null> => {
   if (!buddies || buddies.length < 2) {
     console.error("Cannot create buddy chat with fewer than 2 users");
+    return null;
+  }
+  
+  if (!groupId) {
+    console.error("Group ID is required to create buddy chat room");
     return null;
   }
   
@@ -186,12 +192,13 @@ export const getBuddyChatRoom = async (
   const idString = sortedBuddyIds.join('_');
   
   try {
-    // Check if a buddy chat room already exists with these members
+    // Check if a buddy chat room already exists with these members for this group
     const { data: existingRooms, error: existingError } = await supabase
       .from("chat_rooms")
       .select("id")
       .eq("is_group_chat", true)
-      .eq("buddy_id_string", idString);
+      .eq("buddy_id_string", idString)
+      .eq("group_id", groupId);
     
     if (existingError) {
       console.error("Error checking for existing buddy chat rooms:", existingError);
@@ -204,14 +211,15 @@ export const getBuddyChatRoom = async (
     }
     
     // Create a new chat room if one doesn't exist
-    console.log("Creating new buddy chat room for buddies:", sortedBuddyIds);
+    console.log("Creating new buddy chat room for buddies:", sortedBuddyIds, "in group:", groupId);
     const { data: newRoom, error: roomError } = await supabase
       .from("chat_rooms")
       .insert({
         name: roomName,
         is_group_chat: true,
         is_buddy_chat: true,
-        buddy_id_string: idString
+        buddy_id_string: idString,
+        group_id: groupId
       })
       .select("id")
       .single();
@@ -318,14 +326,23 @@ const processBuddyPairings = async (
     
       // Create a consistent string of sorted IDs to identify this buddy group
       const idString = [...buddyIds].sort().join('_');
+      
+      // Get the group ID from the pairing
+      const groupId = pairing.group_id;
+      
+      if (!groupId) {
+        console.error("No group ID found in buddy pairing:", pairing);
+        continue;
+      }
     
-      // Check if a chat room exists for these buddies
+      // Check if a chat room exists for these buddies in this group
       const { data: rooms, error: roomsError } = await supabase
         .from("chat_rooms")
         .select("*")
         .eq("is_group_chat", true)
         .eq("is_buddy_chat", true)
-        .eq("buddy_id_string", idString);
+        .eq("buddy_id_string", idString)
+        .eq("group_id", groupId);
     
       if (roomsError) {
         console.error("Error fetching chat rooms for buddies:", roomsError);
@@ -343,13 +360,14 @@ const processBuddyPairings = async (
           name: roomName,
           is_group_chat: true,
           is_buddy_chat: true,
+          group_id: groupId,
           created_at: rooms[0].created_at,
           buddy_ids: buddyIds.filter(id => id !== userId),
           buddy_id_string: idString
         });
       } else {
         // Create a new chat room for these buddies
-        const roomId = await getBuddyChatRoom(buddyIds);
+        const roomId = await getBuddyChatRoom(buddyIds, groupId);
       
         if (roomId) {
           buddyRooms.push({
@@ -357,6 +375,7 @@ const processBuddyPairings = async (
             name: roomName,
             is_group_chat: true,
             is_buddy_chat: true,
+            group_id: groupId,
             created_at: new Date().toISOString(),
             buddy_ids: buddyIds.filter(id => id !== userId),
             buddy_id_string: idString

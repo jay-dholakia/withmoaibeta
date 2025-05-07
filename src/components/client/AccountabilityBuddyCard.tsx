@@ -46,15 +46,20 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
       return;
     }
     
+    if (!groupId) {
+      toast.error("Group ID is required to create buddy chat");
+      return;
+    }
+    
     setIsCreatingChat(true);
     try {
       // Get all buddy IDs including the current user
       const allBuddyIds = [user.id, ...buddies.map(b => b.userId)];
       
-      console.log("Creating buddy chat with IDs:", allBuddyIds);
+      console.log("Creating buddy chat with IDs:", allBuddyIds, "in group:", groupId);
       
       // Create or get the buddy chat room
-      const roomId = await getBuddyChatRoom(allBuddyIds);
+      const roomId = await getBuddyChatRoom(allBuddyIds, groupId);
       
       if (roomId) {
         // Navigate to the chat page with the room ID

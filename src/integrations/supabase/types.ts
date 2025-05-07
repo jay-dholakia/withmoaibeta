@@ -215,7 +215,6 @@ export type Database = {
         Row: {
           accountability_pairing_id: string | null
           created_at: string | null
-          group_id: string | null
           id: string
           is_buddy_chat: boolean | null
           is_group_chat: boolean
@@ -225,7 +224,6 @@ export type Database = {
         Insert: {
           accountability_pairing_id?: string | null
           created_at?: string | null
-          group_id?: string | null
           id?: string
           is_buddy_chat?: boolean | null
           is_group_chat?: boolean
@@ -235,7 +233,6 @@ export type Database = {
         Update: {
           accountability_pairing_id?: string | null
           created_at?: string | null
-          group_id?: string | null
           id?: string
           is_buddy_chat?: boolean | null
           is_group_chat?: boolean
@@ -248,13 +245,6 @@ export type Database = {
             columns: ["accountability_pairing_id"]
             isOneToOne: false
             referencedRelation: "accountability_buddies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chat_rooms_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
         ]

@@ -36,8 +36,7 @@ export default function ChatPage() {
         // Handle room selection priority:
         // 1. Direct message from URL parameter
         // 2. Buddy chat room from URL parameter
-        // 3. Group chat room from URL parameter
-        // 4. First available room
+        // 3. First available room
         
         if (directMessageId) {
           const dmRoom = rooms.find(room => room.id === directMessageId && !room.is_group_chat);
@@ -64,15 +63,6 @@ export default function ChatPage() {
           }
         }
         
-        if (groupId) {
-          const groupRoom = rooms.find(room => room.is_group_chat && room.group_id === groupId);
-          if (groupRoom) {
-            setActiveRoomId(groupRoom.id);
-            setActiveRoom(groupRoom);
-            return;
-          }
-        }
-        
         if (rooms.length > 0) {
           setActiveRoomId(rooms[0].id);
           setActiveRoom(rooms[0]);
@@ -86,7 +76,7 @@ export default function ChatPage() {
     };
     
     loadChatRooms();
-  }, [user?.id, groupId, buddyChatId, directMessageId]);
+  }, [user?.id, buddyChatId, directMessageId]);
 
   const handleSelectRoom = (roomId: string) => {
     // If it's already the active room, no need to update

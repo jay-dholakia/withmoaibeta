@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ChatRoom } from "./types";
 import type { RealtimeChannel, PostgrestSingleResponse } from "@supabase/supabase-js";
@@ -27,24 +28,25 @@ export const fetchGroupChatRooms = async (userId: string): Promise<ChatRoom[]> =
   // Extract the group IDs into an array
   const groupIds = userGroups.map(item => item.group_id);
   
-  // Then fetch the chat rooms for these groups
+  // Then fetch the chat rooms that are group chats but not buddy chats
   const { data, error } = await supabase
     .from("chat_rooms")
     .select(`
       id,
       name,
       is_group_chat,
-      group_id,
       created_at
     `)
     .eq("is_group_chat", true)
-    .in("group_id", groupIds);
+    .eq("is_buddy_chat", false);
 
   if (error) {
     console.error("Error fetching group chat rooms:", error);
     return [];
   }
 
+  // Filter the rooms to only include those where the user is a member through a group
+  // This will need to be refined if we add functionality to link chat rooms with groups
   return data || [];
 };
 

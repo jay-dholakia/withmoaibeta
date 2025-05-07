@@ -4,7 +4,6 @@ export interface ChatRoom {
   name: string;
   is_group_chat: boolean;
   created_at: string;
-  group_id?: string;
   other_user_id?: string;
   other_user_name?: string;
   other_user_avatar?: string | null;

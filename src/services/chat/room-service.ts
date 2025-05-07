@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ChatRoom } from "./types";
 
@@ -222,22 +223,53 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
   if (!userId) return [];
   
   try {
-    // First get the current week
-    const monday = new Date();
-    monday.setDate(monday.getDate() - monday.getDay() + 1); // First day is Monday
+    // Get all groups this user is part of
+    const { data: userGroups, error: groupError } = await supabase
+      .from("group_members")
+      .select("group_id")
+      .eq("user_id", userId);
+    
+    if (groupError) {
+      console.error("Error fetching user groups:", groupError);
+      return [];
+    }
+    
+    if (!userGroups || userGroups.length === 0) {
+      console.log("User is not a member of any groups");
+      return [];
+    }
+    
+    const groupIds = userGroups.map(g => g.group_id);
+    
+    // Get current week's date
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
     const weekStart = monday.toISOString().split('T')[0];
     
-    // Find the user's accountability buddies for this week
+    console.log("Fetching buddy pairings for week starting:", weekStart, "for groups:", groupIds);
+    
+    // Find accountability buddy pairings for this user in any of their groups
     const { data: buddyPairings, error: buddyError } = await supabase
       .from("accountability_buddies")
       .select("*")
       .eq("week_start", weekStart)
+      .in("group_id", groupIds)
       .or(`user_id_1.eq.${userId},user_id_2.eq.${userId},user_id_3.eq.${userId}`);
     
-    if (buddyError || !buddyPairings || buddyPairings.length === 0) {
-      console.log("No buddy pairings found for this week:", buddyError);
+    if (buddyError) {
+      console.error("Error fetching buddy pairings:", buddyError);
       return [];
     }
+    
+    if (!buddyPairings || buddyPairings.length === 0) {
+      console.log("No buddy pairings found for this week:", weekStart);
+      return [];
+    }
+    
+    console.log("Found buddy pairings:", buddyPairings);
     
     const buddyRooms: ChatRoom[] = [];
     
@@ -335,6 +367,7 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
       }
     }
     
+    console.log(`Found ${buddyRooms.length} buddy chat rooms`);
     return buddyRooms;
   } catch (error) {
     console.error("Error fetching buddy chat rooms:", error);

@@ -155,23 +155,29 @@ export default function ChatPage() {
     <div className="h-full flex flex-col">      
       <div className="flex flex-1 border rounded-lg dark:border-gray-700 dark:bg-gray-800">
         {isMobile ? (
-          <div className="w-full flex flex-col h-full">
+          <div className="w-full flex flex-col h-full relative">
+            {/* Vertically centered arrow button */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 h-10 w-6 p-0 rounded-r-md rounded-l-none border-0 bg-secondary/30"
+                >
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-[250px]">
+                <ChatSidebar 
+                  rooms={chatRooms} 
+                  activeRoomId={activeRoomId} 
+                  onSelectRoom={handleSelectRoom}
+                  onChatCreated={handleChatCreated}
+                />
+              </SheetContent>
+            </Sheet>
+            
             <div className="flex items-center p-2 border-b">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="ml-0 mr-2">
-                    <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-[250px]">
-                  <ChatSidebar 
-                    rooms={chatRooms} 
-                    activeRoomId={activeRoomId} 
-                    onSelectRoom={handleSelectRoom}
-                    onChatCreated={handleChatCreated}
-                  />
-                </SheetContent>
-              </Sheet>
               <div className="font-medium truncate flex items-center">
                 <Button 
                   variant="ghost" 

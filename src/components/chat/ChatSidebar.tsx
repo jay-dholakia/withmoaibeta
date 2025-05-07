@@ -62,8 +62,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     if (!fullName) return "Unknown";
     const nameParts = fullName.split(" ");
     const firstName = nameParts[0];
-    const lastInitial = nameParts.length > 1 ? nameParts[1][0] : "";
-    return lastInitial ? `${firstName} ${lastInitial}.` : firstName;
+    const lastInitial = nameParts.length > 1 ? nameParts[1][0] + '.' : "";
+    return lastInitial ? `${firstName} ${lastInitial}` : firstName;
   };
 
   // Handle opening the new DM dialog - fetch group members
@@ -230,12 +230,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </h3>
             <Button 
               variant="ghost" 
-              size="icon"
-              className="h-6 w-6 p-0 hover:bg-muted"
+              size="sm"
+              className="h-6 w-6 p-0 -mr-1"
               onClick={handleOpenNewDmDialog}
               aria-label="New Direct Message"
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
           <div className="space-y-1">
@@ -296,7 +296,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             ) : (
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
                 {groupMembers.map((member) => {
-                  const formattedName = formatName(`${member.first_name || ''} ${member.last_name || ''}`);
+                  const firstName = member.first_name || '';
+                  const lastNameInitial = member.last_name ? member.last_name[0] + '.' : '';
+                  const formattedName = `${firstName} ${lastNameInitial}`.trim();
                   
                   return (
                     <Button

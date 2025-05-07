@@ -408,7 +408,10 @@ const getMemberNames = async (
       }
       
       if (profile) {
-        const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+        // Format name to show full first name and first initial of last name
+        const firstName = profile.first_name || '';
+        const lastNameInitial = profile.last_name ? profile.last_name[0] + '.' : '';
+        const name = `${firstName} ${lastNameInitial}`.trim();
         if (name) memberNames.push(name);
       }
     } catch (err) {

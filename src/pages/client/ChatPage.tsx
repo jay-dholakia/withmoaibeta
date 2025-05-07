@@ -102,8 +102,8 @@ export default function ChatPage() {
     if (!fullName) return "Unknown";
     const nameParts = fullName.split(" ");
     const firstName = nameParts[0];
-    const lastInitial = nameParts.length > 1 ? nameParts[1][0] : "";
-    return lastInitial ? `${firstName} ${lastInitial}.` : firstName;
+    const lastInitial = nameParts.length > 1 ? nameParts[1][0] + '.' : "";
+    return lastInitial ? `${firstName} ${lastInitial}` : firstName;
   };
 
   // Get display name for the active room

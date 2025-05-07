@@ -297,7 +297,23 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
   };
 
   const findPersonalRecordForExercise = (exerciseId: string): PersonalRecord | undefined => {
-    return personalRecords.find(pr => pr.exercise_id === exerciseId);
+    // Add debugging to verify personal records data
+    console.log('Looking for PR for exercise:', exerciseId);
+    console.log('Available personal records:', personalRecords);
+    
+    // Check if we have any personal records
+    if (!personalRecords || personalRecords.length === 0) {
+      console.log('No personal records available');
+      return undefined;
+    }
+    
+    const record = personalRecords.find(pr => pr.exercise_id === exerciseId);
+    if (record) {
+      console.log('Found PR:', record);
+    } else {
+      console.log('No PR found for this exercise');
+    }
+    return record;
   };
 
   if (displayedWorkouts.length === 0) {

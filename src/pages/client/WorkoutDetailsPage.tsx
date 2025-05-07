@@ -39,12 +39,18 @@ const ClientWorkoutDetailsPage: React.FC = () => {
       
       setIsLoading(true);
       try {
+        console.log("Fetching workout history for user:", user.id);
         const workoutHistory = await fetchClientWorkoutHistory(user.id);
+        console.log("Fetched workouts:", workoutHistory);
+        
         // Process workouts to ensure life happens passes are displayed correctly
-        setWorkouts(processWorkoutHistory(workoutHistory));
+        const processedWorkouts = processWorkoutHistory(workoutHistory);
+        setWorkouts(processedWorkouts);
 
         // Fetch personal records for the user
+        console.log("Fetching personal records for user:", user.id);
         const records = await fetchPersonalRecords(user.id);
+        console.log("Fetched personal records:", records);
         setPersonalRecords(records);
       } catch (error) {
         console.error('Error fetching workout history:', error);

@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { ChatRoom } from "./types";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 /**
  * Fetches group chat rooms for the user
@@ -272,11 +273,11 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
       }
       
       console.log("Found recent pairing from week:", recentPairings[0].week_start);
-      return processBuddyPairings(recentPairings, userId);
+      return await processBuddyPairings(recentPairings, userId);
     }
     
     console.log(`Found ${buddyPairings.length} buddy pairings for this week`);
-    return processBuddyPairings(buddyPairings, userId);
+    return await processBuddyPairings(buddyPairings, userId);
     
   } catch (error) {
     console.error("Error fetching buddy chat rooms:", error);
@@ -294,56 +295,60 @@ const processBuddyPairings = async (
   const buddyRooms: ChatRoom[] = [];
   
   for (const pairing of buddyPairings) {
-    // Get all buddy IDs in this pairing (including current user)
-    const buddyIds = [pairing.user_id_1, pairing.user_id_2, pairing.user_id_3]
-      .filter(id => id !== null) as string[];
+    try {
+      // Get all buddy IDs in this pairing (including current user)
+      const buddyIds = [pairing.user_id_1, pairing.user_id_2, pairing.user_id_3]
+        .filter(id => id !== null) as string[];
     
-    // Create a consistent string of sorted IDs to identify this buddy group
-    const idString = [...buddyIds].sort().join('_');
+      // Create a consistent string of sorted IDs to identify this buddy group
+      const idString = [...buddyIds].sort().join('_');
     
-    // Check if a chat room exists for these buddies
-    const { data: rooms, error: roomsError } = await supabase
-      .from("chat_rooms")
-      .select("*")
-      .eq("is_group_chat", true)
-      .eq("is_buddy_chat", true)
-      .eq("buddy_id_string", idString);
+      // Check if a chat room exists for these buddies
+      const { data: rooms, error: roomsError } = await supabase
+        .from("chat_rooms")
+        .select("*")
+        .eq("is_group_chat", true)
+        .eq("is_buddy_chat", true)
+        .eq("buddy_id_string", idString);
     
-    if (roomsError) {
-      console.error("Error fetching chat rooms for buddies:", roomsError);
-      continue;
-    }
+      if (roomsError) {
+        console.error("Error fetching chat rooms for buddies:", roomsError);
+        continue;
+      }
     
-    // Process member names for room display
-    const memberNames = await getMemberNames(buddyIds, userId);
-    let roomName = generateRoomName(memberNames);
+      // Process member names for room display
+      const memberNames = await getMemberNames(buddyIds, userId);
+      let roomName = generateRoomName(memberNames);
     
-    if (rooms && rooms.length > 0) {
-      // Room exists, add it to the list
-      buddyRooms.push({
-        id: rooms[0].id,
-        name: roomName,
-        is_group_chat: true,
-        is_buddy_chat: true,
-        created_at: rooms[0].created_at,
-        buddy_ids: buddyIds.filter(id => id !== userId),
-        buddy_id_string: idString
-      });
-    } else {
-      // Create a new chat room for these buddies
-      const roomId = await getBuddyChatRoom(buddyIds);
-      
-      if (roomId) {
+      if (rooms && rooms.length > 0) {
+        // Room exists, add it to the list
         buddyRooms.push({
-          id: roomId,
+          id: rooms[0].id,
           name: roomName,
           is_group_chat: true,
           is_buddy_chat: true,
-          created_at: new Date().toISOString(),
+          created_at: rooms[0].created_at,
           buddy_ids: buddyIds.filter(id => id !== userId),
           buddy_id_string: idString
         });
+      } else {
+        // Create a new chat room for these buddies
+        const roomId = await getBuddyChatRoom(buddyIds);
+      
+        if (roomId) {
+          buddyRooms.push({
+            id: roomId,
+            name: roomName,
+            is_group_chat: true,
+            is_buddy_chat: true,
+            created_at: new Date().toISOString(),
+            buddy_ids: buddyIds.filter(id => id !== userId),
+            buddy_id_string: idString
+          });
+        }
       }
+    } catch (err) {
+      console.error("Error processing buddy pairings:", err);
     }
   }
   
@@ -362,20 +367,24 @@ const getMemberNames = async (
   for (const buddyId of buddyIds) {
     if (buddyId === currentUserId) continue; // Skip current user
     
-    const { data: profile, error } = await supabase
-      .from("client_profiles")
-      .select("first_name, last_name")
-      .eq("id", buddyId)
-      .single();
-    
-    if (error) {
-      console.error(`Error fetching profile for buddy ${buddyId}:`, error);
-      continue;
-    }
-    
-    if (profile) {
-      const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
-      if (name) memberNames.push(name);
+    try {
+      const { data: profile, error } = await supabase
+        .from("client_profiles")
+        .select("first_name, last_name")
+        .eq("id", buddyId)
+        .single();
+      
+      if (error) {
+        console.error(`Error fetching profile for buddy ${buddyId}:`, error);
+        continue;
+      }
+      
+      if (profile) {
+        const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+        if (name) memberNames.push(name);
+      }
+    } catch (err) {
+      console.error(`Error getting member name for ${buddyId}:`, err);
     }
   }
   
@@ -397,3 +406,4 @@ const generateRoomName = (memberNames: string[]): string => {
   
   return roomName;
 };
+

@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { BuddyDisplayInfo } from '@/services/accountability-buddy-service';
+import { BuddyDisplayInfo, getCurrentWeekStart } from '@/services/accountability-buddy-service';
 import { useNavigate } from 'react-router-dom';
 import { getBuddyChatRoom } from '@/services/chat/room-service';
 import { useAuth } from '@/contexts/AuthContext';
@@ -102,13 +102,6 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
     } finally {
       setIsCreatingChat(false);
     }
-  };
-
-  // Helper function to get the current week start date
-  const getCurrentWeekStart = (): string => {
-    const monday = new Date();
-    monday.setDate(monday.getDate() - monday.getDay() + 1); // Set to Monday
-    return monday.toISOString().split('T')[0];
   };
 
   return (

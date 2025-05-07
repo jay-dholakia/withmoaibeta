@@ -25,8 +25,15 @@ export const getGroupWeeklyBuddies = async (
   groupId: string
 ): Promise<AccountabilityBuddy[]> => {
   try {
-    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
-    const weekStartDate = format(monday, 'yyyy-MM-dd');
+    // Calculate the start of the week (Monday) in YYYY-MM-DD format
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate days to Monday
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+    const weekStartDate = monday.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+
+    console.log("Fetching buddy pairings for week starting:", weekStartDate);
 
     const { data, error } = await supabase
       .from('accountability_buddies')
@@ -108,8 +115,15 @@ export const generateWeeklyBuddies = async (
   forceRegenerate: boolean = true
 ): Promise<boolean> => {
   try {
-    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
-    const weekStartDate = format(monday, 'yyyy-MM-dd');
+    // Calculate the start of the week (Monday) in YYYY-MM-DD format
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate days to Monday
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+    const weekStartDate = monday.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+
+    console.log("Generating buddy pairings for week starting:", weekStartDate);
 
     const { data: groupMembers, error: membersError } = await supabase
       .from('group_members')
@@ -207,3 +221,4 @@ export const generateWeeklyBuddies = async (
     return false;
   }
 };
+

@@ -223,18 +223,21 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
   if (!userId) return [];
   
   try {
-    // Get the current week's date range
+    // Get the current week's date range - ensure we're using Monday as the start of the week
+    // and formatting it in YYYY-MM-DD format exactly as stored in the database
     const today = new Date();
-    const dayOfWeek = today.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate days to Monday
     const monday = new Date(today);
     monday.setDate(today.getDate() + mondayOffset);
-    const weekStart = monday.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+    
+    // Format as 'YYYY-MM-DD' without any time component
+    const weekStart = monday.toISOString().split('T')[0];
     
     console.log("Looking for buddy pairings for week starting:", weekStart);
     
-    // Find accountability buddy pairings for this user in any group
-    // Check all three user_id columns
+    // Find accountability buddy pairings for this user across all groups
+    // This query checks if the user is in any buddy pairing for the current week
     const { data: buddyPairings, error: buddyError } = await supabase
       .from("accountability_buddies")
       .select("*")
@@ -247,7 +250,22 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
     }
     
     if (!buddyPairings || buddyPairings.length === 0) {
-      console.log("No buddy pairings found for this week:", weekStart);
+      // For debugging - show both the format of the week_start we're looking for
+      // and all the available buddy pairings in the table
+      console.log(`No buddy pairings found for this week (${weekStart}). Checking all available pairings...`);
+      
+      const { data: allPairings } = await supabase
+        .from("accountability_buddies")
+        .select("id, week_start, group_id")
+        .order("week_start", { ascending: false })
+        .limit(5);
+        
+      if (allPairings && allPairings.length > 0) {
+        console.log("Recent pairings in database:", allPairings);
+      } else {
+        console.log("No recent buddy pairings found in the database");
+      }
+      
       return [];
     }
     

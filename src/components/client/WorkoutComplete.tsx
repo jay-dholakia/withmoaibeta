@@ -472,6 +472,8 @@ const WorkoutComplete = () => {
     navigator.clipboard.writeText(shareMessage)
       .then(() => {
         toast.success('Copied to clipboard! Ready to share.');
+        // Navigate back to workouts page after copying
+        handleCloseShareDialog();
       })
       .catch(() => {
         toast.error('Could not copy text');
@@ -480,6 +482,7 @@ const WorkoutComplete = () => {
 
   const handleCloseShareDialog = () => {
     setShowShareDialog(false);
+    navigate('/client-dashboard/workouts');
   };
 
   const toggleEditMessage = () => {
@@ -678,7 +681,6 @@ const WorkoutComplete = () => {
             <Button
               onClick={() => {
                 handleShareWorkout();
-                handleCloseShareDialog();
               }}
               className="bg-primary hover:bg-primary/90 flex-1"
             >
@@ -692,3 +694,4 @@ const WorkoutComplete = () => {
 };
 
 export default WorkoutComplete;
+

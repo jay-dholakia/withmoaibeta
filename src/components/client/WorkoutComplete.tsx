@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -218,18 +219,9 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Now that workoutData and isLoading are defined, we can use them in useEffect
-  useEffect(() => {
-    // We wait 500ms to ensure the data is loaded
-    const timer = setTimeout(() => {
-      if (workoutData && !isLoading) {
-        setShowShareDialog(true);
-      }
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [workoutCompletionId, workoutData, isLoading]);
-
+  // Remove this useEffect that was automatically showing the dialog when data loads
+  // We'll only show it after the Complete Workout button is pressed
+  
   const { data: personalRecords, isLoading: isLoadingPRs } = useQuery({
     queryKey: ['personal-records', user?.id, workoutCompletionId],
     queryFn: async () => {
@@ -464,6 +456,7 @@ const WorkoutComplete = () => {
         // Dispatch a custom event to notify other components about workout completion
         document.dispatchEvent(new CustomEvent('workout-completed'));
         
+        // Show the share dialog after completion
         setShowShareDialog(true);
       } else {
         toast.error('Failed to complete workout');
@@ -487,7 +480,6 @@ const WorkoutComplete = () => {
 
   const handleCloseShareDialog = () => {
     setShowShareDialog(false);
-    navigate('/client-dashboard/moai');
   };
 
   const toggleEditMessage = () => {

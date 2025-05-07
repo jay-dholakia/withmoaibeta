@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { getBuddyChatRoom } from '@/services/chat/room-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AccountabilityBuddyCardProps {
   buddies: BuddyDisplayInfo[];
@@ -56,10 +57,40 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
       // Get all buddy IDs including the current user
       const allBuddyIds = [user.id, ...buddies.map(b => b.userId)];
       
-      console.log("Creating buddy chat with IDs:", allBuddyIds, "in group:", groupId);
+      // First find the accountability_buddies record for this grouping
+      const monday = new Date();
+      monday.setDate(monday.getDate() - monday.getDay() + 1); // Set to Monday
+      const weekStart = monday.toISOString().split('T')[0];
       
-      // Create or get the buddy chat room
-      const roomId = await getBuddyChatRoom(allBuddyIds, groupId);
+      console.log("Finding accountability buddies record for week:", weekStart);
+      
+      // Look for a record that contains all these users and is for the current week
+      const { data: buddyRecords, error: buddyError } = await supabase
+        .from("accountability_buddies")
+        .select("*")
+        .eq("week_start", weekStart)
+        .eq("group_id", groupId)
+        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id},user_id_3.eq.${user.id}`);
+      
+      if (buddyError) {
+        console.error("Error finding accountability buddies record:", buddyError);
+        toast.error("Failed to find buddy pairing");
+        return;
+      }
+      
+      if (!buddyRecords || buddyRecords.length === 0) {
+        console.error("No accountability buddies record found");
+        toast.error("No buddy pairing found for this week");
+        return;
+      }
+      
+      // Get the first matching record
+      const buddyRecord = buddyRecords[0];
+      
+      console.log("Creating buddy chat with record ID:", buddyRecord.id);
+      
+      // Create or get the buddy chat room using the accountability buddies record ID
+      const roomId = await getBuddyChatRoom(allBuddyIds, buddyRecord.id);
       
       if (roomId) {
         // Navigate to the chat page with the room ID

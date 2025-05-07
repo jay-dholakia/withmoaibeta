@@ -5,8 +5,9 @@ import { ClientLayout } from '@/layouts/ClientLayout';
 import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import { Card, CardContent } from '@/components/ui/card';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
+import { fetchPersonalRecords } from '@/services/client-service';
 import { useAuth } from '@/contexts/AuthContext';
-import { WorkoutHistoryItem } from '@/types/workout';
+import { WorkoutHistoryItem, PersonalRecord } from '@/types/workout';
 
 // Helper function to process life happens passes
 const processWorkoutHistory = (workouts: WorkoutHistoryItem[]): WorkoutHistoryItem[] => {
@@ -29,6 +30,7 @@ const ClientWorkoutDetailsPage: React.FC = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
+  const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -40,6 +42,10 @@ const ClientWorkoutDetailsPage: React.FC = () => {
         const workoutHistory = await fetchClientWorkoutHistory(user.id);
         // Process workouts to ensure life happens passes are displayed correctly
         setWorkouts(processWorkoutHistory(workoutHistory));
+
+        // Fetch personal records for the user
+        const records = await fetchPersonalRecords(user.id);
+        setPersonalRecords(records);
       } catch (error) {
         console.error('Error fetching workout history:', error);
       } finally {
@@ -63,7 +69,8 @@ const ClientWorkoutDetailsPage: React.FC = () => {
         ) : (
           <WorkoutDayDetails 
             date={selectedDate} 
-            workouts={workouts} 
+            workouts={workouts}
+            personalRecords={personalRecords} 
           />
         )}
       </div>

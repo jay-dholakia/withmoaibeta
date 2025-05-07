@@ -226,12 +226,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </h3>
             <Button 
               variant="ghost" 
-              size="icon" 
-              className="h-5 w-5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 p-0 flex items-center justify-center"
+              size="icon"
+              className="h-6 w-6 rounded-full bg-transparent hover:bg-accent flex items-center justify-center p-0 ml-1"
               onClick={handleOpenNewDmDialog}
-              aria-label="New Message"
+              aria-label="New Direct Message"
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
           <div className="space-y-1">

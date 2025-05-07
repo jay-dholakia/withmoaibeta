@@ -191,7 +191,6 @@ export const getBuddyChatRoom = async (
       .from("chat_rooms")
       .select("id")
       .eq("is_group_chat", true)
-      .eq("is_buddy_chat", true)
       .eq("buddy_id_string", idString);
     
     if (existingError) {
@@ -222,8 +221,12 @@ export const getBuddyChatRoom = async (
       return null;
     }
     
-    console.log("Created new buddy chat room:", newRoom.id);
-    return newRoom.id;
+    if (newRoom) {
+      console.log("Created new buddy chat room:", newRoom.id);
+      return newRoom.id;
+    }
+    
+    return null;
   } catch (error) {
     console.error("Error in getBuddyChatRoom:", error);
     return null;
@@ -273,12 +276,13 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
       }
       
       console.log("Found recent pairing from week:", recentPairings[0].week_start);
-      return await processBuddyPairings(recentPairings, userId);
+      const recentRooms = await processBuddyPairings(recentPairings, userId);
+      return recentRooms;
     }
     
     console.log(`Found ${buddyPairings.length} buddy pairings for this week`);
-    return await processBuddyPairings(buddyPairings, userId);
-    
+    const buddyRooms = await processBuddyPairings(buddyPairings, userId);
+    return buddyRooms;
   } catch (error) {
     console.error("Error fetching buddy chat rooms:", error);
     return [];
@@ -294,11 +298,23 @@ const processBuddyPairings = async (
 ): Promise<ChatRoom[]> => {
   const buddyRooms: ChatRoom[] = [];
   
+  if (!buddyPairings || !buddyPairings.length) {
+    return [];
+  }
+  
   for (const pairing of buddyPairings) {
     try {
       // Get all buddy IDs in this pairing (including current user)
-      const buddyIds = [pairing.user_id_1, pairing.user_id_2, pairing.user_id_3]
-        .filter(id => id !== null) as string[];
+      const buddyIdList: (string | null)[] = [
+        pairing.user_id_1, 
+        pairing.user_id_2, 
+        pairing.user_id_3
+      ];
+      
+      // Filter out nulls and convert to string[]
+      const buddyIds: string[] = buddyIdList.filter(
+        (id): id is string => id !== null
+      );
     
       // Create a consistent string of sorted IDs to identify this buddy group
       const idString = [...buddyIds].sort().join('_');
@@ -348,7 +364,8 @@ const processBuddyPairings = async (
         }
       }
     } catch (err) {
-      console.error("Error processing buddy pairings:", err);
+      console.error("Error processing buddy pairing:", err);
+      // Continue with next pairing if there's an error
     }
   }
   
@@ -372,7 +389,7 @@ const getMemberNames = async (
         .from("client_profiles")
         .select("first_name, last_name")
         .eq("id", buddyId)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single
       
       if (error) {
         console.error(`Error fetching profile for buddy ${buddyId}:`, error);
@@ -406,4 +423,3 @@ const generateRoomName = (memberNames: string[]): string => {
   
   return roomName;
 };
-

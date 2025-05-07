@@ -1,21 +1,24 @@
+
 import React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatRoom } from "@/services/chat";
-import { MessageSquare, Users, UserPlus } from "lucide-react";
+import { MessageSquare, Users, UserPlus, PlusCircle } from "lucide-react";
 
 interface ChatSidebarProps {
   rooms: ChatRoom[];
   activeRoomId: string | null;
   onSelectRoom: (roomId: string) => void;
+  onNewDirectMessage?: () => void;
 }
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   rooms,
   activeRoomId,
   onSelectRoom,
+  onNewDirectMessage,
 }) => {
   // Group rooms by type
   const groupChats = rooms.filter(room => room.is_group_chat && !room.is_buddy_chat);
@@ -112,16 +115,27 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           </div>
         )}
         
-        {directMessages.length > 0 && (
-          <div className="py-2">
-            <div className="px-4 py-2">
-              <h3 className="text-sm font-medium text-muted-foreground flex items-center">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Direct Messages
-              </h3>
-            </div>
-            <div className="space-y-1">
-              {directMessages.map((room) => {
+        <div className="py-2">
+          <div className="px-4 py-2 flex justify-between items-center">
+            <h3 className="text-sm font-medium text-muted-foreground flex items-center">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Direct Messages
+            </h3>
+            {onNewDirectMessage && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0" 
+                onClick={onNewDirectMessage}
+              >
+                <PlusCircle className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                <span className="sr-only">New Direct Message</span>
+              </Button>
+            )}
+          </div>
+          <div className="space-y-1">
+            {directMessages.length > 0 ? (
+              directMessages.map((room) => {
                 const firstName = room.other_user_name ? getFirstName(room.other_user_name) : "Unknown";
                 
                 return (
@@ -143,10 +157,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     <span className="truncate">{firstName}</span>
                   </Button>
                 );
-              })}
-            </div>
+              })
+            ) : (
+              <p className="text-xs text-muted-foreground text-center px-4">
+                No direct messages yet
+              </p>
+            )}
           </div>
-        )}
+        </div>
       </ScrollArea>
     </div>
   );

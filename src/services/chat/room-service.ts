@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { ChatRoom } from "./types";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel, PostgrestSingleResponse } from "@supabase/supabase-js";
 
 /**
  * Fetches group chat rooms for the user
@@ -301,7 +301,7 @@ export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> =
  * Process buddy pairings to create chat rooms
  */
 const processBuddyPairings = async (
-  buddyPairings: any[],
+  buddyPairings: any[], // Changed from using generic type to any[] to avoid deep type instantiation
   userId: string
 ): Promise<ChatRoom[]> => {
   const buddyRooms: ChatRoom[] = [];
@@ -313,16 +313,20 @@ const processBuddyPairings = async (
   for (const pairing of buddyPairings) {
     try {
       // Get all buddy IDs in this pairing (including current user)
-      const buddyIdList: (string | null)[] = [
+      // Using explicit null check instead of filter with type predicate
+      const buddyIdList: Array<string | null> = [
         pairing.user_id_1, 
         pairing.user_id_2, 
         pairing.user_id_3
       ];
       
       // Filter out nulls and convert to string[]
-      const buddyIds: string[] = buddyIdList.filter(
-        (id): id is string => id !== null
-      );
+      const buddyIds: string[] = [];
+      for (const id of buddyIdList) {
+        if (id !== null && id !== undefined) {
+          buddyIds.push(id);
+        }
+      }
     
       // Create a consistent string of sorted IDs to identify this buddy group
       const idString = [...buddyIds].sort().join('_');

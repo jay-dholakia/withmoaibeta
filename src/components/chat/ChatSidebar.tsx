@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -226,11 +227,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-6 w-6 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center"
+              className="h-5 w-5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 p-0 flex items-center justify-center"
               onClick={handleOpenNewDmDialog}
               aria-label="New Message"
             >
-              <Plus className="h-4 w-4 text-foreground" />
+              <Plus className="h-3 w-3" />
             </Button>
           </div>
           <div className="space-y-1">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -485,9 +486,10 @@ const WorkoutComplete = () => {
       });
   };
 
+  // Modified to just close the dialog without navigation
   const handleCloseShareDialog = () => {
     setShowShareDialog(false);
-    navigate('/client-dashboard/moai');
+    // Removed the navigation to /client-dashboard/moai
   };
 
   const toggleEditMessage = () => {

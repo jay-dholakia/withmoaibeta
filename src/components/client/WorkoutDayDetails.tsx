@@ -512,9 +512,9 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
                     </div>
                   )}
                   
-                  {workout.duration_minutes && (
+                  {workout.duration && (
                     <div>
-                      Duration: {workout.duration_minutes} mins
+                      Duration: {workout.duration} mins
                     </div>
                   )}
                 </div>

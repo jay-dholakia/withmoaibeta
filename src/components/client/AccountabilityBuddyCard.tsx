@@ -2,8 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw, MessageSquare } from 'lucide-react';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Loader2, RefreshCw, MessageSquare, Users } from 'lucide-react';
 import { BuddyDisplayInfo, getCurrentWeekStart } from '@/services/accountability-buddy-service';
 import { useNavigate } from 'react-router-dom';
 import { getBuddyChatRoom } from '@/services/chat/room-service';
@@ -29,18 +28,6 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isCreatingChat, setIsCreatingChat] = React.useState(false);
-  
-  const getInitials = (firstName?: string | null, lastName?: string | null) => {
-    const first = firstName && firstName[0] ? firstName[0] : '';
-    const last = lastName && lastName[0] ? lastName[0] : '';
-    return (first + last).toUpperCase();
-  };
-  
-  // Format name to show full first name and first initial of last name
-  const formatName = (firstName?: string | null, lastName?: string | null) => {
-    if (!firstName) return "";
-    return `${firstName}${lastName ? ` ${lastName[0]}.` : ""}`;
-  };
   
   const handleChatWithBuddies = async () => {
     if (!user?.id) {
@@ -113,24 +100,44 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
   return (
     <Card className="bg-muted/40 dark:bg-gray-800/50 mb-2">
       <CardContent className="p-4">
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="text-sm font-medium">Weekly Accountability Buddies</h3>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center">
+            <Users className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
+            <h3 className="text-sm font-medium">Weekly Accountability Buddies</h3>
+          </div>
           
-          {isAdmin && onRefresh && (
+          <div className="flex items-center gap-2">
+            {isAdmin && onRefresh && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={onRefresh}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                <span className="sr-only">Refresh buddies</span>
+              </Button>
+            )}
+            
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm"
-              onClick={onRefresh}
-              disabled={loading}
+              onClick={handleChatWithBuddies}
+              disabled={isCreatingChat || buddies.length === 0}
+              className="flex items-center gap-1 text-xs"
             >
-              {loading ? (
+              {isCreatingChat ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                <RefreshCw className="h-3 w-3" />
+                <MessageSquare className="h-3 w-3" />
               )}
-              <span className="sr-only">Refresh buddies</span>
+              <span>Chat</span>
             </Button>
-          )}
+          </div>
         </div>
 
         {loading ? (
@@ -142,38 +149,9 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
             No accountability buddies assigned for this week.
           </p>
         ) : (
-          <>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {buddies.map((buddy) => (
-                <div key={buddy.userId} className="flex flex-col items-center">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={buddy.avatarUrl || ''} alt={buddy.name} />
-                    <AvatarFallback>{getInitials(buddy.firstName, buddy.lastName)}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs mt-1 whitespace-nowrap max-w-[80px] truncate">
-                    {formatName(buddy.firstName, buddy.lastName)}
-                  </span>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-3 flex justify-center">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleChatWithBuddies}
-                disabled={isCreatingChat}
-                className="flex items-center gap-1 text-xs"
-              >
-                {isCreatingChat ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <MessageSquare className="h-3 w-3" />
-                )}
-                <span>Chat with {buddies.length > 1 ? 'Buddies' : 'Buddy'}</span>
-              </Button>
-            </div>
-          </>
+          <p className="text-xs text-muted-foreground mt-3">
+            You have {buddies.length} {buddies.length === 1 ? 'buddy' : 'buddies'} assigned for this week.
+          </p>
         )}
       </CardContent>
     </Card>

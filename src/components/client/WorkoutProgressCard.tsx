@@ -106,7 +106,7 @@ export function WorkoutProgressCard({
               <div className="relative overflow-visible">
                 <Avatar className={cn(
                   "h-8 w-8 border",
-                  isBuddy ? "ring-2 ring-green-500 dark:ring-green-600" : ""
+                  isBuddy ? "ring-2 ring-green-600 dark:ring-green-400" : ""
                 )}>
                   <AvatarImage 
                     src={avatarUrl || ''} 
@@ -118,7 +118,7 @@ export function WorkoutProgressCard({
                 </Avatar>
                 
                 {isBuddy && (
-                  <div className="absolute -top-1 -right-1 bg-green-500 dark:bg-green-600 text-green-950 text-[8px] rounded-full w-4 h-4 flex items-center justify-center">
+                  <div className="absolute -top-1 -right-1 bg-green-600 dark:bg-green-500 text-white text-[8px] rounded-full w-4 h-4 flex items-center justify-center">
                     <Users className="w-3 h-3" />
                   </div>
                 )}

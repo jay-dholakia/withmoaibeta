@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,7 +10,8 @@ import {
   Dialog,
   DialogContent, 
   DialogHeader, 
-  DialogTitle 
+  DialogTitle,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { createDirectMessageRoom } from "@/services/chat";
@@ -267,11 +269,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         </div>
       </ScrollArea>
 
-      {/* New DM Dialog */}
+      {/* New DM Dialog with required DialogTitle */}
       <Dialog open={isNewDmDialogOpen} onOpenChange={setIsNewDmDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>New Direct Message</DialogTitle>
+            <DialogDescription>
+              Select a member to start a conversation
+            </DialogDescription>
           </DialogHeader>
           
           <div className="mt-4">

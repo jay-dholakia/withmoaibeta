@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ export default function ChatPage() {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const buddyChatId = searchParams.get('buddy');
+  const directMessageId = searchParams.get('dm');
 
   useEffect(() => {
     const loadChatRooms = async () => {
@@ -34,9 +34,21 @@ export default function ChatPage() {
         setChatRooms(rooms);
         
         // Handle room selection priority:
-        // 1. Buddy chat room from URL parameter
-        // 2. Group chat room from URL parameter
-        // 3. First available room
+        // 1. Direct message from URL parameter
+        // 2. Buddy chat room from URL parameter
+        // 3. Group chat room from URL parameter
+        // 4. First available room
+        
+        if (directMessageId) {
+          const dmRoom = rooms.find(room => room.id === directMessageId && !room.is_group_chat);
+          if (dmRoom) {
+            setActiveRoomId(dmRoom.id);
+            setActiveRoom(dmRoom);
+            return;
+          } else {
+            toast.error("The direct message room could not be found");
+          }
+        }
         
         if (buddyChatId) {
           console.log("Looking for buddy chat room:", buddyChatId);
@@ -74,9 +86,13 @@ export default function ChatPage() {
     };
     
     loadChatRooms();
-  }, [user?.id, groupId, buddyChatId]);
+  }, [user?.id, groupId, buddyChatId, directMessageId]);
 
   const handleSelectRoom = (roomId: string) => {
+    // If it's already the active room, no need to update
+    if (roomId === activeRoomId) return;
+    
+    // Otherwise update the active room
     setActiveRoomId(roomId);
     const room = chatRooms.find(r => r.id === roomId);
     setActiveRoom(room || null);
@@ -103,6 +119,18 @@ export default function ChatPage() {
       return activeRoom.name;
     } else {
       return activeRoom.other_user_name ? getFirstName(activeRoom.other_user_name) : "Direct Message";
+    }
+  };
+
+  // Handle refreshing the chat rooms list (useful after creating a new DM)
+  const refreshChatRooms = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const rooms = await fetchAllChatRooms(user.id);
+      setChatRooms(rooms);
+    } catch (error) {
+      console.error("Error refreshing chat rooms:", error);
     }
   };
 

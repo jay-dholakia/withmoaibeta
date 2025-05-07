@@ -89,6 +89,7 @@ export const runWeeklyMaintenance = async (): Promise<{
 /**
  * Check if we need to generate new buddy pairings for the current week
  * This can be called on app initialization to ensure buddy pairings exist
+ * @returns boolean - true if buddies exist, false if they don't exist
  */
 export const checkAndGenerateBuddies = async (groupId: string): Promise<boolean> => {
   try {
@@ -109,13 +110,16 @@ export const checkAndGenerateBuddies = async (groupId: string): Promise<boolean>
       return false;
     }
     
-    // If pairings don't exist for this week, generate them
-    if (!existingPairings || existingPairings.length === 0) {
-      console.log('No buddy pairings found for this week, generating new ones');
-      return await generateWeeklyBuddies(groupId, false); // Don't force regenerate if called from initialization
+    const pairingsExist = existingPairings && existingPairings.length > 0;
+    
+    // If pairings don't exist for this week, log it but DON'T generate them yet
+    // We'll handle generation separately
+    if (!pairingsExist) {
+      console.log('No buddy pairings found for this week');
+      return false;
     }
     
-    console.log('Weekly buddy pairings already exist');
+    console.log(`Weekly buddy pairings already exist (${existingPairings.length} pairs)`);
     return true;
   } catch (error) {
     console.error('Error in checkAndGenerateBuddies:', error);

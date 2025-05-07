@@ -24,12 +24,25 @@ export function useAccountabilityBuddies(
         console.log(`Current week starts on: ${getCurrentWeekStartDate()}`);
         
         // First check if we need to generate new buddies for this week
-        await checkAndGenerateBuddies(groupId);
+        const buddiesExist = await checkAndGenerateBuddies(groupId);
+        
+        if (!buddiesExist) {
+          console.log('No buddies exist for this week, generating new ones...');
+          await generateWeeklyBuddies(groupId, false);
+        }
         
         // Then load the user's buddies
         const userBuddies = await getUserBuddies(groupId, userId);
         console.log(`Found ${userBuddies.length} buddies for user`);
         setBuddies(userBuddies);
+        
+        if (userBuddies.length === 0) {
+          console.log('Still no buddies after generation, will try forcing regeneration...');
+          await generateWeeklyBuddies(groupId, true);
+          const regeneratedBuddies = await getUserBuddies(groupId, userId);
+          console.log(`After forced regeneration, found ${regeneratedBuddies.length} buddies for user`);
+          setBuddies(regeneratedBuddies);
+        }
       } catch (err) {
         console.error('Error loading accountability buddies:', err);
         setError('Failed to load accountability buddies');
@@ -46,7 +59,7 @@ export function useAccountabilityBuddies(
     
     setLoading(true);
     try {
-      await generateWeeklyBuddies(groupId);
+      await generateWeeklyBuddies(groupId, true);
       
       if (userId) {
         const userBuddies = await getUserBuddies(groupId, userId);

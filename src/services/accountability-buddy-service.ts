@@ -147,8 +147,11 @@ export const generateWeeklyBuddies = async (
       return false;
     }
 
+    console.log(`Found ${groupMembers.length} members in group ${groupId}`);
+
     // Delete existing pairings for this week if forceRegenerate is true
     if (forceRegenerate) {
+      console.log(`Force regenerate is ${forceRegenerate}, deleting existing buddy pairings for week ${weekStartDate}`);
       const { error: deleteError } = await supabase
         .from('accountability_buddies')
         .delete()
@@ -158,6 +161,23 @@ export const generateWeeklyBuddies = async (
       if (deleteError) {
         console.error('Error deleting existing buddy pairings:', deleteError);
         return false;
+      }
+    } else {
+      // If not forcing regeneration, check if pairings already exist
+      const { data: existingPairings, error: checkError } = await supabase
+        .from('accountability_buddies')
+        .select('id')
+        .eq('group_id', groupId)
+        .eq('week_start', weekStartDate);
+        
+      if (checkError) {
+        console.error('Error checking existing buddy pairings:', checkError);
+        return false;
+      }
+      
+      if (existingPairings && existingPairings.length > 0) {
+        console.log(`Buddy pairings already exist for week ${weekStartDate} and forceRegenerate=false. Skipping generation.`);
+        return true;
       }
     }
 
@@ -201,6 +221,8 @@ export const generateWeeklyBuddies = async (
         });
       }
     }
+
+    console.log(`Created ${pairings.length} buddy pairings for group ${groupId}, week ${weekStartDate}`);
 
     // Insert pairings and log the results
     for (const pairing of pairings) {

@@ -57,10 +57,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     return name.split(" ")[0][0].toUpperCase();
   };
 
-  // Extract first name from a full name
-  const getFirstName = (fullName: string) => {
+  // Format name to show first name and first initial of last name
+  const formatName = (fullName: string) => {
     if (!fullName) return "Unknown";
-    return fullName.split(" ")[0];
+    const nameParts = fullName.split(" ");
+    const firstName = nameParts[0];
+    const lastInitial = nameParts.length > 1 ? nameParts[1][0] : "";
+    return lastInitial ? `${firstName} ${lastInitial}.` : firstName;
   };
 
   // Handle opening the new DM dialog - fetch group members
@@ -228,17 +231,17 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <Button 
               variant="ghost" 
               size="icon"
-              className="h-6 w-6 p-0 ml-1 hover:bg-muted"
+              className="h-6 w-6 p-0 hover:bg-muted"
               onClick={handleOpenNewDmDialog}
               aria-label="New Direct Message"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-5 w-5" />
             </Button>
           </div>
           <div className="space-y-1">
             {directMessages.length > 0 ? (
               directMessages.map((room) => {
-                const firstName = room.other_user_name ? getFirstName(room.other_user_name) : "Unknown";
+                const formattedName = room.other_user_name ? formatName(room.other_user_name) : "Unknown";
                 
                 return (
                   <Button
@@ -251,12 +254,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     onClick={() => onSelectRoom(room.id)}
                   >
                     <Avatar className="h-6 w-6 mr-2">
-                      <AvatarImage src={room.other_user_avatar || ""} alt={firstName} />
+                      <AvatarImage src={room.other_user_avatar || ""} alt={formattedName} />
                       <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
-                        {firstName ? firstName[0] : "?"}
+                        {formattedName ? formattedName[0] : "?"}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="truncate">{firstName}</span>
+                    <span className="truncate">{formattedName}</span>
                   </Button>
                 );
               })
@@ -292,23 +295,27 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               </div>
             ) : (
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {groupMembers.map((member) => (
-                  <Button
-                    key={member.id}
-                    variant="outline"
-                    className="w-full justify-start py-6"
-                    onClick={() => handleCreateDirectMessage(member.id)}
-                    disabled={isCreatingDm}
-                  >
-                    <Avatar className="h-8 w-8 mr-3">
-                      <AvatarImage src={member.avatar_url || ""} alt={member.first_name || "Member"} />
-                      <AvatarFallback className="bg-secondary text-secondary-foreground">
-                        {member.first_name?.[0] || "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium">{member.first_name} {member.last_name}</span>
-                  </Button>
-                ))}
+                {groupMembers.map((member) => {
+                  const formattedName = formatName(`${member.first_name || ''} ${member.last_name || ''}`);
+                  
+                  return (
+                    <Button
+                      key={member.id}
+                      variant="outline"
+                      className="w-full justify-start py-6"
+                      onClick={() => handleCreateDirectMessage(member.id)}
+                      disabled={isCreatingDm}
+                    >
+                      <Avatar className="h-8 w-8 mr-3">
+                        <AvatarImage src={member.avatar_url || ""} alt={formattedName} />
+                        <AvatarFallback className="bg-secondary text-secondary-foreground">
+                          {formattedName[0] || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{formattedName}</span>
+                    </Button>
+                  );
+                })}
               </div>
             )}
           </div>

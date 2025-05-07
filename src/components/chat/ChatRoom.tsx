@@ -101,9 +101,13 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
     }
   };
 
-  // Extract first name from full name
-  const getFirstName = (fullName: string) => {
-    return fullName.split(" ")[0];
+  // Format name to show first name and first initial of last name
+  const formatName = (fullName: string) => {
+    if (!fullName) return "Unknown";
+    const nameParts = fullName.split(" ");
+    const firstName = nameParts[0];
+    const lastInitial = nameParts.length > 1 ? nameParts[1][0] : "";
+    return lastInitial ? `${firstName} ${lastInitial}.` : firstName;
   };
 
   const getInitials = (name: string) => {
@@ -119,8 +123,8 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
     }
   };
 
-  // Get first name for room display
-  const displayRoomName = isDirectMessage && roomName ? getFirstName(roomName) : roomName;
+  // Get formatted name for room display
+  const displayRoomName = isDirectMessage && roomName ? formatName(roomName) : roomName;
 
   return (
     <div className="flex flex-col h-full">
@@ -142,7 +146,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
             <div className="space-y-4">
               {messages.map((message) => {
                 const isCurrentUser = message.sender_id === user?.id;
-                const senderFirstName = message.sender_name ? getFirstName(message.sender_name) : "Unknown";
+                const formattedName = message.sender_name ? formatName(message.sender_name) : "Unknown";
                 
                 return (
                   <div
@@ -154,7 +158,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={message.sender_avatar || ""} />
                           <AvatarFallback>
-                            {getInitials(senderFirstName)}
+                            {getInitials(formattedName)}
                           </AvatarFallback>
                         </Avatar>
                       )}
@@ -167,7 +171,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                       )}>
                         {!isCurrentUser && (
                           <p className="text-xs font-medium">
-                            {senderFirstName}
+                            {formattedName}
                           </p>
                         )}
                         <div className="space-y-1">
@@ -185,7 +189,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={message.sender_avatar || ""} />
                           <AvatarFallback>
-                            {getInitials(senderFirstName)}
+                            {getInitials(formattedName)}
                           </AvatarFallback>
                         </Avatar>
                       )}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -96,9 +97,13 @@ export default function ChatPage() {
     }
   };
 
-  // Extract first name from full name
-  const getFirstName = (fullName: string) => {
-    return fullName ? fullName.split(" ")[0] : "";
+  // Format name to show first name and first initial of last name
+  const formatName = (fullName: string) => {
+    if (!fullName) return "Unknown";
+    const nameParts = fullName.split(" ");
+    const firstName = nameParts[0];
+    const lastInitial = nameParts.length > 1 ? nameParts[1][0] : "";
+    return lastInitial ? `${firstName} ${lastInitial}.` : firstName;
   };
 
   // Get display name for the active room
@@ -108,7 +113,7 @@ export default function ChatPage() {
     if (activeRoom.is_group_chat) {
       return activeRoom.name;
     } else {
-      return activeRoom.other_user_name ? getFirstName(activeRoom.other_user_name) : "Direct Message";
+      return activeRoom.other_user_name ? formatName(activeRoom.other_user_name) : "Direct Message";
     }
   };
 
@@ -202,4 +207,4 @@ export default function ChatPage() {
       </div>
     </div>
   );
-}
+};

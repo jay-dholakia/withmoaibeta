@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, format, isMonday } from 'date-fns';
-import { generateWeeklyBuddies, getCurrentWeekStartDate } from './accountability-buddy-service';
+import { generateWeeklyBuddies } from './accountability-buddy-service';
 
 /**
  * Run weekly maintenance tasks
@@ -89,14 +89,12 @@ export const runWeeklyMaintenance = async (): Promise<{
 /**
  * Check if we need to generate new buddy pairings for the current week
  * This can be called on app initialization to ensure buddy pairings exist
- * @returns boolean - true if buddies exist, false if they don't exist
  */
 export const checkAndGenerateBuddies = async (groupId: string): Promise<boolean> => {
   try {
-    // Get the start of the current week (Monday) using the shared function
-    const weekStartDate = getCurrentWeekStartDate();
-    
-    console.log("Checking for buddy pairings for week starting:", weekStartDate);
+    // Get the start of the current week (Monday)
+    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const weekStartDate = format(monday, 'yyyy-MM-dd');
     
     // Check if pairings already exist for this week
     const { data: existingPairings, error: checkError } = await supabase
@@ -110,16 +108,13 @@ export const checkAndGenerateBuddies = async (groupId: string): Promise<boolean>
       return false;
     }
     
-    const pairingsExist = existingPairings && existingPairings.length > 0;
-    
-    // If pairings don't exist for this week, log it but DON'T generate them yet
-    // We'll handle generation separately
-    if (!pairingsExist) {
-      console.log('No buddy pairings found for this week');
-      return false;
+    // If pairings don't exist for this week, generate them
+    if (!existingPairings || existingPairings.length === 0) {
+      console.log('No buddy pairings found for this week, generating new ones');
+      return await generateWeeklyBuddies(groupId, false); // Don't force regenerate if called from initialization
     }
     
-    console.log(`Weekly buddy pairings already exist (${existingPairings.length} pairs)`);
+    console.log('Weekly buddy pairings already exist');
     return true;
   } catch (error) {
     console.error('Error in checkAndGenerateBuddies:', error);

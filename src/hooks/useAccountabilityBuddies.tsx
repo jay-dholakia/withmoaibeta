@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { getUserBuddies, generateWeeklyBuddies, getCurrentWeekStartDate } from '@/services/accountability-buddy-service';
+import { getUserBuddies, generateWeeklyBuddies } from '@/services/accountability-buddy-service';
 import { checkAndGenerateBuddies } from '@/services/cron-utils';
 import { BuddyDisplayInfo } from '@/services/accountability-buddy-service';
 
@@ -20,29 +20,12 @@ export function useAccountabilityBuddies(
       setError(null);
       
       try {
-        console.log(`Loading accountability buddies for user ${userId} in group ${groupId}`);
-        console.log(`Current week starts on: ${getCurrentWeekStartDate()}`);
-        
         // First check if we need to generate new buddies for this week
-        const buddiesExist = await checkAndGenerateBuddies(groupId);
-        
-        if (!buddiesExist) {
-          console.log('No buddies exist for this week, generating new ones...');
-          await generateWeeklyBuddies(groupId, false);
-        }
+        await checkAndGenerateBuddies(groupId);
         
         // Then load the user's buddies
         const userBuddies = await getUserBuddies(groupId, userId);
-        console.log(`Found ${userBuddies.length} buddies for user`);
         setBuddies(userBuddies);
-        
-        if (userBuddies.length === 0) {
-          console.log('Still no buddies after generation, will try forcing regeneration...');
-          await generateWeeklyBuddies(groupId, true);
-          const regeneratedBuddies = await getUserBuddies(groupId, userId);
-          console.log(`After forced regeneration, found ${regeneratedBuddies.length} buddies for user`);
-          setBuddies(regeneratedBuddies);
-        }
       } catch (err) {
         console.error('Error loading accountability buddies:', err);
         setError('Failed to load accountability buddies');
@@ -59,7 +42,7 @@ export function useAccountabilityBuddies(
     
     setLoading(true);
     try {
-      await generateWeeklyBuddies(groupId, true);
+      await generateWeeklyBuddies(groupId);
       
       if (userId) {
         const userBuddies = await getUserBuddies(groupId, userId);

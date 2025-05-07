@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatMessage, fetchMessages, sendMessage, subscribeToRoom } from "@/services/chat";
 import { formatDistanceToNow } from "date-fns";
@@ -101,19 +101,15 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
     }
   };
 
-  // Extract first name from full name
-  const getFirstName = (fullName: string) => {
-    if (!fullName) return "Unknown";
-    return fullName.split(" ")[0];
-  };
-
-  // Get initials from name
   const getInitials = (name: string) => {
-    if (!name) return "?";
-    return name.charAt(0).toUpperCase();
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
   };
 
-  // Format message timestamp
   const formatMessageTime = (timestamp: string) => {
     try {
       return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
@@ -122,28 +118,10 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
     }
   };
 
-  // Get display name for the room header
-  const getDisplayRoomName = () => {
-    if (isDirectMessage) {
-      return getFirstName(roomName);
-    } else if (roomName.includes(" &")) {
-      // Filter out empty names and format the buddy chat name properly
-      const buddyNames = roomName
-        .split(" &")
-        .map(name => name.trim())
-        .filter(name => name.length > 0 && name !== "You" && name !== "you")
-        .map(name => getFirstName(name));
-        
-      // Format properly with "You" and others
-      return buddyNames.length > 0 ? `You, ${buddyNames.join(", ")}` : "You";
-    }
-    return roomName;
-  };
-
   return (
     <div className="flex flex-col h-full">
       <CardHeader className="px-4 py-3 border-b shrink-0">
-        <CardTitle className="text-lg">{getDisplayRoomName()}</CardTitle>
+        <CardTitle className="text-lg">{roomName}</CardTitle>
       </CardHeader>
       
       <div className="flex-1 overflow-hidden">
@@ -160,7 +138,6 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
             <div className="space-y-4">
               {messages.map((message) => {
                 const isCurrentUser = message.sender_id === user?.id;
-                const senderFirstName = message.sender_name ? getFirstName(message.sender_name) : "Unknown";
                 
                 return (
                   <div
@@ -172,7 +149,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={message.sender_avatar || ""} />
                           <AvatarFallback>
-                            {getInitials(senderFirstName)}
+                            {message.sender_name ? getInitials(message.sender_name) : "?"}
                           </AvatarFallback>
                         </Avatar>
                       )}
@@ -185,7 +162,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                       )}>
                         {!isCurrentUser && (
                           <p className="text-xs font-medium">
-                            {senderFirstName}
+                            {message.sender_name || "Unknown User"}
                           </p>
                         )}
                         <div className="space-y-1">
@@ -203,7 +180,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={message.sender_avatar || ""} />
                           <AvatarFallback>
-                            {getInitials(senderFirstName)}
+                            {message.sender_name ? getInitials(message.sender_name) : "?"}
                           </AvatarFallback>
                         </Avatar>
                       )}
@@ -241,4 +218,4 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
       </div>
     </div>
   );
-};
+}

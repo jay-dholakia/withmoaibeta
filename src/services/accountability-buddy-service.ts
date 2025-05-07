@@ -21,26 +21,12 @@ export interface BuddyDisplayInfo {
   lastName: string | null;
 }
 
-/**
- * Helper function to get current week start date in YYYY-MM-DD format
- * This ensures we use the same date format across all functions
- */
-export const getCurrentWeekStartDate = (): string => {
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate days to Monday
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + mondayOffset);
-  return monday.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
-};
-
 export const getGroupWeeklyBuddies = async (
   groupId: string
 ): Promise<AccountabilityBuddy[]> => {
   try {
-    // Use the common date function
-    const weekStartDate = getCurrentWeekStartDate();
-    console.log("Fetching buddy pairings for week starting:", weekStartDate);
+    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const weekStartDate = format(monday, 'yyyy-MM-dd');
 
     const { data, error } = await supabase
       .from('accountability_buddies')
@@ -53,9 +39,6 @@ export const getGroupWeeklyBuddies = async (
       return [];
     }
 
-    // Debug: Log raw results
-    console.log(`Found ${data?.length || 0} buddy pairings for group ${groupId}, week ${weekStartDate}`, data);
-    
     return data || [];
   } catch (err) {
     console.error('Unexpected error in getGroupWeeklyBuddies:', err);
@@ -71,7 +54,6 @@ export const getUserBuddies = async (
     const buddyPairings = await getGroupWeeklyBuddies(groupId);
 
     if (!buddyPairings || buddyPairings.length === 0) {
-      console.log("No buddy pairings found for this group and week");
       return [];
     }
 
@@ -83,7 +65,6 @@ export const getUserBuddies = async (
     );
 
     if (!userPairing) {
-      console.log(`User ${userId} not found in any buddy pairings`);
       return [];
     }
 
@@ -94,7 +75,6 @@ export const getUserBuddies = async (
     ].filter(id => id && id !== userId) as string[];
 
     if (buddyIds.length === 0) {
-      console.log("No buddies found for this user");
       return [];
     }
 
@@ -128,9 +108,8 @@ export const generateWeeklyBuddies = async (
   forceRegenerate: boolean = true
 ): Promise<boolean> => {
   try {
-    // Use the common date function
-    const weekStartDate = getCurrentWeekStartDate();
-    console.log("Generating buddy pairings for week starting:", weekStartDate);
+    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const weekStartDate = format(monday, 'yyyy-MM-dd');
 
     const { data: groupMembers, error: membersError } = await supabase
       .from('group_members')
@@ -147,11 +126,8 @@ export const generateWeeklyBuddies = async (
       return false;
     }
 
-    console.log(`Found ${groupMembers.length} members in group ${groupId}`);
-
     // Delete existing pairings for this week if forceRegenerate is true
     if (forceRegenerate) {
-      console.log(`Force regenerate is ${forceRegenerate}, deleting existing buddy pairings for week ${weekStartDate}`);
       const { error: deleteError } = await supabase
         .from('accountability_buddies')
         .delete()
@@ -161,23 +137,6 @@ export const generateWeeklyBuddies = async (
       if (deleteError) {
         console.error('Error deleting existing buddy pairings:', deleteError);
         return false;
-      }
-    } else {
-      // If not forcing regeneration, check if pairings already exist
-      const { data: existingPairings, error: checkError } = await supabase
-        .from('accountability_buddies')
-        .select('id')
-        .eq('group_id', groupId)
-        .eq('week_start', weekStartDate);
-        
-      if (checkError) {
-        console.error('Error checking existing buddy pairings:', checkError);
-        return false;
-      }
-      
-      if (existingPairings && existingPairings.length > 0) {
-        console.log(`Buddy pairings already exist for week ${weekStartDate} and forceRegenerate=false. Skipping generation.`);
-        return true;
       }
     }
 
@@ -222,12 +181,10 @@ export const generateWeeklyBuddies = async (
       }
     }
 
-    console.log(`Created ${pairings.length} buddy pairings for group ${groupId}, week ${weekStartDate}`);
-
-    // Insert pairings and log the results
+    // Insert pairings one by one to handle potential conflicts
     for (const pairing of pairings) {
       try {
-        const { data, error: insertError } = await supabase
+        const { error: insertError } = await supabase
           .from('accountability_buddies')
           .insert([pairing])
           .select();
@@ -237,8 +194,6 @@ export const generateWeeklyBuddies = async (
           // Continue with next pairing even if this one fails
           continue;
         }
-        
-        console.log('Successfully inserted buddy pairing:', data);
       } catch (insertErr) {
         console.error('Unexpected error inserting buddy pairing:', insertErr);
         // Continue with next pairing even if this one fails

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -23,12 +24,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const buddyChats = rooms.filter(room => room.is_buddy_chat);
 
   const getInitials = (name: string) => {
-    return name.charAt(0).toUpperCase();
-  };
-
-  // Extract first name from a full name
-  const getFirstName = (fullName: string) => {
-    return fullName.split(" ")[0];
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   return (
@@ -47,36 +48,24 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               </h3>
             </div>
             <div className="space-y-1">
-              {buddyChats.map((room) => {
-                // Filter out empty names and format the display properly
-                const buddyNames = room.name
-                  .split(" &")
-                  .map(name => name.trim())
-                  .filter(name => name.length > 0 && name !== "You" && name !== "you")
-                  .map(name => getFirstName(name));
-                
-                // Format properly with "You" and others, avoiding empty commas
-                const displayName = buddyNames.length > 0 ? `You, ${buddyNames.join(", ")}` : "You";
-                
-                return (
-                  <Button
-                    key={room.id}
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start px-4",
-                      activeRoomId === room.id && "bg-accent"
-                    )}
-                    onClick={() => onSelectRoom(room.id)}
-                  >
-                    <Avatar className="h-6 w-6 mr-2">
-                      <AvatarFallback className="bg-orange-500 text-primary-foreground text-xs">
-                        {getInitials(room.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="truncate">{displayName}</span>
-                  </Button>
-                );
-              })}
+              {buddyChats.map((room) => (
+                <Button
+                  key={room.id}
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start px-4",
+                    activeRoomId === room.id && "bg-accent"
+                  )}
+                  onClick={() => onSelectRoom(room.id)}
+                >
+                  <Avatar className="h-6 w-6 mr-2">
+                    <AvatarFallback className="bg-orange-500 text-primary-foreground text-xs">
+                      {getInitials(room.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">{room.name}</span>
+                </Button>
+              ))}
             </div>
           </div>
         )}
@@ -121,29 +110,25 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               </h3>
             </div>
             <div className="space-y-1">
-              {directMessages.map((room) => {
-                const firstName = room.other_user_name ? getFirstName(room.other_user_name) : "Unknown";
-                
-                return (
-                  <Button
-                    key={room.id}
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start px-4",
-                      activeRoomId === room.id && "bg-accent"
-                    )}
-                    onClick={() => onSelectRoom(room.id)}
-                  >
-                    <Avatar className="h-6 w-6 mr-2">
-                      <AvatarImage src={room.other_user_avatar || ""} />
-                      <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
-                        {firstName.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="truncate">{firstName}</span>
-                  </Button>
-                );
-              })}
+              {directMessages.map((room) => (
+                <Button
+                  key={room.id}
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start px-4",
+                    activeRoomId === room.id && "bg-accent"
+                  )}
+                  onClick={() => onSelectRoom(room.id)}
+                >
+                  <Avatar className="h-6 w-6 mr-2">
+                    <AvatarImage src={room.other_user_avatar || ""} />
+                    <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
+                      {room.other_user_name ? getInitials(room.other_user_name) : "??"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">{room.other_user_name}</span>
+                </Button>
+              ))}
             </div>
           </div>
         )}

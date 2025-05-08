@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -137,8 +138,13 @@ export const updateClientProfile = async (
         profileData.birthday !== null && 
         'toISOString' in profileData.birthday
       ) {
-        const birthday = profileData.birthday as unknown as Date;
-        processedData.birthday = birthday.toISOString();
+        // Explicitly check that birthday is not null before using it
+        const birthday = profileData.birthday as Date;  // Safe cast after checks
+        if (birthday) {
+          processedData.birthday = birthday.toISOString();
+        } else {
+          processedData.birthday = null;
+        }
       } 
       // else keep as is (already a string)
     }
@@ -152,8 +158,13 @@ export const updateClientProfile = async (
         profileData.event_date !== null && 
         'toISOString' in profileData.event_date
       ) {
-        const eventDate = profileData.event_date as unknown as Date;
-        processedData.event_date = eventDate.toISOString();
+        // Explicitly check that event_date is not null before using it
+        const eventDate = profileData.event_date as Date;  // Safe cast after checks
+        if (eventDate) {
+          processedData.event_date = eventDate.toISOString();
+        } else {
+          processedData.event_date = null;
+        }
       }
       // else keep as is (already a string)
     }

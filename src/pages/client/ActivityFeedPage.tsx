@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchRecentActivities } from '@/services/activity-feed';
 import ActivityPost from '@/components/client/ActivityPost';
-import { Loader2, RefreshCcw } from 'lucide-react';
+import { Loader2, RefreshCcw, AlertCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Card } from '@/components/ui/card';
 import { GroupLeaderboard } from '@/components/client/GroupLeaderboard';
@@ -12,6 +12,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const ActivityFeedPage: React.FC = () => {
   const { user } = useAuth();
@@ -58,7 +59,7 @@ const ActivityFeedPage: React.FC = () => {
     queryFn: fetchRecentActivities,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 15, // 15 minutes
-    retry: 1
+    retry: 2
   });
 
   console.log('Activity feed data:', { activities, isLoading, error });
@@ -105,15 +106,23 @@ const ActivityFeedPage: React.FC = () => {
             ))}
           </div>
         ) : error ? (
-          <div className="py-12 text-center">
-            <p className="text-destructive mb-2">Error loading activity feed</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              There was a problem connecting to the server
-            </p>
-            <Button onClick={handleRefresh}>
-              <RefreshCcw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
+          <div className="py-8 space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error loading activity feed</AlertTitle>
+              <AlertDescription>
+                There was a problem connecting to the server. Please try refreshing the page.
+              </AlertDescription>
+            </Alert>
+            <div className="text-center">
+              <Button 
+                onClick={handleRefresh}
+                className="mt-2"
+              >
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+            </div>
           </div>
         ) : activities && Array.isArray(activities) && activities.length > 0 ? (
           <div className="space-y-4">
@@ -128,6 +137,9 @@ const ActivityFeedPage: React.FC = () => {
         ) : (
           <div className="py-12 text-center">
             <p className="text-muted-foreground">No activity posts yet</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Complete a workout to see it in your activity feed
+            </p>
           </div>
         )}
       </div>

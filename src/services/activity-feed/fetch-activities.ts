@@ -9,7 +9,7 @@ import { QueryFunctionContext } from "@tanstack/react-query";
 export const fetchRecentActivities = async (
   context?: QueryFunctionContext<string[]>
 ): Promise<Activity[]> => {
-  // Default options
+  // Define options outside try block to make them available in catch block
   const options: FetchActivitiesOptions = {
     limit: 10,
     offset: 0,
@@ -27,9 +27,9 @@ export const fetchRecentActivities = async (
 
     console.log('Fetching activities with options:', options);
 
-    // Fetch completed workouts that should show in the activity feed
-    // Modified query to fix the join syntax for PostgreSQL/PostgREST
-    let query = supabase
+    // Fix: Instead of using a direct join between workout_completions and profiles,
+    // fetch the user profiles separately after getting completions
+    const { data: completions, error: completionsError } = await supabase
       .from('workout_completions')
       .select(`
         id,
@@ -45,28 +45,88 @@ export const fetchRecentActivities = async (
         workout_type,
         duration,
         distance,
-        profiles(id, first_name, last_name, avatar_url),
         workout:workout_id(title, description),
         likes:activity_likes(*)
       `)
       .order('completed_at', { ascending: false })
       .range(options.offset, options.offset + options.limit - 1);
     
-    // Execute the query
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching activities:', error);
-      throw error;
+    if (completionsError) {
+      console.error('Error fetching workout completions:', completionsError);
+      throw completionsError;
     }
 
-    // Process the data to make it easier to work with
-    const activities = data.map((activity: any) => {
+    // If no completions, return empty array
+    if (!completions || completions.length === 0) {
+      console.log('No workout completions found');
+      return [];
+    }
+
+    // Get unique user IDs from completions
+    const userIds = [...new Set(completions.map(completion => completion.user_id))];
+    
+    // Fetch user profiles for these IDs
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        user_type
+      `)
+      .in('id', userIds);
+    
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      throw profilesError;
+    }
+    
+    // Fetch client profiles for more user details
+    const { data: clientProfiles, error: clientProfilesError } = await supabase
+      .from('client_profiles')
+      .select(`
+        id,
+        first_name,
+        last_name,
+        avatar_url
+      `)
+      .in('id', userIds);
+    
+    if (clientProfilesError) {
+      console.error('Error fetching client profiles:', clientProfilesError);
+      throw clientProfilesError;
+    }
+
+    // Build a map of user profiles for easy lookup
+    const userProfilesMap = {};
+    
+    // First add basic profile info
+    if (profiles) {
+      profiles.forEach(profile => {
+        userProfilesMap[profile.id] = { ...profile };
+      });
+    }
+    
+    // Then add client profile details
+    if (clientProfiles) {
+      clientProfiles.forEach(profile => {
+        if (userProfilesMap[profile.id]) {
+          userProfilesMap[profile.id] = {
+            ...userProfilesMap[profile.id],
+            ...profile
+          };
+        } else {
+          userProfilesMap[profile.id] = { ...profile };
+        }
+      });
+    }
+
+    // Combine workout completions with user profile data
+    const activities = completions.map((activity: any) => {
       // Format the likes array
       const formattedLikes = Array.isArray(activity.likes) ? activity.likes : [];
       
       return {
         ...activity,
+        profiles: userProfilesMap[activity.user_id] || {},
         likes: formattedLikes
       };
     });

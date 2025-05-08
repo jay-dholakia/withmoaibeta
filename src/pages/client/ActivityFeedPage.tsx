@@ -52,6 +52,8 @@ const ActivityFeedPage: React.FC = () => {
     gcTime: 1000 * 60 * 15, // 15 minutes
   });
 
+  console.log('Activity feed data:', { activities, isLoading, error });
+
   return (
     <div className="flex flex-col md:flex-row gap-6">
       {/* Main content - Activity Feed */}

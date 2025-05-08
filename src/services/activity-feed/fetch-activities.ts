@@ -55,7 +55,7 @@ export const fetchRecentActivities = async (
         likes:activity_likes (*)
       `)
       .order('completed_at', { ascending: false })
-      .range(options.offset || 0, (options.offset || 0) + (options.limit || 10) - 1);
+      .range(options.offset, options.offset + options.limit - 1);
     
     // Execute the query
     const { data, error } = await query;

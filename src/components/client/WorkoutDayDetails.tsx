@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { WorkoutHistoryItem, WorkoutExercise, PersonalRecord } from '@/types/workout';
@@ -70,7 +69,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
     return record;
   };
 
-  // Function to handle exercise set changes
+  // Function to handle exercise set changes - FIXED argument order
   const handleSetChange = (workoutId: string, exerciseId: string, setIndex: number, field: 'weight' | 'reps', value: string) => {
     setEditExerciseStates(prev => {
       const workoutState = prev[workoutId] || {};
@@ -97,7 +96,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
     });
   };
 
-  // Function to handle exercise set completion
+  // Function to handle exercise set completion - FIXED boolean conversion
   const handleSetCompletion = (workoutId: string, exerciseId: string, setIndex: number, completed: boolean) => {
     setEditExerciseStates(prev => {
       const workoutState = prev[workoutId] || {};
@@ -108,7 +107,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
       const updatedSets = [...exerciseState.sets];
       updatedSets[setIndex] = {
         ...updatedSets[setIndex],
-        completed
+        completed: Boolean(completed)
       };
       
       return {
@@ -287,11 +286,11 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
                                   }
                                 }
                                 personalRecord={findPersonalRecord(exercise.exercise.id)}
-                                onSetChange={(setIndex, field, value) => 
-                                  handleSetChange(workout.id, exercise.id, Number(setIndex), field, value)
+                                onSetChange={(exerciseId, setIndex, field, value) => 
+                                  handleSetChange(workout.id, exerciseId, setIndex, field, value)
                                 }
-                                onSetCompletion={(setIndex, completed) => 
-                                  handleSetCompletion(workout.id, exercise.id, Number(setIndex), completed)
+                                onSetCompletion={(exerciseId, setIndex, completed) => 
+                                  handleSetCompletion(workout.id, exerciseId, setIndex, Boolean(completed))
                                 }
                                 onVideoClick={() => {}}
                                 onSwapClick={() => {}}

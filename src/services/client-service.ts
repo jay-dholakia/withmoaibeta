@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -130,15 +129,29 @@ export const updateClientProfile = async (
     const processedData = { ...profileData };
     
     // Check for birthday property and if it's a Date object
-    if (profileData.birthday && profileData.birthday !== null && typeof profileData.birthday === 'object' && 
-        'toISOString' in profileData.birthday) {
-      processedData.birthday = (profileData.birthday as unknown as Date).toISOString();
+    if (profileData.birthday && profileData.birthday !== null) {
+      if (typeof profileData.birthday === 'object' && 'toISOString' in profileData.birthday) {
+        processedData.birthday = (profileData.birthday as unknown as Date).toISOString();
+      } else {
+        // Keep as is (already a string) or set to null if invalid
+        processedData.birthday = profileData.birthday;
+      }
+    } else {
+      // Explicitly set to null if undefined or null
+      processedData.birthday = null;
     }
     
     // Check for event_date property and if it's a Date object
-    if (profileData.event_date && profileData.event_date !== null && typeof profileData.event_date === 'object' && 
-        'toISOString' in profileData.event_date) {
-      processedData.event_date = (profileData.event_date as unknown as Date).toISOString();
+    if (profileData.event_date && profileData.event_date !== null) {
+      if (typeof profileData.event_date === 'object' && 'toISOString' in profileData.event_date) {
+        processedData.event_date = (profileData.event_date as unknown as Date).toISOString();
+      } else {
+        // Keep as is (already a string) or set to null if invalid
+        processedData.event_date = profileData.event_date;
+      }
+    } else {
+      // Explicitly set to null if undefined or null
+      processedData.event_date = null;
     }
     
     const { data, error } = await supabase

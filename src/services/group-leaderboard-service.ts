@@ -18,6 +18,7 @@ export interface MemberLeaderboardItem {
   city?: string | null;
   state?: string | null;
   completion_streak?: number;
+  rank?: number; // Add rank property
 }
 
 /**

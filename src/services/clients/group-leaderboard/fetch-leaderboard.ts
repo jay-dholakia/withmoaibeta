@@ -54,6 +54,7 @@ export const fetchGroupLeaderboard = async (groupId: string): Promise<GroupLeade
         fire_badges_count: badgeCount,
         city: profile.city,
         state: profile.state,
+        completion_streak: 0 // Default to 0 for now
       };
     })
   );

@@ -759,6 +759,7 @@ const ActiveWorkout = () => {
     return false;
   };
 
+  // Function to find a personal record for a specific exercise
   const findPersonalRecord = (exerciseId: string): PersonalRecord | undefined => {
     if (!personalRecords || personalRecords.length === 0 || !exerciseId) return undefined;
     
@@ -979,7 +980,8 @@ const ActiveWorkout = () => {
   
   const forceShowExercises = forceInitRef.current && workoutExercises.length > 0;
 
-  const { data: personalRecords, isLoading: isLoadingRecords, error: recordsError } = useQuery({
+  // Always fetch personal records, regardless of other conditions
+  const { data: personalRecords = [] } = useQuery({
     queryKey: ['personal-records', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];

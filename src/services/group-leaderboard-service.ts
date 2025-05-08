@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface GroupLeaderboardItem {
@@ -7,6 +8,12 @@ export interface GroupLeaderboardItem {
   totalFireBadges: number;
   activeMembersCount: number;
   iconOrEmoji?: string;
+}
+
+interface GroupMember {
+  id: string;
+  name: string;
+  profile_picture_url: string;
 }
 
 /**
@@ -63,6 +70,73 @@ export const fetchGroupLeaderboard = async (): Promise<GroupLeaderboardItem[]> =
     return leaderboardItems.sort((a, b) => b.totalFireBadges - a.totalFireBadges);
   } catch (error) {
     console.error('Error in fetchGroupLeaderboard:', error);
+    return [];
+  }
+};
+
+/**
+ * Fetches group members with their profile data and badge counts
+ */
+export const fetchGroupMembersWithBadges = async (groupId: string): Promise<GroupMember[]> => {
+  try {
+    // Get members of the group
+    const { data: memberData, error: memberError } = await supabase
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', groupId);
+
+    if (memberError) {
+      console.error('Error fetching group members:', memberError);
+      return [];
+    }
+
+    if (!memberData || memberData.length === 0) {
+      return [];
+    }
+
+    // Get profiles for each member
+    const memberIds = memberData.map(m => m.user_id);
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .in('id', memberIds);
+      
+    if (profilesError) {
+      console.error('Error fetching member profiles:', profilesError);
+      return [];
+    }
+
+    // Get client profiles for more info
+    const { data: clientProfiles, error: clientProfilesError } = await supabase
+      .from('client_profiles')
+      .select('id, first_name, last_name')
+      .in('id', memberIds);
+      
+    if (clientProfilesError) {
+      console.error('Error fetching client profiles:', clientProfilesError);
+    }
+
+    // Format member data
+    const members: GroupMember[] = profiles.map(profile => {
+      const clientProfile = clientProfiles?.find(cp => cp.id === profile.id);
+      let name = profile.username || '';
+      
+      if (clientProfile) {
+        if (clientProfile.first_name || clientProfile.last_name) {
+          name = [clientProfile.first_name, clientProfile.last_name].filter(Boolean).join(' ');
+        }
+      }
+      
+      return {
+        id: profile.id,
+        name: name || `User ${profile.id.substring(0, 4)}`,
+        profile_picture_url: profile.avatar_url || ''
+      };
+    });
+
+    return members;
+  } catch (error) {
+    console.error('Error in fetchGroupMembersWithBadges:', error);
     return [];
   }
 };

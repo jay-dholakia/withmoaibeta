@@ -89,15 +89,23 @@ export const fetchGroupLeaderboard = async (): Promise<GroupLeaderboardItem[]> =
               console.error(`Error counting fire badges for user ${member.user_id}:`, badgeError);
             }
             
-            const profile = member.client_profiles || {};
+            // Define the profile object with proper typing
+            const profile = member.client_profiles as {
+              id?: string;
+              first_name?: string;
+              last_name?: string;
+              avatar_url?: string | null;
+              city?: string | null;
+              state?: string | null;
+            } || {};
             
             return {
               user_id: member.user_id,
               first_name: profile.first_name || 'Unknown',
               last_name: profile.last_name || 'User',
-              avatar_url: profile.avatar_url,
-              city: profile.city,
-              state: profile.state,
+              avatar_url: profile.avatar_url || null,
+              city: profile.city || null,
+              state: profile.state || null,
               fire_badges_count: badgesCount || 0,
               // Add stub for completion streak - this would need to be calculated
               completion_streak: 0

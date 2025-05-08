@@ -1,73 +1,39 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
 export interface GroupLeaderboardItem {
   id: string;
   name: string;
-  description?: string;
+  description: string | null;
   totalFireBadges: number;
   activeMembersCount: number;
-  iconOrEmoji?: string;
-}
-
-interface GroupMember {
-  id: string;
-  name: string;
-  profile_picture_url: string;
 }
 
 /**
- * Fetches the group leaderboard sorted by total fire badges
+ * Fetch groups for the leaderboard, ordered by fire badge count
  */
 export const fetchGroupLeaderboard = async (): Promise<GroupLeaderboardItem[]> => {
   try {
-    // Get all groups
-    const { data: groups, error: groupsError } = await supabase
-      .from('groups')
-      .select('id, name, description');
+    const { data: groupsRaw, error } = await supabase.rpc(
+      'get_groups_with_fire_badges'
+    );
 
-    if (groupsError) {
-      console.error('Error fetching groups:', groupsError);
+    if (error) {
+      console.error('Error fetching group leaderboard:', error);
       return [];
     }
 
-    const leaderboardItems: GroupLeaderboardItem[] = [];
-    for (const group of groups) {
-      // Get members for each group
-      const { data: members, error: membersError } = await supabase
-        .from('group_members')
-        .select('user_id')
-        .eq('group_id', group.id);
-      if (membersError) {
-        console.error(`Error fetching members for group ${group.id}:`, membersError);
-        continue;
-      }
+    // Format the data to match the GroupLeaderboardItem interface
+    const formattedGroups: GroupLeaderboardItem[] = groupsRaw.map((group: any) => ({
+      id: group.group_id,
+      name: group.group_name,
+      description: group.group_description,
+      totalFireBadges: parseInt(group.total_fire_badges) || 0,
+      activeMembersCount: parseInt(group.active_members_count) || 0
+    }));
 
-      const memberIds = members.map(m => m.user_id);
-      if (memberIds.length === 0) {
-        continue;
-      }
-
-      // Count fire badges
-      const { count: totalFireBadges, error: badgesError } = await supabase
-        .from('fire_badges')
-        .select('id', { count: 'exact', head: false })
-        .in('user_id', memberIds);
-      if (badgesError) {
-        console.error(`Error fetching fire badges for group ${group.id}:`, badgesError);
-        continue;
-      }
-
-      leaderboardItems.push({
-        id: group.id,
-        name: group.name,
-        description: group.description,
-        totalFireBadges: totalFireBadges || 0,
-        activeMembersCount: memberIds.length,
-      });
-    }
-
-    return leaderboardItems.sort((a, b) => b.totalFireBadges - a.totalFireBadges);
+    // Sort groups by total fire badges in descending order
+    return formattedGroups.sort((a, b) => b.totalFireBadges - a.totalFireBadges);
   } catch (error) {
     console.error('Error in fetchGroupLeaderboard:', error);
     return [];
@@ -75,100 +41,52 @@ export const fetchGroupLeaderboard = async (): Promise<GroupLeaderboardItem[]> =
 };
 
 /**
- * Fetches group members with their profile data and badge counts
+ * Fetch members of a group with their fire badge counts
  */
-export const fetchGroupMembersWithBadges = async (groupId: string): Promise<GroupMember[]> => {
+export const fetchGroupMembersWithBadges = async (groupId: string) => {
   try {
-    // Get members of the group
-    const { data: memberData, error: memberError } = await supabase
+    const { data, error } = await supabase
       .from('group_members')
-      .select('user_id')
+      .select(`
+        user_id,
+        user:user_id (
+          email
+        ),
+        client_profiles:user_id (
+          first_name,
+          last_name,
+          avatar_url
+        ),
+        fire_badges:user_id (
+          id
+        )
+      `)
       .eq('group_id', groupId);
 
-    if (memberError) {
-      console.error('Error fetching group members:', memberError);
-      return [];
+    if (error) {
+      console.error('Error fetching group members:', error);
+      throw error;
     }
 
-    if (!memberData || memberData.length === 0) {
-      return [];
-    }
-
-    // Get profiles for each member
-    const memberIds = memberData.map(m => m.user_id);
-    
-    // First check if the profiles data exists and has the required fields
-    let profiles = [];
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id')
-        .in('id', memberIds)
-        .limit(1);
-        
-      if (!error && data) {
-        // If profiles exist, fetch all of them
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id')
-          .in('id', memberIds);
-          
-        if (!profilesError) {
-          profiles = profilesData || [];
-        }
-      }
-    } catch (e) {
-      console.error('Error checking profiles table:', e);
-    }
+    // Process and format the data
+    return data.map((member: any) => {
+      const profile = member.client_profiles;
+      const firstName = profile?.first_name || '';
+      const lastName = profile?.last_name || '';
+      const displayName = firstName && lastName 
+        ? `${firstName} ${lastName}` 
+        : member.user?.email?.split('@')[0] || 'Unknown User';
       
-    // Get client profiles for more info
-    const { data: clientProfiles, error: clientProfilesError } = await supabase
-      .from('client_profiles')
-      .select('id, first_name, last_name')
-      .in('id', memberIds);
-      
-    if (clientProfilesError) {
-      console.error('Error fetching client profiles:', clientProfilesError);
-    }
-
-    // Format member data
-    const members: GroupMember[] = profiles.length > 0 
-      ? profiles.map(profile => {
-          const clientProfile = clientProfiles?.find(cp => cp.id === profile.id);
-          let name = '';
-          
-          if (clientProfile) {
-            if (clientProfile.first_name || clientProfile.last_name) {
-              name = [clientProfile.first_name, clientProfile.last_name].filter(Boolean).join(' ');
-            }
-          }
-          
-          return {
-            id: profile.id,
-            name: name || `User ${profile.id.substring(0, 4)}`,
-            profile_picture_url: ''
-          };
-        })
-      : memberIds.map(id => {
-          const clientProfile = clientProfiles?.find(cp => cp.id === id);
-          let name = '';
-          
-          if (clientProfile) {
-            if (clientProfile.first_name || clientProfile.last_name) {
-              name = [clientProfile.first_name, clientProfile.last_name].filter(Boolean).join(' ');
-            }
-          }
-          
-          return {
-            id: id,
-            name: name || `User ${id.substring(0, 4)}`,
-            profile_picture_url: ''
-          };
-        });
-
-    return members;
+      return {
+        id: member.user_id,
+        name: displayName,
+        email: member.user?.email,
+        profile_picture_url: profile?.avatar_url || '',
+        fire_badges_count: (member.fire_badges || []).length,
+      };
+    });
   } catch (error) {
     console.error('Error in fetchGroupMembersWithBadges:', error);
-    return [];
+    throw error;
   }
 };

@@ -1,5 +1,6 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { updateClientProfile } from './client-profile-service';
+import { updateClientProfile } from './profile';
 
 /** Upload and update client avatar URL */
 export const uploadClientAvatar = async (

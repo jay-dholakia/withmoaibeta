@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Exercise, WorkoutProgram, WorkoutWeek, Workout, WorkoutExercise, StandaloneWorkout } from '@/types/workout';
 
@@ -1191,4 +1192,6 @@ export const moveStandaloneWorkoutExerciseDown = async (exerciseId: string, work
     return updatedExercises || [];
   } catch (error) {
     console.error('Error moving standalone workout exercise down:', error);
-    throw
+    throw error;
+  }
+};

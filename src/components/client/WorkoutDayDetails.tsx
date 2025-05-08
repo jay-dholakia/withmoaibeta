@@ -212,6 +212,17 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
     }
   };
 
+  // Initialize journal notes from workout data on component load
+  React.useEffect(() => {
+    const notesMap: { [key: string]: string } = {};
+    workouts.forEach(workout => {
+      if (workout.notes) {
+        notesMap[workout.id] = workout.notes;
+      }
+    });
+    setJournalNotes(notesMap);
+  }, [workouts]);
+
   if (!workouts || workouts.length === 0) {
     return (
       <div className="text-center py-8">
@@ -348,7 +359,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
                 </div>
                 <Textarea
                   placeholder="Add notes about your workout here..."
-                  value={journalNotes[workout.id] || workout.notes || ''}
+                  value={journalNotes[workout.id] || ''}
                   onChange={(e) => handleJournalChange(workout.id, e.target.value)}
                   className="min-h-24"
                 />

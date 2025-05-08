@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { WorkoutHistoryItem, WorkoutExercise, PersonalRecord } from '@/types/workout';
@@ -6,7 +7,6 @@ import { StrengthExercise } from '@/components/client/workout/StrengthExercise';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Trash2, BookText, AlertTriangle } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -34,7 +34,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
   personalRecords 
 }) => {
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
-  const [journalNotes, setJournalNotes] = useState<{ [key: string]: string }>({});
   const [isDeleting, setIsDeleting] = useState<{ [key: string]: boolean }>({});
   const [editExerciseStates, setEditExerciseStates] = useState<{
     [workoutId: string]: {
@@ -51,38 +50,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
 
   const toggleWorkoutExpanded = (workoutId: string) => {
     setExpandedWorkoutId(expandedWorkoutId === workoutId ? null : workoutId);
-  };
-
-  // Function to handle journal note changes
-  const handleJournalChange = (workoutId: string, value: string) => {
-    setJournalNotes({
-      ...journalNotes,
-      [workoutId]: value
-    });
-  };
-
-  // Function to save journal notes
-  const handleSaveJournal = async (workout: WorkoutHistoryItem) => {
-    if (!workout.id) {
-      toast.error("Could not save journal notes: Missing workout ID");
-      return;
-    }
-
-    try {
-      const success = await saveWorkoutJournalNotes(
-        workout.id,
-        journalNotes[workout.id] || ''
-      );
-      
-      if (success) {
-        toast.success("Journal notes saved");
-      } else {
-        toast.error("Failed to save journal notes");
-      }
-    } catch (error) {
-      console.error("Error saving journal notes:", error);
-      toast.error("An error occurred while saving journal notes");
-    }
   };
 
   // Function to find a personal record for a specific exercise
@@ -196,7 +163,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
       if (success) {
         toast.success("Workout deleted successfully");
         // Remove the workout from the local state to update the UI immediately
-        const updatedWorkouts = workouts.filter(w => w.id !== workoutId);
         // You'll need to implement a way to update the parent component's state here
         // For now, we can just reload the page after a short delay
         setTimeout(() => window.location.reload(), 1000);
@@ -210,17 +176,6 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
       setIsDeleting(prev => ({ ...prev, [workoutId]: false }));
     }
   };
-
-  // Initialize journal notes from workout data on component load
-  React.useEffect(() => {
-    const notesMap: { [key: string]: string } = {};
-    workouts.forEach(workout => {
-      if (workout.notes) {
-        notesMap[workout.id] = workout.notes;
-      }
-    });
-    setJournalNotes(notesMap);
-  }, [workouts]);
 
   if (!workouts || workouts.length === 0) {
     return (
@@ -350,25 +305,31 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
                 </div>
               )}
 
-              {/* Journal Notes Section */}
-              <div className="mt-6 space-y-2">
-                <div className="flex items-center gap-2">
-                  <BookText className="h-4 w-4" />
-                  <h4 className="text-sm font-medium">Workout Journal</h4>
+              {/* Journal Notes Section - Changed to display notes instead of input */}
+              {workout.notes && (
+                <div className="mt-6 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <BookText className="h-4 w-4" />
+                    <h4 className="text-sm font-medium">Workout Journal</h4>
+                  </div>
+                  <div className="p-3 bg-muted/40 rounded-md border border-border">
+                    <p className="whitespace-pre-wrap text-sm">{workout.notes}</p>
+                  </div>
                 </div>
-                <Textarea
-                  placeholder="Add notes about your workout here..."
-                  value={journalNotes[workout.id] || ''}
-                  onChange={(e) => handleJournalChange(workout.id, e.target.value)}
-                  className="min-h-24"
-                />
-                <Button 
-                  size="sm" 
-                  onClick={() => handleSaveJournal(workout)}
-                >
-                  Save Notes
-                </Button>
-              </div>
+              )}
+
+              {/* Display placeholder when no journal notes are available */}
+              {!workout.notes && (
+                <div className="mt-6 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <BookText className="h-4 w-4" />
+                    <h4 className="text-sm font-medium">Workout Journal</h4>
+                  </div>
+                  <div className="p-3 bg-muted/40 rounded-md border border-border text-muted-foreground text-sm italic">
+                    No journal entries for this workout
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         );

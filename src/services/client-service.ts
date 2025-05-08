@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -129,13 +130,13 @@ export const updateClientProfile = async (
     const processedData = { ...profileData };
     
     // Check for birthday property and if it's a Date object
-    if (profileData.birthday && typeof profileData.birthday === 'object' && 
+    if (profileData.birthday && profileData.birthday !== null && typeof profileData.birthday === 'object' && 
         'toISOString' in profileData.birthday) {
       processedData.birthday = (profileData.birthday as unknown as Date).toISOString();
     }
     
     // Check for event_date property and if it's a Date object
-    if (profileData.event_date && typeof profileData.event_date === 'object' && 
+    if (profileData.event_date && profileData.event_date !== null && typeof profileData.event_date === 'object' && 
         'toISOString' in profileData.event_date) {
       processedData.event_date = (profileData.event_date as unknown as Date).toISOString();
     }

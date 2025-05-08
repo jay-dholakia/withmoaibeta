@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { WorkoutHistoryItem } from '@/types/workout';
+import { WorkoutHistoryItem, PersonalRecord } from '@/types/workout';
 import { format, isValid, parseISO } from 'date-fns';
 import { FileX, Edit, Save, X, ChevronDown, ChevronUp, Trash2, Calendar } from 'lucide-react';
 import { WorkoutTypeIcon, WORKOUT_TYPES } from './WorkoutTypeIcon';
@@ -47,9 +47,14 @@ import RunMap from './workout/RunMap';
 interface WorkoutDayDetailsProps {
   date: Date;
   workouts: WorkoutHistoryItem[];
+  personalRecords: PersonalRecord[];
 }
 
-export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, workouts }) => {
+export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ 
+  date, 
+  workouts,
+  personalRecords 
+}) => {
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
@@ -138,6 +143,11 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
       </Card>
     );
   }
+
+  // Function to find matching personal record for an exercise
+  const findPersonalRecord = (exerciseId: string): PersonalRecord | undefined => {
+    return personalRecords.find(record => record.exercise_id === exerciseId);
+  };
 
   const handleEditWorkout = (workout: WorkoutHistoryItem) => {
     setEditTitle(workout.title || '');
@@ -543,24 +553,34 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({ date, work
                                 )}
                               </div>
                             ) : (
-                              <Table className="mt-1">
-                                <TableHeader>
-                                  <TableRow className="hover:bg-transparent">
-                                    <TableHead className="w-1/4 h-8 py-1 px-2">Set</TableHead>
-                                    <TableHead className="w-1/4 h-8 py-1 px-2">Reps</TableHead>
-                                    <TableHead className="w-1/2 h-8 py-1 px-2">Weight</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {group.sets.sort((a: any, b: any) => a.set_number - b.set_number).map((set: any) => (
-                                    <TableRow key={set.id}>
-                                      <TableCell className="py-1 px-2">{set.set_number}</TableCell>
-                                      <TableCell className="py-1 px-2">{set.reps_completed || '-'}</TableCell>
-                                      <TableCell className="py-1 px-2">{set.weight ? `${set.weight} lbs` : '-'}</TableCell>
+                              <>
+                                {findPersonalRecord(exerciseId) && (
+                                  <div className="text-xs text-muted-foreground mb-1 bg-muted px-2 py-1 rounded inline-block">
+                                    <span className="font-semibold">PR:</span> {findPersonalRecord(exerciseId)?.weight} lbs 
+                                    {findPersonalRecord(exerciseId)?.reps && 
+                                      <> x {findPersonalRecord(exerciseId)?.reps} {findPersonalRecord(exerciseId)?.reps !== 1 ? 'reps' : 'rep'}</>
+                                    }
+                                  </div>
+                                )}
+                                <Table className="mt-1">
+                                  <TableHeader>
+                                    <TableRow className="hover:bg-transparent">
+                                      <TableHead className="w-1/4 h-8 py-1 px-2">Set</TableHead>
+                                      <TableHead className="w-1/4 h-8 py-1 px-2">Reps</TableHead>
+                                      <TableHead className="w-1/2 h-8 py-1 px-2">Weight</TableHead>
                                     </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {group.sets.sort((a: any, b: any) => a.set_number - b.set_number).map((set: any) => (
+                                      <TableRow key={set.id}>
+                                        <TableCell className="py-1 px-2">{set.set_number}</TableCell>
+                                        <TableCell className="py-1 px-2">{set.reps_completed || '-'}</TableCell>
+                                        <TableCell className="py-1 px-2">{set.weight ? `${set.weight} lbs` : '-'}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </>
                             )}
                             
                             {group.type !== 'cardio' && group.sets[0]?.notes && (

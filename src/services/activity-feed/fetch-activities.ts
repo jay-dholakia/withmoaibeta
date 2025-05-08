@@ -1,33 +1,26 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { QueryFunctionContext } from "@tanstack/react-query";
+import { Activity, FetchActivitiesOptions } from "./types";
 
-interface FetchActivitiesOptions {
-  limit?: number;
-  offset?: number;
-  retryCount?: number;
-}
-
-// Modify fetchRecentActivities to work with useQuery's QueryFunctionContext
+/**
+ * Fetches recent activities from the workout_completions table
+ */
 export const fetchRecentActivities = async (
-  context?: QueryFunctionContext<string[], any> | FetchActivitiesOptions
-): Promise<any[]> => {
+  context?: QueryFunctionContext
+): Promise<Activity[]> => {
   try {
     // Default values
     let limit = 20;
     let offset = 0;
     let retryCount = 0;
 
-    // Check if it's a QueryFunctionContext or our custom options
-    if (context && 'queryKey' in context) {
-      // It's a QueryFunctionContext from useQuery
-      // You could extract params from queryKey if needed
-      // For example: const [_, params] = context.queryKey;
-    } else if (context) {
-      // It's our custom FetchActivitiesOptions
-      if ('limit' in context) limit = context.limit || 20;
-      if ('offset' in context) offset = context.offset || 0;
-      if ('retryCount' in context) retryCount = context.retryCount || 0;
+    // Extract any options if they were passed
+    if (context && 'meta' in context && context.meta) {
+      const options = context.meta as FetchActivitiesOptions;
+      if (options.limit) limit = options.limit;
+      if (options.offset) offset = options.offset;
+      if (options.retryCount) retryCount = options.retryCount;
     }
 
     console.log("Fetching activities with limit:", limit, "offset:", offset);
@@ -70,7 +63,7 @@ export const fetchRecentActivities = async (
     const userIds = activities.map(activity => activity.user_id);
     const workoutIds = activities.filter(a => a.workout_id).map(a => a.workout_id);
     
-    // Get client_profiles data instead of profiles
+    // Get client_profiles data
     const { data: profiles, error: profilesError } = await supabase
       .from('client_profiles')
       .select(`
@@ -154,77 +147,16 @@ export const fetchRecentActivities = async (
       return new Promise(resolve => {
         setTimeout(() => {
           resolve(fetchRecentActivities({ 
-            limit, 
-            offset, 
-            retryCount: retryCount + 1 
-          }));
+            meta: { 
+              limit, 
+              offset, 
+              retryCount: retryCount + 1 
+            } 
+          } as QueryFunctionContext));
         }, delay);
       });
     }
     
     throw error;
-  }
-};
-
-export const likeActivity = async (activityId: string) => {
-  try {
-    // Get current user ID from auth
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-    
-    const { data, error } = await supabase
-      .from('activity_likes')
-      .insert({
-        activity_id: activityId,
-        user_id: user.id
-      })
-      .select('id');
-
-    if (error) {
-      if (error.code === '23505') {
-        // Unique constraint violated, user already liked this activity
-        console.log('User already liked this activity');
-        return null;
-      }
-      console.error('Error liking activity:', error);
-      throw error;
-    }
-
-    return data?.[0] || null;
-  } catch (error) {
-    console.error('Error in likeActivity:', error);
-    throw error;
-  }
-};
-
-export const unlikeActivity = async (activityId: string) => {
-  try {
-    // Get current user ID from auth
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-    
-    const { error } = await supabase
-      .from('activity_likes')
-      .delete()
-      .match({ 
-        activity_id: activityId,
-        user_id: user.id
-      });
-
-    if (error) {
-      console.error('Error unliking activity:', error);
-      throw error;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error in unlikeActivity:', error);
-    return false;
   }
 };

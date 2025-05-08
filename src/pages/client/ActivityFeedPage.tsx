@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchRecentActivities } from '@/services/activity-feed-service';
+import { fetchRecentActivities } from '@/services/activity-feed';
 import ActivityPost from '@/components/client/ActivityPost';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -44,10 +44,10 @@ const ActivityFeedPage: React.FC = () => {
     fetchGroupId();
   }, [user, location.pathname]);
   
-  // Update the useQuery call to use the object format properly
+  // Use the refactored fetchRecentActivities function with useQuery
   const { data: activities, isLoading, error } = useQuery({
     queryKey: ['activity-feed'],
-    queryFn: fetchRecentActivities, // Now it will work with the updated function
+    queryFn: fetchRecentActivities,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 15, // 15 minutes
   });

@@ -196,8 +196,8 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
 export const deleteUser = async (userId: string): Promise<boolean> => {
   try {
     // First delete from auth.users through RPC (requires proper RLS policies)
-    const { error } = await supabase.rpc('delete_user', {
-      target_user_id: userId
+    const { error } = await supabase.rpc('admin_delete_user', {
+      user_id: userId
     });
 
     if (error) {

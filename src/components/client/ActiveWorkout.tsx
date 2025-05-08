@@ -390,10 +390,14 @@ const ActiveWorkout = () => {
                 
                 savePromises.push(
                   trackWorkoutSet(
+                    workoutId,
                     exerciseId,
-                    completionId,
-                    set.setNumber,
-                    setData
+                    {
+                      set_number: setIndex + 1,
+                      weight: Number(weight),
+                      reps_completed: Number(reps),
+                      completed: true
+                    }
                   )
                 );
               }
@@ -404,9 +408,8 @@ const ActiveWorkout = () => {
           if (cardioData.completed || cardioData.distance || cardioData.duration) {
             savePromises.push(
               trackWorkoutSet(
+                workoutId,
                 exerciseId,
-                completionId,
-                1,
                 {
                   distance: cardioData.distance || null,
                   duration: cardioData.duration || null,
@@ -422,9 +425,8 @@ const ActiveWorkout = () => {
           if (flexData.completed || flexData.duration) {
             savePromises.push(
               trackWorkoutSet(
+                workoutId,
                 exerciseId,
-                completionId,
-                1,
                 {
                   duration: flexData.duration || null,
                   completed: flexData.completed || false,
@@ -438,9 +440,8 @@ const ActiveWorkout = () => {
           if (runData.completed || runData.distance || runData.duration) {
             savePromises.push(
               trackWorkoutSet(
+                workoutId,
                 exerciseId,
-                completionId,
-                1,
                 {
                   distance: runData.distance || null,
                   duration: runData.duration || null,

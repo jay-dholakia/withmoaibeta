@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -74,7 +73,7 @@ const ProfileBuilder = () => {
     onSuccess: (updatedProfile) => {
       console.log('Profile updated:', updatedProfile);
       // If profile is now complete, redirect to client dashboard
-      if (updatedProfile.profile_completed) {
+      if (updatedProfile && 'profile_completed' in updatedProfile && updatedProfile.profile_completed) {
         toast.success('Your profile has been completed!');
         setIsRedirecting(true);
         setTimeout(() => navigate('/client-dashboard'), 1500);
@@ -96,7 +95,7 @@ const ProfileBuilder = () => {
       });
       
       // If profile is already completed, redirect to dashboard
-      if (profile.profile_completed) {
+      if (profile && 'profile_completed' in profile && profile.profile_completed) {
         console.log('Profile is complete, redirecting to dashboard');
         setIsRedirecting(true);
         setTimeout(() => navigate('/client-dashboard'), 1500);

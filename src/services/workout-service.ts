@@ -1196,7 +1196,7 @@ export const moveStandaloneWorkoutExerciseDown = async (exerciseId: string, work
 };
 
 /**
- * Gets the number of clients assigned to each program
+ * Gets the count of assignments for each program
  */
 export const getWorkoutProgramAssignmentCount = async (programIds: string[]): Promise<Record<string, number>> => {
   try {
@@ -1219,7 +1219,7 @@ export const getWorkoutProgramAssignmentCount = async (programIds: string[]): Pr
 
     return countRecord;
   } catch (error) {
-    console.error('Error in getWorkoutProgramAssignmentCount:', error);
+    console.error('Error fetching program assignment counts:', error);
     return {};
   }
 };
@@ -1230,56 +1230,26 @@ export const getWorkoutProgramAssignmentCount = async (programIds: string[]): Pr
 export const createExercise = async (exerciseData: {
   name: string;
   category: string;
-  description?: string | null;
-  exercise_type?: string;
-  log_type?: string;
-}): Promise<{
-  exercise?: Exercise;
-  error?: any;
-  isDuplicate?: boolean;
-}> => {
+  description?: string;
+  exercise_type: string;
+  youtube_link?: string;
+  muscle_group?: string;
+}): Promise<{ success: boolean; data?: any; error?: any }> => {
   try {
-    // Check if exercise with same name already exists
-    const { data: existingExercise, error: checkError } = await supabase
-      .from('exercises')
-      .select('*')
-      .ilike('name', exerciseData.name)
-      .maybeSingle();
-    
-    if (checkError) {
-      console.error('Error checking for existing exercise:', checkError);
-      return { error: checkError };
-    }
-    
-    // If exercise with same name exists, return it with isDuplicate flag
-    if (existingExercise) {
-      return { 
-        exercise: existingExercise as Exercise, 
-        isDuplicate: true 
-      };
-    }
-    
-    // If exercise doesn't exist, create it
     const { data, error } = await supabase
       .from('exercises')
-      .insert([{
-        name: exerciseData.name,
-        category: exerciseData.category,
-        description: exerciseData.description || null,
-        exercise_type: exerciseData.exercise_type || 'strength',
-        log_type: exerciseData.log_type || 'weight_reps'
-      }])
+      .insert([exerciseData])
       .select()
       .single();
-    
+
     if (error) {
       console.error('Error creating exercise:', error);
-      return { error };
+      return { success: false, error };
     }
-    
-    return { exercise: data as Exercise };
+
+    return { success: true, data };
   } catch (error) {
     console.error('Error in createExercise:', error);
-    return { error };
+    return { success: false, error };
   }
 };

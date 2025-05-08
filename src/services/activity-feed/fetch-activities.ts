@@ -25,7 +25,10 @@ export const fetchRecentActivities = async (
       if (meta.retryCount) options.retryCount = meta.retryCount;
     }
 
+    console.log('Fetching activities with options:', options);
+
     // Fetch completed workouts that should show in the activity feed
+    // Modified query to fix the join syntax for PostgreSQL/PostgREST
     let query = supabase
       .from('workout_completions')
       .select(`
@@ -42,17 +45,9 @@ export const fetchRecentActivities = async (
         workout_type,
         duration,
         distance,
-        profiles:user_id (
-          id,
-          first_name,
-          last_name,
-          avatar_url
-        ),
-        workout:workout_id (
-          title,
-          description
-        ),
-        likes:activity_likes (*)
+        profiles(id, first_name, last_name, avatar_url),
+        workout:workout_id(title, description),
+        likes:activity_likes(*)
       `)
       .order('completed_at', { ascending: false })
       .range(options.offset, options.offset + options.limit - 1);
@@ -76,6 +71,7 @@ export const fetchRecentActivities = async (
       };
     });
 
+    console.log('Successfully fetched activities:', activities.length);
     return activities;
   } catch (error) {
     console.error('Error in fetchRecentActivities:', error);

@@ -44,9 +44,10 @@ const ActivityFeedPage: React.FC = () => {
     fetchGroupId();
   }, [user, location.pathname]);
   
+  // Update the useQuery call to use the object format properly
   const { data: activities, isLoading, error } = useQuery({
     queryKey: ['activity-feed'],
-    queryFn: fetchRecentActivities,
+    queryFn: fetchRecentActivities, // Now it will work with the updated function
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 15, // 15 minutes
   });

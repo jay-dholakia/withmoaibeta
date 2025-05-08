@@ -1,4 +1,6 @@
+
 import { supabase } from "@/integrations/supabase/client";
+import { QueryFunctionContext } from "@tanstack/react-query";
 
 interface FetchActivitiesOptions {
   limit?: number;
@@ -6,13 +8,28 @@ interface FetchActivitiesOptions {
   retryCount?: number;
 }
 
-// Rename fetchRecentActivities to make it more descriptive of what it actually does
-export const fetchRecentActivities = async ({ 
-  limit = 20, 
-  offset = 0,
-  retryCount = 0
-}: FetchActivitiesOptions = {}) => {
+// Modify fetchRecentActivities to work with useQuery's QueryFunctionContext
+export const fetchRecentActivities = async (
+  context?: QueryFunctionContext<string[], any> | FetchActivitiesOptions
+): Promise<any[]> => {
   try {
+    // Default values
+    let limit = 20;
+    let offset = 0;
+    let retryCount = 0;
+
+    // Check if it's a QueryFunctionContext or our custom options
+    if (context && 'queryKey' in context) {
+      // It's a QueryFunctionContext from useQuery
+      // You could extract params from queryKey if needed
+      // For example: const [_, params] = context.queryKey;
+    } else if (context) {
+      // It's our custom FetchActivitiesOptions
+      if ('limit' in context) limit = context.limit || 20;
+      if ('offset' in context) offset = context.offset || 0;
+      if ('retryCount' in context) retryCount = context.retryCount || 0;
+    }
+
     console.log("Fetching activities with limit:", limit, "offset:", offset);
     
     // Query workout completions that are not rest days or life happens passes

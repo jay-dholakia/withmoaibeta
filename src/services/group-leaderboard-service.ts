@@ -12,7 +12,7 @@ export const fetchAllGroupsLeaderboard = async () => {
 
   // Ensure user is an admin
   const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin', {
-    user_id: user.user.id
+    check_user_id: user.user.id
   });
 
   if (adminError || !isAdmin) {
@@ -20,7 +20,7 @@ export const fetchAllGroupsLeaderboard = async () => {
   }
 
   // We use RPC to get the data from the server to ensure proper RLS checks
-  const { data: groups, error } = await supabase.rpc('get_groups_with_fire_badges');
+  const { data: groups, error } = await supabase.rpc('get_all_groups_with_fire_badges');
   
   if (error) {
     console.error('Error fetching group leaderboard data:', error);
@@ -32,4 +32,4 @@ export const fetchAllGroupsLeaderboard = async () => {
 
 // Re-export client leaderboard functions for backward compatibility
 export { fetchGroupLeaderboardFromClient as fetchGroupLeaderboard };
-export { GroupLeaderboardItem } from './clients/group-leaderboard';
+export type { GroupLeaderboardItem } from './clients/group-leaderboard';

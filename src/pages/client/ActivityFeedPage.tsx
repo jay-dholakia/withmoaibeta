@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { fetchRecentActivities } from '@/services/activity-feed-service';
@@ -11,6 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BackgroundFetchIndicator } from '@/components/client/BackgroundFetchIndicator';
 import { useIsMobile } from '@/lib/hooks';
 import { WorkoutHistoryItem } from '@/types/workout';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { GroupLeaderboard } from '@/components/client/GroupLeaderboard';
 
 // Define type for our activity feed data
 type ActivityFeedItem = WorkoutHistoryItem & {
@@ -44,6 +46,7 @@ type ActivityFeedItem = WorkoutHistoryItem & {
 const ActivityFeedPage = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState<string>("activity");
   
   // Use useInfiniteQuery instead of useQuery
   const {
@@ -133,77 +136,95 @@ const ActivityFeedPage = () => {
     </div>
   );
 
-  // Main rendering logic
-  // Use isLoading for initial load skeleton
-  if (isLoading) {
+  const renderActivityFeedContent = () => {
+    // Use isLoading for initial load skeleton
+    if (isLoading) {
+      return renderSkeletons();
+    }
+
+    // Use isError for error state
+    if (isError || error) {
+      return renderError();
+    }
+
+    // Check flattened activities array for empty state
+    if (!activities || activities.length === 0) {
+      return renderEmpty();
+    }
+
     return (
-      <div className="space-y-4 py-4">
-        <h1 className="text-2xl font-bold text-center mb-4">Community Activity</h1>
-        {renderSkeletons()}
-      </div>
+      <>
+        <div className="space-y-4">
+          {/* Map over the flattened activities array */}
+          {activities.map(activity => (
+            <ActivityPost
+              key={activity.id}
+              activity={activity}
+              currentUserId={user?.id || ''}
+            />
+          ))}
+        </div>
+
+        {/* Show background fetch indicator only during refetches, not initial load or next page fetch */}
+        {isFetching && !isLoading && !isFetchingNextPage && (
+          <div className="flex justify-center p-4">
+            <BackgroundFetchIndicator isLoading={true} size={6} />
+          </div>
+        )}
+
+        {/* Show loader when fetching the next page */}
+        {isFetchingNextPage && (
+          <div className="flex justify-center p-4">
+            <Loader2 className="h-6 w-6 animate-spin text-client" />
+          </div>
+        )}
+
+        {/* Show Load More button if there is a next page and not currently fetching */}
+        {hasNextPage && !isFetchingNextPage && (
+          <div className="flex justify-center mt-4 mb-8">
+            <Button
+              onClick={loadMore}
+              variant="default"
+              size={isMobile ? "sm" : "default"}
+              className="bg-client hover:bg-client/90 text-white"
+              disabled={isFetchingNextPage} // Disable button while fetching next page
+            >
+              Load More Activities
+            </Button>
+          </div>
+        )}
+
+        {/* Show end message if there are activities but no next page */}
+        {!hasNextPage && activities.length > 0 && (
+          <p className="text-center text-gray-500 dark:text-gray-400 pb-4">
+            You've reached the end of the activity feed
+          </p>
+        )}
+      </>
     );
-  }
-
-  // Use isError for error state
-  if (isError || error) {
-    return renderError();
-  }
-
-  // Check flattened activities array for empty state
-  if (!activities || activities.length === 0) {
-    return renderEmpty();
-  }
+  };
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-center mb-4">Community Activity</h1>
-
-      <div className="space-y-4">
-        {/* Map over the flattened activities array */}
-        {activities.map(activity => (
-          <ActivityPost
-            key={activity.id}
-            activity={activity}
-            currentUserId={user?.id || ''}
-          />
-        ))}
-      </div>
-
-      {/* Show background fetch indicator only during refetches, not initial load or next page fetch */}
-      {isFetching && !isLoading && !isFetchingNextPage && (
-        <div className="flex justify-center p-4">
-          <BackgroundFetchIndicator isLoading={true} size={6} />
-        </div>
-      )}
-
-      {/* Show loader when fetching the next page */}
-      {isFetchingNextPage && (
-        <div className="flex justify-center p-4">
-          <Loader2 className="h-6 w-6 animate-spin text-client" />
-        </div>
-      )}
-
-      {/* Show Load More button if there is a next page and not currently fetching */}
-      {hasNextPage && !isFetchingNextPage && (
-        <div className="flex justify-center mt-4 mb-8">
-          <Button
-            onClick={loadMore}
-            variant="default"
-            size={isMobile ? "sm" : "default"}
-            className="bg-client hover:bg-client/90 text-white"
-            disabled={isFetchingNextPage} // Disable button while fetching next page
-          >
-            Load More Activities
-          </Button>
-        </div>
-      )}
-
-      {/* Show end message if there are activities but no next page */}
-      {!hasNextPage && activities.length > 0 && (
-        <p className="text-center text-gray-500 dark:text-gray-400 pb-4">
-          You've reached the end of the activity feed
-        </p>
-      )}
+      <Tabs 
+        defaultValue="activity" 
+        value={activeTab} 
+        onValueChange={setActiveTab}
+        className="w-full"
+      >
+        <TabsList className="grid grid-cols-2 mb-6 w-full">
+          <TabsTrigger value="activity">Activity Feed</TabsTrigger>
+          <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="activity" className="space-y-4">
+          {renderActivityFeedContent()}
+        </TabsContent>
+        
+        <TabsContent value="leaderboard">
+          <GroupLeaderboard />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

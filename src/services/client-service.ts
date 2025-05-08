@@ -277,3 +277,73 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
   }
 };
 
+export interface GroupLeaderboardItem {
+  id: string;
+  name: string;
+  description?: string;
+  totalFireBadges: number;
+  activeMembersCount: number;
+  iconOrEmoji?: string;
+}
+
+export const fetchGroupLeaderboard = async (): Promise<GroupLeaderboardItem[]> => {
+  try {
+    // Get all groups
+    const { data: groups, error: groupsError } = await supabase
+      .from('groups')
+      .select('id, name, description');
+
+    if (groupsError) {
+      console.error('Error fetching groups:', groupsError);
+      return [];
+    }
+
+    // For each group, get total fire badges and member count
+    const leaderboardItems: GroupLeaderboardItem[] = [];
+
+    for (const group of groups) {
+      // Get all members of the group
+      const { data: members, error: membersError } = await supabase
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', group.id);
+
+      if (membersError) {
+        console.error(`Error fetching members for group ${group.id}:`, membersError);
+        continue;
+      }
+
+      const memberIds = members.map(member => member.user_id);
+      
+      // Skip groups with no members
+      if (memberIds.length === 0) {
+        continue;
+      }
+
+      // Count total fire badges for all members
+      const { count: totalFireBadges, error: badgesError } = await supabase
+        .from('fire_badges')
+        .select('id', { count: 'exact', head: false })
+        .in('user_id', memberIds);
+
+      if (badgesError) {
+        console.error(`Error fetching fire badges for group ${group.id}:`, badgesError);
+        continue;
+      }
+
+      leaderboardItems.push({
+        id: group.id,
+        name: group.name,
+        description: group.description,
+        totalFireBadges: totalFireBadges || 0,
+        activeMembersCount: memberIds.length,
+      });
+    }
+
+    // Sort by total fire badges in descending order
+    return leaderboardItems.sort((a, b) => b.totalFireBadges - a.totalFireBadges);
+  } catch (error) {
+    console.error('Error in fetchGroupLeaderboard:', error);
+    return [];
+  }
+};

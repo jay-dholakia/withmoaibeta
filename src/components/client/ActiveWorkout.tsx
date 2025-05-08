@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { trackWorkoutSet, fetchPersonalRecords } from '@/services/client-service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, Save, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, Save, HelpCircle, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft, updateExerciseIdInDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useWorkoutInitialization } from '@/hooks/useWorkoutInitialization';
@@ -989,7 +989,7 @@ const ActiveWorkout = () => {
           }}
           className="flex items-center gap-2"
         >
-          <RefreshCcw className="h-4 w-4" />
+          <RefreshCw className="h-4 w-4" />
           Retry
         </Button>
         <Button 
@@ -1018,7 +1018,7 @@ const ActiveWorkout = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {workoutData.workout?.name || 'Workout'}
+            {workoutData.workout?.title || 'Workout'}
           </h1>
           <p className="text-muted-foreground">
             Track your progress as you complete each exercise

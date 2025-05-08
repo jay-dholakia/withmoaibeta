@@ -54,7 +54,16 @@ export const StrengthExercise: React.FC<Props> = ({
     if (exercise.exercise && exercise.exercise.id !== currentExercise?.id) {
       setCurrentExercise(exercise.exercise);
     }
-  }, [exercise.exercise]);
+  }, [exercise.exercise, currentExercise?.id]);
+
+  // Apply personal record values to the first set if available
+  useEffect(() => {
+    if (personalRecord && hasSets && exerciseState.sets.length > 0 && !exerciseState.sets[0].weight && !exerciseState.sets[0].reps) {
+      // Only autofill if the first set is empty (no weight/reps entered yet)
+      onSetChange(exercise.id, 0, 'weight', personalRecord.weight?.toString() || '');
+      onSetChange(exercise.id, 0, 'reps', personalRecord.reps?.toString() || '');
+    }
+  }, [personalRecord, hasSets, exercise.id]);
 
   // Query for similar exercises
   const { data: similarExercises, isLoading } = useQuery({

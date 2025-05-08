@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { WorkoutHistoryItem, WorkoutExercise, PersonalRecord } from '@/types/workout';

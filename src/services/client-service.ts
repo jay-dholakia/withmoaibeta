@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -9,7 +10,7 @@ export interface ClientProfile {
   last_name?: string;
   weight?: string;
   height?: string;
-  birthday?: string; // Changed from string | Date to only string
+  birthday?: string | null; // Changed from string | Date to string | null
   city?: string;
   state?: string;
   fitness_goals?: string[];
@@ -17,7 +18,7 @@ export interface ClientProfile {
   program_type?: string;
   event_type?: string;
   event_name?: string;
-  event_date?: string; // Changed from string | Date to only string
+  event_date?: string | null; // Changed from string | Date to string | null
   avatar_url?: string;
   profile_completed?: boolean;
   created_at?: string;
@@ -130,13 +131,13 @@ export const updateClientProfile = async (
     
     // Check for birthday property and if it's a Date object
     if (profileData.birthday && typeof profileData.birthday === 'object' && 
-        profileData.birthday !== null && 'toISOString' in profileData.birthday) {
+        'toISOString' in profileData.birthday) {
       processedData.birthday = (profileData.birthday as unknown as Date).toISOString();
     }
     
     // Check for event_date property and if it's a Date object
     if (profileData.event_date && typeof profileData.event_date === 'object' && 
-        profileData.event_date !== null && 'toISOString' in profileData.event_date) {
+        'toISOString' in profileData.event_date) {
       processedData.event_date = (profileData.event_date as unknown as Date).toISOString();
     }
     

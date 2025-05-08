@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ClientLayout } from '@/layouts/ClientLayout';
 import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutHistoryItem, PersonalRecord } from '@/types/workout';
@@ -27,6 +29,7 @@ const processWorkoutHistory = (workouts: WorkoutHistoryItem[]): WorkoutHistoryIt
 
 const ClientWorkoutDetailsPage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { workoutId } = useParams<{ workoutId: string }>();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [workouts, setWorkouts] = useState<WorkoutHistoryItem[]>([]);
@@ -60,7 +63,19 @@ const ClientWorkoutDetailsPage: React.FC = () => {
   return (
     <ClientLayout>
       <div className="container mx-auto py-6">
-        <h1 className="text-2xl font-bold mb-6">Workout Details</h1>
+        <div className="flex items-center mb-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate('/client-dashboard/workouts')}
+            className="mr-2"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <h1 className="text-2xl font-bold">Workout Details</h1>
+        </div>
+        
         {isLoading ? (
           <Card>
             <CardContent className="p-6 text-center">

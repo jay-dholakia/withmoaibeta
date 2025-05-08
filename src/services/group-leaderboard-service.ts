@@ -19,15 +19,47 @@ export const fetchAllGroupsLeaderboard = async () => {
     throw new Error('Unauthorized access - admin privileges required');
   }
 
-  // We use RPC to get the data from the server to ensure proper RLS checks
-  const { data: groups, error } = await supabase.rpc('get_all_groups_with_fire_badges');
+  // Use a direct query instead of RPC
+  const { data: groups, error } = await supabase
+    .from('groups')
+    .select(`
+      id,
+      name,
+      description,
+      created_at,
+      group_members:group_members(
+        user_id,
+        fire_badges:user_id(id)
+      )
+    `);
   
   if (error) {
     console.error('Error fetching group leaderboard data:', error);
     throw new Error(error.message);
   }
 
-  return groups;
+  // Process the data to include fire badge counts
+  const processedGroups = groups.map(group => {
+    let totalFireBadges = 0;
+    const members = group.group_members || [];
+    
+    members.forEach(member => {
+      if (member.fire_badges) {
+        totalFireBadges += member.fire_badges.length;
+      }
+    });
+
+    return {
+      id: group.id,
+      name: group.name,
+      description: group.description,
+      created_at: group.created_at,
+      member_count: members.length,
+      fire_badges_count: totalFireBadges
+    };
+  });
+
+  return processedGroups;
 };
 
 // Re-export client leaderboard functions for backward compatibility

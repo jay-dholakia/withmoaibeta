@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchPosts, ActivityPost as ActivityPostType } from '@/services/activity-feed-service';
-import { ActivityPost } from '@/components/client/ActivityPost';
+import { fetchRecentActivities } from '@/services/activity-feed-service';
+import ActivityPost from '@/components/client/ActivityPost';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Card } from '@/components/ui/card';
@@ -44,9 +44,9 @@ const ActivityFeedPage: React.FC = () => {
     fetchGroupId();
   }, [user, location.pathname]);
   
-  const { data: posts, isLoading, error } = useQuery({
+  const { data: activities, isLoading, error } = useQuery({
     queryKey: ['activity-feed'],
-    queryFn: fetchPosts,
+    queryFn: fetchRecentActivities,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 15, // 15 minutes
   });
@@ -71,10 +71,14 @@ const ActivityFeedPage: React.FC = () => {
               Please refresh the page to try again
             </p>
           </div>
-        ) : posts && posts.length > 0 ? (
+        ) : activities && activities.length > 0 ? (
           <div className="space-y-4">
-            {posts.map((post: ActivityPostType) => (
-              <ActivityPost key={post.id} post={post} />
+            {activities.map((activity: any) => (
+              <ActivityPost 
+                key={activity.id} 
+                activity={activity} 
+                currentUserId={user?.id || ''}
+              />
             ))}
           </div>
         ) : (

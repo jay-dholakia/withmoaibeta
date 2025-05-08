@@ -1,11 +1,10 @@
-
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
 import ActiveWorkout from '@/components/client/ActiveWorkout';
 import WorkoutComplete from '@/components/client/WorkoutComplete';
 import CreateCustomWorkout from '@/components/client/CreateCustomWorkout';
-import CustomWorkoutDetail from '@/components/client/CustomWorkoutDetail';
+import CustomWorkoutDetail from '@/components/client/custom-workout/CustomWorkoutDetail';
 import EnterOneOffWorkout from '@/components/client/EnterOneOffWorkout';
 import LogRunPage from '@/pages/client/LogRunPage';
 import LogCardioPage from '@/pages/client/LogCardioPage';

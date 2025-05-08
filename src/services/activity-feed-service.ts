@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface FetchActivitiesOptions {
@@ -7,6 +6,7 @@ interface FetchActivitiesOptions {
   retryCount?: number;
 }
 
+// Rename fetchRecentActivities to make it more descriptive of what it actually does
 export const fetchRecentActivities = async ({ 
   limit = 20, 
   offset = 0,

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -10,7 +9,7 @@ export interface ClientProfile {
   last_name?: string;
   weight?: string;
   height?: string;
-  birthday?: string | null; // Changed from string | Date to string | null
+  birthday?: string | null;
   city?: string;
   state?: string;
   fitness_goals?: string[];
@@ -18,19 +17,13 @@ export interface ClientProfile {
   program_type?: string;
   event_type?: string;
   event_name?: string;
-  event_date?: string | null; // Changed from string | Date to string | null
+  event_date?: string | null;
   avatar_url?: string;
   profile_completed?: boolean;
   created_at?: string;
   updated_at?: string;
 }
 
-/**
- * Saves journal notes for a workout completion
- * @param workoutCompletionId ID of the workout completion
- * @param notes Notes to save
- * @returns Promise resolving to a boolean indicating success/failure
- */
 export const saveWorkoutJournalNotes = async (
   workoutCompletionId: string,
   notes: string
@@ -53,11 +46,6 @@ export const saveWorkoutJournalNotes = async (
   }
 };
 
-/**
- * Fetches a client's profile
- * @param userId The user's ID
- * @returns Promise resolving to the client profile or null if not found
- */
 export const fetchClientProfile = async (userId: string): Promise<ClientProfile | null> => {
   try {
     const { data, error } = await supabase
@@ -78,25 +66,16 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile 
   }
 };
 
-/**
- * Creates a new client profile
- * @param userId The user's ID
- * @returns Promise resolving to the created profile or null on failure
- */
 export const createClientProfile = async (userId: string): Promise<ClientProfile | null> => {
   try {
-    // Check if profile already exists
     const { data: existingProfile } = await supabase
       .from('client_profiles')
       .select('*')
       .eq('id', userId)
       .maybeSingle();
 
-    if (existingProfile) {
-      return existingProfile;
-    }
+    if (existingProfile) return existingProfile;
 
-    // Create new profile
     const { data, error } = await supabase
       .from('client_profiles')
       .insert([{ id: userId }])
@@ -115,60 +94,29 @@ export const createClientProfile = async (userId: string): Promise<ClientProfile
   }
 };
 
-/**
- * Updates a client's profile
- * @param userId The user's ID
- * @param profileData The profile data to update
- * @returns Promise resolving to the updated profile or null on failure
- */
 export const updateClientProfile = async (
   userId: string,
   profileData: Partial<ClientProfile>
 ): Promise<ClientProfile | null> => {
   try {
-    // Ensure dates are converted to strings before sending to Supabase
-    const processedData = { ...profileData };
-    
-    // Check for birthday property and if it's a Date object
+    const processedData: Partial<ClientProfile> = { ...profileData };
+
     if (profileData.birthday !== undefined) {
-      if (profileData.birthday === null) {
-        processedData.birthday = null;
-      } else if (
-        typeof profileData.birthday === 'object' && 
-        profileData.birthday !== null && 
-        'toISOString' in profileData.birthday
-      ) {
-        // Explicitly check that birthday is not null before using it
-        const birthday = profileData.birthday as Date;  // Safe cast after checks
-        if (birthday) {
-          processedData.birthday = birthday.toISOString();
-        } else {
-          processedData.birthday = null;
-        }
-      } 
-      // else keep as is (already a string)
+      const birthday = profileData.birthday;
+      processedData.birthday =
+        birthday === null ? null :
+        typeof birthday === 'object' && 'toISOString' in birthday ? (birthday as Date).toISOString() :
+        birthday;
     }
-    
-    // Check for event_date property and if it's a Date object
+
     if (profileData.event_date !== undefined) {
-      if (profileData.event_date === null) {
-        processedData.event_date = null;
-      } else if (
-        typeof profileData.event_date === 'object' && 
-        profileData.event_date !== null && 
-        'toISOString' in profileData.event_date
-      ) {
-        // Explicitly check that event_date is not null before using it
-        const eventDate = profileData.event_date as Date;  // Safe cast after checks
-        if (eventDate) {
-          processedData.event_date = eventDate.toISOString();
-        } else {
-          processedData.event_date = null;
-        }
-      }
-      // else keep as is (already a string)
+      const eventDate = profileData.event_date;
+      processedData.event_date =
+        eventDate === null ? null :
+        typeof eventDate === 'object' && 'toISOString' in eventDate ? (eventDate as Date).toISOString() :
+        eventDate;
     }
-    
+
     const { data, error } = await supabase
       .from('client_profiles')
       .update(processedData)
@@ -188,21 +136,13 @@ export const updateClientProfile = async (
   }
 };
 
-/**
- * Fetches all client profiles
- * @returns Promise resolving to an array of client profiles or empty array on failure
- */
 export const fetchAllClientProfiles = async (): Promise<ClientProfile[]> => {
   try {
-    const { data, error } = await supabase
-      .from('client_profiles')
-      .select('*');
-
+    const { data, error } = await supabase.from('client_profiles').select('*');
     if (error) {
       console.error('Error fetching all client profiles:', error);
       return [];
     }
-
     return data || [];
   } catch (error) {
     console.error('Error in fetchAllClientProfiles:', error);
@@ -210,12 +150,6 @@ export const fetchAllClientProfiles = async (): Promise<ClientProfile[]> => {
   }
 };
 
-/**
- * Uploads a client's avatar
- * @param userId The user's ID
- * @param file The file to upload
- * @returns Promise resolving to the avatar URL or null on failure
- */
 export const uploadClientAvatar = async (userId: string, file: File): Promise<string | null> => {
   try {
     const fileExt = file.name.split('.').pop();
@@ -232,10 +166,7 @@ export const uploadClientAvatar = async (userId: string, file: File): Promise<st
     }
 
     const { data } = supabase.storage.from('user-content').getPublicUrl(filePath);
-    
-    // Update profile with avatar URL
     await updateClientProfile(userId, { avatar_url: data.publicUrl });
-    
     return data.publicUrl;
   } catch (error) {
     console.error('Error in uploadClientAvatar:', error);
@@ -243,11 +174,6 @@ export const uploadClientAvatar = async (userId: string, file: File): Promise<st
   }
 };
 
-/**
- * Fetches personal records for a user
- * @param userId The user's ID
- * @returns Promise resolving to array of personal records
- */
 export const fetchPersonalRecords = async (userId: string) => {
   try {
     const { data, error } = await supabase
@@ -267,25 +193,18 @@ export const fetchPersonalRecords = async (userId: string) => {
   }
 };
 
-/**
- * Tracks a workout set completion
- * @param workoutId The workout ID
- * @param exerciseId The exercise ID
- * @param setData The set completion data
- * @returns Promise resolving to the created set completion or null on failure
- */
 export const trackWorkoutSet = async (
-  workoutId: string, 
-  exerciseId: string, 
+  workoutId: string,
+  exerciseId: string,
   setData: any
 ) => {
   try {
     const data = {
       ...setData,
       workout_exercise_id: exerciseId,
-      user_id: supabase.auth.getUser().then(res => res.data.user?.id)
+      user_id: (await supabase.auth.getUser()).data.user?.id
     };
-    
+
     const { data: result, error } = await supabase
       .from('workout_set_completions')
       .insert([data])
@@ -303,11 +222,6 @@ export const trackWorkoutSet = async (
   }
 };
 
-/**
- * Completes a workout
- * @param workoutData The workout data
- * @returns Promise resolving to the completed workout or null on failure
- */
 export const completeWorkout = async (workoutData: any) => {
   try {
     const { data, error } = await supabase
@@ -327,11 +241,6 @@ export const completeWorkout = async (workoutData: any) => {
   }
 };
 
-/**
- * Deletes a user
- * @param userId The user's ID
- * @returns Promise resolving to success boolean
- */
 export const deleteUser = async (userId: string): Promise<boolean> => {
   try {
     const { error } = await supabase.functions.invoke('delete-user', {
@@ -350,11 +259,6 @@ export const deleteUser = async (userId: string): Promise<boolean> => {
   }
 };
 
-/**
- * Sends a password reset email
- * @param email The user's email
- * @returns Promise resolving to success boolean
- */
 export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -372,3 +276,4 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
     return false;
   }
 };
+

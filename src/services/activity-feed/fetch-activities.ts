@@ -9,14 +9,14 @@ import { QueryFunctionContext } from "@tanstack/react-query";
 export const fetchRecentActivities = async (
   context?: QueryFunctionContext<string[]>
 ): Promise<Activity[]> => {
-  try {
-    // Default options
-    const options: FetchActivitiesOptions = {
-      limit: 10,
-      offset: 0,
-      retryCount: 0
-    };
+  // Default options
+  const options: FetchActivitiesOptions = {
+    limit: 10,
+    offset: 0,
+    retryCount: 0
+  };
 
+  try {
     // Extract options from context if provided
     if (context?.meta) {
       const meta = context.meta as Record<string, any>;
@@ -81,7 +81,7 @@ export const fetchRecentActivities = async (
     console.error('Error in fetchRecentActivities:', error);
     
     // If retry count is specified and not exceeded, retry the fetch
-    if (options?.retryCount && options.retryCount > 0) {
+    if (options.retryCount && options.retryCount > 0) {
       console.log(`Retrying... (${options.retryCount} attempts remaining)`);
       return fetchRecentActivities({
         meta: {

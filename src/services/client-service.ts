@@ -132,8 +132,13 @@ export const updateClientProfile = async (
     if (profileData.birthday !== undefined) {
       if (profileData.birthday === null) {
         processedData.birthday = null;
-      } else if (typeof profileData.birthday === 'object' && profileData.birthday !== null && 'toISOString' in profileData.birthday) {
-        processedData.birthday = (profileData.birthday as unknown as Date).toISOString();
+      } else if (
+        typeof profileData.birthday === 'object' && 
+        profileData.birthday !== null && 
+        'toISOString' in profileData.birthday
+      ) {
+        const birthday = profileData.birthday as unknown as Date;
+        processedData.birthday = birthday.toISOString();
       } 
       // else keep as is (already a string)
     }
@@ -142,8 +147,13 @@ export const updateClientProfile = async (
     if (profileData.event_date !== undefined) {
       if (profileData.event_date === null) {
         processedData.event_date = null;
-      } else if (typeof profileData.event_date === 'object' && profileData.event_date !== null && 'toISOString' in profileData.event_date) {
-        processedData.event_date = (profileData.event_date as unknown as Date).toISOString();
+      } else if (
+        typeof profileData.event_date === 'object' && 
+        profileData.event_date !== null && 
+        'toISOString' in profileData.event_date
+      ) {
+        const eventDate = profileData.event_date as unknown as Date;
+        processedData.event_date = eventDate.toISOString();
       }
       // else keep as is (already a string)
     }

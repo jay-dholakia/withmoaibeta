@@ -18,7 +18,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
-import { deleteWorkoutCompletion, saveWorkoutJournalNotes } from '@/services/workout-delete-service';
+import { deleteWorkoutCompletion } from '@/services/workout-delete-service';
+import { saveWorkoutJournalNotes } from '@/services/client-service';
 import { toast } from 'sonner';
 
 interface WorkoutDayDetailsProps {

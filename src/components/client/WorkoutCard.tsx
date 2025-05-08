@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import MemberBadgeItem from './MemberBadgeItem';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -52,6 +53,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   isLifeHappensPass = false,
   onWorkoutCompleted, // New prop
 }) => {
+  const [showMembersDropdown, setShowMembersDropdown] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLocallyCompleted, setIsLocallyCompleted] = useState(completed);
   const isCurrentUserCompleted = isLocallyCompleted || 
@@ -96,7 +98,11 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         </div>
         
         {groupMembers.length > 0 && (
-          <div className="flex -space-x-1 items-center mt-2">
+          <div className="relative">
+            <div
+              className="flex -space-x-1 items-center mt-2 cursor-pointer"
+              onClick={() => setShowMembersDropdown(prev => !prev)}
+            >
             <TooltipProvider>
               {groupMembers.map((member, index) => {
                 const hasCompleted = member.completed_workout_ids.includes(workoutId);
@@ -126,6 +132,14 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
                 );
               })}
             </TooltipProvider>
+            </div>
+            {showMembersDropdown && (
+              <div className="absolute left-0 mt-2 w-60 max-h-64 overflow-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-10">
+                {groupMembers.map(member => (
+                  <MemberBadgeItem key={member.id} member={member} />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </CardHeader>

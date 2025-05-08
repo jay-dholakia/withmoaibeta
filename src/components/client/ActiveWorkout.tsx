@@ -30,6 +30,7 @@ const ActiveWorkout = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  // Initialize all state variables at the top level
   const [expandedDescriptions, setExpandedDescriptions] = useState<{ [key: string]: boolean }>({});
   const [retryCount, setRetryCount] = useState(0);
   const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
@@ -40,9 +41,27 @@ const ActiveWorkout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completionProcessed, setCompletionProcessed] = useState(false);
 
+  // All refs should be initialized at the top level
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initCompleteForceCounter = useRef<number>(0);
   const forceInitRef = useRef<boolean>(false);
+
+  // Always fetch personal records, regardless of rendering conditions
+  const { data: personalRecords = [] } = useQuery({
+    queryKey: ['personal-records', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        const records = await fetchPersonalRecords(user.id);
+        console.log("Fetched personal records:", records);
+        return records;
+      } catch (error) {
+        console.error('Error fetching personal records:', error);
+        return [];
+      }
+    },
+    enabled: !!user?.id,
+  });
 
   const getWorkoutExercises = (data: any) => {
     if (!data || !data.workout) return [];
@@ -516,7 +535,7 @@ const ActiveWorkout = () => {
             duration: '',
             location: '',
             completed: false,
-            workout_type: 'cardio' // Add workout_type
+            workout_type: 'cardio'
           }
         };
       }
@@ -527,7 +546,7 @@ const ActiveWorkout = () => {
           duration: '',
           location: '',
           completed: false,
-          workout_type: 'cardio' // Add workout_type
+          workout_type: 'cardio'
         };
       }
       
@@ -557,7 +576,7 @@ const ActiveWorkout = () => {
             duration: field === 'duration' ? value : exerciseStates[exerciseId]?.cardioData?.duration || '',
             location: exerciseStates[exerciseId]?.cardioData?.location || '',
             completed: exerciseStates[exerciseId]?.cardioData?.completed || false,
-            workout_type: 'cardio' // Add workout_type
+            workout_type: 'cardio'
           }
         ]);
       }
@@ -577,7 +596,7 @@ const ActiveWorkout = () => {
             duration: '',
             location: '',
             completed: false,
-            workout_type: 'cardio' // Add workout_type
+            workout_type: 'cardio'
           }
         };
       }
@@ -588,7 +607,7 @@ const ActiveWorkout = () => {
           duration: '',
           location: '',
           completed: false,
-          workout_type: 'cardio' // Add workout_type
+          workout_type: 'cardio'
         };
       }
       
@@ -619,7 +638,7 @@ const ActiveWorkout = () => {
           duration: currentState?.duration || '',
           location: currentState?.location || '',
           completed,
-          workout_type: 'cardio' // Add workout_type
+          workout_type: 'cardio'
         }
       ]);
     }
@@ -923,176 +942,4 @@ const ActiveWorkout = () => {
   useEffect(() => {
     if (saveStatus === 'error') {
       if (autosaveRetries < 3) {
-        console.log(`Autosave failed (attempt ${autosaveRetries + 1}/3). Will retry in 5 seconds...`);
-        setTimeout(() => {
-          setAutosaveRetries(prev => prev + 1);
-          forceSave();
-        }, 5000);
-        
-        if (autosaveRetries === 2) {
-          toast.error('Failed to save workout progress. Please check your connection.');
-        }
-      } else {
-        toast.error('Could not save workout progress automatically. Try completing your workout when connection improves.');
-      }
-    }
-    
-    if (saveStatus === 'saved') {
-      setAutosaveRetries(0);
-    }
-  }, [saveStatus, autosaveRetries, forceSave]);
-
-  if (isLoading || isDraftLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-        <p className="text-lg font-medium">Loading workout...</p>
-      </div>
-    );
-  }
-
-  if (!workoutData || !workoutData.workout) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-          <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-red-100 mb-4">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-          </div>
-          <h2 className="text-xl font-bold mb-2">Workout Not Found</h2>
-          <p className="text-gray-600 mb-4">
-            We couldn't find the workout with ID: {workoutCompletionId}
-          </p>
-          <p className="text-sm text-gray-500 mb-6">
-            The workout may have been deleted or you may not have access to it.
-          </p>
-          <Button onClick={() => navigate('/client-dashboard/workouts')} className="w-full">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const exerciseRenderReady = 
-    initialLoadComplete && 
-    Object.keys(exerciseStates || {}).length > 0 &&
-    workoutExercises.every(ex => !!exerciseStates[ex.id]);
-  
-  const forceShowExercises = forceInitRef.current && workoutExercises.length > 0;
-
-  // Always fetch personal records, regardless of other conditions
-  const { data: personalRecords = [] } = useQuery({
-    queryKey: ['personal-records', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      try {
-        const records = await fetchPersonalRecords(user.id);
-        console.log("Fetched personal records:", records);
-        return records;
-      } catch (error) {
-        console.error('Error fetching personal records:', error);
-        return [];
-      }
-    },
-    enabled: !!user?.id,
-  });
-
-  return (
-    <div className="container max-w-2xl mx-auto p-4 pb-32">
-      <div className="flex items-center mb-4 gap-2">
-        <Button variant="ghost" onClick={() => navigate('/client-dashboard/workouts')} className="h-8 w-8 p-0 text-gray-500">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-xl font-bold">{workoutData?.workout?.title || "Workout"}</h1>
-      </div>
-
-      {workoutExercises.length > 0 ? (
-        exerciseRenderReady || forceShowExercises ? (
-          <div className="space-y-6">
-            {workoutExercises.map(exercise => renderExerciseCard(exercise))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center min-h-[300px] p-4">
-            <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-            <p className="text-lg font-medium">Preparing workout...</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Status: {workoutDataLoaded ? 'Workout data loaded' : 'Loading workout data'}, 
-              {draftLoaded ? ' Draft loaded' : ' Loading draft'},
-              {initializationComplete ? ' Initialization complete' : ' Initializing'}
-            </p>
-            <Button
-              onClick={() => {
-                console.log("Manual reload triggered by user");
-                window.location.reload();
-              }}
-              variant="outline"
-              className="mt-6"
-            >
-              <Loader2 className="h-4 w-4 mr-2" /> Reload Workout
-            </Button>
-          </div>
-        )
-      ) : (
-        <div className="text-center py-12">
-          {sortedExerciseIds.length === 0 && workoutData?.workout?.workout_type === 'cardio' ? (
-            <CardioWorkout
-              workoutId={workoutData.workout.id}
-              formatDurationInput={formatDurationInput}
-              onCardioChange={handleCardioChange}
-              onCardioCompletion={handleCardioCompletion}
-              cardioData={{
-                distance: '',
-                duration: '',
-                location: '',
-                completed: false,
-                ...((exerciseStates['cardio-placeholder'] || {}).cardioData || {})
-              }}
-              exerciseId={'cardio-placeholder'}
-              workoutTitle={workoutData.workout.title}
-            />
-          ) : sortedExerciseIds.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="inline-flex rounded-full bg-gray-100 p-6 mb-4">
-                <HelpCircle className="h-10 w-10 text-gray-400" />
-              </div>
-              <h2 className="text-2xl font-semibold mb-2">No Exercises Found</h2>
-              <p className="text-muted-foreground">
-                This workout doesn't have any exercises.
-              </p>
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      {/* Always show the Complete Workout button regardless of workout type */}
-      <div className="fixed bottom-14 left-0 right-0 z-40">
-        <div className="bg-gradient-to-t from-background via-background to-transparent">
-          <div className="container max-w-2xl mx-auto px-4">
-            <Stopwatch 
-              className="border-b border-border" 
-              saveStatus={saveStatus} 
-              workoutCompletionId={workoutCompletionId}
-            />
-            <Button 
-              onClick={handleCompleteWorkout}
-              disabled={isSubmitting || completionProcessed}
-              className="w-full mt-3 mb-2 py-6 bg-primary hover:bg-primary/90 text-white text-lg font-medium rounded-lg shadow-lg"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" /> Saving...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default ActiveWorkout;
+        console.log(`Autosave failed (attempt ${autosaveRetries + 1}/3). Will retry in

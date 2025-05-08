@@ -195,7 +195,7 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
   };
 
   return (
-    <div className={cn("flex justify-between items-center py-3 px-4 bg-background border rounded-md shadow-sm", className)}>
+    <div className={cn("flex justify-between items-center py-2 px-4 bg-background border rounded-md shadow-sm", className)}>
       <div className="text-xl font-semibold">{formatTime(time)}</div>
       
       <div className="flex items-center gap-2">
@@ -203,9 +203,10 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
         
         <Button 
           variant="ghost" 
-          size="icon"
+          size="sm"
           onClick={toggleRunning}
           aria-label={isRunning ? "Pause timer" : "Start timer"}
+          className="h-8 w-8 p-0"
         >
           {isRunning ? (
             <PauseCircle className="h-5 w-5" />
@@ -216,9 +217,10 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
         
         <Button 
           variant="ghost" 
-          size="icon"
+          size="sm"
           onClick={handleReset}
           aria-label="Reset timer"
+          className="h-8 w-8 p-0"
         >
           <RefreshCw className="h-5 w-5" />
         </Button>

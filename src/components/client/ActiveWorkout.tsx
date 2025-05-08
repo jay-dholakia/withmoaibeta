@@ -1004,7 +1004,7 @@ const ActiveWorkout = () => {
   }
 
   return (
-    <div className="pb-20">
+    <div className="pb-28">
       <Button
         variant="ghost"
         size="sm"
@@ -1049,18 +1049,22 @@ const ActiveWorkout = () => {
       {workoutExercises.length === 0 ? (
         <p className="text-center py-8 text-muted-foreground">No exercises found for this workout</p>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 mb-24">
           {workoutExercises.map(exercise => renderExerciseCard(exercise))}
         </div>
       )}
       
       {/* Fixed position timer and complete workout button */}
       <div className="fixed bottom-14 left-0 right-0 z-50 px-4 flex flex-col gap-2">
-        <Stopwatch className="w-full" workoutCompletionId={workoutCompletionId} saveStatus={saveStatus} />
+        <Stopwatch 
+          className="w-full" 
+          workoutCompletionId={workoutCompletionId} 
+          saveStatus={saveStatus} 
+        />
         
         <Button 
           onClick={() => setIsCompletionDialogOpen(true)}
-          className="w-full py-6 bg-client hover:bg-client/90 shadow-lg"
+          className="w-full py-5 bg-client hover:bg-client/90 shadow-lg"
           disabled={isSubmitting || completionProcessed}
         >
           {isSubmitting ? (

@@ -5,6 +5,5 @@ export * from './avatar';
 export * from './personal-records';
 export * from './workout';
 export * from './auth';
-export * from './custom-workout';
+export * from './custom-workout/index';
 export * from './workout-history';
-

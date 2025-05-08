@@ -130,12 +130,12 @@ export const updateClientProfile = async (
     const processedData = { ...profileData };
     
     // Check for birthday property and if it's a Date object
-    if (typeof profileData.birthday === 'object' && profileData.birthday !== null && 'toISOString' in profileData.birthday) {
+    if (typeof profileData.birthday === 'object' && profileData.birthday !== null && profileData.birthday && 'toISOString' in profileData.birthday) {
       processedData.birthday = (profileData.birthday as unknown as Date).toISOString();
     }
     
     // Check for event_date property and if it's a Date object
-    if (typeof profileData.event_date === 'object' && profileData.event_date !== null && 'toISOString' in profileData.event_date) {
+    if (typeof profileData.event_date === 'object' && profileData.event_date !== null && profileData.event_date && 'toISOString' in profileData.event_date) {
       processedData.event_date = (profileData.event_date as unknown as Date).toISOString();
     }
     

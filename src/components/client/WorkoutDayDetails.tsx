@@ -323,10 +323,10 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
                                 }
                                 personalRecord={findPersonalRecord(exercise.exercise.id)}
                                 onSetChange={(setIndex, field, value) => 
-                                  handleSetChange(workout.id, exercise.id, setIndex, field, value)
+                                  handleSetChange(workout.id, exercise.id, Number(setIndex), field, value)
                                 }
                                 onSetCompletion={(setIndex, completed) => 
-                                  handleSetCompletion(workout.id, exercise.id, setIndex, completed)
+                                  handleSetCompletion(workout.id, exercise.id, Number(setIndex), completed)
                                 }
                                 onVideoClick={() => {}}
                                 onSwapClick={() => {}}

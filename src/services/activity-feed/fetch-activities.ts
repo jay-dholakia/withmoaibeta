@@ -1,160 +1,95 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { QueryFunctionContext } from "@tanstack/react-query";
 import { Activity, FetchActivitiesOptions } from "./types";
+import { QueryFunctionContext } from "@tanstack/react-query";
 
 /**
- * Fetches recent activities from the workout_completions table
+ * Fetch recent activity posts for the activity feed
  */
 export const fetchRecentActivities = async (
-  context?: QueryFunctionContext
+  context?: QueryFunctionContext<string[]>
 ): Promise<Activity[]> => {
   try {
-    // Default values
-    let limit = 20;
-    let offset = 0;
-    let retryCount = 0;
+    // Default options
+    const options: FetchActivitiesOptions = {
+      limit: 10,
+      offset: 0,
+      retryCount: 0
+    };
 
-    // Extract any options if they were passed
-    if (context && 'meta' in context && context.meta) {
-      const options = context.meta as FetchActivitiesOptions;
-      if (options.limit) limit = options.limit;
-      if (options.offset) offset = options.offset;
-      if (options.retryCount) retryCount = options.retryCount;
+    // Extract options from context if provided
+    if (context?.meta) {
+      const meta = context.meta as Record<string, any>;
+      if (meta.limit) options.limit = meta.limit;
+      if (meta.offset) options.offset = meta.offset;
+      if (meta.retryCount) options.retryCount = meta.retryCount;
     }
 
-    console.log("Fetching activities with limit:", limit, "offset:", offset);
-    
-    // Query workout completions that are not rest days or life happens passes
-    const { data: activities, error } = await supabase
+    // Fetch completed workouts that should show in the activity feed
+    let query = supabase
       .from('workout_completions')
       .select(`
-        id, 
-        user_id, 
-        workout_id, 
-        completed_at, 
-        notes, 
-        rating, 
-        rest_day, 
+        id,
+        user_id,
+        workout_id,
+        completed_at,
+        notes,
+        rating,
+        rest_day,
         life_happens_pass,
-        title, 
-        description, 
+        title,
+        description,
         workout_type,
-        duration, 
-        distance
+        duration,
+        distance,
+        profiles:user_id (
+          id,
+          first_name,
+          last_name,
+          avatar_url
+        ),
+        workout:workout_id (
+          title,
+          description
+        ),
+        likes:activity_likes (*)
       `)
-      .is('rest_day', false)
-      .is('life_happens_pass', false)
       .order('completed_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .range(options.offset || 0, (options.offset || 0) + (options.limit || 10) - 1);
+    
+    // Execute the query
+    const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching activity feed:', error);
+      console.error('Error fetching activities:', error);
       throw error;
     }
 
-    // If no activities, return empty array
-    if (!activities || activities.length === 0) {
-      console.log("No activities found");
-      return [];
-    }
-
-    // Fetch profiles and workouts separately with the collected IDs
-    const userIds = activities.map(activity => activity.user_id);
-    const workoutIds = activities.filter(a => a.workout_id).map(a => a.workout_id);
-    
-    // Get client_profiles data
-    const { data: profiles, error: profilesError } = await supabase
-      .from('client_profiles')
-      .select(`
-        id, first_name, last_name, avatar_url
-      `)
-      .in('id', userIds);
+    // Process the data to make it easier to work with
+    const activities = data.map((activity: any) => {
+      // Format the likes array
+      const formattedLikes = Array.isArray(activity.likes) ? activity.likes : [];
       
-    if (profilesError) {
-      console.error('Error fetching client profiles:', profilesError);
-    }
-    
-    // Get workouts data if there are any workout IDs
-    let workouts = [];
-    if (workoutIds.length > 0) {
-      const { data: workoutsData, error: workoutsError } = await supabase
-        .from('workouts')
-        .select(`
-          id, title, description, workout_type
-        `)
-        .in('id', workoutIds);
-        
-      if (workoutsError) {
-        console.error('Error fetching workouts:', workoutsError);
-      } else {
-        workouts = workoutsData || [];
-      }
-    }
-    
-    // Get likes for all activities
-    const activityIds = activities.map(activity => activity.id);
-    const { data: likes, error: likesError } = await supabase
-      .from('activity_likes')
-      .select(`
-        id, user_id, activity_id, created_at
-      `)
-      .in('activity_id', activityIds);
-      
-    if (likesError) {
-      console.error('Error fetching likes:', likesError);
-    }
-    
-    // Map profiles and workouts to activities
-    const profilesMap = (profiles || []).reduce((map, profile) => {
-      map[profile.id] = profile;
-      return map;
-    }, {});
-    
-    const workoutsMap = workouts.reduce((map, workout) => {
-      map[workout.id] = workout;
-      return map;
-    }, {});
-    
-    const likesMap = (likes || []).reduce((map, like) => {
-      if (!map[like.activity_id]) {
-        map[like.activity_id] = [];
-      }
-      map[like.activity_id].push(like);
-      return map;
-    }, {});
-    
-    // Enrich activities with related data
-    const enrichedActivities = activities.map(activity => {
       return {
         ...activity,
-        profiles: profilesMap[activity.user_id] || null,
-        workout: activity.workout_id ? workoutsMap[activity.workout_id] || null : null,
-        likes: likesMap[activity.id] || []
+        likes: formattedLikes
       };
     });
 
-    console.log(`Returning ${enrichedActivities.length} enriched activities`);
-    return enrichedActivities;
+    return activities;
   } catch (error) {
     console.error('Error in fetchRecentActivities:', error);
     
-    // Implement retry logic with exponential backoff for transient errors
-    if (retryCount < 3) {
-      const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
-      console.log(`Retrying after ${delay}ms (attempt ${retryCount + 1}/3)`);
-      
-      return new Promise(resolve => {
-        setTimeout(() => {
-          resolve(fetchRecentActivities({ 
-            meta: { 
-              limit, 
-              offset, 
-              retryCount: retryCount + 1 
-            } 
-          } as QueryFunctionContext));
-        }, delay);
-      });
+    // If retry count is specified and not exceeded, retry the fetch
+    if (options?.retryCount && options.retryCount > 0) {
+      console.log(`Retrying... (${options.retryCount} attempts remaining)`);
+      return fetchRecentActivities({
+        meta: {
+          limit: options.limit,
+          offset: options.offset,
+          retryCount: options.retryCount - 1
+        }
+      } as any);
     }
     
     throw error;

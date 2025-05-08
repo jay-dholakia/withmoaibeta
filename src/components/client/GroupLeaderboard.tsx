@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchGroupLeaderboard } from '@/services/group-leaderboard-service';
+import { fetchGroupLeaderboard } from '@/services/clients/group-leaderboard';
 import { GroupLeaderboardItemCard } from '@/components/client/GroupLeaderboardItem';
 import { Loader2 } from 'lucide-react';
 

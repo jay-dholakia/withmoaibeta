@@ -1015,32 +1015,13 @@ const ActiveWorkout = () => {
         Back to Workouts
       </Button>
       
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {workoutData.workout?.title || 'Workout'}
-          </h1>
-          <p className="text-muted-foreground">
-            Track your progress as you complete each exercise
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Stopwatch />
-          
-          <Button 
-            onClick={() => setIsCompletionDialogOpen(true)}
-            className="flex items-center gap-2"
-            disabled={isSubmitting || completionProcessed}
-          >
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4" />
-            )}
-            Complete Workout
-          </Button>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">
+          {workoutData.workout?.title || 'Workout'}
+        </h1>
+        <p className="text-muted-foreground">
+          Track your progress as you complete each exercise
+        </p>
       </div>
       
       {saveStatus === 'saving' && (
@@ -1072,6 +1053,24 @@ const ActiveWorkout = () => {
           {workoutExercises.map(exercise => renderExerciseCard(exercise))}
         </div>
       )}
+      
+      {/* Fixed position timer and complete workout button */}
+      <div className="fixed bottom-14 left-0 right-0 z-50 px-4 flex flex-col gap-2">
+        <Stopwatch className="w-full" workoutCompletionId={workoutCompletionId} saveStatus={saveStatus} />
+        
+        <Button 
+          onClick={() => setIsCompletionDialogOpen(true)}
+          className="w-full py-6 bg-client hover:bg-client/90 shadow-lg"
+          disabled={isSubmitting || completionProcessed}
+        >
+          {isSubmitting ? (
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+          ) : (
+            <CheckCircle2 className="h-5 w-5 mr-2" />
+          )}
+          Complete Workout
+        </Button>
+      </div>
       
       <Dialog open={isCompletionDialogOpen} onOpenChange={setIsCompletionDialogOpen}>
         <DialogContent>

@@ -942,4 +942,164 @@ const ActiveWorkout = () => {
   useEffect(() => {
     if (saveStatus === 'error') {
       if (autosaveRetries < 3) {
-        console.log(`Autosave failed (attempt ${autosaveRetries + 1}/3). Will retry in
+        console.log(`Autosave failed (attempt ${autosaveRetries + 1}/3). Will retry in 5 seconds.`);
+        setAutosaveRetries(prev => prev + 1);
+        
+        // Try to save again after 5 seconds
+        setTimeout(() => {
+          if (initializationComplete && exerciseStates && Object.keys(exerciseStates).length > 0) {
+            console.log("Retrying autosave...");
+            forceSave();
+          }
+        }, 5000);
+      } else {
+        console.error("Multiple autosave attempts failed. Please try saving manually.");
+        toast.error("Failed to save your progress automatically");
+        // Reset retry counter after showing error message
+        setAutosaveRetries(0);
+      }
+    } else if (saveStatus === 'saved') {
+      // Reset retry counter after successful save
+      setAutosaveRetries(0);
+    }
+  }, [saveStatus, autosaveRetries, exerciseStates, initializationComplete, forceSave]);
+
+  // Display loading state
+  if (isLoading || !initialLoadComplete) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg font-medium">Loading workout...</p>
+        <p className="text-sm text-muted-foreground">Please wait while we prepare your workout</p>
+      </div>
+    );
+  }
+
+  // Display error state
+  if (error || !workoutData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-lg font-medium">Error loading workout</p>
+        <p className="text-sm text-muted-foreground mb-4">Unable to load workout details</p>
+        <Button 
+          variant="outline" 
+          onClick={() => {
+            setRetryCount(prev => prev + 1);
+          }}
+          className="flex items-center gap-2"
+        >
+          <RefreshCcw className="h-4 w-4" />
+          Retry
+        </Button>
+        <Button 
+          variant="link" 
+          onClick={() => navigate('/client-dashboard/workouts')}
+          className="mt-2"
+        >
+          Return to workouts
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pb-20">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate('/client-dashboard/workouts')}
+        className="mb-4 -ml-2 text-muted-foreground"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Workouts
+      </Button>
+      
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {workoutData.workout?.name || 'Workout'}
+          </h1>
+          <p className="text-muted-foreground">
+            Track your progress as you complete each exercise
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Stopwatch />
+          
+          <Button 
+            onClick={() => setIsCompletionDialogOpen(true)}
+            className="flex items-center gap-2"
+            disabled={isSubmitting || completionProcessed}
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            Complete Workout
+          </Button>
+        </div>
+      </div>
+      
+      {saveStatus === 'saving' && (
+        <div className="mb-4 p-2 bg-muted/50 rounded-md flex items-center gap-2 text-sm text-muted-foreground">
+          <Save className="h-4 w-4 animate-pulse" />
+          Saving your progress...
+        </div>
+      )}
+      
+      {saveStatus === 'error' && (
+        <div className="mb-4 p-2 bg-destructive/10 rounded-md flex items-center gap-2 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          Failed to save your progress. 
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={forceSave}
+            className="ml-2 h-7 px-2 text-xs"
+          >
+            Try Again
+          </Button>
+        </div>
+      )}
+      
+      {workoutExercises.length === 0 ? (
+        <p className="text-center py-8 text-muted-foreground">No exercises found for this workout</p>
+      ) : (
+        <div className="space-y-6">
+          {workoutExercises.map(exercise => renderExerciseCard(exercise))}
+        </div>
+      )}
+      
+      <Dialog open={isCompletionDialogOpen} onOpenChange={setIsCompletionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete Workout</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to mark this workout as complete?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCompletionDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCompleteWorkout} disabled={isSubmitting || completionProcessed}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Complete Workout'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ActiveWorkout;

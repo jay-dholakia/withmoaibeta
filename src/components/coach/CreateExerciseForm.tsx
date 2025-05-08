@@ -40,7 +40,8 @@ const formSchema = z.object({
   category: z.string().min(1, { message: 'Category is required.' }),
   description: z.string().optional(),
   exercise_type: z.string().default('strength'),
-  log_type: z.string().default('weight_reps'),
+  youtube_link: z.string().optional(),
+  muscle_group: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -76,11 +77,21 @@ const EXERCISE_TYPES = [
   { value: 'sport', label: 'Sport-Specific' }
 ];
 
-const LOG_TYPES = [
-  { value: 'weight_reps', label: 'Weight & Reps' },
-  { value: 'time', label: 'Time' },
-  { value: 'distance', label: 'Distance' },
-  { value: 'bodyweight', label: 'Bodyweight Only' }
+const MUSCLE_GROUPS = [
+  'Abs',
+  'Back',
+  'Biceps',
+  'Calves',
+  'Chest',
+  'Forearms',
+  'Glutes',
+  'Hamstrings',
+  'Lats',
+  'Lower Back',
+  'Quads',
+  'Shoulders',
+  'Traps',
+  'Triceps'
 ];
 
 export const CreateExerciseForm = ({ 
@@ -97,7 +108,8 @@ export const CreateExerciseForm = ({
       category: '',
       description: '',
       exercise_type: 'strength',
-      log_type: 'weight_reps'
+      youtube_link: '',
+      muscle_group: ''
     },
   });
 
@@ -108,9 +120,10 @@ export const CreateExerciseForm = ({
       const result = await createExercise({
         name: data.name,
         category: data.category,
-        description: data.description || null,
+        description: data.description || '',
         exercise_type: data.exercise_type,
-        log_type: data.log_type
+        youtube_link: data.youtube_link || undefined,
+        muscle_group: data.muscle_group || undefined
       });
       
       if (result.error) {
@@ -119,18 +132,15 @@ export const CreateExerciseForm = ({
         return;
       }
       
-      if (result.isDuplicate) {
-        toast.warning(`Exercise "${data.name}" already exists!`);
-        if (onExerciseCreated && result.exercise) {
-          onExerciseCreated(result.exercise);
-        }
-      } else if (result.exercise) {
+      if (result.success && result.data) {
         toast.success(`Exercise "${data.name}" created successfully!`);
         if (onExerciseCreated) {
-          onExerciseCreated(result.exercise);
+          onExerciseCreated(result.data);
         }
         form.reset();
         onOpenChange(false);
+      } else {
+        toast.error('Failed to create exercise');
       }
     } catch (error) {
       console.error('Error submitting exercise:', error);
@@ -243,23 +253,23 @@ export const CreateExerciseForm = ({
 
               <FormField
                 control={form.control}
-                name="log_type"
+                name="muscle_group"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Logging Type</FormLabel>
+                    <FormLabel>Muscle Group</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="How to log it" />
+                          <SelectValue placeholder="Select muscle group" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {LOG_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
+                        {MUSCLE_GROUPS.map((group) => (
+                          <SelectItem key={group} value={group}>
+                            {group}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -269,6 +279,24 @@ export const CreateExerciseForm = ({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="youtube_link"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>YouTube Link</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="https://www.youtube.com/watch?v=..." 
+                      {...field}
+                      value={field.value || ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <DialogFooter className="gap-2 sm:gap-0">
               <DialogClose asChild>

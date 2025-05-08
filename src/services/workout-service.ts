@@ -1204,7 +1204,7 @@ export const getWorkoutProgramAssignmentCount = async (programIds: string[]): Pr
     const countRecord: Record<string, number> = {};
     
     for (const programId of programIds) {
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from('program_assignments')
         .select('*', { count: 'exact', head: true })
         .eq('program_id', programId);
@@ -1213,7 +1213,8 @@ export const getWorkoutProgramAssignmentCount = async (programIds: string[]): Pr
         console.error(`Error fetching count for program ${programId}:`, error);
         countRecord[programId] = 0;
       } else {
-        countRecord[programId] = count || 0;
+        // Use data.count which is provided by Supabase's count feature
+        countRecord[programId] = data?.length || 0;
       }
     }
 
@@ -1236,17 +1237,39 @@ export const createExercise = async (exerciseData: {
   muscle_group?: string;
 }): Promise<{ success: boolean; data?: any; error?: any }> => {
   try {
+    // Check if exercise with same name already exists
+    const { data: existingExercise, error: checkError } = await supabase
+      .from('exercises')
+      .select('*')
+      .ilike('name', exerciseData.name)
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('Error checking for existing exercise:', checkError);
+      return { success: false, error: checkError };
+    }
+    
+    // If exercise with same name exists, return it
+    if (existingExercise) {
+      return { 
+        success: true, 
+        data: existingExercise,
+        error: null
+      };
+    }
+    
+    // If exercise doesn't exist, create it
     const { data, error } = await supabase
       .from('exercises')
       .insert([exerciseData])
       .select()
       .single();
-
+    
     if (error) {
       console.error('Error creating exercise:', error);
       return { success: false, error };
     }
-
+    
     return { success: true, data };
   } catch (error) {
     console.error('Error in createExercise:', error);

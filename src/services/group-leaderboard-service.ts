@@ -96,16 +96,31 @@ export const fetchGroupMembersWithBadges = async (groupId: string): Promise<Grou
 
     // Get profiles for each member
     const memberIds = memberData.map(m => m.user_id);
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, avatar_url')
-      .in('id', memberIds);
-      
-    if (profilesError) {
-      console.error('Error fetching member profiles:', profilesError);
-      return [];
+    
+    // First check if the profiles data exists and has the required fields
+    let profiles = [];
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('id', memberIds)
+        .limit(1);
+        
+      if (!error && data) {
+        // If profiles exist, fetch all of them
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id')
+          .in('id', memberIds);
+          
+        if (!profilesError) {
+          profiles = profilesData || [];
+        }
+      }
+    } catch (e) {
+      console.error('Error checking profiles table:', e);
     }
-
+      
     // Get client profiles for more info
     const { data: clientProfiles, error: clientProfilesError } = await supabase
       .from('client_profiles')
@@ -117,22 +132,39 @@ export const fetchGroupMembersWithBadges = async (groupId: string): Promise<Grou
     }
 
     // Format member data
-    const members: GroupMember[] = profiles.map(profile => {
-      const clientProfile = clientProfiles?.find(cp => cp.id === profile.id);
-      let name = '';
-      
-      if (clientProfile) {
-        if (clientProfile.first_name || clientProfile.last_name) {
-          name = [clientProfile.first_name, clientProfile.last_name].filter(Boolean).join(' ');
-        }
-      }
-      
-      return {
-        id: profile.id,
-        name: name || `User ${profile.id.substring(0, 4)}`,
-        profile_picture_url: profile.avatar_url || ''
-      };
-    });
+    const members: GroupMember[] = profiles.length > 0 
+      ? profiles.map(profile => {
+          const clientProfile = clientProfiles?.find(cp => cp.id === profile.id);
+          let name = '';
+          
+          if (clientProfile) {
+            if (clientProfile.first_name || clientProfile.last_name) {
+              name = [clientProfile.first_name, clientProfile.last_name].filter(Boolean).join(' ');
+            }
+          }
+          
+          return {
+            id: profile.id,
+            name: name || `User ${profile.id.substring(0, 4)}`,
+            profile_picture_url: ''
+          };
+        })
+      : memberIds.map(id => {
+          const clientProfile = clientProfiles?.find(cp => cp.id === id);
+          let name = '';
+          
+          if (clientProfile) {
+            if (clientProfile.first_name || clientProfile.last_name) {
+              name = [clientProfile.first_name, clientProfile.last_name].filter(Boolean).join(' ');
+            }
+          }
+          
+          return {
+            id: id,
+            name: name || `User ${id.substring(0, 4)}`,
+            profile_picture_url: ''
+          };
+        });
 
     return members;
   } catch (error) {

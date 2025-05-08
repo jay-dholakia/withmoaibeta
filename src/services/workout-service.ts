@@ -1200,23 +1200,22 @@ export const moveStandaloneWorkoutExerciseDown = async (exerciseId: string, work
  */
 export const getWorkoutProgramAssignmentCount = async (programIds: string[]): Promise<Record<string, number>> => {
   try {
-    const { data, error } = await supabase
-      .from('program_assignments')
-      .select('program_id, count')
-      .in('program_id', programIds)
-      .select('program_id')
-      .count();
-
-    if (error) {
-      console.error('Error fetching program assignment counts:', error);
-      return {};
-    }
-
-    // Convert the returned data to a Record mapping program_id to count
+    // For each program ID, perform a count query
     const countRecord: Record<string, number> = {};
-    data.forEach(item => {
-      countRecord[item.program_id] = parseInt(item.count, 10);
-    });
+    
+    for (const programId of programIds) {
+      const { count, error } = await supabase
+        .from('program_assignments')
+        .select('*', { count: 'exact', head: true })
+        .eq('program_id', programId);
+
+      if (error) {
+        console.error(`Error fetching count for program ${programId}:`, error);
+        countRecord[programId] = 0;
+      } else {
+        countRecord[programId] = count || 0;
+      }
+    }
 
     return countRecord;
   } catch (error) {

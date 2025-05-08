@@ -22,8 +22,8 @@ export interface GroupLeaderboardItem {
  */
 export const fetchGroupLeaderboard = async (groupId: string): Promise<GroupLeaderboardItem[]> => {
   // Get the current user to ensure they have access to this group
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) throw new Error('Not authenticated');
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) throw new Error('Not authenticated');
 
   // Use a simpler query approach instead of RPC
   const { data, error } = await supabase
@@ -47,7 +47,7 @@ export const fetchGroupLeaderboard = async (groupId: string): Promise<GroupLeade
   }
 
   // Get fire badges count for each user
-  const userData = await Promise.all(
+  const memberData = await Promise.all(
     data.map(async (member: any) => {
       const { data: badgesData, error: badgesError } = await supabase
         .from('fire_badges')
@@ -74,7 +74,7 @@ export const fetchGroupLeaderboard = async (groupId: string): Promise<GroupLeade
   );
 
   // Sort by fire badge count (descending)
-  const sortedData = userData.sort((a, b) => 
+  const sortedData = memberData.sort((a, b) => 
     b.fire_badges_count - a.fire_badges_count
   );
 

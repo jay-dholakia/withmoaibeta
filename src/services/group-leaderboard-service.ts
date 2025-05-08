@@ -2,11 +2,20 @@
 import { supabase } from '@/integrations/supabase/client';
 import { fetchGroupLeaderboard as fetchGroupLeaderboardFromClient } from './clients/group-leaderboard';
 
+interface GroupSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  member_count: number;
+  fire_badges_count: number;
+}
+
 /**
  * Fetch group leaderboard data for all groups
  * This is used by admin dashboards to show data for multiple groups
  */
-export const fetchAllGroupsLeaderboard = async () => {
+export const fetchAllGroupsLeaderboard = async (): Promise<GroupSummary[]> => {
   const { data: user } = await supabase.auth.getUser();
   if (!user || !user.user) throw new Error('Not authenticated');
 
@@ -39,11 +48,11 @@ export const fetchAllGroupsLeaderboard = async () => {
   }
 
   // Process the data to include fire badge counts
-  const processedGroups = groups.map(group => {
+  const processedGroups = groups.map((group: any) => {
     let totalFireBadges = 0;
     const members = group.group_members || [];
     
-    members.forEach(member => {
+    members.forEach((member: any) => {
       if (member.fire_badges) {
         totalFireBadges += member.fire_badges.length;
       }

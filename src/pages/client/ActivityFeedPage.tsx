@@ -71,7 +71,7 @@ const ActivityFeedPage: React.FC = () => {
               Please refresh the page to try again
             </p>
           </div>
-        ) : activities && activities.length > 0 ? (
+        ) : activities && Array.isArray(activities) && activities.length > 0 ? (
           <div className="space-y-4">
             {activities.map((activity: any) => (
               <ActivityPost 

@@ -381,21 +381,14 @@ const ActiveWorkout = () => {
           if (exerciseState.sets && exerciseState.sets.length > 0) {
             exerciseState.sets.forEach((set, index) => {
               if (set.completed || (set.weight && set.reps)) {
-                const setData = {
-                  weight: parseFloat(set.weight) || null,
-                  reps_completed: parseInt(set.reps) || null,
-                  completed: set.completed || false,
-                  notes: null
-                };
-                
                 savePromises.push(
                   trackWorkoutSet(
                     workoutId,
                     exerciseId,
                     {
-                      set_number: setIndex + 1,
-                      weight: Number(weight),
-                      reps_completed: Number(reps),
+                      set_number: index + 1,
+                      weight: set.weight ? Number(set.weight) : undefined,
+                      reps_completed: set.reps ? Number(set.reps) : undefined,
                       completed: true
                     }
                   )
@@ -411,11 +404,11 @@ const ActiveWorkout = () => {
                 workoutId,
                 exerciseId,
                 {
-                  distance: cardioData.distance || null,
-                  duration: cardioData.duration || null,
-                  location: cardioData.location || null,
+                  set_number: 1,
                   completed: cardioData.completed || false,
-                  notes: null
+                  distance: cardioData.distance || undefined,
+                  duration: cardioData.duration || undefined,
+                  location: cardioData.location || undefined
                 }
               )
             );
@@ -428,9 +421,9 @@ const ActiveWorkout = () => {
                 workoutId,
                 exerciseId,
                 {
-                  duration: flexData.duration || null,
+                  set_number: 1,
                   completed: flexData.completed || false,
-                  notes: null
+                  duration: flexData.duration || undefined
                 }
               )
             );
@@ -443,11 +436,11 @@ const ActiveWorkout = () => {
                 workoutId,
                 exerciseId,
                 {
-                  distance: runData.distance || null,
-                  duration: runData.duration || null,
-                  location: runData.location || null,
+                  set_number: 1,
                   completed: runData.completed || false,
-                  notes: null
+                  distance: runData.distance || undefined,
+                  duration: runData.duration || undefined,
+                  location: runData.location || undefined
                 }
               )
             );

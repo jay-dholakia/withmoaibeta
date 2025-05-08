@@ -101,41 +101,45 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile 
 };
 
 // Update client profile
-export const updateClientProfile = async (userId: string, profileData: Partial<ClientProfile>): Promise<boolean> => {
+export const updateClientProfile = async (userId: string, profileData: Partial<ClientProfile>): Promise<ClientProfile | null> => {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('client_profiles')
       .update(profileData)
-      .eq('id', userId);
+      .eq('id', userId)
+      .select()
+      .single();
 
     if (error) {
       console.error('Error updating client profile:', error);
-      return false;
+      return null;
     }
 
-    return true;
+    return data as ClientProfile;
   } catch (error) {
     console.error('Error in updateClientProfile:', error);
-    return false;
+    return null;
   }
 };
 
 // Create client profile
-export const createClientProfile = async (userId: string, profileData: Partial<ClientProfile> = {}): Promise<boolean> => {
+export const createClientProfile = async (userId: string, profileData: Partial<ClientProfile> = {}): Promise<ClientProfile | null> => {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('client_profiles')
-      .insert([{ id: userId, ...profileData }]);
+      .insert([{ id: userId, ...profileData }])
+      .select()
+      .single();
 
     if (error) {
       console.error('Error creating client profile:', error);
-      return false;
+      return null;
     }
 
-    return true;
+    return data as ClientProfile;
   } catch (error) {
     console.error('Error in createClientProfile:', error);
-    return false;
+    return null;
   }
 };
 
@@ -214,13 +218,17 @@ export const deleteUser = async (userId: string): Promise<boolean> => {
 
 // Track workout set function
 export const trackWorkoutSet = async (
-  workoutCompletionId: string, 
+  workoutId: string,
   exerciseId: string, 
   setData: {
     set_number: number;
     weight?: number;
     reps_completed?: number;
+    distance?: string;
+    duration?: string;
+    location?: string;
     completed: boolean;
+    notes?: string;
   }
 ): Promise<boolean> => {
   try {
@@ -237,7 +245,7 @@ export const trackWorkoutSet = async (
     const { data: existingSets, error: fetchError } = await supabase
       .from('workout_set_completions')
       .select('id')
-      .eq('workout_completion_id', workoutCompletionId)
+      .eq('workout_completion_id', workoutId)
       .eq('workout_exercise_id', exerciseId)
       .eq('set_number', setData.set_number);
 
@@ -253,7 +261,11 @@ export const trackWorkoutSet = async (
         .update({
           weight: setData.weight,
           reps_completed: setData.reps_completed,
-          completed: setData.completed
+          distance: setData.distance,
+          duration: setData.duration,
+          location: setData.location,
+          completed: setData.completed,
+          notes: setData.notes
         })
         .eq('id', existingSets[0].id);
 
@@ -266,13 +278,17 @@ export const trackWorkoutSet = async (
       const { error } = await supabase
         .from('workout_set_completions')
         .insert([{
-          workout_completion_id: workoutCompletionId,
+          workout_completion_id: workoutId,
           workout_exercise_id: exerciseId,
           user_id: userId,
           set_number: setData.set_number,
           weight: setData.weight,
           reps_completed: setData.reps_completed,
-          completed: setData.completed
+          distance: setData.distance,
+          duration: setData.duration,
+          location: setData.location,
+          completed: setData.completed,
+          notes: setData.notes
         }]);
 
       if (error) {

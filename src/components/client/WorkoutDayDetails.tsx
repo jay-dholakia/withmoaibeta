@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { WorkoutHistoryItem, WorkoutExercise, PersonalRecord } from '@/types/workout';
@@ -19,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
-import { deleteWorkoutCompletion } from '@/services/workout-delete-service';
+import { deleteWorkoutCompletion, saveWorkoutJournalNotes } from '@/services/workout-delete-service';
 import { toast } from 'sonner';
 
 interface WorkoutDayDetailsProps {
@@ -63,8 +62,26 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
 
   // Function to save journal notes
   const handleSaveJournal = async (workout: WorkoutHistoryItem) => {
-    // Todo: Implement saving to database
-    toast.success("Journal notes saved");
+    if (!workout.id) {
+      toast.error("Could not save journal notes: Missing workout ID");
+      return;
+    }
+
+    try {
+      const success = await saveWorkoutJournalNotes(
+        workout.id,
+        journalNotes[workout.id] || ''
+      );
+      
+      if (success) {
+        toast.success("Journal notes saved");
+      } else {
+        toast.error("Failed to save journal notes");
+      }
+    } catch (error) {
+      console.error("Error saving journal notes:", error);
+      toast.error("An error occurred while saving journal notes");
+    }
   };
 
   // Function to find a personal record for a specific exercise

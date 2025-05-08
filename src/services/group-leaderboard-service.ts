@@ -98,7 +98,7 @@ export const fetchGroupMembersWithBadges = async (groupId: string): Promise<Grou
     const memberIds = memberData.map(m => m.user_id);
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, username, avatar_url')
+      .select('id, avatar_url')
       .in('id', memberIds);
       
     if (profilesError) {
@@ -119,7 +119,7 @@ export const fetchGroupMembersWithBadges = async (groupId: string): Promise<Grou
     // Format member data
     const members: GroupMember[] = profiles.map(profile => {
       const clientProfile = clientProfiles?.find(cp => cp.id === profile.id);
-      let name = profile.username || '';
+      let name = '';
       
       if (clientProfile) {
         if (clientProfile.first_name || clientProfile.last_name) {

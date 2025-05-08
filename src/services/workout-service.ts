@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Exercise, WorkoutProgram, WorkoutWeek, Workout, WorkoutExercise, StandaloneWorkout } from '@/types/workout';
 
@@ -1193,5 +1192,95 @@ export const moveStandaloneWorkoutExerciseDown = async (exerciseId: string, work
   } catch (error) {
     console.error('Error moving standalone workout exercise down:', error);
     throw error;
+  }
+};
+
+/**
+ * Gets the number of clients assigned to each program
+ */
+export const getWorkoutProgramAssignmentCount = async (programIds: string[]): Promise<Record<string, number>> => {
+  try {
+    const { data, error } = await supabase
+      .from('program_assignments')
+      .select('program_id, count')
+      .in('program_id', programIds)
+      .select('program_id')
+      .count();
+
+    if (error) {
+      console.error('Error fetching program assignment counts:', error);
+      return {};
+    }
+
+    // Convert the returned data to a Record mapping program_id to count
+    const countRecord: Record<string, number> = {};
+    data.forEach(item => {
+      countRecord[item.program_id] = parseInt(item.count, 10);
+    });
+
+    return countRecord;
+  } catch (error) {
+    console.error('Error in getWorkoutProgramAssignmentCount:', error);
+    return {};
+  }
+};
+
+/**
+ * Creates a new exercise
+ */
+export const createExercise = async (exerciseData: {
+  name: string;
+  category: string;
+  description?: string | null;
+  exercise_type?: string;
+  log_type?: string;
+}): Promise<{
+  exercise?: Exercise;
+  error?: any;
+  isDuplicate?: boolean;
+}> => {
+  try {
+    // Check if exercise with same name already exists
+    const { data: existingExercise, error: checkError } = await supabase
+      .from('exercises')
+      .select('*')
+      .ilike('name', exerciseData.name)
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('Error checking for existing exercise:', checkError);
+      return { error: checkError };
+    }
+    
+    // If exercise with same name exists, return it with isDuplicate flag
+    if (existingExercise) {
+      return { 
+        exercise: existingExercise as Exercise, 
+        isDuplicate: true 
+      };
+    }
+    
+    // If exercise doesn't exist, create it
+    const { data, error } = await supabase
+      .from('exercises')
+      .insert([{
+        name: exerciseData.name,
+        category: exerciseData.category,
+        description: exerciseData.description || null,
+        exercise_type: exerciseData.exercise_type || 'strength',
+        log_type: exerciseData.log_type || 'weight_reps'
+      }])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating exercise:', error);
+      return { error };
+    }
+    
+    return { exercise: data as Exercise };
+  } catch (error) {
+    console.error('Error in createExercise:', error);
+    return { error };
   }
 };

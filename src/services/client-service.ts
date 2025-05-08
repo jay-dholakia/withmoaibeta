@@ -10,7 +10,7 @@ export interface ClientProfile {
   last_name?: string;
   weight?: string;
   height?: string;
-  birthday?: string | Date;
+  birthday?: string; // Changed from string | Date to only string
   city?: string;
   state?: string;
   fitness_goals?: string[];
@@ -18,7 +18,7 @@ export interface ClientProfile {
   program_type?: string;
   event_type?: string;
   event_name?: string;
-  event_date?: string | Date;
+  event_date?: string; // Changed from string | Date to only string
   avatar_url?: string;
   profile_completed?: boolean;
   created_at?: string;
@@ -126,9 +126,21 @@ export const updateClientProfile = async (
   profileData: Partial<ClientProfile>
 ): Promise<ClientProfile | null> => {
   try {
+    // Ensure dates are converted to strings before sending to Supabase
+    const processedData = { ...profileData };
+    
+    // Convert Date objects to ISO strings if they exist
+    if (profileData.birthday instanceof Date) {
+      processedData.birthday = profileData.birthday.toISOString();
+    }
+    
+    if (profileData.event_date instanceof Date) {
+      processedData.event_date = profileData.event_date.toISOString();
+    }
+    
     const { data, error } = await supabase
       .from('client_profiles')
-      .update(profileData)
+      .update(processedData)
       .eq('id', userId)
       .select()
       .single();
@@ -226,14 +238,26 @@ export const fetchPersonalRecords = async (userId: string) => {
 
 /**
  * Tracks a workout set completion
+ * @param workoutId The workout ID
+ * @param exerciseId The exercise ID
  * @param setData The set completion data
  * @returns Promise resolving to the created set completion or null on failure
  */
-export const trackWorkoutSet = async (setData: any) => {
+export const trackWorkoutSet = async (
+  workoutId: string, 
+  exerciseId: string, 
+  setData: any
+) => {
   try {
-    const { data, error } = await supabase
+    const data = {
+      ...setData,
+      workout_exercise_id: exerciseId,
+      user_id: supabase.auth.getUser().then(res => res.data.user?.id)
+    };
+    
+    const { data: result, error } = await supabase
       .from('workout_set_completions')
-      .insert([setData])
+      .insert([data])
       .select();
 
     if (error) {
@@ -241,7 +265,7 @@ export const trackWorkoutSet = async (setData: any) => {
       return null;
     }
 
-    return data?.[0] || null;
+    return result?.[0] || null;
   } catch (error) {
     console.error('Error in trackWorkoutSet:', error);
     return null;

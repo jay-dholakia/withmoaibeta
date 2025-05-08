@@ -2,12 +2,12 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { GroupLeaderboardItem as GroupLeaderboardItemType } from '@/services/group-leaderboard-service';
+import { MemberLeaderboardItem } from '@/services/group-leaderboard-service';
 import { FireBadge } from './FireBadge';
 import { Trophy, Medal } from 'lucide-react';
 
 interface GroupLeaderboardItemProps {
-  item: GroupLeaderboardItemType;
+  item: MemberLeaderboardItem;
 }
 
 export const GroupLeaderboardItemCard: React.FC<GroupLeaderboardItemProps> = ({ item }) => {

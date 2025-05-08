@@ -37,6 +37,15 @@ export const StrengthExercise: React.FC<Props> = ({
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
   const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>(exercise.exercise);
 
+  // Log personal record for debugging
+  useEffect(() => {
+    if (personalRecord) {
+      console.log(`PR displayed for ${exercise.exercise?.name}:`, personalRecord);
+    } else {
+      console.log(`No PR available for ${exercise.exercise?.name}`);
+    }
+  }, [personalRecord, exercise.exercise?.name]);
+
   // Check if exercise has sets
   const hasSets = exerciseState && exerciseState.sets && exerciseState.sets.length > 0;
 

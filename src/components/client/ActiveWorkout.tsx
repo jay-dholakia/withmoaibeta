@@ -759,6 +759,18 @@ const ActiveWorkout = () => {
     return false;
   };
 
+  const findPersonalRecord = (exerciseId: string): PersonalRecord | undefined => {
+    if (!personalRecords || personalRecords.length === 0 || !exerciseId) return undefined;
+    
+    console.log(`Looking for PR for exercise: ${exerciseId} in ActiveWorkout`);
+    const record = personalRecords.find(pr => pr.exercise_id === exerciseId);
+    if (record) {
+      console.log(`Found PR:`, record);
+    }
+    
+    return record;
+  };
+
   const renderExerciseCard = (exercise: WorkoutExercise) => {
     if (!exercise) {
       console.log(`Cannot render null or undefined exercise`);
@@ -840,7 +852,7 @@ const ActiveWorkout = () => {
                   exercise: currentExercise
                 }}
                 exerciseState={exerciseStates[exercise.id]}
-                personalRecord={undefined}
+                personalRecord={currentExercise && currentExercise.id ? findPersonalRecord(currentExercise.id) : undefined}
                 onSetChange={handleSetChange}
                 onSetCompletion={handleSetCompletion}
                 onVideoClick={handleVideoClick}
@@ -966,6 +978,22 @@ const ActiveWorkout = () => {
     workoutExercises.every(ex => !!exerciseStates[ex.id]);
   
   const forceShowExercises = forceInitRef.current && workoutExercises.length > 0;
+
+  const { data: personalRecords, isLoading: isLoadingRecords, error: recordsError } = useQuery({
+    queryKey: ['personal-records', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        const records = await fetchPersonalRecords(user.id);
+        console.log("Fetched personal records:", records);
+        return records;
+      } catch (error) {
+        console.error('Error fetching personal records:', error);
+        return [];
+      }
+    },
+    enabled: !!user?.id,
+  });
 
   return (
     <div className="container max-w-2xl mx-auto p-4 pb-32">

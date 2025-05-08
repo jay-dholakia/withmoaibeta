@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { PersonalRecord } from '@/types/workout';
 
@@ -320,6 +319,8 @@ export const completeWorkout = async (workoutCompletionId: string) => {
  * Fetch personal records
  */
 export const fetchPersonalRecords = async (userId: string): Promise<PersonalRecord[]> => {
+  console.log(`Fetching personal records for user: ${userId}`);
+  
   const { data, error } = await supabase
     .from('personal_records')
     .select(`
@@ -333,6 +334,8 @@ export const fetchPersonalRecords = async (userId: string): Promise<PersonalReco
     throw error;
   }
 
+  console.log(`Found ${data?.length || 0} personal records:`, data);
+  
   return data.map(record => ({
     ...record,
     exercise_name: record.exercise?.name
@@ -343,6 +346,8 @@ export const fetchPersonalRecords = async (userId: string): Promise<PersonalReco
  * Fetch personal record for a specific exercise
  */
 export const fetchExercisePersonalRecord = async (userId: string, exerciseId: string): Promise<PersonalRecord | null> => {
+  console.log(`Fetching personal record for exercise ${exerciseId} and user ${userId}`);
+  
   const { data, error } = await supabase
     .from('personal_records')
     .select(`
@@ -358,7 +363,12 @@ export const fetchExercisePersonalRecord = async (userId: string, exerciseId: st
     throw error;
   }
 
-  if (!data) return null;
+  if (!data) {
+    console.log(`No personal record found for exercise ${exerciseId}`);
+    return null;
+  }
+  
+  console.log(`Found personal record for exercise ${exerciseId}:`, data);
   
   return {
     ...data,

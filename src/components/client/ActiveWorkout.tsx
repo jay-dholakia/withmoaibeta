@@ -33,7 +33,6 @@ const ActiveWorkout = () => {
   // Initialize all state variables at the top level
   const [expandedDescriptions, setExpandedDescriptions] = useState<{ [key: string]: boolean }>({});
   const [retryCount, setRetryCount] = useState(0);
-  const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [workoutDataLoaded, setWorkoutDataLoaded] = useState(false);
   const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
@@ -1017,7 +1016,7 @@ const ActiveWorkout = () => {
       
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">
-          {workoutData.workout?.title || 'Workout'}
+          {workoutData?.workout?.title || 'Workout'}
         </h1>
         <p className="text-muted-foreground">
           Track your progress as you complete each exercise
@@ -1063,7 +1062,7 @@ const ActiveWorkout = () => {
         />
         
         <Button 
-          onClick={() => setIsCompletionDialogOpen(true)}
+          onClick={handleCompleteWorkout}
           className="w-full py-5 bg-client hover:bg-client/90 shadow-lg"
           disabled={isSubmitting || completionProcessed}
         >
@@ -1075,32 +1074,6 @@ const ActiveWorkout = () => {
           Complete Workout
         </Button>
       </div>
-      
-      <Dialog open={isCompletionDialogOpen} onOpenChange={setIsCompletionDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Complete Workout</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to mark this workout as complete?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCompletionDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCompleteWorkout} disabled={isSubmitting || completionProcessed}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Complete Workout'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

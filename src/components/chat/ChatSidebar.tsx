@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatRoom } from "@/services/chat";
-import { MessageSquare, Users, UserPlus, Plus } from "lucide-react";
+import { MessageSquare, Users, UserPlus, Plus, MessageCircle } from "lucide-react";
 import { 
   Dialog,
   DialogContent, 
@@ -164,8 +164,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   return (
     <div className="w-full h-full flex flex-col border-r">
-      <div className="p-4 border-b">
-        <h2 className="font-semibold text-lg">Chats</h2>
+      <div className="p-4 border-b bg-background/95 backdrop-blur-sm sticky top-0 z-10">
+        <h2 className="font-semibold text-lg flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-muted-foreground" />
+          Chats
+        </h2>
       </div>
       
       <ScrollArea className="flex-1">
@@ -183,17 +186,22 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   key={room.id}
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start px-4",
-                    activeRoomId === room.id && "bg-accent"
+                    "w-full justify-start px-4 py-3 h-auto min-h-[64px]",
+                    activeRoomId === room.id && "bg-accent hover:bg-accent/90"
                   )}
                   onClick={() => onSelectRoom(room.id)}
                 >
-                  <Avatar className="h-6 w-6 mr-2">
-                    <AvatarFallback className="bg-orange-500 text-primary-foreground text-xs">
+                  <Avatar className="h-10 w-10 mr-3">
+                    <AvatarFallback className="bg-orange-500 text-primary-foreground text-sm">
                       {getInitials(room.name)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="truncate">{room.name}</span>
+                  <div className="flex flex-col items-start">
+                    <span className="truncate font-medium text-base">{room.name}</span>
+                    <span className="text-xs text-muted-foreground truncate mt-0.5">
+                      {room.last_message || "No messages yet"}
+                    </span>
+                  </div>
                 </Button>
               ))}
             </div>
@@ -214,76 +222,70 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   key={room.id}
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start px-4",
-                    activeRoomId === room.id && "bg-accent"
+                    "w-full justify-start px-4 py-3 h-auto min-h-[64px]",
+                    activeRoomId === room.id && "bg-accent hover:bg-accent/90"
                   )}
                   onClick={() => onSelectRoom(room.id)}
                 >
-                  <Avatar className="h-6 w-6 mr-2">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                  <Avatar className="h-10 w-10 mr-3">
+                    <AvatarFallback className="bg-blue-500 text-primary-foreground text-sm">
                       {getInitials(room.name)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="truncate">{room.name}</span>
+                  <div className="flex flex-col items-start">
+                    <span className="truncate font-medium text-base">{room.name}</span>
+                    <span className="text-xs text-muted-foreground truncate mt-0.5">
+                      {room.last_message || "No messages yet"}
+                    </span>
+                  </div>
                 </Button>
               ))}
             </div>
           </div>
         )}
         
-        <div className="py-2">
-          <div className="px-4 py-2 flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground flex items-center">
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Direct Messages
-            </h3>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="h-6 w-6 p-0 -mr-1"
-              onClick={handleOpenNewDmDialog}
-              aria-label="New Direct Message"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+        {directMessages.length > 0 && (
+          <div className="py-2">
+            <div className="px-4 py-2">
+              <h3 className="text-sm font-medium text-muted-foreground flex items-center">
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Direct Messages
+              </h3>
+            </div>
+            <div className="space-y-1">
+              {directMessages.map((room) => (
+                <Button
+                  key={room.id}
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start px-4 py-3 h-auto min-h-[64px]",
+                    activeRoomId === room.id && "bg-accent hover:bg-accent/90"
+                  )}
+                  onClick={() => onSelectRoom(room.id)}
+                >
+                  <Avatar className="h-10 w-10 mr-3">
+                    <AvatarFallback className="bg-green-500 text-primary-foreground text-sm">
+                      {getInitials(room.other_user_name || "DM")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-start">
+                    <span className="truncate font-medium text-base">
+                      {room.other_user_name ? formatName(room.other_user_name) : "Direct Message"}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate mt-0.5">
+                      {room.last_message || "No messages yet"}
+                    </span>
+                  </div>
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="space-y-1">
-            {directMessages.length > 0 ? (
-              directMessages.map((room) => {
-                const formattedName = room.other_user_name ? formatName(room.other_user_name) : "Unknown";
-                
-                return (
-                  <Button
-                    key={room.id}
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start px-4",
-                      activeRoomId === room.id && "bg-accent"
-                    )}
-                    onClick={() => onSelectRoom(room.id)}
-                  >
-                    <Avatar className="h-6 w-6 mr-2">
-                      <AvatarImage src={room.other_user_avatar || ""} alt={formattedName} />
-                      <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
-                        {formattedName ? formattedName[0] : "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="truncate">{formattedName}</span>
-                  </Button>
-                );
-              })
-            ) : (
-              <div className="px-4 py-2 text-sm text-muted-foreground">
-                No direct messages yet
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </ScrollArea>
 
-      {/* New DM Dialog with required DialogTitle */}
+      {/* New DM Dialog */}
       <Dialog open={isNewDmDialogOpen} onOpenChange={setIsNewDmDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[90vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>New Direct Message</DialogTitle>
             <DialogDescription>
@@ -303,7 +305,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 <p className="text-sm mt-2">You need to be in the same group with other members</p>
               </div>
             ) : (
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                 {groupMembers.map((member) => {
                   const firstName = member.first_name || '';
                   const lastNameInitial = member.last_name ? member.last_name[0] + '.' : '';
@@ -313,17 +315,17 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     <Button
                       key={member.id}
                       variant="outline"
-                      className="w-full justify-start py-6"
+                      className="w-full justify-start py-4 min-h-[64px]"
                       onClick={() => handleCreateDirectMessage(member.id)}
                       disabled={isCreatingDm}
                     >
-                      <Avatar className="h-8 w-8 mr-3">
+                      <Avatar className="h-10 w-10 mr-3">
                         <AvatarImage src={member.avatar_url || ""} alt={formattedName} />
-                        <AvatarFallback className="bg-secondary text-secondary-foreground">
+                        <AvatarFallback className="bg-secondary text-secondary-foreground text-sm">
                           {formattedName[0] || "?"}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{formattedName}</span>
+                      <span className="font-medium text-base">{formattedName}</span>
                     </Button>
                   );
                 })}

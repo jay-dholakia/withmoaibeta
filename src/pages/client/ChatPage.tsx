@@ -155,54 +155,48 @@ export default function ChatPage() {
       <div className="flex flex-1 border rounded-lg dark:border-gray-700 dark:bg-gray-800 h-full">
         {isMobile ? (
           <div className="w-full flex flex-col h-full relative">
-            {/* Moved arrow button to the lower quadrant */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="absolute left-0 bottom-1/4 transform z-10 h-10 w-6 p-0 rounded-r-md rounded-l-none border border-gray-300 dark:border-gray-500 bg-secondary/30"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 transform z-10 h-14 w-10 p-0 rounded-r-md rounded-l-none border border-gray-300 dark:border-gray-500 bg-background/95 backdrop-blur-sm hover:bg-background/90 transition-all duration-200 shadow-md touch-manipulation"
                 >
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <ArrowRight className="h-5 w-5 text-muted-foreground" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-[250px]" hideCloseButton>
+              <SheetContent 
+                side="left" 
+                className="p-0 w-[85vw] sm:w-[320px] border-r bg-background/95 backdrop-blur-sm" 
+                hideCloseButton
+              >
                 <div className="relative h-full">
                   <ChatSidebar 
                     rooms={chatRooms} 
                     activeRoomId={activeRoomId} 
-                    onSelectRoom={handleSelectRoom}
+                    onSelectRoom={(roomId) => {
+                      handleSelectRoom(roomId);
+                      // Close the sheet after selecting a room on mobile
+                      const closeButton = document.querySelector('[data-sheet-close]');
+                      if (closeButton instanceof HTMLElement) {
+                        closeButton.click();
+                      }
+                    }}
                     onChatCreated={handleChatCreated}
                   />
                   
-                  {/* Left-pointing arrow button to close sidebar - also moved to bottom quadrant */}
                   <SheetClose asChild>
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="absolute right-0 bottom-1/4 transform h-10 w-6 p-0 rounded-l-md rounded-r-none border border-gray-300 dark:border-gray-500 bg-secondary/30"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 transform h-14 w-10 p-0 rounded-l-md rounded-r-none border border-gray-300 dark:border-gray-500 bg-background/95 backdrop-blur-sm hover:bg-background/90 transition-all duration-200 shadow-md touch-manipulation"
                     >
-                      <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+                      <ArrowLeft className="h-5 w-5 text-muted-foreground" />
                     </Button>
                   </SheetClose>
                 </div>
               </SheetContent>
             </Sheet>
-            
-            <div className="flex items-center p-2 border-b">
-              <div className="font-medium truncate flex items-center">
-                <Button 
-                  variant="ghost" 
-                  onClick={handleBackClick}
-                  className="mr-2 flex items-center"
-                  size="sm"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-1" />
-                  Back
-                </Button>
-                {getActiveRoomDisplayName()}
-              </div>
-            </div>
             
             <div className="flex-1 overflow-hidden">
               {activeRoom && activeRoomId ? (
@@ -211,17 +205,18 @@ export default function ChatPage() {
                   isDirectMessage={!activeRoom.is_group_chat}
                   roomName={activeRoom.name}
                   isMobile={isMobile}
+                  onBack={handleBackClick}
                 />
               ) : (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-muted-foreground">Select a conversation to start chatting</p>
+                <div className="h-full flex items-center justify-center p-4">
+                  <p className="text-muted-foreground text-center">Select a conversation to start chatting</p>
                 </div>
               )}
             </div>
           </div>
         ) : (
           <>
-            <div className="w-64 border-r">
+            <div className="w-64 border-r bg-background/95 backdrop-blur-sm">
               <ChatSidebar 
                 rooms={chatRooms} 
                 activeRoomId={activeRoomId} 
@@ -237,6 +232,7 @@ export default function ChatPage() {
                   isDirectMessage={!activeRoom.is_group_chat}
                   roomName={activeRoom.name}
                   isMobile={isMobile}
+                  onBack={handleBackClick}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center">

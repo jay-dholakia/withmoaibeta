@@ -1,4 +1,3 @@
-
 // Chat room types
 
 export interface ChatRoom {
@@ -13,6 +12,7 @@ export interface ChatRoom {
   other_user_avatar?: string;
   buddy_ids?: string[];
   group_id?: string; // Add this field to store the group ID for group chats
+  last_message?: string;
 }
 
 export interface ChatMessage {

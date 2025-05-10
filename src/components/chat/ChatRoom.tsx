@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -127,10 +126,32 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   const displayRoomName = isDirectMessage && roomName ? formatName(roomName) : roomName;
 
   return (
-    <div className="flex flex-col h-full">
-      <CardHeader className="px-4 py-3 border-b shrink-0">
-        <CardTitle className="text-lg">{displayRoomName}</CardTitle>
-      </CardHeader>
+    <div className="flex flex-col h-full bg-background">
+      <div className="px-4 py-3 border-b shrink-0 bg-background/95 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          {isMobile && onBack && (
+            <Button 
+              variant="ghost" 
+              onClick={onBack}
+              className="p-0 h-8 w-8 hover:bg-accent touch-manipulation"
+              size="sm"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
+          <div className="flex items-center gap-3 flex-1">
+            <Avatar className="h-10 w-10">
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {getInitials(displayRoomName)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className="font-medium text-base">{displayRoomName}</h2>
+              <p className="text-xs text-muted-foreground">Online</p>
+            </div>
+          </div>
+        </div>
+      </div>
       
       <div className="flex-1 overflow-hidden">
         {isLoading ? (
@@ -142,7 +163,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
             <p>No messages yet. Start the conversation!</p>
           </div>
         ) : (
-          <ScrollArea className="h-full w-full p-4">
+          <ScrollArea className="h-full w-full px-4 py-6">
             <div className="space-y-4">
               {messages.map((message) => {
                 const isCurrentUser = message.sender_id === user?.id;
@@ -151,9 +172,15 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                 return (
                   <div
                     key={message.id}
-                    className={cn("flex", isCurrentUser ? "justify-end" : "justify-start")}
+                    className={cn(
+                      "flex",
+                      isCurrentUser ? "justify-end" : "justify-start"
+                    )}
                   >
-                    <div className="flex items-start gap-2 max-w-[80%]">
+                    <div className={cn(
+                      "flex items-end gap-2 max-w-[85%] group",
+                      isCurrentUser ? "flex-row-reverse" : "flex-row"
+                    )}>
                       {!isCurrentUser && (
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={message.sender_avatar || ""} />
@@ -164,35 +191,28 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                       )}
                       
                       <div className={cn(
-                        "rounded-lg px-3 py-2 space-y-1",
+                        "rounded-2xl px-4 py-2.5 relative",
                         isCurrentUser 
-                          ? "bg-client text-white" 
-                          : "bg-muted"
+                          ? "bg-primary text-primary-foreground rounded-tr-none" 
+                          : "bg-muted rounded-tl-none"
                       )}>
                         {!isCurrentUser && (
-                          <p className="text-xs font-medium">
+                          <p className="text-xs font-medium mb-1 text-muted-foreground">
                             {formattedName}
                           </p>
                         )}
                         <div className="space-y-1">
-                          <p className="text-sm md:text-base">{message.content}</p>
+                          <p className="text-sm md:text-base whitespace-pre-wrap break-words">
+                            {message.content}
+                          </p>
                           <p className={cn(
-                            "text-xs opacity-70",
-                            isCurrentUser ? "text-white" : "text-muted-foreground"
+                            "text-[10px] opacity-70 text-right",
+                            isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground"
                           )}>
                             {formatMessageTime(message.created_at)}
                           </p>
                         </div>
                       </div>
-                      
-                      {isCurrentUser && (
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={message.sender_avatar || ""} />
-                          <AvatarFallback>
-                            {getInitials(formattedName)}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
                     </div>
                   </div>
                 );
@@ -203,19 +223,20 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
         )}
       </div>
       
-      <div className="p-2 md:p-3 border-t mt-auto sticky bottom-0 bg-background">
+      <div className="p-3 border-t bg-background/95 backdrop-blur-sm sticky bottom-0">
         <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
           <Input
             placeholder="Type a message..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             disabled={isSending}
-            className="flex-1"
+            className="flex-1 rounded-full bg-muted/50 focus-visible:ring-1"
           />
           <Button 
             type="submit" 
             size="icon" 
             disabled={!newMessage.trim() || isSending}
+            className="rounded-full h-10 w-10"
           >
             {isSending ? (
               <Loader2 className="h-4 w-4 animate-spin" />

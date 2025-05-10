@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -153,7 +152,7 @@ export default function ChatPage() {
 
   return (
     <div className="h-full flex flex-col">      
-      <div className="flex flex-1 border rounded-lg dark:border-gray-700 dark:bg-gray-800">
+      <div className="flex flex-1 border rounded-lg dark:border-gray-700 dark:bg-gray-800 h-full">
         {isMobile ? (
           <div className="w-full flex flex-col h-full relative">
             {/* Moved arrow button to the lower quadrant */}

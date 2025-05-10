@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -45,7 +44,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
         </div>
       </header>
       
-      <main className={`flex-grow ${isChatRoute ? 'py-0 mb-14 flex' : 'py-6 mb-14 flex'} w-full overflow-visible`}>
+      <main className={`flex-grow ${isChatRoute ? 'py-0 mb-14 flex h-[calc(100vh-8rem)]' : 'py-6 mb-14 flex'} w-full overflow-visible`}>
         <div className={`w-full max-w-screen-xl mx-auto ${isChatRoute ? 'px-0 md:px-0 h-full flex' : 'px-4 md:px-6'} overflow-visible`}>
           <PageTransition>
             {children}

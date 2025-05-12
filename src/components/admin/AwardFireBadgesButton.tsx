@@ -49,13 +49,18 @@ export const AwardFireBadgesButton: React.FC<AwardFireBadgesButtonProps> = ({
     setIsProcessing(true);
     
     try {
+      console.log("Invoking award-fire-badges function with params:", { groupId });
+      
       const { data, error } = await supabase.functions.invoke('award-fire-badges', {
         body: { groupId }
       });
       
       if (error) {
+        console.error("Error from award-fire-badges function:", error);
         throw new Error(error.message);
       }
+      
+      console.log("Fire badges processing result:", data);
       
       toast.success(
         data.message || 'Fire badges processed successfully',
@@ -68,7 +73,7 @@ export const AwardFireBadgesButton: React.FC<AwardFireBadgesButtonProps> = ({
       
       // Update last processed time
       setLastProcessedTime(new Date());
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing fire badges:', error);
       toast.error('Failed to process fire badges', { 
         description: error.message || 'An unexpected error occurred' 

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,7 +7,7 @@ import MoaiCoachTab from '@/components/client/MoaiCoachTab';
 import MoaiGroupProgress from '@/components/client/MoaiGroupProgress';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Music, Dumbbell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
@@ -28,6 +29,7 @@ export default function MoaiPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
   const [currentWeekNumber, setCurrentWeekNumber] = useState<number>(1);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [isGeneratingBuddies, setIsGeneratingBuddies] = useState(false);
@@ -36,7 +38,7 @@ export default function MoaiPage() {
   const currentQueryTab = searchParams.get('tab');
   const activeTab = currentQueryTab && VALID_TABS.includes(currentQueryTab) ? currentQueryTab : DEFAULT_TAB;
 
-  const { badgeCount, isCurrentWeekEarned } = useFireBadges(user?.id || '');
+  const { badgeCount, isCurrentWeekEarned, refetch: refetchBadges } = useFireBadges(user?.id || '');
 
   const { data: userGroups, isLoading: isLoadingUserGroups, refetch: refetchUserGroups } = useQuery({
     queryKey: ['user-groups', user?.id],
@@ -58,6 +60,11 @@ export default function MoaiPage() {
       refetchUserGroups().finally(() => {
         setIsRefreshingGroups(false);
       });
+      
+      // Also refresh fire badges
+      if (user?.id) {
+        refetchBadges();
+      }
     }
   }, []);
 
@@ -135,12 +142,15 @@ export default function MoaiPage() {
     try {
       await generateWeeklyBuddies(activeGroupId);
       await refetchBuddies();
+      
+      // Invalidate the fire badges query to refresh them as well
+      queryClient.invalidateQueries({ queryKey: ['fire-badges'] });
     } catch (error) {
       console.error('Error refreshing accountability buddies:', error);
     } finally {
       setIsGeneratingBuddies(false);
     }
-  }, [activeGroupId, refetchBuddies]);
+  }, [activeGroupId, refetchBuddies, queryClient]);
 
   const handleTabChange = (newTab: string) => {
     setSearchParams({ tab: newTab }, { replace: true });

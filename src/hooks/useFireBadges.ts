@@ -12,6 +12,8 @@ export const useFireBadges = (userId: string) => {
     queryFn: async () => {
       if (!userId) return { count: 0, current_week: false };
       
+      console.log(`Fetching fire badge count for user ${userId}`);
+      
       // Get the badge count
       const { data: countData, error: countError } = await supabase
         .rpc('count_user_fire_badges', { user_id_param: userId });
@@ -43,6 +45,8 @@ export const useFireBadges = (userId: string) => {
         return { count: countData || 0, current_week: false };
       }
       
+      console.log(`User ${userId} has badge for current week: ${!!currentWeekBadge}`);
+      
       // If no badge for current week, check if the user would qualify now
       let wouldQualify = false;
       if (!currentWeekBadge) {
@@ -54,6 +58,7 @@ export const useFireBadges = (userId: string) => {
           
         if (!weekCompletionError) {
           wouldQualify = !!weekCompletion;
+          console.log(`User ${userId} would qualify for badge: ${wouldQualify}`);
         }
       }
       
@@ -63,7 +68,7 @@ export const useFireBadges = (userId: string) => {
       };
     },
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 1 * 60 * 1000, // 1 minute to ensure more frequent updates
   });
   
   useEffect(() => {
@@ -77,6 +82,8 @@ export const useFireBadges = (userId: string) => {
   useEffect(() => {
     if (!userId) return;
     
+    console.log(`Setting up real-time subscription for fire badges for user ${userId}`);
+    
     const channel = supabase
       .channel('fire-badges-changes')
       .on(
@@ -87,15 +94,15 @@ export const useFireBadges = (userId: string) => {
           table: 'fire_badges',
           filter: `user_id=eq.${userId}`
         },
-        () => {
-          // Refetch when any badge change happens for this user
-          console.log('Fire badge change detected, refetching...');
+        (payload) => {
+          console.log('Fire badge change detected:', payload);
           refetch();
         }
       )
       .subscribe();
       
     return () => {
+      console.log('Cleaning up fire badges subscription');
       supabase.removeChannel(channel);
     };
   }, [userId, refetch]);

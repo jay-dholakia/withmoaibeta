@@ -33,12 +33,20 @@ serve(async (req) => {
     console.log("Processing fire badges:", { groupId, weekStart, isAutomatedRun, processPreviousWeek });
 
     // Get the current week start date if not provided
-    const weekStartDate = weekStart || 
-      (await supabase.rpc("get_pacific_week_start")).data;
+    const { data: weekStartData, error: weekStartError } = await supabase
+      .rpc("get_pacific_week_start");
+    
+    if (weekStartError) {
+      throw new Error(`Failed to get week start date: ${weekStartError.message}`);
+    }
+    
+    const weekStartDate = weekStart || weekStartData;
     
     if (!weekStartDate) {
       throw new Error("Failed to get week start date");
     }
+
+    console.log("Using week start date:", weekStartDate);
 
     // Query to get user IDs to process
     let userQuery = supabase.from('profiles')
@@ -101,12 +109,54 @@ serve(async (req) => {
     const results = await Promise.all(
       users.map(async (user) => {
         try {
-          // Call the updated database function which now checks for 5 distinct workout days
-          const { data: badgeId, error: badgeError } = await supabase
-            .rpc("award_fire_badge", {
-              award_user_id: user.id,
-              award_week_start: processWeekStart
+          console.log(`Processing user ${user.id} for week ${processWeekStart}`);
+          
+          // Check if the user qualifies for a fire badge (has logged workouts on 5+ different days)
+          const { data: qualifies, error: checkError } = await supabase
+            .rpc("check_user_weekly_completion", { 
+              check_user_id: user.id, 
+              week_start_date: processWeekStart 
             });
+            
+          if (checkError) {
+            console.error(`Error checking user qualification: ${checkError.message}`);
+            return { userId: user.id, success: false, error: checkError.message };
+          }
+          
+          console.log(`User ${user.id} qualification status for week ${processWeekStart}: ${qualifies}`);
+          
+          // If user doesn't qualify, skip badge award
+          if (!qualifies) {
+            return { userId: user.id, success: true, badgeAwarded: false };
+          }
+          
+          // Check if badge already exists for this week and user
+          const { data: existingBadge, error: existingError } = await supabase
+            .from('fire_badges')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('week_start', processWeekStart)
+            .maybeSingle();
+            
+          if (existingError) {
+            console.error(`Error checking existing badge: ${existingError.message}`);
+            return { userId: user.id, success: false, error: existingError.message };
+          }
+          
+          // If badge already exists, skip
+          if (existingBadge) {
+            return { userId: user.id, success: true, badgeAwarded: false };
+          }
+          
+          // Award new badge
+          const { data: newBadge, error: badgeError } = await supabase
+            .from('fire_badges')
+            .insert({
+              user_id: user.id,
+              week_start: processWeekStart
+            })
+            .select('id')
+            .single();
             
           if (badgeError) {
             console.error(`Error awarding badge to user ${user.id}: ${badgeError.message}`);
@@ -116,9 +166,10 @@ serve(async (req) => {
           return { 
             userId: user.id, 
             success: true, 
-            badgeAwarded: !!badgeId
+            badgeAwarded: true,
+            badgeId: newBadge.id
           };
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Error processing user ${user.id}:`, error);
           return { userId: user.id, success: false, error: error.message };
         }
@@ -137,7 +188,7 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
     
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error processing fire badges:", error);
     
     return new Response(

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ChatPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -24,6 +26,27 @@ export default function ChatPage() {
   const buddyChatId = searchParams.get('buddy');
   const directMessageId = searchParams.get('dm');
   const fromGroupId = searchParams.get('fromGroup');
+
+  // Set up presence tracking for online status
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    // Create a presence channel for tracking online status
+    const channel = supabase.channel('online-users')
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          // Track the current user's presence
+          await channel.track({
+            user_id: user.id,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   // Function to load chat rooms that can be called multiple times
   const loadChatRooms = useCallback(async (newRoomIdToSelect?: string) => {

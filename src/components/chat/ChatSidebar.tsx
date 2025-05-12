@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -37,9 +38,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     first_name?: string;
     last_name?: string;
     avatar_url?: string;
+    isOnline?: boolean;
   }>>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [isCreatingDm, setIsCreatingDm] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   // Group rooms by type
   const groupChats = rooms.filter(room => room.is_group_chat && !room.is_buddy_chat);
@@ -52,6 +55,43 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     directMessages: directMessages.length,
     buddyChats: buddyChats.length
   });
+
+  // Subscribe to online presence
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    // Set current user as online
+    const channel = supabase.channel('online-users')
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const online = new Set<string>();
+        
+        // Process presence state to extract online users
+        Object.keys(state).forEach(presenceKey => {
+          const presences = state[presenceKey] as Array<{ user_id: string }>;
+          presences.forEach(presence => {
+            if (presence.user_id) {
+              online.add(presence.user_id);
+            }
+          });
+        });
+        
+        setOnlineUsers(online);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          // Track the current user's presence
+          await channel.track({
+            user_id: user.id,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   const getInitials = (name: string) => {
     if (!name) return "?";
@@ -121,7 +161,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         throw profileError;
       }
 
-      setGroupMembers(clientProfiles || []);
+      const profilesWithOnlineStatus = clientProfiles?.map(profile => ({
+        ...profile,
+        isOnline: onlineUsers.has(profile.id)
+      })) || [];
+
+      setGroupMembers(profilesWithOnlineStatus);
     } catch (error) {
       console.error("Error fetching group members:", error);
       toast.error("Failed to load group members");
@@ -160,6 +205,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     } finally {
       setIsCreatingDm(false);
     }
+  };
+
+  // Check if a user is online
+  const isUserOnline = (userId?: string): boolean => {
+    if (!userId) return false;
+    return onlineUsers.has(userId);
   };
 
   return (
@@ -253,35 +304,63 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               </h3>
             </div>
             <div className="space-y-1">
-              {directMessages.map((room) => (
-                <Button
-                  key={room.id}
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start px-4 py-3 h-auto min-h-[64px]",
-                    activeRoomId === room.id && "bg-accent hover:bg-accent/90"
-                  )}
-                  onClick={() => onSelectRoom(room.id)}
-                >
-                  <Avatar className="h-10 w-10 mr-3">
-                    <AvatarFallback className="bg-green-500 text-primary-foreground text-sm">
-                      {getInitials(room.other_user_name || "DM")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start">
-                    <span className="truncate font-medium text-base">
-                      {room.other_user_name ? formatName(room.other_user_name) : "Direct Message"}
-                    </span>
-                    <span className="text-xs text-muted-foreground truncate mt-0.5">
-                      {room.last_message || "No messages yet"}
-                    </span>
-                  </div>
-                </Button>
-              ))}
+              {directMessages.map((room) => {
+                const isOnline = isUserOnline(room.other_user_id);
+                
+                return (
+                  <Button
+                    key={room.id}
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start px-4 py-3 h-auto min-h-[64px] relative",
+                      activeRoomId === room.id && "bg-accent hover:bg-accent/90"
+                    )}
+                    onClick={() => onSelectRoom(room.id)}
+                  >
+                    <div className="relative">
+                      <Avatar className="h-10 w-10 mr-3">
+                        <AvatarImage src={room.other_user_avatar || ""} alt={room.other_user_name || "User"} />
+                        <AvatarFallback className="bg-green-500 text-primary-foreground text-sm">
+                          {getInitials(room.other_user_name || "DM")}
+                        </AvatarFallback>
+                      </Avatar>
+                      {/* Online status indicator */}
+                      <span 
+                        className={cn(
+                          "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background",
+                          isOnline ? "bg-green-500" : "bg-gray-400"
+                        )}
+                        title={isOnline ? "Online" : "Offline"}
+                      />
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <div className="flex items-center">
+                        <span className="truncate font-medium text-base">
+                          {room.other_user_name ? formatName(room.other_user_name) : "Direct Message"}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground truncate mt-0.5">
+                        {room.last_message || "No messages yet"}
+                      </span>
+                    </div>
+                  </Button>
+                );
+              })}
             </div>
           </div>
         )}
       </ScrollArea>
+
+      <div className="p-4 border-t">
+        <Button 
+          onClick={handleOpenNewDmDialog} 
+          variant="outline" 
+          className="w-full flex items-center"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          New Message
+        </Button>
+      </div>
 
       {/* New DM Dialog */}
       <Dialog open={isNewDmDialogOpen} onOpenChange={setIsNewDmDialogOpen}>
@@ -310,6 +389,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   const firstName = member.first_name || '';
                   const lastNameInitial = member.last_name ? member.last_name[0] + '.' : '';
                   const formattedName = `${firstName} ${lastNameInitial}`.trim();
+                  const isOnline = isUserOnline(member.id);
                   
                   return (
                     <Button
@@ -319,13 +399,28 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       onClick={() => handleCreateDirectMessage(member.id)}
                       disabled={isCreatingDm}
                     >
-                      <Avatar className="h-10 w-10 mr-3">
-                        <AvatarImage src={member.avatar_url || ""} alt={formattedName} />
-                        <AvatarFallback className="bg-secondary text-secondary-foreground text-sm">
-                          {formattedName[0] || "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium text-base">{formattedName}</span>
+                      <div className="relative">
+                        <Avatar className="h-10 w-10 mr-3">
+                          <AvatarImage src={member.avatar_url || ""} alt={formattedName} />
+                          <AvatarFallback className="bg-secondary text-secondary-foreground text-sm">
+                            {formattedName[0] || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        {/* Online status indicator */}
+                        <span 
+                          className={cn(
+                            "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background",
+                            isOnline ? "bg-green-500" : "bg-gray-400"
+                          )}
+                          title={isOnline ? "Online" : "Offline"}
+                        />
+                      </div>
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium text-base">{formattedName}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {isOnline ? "Online" : "Offline"}
+                        </span>
+                      </div>
                     </Button>
                   );
                 })}

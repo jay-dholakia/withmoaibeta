@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatRoomProps {
   roomId: string;
@@ -32,6 +34,8 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isOtherUserOnline, setIsOtherUserOnline] = useState(false);
+  const [otherUserId, setOtherUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -62,6 +66,65 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
       }
     };
   }, [roomId, user?.id]);
+
+  // Get other user ID for direct messages to track online status
+  useEffect(() => {
+    const fetchRoomDetails = async () => {
+      if (isDirectMessage && roomId) {
+        try {
+          const { data, error } = await supabase
+            .from('direct_message_rooms')
+            .select('*')
+            .eq('room_id', roomId)
+            .single();
+          
+          if (data) {
+            const otherId = data.user1_id === user?.id ? data.user2_id : data.user1_id;
+            setOtherUserId(otherId);
+          }
+        } catch (err) {
+          console.error("Error fetching room details:", err);
+        }
+      }
+    };
+    
+    fetchRoomDetails();
+  }, [roomId, isDirectMessage, user?.id]);
+
+  // Track online status of users
+  useEffect(() => {
+    if (!otherUserId) return;
+    
+    const channel = supabase.channel('online-users')
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        let userIsOnline = false;
+        
+        // Check if the other user is in the presence state
+        Object.values(state).forEach((presences: any) => {
+          presences.forEach((presence: any) => {
+            if (presence.user_id === otherUserId) {
+              userIsOnline = true;
+            }
+          });
+        });
+        
+        setIsOtherUserOnline(userIsOnline);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED' && user?.id) {
+          // Track the current user's presence
+          await channel.track({
+            user_id: user.id,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [otherUserId, user?.id]);
 
   useEffect(() => {
     // Scroll to bottom when messages change
@@ -140,14 +203,28 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
             </Button>
           )}
           <div className="flex items-center gap-3 flex-1">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-primary text-primary-foreground">
-                {getInitials(displayRoomName)}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-10 w-10">
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {getInitials(displayRoomName)}
+                </AvatarFallback>
+              </Avatar>
+              {isDirectMessage && (
+                <span 
+                  className={cn(
+                    "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background",
+                    isOtherUserOnline ? "bg-green-500" : "bg-gray-400"
+                  )}
+                />
+              )}
+            </div>
             <div>
               <h2 className="font-medium text-base">{displayRoomName}</h2>
-              <p className="text-xs text-muted-foreground">Online</p>
+              <p className="text-xs text-muted-foreground">
+                {isDirectMessage 
+                  ? (isOtherUserOnline ? "Online" : "Offline") 
+                  : "Group Chat"}
+              </p>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+
 // Chat room types
 
 export interface ChatRoom {
@@ -41,4 +42,12 @@ export interface ChatMember {
   isActive?: boolean;
   isOnline?: boolean;
   isTyping?: boolean;
+  lastSeen?: string;
+}
+
+// Online status tracking interface
+export interface OnlineStatus {
+  userId: string;
+  status: 'online' | 'offline';
+  lastSeen: string;
 }

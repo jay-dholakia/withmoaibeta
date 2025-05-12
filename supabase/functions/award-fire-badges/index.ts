@@ -33,12 +33,18 @@ serve(async (req) => {
     console.log("Processing fire badges:", { groupId, weekStart, isAutomatedRun, processPreviousWeek });
 
     // Get the current week start date if not provided
-    const weekStartDate = weekStart || 
-      (await supabase.rpc("get_pacific_week_start")).data;
+    const { data: weekStartData, error: weekStartError } = await supabase.rpc("get_pacific_week_start");
     
-    if (!weekStartDate) {
-      throw new Error("Failed to get week start date");
+    if (weekStartError) {
+      throw new Error(`Failed to get week start date: ${weekStartError.message}`);
     }
+    
+    if (!weekStartData) {
+      throw new Error("Failed to get week start date - no data returned");
+    }
+    
+    const weekStartDate = weekStart || weekStartData;
+    console.log(`Using week start date: ${weekStartDate}`);
 
     // Query to get user IDs to process
     let userQuery = supabase.from('profiles')
@@ -47,6 +53,7 @@ serve(async (req) => {
     
     // If groupId is provided, filter users by that group
     if (groupId) {
+      console.log(`Filtering by group: ${groupId}`);
       const { data: groupMembers, error: groupError } = await supabase
         .from('group_members')
         .select('user_id')
@@ -57,6 +64,8 @@ serve(async (req) => {
       }
       
       const userIds = groupMembers.map(member => member.user_id);
+      console.log(`Found ${userIds.length} members in group`);
+      
       if (userIds.length === 0) {
         return new Response(
           JSON.stringify({ message: "No members found in the specified group" }),
@@ -101,23 +110,66 @@ serve(async (req) => {
     const results = await Promise.all(
       users.map(async (user) => {
         try {
-          // Call the updated database function which now checks for 5 distinct workout days
-          const { data: badgeId, error: badgeError } = await supabase
-            .rpc("award_fire_badge", {
-              award_user_id: user.id,
-              award_week_start: processWeekStart
-            });
+          console.log(`Processing user ${user.id} for week ${processWeekStart}`);
+          
+          // Check if user already has badge for this week
+          const { data: existingBadge, error: existingBadgeError } = await supabase
+            .from("fire_badges")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("week_start", processWeekStart)
+            .maybeSingle();
             
-          if (badgeError) {
-            console.error(`Error awarding badge to user ${user.id}: ${badgeError.message}`);
-            return { userId: user.id, success: false, error: badgeError.message };
+          if (existingBadgeError) {
+            console.error(`Error checking existing badge for user ${user.id}: ${existingBadgeError.message}`);
+            return { userId: user.id, success: false, error: existingBadgeError.message };
           }
           
-          return { 
-            userId: user.id, 
-            success: true, 
-            badgeAwarded: !!badgeId
-          };
+          if (existingBadge) {
+            console.log(`User ${user.id} already has a badge for week ${processWeekStart}`);
+            return { userId: user.id, success: true, badgeAwarded: false, alreadyHadBadge: true };
+          }
+            
+          // Call the updated database function which checks for 5 distinct workout days
+          const { data: qualifies, error: qualifiesError } = await supabase
+            .rpc("check_user_weekly_completion", {
+              check_user_id: user.id,
+              week_start_date: processWeekStart
+            });
+            
+          if (qualifiesError) {
+            console.error(`Error checking qualification for user ${user.id}: ${qualifiesError.message}`);
+            return { userId: user.id, success: false, error: qualifiesError.message };
+          }
+          
+          console.log(`User ${user.id} qualification status for week ${processWeekStart}: ${qualifies}`);
+          
+          // If qualified, award the badge
+          if (qualifies) {
+            const { data: badgeId, error: badgeError } = await supabase
+              .from("fire_badges")
+              .insert({
+                user_id: user.id,
+                week_start: processWeekStart
+              })
+              .select("id")
+              .single();
+              
+            if (badgeError) {
+              console.error(`Error awarding badge to user ${user.id}: ${badgeError.message}`);
+              return { userId: user.id, success: false, error: badgeError.message };
+            }
+            
+            console.log(`Awarded badge ${badgeId.id} to user ${user.id} for week ${processWeekStart}`);
+            return { 
+              userId: user.id, 
+              success: true, 
+              badgeAwarded: true,
+              badgeId: badgeId.id
+            };
+          }
+          
+          return { userId: user.id, success: true, badgeAwarded: false, qualified: false };
         } catch (error) {
           console.error(`Error processing user ${user.id}:`, error);
           return { userId: user.id, success: false, error: error.message };
@@ -148,7 +200,6 @@ serve(async (req) => {
 });
 
 // Helper function to determine if we should process the previous week
-// This handles the case where the cron job runs early Monday
 function shouldProcessPreviousWeek(): boolean {
   const pacificDate = new Date(
     new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" })

@@ -3,7 +3,6 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { Loader2 } from 'lucide-react';
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -14,6 +13,15 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const location = useLocation();
   
+  console.log("AdminRoute check:", { 
+    userId: user?.id,
+    userType,
+    isAdmin,
+    authLoading,
+    profileLoading,
+    isAdminLoading
+  });
+  
   if (authLoading || profileLoading || isAdminLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -23,9 +31,13 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     );
   }
 
-  if (!user || !isAdmin) {
-    console.log("AdminRoute: Access denied, redirecting to login", { userType, isAdmin });
-    // Remember the current location so we can redirect back after login
+  if (!user) {
+    console.log("AdminRoute: No user found, redirecting to admin-login");
+    return <Navigate to="/admin-login" state={{ from: location }} replace />;
+  }
+
+  if (!isAdmin) {
+    console.log("AdminRoute: User is not admin, redirecting to admin-login", { userType, isAdmin });
     return <Navigate to="/admin-login" state={{ from: location }} replace />;
   }
 

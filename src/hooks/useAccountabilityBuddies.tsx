@@ -20,11 +20,14 @@ export function useAccountabilityBuddies(
       setError(null);
       
       try {
+        console.log(`Loading buddies for group ${groupId} and user ${userId}`);
+        
         // First check if we need to generate new buddies for this week
         await checkAndGenerateBuddies(groupId);
         
         // Then load the user's buddies
         const userBuddies = await getUserBuddies(groupId, userId);
+        console.log(`Found ${userBuddies.length} buddies for user:`, userBuddies);
         setBuddies(userBuddies);
       } catch (err) {
         console.error('Error loading accountability buddies:', err);
@@ -42,6 +45,7 @@ export function useAccountabilityBuddies(
     
     setLoading(true);
     try {
+      console.log(`Refreshing buddies for group ${groupId}`);
       await generateWeeklyBuddies(groupId);
       
       if (userId) {

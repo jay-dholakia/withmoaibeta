@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -138,6 +139,7 @@ const GroupList: React.FC = () => {
         .eq('group_id', groupId);
         
       if (countError) {
+        console.error('Error checking member count:', countError);
         throw countError;
       }
       
@@ -145,6 +147,8 @@ const GroupList: React.FC = () => {
         toast.error('Group needs at least 2 members to generate accountability buddies');
         return;
       }
+      
+      console.log(`Generating buddies for group ${groupId} with ${memberCount} members`);
       
       // Generate buddies with force regenerate set to true
       const result = await generateWeeklyBuddies(groupId, true);
@@ -156,7 +160,7 @@ const GroupList: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error generating accountability buddies:', error);
-      toast.error('An error occurred while generating accountability buddies');
+      toast.error(`Error: ${error.message || 'An error occurred while generating accountability buddies'}`);
     } finally {
       setIsGeneratingBuddies(prev => ({ ...prev, [groupId]: false }));
     }

@@ -217,22 +217,20 @@ export const generateWeeklyBuddies = async (
 
     console.log(`Inserting ${pairings.length} buddy pairings`);
 
-    // Insert all pairings at once
-    if (pairings.length > 0) {
+    // Insert all pairings one by one to better identify issues
+    for (const pairing of pairings) {
       const { error: insertError } = await supabase
         .from('accountability_buddies')
-        .insert(pairings);
+        .insert(pairing);
         
       if (insertError) {
-        console.error('Error inserting buddy pairings:', insertError);
+        console.error('Error inserting buddy pairing:', insertError, 'Pairing data:', pairing);
         return false;
       }
-      
-      console.log('Successfully inserted all buddy pairings');
-      return true;
     }
-
-    return false;
+      
+    console.log('Successfully inserted all buddy pairings');
+    return true;
   } catch (err) {
     console.error('Unexpected error in generateWeeklyBuddies:', err);
     return false;

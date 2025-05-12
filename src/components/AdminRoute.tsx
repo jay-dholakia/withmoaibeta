@@ -22,6 +22,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     isAdminLoading
   });
   
+  // If any loading state is true, show loading spinner
   if (authLoading || profileLoading || isAdminLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -31,11 +32,19 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     );
   }
 
+  // If no user is authenticated, redirect to login
   if (!user) {
     console.log("AdminRoute: No user found, redirecting to admin-login");
     return <Navigate to="/admin-login" state={{ from: location }} replace />;
   }
 
+  // If user type is admin, grant access even if isAdmin check hasn't completed or failed
+  if (userType === 'admin') {
+    console.log("AdminRoute: Access granted for admin user by userType");
+    return <>{children}</>;
+  }
+
+  // If explicit admin check failed, redirect
   if (!isAdmin) {
     console.log("AdminRoute: User is not admin, redirecting to admin-login", { userType, isAdmin });
     return <Navigate to="/admin-login" state={{ from: location }} replace />;

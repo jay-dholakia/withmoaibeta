@@ -68,7 +68,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         
         // Process presence state to extract online users
         Object.keys(state).forEach(presenceKey => {
-          const presences = state[presenceKey] as Array<{ user_id: string }>;
+          // Fix type issue by properly accessing the user_id from presence data
+          const presences = state[presenceKey] as any[];
           presences.forEach(presence => {
             if (presence.user_id) {
               online.add(presence.user_id);

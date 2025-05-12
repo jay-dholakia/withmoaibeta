@@ -46,7 +46,9 @@ export const useSendbirdChat = (channelUrl: string) => {
           
           // Process presence state to extract online users
           Object.keys(state).forEach(presenceKey => {
-            const presences = state[presenceKey] as Array<{ user_id: string }>;
+            // The structure of presences is different than expected
+            // We need to properly extract the user_id from each presence
+            const presences: any[] = state[presenceKey] as any[];
             presences.forEach(presence => {
               if (presence.user_id) {
                 online.add(presence.user_id);

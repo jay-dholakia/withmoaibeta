@@ -1,126 +1,159 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, RefreshCw } from 'lucide-react';
-import { BuddyDisplayInfo } from '@/services/accountability-buddy-service';
-import { Link } from 'react-router-dom';
-import { FireBadge } from './FireBadge';
-import { useFireBadges } from '@/hooks/useFireBadges';
-import { useQueryClient } from '@tanstack/react-query';
+import { Loader2, RefreshCw, MessageSquare, Users } from 'lucide-react';
+import { BuddyDisplayInfo, getCurrentWeekStart } from '@/services/accountability-buddy-service';
+import { useNavigate } from 'react-router-dom';
+import { getBuddyChatRoom } from '@/services/chat/room-service';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AccountabilityBuddyCardProps {
   buddies: BuddyDisplayInfo[];
   isAdmin?: boolean;
   groupId: string;
-  onRefresh: () => Promise<void>;
+  onRefresh?: () => Promise<void>;
   loading?: boolean;
 }
 
-export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = ({ 
-  buddies, 
-  isAdmin = false,
+export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = ({
+  buddies,
+  isAdmin,
   groupId,
   onRefresh,
-  loading = false
+  loading
 }) => {
-  const queryClient = useQueryClient();
-
-  const handleRefresh = async () => {
-    await onRefresh();
-    
-    // Also invalidate fire badge queries to update any badges
-    queryClient.invalidateQueries({queryKey: ['fire-badges']});
-    queryClient.invalidateQueries({queryKey: ['accountability-buddies', groupId]});
-  };
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [isCreatingChat, setIsCreatingChat] = React.useState(false);
   
+  const handleChatWithBuddies = async () => {
+    if (!user?.id) {
+      toast.error("You must be logged in to chat with buddies");
+      return;
+    }
+    
+    if (buddies.length === 0) {
+      toast.error("No buddies assigned for this week");
+      return;
+    }
+    
+    if (!groupId) {
+      toast.error("Group ID is required to create buddy chat");
+      return;
+    }
+    
+    setIsCreatingChat(true);
+    try {
+      // Get all buddy IDs including the current user
+      const allBuddyIds = [user.id, ...buddies.map(b => b.userId)];
+      
+      // First find the accountability_buddies record for this group
+      const weekStart = getCurrentWeekStart();
+      
+      console.log("Finding accountability buddies record for week:", weekStart);
+      
+      // Look for a record that contains all these users and is for the current week
+      const { data: buddyRecords, error: buddyError } = await supabase
+        .from("accountability_buddies")
+        .select("*")
+        .eq("week_start", weekStart)
+        .eq("group_id", groupId)
+        .or(`user_id_1.eq.${user.id},user_id_2.eq.${user.id},user_id_3.eq.${user.id}`);
+      
+      if (buddyError) {
+        console.error("Error finding accountability buddies record:", buddyError);
+        toast.error("Failed to find buddy pairing");
+        return;
+      }
+      
+      if (!buddyRecords || buddyRecords.length === 0) {
+        console.error("No accountability buddies record found");
+        toast.error("No buddy pairing found for this week");
+        return;
+      }
+      
+      // Get the first matching record
+      const buddyRecord = buddyRecords[0];
+      
+      console.log("Creating buddy chat with record ID:", buddyRecord.id);
+      
+      // Create or get the buddy chat room using the accountability buddies record ID
+      const roomId = await getBuddyChatRoom(allBuddyIds, buddyRecord.id);
+      
+      if (roomId) {
+        // Navigate to the chat page with the room ID
+        navigate(`/client-dashboard/chat?buddy=${roomId}`);
+      } else {
+        toast.error("Couldn't create buddy chat room");
+      }
+    } catch (error) {
+      console.error("Error creating buddy chat:", error);
+      toast.error("Failed to open buddy chat");
+    } finally {
+      setIsCreatingChat(false);
+    }
+  };
+
   return (
-    <Card className="mb-4">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg font-medium flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          <span>Your Accountability Buddies</span>
-        </CardTitle>
-        {isAdmin && (
-          <Button
-            onClick={handleRefresh}
-            variant="outline"
-            size="sm"
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Reassign Buddies
-          </Button>
-        )}
-      </CardHeader>
-      <CardContent>
-        {!buddies || buddies.length === 0 ? (
-          <div className="text-center py-6">
-            <p className="text-sm text-muted-foreground">
-              No buddies assigned yet.
-              {isAdmin && ' Click "Reassign Buddies" to create buddy pairings.'}
-            </p>
+    <Card className="bg-muted/40 dark:bg-gray-800/50 mb-2">
+      <CardContent className="p-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center">
+            <Users className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
+            <h3 className="text-sm font-medium">Weekly Accountability Buddies</h3>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="text-sm text-muted-foreground mb-4">
-              Connect with your accountability buddies to keep each other motivated and on track!
-            </div>
+          
+          <div className="flex items-center gap-2">
+            {isAdmin && onRefresh && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={onRefresh}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                <span className="sr-only">Refresh buddies</span>
+              </Button>
+            )}
             
-            <div className="grid gap-3">
-              {buddies.map((buddy) => (
-                <BuddyItem key={buddy.userId} buddy={buddy} />
-              ))}
-            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleChatWithBuddies}
+              disabled={isCreatingChat || buddies.length === 0}
+              className="flex items-center gap-1 text-xs"
+            >
+              {isCreatingChat ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <MessageSquare className="h-3 w-3" />
+              )}
+              <span>Chat</span>
+            </Button>
           </div>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-2">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : buddies.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-1">
+            No accountability buddies assigned for this week.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground mt-3">
+            You have {buddies.length} {buddies.length === 1 ? 'buddy' : 'buddies'} assigned for this week.
+          </p>
         )}
       </CardContent>
     </Card>
-  );
-};
-
-interface BuddyItemProps {
-  buddy: BuddyDisplayInfo;
-}
-
-const BuddyItem: React.FC<BuddyItemProps> = ({ buddy }) => {
-  const { badgeCount, isCurrentWeekEarned } = useFireBadges(buddy.userId);
-  
-  const fullName = [buddy.firstName, buddy.lastName].filter(Boolean).join(' ') || buddy.name;
-  const initials = [buddy.firstName?.[0], buddy.lastName?.[0]]
-    .filter(Boolean)
-    .join('')
-    .toUpperCase() || buddy.name.substring(0, 2).toUpperCase();
-    
-  return (
-    <div className="flex items-center p-2 rounded-md hover:bg-muted transition-colors">
-      <Avatar className="h-10 w-10 mr-3">
-        <AvatarImage src={buddy.avatarUrl || ''} alt={buddy.name} />
-        <AvatarFallback className="bg-client/80 text-white">
-          {initials}
-        </AvatarFallback>
-      </Avatar>
-      
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center">
-          <p className="font-medium truncate">{fullName}</p>
-          {badgeCount > 0 && (
-            <div className="ml-2">
-              <FireBadge count={badgeCount} isCurrentWeekEarned={isCurrentWeekEarned} />
-            </div>
-          )}
-        </div>
-        {buddy.firstName && (
-          <p className="text-xs text-muted-foreground truncate">Your accountability buddy</p>
-        )}
-      </div>
-      
-      <Button variant="ghost" size="sm" asChild>
-        <Link to={`/chat?with=${buddy.userId}`}>
-          Chat
-        </Link>
-      </Button>
-    </div>
   );
 };

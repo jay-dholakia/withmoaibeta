@@ -5,7 +5,6 @@ import { Flame, Loader2, InfoIcon } from 'lucide-react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useQueryClient } from '@tanstack/react-query';
 
 interface AwardFireBadgesButtonProps {
   groupId?: string;
@@ -22,7 +21,6 @@ export const AwardFireBadgesButton: React.FC<AwardFireBadgesButtonProps> = ({
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastProcessedTime, setLastProcessedTime] = useState<Date | null>(null);
-  const queryClient = useQueryClient();
   
   // Fetch the last time badges were processed
   useEffect(() => {
@@ -51,27 +49,12 @@ export const AwardFireBadgesButton: React.FC<AwardFireBadgesButtonProps> = ({
     setIsProcessing(true);
     
     try {
-      console.log("Processing fire badges for group:", groupId || "all groups");
-      
       const { data, error } = await supabase.functions.invoke('award-fire-badges', {
         body: { groupId }
       });
       
       if (error) {
-        console.error("Error response from award-fire-badges function:", error);
         throw new Error(error.message);
-      }
-
-      console.log("Function response:", data);
-      
-      // Invalidate relevant queries to force refetching
-      queryClient.invalidateQueries({queryKey: ['fire-badges']});
-      
-      if (groupId) {
-        queryClient.invalidateQueries({queryKey: ['accountability-buddies', groupId]});
-        queryClient.invalidateQueries({queryKey: ['group-leaderboard', groupId]});
-      } else {
-        queryClient.invalidateQueries({queryKey: ['group-leaderboard']});
       }
       
       toast.success(

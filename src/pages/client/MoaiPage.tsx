@@ -36,7 +36,7 @@ export default function MoaiPage() {
   const currentQueryTab = searchParams.get('tab');
   const activeTab = currentQueryTab && VALID_TABS.includes(currentQueryTab) ? currentQueryTab : DEFAULT_TAB;
 
-  const { badgeCount, isCurrentWeekEarned, refetch: refetchBadges } = useFireBadges(user?.id || '');
+  const { badgeCount, isCurrentWeekEarned } = useFireBadges(user?.id || '');
 
   const { data: userGroups, isLoading: isLoadingUserGroups, refetch: refetchUserGroups } = useQuery({
     queryKey: ['user-groups', user?.id],
@@ -58,11 +58,6 @@ export default function MoaiPage() {
       refetchUserGroups().finally(() => {
         setIsRefreshingGroups(false);
       });
-      
-      // Also refresh fire badges when returning to this page
-      if (user?.id) {
-        refetchBadges();
-      }
     }
   }, []);
 
@@ -140,15 +135,12 @@ export default function MoaiPage() {
     try {
       await generateWeeklyBuddies(activeGroupId);
       await refetchBuddies();
-      
-      // Also refresh fire badges when regenerating buddies
-      await refetchBadges();
     } catch (error) {
       console.error('Error refreshing accountability buddies:', error);
     } finally {
       setIsGeneratingBuddies(false);
     }
-  }, [activeGroupId, refetchBuddies, refetchBadges]);
+  }, [activeGroupId, refetchBuddies]);
 
   const handleTabChange = (newTab: string) => {
     setSearchParams({ tab: newTab }, { replace: true });

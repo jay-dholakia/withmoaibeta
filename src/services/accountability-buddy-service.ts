@@ -11,6 +11,7 @@ export interface AccountabilityBuddy {
   week_start: string;
   created_at: string;
   updated_at: string;
+  buddy_pairing_id: string;
 }
 
 export interface BuddyDisplayInfo {

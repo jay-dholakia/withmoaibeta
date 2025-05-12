@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       accountability_buddies: {
         Row: {
+          buddy_pairing_id: string | null
           created_at: string
           group_id: string
           id: string
@@ -21,6 +22,7 @@ export type Database = {
           week_start: string
         }
         Insert: {
+          buddy_pairing_id?: string | null
           created_at?: string
           group_id: string
           id?: string
@@ -31,6 +33,7 @@ export type Database = {
           week_start: string
         }
         Update: {
+          buddy_pairing_id?: string | null
           created_at?: string
           group_id?: string
           id?: string

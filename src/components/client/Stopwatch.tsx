@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PlayCircle, PauseCircle, RefreshCw, Save } from "lucide-react";
@@ -11,31 +10,134 @@ interface StopwatchProps {
   workoutCompletionId?: string;
 }
 
+interface TimerState {
+  isRunning: boolean;
+  startTimestamp: number | null;
+  accumulatedTime: number;
+}
+
 const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCompletionId }) => {
   const [time, setTime] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-
-  // Reset timer when workoutCompletionId changes
+  const [initialized, setInitialized] = useState<boolean>(false);
+  
+  const timerKey = `workout_timer_${workoutCompletionId || 'default'}`;
+  
+  // Load persisted timer state when component mounts
   useEffect(() => {
-    // Always reset to 0 when a new workout is loaded, but don't start automatically
-    setTime(0);
-    setIsRunning(false);
-    localStorage.setItem("workout_start_time", Date.now().toString());
-  }, [workoutCompletionId]);
+    const loadTimerState = () => {
+      try {
+        const persistedState = localStorage.getItem(timerKey);
+        
+        if (persistedState) {
+          const { isRunning, startTimestamp, accumulatedTime } = JSON.parse(persistedState) as TimerState;
+          
+          if (isRunning && startTimestamp) {
+            // Timer was running, calculate elapsed time since it was started plus previously accumulated time
+            const elapsedSinceStart = Math.floor((Date.now() - startTimestamp) / 1000);
+            setTime(accumulatedTime + elapsedSinceStart);
+            setIsRunning(true);
+          } else {
+            // Timer was paused
+            setTime(accumulatedTime);
+            setIsRunning(false);
+          }
+        } else {
+          // No persisted state, reset timer
+          setTime(0);
+          setIsRunning(false);
+        }
+        setInitialized(true);
+      } catch (error) {
+        console.error("Error loading timer state:", error);
+        setTime(0);
+        setIsRunning(false);
+        setInitialized(true);
+      }
+    };
+    
+    // Load timer state when workoutCompletionId changes
+    if (workoutCompletionId) {
+      loadTimerState();
+    } else {
+      setTime(0);
+      setIsRunning(false);
+      setInitialized(true);
+    }
+    
+    return () => {
+      // Persist current state on component unmount
+      if (initialized) {
+        persistTimerState();
+      }
+    };
+  }, [workoutCompletionId, timerKey]);
+
+  // Persist timer state whenever it changes
+  const persistTimerState = () => {
+    if (!initialized) return; // Don't persist until fully initialized
+    
+    try {
+      const state: TimerState = {
+        isRunning,
+        startTimestamp: isRunning ? Date.now() - (time * 1000) : null,
+        accumulatedTime: time
+      };
+      
+      localStorage.setItem(timerKey, JSON.stringify(state));
+    } catch (error) {
+      console.error("Error persisting timer state:", error);
+    }
+  };
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     
-    if (isRunning) {
+    if (isRunning && initialized) {
+      // Store current timestamp and accumulated time for precise timing
+      const startTimestamp = Date.now() - (time * 1000);
+      
       interval = setInterval(() => {
-        setTime(prevTime => prevTime + 1);
-      }, 1000);
+        const elapsedSeconds = Math.floor((Date.now() - startTimestamp) / 1000);
+        setTime(elapsedSeconds);
+      }, 100); // Update more frequently for smoother display
+      
+      // Update persisted state when timer starts
+      const state: TimerState = {
+        isRunning: true,
+        startTimestamp,
+        accumulatedTime: time
+      };
+      localStorage.setItem(timerKey, JSON.stringify(state));
+    } else if (initialized) {
+      // Update persisted state when timer stops
+      persistTimerState();
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning]);
+  }, [isRunning, initialized, timerKey]);
+
+  // Update persisted state when time changes significantly
+  useEffect(() => {
+    if (!isRunning && initialized) {
+      persistTimerState();
+    }
+  }, [time, isRunning, initialized]);
+
+  // Ensure timer state is persisted when window is about to unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      persistTimerState();
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isRunning, time]);
 
   const formatTime = (seconds: number): string => {
     const hrs = Math.floor(seconds / 3600);
@@ -52,14 +154,30 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
   const handleReset = () => {
     setTime(0);
     setIsRunning(false);
-    localStorage.setItem("workout_start_time", Date.now().toString());
+    
+    // Clear persisted state on reset
+    localStorage.removeItem(timerKey);
   };
 
   const toggleRunning = () => {
     if (!isRunning) {
-      // When starting, set the start time to current time
-      localStorage.setItem("workout_start_time", Date.now().toString());
+      // When starting, persist the current state with updated startTimestamp
+      const state: TimerState = {
+        isRunning: true,
+        startTimestamp: Date.now() - (time * 1000),
+        accumulatedTime: time
+      };
+      localStorage.setItem(timerKey, JSON.stringify(state));
+    } else {
+      // When pausing, update the accumulated time
+      const state: TimerState = {
+        isRunning: false,
+        startTimestamp: null,
+        accumulatedTime: time
+      };
+      localStorage.setItem(timerKey, JSON.stringify(state));
     }
+    
     setIsRunning(!isRunning);
   };
   
@@ -77,7 +195,7 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
   };
 
   return (
-    <div className={cn("flex justify-between items-center py-3 px-4 bg-background border rounded-md shadow-sm", className)}>
+    <div className={cn("flex justify-between items-center py-2 px-4 bg-background border rounded-md shadow-sm", className)}>
       <div className="text-xl font-semibold">{formatTime(time)}</div>
       
       <div className="flex items-center gap-2">
@@ -85,9 +203,10 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
         
         <Button 
           variant="ghost" 
-          size="icon"
+          size="sm"
           onClick={toggleRunning}
           aria-label={isRunning ? "Pause timer" : "Start timer"}
+          className="h-8 w-8 p-0"
         >
           {isRunning ? (
             <PauseCircle className="h-5 w-5" />
@@ -98,9 +217,10 @@ const Stopwatch: React.FC<StopwatchProps> = ({ className, saveStatus, workoutCom
         
         <Button 
           variant="ghost" 
-          size="icon"
+          size="sm"
           onClick={handleReset}
           aria-label="Reset timer"
+          className="h-8 w-8 p-0"
         >
           <RefreshCw className="h-5 w-5" />
         </Button>

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { HeartIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
-import { likeActivity, unlikeActivity } from '@/services/activity-feed-service';
+import { likeActivity, unlikeActivity } from '@/services/activity-feed';
 import { WorkoutTypeIcon } from './WorkoutTypeIcon';
 import { useQueryClient } from '@tanstack/react-query';
 

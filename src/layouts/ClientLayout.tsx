@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -6,7 +5,8 @@ import {
   DumbbellIcon,
   Mountain,
   Globe,
-  Settings
+  Settings,
+  ArrowLeft,
 } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { Logo } from '@/components/Logo';
@@ -18,8 +18,14 @@ interface ClientLayoutProps {
 
 export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
   const location = useLocation();
+  const isChatRoute = location.pathname.includes('/chat');
+  const isActiveWorkoutRoute = location.pathname.includes('/workouts/active/');
 
   const isActive = (path: string) => {
+    // Special case for moai - also consider chat routes as part of moai
+    if (path === '/moai' && (location.pathname.includes('/moai') || location.pathname.includes('/chat'))) {
+      return true;
+    }
     return location.pathname.includes(path);
   };
 
@@ -38,8 +44,8 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
         </div>
       </header>
       
-      <main className="flex-grow py-6 mb-14 w-full overflow-visible">
-        <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6 overflow-visible">
+      <main className={`flex-grow ${isChatRoute ? 'py-0 mb-14 flex h-[calc(100vh-8rem)]' : 'py-6 mb-14 flex'} w-full overflow-visible`}>
+        <div className={`w-full max-w-screen-xl mx-auto ${isChatRoute ? 'px-0 md:px-0 h-full flex' : 'px-4 md:px-6'} overflow-visible`}>
           <PageTransition>
             {children}
           </PageTransition>

@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { trackWorkoutSet, fetchPersonalRecords } from '@/services/client-service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, Save, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ArrowLeft, AlertCircle, Save, HelpCircle, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { saveWorkoutDraft, getWorkoutDraft, deleteWorkoutDraft, updateExerciseIdInDraft } from '@/services/workout-draft-service';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useWorkoutInitialization } from '@/hooks/useWorkoutInitialization';
@@ -30,9 +30,9 @@ const ActiveWorkout = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  // Initialize all state variables at the top level
   const [expandedDescriptions, setExpandedDescriptions] = useState<{ [key: string]: boolean }>({});
   const [retryCount, setRetryCount] = useState(0);
-  const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [workoutDataLoaded, setWorkoutDataLoaded] = useState(false);
   const [autosaveRetries, setAutosaveRetries] = useState<number>(0);
@@ -40,9 +40,27 @@ const ActiveWorkout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completionProcessed, setCompletionProcessed] = useState(false);
 
+  // All refs should be initialized at the top level
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initCompleteForceCounter = useRef<number>(0);
   const forceInitRef = useRef<boolean>(false);
+
+  // Always fetch personal records, regardless of rendering conditions
+  const { data: personalRecords = [] } = useQuery({
+    queryKey: ['personal-records', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        const records = await fetchPersonalRecords(user.id);
+        console.log("Fetched personal records:", records);
+        return records;
+      } catch (error) {
+        console.error('Error fetching personal records:', error);
+        return [];
+      }
+    },
+    enabled: !!user?.id,
+  });
 
   const getWorkoutExercises = (data: any) => {
     if (!data || !data.workout) return [];
@@ -309,6 +327,9 @@ const ActiveWorkout = () => {
 
       let completionId = workoutData?.id;
       
+      // Determine the workout type
+      const defaultWorkoutType = workoutData?.workout?.workout_type || 'strength';
+      
       if (!completionId) {
         const { data: newCompletion, error: completionError } = await supabase
           .from('workout_completions')
@@ -316,7 +337,8 @@ const ActiveWorkout = () => {
             workout_id: workoutData?.workout_id || workoutCompletionId,
             standalone_workout_id: workoutData?.standalone_workout_id,
             user_id: user?.id,
-            completed_at: new Date().toISOString()
+            completed_at: new Date().toISOString(),
+            workout_type: defaultWorkoutType // Ensure workout_type is set to the default or "strength"
           })
           .select()
           .single();
@@ -331,6 +353,19 @@ const ActiveWorkout = () => {
         }
         
         completionId = newCompletion.id;
+      } else {
+        // If completion already exists, ensure workout_type is set correctly
+        const { error: updateError } = await supabase
+          .from('workout_completions')
+          .update({
+            workout_type: defaultWorkoutType,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', completionId);
+          
+        if (updateError) {
+          console.error("Error updating workout completion type:", updateError);
+        }
       }
 
       const savePromises = [];
@@ -346,19 +381,16 @@ const ActiveWorkout = () => {
           if (exerciseState.sets && exerciseState.sets.length > 0) {
             exerciseState.sets.forEach((set, index) => {
               if (set.completed || (set.weight && set.reps)) {
-                const setData = {
-                  weight: parseFloat(set.weight) || null,
-                  reps_completed: parseInt(set.reps) || null,
-                  completed: set.completed || false,
-                  notes: null
-                };
-                
                 savePromises.push(
                   trackWorkoutSet(
+                    workoutId,
                     exerciseId,
-                    completionId,
-                    set.setNumber,
-                    setData
+                    {
+                      set_number: index + 1,
+                      weight: set.weight ? Number(set.weight) : undefined,
+                      reps_completed: set.reps ? Number(set.reps) : undefined,
+                      completed: true
+                    }
                   )
                 );
               }
@@ -369,15 +401,14 @@ const ActiveWorkout = () => {
           if (cardioData.completed || cardioData.distance || cardioData.duration) {
             savePromises.push(
               trackWorkoutSet(
+                workoutId,
                 exerciseId,
-                completionId,
-                1,
                 {
-                  distance: cardioData.distance || null,
-                  duration: cardioData.duration || null,
-                  location: cardioData.location || null,
+                  set_number: 1,
                   completed: cardioData.completed || false,
-                  notes: null
+                  distance: cardioData.distance || undefined,
+                  duration: cardioData.duration || undefined,
+                  location: cardioData.location || undefined
                 }
               )
             );
@@ -387,13 +418,12 @@ const ActiveWorkout = () => {
           if (flexData.completed || flexData.duration) {
             savePromises.push(
               trackWorkoutSet(
+                workoutId,
                 exerciseId,
-                completionId,
-                1,
                 {
-                  duration: flexData.duration || null,
+                  set_number: 1,
                   completed: flexData.completed || false,
-                  notes: null
+                  duration: flexData.duration || undefined
                 }
               )
             );
@@ -403,15 +433,14 @@ const ActiveWorkout = () => {
           if (runData.completed || runData.distance || runData.duration) {
             savePromises.push(
               trackWorkoutSet(
+                workoutId,
                 exerciseId,
-                completionId,
-                1,
                 {
-                  distance: runData.distance || null,
-                  duration: runData.duration || null,
-                  location: runData.location || null,
+                  set_number: 1,
                   completed: runData.completed || false,
-                  notes: null
+                  distance: runData.distance || undefined,
+                  duration: runData.duration || undefined,
+                  location: runData.location || undefined
                 }
               )
             );
@@ -499,7 +528,7 @@ const ActiveWorkout = () => {
             duration: '',
             location: '',
             completed: false,
-            workout_type: 'cardio' // Add workout_type
+            workout_type: 'cardio'
           }
         };
       }
@@ -510,7 +539,7 @@ const ActiveWorkout = () => {
           duration: '',
           location: '',
           completed: false,
-          workout_type: 'cardio' // Add workout_type
+          workout_type: 'cardio'
         };
       }
       
@@ -540,7 +569,7 @@ const ActiveWorkout = () => {
             duration: field === 'duration' ? value : exerciseStates[exerciseId]?.cardioData?.duration || '',
             location: exerciseStates[exerciseId]?.cardioData?.location || '',
             completed: exerciseStates[exerciseId]?.cardioData?.completed || false,
-            workout_type: 'cardio' // Add workout_type
+            workout_type: 'cardio'
           }
         ]);
       }
@@ -560,7 +589,7 @@ const ActiveWorkout = () => {
             duration: '',
             location: '',
             completed: false,
-            workout_type: 'cardio' // Add workout_type
+            workout_type: 'cardio'
           }
         };
       }
@@ -571,7 +600,7 @@ const ActiveWorkout = () => {
           duration: '',
           location: '',
           completed: false,
-          workout_type: 'cardio' // Add workout_type
+          workout_type: 'cardio'
         };
       }
       
@@ -602,7 +631,7 @@ const ActiveWorkout = () => {
           duration: currentState?.duration || '',
           location: currentState?.location || '',
           completed,
-          workout_type: 'cardio' // Add workout_type
+          workout_type: 'cardio'
         }
       ]);
     }
@@ -742,6 +771,19 @@ const ActiveWorkout = () => {
     return false;
   };
 
+  // Function to find a personal record for a specific exercise
+  const findPersonalRecord = (exerciseId: string): PersonalRecord | undefined => {
+    if (!personalRecords || personalRecords.length === 0 || !exerciseId) return undefined;
+    
+    console.log(`Looking for PR for exercise: ${exerciseId} in ActiveWorkout`);
+    const record = personalRecords.find(pr => pr.exercise_id === exerciseId);
+    if (record) {
+      console.log(`Found PR:`, record);
+    }
+    
+    return record;
+  };
+
   const renderExerciseCard = (exercise: WorkoutExercise) => {
     if (!exercise) {
       console.log(`Cannot render null or undefined exercise`);
@@ -823,7 +865,7 @@ const ActiveWorkout = () => {
                   exercise: currentExercise
                 }}
                 exerciseState={exerciseStates[exercise.id]}
-                personalRecord={undefined}
+                personalRecord={currentExercise && currentExercise.id ? findPersonalRecord(currentExercise.id) : undefined}
                 onSetChange={handleSetChange}
                 onSetCompletion={handleSetCompletion}
                 onVideoClick={handleVideoClick}
@@ -893,156 +935,138 @@ const ActiveWorkout = () => {
   useEffect(() => {
     if (saveStatus === 'error') {
       if (autosaveRetries < 3) {
-        console.log(`Autosave failed (attempt ${autosaveRetries + 1}/3). Will retry in 5 seconds...`);
-        setTimeout(() => {
-          setAutosaveRetries(prev => prev + 1);
-          forceSave();
-        }, 5000);
+        console.log(`Autosave failed (attempt ${autosaveRetries + 1}/3). Will retry in 5 seconds.`);
+        setAutosaveRetries(prev => prev + 1);
         
-        if (autosaveRetries === 2) {
-          toast.error('Failed to save workout progress. Please check your connection.');
-        }
+        // Try to save again after 5 seconds
+        setTimeout(() => {
+          if (initializationComplete && exerciseStates && Object.keys(exerciseStates).length > 0) {
+            console.log("Retrying autosave...");
+            forceSave();
+          }
+        }, 5000);
       } else {
-        toast.error('Could not save workout progress automatically. Try completing your workout when connection improves.');
+        console.error("Multiple autosave attempts failed. Please try saving manually.");
+        toast.error("Failed to save your progress automatically");
+        // Reset retry counter after showing error message
+        setAutosaveRetries(0);
       }
-    }
-    
-    if (saveStatus === 'saved') {
+    } else if (saveStatus === 'saved') {
+      // Reset retry counter after successful save
       setAutosaveRetries(0);
     }
-  }, [saveStatus, autosaveRetries, forceSave]);
+  }, [saveStatus, autosaveRetries, exerciseStates, initializationComplete, forceSave]);
 
-  if (isLoading || isDraftLoading) {
+  // Display loading state
+  if (isLoading || !initialLoadComplete) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
         <p className="text-lg font-medium">Loading workout...</p>
+        <p className="text-sm text-muted-foreground">Please wait while we prepare your workout</p>
       </div>
     );
   }
 
-  if (!workoutData || !workoutData.workout) {
+  // Display error state
+  if (error || !workoutData) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-          <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-red-100 mb-4">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-          </div>
-          <h2 className="text-xl font-bold mb-2">Workout Not Found</h2>
-          <p className="text-gray-600 mb-4">
-            We couldn't find the workout with ID: {workoutCompletionId}
-          </p>
-          <p className="text-sm text-gray-500 mb-6">
-            The workout may have been deleted or you may not have access to it.
-          </p>
-          <Button onClick={() => navigate('/client-dashboard/workouts')} className="w-full">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workouts
-          </Button>
-        </div>
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-lg font-medium">Error loading workout</p>
+        <p className="text-sm text-muted-foreground mb-4">Unable to load workout details</p>
+        <Button 
+          variant="outline" 
+          onClick={() => {
+            setRetryCount(prev => prev + 1);
+          }}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Retry
+        </Button>
+        <Button 
+          variant="link" 
+          onClick={() => navigate('/client-dashboard/workouts')}
+          className="mt-2"
+        >
+          Return to workouts
+        </Button>
       </div>
     );
   }
-
-  const exerciseRenderReady = 
-    initialLoadComplete && 
-    Object.keys(exerciseStates || {}).length > 0 &&
-    workoutExercises.every(ex => !!exerciseStates[ex.id]);
-  
-  const forceShowExercises = forceInitRef.current && workoutExercises.length > 0;
 
   return (
-    <div className="container max-w-2xl mx-auto p-4 pb-32">
-      <div className="flex items-center mb-4 gap-2">
-        <Button variant="ghost" onClick={() => navigate('/client-dashboard/workouts')} className="h-8 w-8 p-0 text-gray-500">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-xl font-bold">{workoutData?.workout?.title || "Workout"}</h1>
+    <div className="pb-28">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate('/client-dashboard/workouts')}
+        className="mb-4 -ml-2 text-muted-foreground"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Workouts
+      </Button>
+      
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">
+          {workoutData?.workout?.title || 'Workout'}
+        </h1>
+        <p className="text-muted-foreground">
+          Track your progress as you complete each exercise
+        </p>
       </div>
-
-      {workoutExercises.length > 0 ? (
-        exerciseRenderReady || forceShowExercises ? (
-          <div className="space-y-6">
-            {workoutExercises.map(exercise => renderExerciseCard(exercise))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center min-h-[300px] p-4">
-            <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-            <p className="text-lg font-medium">Preparing workout...</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Status: {workoutDataLoaded ? 'Workout data loaded' : 'Loading workout data'}, 
-              {draftLoaded ? ' Draft loaded' : ' Loading draft'},
-              {initializationComplete ? ' Initialization complete' : ' Initializing'}
-            </p>
-            <Button
-              onClick={() => {
-                console.log("Manual reload triggered by user");
-                window.location.reload();
-              }}
-              variant="outline"
-              className="mt-6"
-            >
-              <Loader2 className="h-4 w-4 mr-2" /> Reload Workout
-            </Button>
-          </div>
-        )
-      ) : (
-        <div className="text-center py-12">
-          {sortedExerciseIds.length === 0 && workoutData?.workout?.workout_type === 'cardio' ? (
-            <CardioWorkout
-              workoutId={workoutData.workout.id}
-              formatDurationInput={formatDurationInput}
-              onCardioChange={handleCardioChange}
-              onCardioCompletion={handleCardioCompletion}
-              cardioData={{
-                distance: '',
-                duration: '',
-                location: '',
-                completed: false,
-                ...((exerciseStates['cardio-placeholder'] || {}).cardioData || {})
-              }}
-              exerciseId={'cardio-placeholder'}
-              workoutTitle={workoutData.workout.title}
-            />
-          ) : sortedExerciseIds.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="inline-flex rounded-full bg-gray-100 p-6 mb-4">
-                <HelpCircle className="h-10 w-10 text-gray-400" />
-              </div>
-              <h2 className="text-2xl font-semibold mb-2">No Exercises Found</h2>
-              <p className="text-muted-foreground">
-                This workout doesn't have any exercises.
-              </p>
-            </div>
-          ) : null}
+      
+      {saveStatus === 'saving' && (
+        <div className="mb-4 p-2 bg-muted/50 rounded-md flex items-center gap-2 text-sm text-muted-foreground">
+          <Save className="h-4 w-4 animate-pulse" />
+          Saving your progress...
         </div>
       )}
-
-      {/* Always show the Complete Workout button regardless of workout type */}
-      <div className="fixed bottom-14 left-0 right-0 z-40">
-        <div className="bg-gradient-to-t from-background via-background to-transparent">
-          <div className="container max-w-2xl mx-auto px-4">
-            <Stopwatch 
-              className="border-b border-border" 
-              saveStatus={saveStatus} 
-              workoutCompletionId={workoutCompletionId}
-            />
-            <Button 
-              onClick={handleCompleteWorkout}
-              disabled={isSubmitting || completionProcessed}
-              className="w-full mt-3 mb-2 py-6 bg-primary hover:bg-primary/90 text-white text-lg font-medium rounded-lg shadow-lg"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" /> Saving...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-5 w-5 mr-2" /> Complete Workout
-                </>
-              )}
-            </Button>
-          </div>
+      
+      {saveStatus === 'error' && (
+        <div className="mb-4 p-2 bg-destructive/10 rounded-md flex items-center gap-2 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          Failed to save your progress. 
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={forceSave}
+            className="ml-2 h-7 px-2 text-xs"
+          >
+            Try Again
+          </Button>
         </div>
+      )}
+      
+      {workoutExercises.length === 0 ? (
+        <p className="text-center py-8 text-muted-foreground">No exercises found for this workout</p>
+      ) : (
+        <div className="space-y-6 mb-24">
+          {workoutExercises.map(exercise => renderExerciseCard(exercise))}
+        </div>
+      )}
+      
+      {/* Fixed position timer and complete workout button */}
+      <div className="fixed bottom-14 left-0 right-0 z-50 px-4 flex flex-col gap-2">
+        <Stopwatch 
+          className="w-full" 
+          workoutCompletionId={workoutCompletionId} 
+          saveStatus={saveStatus} 
+        />
+        
+        <Button 
+          onClick={handleCompleteWorkout}
+          className="w-full py-5 bg-client hover:bg-client/90 shadow-lg"
+          disabled={isSubmitting || completionProcessed}
+        >
+          {isSubmitting ? (
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+          ) : (
+            <CheckCircle2 className="h-5 w-5 mr-2" />
+          )}
+          Complete Workout
+        </Button>
       </div>
     </div>
   );

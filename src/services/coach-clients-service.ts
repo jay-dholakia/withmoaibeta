@@ -20,11 +20,27 @@ export interface ClientData {
 
 /**
  * Fetches all clients associated with the coach's groups
+ * If coach is an admin (is_admin: true), fetches all clients
  */
 export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> => {
   if (!coachId) throw new Error('Coach ID is required');
   
   try {
+    // Check if coach is an admin
+    const { data: isAdmin, error: adminCheckError } = await supabase
+      .rpc('is_admin', { check_user_id: coachId });
+    
+    if (adminCheckError) {
+      console.error('Error checking admin status:', adminCheckError);
+    }
+    
+    // If coach is admin, use different query approach to get ALL clients
+    if (isAdmin) {
+      console.log('Admin coach detected - fetching all clients');
+      return await fetchAllClientsForAdmin();
+    }
+    
+    // Standard coach access - continue with existing logic
     // First try using RPC function
     const { data: rpcData, error: rpcError } = await supabase.rpc('get_coach_clients', {
       coach_id: coachId
@@ -60,6 +76,121 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
     return (rpcData || []) as ClientData[];
   } catch (error) {
     console.error('Error fetching coach clients:', error);
+    return [];
+  }
+};
+
+/**
+ * Special function to fetch ALL clients for admin coaches
+ */
+const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
+  try {
+    // Get all client profiles
+    const { data: clientProfiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, user_type')
+      .eq('user_type', 'client');
+    
+    if (profilesError || !clientProfiles || clientProfiles.length === 0) {
+      console.error('Error fetching client profiles:', profilesError);
+      return [];
+    }
+    
+    const clientIds = clientProfiles.map(client => client.id);
+    
+    // Get accurate workout counts
+    const workoutCounts = await fetchAccurateWorkoutCounts(clientIds);
+    
+    // Get emails for these clients
+    const { data: emails } = await supabase.rpc('get_users_email', {
+      user_ids: clientIds
+    });
+    
+    const emailMap = new Map(emails ? emails.map(e => [e.id, e.email]) : []);
+    
+    // Get client workout info
+    const { data: workoutInfo, error: workoutInfoError } = await supabase
+      .from('client_workout_info')
+      .select('*')
+      .in('user_id', clientIds);
+      
+    if (workoutInfoError) {
+      console.error('Error fetching client workout info:', workoutInfoError);
+    }
+    
+    const workoutInfoMap = new Map(workoutInfo ? workoutInfo.map(wi => [wi.user_id, wi]) : []);
+    
+    // Get program info
+    const programIds = workoutInfo?.filter(wi => wi.current_program_id).map(wi => wi.current_program_id) || [];
+    
+    let programMap = new Map();
+    if (programIds.length > 0) {
+      const { data: programs } = await supabase
+        .from('workout_programs')
+        .select('id, title')
+        .in('id', programIds);
+        
+      programMap = new Map(programs ? programs.map(p => [p.id, p]) : []);
+    }
+    
+    // Get client profile info (first_name, last_name)
+    const { data: clientProfilesData } = await supabase
+      .from('client_profiles')
+      .select('id, first_name, last_name')
+      .in('id', clientIds);
+    
+    const clientProfilesMap = new Map(clientProfilesData ? clientProfilesData.map(cp => [cp.id, cp]) : []);
+    
+    // Get client group associations for admin view
+    const { data: groupMembers } = await supabase
+      .from('group_members')
+      .select('user_id, group_id')
+      .in('user_id', clientIds);
+    
+    const groupMap = new Map();
+    if (groupMembers) {
+      for (const member of groupMembers) {
+        if (!groupMap.has(member.user_id)) {
+          groupMap.set(member.user_id, []);
+        }
+        groupMap.get(member.user_id).push(member.group_id);
+      }
+    }
+    
+    // Transform the data to match expected format
+    return clientProfiles.map(client => {
+      const clientWorkoutInfo = workoutInfoMap.get(client.id);
+      const clientProfileInfo = clientProfilesMap.get(client.id);
+      
+      // Get program info if available
+      const programId = clientWorkoutInfo?.current_program_id;
+      const program = programId ? programMap.get(programId) : null;
+      
+      // Calculate days since last workout
+      let daysSinceLastWorkout = null;
+      if (clientWorkoutInfo?.last_workout_at) {
+        const lastWorkout = new Date(clientWorkoutInfo.last_workout_at);
+        const today = new Date();
+        const diffTime = Math.abs(today.getTime() - lastWorkout.getTime());
+        daysSinceLastWorkout = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      }
+      
+      return {
+        id: client.id,
+        email: emailMap.get(client.id) || 'Unknown',
+        user_type: client.user_type,
+        first_name: clientProfileInfo?.first_name || null,
+        last_name: clientProfileInfo?.last_name || null,
+        last_workout_at: clientWorkoutInfo?.last_workout_at || null,
+        total_workouts_completed: workoutCounts.get(client.id) || 0,
+        current_program_id: clientWorkoutInfo?.current_program_id || null,
+        current_program_title: program?.title || null,
+        days_since_last_workout: daysSinceLastWorkout,
+        group_ids: groupMap.get(client.id) || []
+      };
+    });
+  } catch (error) {
+    console.error('Error in admin client fetch:', error);
     return [];
   }
 };

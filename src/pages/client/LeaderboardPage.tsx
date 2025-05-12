@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Container } from '@/components/ui/container';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,14 +5,14 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchClientWorkoutHistory } from '@/services/client-workout-history-service';
 import { startOfWeek, format, isValid, isFuture } from 'date-fns';
 import { getWeeklyAssignedWorkoutsCount, countCompletedWorkoutsForWeek } from '@/services/workout-history-service';
-import { fetchClientProfile } from '@/services/client-service';
+import { fetchClientProfile, fetchPersonalRecords } from '@/services/client-service';
 import { Loader2, CalendarDays, User, Dumbbell } from 'lucide-react';
 import { toast } from 'sonner';
 import { MonthlyCalendarView } from '@/components/client/MonthlyCalendarView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { WorkoutType } from '@/components/client/WorkoutTypeIcon';
 import { WorkoutDayDetails } from '@/components/client/WorkoutDayDetails';
-import { WorkoutHistoryItem } from '@/types/workout';
+import { WorkoutHistoryItem, PersonalRecord } from '@/types/workout';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -47,6 +46,20 @@ const LeaderboardPage = () => {
         return await fetchClientWorkoutHistory(user.id);
       } catch (error) {
         console.error('Error fetching client workout history:', error);
+        return [];
+      }
+    },
+    enabled: !!user?.id,
+  });
+  
+  const { data: personalRecords, isLoading: isLoadingRecords, error: recordsError } = useQuery({
+    queryKey: ['personal-records', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        return await fetchPersonalRecords(user.id);
+      } catch (error) {
+        console.error('Error fetching personal records:', error);
         return [];
       }
     },
@@ -99,11 +112,16 @@ const LeaderboardPage = () => {
       toast.error('Failed to load workout history');
     }
     
+    if (recordsError) {
+      console.error('Records error:', recordsError);
+      toast.error('Failed to load personal records data');
+    }
+    
     if (countError || completedError) {
       console.error('Count/completed error:', countError || completedError);
       toast.error('Failed to load workout progress data');
     }
-  }, [profileError, workoutsError, countError, completedError]);
+  }, [profileError, workoutsError, recordsError, countError, completedError]);
   
   const workoutTypesMap = React.useMemo(() => {
     const typesMap: Record<string, WorkoutType> = {};
@@ -191,7 +209,7 @@ const LeaderboardPage = () => {
     navigate('/client-dashboard/workouts');
   };
   
-  const isLoading = isLoadingProfile || isLoadingWorkouts || isLoadingCount || isLoadingCompleted;
+  const isLoading = isLoadingProfile || isLoadingWorkouts || isLoadingRecords || isLoadingCount || isLoadingCompleted;
   
   if (isLoading) {
     return (
@@ -262,7 +280,8 @@ const LeaderboardPage = () => {
               <CardContent>
                 <WorkoutDayDetails 
                   date={selectedDate} 
-                  workouts={selectedDayWorkouts} 
+                  workouts={selectedDayWorkouts}
+                  personalRecords={personalRecords || []}
                 />
               </CardContent>
             </Card>

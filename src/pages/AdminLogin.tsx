@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { LoginForm } from '../components/LoginForm';
@@ -56,7 +57,7 @@ const AdminLogin = () => {
     });
     
     // Only attempt to redirect when auth is not loading and we haven't tried yet
-    if (!authLoading && !hasAttemptedRedirect) {
+    if (!authLoading && !localLoading && !hasAttemptedRedirect) {
       setHasAttemptedRedirect(true);
       
       // User is logged in as admin, redirect to dashboard
@@ -74,7 +75,7 @@ const AdminLogin = () => {
         console.log('No user detected or user type not determined yet');
       }
     }
-  }, [user, userType, authLoading, navigate, hasAttemptedRedirect]);
+  }, [user, userType, authLoading, navigate, hasAttemptedRedirect, localLoading]);
 
   // Show a clear loading state with debugging info
   if (authLoading || localLoading) {

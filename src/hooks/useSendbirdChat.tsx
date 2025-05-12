@@ -1,56 +1,115 @@
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { ChatMessage, subscribeToRoom, fetchMessages, sendMessage } from '@/services/chat';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useAuth } from '@/contexts/AuthContext';
-import { connectToSendbird, disconnectFromSendbird, getMessages, sendMessage } from '@/services/sendbird-service';
 
-export const useSendbirdChat = (channelUrl?: string) => {
-  const [messages, setMessages] = useState<any[]>([]);
+export const useSendbirdChat = (channelUrl: string) => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const { user } = useAuth();
 
   useEffect(() => {
-    const initializeChat = async () => {
-      if (!user?.id || !channelUrl) return;
-      
+    let messageChannel: RealtimeChannel | null = null;
+    let presenceChannel: RealtimeChannel | null = null;
+
+    const fetchInitialMessages = async () => {
       try {
         setIsLoading(true);
-        await connectToSendbird(user.id);
-        const initialMessages = await getMessages(channelUrl);
-        setMessages(initialMessages);
+        const fetchedMessages = await fetchMessages(channelUrl);
+        setMessages(fetchedMessages);
+        setError(null);
+
+        // Subscribe to new messages
+        messageChannel = subscribeToRoom(channelUrl, (newMessage) => {
+          setMessages(prev => [...prev, newMessage]);
+        });
       } catch (err) {
-        console.error('Error initializing chat:', err);
-        setError('Failed to initialize chat');
+        console.error('Error fetching messages:', err);
+        setError('Failed to load messages. Please try again later.');
       } finally {
         setIsLoading(false);
       }
     };
 
-    initializeChat();
+    // Subscribe to online presence
+    const setupPresence = async () => {
+      if (!user?.id) return;
+      
+      presenceChannel = supabase.channel('online-users')
+        .on('presence', { event: 'sync' }, () => {
+          const state = presenceChannel?.presenceState() || {};
+          const online = new Set<string>();
+          
+          // Process presence state to extract online users
+          Object.keys(state).forEach(presenceKey => {
+            // The structure of presences is different than expected
+            // We need to properly extract the user_id from each presence
+            const presences: any[] = state[presenceKey] as any[];
+            presences.forEach(presence => {
+              if (presence.user_id) {
+                online.add(presence.user_id);
+              }
+            });
+          });
+          
+          setOnlineUsers(online);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            // Track the current user's presence
+            await presenceChannel?.track({
+              user_id: user.id,
+              online_at: new Date().toISOString(),
+            });
+          }
+        });
+    };
+
+    if (channelUrl) {
+      fetchInitialMessages();
+    }
+
+    setupPresence();
 
     return () => {
-      disconnectFromSendbird();
+      if (messageChannel) {
+        messageChannel.unsubscribe();
+      }
+      if (presenceChannel) {
+        presenceChannel.unsubscribe();
+      }
     };
-  }, [user?.id, channelUrl]);
+  }, [channelUrl, user?.id]);
 
-  const sendChatMessage = async (message: string) => {
-    if (!channelUrl) return;
+  const sendChatMessage = async (content: string) => {
+    if (!content.trim()) return;
     
     try {
-      const sentMessage = await sendMessage(channelUrl, message);
-      setMessages(prev => [...prev, sentMessage]);
-      return sentMessage;
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) throw new Error('Not authenticated');
+      
+      const result = await sendMessage(channelUrl, content, data.user.id);
+      return result;
     } catch (err) {
       console.error('Error sending message:', err);
-      setError('Failed to send message');
       throw err;
     }
+  };
+
+  const isUserOnline = (userId: string): boolean => {
+    return onlineUsers.has(userId);
   };
 
   return {
     messages,
     isLoading,
     error,
-    sendMessage: sendChatMessage
+    sendMessage: sendChatMessage,
+    onlineUsers,
+    isUserOnline,
   };
 };

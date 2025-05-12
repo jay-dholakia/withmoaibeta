@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -33,10 +34,12 @@ const SettingsPage = () => {
     navigate('/client-dashboard/settings/edit-profile', { state: { from: 'settings' } });
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Not provided';
+  const formatDate = (dateValue: string | Date | null) => {
+    if (!dateValue) return 'Not provided';
     
-    const date = new Date(dateString);
+    // Convert to Date object if it's a string
+    const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+    
     const year = date.getUTCFullYear();
     const month = date.getUTCMonth() + 1;
     const day = date.getUTCDate();

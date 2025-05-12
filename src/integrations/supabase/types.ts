@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       accountability_buddies: {
         Row: {
+          buddy_pairing_id: string | null
           created_at: string
           group_id: string
           id: string
@@ -21,6 +22,7 @@ export type Database = {
           week_start: string
         }
         Insert: {
+          buddy_pairing_id?: string | null
           created_at?: string
           group_id: string
           id?: string
@@ -31,6 +33,7 @@ export type Database = {
           week_start: string
         }
         Update: {
+          buddy_pairing_id?: string | null
           created_at?: string
           group_id?: string
           id?: string
@@ -172,6 +175,89 @@ export type Database = {
             columns: ["program_week_id"]
             isOneToOne: false
             referencedRelation: "program_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_direct_message: boolean
+          room_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_direct_message?: boolean
+          room_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_direct_message?: boolean
+          room_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_rooms: {
+        Row: {
+          accountability_pairing_id: string | null
+          created_at: string | null
+          group_id: string | null
+          id: string
+          is_buddy_chat: boolean | null
+          is_group_chat: boolean
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          accountability_pairing_id?: string | null
+          created_at?: string | null
+          group_id?: string | null
+          id?: string
+          is_buddy_chat?: boolean | null
+          is_group_chat?: boolean
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          accountability_pairing_id?: string | null
+          created_at?: string | null
+          group_id?: string | null
+          id?: string
+          is_buddy_chat?: boolean | null
+          is_group_chat?: boolean
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_rooms_accountability_pairing_id_fkey"
+            columns: ["accountability_pairing_id"]
+            isOneToOne: false
+            referencedRelation: "accountability_buddies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_rooms_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
         ]
@@ -497,6 +583,38 @@ export type Database = {
           url?: string | null
         }
         Relationships: []
+      }
+      direct_message_rooms: {
+        Row: {
+          created_at: string | null
+          id: string
+          room_id: string
+          user1_id: string
+          user2_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          room_id: string
+          user1_id: string
+          user2_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          room_id?: string
+          user1_id?: string
+          user2_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_message_rooms_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       exercises: {
         Row: {
@@ -892,16 +1010,19 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_admin: boolean | null
           user_type: string
         }
         Insert: {
           created_at?: string
           id: string
+          is_admin?: boolean | null
           user_type: string
         }
         Update: {
           created_at?: string
           id?: string
+          is_admin?: boolean | null
           user_type?: string
         }
         Relationships: []
@@ -1742,6 +1863,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      create_or_get_direct_message_room: {
+        Args: { user1: string; user2: string }
+        Returns: string
+      }
       get_client_workout_info: {
         Args: { user_id_param: string }
         Returns: {
@@ -1834,6 +1959,10 @@ export type Database = {
           exercises_completed: number
           cardio_minutes_completed: number
         }[]
+      }
+      is_admin: {
+        Args: { check_user_id?: string }
+        Returns: boolean
       }
       is_coach_for_client: {
         Args: { coach_id: string; client_id: string }

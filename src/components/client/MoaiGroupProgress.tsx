@@ -6,7 +6,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { isThisWeek } from 'date-fns';
 import { WorkoutProgressCard } from './WorkoutProgressCard';
 import { getWeeklyAssignedWorkoutsCount } from '@/services/workout-history-service';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useGroupProgressData } from '@/hooks/useGroupProgressData';
@@ -14,6 +14,8 @@ import { getCurrentWeekNumber } from '@/services/assigned-workouts-service';
 import { BackgroundFetchIndicator } from './BackgroundFetchIndicator';
 import { useFireBadges } from '@/hooks/useFireBadges';
 import { supabase } from '@/integrations/supabase/client';
+import { useAccountabilityBuddies } from '@/hooks/useAccountabilityBuddies';
+import { getCurrentWeekStart } from '@/services/accountability-buddy-service';
 
 interface MoaiGroupProgressProps {
   groupId: string;
@@ -33,6 +35,17 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
     isFetchingBackground,
     refreshDataInBackground
   } = useGroupProgressData(groupId);
+  
+  // Get accountability buddies info
+  const {
+    buddies,
+    loading: loadingBuddies
+  } = useAccountabilityBuddies(groupId, user?.id);
+  
+  // Create a Set of buddy user IDs for quick lookups
+  const buddyUserIds = React.useMemo(() => {
+    return new Set(buddies.map(buddy => buddy.userId));
+  }, [buddies]);
   
   // Get badge counts for current user
   const { badgeCount: currentUserBadgeCount } = useFireBadges(user?.id || '');
@@ -199,6 +212,9 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
               ? currentUserBadgeCount 
               : (memberBadgeCounts?.[member.userId] || 0);
             
+            // Check if this member is an accountability buddy for the current user
+            const isBuddy = !isCurrentUser && buddyUserIds.has(member.userId);
+            
             if (!memberData && !isCurrentUser) {
               return (
                 <div key={member.userId} className="flex items-center gap-3 animate-pulse">
@@ -227,8 +243,12 @@ const MoaiGroupProgress = ({ groupId, currentProgram }: MoaiGroupProgressProps) 
                   firstName={member.profileData?.first_name}
                   lastName={member.profileData?.last_name}
                   showLabelsBelow={false}
-                  className="py-1"
+                  className={cn(
+                    "py-1", 
+                    isBuddy ? "bg-green-100 dark:bg-green-900/40 rounded-md px-2 -mx-2" : ""
+                  )}
                   fireWeeks={memberBadgeCount}
+                  isBuddy={isBuddy}
                 />
                 {index < allMembers.length - 1 && (
                   <div className="py-1">

@@ -37,6 +37,15 @@ export const StrengthExercise: React.FC<Props> = ({
   const { workoutCompletionId } = useParams<{ workoutCompletionId: string }>();
   const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>(exercise.exercise);
 
+  // Log personal record for debugging
+  useEffect(() => {
+    if (personalRecord) {
+      console.log(`PR displayed for ${exercise.exercise?.name}:`, personalRecord);
+    } else {
+      console.log(`No PR available for ${exercise.exercise?.name}`);
+    }
+  }, [personalRecord, exercise.exercise?.name]);
+
   // Check if exercise has sets
   const hasSets = exerciseState && exerciseState.sets && exerciseState.sets.length > 0;
 
@@ -45,7 +54,16 @@ export const StrengthExercise: React.FC<Props> = ({
     if (exercise.exercise && exercise.exercise.id !== currentExercise?.id) {
       setCurrentExercise(exercise.exercise);
     }
-  }, [exercise.exercise]);
+  }, [exercise.exercise, currentExercise?.id]);
+
+  // Apply personal record values to the first set if available
+  useEffect(() => {
+    if (personalRecord && hasSets && exerciseState.sets.length > 0 && !exerciseState.sets[0].weight && !exerciseState.sets[0].reps) {
+      // Only autofill if the first set is empty (no weight/reps entered yet)
+      onSetChange(exercise.id, 0, 'weight', personalRecord.weight?.toString() || '');
+      onSetChange(exercise.id, 0, 'reps', personalRecord.reps?.toString() || '');
+    }
+  }, [personalRecord, hasSets, exercise.id]);
 
   // Query for similar exercises
   const { data: similarExercises, isLoading } = useQuery({

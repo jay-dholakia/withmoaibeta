@@ -10,6 +10,7 @@ import { CalendarIcon, Armchair, ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { RestDayLog, logRestDay } from '@/services/activity-logging-service';
+import { toast } from 'sonner';
 
 const LogRestDayPage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,10 +37,15 @@ const LogRestDayPage: React.FC = () => {
       const result = await logRestDay(restData);
 
       if (result) {
+        toast.success("Rest day logged successfully!");
+        
+        // Dispatch workout-completed event to update the UI immediately
+        document.dispatchEvent(new CustomEvent('workout-completed'));
         navigate('/client-dashboard/workouts');
       }
     } catch (error) {
       console.error('Error logging rest day:', error);
+      toast.error("Failed to log rest day. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

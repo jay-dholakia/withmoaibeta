@@ -53,22 +53,17 @@ export const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     !assignment.end_date || new Date(assignment.end_date) >= new Date()
   );
 
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return '';
+  const formatDate = (dateValue: string | Date | null) => {
+    if (!dateValue) return 'Not provided';
     
-    const date = new Date(dateString);
-    
-    if (!isValid(date) || date.getFullYear() <= 1970) {
-      return 'Invalid date';
-    }
+    // Convert to Date object if it's a string
+    const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
     
     const year = date.getUTCFullYear();
-    const month = date.getUTCMonth();
+    const month = date.getUTCMonth() + 1;
     const day = date.getUTCDate();
     
-    const localDate = new Date(year, month, day);
-    
-    return format(localDate, 'MMM d, yyyy');
+    return `${month}/${day}/${year}`;
   };
   
   const formatRelativeTime = (dateString: string | null | undefined) => {

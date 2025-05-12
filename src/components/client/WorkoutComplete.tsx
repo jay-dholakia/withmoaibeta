@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -50,6 +51,13 @@ const WorkoutComplete = () => {
       }
     };
   }, [userTimeout]);
+
+  useEffect(() => {
+    if (workoutCompletionId) {
+      // Clear persisted timer state for this workout
+      localStorage.removeItem(`workout_timer_${workoutCompletionId}`);
+    }
+  }, [workoutCompletionId]);
 
   const { saveStatus } = useAutosave({
     data: { notes, rating },
@@ -211,18 +219,9 @@ const WorkoutComplete = () => {
     enabled: !!workoutCompletionId && !!user?.id,
   });
 
-  // Now that workoutData and isLoading are defined, we can use them in useEffect
-  useEffect(() => {
-    // We wait 500ms to ensure the data is loaded
-    const timer = setTimeout(() => {
-      if (workoutData && !isLoading) {
-        setShowShareDialog(true);
-      }
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [workoutCompletionId, workoutData, isLoading]);
-
+  // Remove this useEffect that was automatically showing the dialog when data loads
+  // We'll only show it after the Complete Workout button is pressed
+  
   const { data: personalRecords, isLoading: isLoadingPRs } = useQuery({
     queryKey: ['personal-records', user?.id, workoutCompletionId],
     queryFn: async () => {
@@ -379,6 +378,9 @@ const WorkoutComplete = () => {
       if (!workoutCompletionId) return null;
       console.log("Attempting to complete workout with ID:", workoutCompletionId);
       
+      // Clear the timer data when completing the workout
+      localStorage.removeItem(`workout_timer_${workoutCompletionId}`);
+      
       if (notes.trim()) {
         await addToJournal(notes);
       }
@@ -437,19 +439,24 @@ const WorkoutComplete = () => {
     },
     onSuccess: (completionId) => {
       if (completionId) {
+        // Clean up all workout related data
         deleteWorkoutDraft(workoutCompletionId);
         try {
           sessionStorage.removeItem(`workout_draft_${workoutCompletionId}`);
+          // Ensure timer data is removed on successful completion
+          localStorage.removeItem(`workout_timer_${workoutCompletionId}`);
         } catch (e) {
-          console.warn("Failed to remove draft from sessionStorage:", e);
+          console.warn("Failed to remove data from storage:", e);
         }
         
         queryClient.invalidateQueries({ queryKey: ['assigned-workouts'] });
         queryClient.invalidateQueries({ queryKey: ['client-workouts'] });
         queryClient.invalidateQueries({ queryKey: ['weekly-progress'] }); // Invalidate weekly progress to refresh counters
         
-        document.dispatchEvent(new Event('workout-completed'));
+        // Dispatch a custom event to notify other components about workout completion
+        document.dispatchEvent(new CustomEvent('workout-completed'));
         
+        // Show the share dialog after completion
         setShowShareDialog(true);
       } else {
         toast.error('Failed to complete workout');
@@ -465,6 +472,8 @@ const WorkoutComplete = () => {
     navigator.clipboard.writeText(shareMessage)
       .then(() => {
         toast.success('Copied to clipboard! Ready to share.');
+        // Navigate back to workouts page after copying
+        handleCloseShareDialog();
       })
       .catch(() => {
         toast.error('Could not copy text');
@@ -473,7 +482,7 @@ const WorkoutComplete = () => {
 
   const handleCloseShareDialog = () => {
     setShowShareDialog(false);
-    navigate('/client-dashboard/moai');
+    navigate('/client-dashboard/workouts');
   };
 
   const toggleEditMessage = () => {
@@ -672,7 +681,6 @@ const WorkoutComplete = () => {
             <Button
               onClick={() => {
                 handleShareWorkout();
-                handleCloseShareDialog();
               }}
               className="bg-primary hover:bg-primary/90 flex-1"
             >
@@ -686,3 +694,4 @@ const WorkoutComplete = () => {
 };
 
 export default WorkoutComplete;
+

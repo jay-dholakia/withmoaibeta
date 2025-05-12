@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 interface RequireAuthProps {
   allowedUserTypes: string[];
@@ -9,6 +11,7 @@ interface RequireAuthProps {
 
 const RequireAuth: React.FC<RequireAuthProps> = ({ allowedUserTypes, children }) => {
   const { user, userType, authLoading } = useAuth();
+  const { isAdmin, isLoading: isAdminLoading } = useIsAdmin();
   const location = useLocation();
   
   console.log("RequireAuth rendering with:", { 
@@ -16,10 +19,12 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ allowedUserTypes, children })
     userType, 
     allowedTypes: allowedUserTypes,
     authLoading,
+    isAdmin,
     path: location.pathname
   });
 
-  if (authLoading) {
+  // If auth or admin status is loading, show loading state
+  if (authLoading || isAdminLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <span className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></span>
@@ -32,6 +37,17 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ allowedUserTypes, children })
     // Redirect to login page
     console.log("RequireAuth: No user, redirecting to login");
     return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  // Special case: Admin routes for coaches with admin permission
+  if (
+    allowedUserTypes.includes('admin') && 
+    userType === 'coach' && 
+    isAdmin &&
+    location.pathname.includes('admin')
+  ) {
+    console.log("RequireAuth: Coach with admin privileges accessing admin route");
+    return <>{children ? children : <Outlet />}</>;
   }
 
   // Check if user has the required type

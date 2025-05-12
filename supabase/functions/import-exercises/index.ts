@@ -5,10 +5,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6';
 interface Exercise {
   name: string;
   category: string;
-  description?: string;
+  description?: string | null;
   exercise_type?: string;
-  muscle_group?: string;
-  youtube_link?: string;
+  muscle_group?: string | null;
+  youtube_link?: string | null;
   log_type?: string;
 }
 
@@ -74,13 +74,24 @@ Deno.serve(async (req) => {
       const content = await file.text();
       const parsedExercises = JSON.parse(content);
       
-      // Validate each exercise
+      // Validate and normalize each exercise
       parsedExercises.forEach((exercise: Exercise) => {
+        // Validate YouTube URL
         if (exercise.youtube_link && !isValidUrl(exercise.youtube_link)) {
           invalidUrlExercises.push(exercise.name);
-        } else {
-          exercises.push(exercise);
+          exercise.youtube_link = null; // Set invalid URLs to null
         }
+        
+        // Explicitly set empty values to null
+        // This is crucial for ensuring that empty values in the import will overwrite existing data
+        Object.keys(exercise).forEach((key) => {
+          const value = exercise[key as keyof Exercise];
+          if (value === '' || value === undefined) {
+            (exercise as any)[key] = null;
+          }
+        });
+        
+        exercises.push(exercise);
       });
     } else if (fileType === 'csv') {
       const content = await file.text();
@@ -121,37 +132,50 @@ Deno.serve(async (req) => {
         
         if (values.length <= Math.max(nameIndex, categoryIndex)) continue;
         
+        if (!values[nameIndex] || !values[categoryIndex]) continue; // Skip if name or category is missing
+        
         const exercise: Exercise = {
           name: values[nameIndex],
           category: values[categoryIndex],
         };
         
-        if (descriptionIndex >= 0 && values[descriptionIndex]) {
-          exercise.description = values[descriptionIndex];
+        // Explicitly set all fields from CSV, with empty strings becoming null
+        // This ensures that fields not in the CSV will be set to null and overwrite existing values
+        
+        if (descriptionIndex >= 0) {
+          exercise.description = values[descriptionIndex] || null;
+        } else {
+          exercise.description = null;
         }
         
-        if (exerciseTypeIndex >= 0 && values[exerciseTypeIndex]) {
-          exercise.exercise_type = values[exerciseTypeIndex];
+        if (exerciseTypeIndex >= 0) {
+          exercise.exercise_type = values[exerciseTypeIndex] || 'strength';
         } else {
           exercise.exercise_type = 'strength';
         }
 
-        if (muscleGroupIndex >= 0 && values[muscleGroupIndex]) {
-          exercise.muscle_group = values[muscleGroupIndex];
+        if (muscleGroupIndex >= 0) {
+          exercise.muscle_group = values[muscleGroupIndex] || null;
+        } else {
+          exercise.muscle_group = null;
         }
 
-        if (youtubeLinkIndex >= 0 && values[youtubeLinkIndex]) {
+        if (youtubeLinkIndex >= 0) {
           const youtubeLink = values[youtubeLinkIndex];
-          if (isValidUrl(youtubeLink)) {
+          if (youtubeLink && isValidUrl(youtubeLink)) {
             exercise.youtube_link = youtubeLink;
-          } else {
+          } else if (youtubeLink) {
             invalidUrlExercises.push(exercise.name);
-            // Don't add youtube_link if it's invalid
+            exercise.youtube_link = null;
+          } else {
+            exercise.youtube_link = null;
           }
+        } else {
+          exercise.youtube_link = null;
         }
         
-        if (logTypeIndex >= 0 && values[logTypeIndex]) {
-          exercise.log_type = values[logTypeIndex];
+        if (logTypeIndex >= 0) {
+          exercise.log_type = values[logTypeIndex] || 'weight_reps';
         } else {
           exercise.log_type = 'weight_reps';
         }
@@ -193,18 +217,22 @@ Deno.serve(async (req) => {
         }
 
         if (existingExercises && existingExercises.length > 0) {
+          // Create update object with explicit null values for empty fields
+          // This is crucial for overwriting existing values with null when fields are empty in import
+          const updateObject = {
+            name: exercise.name,
+            category: exercise.category,
+            description: exercise.description === undefined ? null : exercise.description,
+            exercise_type: exercise.exercise_type || 'strength',
+            muscle_group: exercise.muscle_group === undefined ? null : exercise.muscle_group,
+            youtube_link: exercise.youtube_link === undefined ? null : exercise.youtube_link,
+            log_type: exercise.log_type || 'weight_reps'
+          };
+          
           // Update existing exercise with ALL fields
           const { error: updateError } = await supabase
             .from('exercises')
-            .update({
-              name: exercise.name,
-              category: exercise.category,
-              description: exercise.description,
-              exercise_type: exercise.exercise_type || 'strength',
-              muscle_group: exercise.muscle_group,
-              youtube_link: exercise.youtube_link,
-              log_type: exercise.log_type || 'weight_reps'
-            })
+            .update(updateObject)
             .eq('id', existingExercises[0].id);
             
           if (updateError) {
@@ -216,17 +244,20 @@ Deno.serve(async (req) => {
           }
         } else {
           // Exercise doesn't exist, insert it with all fields
+          // Ensure null values are properly handled
+          const insertObject = {
+            name: exercise.name,
+            category: exercise.category,
+            description: exercise.description === undefined ? null : exercise.description,
+            exercise_type: exercise.exercise_type || 'strength',
+            muscle_group: exercise.muscle_group === undefined ? null : exercise.muscle_group,
+            youtube_link: exercise.youtube_link === undefined ? null : exercise.youtube_link,
+            log_type: exercise.log_type || 'weight_reps'
+          };
+          
           const { error: insertError } = await supabase
             .from('exercises')
-            .insert([{
-              name: exercise.name,
-              category: exercise.category,
-              description: exercise.description,
-              exercise_type: exercise.exercise_type || 'strength',
-              muscle_group: exercise.muscle_group,
-              youtube_link: exercise.youtube_link,
-              log_type: exercise.log_type || 'weight_reps'
-            }]);
+            .insert([insertObject]);
             
           if (insertError) {
             console.error('Error inserting exercise:', insertError);
@@ -238,10 +269,21 @@ Deno.serve(async (req) => {
         }
       }
     } else {
+      // For bulk insert, ensure all exercises have explicitly nulled empty fields
+      const processedExercises = exercises.map(exercise => ({
+        name: exercise.name,
+        category: exercise.category,
+        description: exercise.description === undefined ? null : exercise.description,
+        exercise_type: exercise.exercise_type || 'strength',
+        muscle_group: exercise.muscle_group === undefined ? null : exercise.muscle_group,
+        youtube_link: exercise.youtube_link === undefined ? null : exercise.youtube_link,
+        log_type: exercise.log_type || 'weight_reps'
+      }));
+      
       // Bulk insert all exercises
       const { error } = await supabase
         .from('exercises')
-        .insert(exercises);
+        .insert(processedExercises);
 
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), {

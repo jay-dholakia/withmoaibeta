@@ -1,4 +1,6 @@
+
 import React, { useState } from 'react';
+import MemberBadgeItem from './MemberBadgeItem';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -27,6 +29,7 @@ interface WorkoutCardProps {
   dayOfWeek?: number;
   exercises?: any[];
   isLifeHappensPass?: boolean;
+  onWorkoutCompleted?: (workoutId: string) => void; // New prop for handling completion
 }
 
 const getMemberInitials = (name: string): string => {
@@ -47,11 +50,32 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   completed = false,
   dayOfWeek,
   exercises = [],
-  isLifeHappensPass = false
+  isLifeHappensPass = false,
+  onWorkoutCompleted, // New prop
 }) => {
+  const [showMembersDropdown, setShowMembersDropdown] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const isCurrentUserCompleted = completed || 
+  const [isLocallyCompleted, setIsLocallyCompleted] = useState(completed);
+  const isCurrentUserCompleted = isLocallyCompleted || 
     groupMembers.find(member => member.id === currentUserId)?.completed_workout_ids.includes(workoutId);
+
+  // Handle workout start with completion callback
+  const handleStartWorkout = () => {
+    onStartWorkout(workoutId);
+    
+    // Set up event listener for workout completion
+    const handleCompletion = () => {
+      setIsLocallyCompleted(true);
+      if (onWorkoutCompleted) {
+        onWorkoutCompleted(workoutId);
+      }
+      // Remove the event listener after it's been triggered
+      document.removeEventListener('workout-completed', handleCompletion);
+    };
+    
+    // Listen for the workout-completed event
+    document.addEventListener('workout-completed', handleCompletion);
+  };
 
   return (
     <Card className={cn(
@@ -74,7 +98,11 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
         </div>
         
         {groupMembers.length > 0 && (
-          <div className="flex -space-x-1 items-center mt-2">
+          <div className="relative">
+            <div
+              className="flex -space-x-1 items-center mt-2 cursor-pointer"
+              onClick={() => setShowMembersDropdown(prev => !prev)}
+            >
             <TooltipProvider>
               {groupMembers.map((member, index) => {
                 const hasCompleted = member.completed_workout_ids.includes(workoutId);
@@ -104,6 +132,14 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
                 );
               })}
             </TooltipProvider>
+            </div>
+            {showMembersDropdown && (
+              <div className="absolute left-0 mt-2 w-60 max-h-64 overflow-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-10">
+                {groupMembers.map(member => (
+                  <MemberBadgeItem key={member.id} member={member} />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </CardHeader>
@@ -165,7 +201,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
               : "dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
           )}
           size="default"
-          onClick={() => onStartWorkout(workoutId)}
+          onClick={handleStartWorkout}
           disabled={isCurrentUserCompleted}
         >
           {isCurrentUserCompleted ? 'Workout Completed' : 'Log Workout'}

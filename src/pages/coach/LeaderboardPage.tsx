@@ -15,6 +15,8 @@ interface LeaderboardEntry {
   user_id: string;
   email: string;
   total_workouts: number;
+  first_name?: string | null;
+  last_name?: string | null;
 }
 
 const LeaderboardPage = () => {
@@ -56,7 +58,7 @@ const LeaderboardPage = () => {
     return date.toISOString();
   };
 
-  // Fetch leaderboard data
+  // Fetch leaderboard data with user profiles
   const fetchLeaderboard = async (period: 'weekly' | 'monthly'): Promise<LeaderboardEntry[]> => {
     const groupId = await getGroupId();
     
@@ -71,17 +73,49 @@ const LeaderboardPage = () => {
       : 'get_group_monthly_leaderboard';
     
     try {
-      const { data, error } = await supabase.rpc(
+      // First get the leaderboard data
+      const { data: leaderboardData, error: leaderboardError } = await supabase.rpc(
         functionName,
         { group_id: groupId, start_date: startDate }
       );
       
-      if (error) throw error;
-      return data || [];
+      if (leaderboardError) throw leaderboardError;
+      
+      if (!leaderboardData || leaderboardData.length === 0) {
+        return [];
+      }
+      
+      // Then enhance with user profile info
+      const enhancedData = await Promise.all(
+        leaderboardData.map(async (entry) => {
+          const { data: profileData } = await supabase
+            .from('client_profiles')
+            .select('first_name, last_name')
+            .eq('id', entry.user_id)
+            .single();
+            
+          return { 
+            ...entry,
+            first_name: profileData?.first_name,
+            last_name: profileData?.last_name
+          };
+        })
+      );
+      
+      return enhancedData;
     } catch (error) {
       console.error(`Error fetching ${period} leaderboard:`, error);
       return [];
     }
+  };
+
+  // Format display name to show full first name and initial of last name
+  const formatDisplayName = (entry: LeaderboardEntry): string => {
+    if (entry.first_name) {
+      return `${entry.first_name}${entry.last_name ? ` ${entry.last_name.charAt(0)}.` : ''}`;
+    }
+    // Fallback to email username if profile not available
+    return entry.email.split('@')[0];
   };
 
   // Weekly leaderboard query
@@ -157,7 +191,7 @@ const LeaderboardPage = () => {
                 {index === 0 ? '🏆' : index + 1}
               </TableCell>
               <TableCell className="dark:text-gray-300">
-                {entry.email.split('@')[0]}
+                {formatDisplayName(entry)}
               </TableCell>
               <TableCell className="text-right font-medium dark:text-gray-300">
                 {entry.total_workouts}

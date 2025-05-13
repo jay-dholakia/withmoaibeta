@@ -14,6 +14,13 @@ export const GroupLeaderboardItemCard: React.FC<GroupLeaderboardItemProps> = ({ 
   // Determine if this is a top ranked position (1-3)
   const isTopRank = item.rank && item.rank <= 3;
   
+  // Format name to show full first name and first initial of last name
+  const formatDisplayName = (): string => {
+    const firstName = item.first_name || '';
+    const lastName = item.last_name || '';
+    return `${firstName}${lastName ? ` ${lastName.charAt(0)}.` : ''}`;
+  };
+  
   // Get the rank icon based on position
   const getRankIcon = () => {
     if (!item.rank) return null;
@@ -45,13 +52,13 @@ export const GroupLeaderboardItemCard: React.FC<GroupLeaderboardItemProps> = ({ 
         </div>
         
         <Avatar className="h-10 w-10">
-          <AvatarImage src={item.avatar_url || ''} alt={`${item.first_name} ${item.last_name}`} />
+          <AvatarImage src={item.avatar_url || ''} alt={formatDisplayName()} />
           <AvatarFallback>{getInitials()}</AvatarFallback>
         </Avatar>
         
         <div className="flex-1 min-w-0">
           <p className="font-medium truncate">
-            {item.first_name} {item.last_name}
+            {formatDisplayName()}
           </p>
           
           {item.city && (

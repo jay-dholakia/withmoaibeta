@@ -33,6 +33,12 @@ export const GroupsLeaderboard: React.FC = () => {
         : [...prev, groupId]
     );
   };
+  
+  // Format name to show full first name and first initial of last name
+  const formatDisplayName = (firstName: string | null | undefined, lastName: string | null | undefined): string => {
+    if (!firstName) return '';
+    return `${firstName}${lastName ? ` ${lastName.charAt(0)}.` : ''}`;
+  };
 
   if (isLoading) {
     return (
@@ -114,7 +120,7 @@ export const GroupsLeaderboard: React.FC = () => {
                         </AvatarFallback>
                       </Avatar>
                       <span>
-                        {member.first_name} {member.last_name}
+                        {formatDisplayName(member.first_name, member.last_name)}
                       </span>
                     </div>
                     <div className="flex items-center text-xs text-muted-foreground">

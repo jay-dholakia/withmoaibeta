@@ -44,8 +44,8 @@ export const fetchClientsForChat = async (coachId: string): Promise<ClientData[]
 
     // Get client IDs from these groups and make sure they exist in auth.users
     // Using the generic rpc method with proper type casting
-    const { data: validClientIdsData, error: validClientsError } = await supabase
-      .rpc<string[]>('get_valid_client_ids_for_chat', { group_ids: groupIds });
+    const { data: validClientIds, error: validClientsError } = await supabase
+      .rpc<string[], { group_ids: string[] }>('get_valid_client_ids_for_chat', { group_ids: groupIds });
 
     if (validClientsError) {
       console.error('Error fetching valid client IDs:', validClientsError);
@@ -53,9 +53,7 @@ export const fetchClientsForChat = async (coachId: string): Promise<ClientData[]
     }
 
     // Safely handle the response with proper type checking
-    const validClientIds = validClientIdsData || [];
-    
-    if (validClientIds.length === 0) {
+    if (!validClientIds || validClientIds.length === 0) {
       return [];
     }
 
@@ -129,8 +127,8 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
     
     // First, get valid client IDs that exist in auth.users
     // Using the generic rpc method with proper type casting
-    const { data: validClientIdsData, error: validClientsError } = await supabase
-      .rpc<string[]>('get_all_valid_client_ids');
+    const { data: validClientIds, error: validClientsError } = await supabase
+      .rpc<string[], Record<string, never>>('get_all_valid_client_ids');
 
     if (validClientsError) {
       console.error('Error fetching valid client IDs:', validClientsError);
@@ -138,9 +136,7 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
     }
 
     // Safely handle the response with proper type checking
-    const validClientIds = validClientIdsData || [];
-    
-    if (validClientIds.length === 0) {
+    if (!validClientIds || validClientIds.length === 0) {
       return [];
     }
 

@@ -7,3 +7,4 @@ export * from './workout';
 export * from './auth';
 export * from './custom-workout/index';
 export * from './workout-history';
+export * from './chat';

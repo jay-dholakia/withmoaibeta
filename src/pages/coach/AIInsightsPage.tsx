@@ -12,13 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Bot, Search, BrainCircuit } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Client type with workouts count
+// Updated interface to match the data structure returned from the API
 interface Client {
   id: string;
+  email: string;
+  user_type: string;
   first_name: string | null;
   last_name: string | null;
-  email: string;
+  last_workout_at: string | null;
   total_workouts_completed: number;
+  current_program_id: string | null;
+  current_program_title: string | null;
+  days_since_last_workout: number | null;
+  group_ids: string[];
 }
 
 const AIInsightsPage = () => {

@@ -43,15 +43,20 @@ export const fetchClientsForChat = async (coachId: string): Promise<ClientData[]
     const groupIds = coachGroups.map(group => group.group_id);
 
     // Get client IDs from these groups and make sure they exist in auth.users
-    const { data: validClientIds, error: validClientsError } = await supabase.rpc('get_valid_client_ids_for_chat', { 
-      group_ids: groupIds 
-    });
+    // We need to cast the result properly
+    const { data: validClientIdsData, error: validClientsError } = await supabase.rpc(
+      'get_valid_client_ids_for_chat',
+      { group_ids: groupIds }
+    );
 
     if (validClientsError) {
       console.error('Error fetching valid client IDs:', validClientsError);
       return [];
     }
 
+    // Handle the response properly - it should be an array of UUIDs
+    const validClientIds = validClientIdsData as string[];
+    
     if (!validClientIds || validClientIds.length === 0) {
       return [];
     }
@@ -125,13 +130,19 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
     console.log('Fetching all clients for admin');
     
     // First, get valid client IDs that exist in auth.users
-    const { data: validClientIds, error: validClientsError } = await supabase.rpc('get_all_valid_client_ids');
+    // We need to cast the result properly
+    const { data: validClientIdsData, error: validClientsError } = await supabase.rpc(
+      'get_all_valid_client_ids'
+    );
 
     if (validClientsError) {
       console.error('Error fetching valid client IDs:', validClientsError);
       return [];
     }
 
+    // Handle the response properly - it should be an array of UUIDs
+    const validClientIds = validClientIdsData as string[];
+    
     if (!validClientIds || validClientIds.length === 0) {
       return [];
     }

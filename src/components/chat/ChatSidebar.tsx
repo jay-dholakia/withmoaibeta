@@ -136,7 +136,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         
         // Call the onChatCreated callback to refresh rooms and immediately redirect
         if (onChatCreated) {
-          onChatCreated(roomId);
+          onChatCreated(clientId);
         } else {
           // Fall back to just selecting the room if no callback provided
           onSelectRoom(roomId);
@@ -145,7 +145,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         toast.success("Direct message created successfully");
       } else {
         // More descriptive error message
-        toast.error("Failed to create conversation - the selected user may not exist or be available. Please try again later.");
+        toast.error("Failed to create conversation. Please make sure the client has completed their profile setup and try again.");
         console.error("Failed to create direct message with client:", clientId);
       }
     } catch (error) {

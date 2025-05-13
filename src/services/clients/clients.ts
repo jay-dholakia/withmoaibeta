@@ -42,6 +42,18 @@ export const createDirectMessage = async (
       return null;
     }
     
+    // Log which users were found or not found
+    const foundUsers = [];
+    if (coachExists) foundUsers.push(coachId);
+    if (clientExists) foundUsers.push(clientId);
+    
+    console.log("User verification results:", { 
+      coachExists, 
+      clientExists, 
+      foundCount: foundUsers.length,
+      foundUserIds: foundUsers
+    });
+    
     if (!coachExists) {
       console.error("Coach does not exist:", coachId);
       return null;

@@ -78,6 +78,7 @@ export const ExercisesList: React.FC<ExercisesListProps> = ({
                           isEditing={isEditing}
                           handleMoveExerciseUp={handleMoveExerciseUp}
                           handleMoveExerciseDown={handleMoveExerciseDown}
+                          dragHandleProps={isReordering ? provided.dragHandleProps : undefined}
                         />
                       </div>
                     )}

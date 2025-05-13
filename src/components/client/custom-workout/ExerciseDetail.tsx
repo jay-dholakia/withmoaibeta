@@ -4,6 +4,7 @@ import { ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CustomWorkoutExercise } from '@/services/clients/custom-workout/types';
+import { DraggableProvidedDragHandleProps } from 'react-beautiful-dnd';
 
 interface ExerciseDetailProps {
   exercise: CustomWorkoutExercise;
@@ -13,6 +14,7 @@ interface ExerciseDetailProps {
   isEditing: boolean;
   handleMoveExerciseUp: (exerciseId: string) => void;
   handleMoveExerciseDown: (exerciseId: string) => void;
+  dragHandleProps?: DraggableProvidedDragHandleProps;
 }
 
 export const ExerciseDetail: React.FC<ExerciseDetailProps> = ({
@@ -22,7 +24,8 @@ export const ExerciseDetail: React.FC<ExerciseDetailProps> = ({
   isReordering,
   isEditing,
   handleMoveExerciseUp,
-  handleMoveExerciseDown
+  handleMoveExerciseDown,
+  dragHandleProps
 }) => {
   return (
     <Card key={exercise.id}>
@@ -30,7 +33,10 @@ export const ExerciseDetail: React.FC<ExerciseDetailProps> = ({
         <div className="flex items-start justify-between">
           <div className="flex">
             {isReordering && (
-              <div className="mr-2 self-center cursor-grab">
+              <div 
+                className="mr-2 self-center cursor-grab" 
+                {...dragHandleProps}
+              >
                 <GripVertical className="h-5 w-5 text-muted-foreground" />
               </div>
             )}

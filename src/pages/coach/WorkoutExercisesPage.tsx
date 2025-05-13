@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { ChevronLeft, Plus, Video } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { ChevronLeft, Plus, Video, ListReorder } from 'lucide-react';
 import { 
   fetchWorkout, 
   fetchWorkoutExercises,
@@ -15,7 +14,6 @@ import {
 } from '@/services/workout-service';
 import { toast } from 'sonner';
 import { ExerciseSelector } from '@/components/coach/ExerciseSelector';
-import { Exercise } from '@/types/workout';
 import { 
   Dialog,
   DialogContent,
@@ -25,6 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoDialog } from '@/components/client/workout/VideoDialog';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { GripVertical } from 'lucide-react';
 
 const WorkoutExercisesPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -40,6 +40,7 @@ const WorkoutExercisesPage = () => {
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const [selectedVideoUrl, setSelectedVideoUrl] = useState('');
   const [selectedExerciseName, setSelectedExerciseName] = useState('');
+  const [isReordering, setIsReordering] = useState(false);
 
   // Use useEffect with an empty dependency array to track initial page load
   useEffect(() => {
@@ -80,6 +81,55 @@ const WorkoutExercisesPage = () => {
       loadWorkoutDetails();
     }
   }, [workoutId, navigate, user, pageLoaded]);
+
+  // Handle drag end to reorder exercises
+  const handleReorderExercises = async (result: DropResult) => {
+    if (!result.destination || !workoutId) return;
+    
+    const sourceIndex = result.source.index;
+    const destinationIndex = result.destination.index;
+    
+    if (sourceIndex === destinationIndex) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Optimistically update UI
+      const reorderedExercises = [...exercises];
+      const [removed] = reorderedExercises.splice(sourceIndex, 1);
+      reorderedExercises.splice(destinationIndex, 0, removed);
+      
+      // Update order_index values
+      const updatedExercises = reorderedExercises.map((exercise, index) => ({
+        ...exercise,
+        order_index: index
+      }));
+      
+      setExercises(updatedExercises);
+      
+      // Update in database
+      // We need to create a reorderWorkoutExercises function
+      const exerciseOrder = updatedExercises.map((exercise, index) => ({
+        id: exercise.id,
+        order_index: index
+      }));
+      
+      // Import and call the reorder function
+      const { reorderWorkoutExercises } = await import('@/services/workout/reorder');
+      await reorderWorkoutExercises(workoutId, exerciseOrder);
+      
+      toast.success('Exercises reordered successfully');
+    } catch (error) {
+      console.error('Error reordering exercises:', error);
+      toast.error('Failed to reorder exercises');
+      
+      // Refresh original exercise order on error
+      const refreshedExercises = await fetchWorkoutExercises(workoutId);
+      setExercises(refreshedExercises || []);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleBackClick = () => {
     navigate(`/workouts/${workoutId}/edit`);
@@ -192,6 +242,11 @@ const WorkoutExercisesPage = () => {
     }
   };
 
+  // Toggle reordering mode
+  const toggleReorderingMode = () => {
+    setIsReordering(!isReordering);
+  };
+
   if (isLoading) {
     return (
       <CoachLayout>
@@ -224,70 +279,117 @@ const WorkoutExercisesPage = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Exercises</CardTitle>
-            <Button 
-              onClick={() => setIsAddingExercise(true)}
-              size="sm"
-              className="gap-1"
-            >
-              <Plus className="h-4 w-4" />
-              Add Exercise
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={toggleReorderingMode} 
+                size="sm"
+                variant={isReordering ? "secondary" : "outline"}
+                className="gap-1"
+              >
+                <ListReorder className="h-4 w-4" />
+                {isReordering ? "Done Reordering" : "Reorder"}
+              </Button>
+              <Button 
+                onClick={() => setIsAddingExercise(true)}
+                size="sm"
+                className="gap-1"
+              >
+                <Plus className="h-4 w-4" />
+                Add Exercise
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {exercises.length > 0 ? (
-              <div className="space-y-4">
-                {exercises.map((exercise: any, index: number) => (
-                  <div key={exercise.id} className="border p-4 rounded-md shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-medium">{index + 1}. {exercise.exercise?.name || 'Exercise'}</h3>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {exercise.sets} sets × {exercise.reps} reps
-                          {exercise.rest_seconds ? ` (${exercise.rest_seconds}s rest)` : ''}
-                        </div>
-                        {exercise.notes && (
-                          <div className="text-sm mt-2 border-l-2 pl-2 border-muted">{exercise.notes}</div>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleMoveExerciseUp(exercise.id)}
-                          disabled={index === 0 || isSubmitting}
+              <DragDropContext onDragEnd={handleReorderExercises}>
+                <Droppable droppableId="exercises-list">
+                  {(provided) => (
+                    <div 
+                      className="space-y-4"
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                    >
+                      {exercises.map((exercise: any, index: number) => (
+                        <Draggable 
+                          key={exercise.id} 
+                          draggableId={exercise.id} 
+                          index={index}
+                          isDragDisabled={!isReordering}
                         >
-                          Move Up
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleMoveExerciseDown(exercise.id)}
-                          disabled={index === exercises.length - 1 || isSubmitting}
-                        >
-                          Move Down
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleOpenVideoDialog(exercise)}
-                          disabled={!exercise?.exercise?.youtube_link}
-                        >
-                          <Video className="h-4 w-4 mr-2" />
-                          Video
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => handleDeleteExercise(exercise.id)}
-                          disabled={isSubmitting}
-                        >
-                          Delete
-                        </Button>
-                      </div>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={`border p-4 rounded-md shadow-sm transition-shadow ${
+                                snapshot.isDragging ? 'shadow-lg' : ''
+                              }`}
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="flex">
+                                  {isReordering && (
+                                    <div 
+                                      className="mr-3 self-center cursor-grab"
+                                      {...provided.dragHandleProps}
+                                    >
+                                      <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                  <div>
+                                    <h3 className="font-medium">{index + 1}. {exercise.exercise?.name || 'Exercise'}</h3>
+                                    <div className="text-sm text-muted-foreground mt-1">
+                                      {exercise.sets} sets × {exercise.reps} reps
+                                      {exercise.rest_seconds ? ` (${exercise.rest_seconds}s rest)` : ''}
+                                    </div>
+                                    {exercise.notes && (
+                                      <div className="text-sm mt-2 border-l-2 pl-2 border-muted">{exercise.notes}</div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleMoveExerciseUp(exercise.id)}
+                                    disabled={index === 0 || isSubmitting || isReordering}
+                                  >
+                                    Move Up
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleMoveExerciseDown(exercise.id)}
+                                    disabled={index === exercises.length - 1 || isSubmitting || isReordering}
+                                  >
+                                    Move Down
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleOpenVideoDialog(exercise)}
+                                    disabled={!exercise?.exercise?.youtube_link}
+                                  >
+                                    <Video className="h-4 w-4 mr-2" />
+                                    Video
+                                  </Button>
+                                  <Button 
+                                    variant="destructive" 
+                                    size="sm"
+                                    onClick={() => handleDeleteExercise(exercise.id)}
+                                    disabled={isSubmitting || isReordering}
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
-                  </div>
-                ))}
-              </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <p>No exercises added yet</p>

@@ -41,17 +41,55 @@ const AIInsightsPage = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data: coachClients, error } = await supabase.rpc('get_coach_clients', {
-        coach_id: user.id
-      });
+      // Instead of using the RPC function directly, let's use a more flexible approach
+      // with the coach-clients-service that handles the type conversions properly
+      const { data: coachClients, error } = await supabase
+        .from('client_workout_info')
+        .select(`
+          user_id,
+          user_type,
+          last_workout_at,
+          total_workouts_completed,
+          current_program_id,
+          profiles!inner(id, user_type),
+          client_profiles(first_name, last_name)
+        `)
+        .eq('user_type', 'client');
       
       if (error) {
         console.error('Error fetching coach clients:', error);
         return [];
       }
+      
+      // Get emails for these clients
+      const clientIds = coachClients.map(client => client.user_id);
+      const { data: emails } = await supabase.rpc('get_users_email', {
+        user_ids: clientIds
+      });
+      
+      const emailMap = new Map(emails ? emails.map(e => [e.id, e.email]) : []);
+      
+      // Transform the data to match expected Client interface
+      const formattedClients = coachClients.map(client => {
+        return {
+          id: client.user_id,
+          email: emailMap.get(client.user_id) || 'Unknown',
+          user_type: client.user_type,
+          first_name: client.client_profiles?.[0]?.first_name || null,
+          last_name: client.client_profiles?.[0]?.last_name || null,
+          last_workout_at: client.last_workout_at,
+          total_workouts_completed: client.total_workouts_completed || 0,
+          current_program_id: client.current_program_id,
+          current_program_title: null, // We'll need another query to get this
+          days_since_last_workout: client.last_workout_at
+            ? Math.ceil((new Date().getTime() - new Date(client.last_workout_at).getTime()) / (1000 * 60 * 60 * 24))
+            : null,
+          group_ids: []
+        } as Client;
+      });
 
       // Sort clients by workout count in descending order
-      return coachClients.sort((a: Client, b: Client) => 
+      return formattedClients.sort((a, b) => 
         (b.total_workouts_completed || 0) - (a.total_workouts_completed || 0)
       );
     },

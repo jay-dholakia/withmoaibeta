@@ -47,7 +47,8 @@ import AdminClientStatsPage from './pages/admin/ClientStatsPage';
 import AdminExerciseManagementPage from './pages/admin/ExerciseManagementPage';
 import ProfileBuilder from './pages/client/ProfileBuilder';
 import AIInsightsPage from './pages/coach/AIInsightsPage';
-import PortalsPage from './pages/PortalsPage';
+import CoachChatPage from './pages/coach/CoachChatPage';
+import Index from './pages/Index';
 
 function App() {
   return (
@@ -55,14 +56,16 @@ function App() {
       <AuthProvider>
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
-          <Route path="/portals" element={<PublicRoute><PortalsPage /></PublicRoute>} />
+          <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
           <Route path="/first-admin-setup" element={<PublicRoute><AdminSetup /></PublicRoute>} />
           <Route path="/client-login" element={<PublicRoute><ClientLogin /></PublicRoute>} />
           <Route path="/admin-login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
           <Route path="/coach-login" element={<PublicRoute><CoachLogin /></PublicRoute>} />
+          
+          {/* Redirection route for /portals to home */}
+          <Route path="/portals" element={<Navigate to="/" replace />} />
           
           {/* Admin routes */}
           <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
@@ -90,7 +93,6 @@ function App() {
           <Route path="/coach-dashboard/workouts/:programId/weeks/:weekId" element={<AdminToolsProvider><CoachRoute><WorkoutWeekDetailPage /></CoachRoute></AdminToolsProvider>} />
           <Route path="/coach-dashboard/workouts/:programId/weeks/:weekId/workouts/:workoutId" element={<AdminToolsProvider><CoachRoute><EditWorkoutPage /></CoachRoute></AdminToolsProvider>} />
           <Route path="/coach-dashboard/workouts/:programId/weeks/:weekId/workouts/:workoutId/exercises" element={<AdminToolsProvider><CoachRoute><WorkoutExercisesPage /></CoachRoute></AdminToolsProvider>} />
-          <Route path="/coach-dashboard/workouts/:programId/weeks/:weekId/workouts/:workoutId/exercises" element={<AdminToolsProvider><CoachRoute><WorkoutExercisesPage /></CoachRoute></AdminToolsProvider>} />
           <Route path="/coach-dashboard/workouts/:programId/weeks/create" element={<AdminToolsProvider><CoachRoute><CreateWorkoutWeekPage /></CoachRoute></AdminToolsProvider>} />
           <Route path="/coach-dashboard/workout-templates" element={<AdminToolsProvider><CoachRoute><StandaloneWorkoutsPage /></CoachRoute></AdminToolsProvider>} />
           <Route path="/coach-dashboard/workout-templates/:workoutId" element={<AdminToolsProvider><CoachRoute><StandaloneWorkoutDetailsPage /></CoachRoute></AdminToolsProvider>} />
@@ -100,10 +102,11 @@ function App() {
           <Route path="/coach-dashboard/leaderboards" element={<AdminToolsProvider><CoachRoute><LeaderboardPage /></CoachRoute></AdminToolsProvider>} />
           <Route path="/coach-dashboard/exercise-management" element={<AdminToolsProvider><CoachRoute><ExerciseManagementPage /></CoachRoute></AdminToolsProvider>} />
           <Route path="/coach-dashboard/ai-insights" element={<AdminToolsProvider><CoachRoute><AIInsightsPage /></CoachRoute></AdminToolsProvider>} />
+          <Route path="/coach-dashboard/chat" element={<AdminToolsProvider><CoachRoute><CoachChatPage /></CoachRoute></AdminToolsProvider>} />
           <Route path="/coach-profile" element={<AdminToolsProvider><CoachRoute><ProfilePage /></CoachRoute></AdminToolsProvider>} />
           
           {/* Fallback routes */}
-          <Route path="/index" element={<Navigate replace to="/portals" />} />
+          <Route path="/index" element={<Navigate replace to="/" />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>

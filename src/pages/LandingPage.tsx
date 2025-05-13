@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Container } from "@/components/ui/container";
@@ -21,7 +22,7 @@ const LandingPage = () => {
               Join a supportive fitness community that helps you achieve your health goals through accountability, coaching, and shared progress.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <Link to="/portals">
+              <Link to="/login">
                 <Button size="lg" className="bg-client hover:bg-client/90 shadow-md">
                   Join Now
                 </Button>
@@ -187,7 +188,7 @@ const LandingPage = () => {
             Join the Moai community today and experience the difference that supportive accountability makes.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link to="/portals">
+            <Link to="/login">
               <Button size="lg" className="bg-white text-client hover:bg-gray-100 shadow-md">
                 Join Now
               </Button>

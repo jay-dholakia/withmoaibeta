@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { PageTransition } from '@/components/PageTransition';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminTools } from '@/contexts/AdminToolsContext';
-import { LogOut, User, Home, Dumbbell, Users, BarChart3, Award, Heart, FileText, LayoutTemplate, Database, Menu, Shield } from 'lucide-react';
+import { LogOut, User, Home, Dumbbell, Users, BarChart3, Award, Heart, FileText, LayoutTemplate, Database, Menu, Shield, Info } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/lib/hooks';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -35,6 +34,7 @@ export const CoachLayout: React.FC<CoachLayoutProps> = ({ children }) => {
     { icon: <Dumbbell className="w-5 h-5" />, label: 'Programs', path: '/coach-dashboard/workouts' },
     { icon: <LayoutTemplate className="w-5 h-5" />, label: 'Workout Templates', path: '/coach-dashboard/workout-templates' },
     { icon: <Users className="w-5 h-5" />, label: 'Clients', path: '/coach-dashboard/clients' },
+    { icon: <Info className="w-5 h-5" />, label: 'AI Insights', path: '/coach-dashboard/ai-insights' },
     { icon: <BarChart3 className="w-5 h-5" />, label: 'Client Stats', path: '/coach-dashboard/client-stats' },
     { icon: <Database className="w-5 h-5" />, label: 'Manage Exercises', path: '/coach-dashboard/exercise-management' },
     { icon: <Award className="w-5 h-5" />, label: 'Leaderboards', path: '/coach-dashboard/leaderboards' },

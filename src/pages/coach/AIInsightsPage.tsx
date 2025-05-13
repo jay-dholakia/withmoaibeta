@@ -23,14 +23,147 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { 
-  fetchCoachGroups
-} from '@/services/coach-group-service';
-import { 
-  fetchCoachClients, 
-  ClientData
-} from '@/services/coach-service';
+import { fetchCoachGroups } from '@/services/coach-group-service';
 import { supabase } from '@/integrations/supabase/client';
+
+// Define interfaces for our data structures
+interface ClientData {
+  id: string;
+  email: string | null;
+  user_type: string;
+  last_workout_at: string | null;
+  total_workouts_completed: number;
+  current_program_id: string | null;
+  current_program_title: string | null;
+  days_since_last_workout: number | null;
+  group_ids: string[];
+}
+
+interface GroupData {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+interface ClientInsightsData {
+  totalWorkouts: number;
+  recentWorkouts: any[];
+  lastWorkout: string | null;
+  streakData: {
+    currentStreak: number;
+    longestStreak: number;
+  };
+  insights: {
+    type: string;
+    title: string;
+    message: string;
+  }[];
+}
+
+interface GroupInsightsData {
+  totalMembers: number;
+  activeMembers: number;
+  totalWorkouts: number;
+  insights: {
+    type: string;
+    title: string;
+    message: string;
+  }[];
+}
+
+// Fetch client data for a coach
+const fetchCoachClients = async (coachId: string) => {
+  if (!coachId) return [];
+
+  try {
+    // Get all client IDs this coach has access to through groups
+    const { data: coachGroups, error: groupError } = await supabase
+      .from('group_coaches')
+      .select('group_id')
+      .eq('coach_id', coachId);
+
+    if (groupError) throw groupError;
+    if (!coachGroups || coachGroups.length === 0) return [];
+
+    const groupIds = coachGroups.map(g => g.group_id);
+
+    // Get all clients in these groups
+    const { data: members, error: memberError } = await supabase
+      .from('group_members')
+      .select('user_id, group_id')
+      .in('group_id', groupIds);
+
+    if (memberError) throw memberError;
+    if (!members || members.length === 0) return [];
+
+    // Get unique client IDs
+    const clientIds = [...new Set(members.map(m => m.user_id))];
+
+    // Create a map of user_id to their group_ids
+    const userGroups: Record<string, string[]> = {};
+    members.forEach(m => {
+      if (!userGroups[m.user_id]) {
+        userGroups[m.user_id] = [];
+      }
+      userGroups[m.user_id].push(m.group_id);
+    });
+
+    // Get client workout info
+    const { data: clientData, error: clientError } = await supabase
+      .from('client_workout_info')
+      .select('*')
+      .in('user_id', clientIds);
+
+    if (clientError) throw clientError;
+    if (!clientData) return [];
+
+    // Get emails for these clients
+    const { data: emails, error: emailError } = await supabase.rpc('get_users_email', {
+      user_ids: clientIds
+    });
+
+    if (emailError) throw emailError;
+    
+    const emailMap: Record<string, string> = {};
+    if (emails) {
+      emails.forEach((e: { id: string; email: string }) => {
+        emailMap[e.id] = e.email;
+      });
+    }
+
+    // Transform the data to match the ClientData interface
+    const result: ClientData[] = clientData.map(client => {
+      // Calculate days since last workout
+      let daysSinceLastWorkout = null;
+      if (client.last_workout_at) {
+        const lastWorkoutDate = new Date(client.last_workout_at);
+        const currentDate = new Date();
+        const diffTime = Math.abs(currentDate.getTime() - lastWorkoutDate.getTime());
+        daysSinceLastWorkout = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      }
+
+      return {
+        id: client.user_id,
+        email: emailMap[client.user_id] || null,
+        user_type: client.user_type || 'client',
+        last_workout_at: client.last_workout_at,
+        total_workouts_completed: client.total_workouts_completed || 0,
+        current_program_id: client.current_program_id,
+        current_program_title: null, // We'd need to fetch this separately
+        days_since_last_workout: daysSinceLastWorkout,
+        group_ids: userGroups[client.user_id] || []
+      };
+    });
+
+    // Sort by total workouts
+    return result.sort((a, b) => 
+      (b.total_workouts_completed || 0) - (a.total_workouts_completed || 0)
+    );
+  } catch (error) {
+    console.error('Error fetching coach clients:', error);
+    return [];
+  }
+};
 
 const AIInsightsPage = () => {
   const { user } = useAuth();

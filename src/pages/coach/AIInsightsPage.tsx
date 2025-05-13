@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { 
   Card, 
   CardContent, 
@@ -216,22 +217,30 @@ const AIInsightsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  
+  // Check if user is admin
+  const { isAdmin } = useIsAdmin();
 
   // Fetch coach groups
   const { data: coachGroups, isLoading: groupsLoading } = useQuery({
     queryKey: ['coach-groups', user?.id],
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
+      
+      console.log('Fetching groups for coach/admin:', user.id, 'Is admin:', isAdmin);
       return fetchCoachGroups(user.id);
     },
     enabled: !!user
   });
 
-  // Fetch coach clients
+  // Fetch coach clients - now using the imported service function
   const { data: clients, isLoading: clientsLoading } = useQuery({
-    queryKey: ['coach-clients', user?.id],
+    queryKey: ['coach-clients', user?.id, isAdmin],
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
+      console.log('Fetching clients for coach/admin:', user.id, 'Is admin:', isAdmin);
+      
+      // Use the imported service function
       return fetchCoachClients(user.id);
     },
     enabled: !!user

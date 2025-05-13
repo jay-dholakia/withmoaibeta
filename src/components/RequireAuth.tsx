@@ -39,6 +39,12 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ allowedUserTypes, children })
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
+  // For AI Insights page, allow coaches with admin privileges
+  if (location.pathname.includes('/coach-dashboard/ai-insights') && isAdmin) {
+    console.log("RequireAuth: Admin accessing AI Insights page");
+    return <>{children ? children : <Outlet />}</>;
+  }
+
   // Special case: Admin routes for coaches with admin permission
   if (
     allowedUserTypes.includes('admin') && 

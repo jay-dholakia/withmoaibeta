@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Bot, Search, BrainCircuit } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Updated interface to match the data structure returned from the API
+// Interface to match the data structure returned from the API
 interface Client {
   id: string;
   email: string;
@@ -92,7 +92,7 @@ const AIInsightsPage = () => {
 
     try {
       // Find the selected client to include their name in the question
-      const selectedClient = clients.find((c: Client) => c.id === selectedClientId);
+      const selectedClient = clients.find((client: Client) => client.id === selectedClientId);
       const clientName = selectedClient ? formatClientName(selectedClient) : 'the client';
       
       const enhancedQuery = `Query about ${clientName}: ${query}`;

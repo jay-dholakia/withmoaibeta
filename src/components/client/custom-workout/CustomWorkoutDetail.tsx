@@ -41,17 +41,17 @@ const CustomWorkoutDetail: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
 
   // Handle drag-and-drop reordering
-  const handleReorderExercises = async (result: DropResult) => {
+  const handleReorderExercises = async (dropResult: DropResult) => {
     // Drop outside the list or no movement
-    if (!result.destination || result.source.index === result.destination.index) {
+    if (!dropResult.destination || dropResult.source.index === dropResult.destination.index) {
       return;
     }
 
     if (!workoutId) return;
 
     try {
-      const sourceIndex = result.source.index;
-      const destinationIndex = result.destination.index;
+      const sourceIndex = dropResult.source.index;
+      const destinationIndex = dropResult.destination.index;
 
       // Optimistically update UI first for better user experience
       const reorderedExercises = [...exercises];
@@ -67,14 +67,14 @@ const CustomWorkoutDetail: React.FC = () => {
       setExercises(updatedExercises);
 
       // Now update in the database
-      const result = await reorderCustomWorkoutExercises(
+      const reorderResult = await reorderCustomWorkoutExercises(
         workoutId, 
         updatedExercises.map(ex => ({ id: ex.id, order_index: ex.order_index }))
       );
       
-      if (result) {
+      if (reorderResult) {
         // Optional: refresh from server to ensure sync
-        setExercises(result);
+        setExercises(reorderResult);
       }
     } catch (error) {
       console.error('Error reordering exercises:', error);

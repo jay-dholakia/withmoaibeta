@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { 
   fetchCustomWorkouts, 
+  fetchCustomWorkout,
   fetchCustomWorkoutExercises,
   deleteCustomWorkout,
   moveCustomWorkoutExerciseUp,
@@ -12,6 +13,7 @@ import {
   CustomWorkout,
   CustomWorkoutExercise
 } from '@/services/clients/custom-workout';
+import { WorkoutType } from './types';
 
 export const useWorkoutDetail = (workoutId: string | undefined) => {
   const [workout, setWorkout] = useState<CustomWorkout | null>(null);

@@ -43,10 +43,9 @@ export const fetchClientsForChat = async (coachId: string): Promise<ClientData[]
     const groupIds = coachGroups.map(group => group.group_id);
 
     // Get client IDs from these groups and make sure they exist in auth.users
-    // Using any type and casting later to avoid TypeScript constraints
-    // Explicitly use the Postgres function names as strings
+    // Using the "any" type to bypass TypeScript's strict checking on RPC functions
     const { data, error: validClientsError } = await supabase
-      .rpc('get_valid_client_ids_for_chat', { group_ids: groupIds }) as { data: any, error: any };
+      .rpc('get_valid_client_ids_for_chat', { group_ids: groupIds }) as any;
 
     if (validClientsError) {
       console.error('Error fetching valid client IDs:', validClientsError);
@@ -84,7 +83,7 @@ export const fetchClientsForChat = async (coachId: string): Promise<ClientData[]
 
     // Get emails for these clients
     const { data: emailsData, error: emailsError } = await supabase
-      .rpc('get_users_email', { user_ids: validClientIds }) as { data: any, error: any };
+      .rpc('get_users_email', { user_ids: validClientIds }) as any;
     
     if (emailsError) {
       console.error('Error fetching emails:', emailsError);
@@ -132,9 +131,9 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
     console.log('Fetching all clients for admin');
     
     // First, get valid client IDs that exist in auth.users
-    // Using any type and explicit casting later for safety
+    // Using the "any" type to bypass TypeScript's strict checking on RPC functions
     const { data, error: validClientsError } = await supabase
-      .rpc('get_all_valid_client_ids') as { data: any, error: any };
+      .rpc('get_all_valid_client_ids') as any;
 
     if (validClientsError) {
       console.error('Error fetching valid client IDs:', validClientsError);
@@ -176,7 +175,7 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
 
     // Get emails for these clients
     const { data: emailsData, error: emailsError } = await supabase
-      .rpc('get_users_email', { user_ids: validClientIds }) as { data: any, error: any };
+      .rpc('get_users_email', { user_ids: validClientIds }) as any;
     
     if (emailsError) {
       console.error('Error fetching emails:', emailsError);

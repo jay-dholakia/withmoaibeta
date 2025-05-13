@@ -48,6 +48,7 @@ import AdminExerciseManagementPage from './pages/admin/ExerciseManagementPage';
 import ProfileBuilder from './pages/client/ProfileBuilder';
 import AIInsightsPage from './pages/coach/AIInsightsPage';
 import CoachChatPage from './pages/coach/CoachChatPage';
+import Index from './pages/Index';
 
 function App() {
   return (
@@ -55,13 +56,16 @@ function App() {
       <AuthProvider>
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
+          <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
           <Route path="/first-admin-setup" element={<PublicRoute><AdminSetup /></PublicRoute>} />
           <Route path="/client-login" element={<PublicRoute><ClientLogin /></PublicRoute>} />
           <Route path="/admin-login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
           <Route path="/coach-login" element={<PublicRoute><CoachLogin /></PublicRoute>} />
+          
+          {/* Redirection route for /portals to home */}
+          <Route path="/portals" element={<Navigate to="/" replace />} />
           
           {/* Admin routes */}
           <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

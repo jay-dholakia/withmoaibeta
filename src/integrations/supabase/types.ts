@@ -1846,6 +1846,10 @@ export type Database = {
         Args: { award_user_id: string; award_week_start: string }
         Returns: string
       }
+      check_user_exists: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       check_user_weekly_completion: {
         Args: { check_user_id: string; week_start_date: string }
         Returns: boolean

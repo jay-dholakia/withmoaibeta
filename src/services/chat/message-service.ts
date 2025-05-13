@@ -16,8 +16,7 @@ export const fetchMessages = async (roomId: string): Promise<ChatMessage[]> => {
         sender_id,
         created_at,
         room_id,
-        is_direct_message,
-        profiles:sender_id (user_type)
+        is_direct_message
       `)
       .eq("room_id", roomId)
       .order("created_at", { ascending: true });
@@ -31,13 +30,18 @@ export const fetchMessages = async (roomId: string): Promise<ChatMessage[]> => {
     const messages: ChatMessage[] = [];
     
     for (const message of data) {
-      const senderProfile = message.profiles;
-      const userType = senderProfile?.user_type;
+      // First get user type from the profiles table
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", message.sender_id)
+        .maybeSingle();
+      
       let senderName = "Unknown User";
       let senderAvatar = null;
       
       // Get user profile details based on user type
-      if (userType === 'coach') {
+      if (profileData?.user_type === 'coach') {
         const { data: coachProfile } = await supabase
           .from("coach_profiles")
           .select("first_name, last_name, avatar_url")
@@ -48,7 +52,7 @@ export const fetchMessages = async (roomId: string): Promise<ChatMessage[]> => {
           senderName = `${coachProfile.first_name || ''} ${coachProfile.last_name || ''}`.trim();
           senderAvatar = coachProfile.avatar_url;
         }
-      } else if (userType === 'client') {
+      } else if (profileData?.user_type === 'client') {
         const { data: clientProfile } = await supabase
           .from("client_profiles")
           .select("first_name, last_name, avatar_url")

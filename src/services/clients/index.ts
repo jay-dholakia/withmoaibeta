@@ -1,4 +1,11 @@
 
-// Facade index for client services
-export * from './clients';
-
+// Re-export all client-related services for backward compatibility
+export * from './profile';
+export * from './avatar';
+export * from './personal-records';
+export * from './workout';
+export * from './auth';
+export * from './custom-workout/index';
+export * from './workout-history';
+export * from './chat';
+export * from './clients'; // Add the new client service

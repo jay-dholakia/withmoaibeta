@@ -1,15 +1,22 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { PersonalRecord } from '@/types/workout';
 
 /**
- * Fetch personal records (with exercise details) for a user
+ * Fetch personal records for a specific user
  */
-export const fetchPersonalRecords = async (userId: string) => {
+export const fetchPersonalRecords = async (
+  userId: string
+): Promise<PersonalRecord[]> => {
   try {
     const { data, error } = await supabase
       .from('personal_records')
-      .select('*, exercise:exercise_id(*)')
-      .eq('user_id', userId);
+      .select(`
+        *,
+        exercise:exercise_id (*)
+      `)
+      .eq('user_id', userId)
+      .order('achieved_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching personal records:', error);

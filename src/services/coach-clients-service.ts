@@ -106,6 +106,7 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
         profilesMap[profile.id] = profile;
       });
     }
+    console.log('Client profiles map:', profilesMap);
     
     // Get client workout info
     const { data: clientData, error: clientError } = await supabase
@@ -139,6 +140,7 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
         programMap[program.id] = program.title;
       });
     }
+    console.log('Program map:', programMap);
     
     // Get emails for these clients
     const { data: emails, error: emailError } = await supabase.rpc('get_users_email', {
@@ -155,6 +157,7 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
         emailMap[e.id] = e.email;
       });
     }
+    console.log('Email map:', emailMap);
     
     // Transform the data to match the ClientData interface
     const result: ClientData[] = clientData?.map(client => {
@@ -168,17 +171,23 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       }
       
       const profile = profilesMap[client.user_id] || {};
+      const userEmail = emailMap[client.user_id] || null;
+      const programTitle = client.current_program_id ? programMap[client.current_program_id] || null : null;
+      
+      console.log(`Client ${client.user_id} profile:`, profile);
+      console.log(`Client ${client.user_id} email:`, userEmail);
+      console.log(`Client ${client.user_id} program:`, programTitle);
       
       return {
         id: client.user_id,
-        email: emailMap[client.user_id] || null,
+        email: userEmail,
         user_type: client.user_type || 'client',
         first_name: profile.first_name || null,
         last_name: profile.last_name || null,
         last_workout_at: client.last_workout_at,
         total_workouts_completed: client.total_workouts_completed || 0,
         current_program_id: client.current_program_id,
-        current_program_title: client.current_program_id ? programMap[client.current_program_id] || null : null,
+        current_program_title: programTitle,
         days_since_last_workout: daysSinceLastWorkout,
         group_ids: userGroups[client.user_id] || []
       };
@@ -213,19 +222,39 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
     const clientIds = clientProfiles.map(client => client.id);
     
     // Get client profile info (first_name, last_name)
-    const { data: clientProfilesData } = await supabase
+    const { data: clientProfilesData, error: clientProfilesError } = await supabase
       .from('client_profiles')
       .select('id, first_name, last_name')
       .in('id', clientIds);
     
-    const clientProfilesMap = new Map(clientProfilesData ? clientProfilesData.map(cp => [cp.id, cp]) : []);
+    if (clientProfilesError) {
+      console.error('Error fetching client profile data:', clientProfilesError);
+    }
+    
+    const clientProfilesMap = new Map();
+    if (clientProfilesData) {
+      clientProfilesData.forEach(cp => {
+        clientProfilesMap.set(cp.id, cp);
+      });
+    }
+    console.log('Admin: Client profiles map:', Object.fromEntries(clientProfilesMap));
     
     // Get emails for these clients
-    const { data: emails } = await supabase.rpc('get_users_email', {
+    const { data: emails, error: emailError } = await supabase.rpc('get_users_email', {
       user_ids: clientIds
     });
     
-    const emailMap = new Map(emails ? emails.map(e => [e.id, e.email]) : []);
+    if (emailError) {
+      console.error('Error fetching emails:', emailError);
+    }
+    
+    const emailMap = new Map();
+    if (emails) {
+      emails.forEach(e => {
+        emailMap.set(e.id, e.email);
+      });
+    }
+    console.log('Admin: Email map:', Object.fromEntries(emailMap));
     
     // Get client workout info
     const { data: workoutInfo, error: workoutInfoError } = await supabase
@@ -237,26 +266,47 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
       console.error('Error fetching client workout info:', workoutInfoError);
     }
     
-    const workoutInfoMap = new Map(workoutInfo ? workoutInfo.map(wi => [wi.user_id, wi]) : []);
+    const workoutInfoMap = new Map();
+    if (workoutInfo) {
+      workoutInfo.forEach(wi => {
+        workoutInfoMap.set(wi.user_id, wi);
+      });
+    }
+    console.log('Admin: Workout info map:', Object.fromEntries(workoutInfoMap));
     
     // Get program info
-    const programIds = workoutInfo?.filter(wi => wi.current_program_id).map(wi => wi.current_program_id) || [];
+    const programIds = Array.from(workoutInfoMap.values())
+      .filter(wi => wi.current_program_id)
+      .map(wi => wi.current_program_id);
     
     let programMap = new Map();
     if (programIds.length > 0) {
-      const { data: programs } = await supabase
+      const { data: programs, error: programsError } = await supabase
         .from('workout_programs')
         .select('id, title')
         .in('id', programIds);
+      
+      if (programsError) {
+        console.error('Error fetching program titles:', programsError);
+      }
         
-      programMap = new Map(programs ? programs.map(p => [p.id, p]) : []);
+      if (programs) {
+        programs.forEach(p => {
+          programMap.set(p.id, p);
+        });
+      }
     }
+    console.log('Admin: Program map:', Object.fromEntries(programMap));
     
     // Get client group associations for admin view
-    const { data: groupMembers } = await supabase
+    const { data: groupMembers, error: groupMembersError } = await supabase
       .from('group_members')
       .select('user_id, group_id')
       .in('user_id', clientIds);
+    
+    if (groupMembersError) {
+      console.error('Error fetching group members:', groupMembersError);
+    }
     
     const groupMap = new Map();
     if (groupMembers) {
@@ -286,7 +336,7 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
         daysSinceLastWorkout = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       }
       
-      return {
+      const result = {
         id: client.id,
         email: emailMap.get(client.id) || 'Unknown',
         user_type: client.user_type,
@@ -299,6 +349,9 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
         days_since_last_workout: daysSinceLastWorkout,
         group_ids: groupMap.get(client.id) || []
       };
+      
+      console.log('Admin client result:', result);
+      return result;
     });
   } catch (error) {
     console.error('Error in admin client fetch:', error);

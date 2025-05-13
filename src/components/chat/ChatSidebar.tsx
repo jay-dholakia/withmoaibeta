@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -143,7 +142,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         
         toast.success("Direct message created");
       } else {
-        toast.error("Failed to create direct message");
+        toast.error("Failed to create direct message - user may not exist in the system");
       }
     } catch (error) {
       console.error("Error creating direct message:", error);

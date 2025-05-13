@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types/user";
 
@@ -21,31 +20,24 @@ export const createDirectMessage = async (
       return null;
     }
     
-    // Check if client exists in profiles AND auth.users before attempting to create a chat room
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', clientId)
-      .maybeSingle();
+    // First check if both users exist in profiles table
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id")
+      .in("id", [coachId, clientId]);
     
-    if (profileError || !profileData) {
-      console.error("Client not found in profiles:", { clientId, error: profileError });
-      return null;
-    }
-    
-    // Also check if the client exists in auth.users table using RPC function
-    const { data: userData, error: userError } = await (supabase.rpc as any)(
-      'get_users_email', 
-      { user_ids: [clientId] }
-    );
-    
-    if (userError || !userData || userData.length === 0) {
-      console.error("Client not found in auth.users:", { clientId, error: userError });
+    if (profilesError || !profilesData || profilesData.length < 2) {
+      console.error("One or both users don't exist in profiles:", { 
+        coachId, 
+        clientId, 
+        error: profilesError,
+        foundCount: profilesData?.length || 0 
+      });
       return null;
     }
     
     // Use the Supabase RPC function to create or get a direct message room
-    const { data, error } = await (supabase.rpc as any)(
+    const { data, error } = await supabase.rpc(
       'create_or_get_direct_message_room',
       { user1: coachId, user2: clientId }
     );

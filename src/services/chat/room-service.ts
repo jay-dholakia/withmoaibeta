@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ChatRoom } from "./types";
 import type { RealtimeChannel, PostgrestSingleResponse } from "@supabase/supabase-js";
@@ -156,29 +157,45 @@ export const createDirectMessageRoom = async (
   if (!currentUserId || !otherUserId) return null;
   
   try {
-    // First check if both user IDs exist in auth.users
-    const { data: userData, error: userError } = await supabase.rpc('get_users_email', {
-      user_ids: [currentUserId, otherUserId]
-    });
+    // First check if both users exist in profiles table
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id")
+      .in("id", [currentUserId, otherUserId]);
     
-    if (userError || !userData || userData.length < 2) {
-      console.error("Error verifying user IDs:", userError);
-      console.error("One or both users don't exist:", { currentUserId, otherUserId });
+    if (profilesError) {
+      console.error("Error checking user profiles:", profilesError);
       return null;
     }
     
-    const { data, error } = await supabase
-      .rpc('create_or_get_direct_message_room', {
-        user1: currentUserId,
-        user2: otherUserId
+    if (!profilesData || profilesData.length < 2) {
+      console.error("One or both users don't exist in profiles:", { 
+        currentUserId, 
+        otherUserId, 
+        foundCount: profilesData?.length || 0,
+        foundIds: profilesData?.map(p => p.id) 
       });
-    
-    if (error) {
-      console.error("Error creating direct message room:", error);
       return null;
     }
     
-    return data as string;
+    // Try to create or get the direct message room
+    try {
+      const { data, error } = await supabase
+        .rpc('create_or_get_direct_message_room', {
+          user1: currentUserId,
+          user2: otherUserId
+        });
+      
+      if (error) {
+        console.error("Error creating direct message room:", error);
+        return null;
+      }
+      
+      return data as string;
+    } catch (rpcError) {
+      console.error("Exception calling create_or_get_direct_message_room RPC:", rpcError);
+      return null;
+    }
   } catch (error) {
     console.error("Exception creating direct message room:", error);
     return null;

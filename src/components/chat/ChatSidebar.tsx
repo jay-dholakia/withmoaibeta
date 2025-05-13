@@ -140,13 +140,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           onSelectRoom(roomId);
         }
         
-        toast.success("Direct message created");
+        toast.success("Direct message created successfully");
       } else {
-        toast.error("Failed to create direct message - user may not exist in the system");
+        toast.error("Failed to create direct message - the selected user may not exist or be available");
       }
     } catch (error) {
       console.error("Error creating direct message:", error);
-      toast.error("Failed to create direct message");
+      toast.error("There was a problem creating the direct message");
     } finally {
       setIsCreatingDm(false);
     }

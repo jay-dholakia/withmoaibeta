@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types/user";
 
@@ -20,18 +21,24 @@ export const createDirectMessage = async (
       return null;
     }
     
-    // First check if both users exist in profiles table
-    const { data: profilesData, error: profilesError } = await supabase
-      .from("profiles")
-      .select("id")
-      .in("id", [coachId, clientId]);
+    // First check if users exist in auth.users using the get_users_email RPC function
+    // This is more reliable than checking profiles as some users might not have profiles yet
+    const { data: usersData, error: usersError } = await supabase.rpc(
+      'get_users_email',
+      { user_ids: [coachId, clientId] }
+    );
     
-    if (profilesError || !profilesData || profilesData.length < 2) {
-      console.error("One or both users don't exist in profiles:", { 
+    if (usersError) {
+      console.error("Error checking users:", usersError);
+      return null;
+    }
+    
+    if (!usersData || usersData.length < 2) {
+      console.error("One or both users don't exist in auth.users:", { 
         coachId, 
         clientId, 
-        error: profilesError,
-        foundCount: profilesData?.length || 0 
+        foundCount: usersData?.length || 0,
+        foundIds: usersData?.map(u => u.id)
       });
       return null;
     }
@@ -60,34 +67,32 @@ export const createDirectMessage = async (
  */
 export const getClientData = async (clientId: string): Promise<User | null> => {
   try {
-    // Fetch profile data
+    // Check if the user exists in auth.users first
+    const { data: userData, error: userError } = await supabase.rpc(
+      'get_users_email',
+      { user_ids: [clientId] }
+    );
+      
+    if (userError || !userData || userData.length === 0) {
+      console.error("Error: User doesn't exist in auth.users:", clientId, userError);
+      return null;
+    }
+
+    // Try to get profile data if available
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('id, user_type')
       .eq('id', clientId)
       .maybeSingle();
       
-    if (profileError || !profileData) {
-      console.error("Error fetching client profile:", profileError);
-      return null;
-    }
-
-    // Get email from auth.users using RPC function
-    const { data: emailData, error: emailError } = await (supabase.rpc as any)(
-      'get_users_email',
-      { user_ids: [clientId] }
-    );
-    
-    if (emailError || !emailData || emailData.length === 0) {
-      console.error("Error fetching client email:", emailError);
-      return null;
-    }
+    // We don't consider this a fatal error - the user might exist but not have a profile yet
+    const userType = profileData?.user_type || 'client';
 
     return {
       id: clientId,
-      email: emailData[0].email,
+      email: userData[0].email,
       metadata: {
-        user_type: profileData.user_type
+        user_type: userType
       },
       coach_id: undefined
     };

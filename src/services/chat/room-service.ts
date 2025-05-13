@@ -157,34 +157,37 @@ export const createDirectMessageRoom = async (
   if (!currentUserId || !otherUserId) return null;
   
   try {
-    // First check if both users exist in profiles table
-    const { data: profilesData, error: profilesError } = await supabase
-      .from("profiles")
-      .select("id")
-      .in("id", [currentUserId, otherUserId]);
+    // Check if both users exist in auth.users table using RPC function
+    // This is more reliable than checking profiles as users might exist without profiles
+    const { data: usersData, error: usersError } = await supabase.rpc(
+      'get_users_email',
+      { user_ids: [currentUserId, otherUserId] }
+    );
     
-    if (profilesError) {
-      console.error("Error checking user profiles:", profilesError);
+    if (usersError) {
+      console.error("Error checking users:", usersError);
       return null;
     }
     
-    if (!profilesData || profilesData.length < 2) {
-      console.error("One or both users don't exist in profiles:", { 
+    if (!usersData || usersData.length < 2) {
+      console.error("One or both users don't exist in auth.users:", { 
         currentUserId, 
         otherUserId, 
-        foundCount: profilesData?.length || 0,
-        foundIds: profilesData?.map(p => p.id) 
+        foundCount: usersData?.length || 0,
+        foundUserIds: usersData?.map(u => u.id)
       });
       return null;
     }
     
     // Try to create or get the direct message room
     try {
-      const { data, error } = await supabase
-        .rpc('create_or_get_direct_message_room', {
+      const { data, error } = await supabase.rpc(
+        'create_or_get_direct_message_room',
+        {
           user1: currentUserId,
           user2: otherUserId
-        });
+        }
+      );
       
       if (error) {
         console.error("Error creating direct message room:", error);

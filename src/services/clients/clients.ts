@@ -21,6 +21,18 @@ export const createDirectMessage = async (
       return null;
     }
     
+    // Check if client exists in profiles before attempting to create a chat room
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', clientId)
+      .single();
+    
+    if (profileError || !profileData) {
+      console.error("Client not found in profiles:", { clientId, error: profileError });
+      return null;
+    }
+    
     // Use the Supabase RPC function to create or get a direct message room
     const { data, error } = await (supabase.rpc as any)(
       'create_or_get_direct_message_room',

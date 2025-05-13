@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import WorkoutsList from '@/components/client/WorkoutsList';
@@ -87,7 +88,7 @@ const WorkoutsPage = () => {
   });
 
   return (
-    <div className="w-full">
+    <div className="w-full px-0.5">
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route index element={<WorkoutsList />} />

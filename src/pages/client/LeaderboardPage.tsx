@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Container } from '@/components/ui/container';
 import { useAuth } from '@/contexts/AuthContext';
@@ -214,7 +213,7 @@ const LeaderboardPage = () => {
   
   if (isLoading) {
     return (
-      <Container className="px-4 sm:px-4 mx-auto w-full max-w-screen-md">
+      <Container className="px-4 mx-auto w-full max-w-screen-md">
         <div className="flex justify-center items-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-client dark:text-blue-400" />
           <span className="ml-2 dark:text-gray-300">Loading your progress...</span>
@@ -224,7 +223,7 @@ const LeaderboardPage = () => {
   }
   
   return (
-    <Container className="px-4 mx-auto w-full max-w-screen-md">
+    <div className="px-4 py-4 mx-auto w-full max-w-screen-md">
       <div className="w-full">
         <button 
           id="refresh-workout-history" 
@@ -234,7 +233,7 @@ const LeaderboardPage = () => {
           Refresh
         </button>
         
-        <div className="mt-6 mb-2 flex flex-col items-center">
+        <div className="mt-2 mb-2 flex flex-col items-center">
           <h2 className="text-xl font-bold mb-1 flex items-center justify-center gap-2 dark:text-white">
             <User className="h-5 w-5 text-client dark:text-blue-400" />
             Workout History
@@ -247,8 +246,8 @@ const LeaderboardPage = () => {
           )}
         </div>
         
-        <Card className="mt-2 dark:bg-gray-800 dark:border-gray-700">
-          <CardContent className="p-4">
+        <Card className="mt-2 mb-4 dark:bg-gray-800 dark:border-gray-700">
+          <CardContent>
             {clientWorkouts && clientWorkouts.length > 0 ? (
               <MonthlyCalendarView 
                 workouts={clientWorkouts} 
@@ -289,7 +288,7 @@ const LeaderboardPage = () => {
           </div>
         )}
       </div>
-    </Container>
+    </div>
   );
 };
 

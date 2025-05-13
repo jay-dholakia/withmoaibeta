@@ -12,7 +12,6 @@ import ProfileEditor from './ProfileEditor';
 import PrivacyPolicyPage from './PrivacyPolicyPage';
 import TermsOfServicePage from './TermsOfServicePage';
 import NotFound from '@/pages/NotFound';
-import AIInsightsPage from '../coach/AIInsightsPage';
 
 // Storage key for the last main tab
 const LAST_CLIENT_TAB_KEY = 'last_client_tab';

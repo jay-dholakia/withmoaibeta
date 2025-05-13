@@ -4,6 +4,7 @@ import { Separator } from '@/components/ui/separator';
 import { ExerciseDetail } from './ExerciseDetail';
 import { CustomWorkoutExercise } from '@/services/clients/custom-workout/types';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { GripVertical } from 'lucide-react';
 
 interface ExercisesListProps {
   exercises: CustomWorkoutExercise[];

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CustomWorkoutExercise } from '@/services/clients/custom-workout/types';
@@ -28,37 +28,44 @@ export const ExerciseDetail: React.FC<ExerciseDetailProps> = ({
     <Card key={exercise.id}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
-          <div>
-            <h3 className="font-medium">
-              {exercise.exercise?.name || exercise.custom_exercise_name || 'Unnamed Exercise'}
-            </h3>
-            
-            <div className="flex flex-wrap gap-x-4 mt-2 text-sm">
-              {exercise.sets && (
-                <div className="text-muted-foreground">
-                  <span className="font-medium">Sets:</span> {exercise.sets}
-                </div>
-              )}
+          <div className="flex">
+            {isReordering && (
+              <div className="mr-2 self-center">
+                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+              </div>
+            )}
+            <div>
+              <h3 className="font-medium">
+                {exercise.exercise?.name || exercise.custom_exercise_name || 'Unnamed Exercise'}
+              </h3>
               
-              {exercise.reps && (
-                <div className="text-muted-foreground">
-                  <span className="font-medium">Reps:</span> {exercise.reps}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-x-4 mt-2 text-sm">
+                {exercise.sets && (
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Sets:</span> {exercise.sets}
+                  </div>
+                )}
+                
+                {exercise.reps && (
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Reps:</span> {exercise.reps}
+                  </div>
+                )}
+                
+                {exercise.rest_seconds && (
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Rest:</span> {exercise.rest_seconds}s
+                  </div>
+                )}
+              </div>
               
-              {exercise.rest_seconds && (
-                <div className="text-muted-foreground">
-                  <span className="font-medium">Rest:</span> {exercise.rest_seconds}s
+              {exercise.notes && (
+                <div className="mt-2 text-sm">
+                  <div className="font-medium">Notes:</div>
+                  <p className="text-muted-foreground">{exercise.notes}</p>
                 </div>
               )}
             </div>
-            
-            {exercise.notes && (
-              <div className="mt-2 text-sm">
-                <div className="font-medium">Notes:</div>
-                <p className="text-muted-foreground">{exercise.notes}</p>
-              </div>
-            )}
           </div>
           
           <div className="flex items-center gap-2">

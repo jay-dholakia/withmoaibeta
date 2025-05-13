@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { WorkoutProgram } from '@/types/workout';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar, Users, Trash2 } from 'lucide-react';
+import { PlusCircle, Calendar, Users, Trash2, GripVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getWorkoutProgramAssignmentCount } from '@/services/workout-service';
 
@@ -9,12 +10,14 @@ interface WorkoutProgramListProps {
   programs: WorkoutProgram[];
   isLoading: boolean;
   onDeleteProgram?: (programId: string) => void;
+  isDraggable?: boolean;
 }
 
 export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({ 
   programs, 
   isLoading, 
-  onDeleteProgram 
+  onDeleteProgram,
+  isDraggable = false
 }) => {
   const navigate = useNavigate();
   const [assignmentCounts, setAssignmentCounts] = useState<Record<string, number>>({});
@@ -75,19 +78,30 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
     <div className="space-y-4">
       {programs.map((program) => (
         <div key={program.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-          <h3 className="font-medium text-lg text-left">{program.title}</h3>
-          <div className="flex flex-wrap gap-2 mb-4">
-            <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              {program.weeks} {program.weeks === 1 ? 'week' : 'weeks'}
-            </span>
-            <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <Users className="h-3 w-3" />
-              {assignmentCounts[program.id] || 0} {assignmentCounts[program.id] === 1 ? 'client' : 'clients'} assigned
-            </span>
-            <span className="bg-muted px-2 py-1 rounded-full text-xs">
-              Created: {new Date(program.created_at).toLocaleDateString()}
-            </span>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center">
+                {isDraggable && (
+                  <div className="mr-2 cursor-grab">
+                    <GripVertical className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
+                <h3 className="font-medium text-lg text-left">{program.title}</h3>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {program.weeks} {program.weeks === 1 ? 'week' : 'weeks'}
+                </span>
+                <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  {assignmentCounts[program.id] || 0} {assignmentCounts[program.id] === 1 ? 'client' : 'clients'} assigned
+                </span>
+                <span className="bg-muted px-2 py-1 rounded-full text-xs">
+                  Created: {new Date(program.created_at).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button 

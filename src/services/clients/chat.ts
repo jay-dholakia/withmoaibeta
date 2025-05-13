@@ -43,19 +43,23 @@ export const fetchClientsForChat = async (coachId: string): Promise<ClientData[]
     const groupIds = coachGroups.map(group => group.group_id);
 
     // Get client IDs from these groups and make sure they exist in auth.users
-    // Using a properly typed RPC call
+    // Using any type and casting later to avoid TypeScript constraints
+    // Explicitly use the Postgres function names as strings
     const { data, error: validClientsError } = await supabase
-      .rpc('get_valid_client_ids_for_chat', { group_ids: groupIds });
+      .rpc('get_valid_client_ids_for_chat', { group_ids: groupIds }) as { data: any, error: any };
 
     if (validClientsError) {
       console.error('Error fetching valid client IDs:', validClientsError);
       return [];
     }
 
-    // Safely handle the response with proper type checking and type assertions
-    const validClientIds = data as string[] || [];
+    // Force cast to string array with proper type assertion and safety checks
+    let validClientIds: string[] = [];
+    if (data && Array.isArray(data)) {
+      validClientIds = data as string[];
+    }
     
-    if (!validClientIds || validClientIds.length === 0) {
+    if (validClientIds.length === 0) {
       return [];
     }
 
@@ -80,17 +84,16 @@ export const fetchClientsForChat = async (coachId: string): Promise<ClientData[]
 
     // Get emails for these clients
     const { data: emailsData, error: emailsError } = await supabase
-      .rpc('get_users_email', { user_ids: validClientIds });
+      .rpc('get_users_email', { user_ids: validClientIds }) as { data: any, error: any };
     
     if (emailsError) {
       console.error('Error fetching emails:', emailsError);
     }
 
-    // Create email map with type assertion
-    const emails = emailsData as Array<{ id: string, email: string }> || [];
+    // Create email map with proper type assertion
     const emailMap: Record<string, string> = {};
-    if (emails) {
-      emails.forEach((item) => {
+    if (emailsData && Array.isArray(emailsData)) {
+      emailsData.forEach((item: { id: string, email: string }) => {
         emailMap[item.id] = item.email;
       });
     }
@@ -129,9 +132,9 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
     console.log('Fetching all clients for admin');
     
     // First, get valid client IDs that exist in auth.users
-    // Using a properly typed RPC call
+    // Using any type and explicit casting later for safety
     const { data, error: validClientsError } = await supabase
-      .rpc('get_all_valid_client_ids');
+      .rpc('get_all_valid_client_ids') as { data: any, error: any };
 
     if (validClientsError) {
       console.error('Error fetching valid client IDs:', validClientsError);
@@ -139,9 +142,13 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
     }
 
     // Safely handle the response with proper type checking and assertion
-    const validClientIds = data as string[] || [];
+    let validClientIds: string[] = [];
+    if (data && Array.isArray(data)) {
+      validClientIds = data as string[];
+    }
     
-    if (!validClientIds || validClientIds.length === 0) {
+    if (validClientIds.length === 0) {
+      console.log('No valid clients found');
       return [];
     }
 
@@ -169,19 +176,18 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
 
     // Get emails for these clients
     const { data: emailsData, error: emailsError } = await supabase
-      .rpc('get_users_email', { user_ids: validClientIds });
+      .rpc('get_users_email', { user_ids: validClientIds }) as { data: any, error: any };
     
     if (emailsError) {
       console.error('Error fetching emails:', emailsError);
     } else {
-      console.log(`Fetched ${emailsData ? Array.isArray(emailsData) ? emailsData.length : 0 : 0} emails`);
+      console.log(`Fetched ${emailsData ? (Array.isArray(emailsData) ? emailsData.length : 0) : 0} emails`);
     }
 
-    // Create email map with proper type assertion
-    const emails = emailsData as Array<{ id: string, email: string }> || [];
+    // Create email map with proper type handling
     const emailMap: Record<string, string> = {};
-    if (emails && Array.isArray(emails)) {
-      emails.forEach((item) => {
+    if (emailsData && Array.isArray(emailsData)) {
+      emailsData.forEach((item: { id: string, email: string }) => {
         emailMap[item.id] = item.email;
       });
     }

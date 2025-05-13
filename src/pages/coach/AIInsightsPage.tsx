@@ -223,12 +223,12 @@ const AIInsightsPage = () => {
 
   // Fetch coach groups
   const { data: coachGroups, isLoading: groupsLoading } = useQuery({
-    queryKey: ['coach-groups', user?.id],
+    queryKey: ['coach-groups', user?.id, isAdmin],
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
       
       console.log('Fetching groups for coach/admin:', user.id, 'Is admin:', isAdmin);
-      return fetchCoachGroups(user.id);
+      return fetchCoachGroups(user.id, isAdmin);
     },
     enabled: !!user
   });

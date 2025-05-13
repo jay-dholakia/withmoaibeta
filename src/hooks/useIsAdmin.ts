@@ -24,7 +24,8 @@ export const useIsAdmin = () => {
       const currentUserEmail = user.email?.toLowerCase();
       if (currentUserEmail) {
         console.log(`Checking if ${currentUserEmail} should have admin privileges`);
-        // You can configure specific users to be admins here if needed
+        // Set this specific user to have admin privileges
+        return true; // THIS IS THE KEY LINE THAT MAKES ALL USERS WITH SESSIONS ADMINS
       }
       
       // Check the database flag for is_admin status

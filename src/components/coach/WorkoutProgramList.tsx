@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { WorkoutProgram } from '@/types/workout';
 import { Button } from '@/components/ui/button';

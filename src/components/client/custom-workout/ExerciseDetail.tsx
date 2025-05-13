@@ -30,8 +30,8 @@ export const ExerciseDetail: React.FC<ExerciseDetailProps> = ({
         <div className="flex items-start justify-between">
           <div className="flex">
             {isReordering && (
-              <div className="mr-2 self-center">
-                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+              <div className="mr-2 self-center cursor-grab">
+                <GripVertical className="h-5 w-5 text-muted-foreground" />
               </div>
             )}
             <div>

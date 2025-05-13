@@ -419,6 +419,8 @@ export const reorderStandaloneWorkoutExercises = async (
   exercisesOrder: ReorderExerciseInput[]
 ): Promise<WorkoutExercise[]> => {
   try {
+    console.log("Reordering exercises:", exercisesOrder);
+    
     // First, set all to a temporary negative number to avoid constraint conflicts
     // This approach avoids unique constraint issues during reordering
     for (let i = 0; i < exercisesOrder.length; i++) {
@@ -430,6 +432,7 @@ export const reorderStandaloneWorkoutExercises = async (
 
     // Then, set the actual new order
     for (const exercise of exercisesOrder) {
+      console.log(`Setting exercise ${exercise.id} to order_index ${exercise.order_index}`);
       await supabase
         .from('standalone_workout_exercises')
         .update({ order_index: exercise.order_index })

@@ -33,7 +33,14 @@ export const ExercisesList: React.FC<ExercisesListProps> = ({
     <div className="space-y-4">
       <Separator />
       
-      <h2 className="text-xl font-semibold">Exercises</h2>
+      <h2 className="text-xl font-semibold flex items-center gap-2">
+        Exercises
+        {isReordering && (
+          <span className="text-sm text-muted-foreground font-normal">
+            (Drag exercises to reorder)
+          </span>
+        )}
+      </h2>
       
       {exercises.length === 0 ? (
         <p className="text-muted-foreground">No exercises found in this workout.</p>
@@ -57,7 +64,10 @@ export const ExercisesList: React.FC<ExercisesListProps> = ({
                       <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        {...provided.dragHandleProps}
+                        style={{
+                          ...provided.draggableProps.style,
+                          cursor: isReordering ? 'grab' : 'default'
+                        }}
                         className={`transition-shadow ${snapshot.isDragging ? 'shadow-lg' : ''}`}
                       >
                         <ExerciseDetail

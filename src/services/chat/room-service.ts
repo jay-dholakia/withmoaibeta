@@ -155,18 +155,34 @@ export const createDirectMessageRoom = async (
 ): Promise<string | null> => {
   if (!currentUserId || !otherUserId) return null;
   
-  const { data, error } = await supabase
-    .rpc('create_or_get_direct_message_room', {
-      user1: currentUserId,
-      user2: otherUserId
+  try {
+    // First check if both user IDs exist in auth.users
+    const { data: userData, error: userError } = await supabase.rpc('get_users_email', {
+      user_ids: [currentUserId, otherUserId]
     });
-  
-  if (error) {
-    console.error("Error creating direct message room:", error);
+    
+    if (userError || !userData || userData.length < 2) {
+      console.error("Error verifying user IDs:", userError);
+      console.error("One or both users don't exist:", { currentUserId, otherUserId });
+      return null;
+    }
+    
+    const { data, error } = await supabase
+      .rpc('create_or_get_direct_message_room', {
+        user1: currentUserId,
+        user2: otherUserId
+      });
+    
+    if (error) {
+      console.error("Error creating direct message room:", error);
+      return null;
+    }
+    
+    return data as string;
+  } catch (error) {
+    console.error("Exception creating direct message room:", error);
     return null;
   }
-  
-  return data as string;
 };
 
 /**

@@ -88,7 +88,7 @@ const WorkoutsPage = () => {
   });
 
   return (
-    <div className="w-full px-0.5">
+    <div className="w-full">
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route index element={<WorkoutsList />} />

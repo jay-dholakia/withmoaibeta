@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Container } from '@/components/ui/container';
 import { useAuth } from '@/contexts/AuthContext';
@@ -213,7 +214,7 @@ const LeaderboardPage = () => {
   
   if (isLoading) {
     return (
-      <Container className="px-4 mx-auto w-full max-w-screen-md">
+      <Container className="mx-auto w-full max-w-screen-md">
         <div className="flex justify-center items-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-client dark:text-blue-400" />
           <span className="ml-2 dark:text-gray-300">Loading your progress...</span>
@@ -223,7 +224,7 @@ const LeaderboardPage = () => {
   }
   
   return (
-    <div className="px-4 py-4 mx-auto w-full max-w-screen-md">
+    <div className="mx-auto w-full max-w-screen-md">
       <div className="w-full">
         <button 
           id="refresh-workout-history" 

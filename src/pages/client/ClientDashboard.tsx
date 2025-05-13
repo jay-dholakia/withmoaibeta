@@ -62,7 +62,7 @@ const ClientDashboard = () => {
   
   return (
     <ClientLayout>
-      <div className={`w-full ${isChatRoute ? 'h-full' : ''} px-0.5`}>
+      <div className={`w-full ${isChatRoute ? 'h-full' : ''}`}>
         <Routes>
           <Route index element={<Navigate to="moai" replace />} />
           <Route path="workouts/*" element={<WorkoutsPage />} />

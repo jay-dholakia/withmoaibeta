@@ -35,10 +35,19 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
     }
     
     // Get the group IDs this coach is assigned to
-    const { data: groupCoaches } = await supabase
+    const { data: groupCoaches, error: groupError } = await supabase
       .from('group_coaches')
       .select('group_id')
       .eq('coach_id', coachId);
+    
+    if (groupError) {
+      console.error('Error fetching coach groups:', groupError);
+      // If coach is admin, get all clients anyway
+      if (isAdmin) {
+        return await fetchAllClientsForAdmin();
+      }
+      return [];
+    }
     
     if (!groupCoaches || groupCoaches.length === 0) {
       console.log('No group assignments found for coach');
@@ -132,9 +141,13 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
     }
     
     // Get emails for these clients
-    const { data: emails } = await supabase.rpc('get_users_email', {
+    const { data: emails, error: emailError } = await supabase.rpc('get_users_email', {
       user_ids: clientIds
     });
+    
+    if (emailError) {
+      console.error('Error fetching emails:', emailError);
+    }
     
     const emailMap: Record<string, string> = {};
     if (emails) {

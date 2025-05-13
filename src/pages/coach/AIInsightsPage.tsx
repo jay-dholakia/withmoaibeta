@@ -18,12 +18,13 @@ import {
   TabsTrigger 
 } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Info, Users, User, Search } from 'lucide-react';
+import { Loader2, Info, Users, User, Search, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { fetchCoachGroups } from '@/services/coach-group-service';
 import { fetchCoachClients } from '@/services/coach-clients-service';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,8 +75,6 @@ interface GroupInsightsData {
     message: string;
   }[];
 }
-
-// Removed the local fetchCoachClients function as we're now using the imported one from coach-clients-service.ts
 
 const AIInsightsPage = () => {
   const { user } = useAuth();
@@ -304,6 +303,22 @@ const AIInsightsPage = () => {
     setSelectedGroupId(groupId);
   };
 
+  // Helper function to check if a client has low engagement
+  const hasLowEngagement = (client: ClientData): boolean => {
+    // Check for no activity logged for 7+ days
+    if (client.days_since_last_workout && client.days_since_last_workout >= 7) {
+      return true;
+    }
+    
+    // If they have a very low number of total workouts relative to program assignments
+    // This is a simplified check - in a real implementation, you'd compare to expected workouts
+    if (client.current_program_id && client.total_workouts_completed < 3) {
+      return true;
+    }
+    
+    return false;
+  };
+
   const renderClientList = () => {
     if (clientsLoading) {
       return (
@@ -315,7 +330,7 @@ const AIInsightsPage = () => {
     
     if (!filteredClients || filteredClients.length === 0) {
       return (
-        <div className="p-4 text-muted-foreground">
+        <div className="p-4 text-muted-foreground text-left">
           {searchQuery ? 'No clients match your search' : 'No clients found'}
         </div>
       );
@@ -327,7 +342,7 @@ const AIInsightsPage = () => {
           <div
             key={client.id}
             onClick={() => handleClientSelect(client.id)}
-            className={`p-3 border rounded-md cursor-pointer hover:bg-accent transition-colors text-left ${
+            className={`p-3 border rounded-md cursor-pointer hover:bg-accent transition-colors text-left relative ${
               selectedClientId === client.id ? 'bg-accent border-primary/50' : ''
             }`}
           >
@@ -340,6 +355,22 @@ const AIInsightsPage = () => {
                 <span className="text-coach">{client.current_program_title}</span>
               )}
             </div>
+            
+            {/* Low engagement indicator with tooltip */}
+            {hasLowEngagement(client) && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="absolute top-2 right-2">
+                      <AlertCircle className="h-5 w-5 text-destructive" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-destructive text-destructive-foreground">
+                    <p>Low engagement detected – consider checking in.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         ))}
       </div>

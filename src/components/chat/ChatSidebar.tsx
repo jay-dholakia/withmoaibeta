@@ -122,13 +122,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     setIsNewDmDialogOpen(true);
   };
 
-  // Handle creating a direct message with a selected client
+  // Update the handleCreateDirectMessage function
   const handleCreateDirectMessage = async (clientId: string) => {
     if (!user?.id) return;
     
     setIsCreatingDm(true);
     try {
+      console.log("Creating direct message with client:", clientId);
       const roomId = await createDirectMessageRoom(user.id, clientId);
+      
       if (roomId) {
         setIsNewDmDialogOpen(false);
         
@@ -142,11 +144,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         
         toast.success("Direct message created successfully");
       } else {
-        toast.error("Failed to create direct message - the selected user may not exist or be available");
+        // More descriptive error message
+        toast.error("Failed to create conversation - the selected user may not exist or be available. Please try again later.");
+        console.error("Failed to create direct message with client:", clientId);
       }
     } catch (error) {
       console.error("Error creating direct message:", error);
-      toast.error("There was a problem creating the direct message");
+      toast.error("There was a problem creating the conversation. Please try again later.");
     } finally {
       setIsCreatingDm(false);
     }

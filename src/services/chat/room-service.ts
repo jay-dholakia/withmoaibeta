@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ChatRoom } from "./types";
 import type { RealtimeChannel, PostgrestSingleResponse } from "@supabase/supabase-js";
@@ -157,27 +156,38 @@ export const createDirectMessageRoom = async (
   if (!currentUserId || !otherUserId) return null;
   
   try {
-    // Check if both users exist in auth.users table using RPC function
-    // This is more reliable than checking profiles as users might exist without profiles
-    const { data: usersData, error: usersError } = await supabase.rpc(
-      'get_users_email',
-      { user_ids: [currentUserId, otherUserId] }
-    );
+    // First verify both users exist in auth.users directly with a more reliable approach
+    console.log("Verifying user IDs:", { currentUserId, otherUserId });
     
-    if (usersError) {
-      console.error("Error checking users:", usersError);
+    // Check current user existence - use a direct query to auth.user_id
+    const { data: currentUserExists, error: currentUserError } = await supabase
+      .rpc('check_user_exists', { user_id: currentUserId });
+    
+    if (currentUserError) {
+      console.error("Error checking current user existence:", currentUserError);
       return null;
     }
     
-    if (!usersData || usersData.length < 2) {
-      console.error("One or both users don't exist in auth.users:", { 
-        currentUserId, 
-        otherUserId, 
-        foundCount: usersData?.length || 0,
-        foundUserIds: usersData?.map(u => u.id)
-      });
+    // Check other user existence
+    const { data: otherUserExists, error: otherUserError } = await supabase
+      .rpc('check_user_exists', { user_id: otherUserId });
+    
+    if (otherUserError) {
+      console.error("Error checking other user existence:", otherUserError);
       return null;
     }
+    
+    if (!currentUserExists) {
+      console.error("Current user does not exist:", currentUserId);
+      return null;
+    }
+    
+    if (!otherUserExists) {
+      console.error("Other user does not exist:", otherUserId);
+      return null;
+    }
+    
+    console.log("Both users verified to exist", { currentUserExists, otherUserExists });
     
     // Try to create or get the direct message room
     try {

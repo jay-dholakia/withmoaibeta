@@ -47,6 +47,7 @@ import AdminClientStatsPage from './pages/admin/ClientStatsPage';
 import AdminExerciseManagementPage from './pages/admin/ExerciseManagementPage';
 import ProfileBuilder from './pages/client/ProfileBuilder';
 import AIInsightsPage from './pages/coach/AIInsightsPage';
+import CoachChatPage from './pages/coach/CoachChatPage';
 
 function App() {
   return (
@@ -97,6 +98,7 @@ function App() {
           <Route path="/coach-dashboard/leaderboards" element={<AdminToolsProvider><CoachRoute><LeaderboardPage /></CoachRoute></AdminToolsProvider>} />
           <Route path="/coach-dashboard/exercise-management" element={<AdminToolsProvider><CoachRoute><ExerciseManagementPage /></CoachRoute></AdminToolsProvider>} />
           <Route path="/coach-dashboard/ai-insights" element={<AdminToolsProvider><CoachRoute><AIInsightsPage /></CoachRoute></AdminToolsProvider>} />
+          <Route path="/coach-dashboard/chat" element={<AdminToolsProvider><CoachRoute><CoachChatPage /></CoachRoute></AdminToolsProvider>} />
           <Route path="/coach-profile" element={<AdminToolsProvider><CoachRoute><ProfilePage /></CoachRoute></AdminToolsProvider>} />
           
           {/* Fallback routes */}

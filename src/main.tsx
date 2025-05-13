@@ -1,6 +1,5 @@
 
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
 import App from './App.tsx';
 import './index.css';
 import './styles/mapbox.css';
@@ -21,12 +20,10 @@ const queryClient = new QueryClient({
 // Create a proper DOM rendering setup with all required providers
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+    <ThemeProvider>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );

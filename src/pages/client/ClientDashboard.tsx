@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { ClientLayout } from '@/layouts/ClientLayout';
 import WorkoutsPage from './WorkoutsPage';
 import MoaiPage from './MoaiPage';

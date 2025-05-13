@@ -2,6 +2,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
+import { AuthProvider } from './contexts/AuthContext';
 import PublicRoute from './components/PublicRoute';
 import PrivateRoute from './components/PrivateRoute';
 import AdminRoute from './components/AdminRoute';
@@ -49,57 +50,59 @@ import AIInsightsPage from './pages/coach/AIInsightsPage';
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
-        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-        <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
-        <Route path="/first-admin-setup" element={<PublicRoute><AdminSetup /></PublicRoute>} />
-        <Route path="/client-login" element={<PublicRoute><ClientLogin /></PublicRoute>} />
-        <Route path="/admin-login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
-        <Route path="/coach-login" element={<PublicRoute><CoachLogin /></PublicRoute>} />
-        
-        {/* Admin routes */}
-        <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-        <Route path="/admin-dashboard/invitations" element={<AdminRoute><InvitationsPage /></AdminRoute>} />
-        <Route path="/admin-dashboard/groups" element={<AdminRoute><GroupsPage /></AdminRoute>} />
-        <Route path="/admin-dashboard/group/:groupId" element={<AdminRoute><GroupDetailsPage /></AdminRoute>} />
-        <Route path="/admin-dashboard/coaches" element={<AdminRoute><CoachesPage /></AdminRoute>} />
-        <Route path="/admin-dashboard/clients" element={<AdminRoute><AdminClientsPage /></AdminRoute>} />
-        <Route path="/admin-dashboard/client-stats" element={<AdminRoute><AdminClientStatsPage /></AdminRoute>} />
-        <Route path="/admin-dashboard/exercise-management" element={<AdminRoute><AdminExerciseManagementPage /></AdminRoute>} />
-        <Route path="/admin-tools" element={<AdminRoute><AdminToolsPage /></AdminRoute>} />
-        
-        {/* Client routes */}
-        <Route path="/client-dashboard/*" element={<PrivateRoute><ClientDashboard /></PrivateRoute>} />
-        <Route path="/profile-builder" element={<PrivateRoute><ProfileBuilder /></PrivateRoute>} />
-        
-        {/* Coach routes */}
-        <Route path="/coach-dashboard" element={<CoachRoute><CoachDashboard /></CoachRoute>} />
-        <Route path="/coach-dashboard/clients" element={<CoachRoute><ClientsPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/client-stats" element={<CoachRoute><ClientStatsPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/workouts" element={<CoachRoute><WorkoutProgramsPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/workouts/:programId" element={<CoachRoute><WorkoutProgramDetailPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/workouts/create" element={<CoachRoute><CreateWorkoutProgramPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/workouts/:programId/edit" element={<CoachRoute><EditProgramPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/workouts/:programId/weeks/:weekId" element={<CoachRoute><WorkoutWeekDetailPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/workouts/:programId/weeks/:weekId/workouts/:workoutId" element={<CoachRoute><EditWorkoutPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/workouts/:programId/weeks/:weekId/workouts/:workoutId/exercises" element={<CoachRoute><WorkoutExercisesPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/workouts/:programId/weeks/create" element={<CoachRoute><CreateWorkoutWeekPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/workout-templates" element={<CoachRoute><StandaloneWorkoutsPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/workout-templates/:workoutId" element={<CoachRoute><StandaloneWorkoutDetailsPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/programs/:programId" element={<CoachRoute><ProgramDetailPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/programs/assign" element={<CoachRoute><ProgramAssignmentPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/clients/:clientId/assign-program" element={<CoachRoute><AssignProgramPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/leaderboards" element={<CoachRoute><LeaderboardPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/exercise-management" element={<CoachRoute><ExerciseManagementPage /></CoachRoute>} />
-        <Route path="/coach-dashboard/ai-insights" element={<CoachRoute><AIInsightsPage /></CoachRoute>} />
-        <Route path="/coach-profile" element={<CoachRoute><ProfilePage /></CoachRoute>} />
-        
-        {/* Fallback routes */}
-        <Route path="/index" element={<Navigate replace to="/" />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+          <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+          <Route path="/first-admin-setup" element={<PublicRoute><AdminSetup /></PublicRoute>} />
+          <Route path="/client-login" element={<PublicRoute><ClientLogin /></PublicRoute>} />
+          <Route path="/admin-login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
+          <Route path="/coach-login" element={<PublicRoute><CoachLogin /></PublicRoute>} />
+          
+          {/* Admin routes */}
+          <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route path="/admin-dashboard/invitations" element={<AdminRoute><InvitationsPage /></AdminRoute>} />
+          <Route path="/admin-dashboard/groups" element={<AdminRoute><GroupsPage /></AdminRoute>} />
+          <Route path="/admin-dashboard/group/:groupId" element={<AdminRoute><GroupDetailsPage /></AdminRoute>} />
+          <Route path="/admin-dashboard/coaches" element={<AdminRoute><CoachesPage /></AdminRoute>} />
+          <Route path="/admin-dashboard/clients" element={<AdminRoute><AdminClientsPage /></AdminRoute>} />
+          <Route path="/admin-dashboard/client-stats" element={<AdminRoute><AdminClientStatsPage /></AdminRoute>} />
+          <Route path="/admin-dashboard/exercise-management" element={<AdminRoute><AdminExerciseManagementPage /></AdminRoute>} />
+          <Route path="/admin-tools" element={<AdminRoute><AdminToolsPage /></AdminRoute>} />
+          
+          {/* Client routes */}
+          <Route path="/client-dashboard/*" element={<PrivateRoute><ClientDashboard /></PrivateRoute>} />
+          <Route path="/profile-builder" element={<PrivateRoute><ProfileBuilder /></PrivateRoute>} />
+          
+          {/* Coach routes */}
+          <Route path="/coach-dashboard" element={<CoachRoute><CoachDashboard /></CoachRoute>} />
+          <Route path="/coach-dashboard/clients" element={<CoachRoute><ClientsPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/client-stats" element={<CoachRoute><ClientStatsPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/workouts" element={<CoachRoute><WorkoutProgramsPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/workouts/:programId" element={<CoachRoute><WorkoutProgramDetailPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/workouts/create" element={<CoachRoute><CreateWorkoutProgramPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/workouts/:programId/edit" element={<CoachRoute><EditProgramPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/workouts/:programId/weeks/:weekId" element={<CoachRoute><WorkoutWeekDetailPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/workouts/:programId/weeks/:weekId/workouts/:workoutId" element={<CoachRoute><EditWorkoutPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/workouts/:programId/weeks/:weekId/workouts/:workoutId/exercises" element={<CoachRoute><WorkoutExercisesPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/workouts/:programId/weeks/create" element={<CoachRoute><CreateWorkoutWeekPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/workout-templates" element={<CoachRoute><StandaloneWorkoutsPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/workout-templates/:workoutId" element={<CoachRoute><StandaloneWorkoutDetailsPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/programs/:programId" element={<CoachRoute><ProgramDetailPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/programs/assign" element={<CoachRoute><ProgramAssignmentPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/clients/:clientId/assign-program" element={<CoachRoute><AssignProgramPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/leaderboards" element={<CoachRoute><LeaderboardPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/exercise-management" element={<CoachRoute><ExerciseManagementPage /></CoachRoute>} />
+          <Route path="/coach-dashboard/ai-insights" element={<CoachRoute><AIInsightsPage /></CoachRoute>} />
+          <Route path="/coach-profile" element={<CoachRoute><ProfilePage /></CoachRoute>} />
+          
+          {/* Fallback routes */}
+          <Route path="/index" element={<Navigate replace to="/" />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

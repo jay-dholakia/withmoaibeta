@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { fetchCoachGroups } from '@/services/coach-group-service';
+import { fetchCoachClients } from '@/services/coach-clients-service';
 import { supabase } from '@/integrations/supabase/client';
 
 // Define interfaces for our data structures
@@ -74,7 +75,7 @@ interface GroupInsightsData {
 }
 
 // Fetch client data for a coach
-const fetchCoachClients = async (coachId: string) => {
+const fetchCoachClients = async (coachId: string, isAdmin: boolean) => {
   if (!coachId) return [];
 
   try {
@@ -233,15 +234,15 @@ const AIInsightsPage = () => {
     enabled: !!user
   });
 
-  // Fetch coach clients - now using the imported service function
+  // Fetch coach clients - now using the imported service function with isAdmin parameter
   const { data: clients, isLoading: clientsLoading } = useQuery({
     queryKey: ['coach-clients', user?.id, isAdmin],
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
       console.log('Fetching clients for coach/admin:', user.id, 'Is admin:', isAdmin);
       
-      // Use the imported service function
-      return fetchCoachClients(user.id);
+      // Use the imported service function with isAdmin parameter
+      return fetchCoachClients(user.id, isAdmin);
     },
     enabled: !!user
   });

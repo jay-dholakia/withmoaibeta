@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -22,23 +21,29 @@ export interface ClientData {
  * Fetches all clients associated with the coach's groups
  * If coach is an admin (is_admin: true), fetches all clients
  */
-export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> => {
+export const fetchCoachClients = async (coachId: string, isAdmin = false): Promise<ClientData[]> => {
   if (!coachId) throw new Error('Coach ID is required');
   
   try {
-    // Check if coach is an admin
-    const { data: isAdmin, error: adminCheckError } = await supabase
+    // If explicitly passed isAdmin=true, use that
+    if (isAdmin === true) {
+      console.log('Coach is admin (from parameter), fetching all clients');
+      return await fetchAllClientsForAdmin();
+    }
+    
+    // Otherwise, check database if not explicitly passed
+    const { data: adminCheck, error: adminCheckError } = await supabase
       .rpc('is_admin', { check_user_id: coachId });
     
     if (adminCheckError) {
       console.error('Error checking admin status:', adminCheckError);
     }
     
-    console.log(`Coach ${coachId} admin status:`, isAdmin);
+    console.log(`Coach ${coachId} admin status:`, adminCheck);
     
     // If coach is admin, get all clients
-    if (isAdmin === true) {
-      console.log('Coach is admin, fetching all clients');
+    if (adminCheck === true) {
+      console.log('Coach is admin (from database), fetching all clients');
       return await fetchAllClientsForAdmin();
     }
     

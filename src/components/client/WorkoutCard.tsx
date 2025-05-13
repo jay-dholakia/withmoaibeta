@@ -79,7 +79,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 
   return (
     <Card className={cn(
-      "overflow-hidden transition-all shadow-lg w-full sm:w-[300px]",
+      "overflow-hidden transition-all shadow-lg",
       isCurrentUserCompleted 
         ? "bg-gray-50 dark:bg-gray-800/70" 
         : "bg-white dark:bg-gray-800 dark:border-gray-700"

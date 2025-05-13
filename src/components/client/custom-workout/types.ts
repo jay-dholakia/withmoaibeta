@@ -1,4 +1,5 @@
 
+
 import { Exercise } from '@/types/workout';
 
 export interface CustomExerciseItem {
@@ -12,3 +13,4 @@ export interface CustomExerciseItem {
 }
 
 export type WorkoutType = 'strength' | 'cardio' | 'flexibility' | 'custom' | 'run' | 'rest_day' | 'one_off' | string;
+

@@ -70,6 +70,7 @@ export interface StandaloneWorkout {
   category?: string;
   workout_exercises?: WorkoutExercise[];
   workout_type: string;
+  order_index?: number;
 }
 
 export interface WorkoutBasic {

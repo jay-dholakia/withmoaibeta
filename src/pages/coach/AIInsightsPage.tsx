@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,6 +30,8 @@ interface ClientData {
   id: string;
   email: string | null;
   user_type: string;
+  first_name: string | null;
+  last_name: string | null;
   last_workout_at: string | null;
   total_workouts_completed: number;
   current_program_id: string | null;
@@ -108,6 +109,24 @@ const fetchCoachClients = async (coachId: string) => {
       userGroups[m.user_id].push(m.group_id);
     });
 
+    // Get client profiles
+    const { data: clientProfiles, error: profilesError } = await supabase
+      .from('client_profiles')
+      .select('id, first_name, last_name')
+      .in('id', clientIds);
+    
+    if (profilesError) {
+      console.error('Error fetching client profiles:', profilesError);
+    }
+
+    // Create a map for easy profile lookup
+    const profilesMap: Record<string, any> = {};
+    if (clientProfiles) {
+      clientProfiles.forEach(profile => {
+        profilesMap[profile.id] = profile;
+      });
+    }
+
     // Get client workout info
     const { data: clientData, error: clientError } = await supabase
       .from('client_workout_info')
@@ -116,6 +135,28 @@ const fetchCoachClients = async (coachId: string) => {
 
     if (clientError) throw clientError;
     if (!clientData) return [];
+
+    // Get program titles for referenced programs
+    const programIds = clientData
+      .map(client => client.current_program_id)
+      .filter(id => id !== null) as string[];
+
+    const { data: programs, error: programsError } = await supabase
+      .from('workout_programs')
+      .select('id, title')
+      .in('id', programIds);
+
+    if (programsError) {
+      console.error('Error fetching program titles:', programsError);
+    }
+
+    // Create a map for program titles
+    const programMap: Record<string, string> = {};
+    if (programs) {
+      programs.forEach(program => {
+        programMap[program.id] = program.title;
+      });
+    }
 
     // Get emails for these clients
     const { data: emails, error: emailError } = await supabase.rpc('get_users_email', {
@@ -142,14 +183,18 @@ const fetchCoachClients = async (coachId: string) => {
         daysSinceLastWorkout = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       }
 
+      const profile = profilesMap[client.user_id] || {};
+
       return {
         id: client.user_id,
         email: emailMap[client.user_id] || null,
         user_type: client.user_type || 'client',
+        first_name: profile.first_name || null,
+        last_name: profile.last_name || null,
         last_workout_at: client.last_workout_at,
         total_workouts_completed: client.total_workouts_completed || 0,
         current_program_id: client.current_program_id,
-        current_program_title: null, // We'd need to fetch this separately
+        current_program_title: client.current_program_id ? programMap[client.current_program_id] || null : null,
         days_since_last_workout: daysSinceLastWorkout,
         group_ids: userGroups[client.user_id] || []
       };
@@ -384,6 +429,48 @@ const AIInsightsPage = () => {
     setSelectedGroupId(groupId);
   };
 
+  const renderClientList = () => {
+    if (clientsLoading) {
+      return (
+        <div className="flex justify-center p-4">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+    
+    if (!filteredClients || filteredClients.length === 0) {
+      return (
+        <div className="text-center p-4 text-muted-foreground">
+          {searchQuery ? 'No clients match your search' : 'No clients found'}
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-2 max-h-72 overflow-y-auto">
+        {filteredClients.map((client) => (
+          <div
+            key={client.id}
+            onClick={() => handleClientSelect(client.id)}
+            className={`p-3 border rounded-md cursor-pointer hover:bg-accent transition-colors ${
+              selectedClientId === client.id ? 'bg-accent border-primary/50' : ''
+            }`}
+          >
+            <div className="font-medium">
+              {client.first_name ? `${client.first_name} ${client.last_name ? client.last_name.charAt(0) + '.' : ''}` : client.email}
+            </div>
+            <div className="text-sm text-muted-foreground flex justify-between">
+              <span>{client.total_workouts_completed || 0} workouts completed</span>
+              {client.current_program_title && (
+                <span className="text-coach">{client.current_program_title}</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <CoachLayout>
       <div className="space-y-6">
@@ -430,32 +517,7 @@ const AIInsightsPage = () => {
                     />
                   </div>
                   
-                  {clientsLoading ? (
-                    <div className="flex justify-center p-4">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : filteredClients && filteredClients.length > 0 ? (
-                    <div className="space-y-2 max-h-72 overflow-y-auto">
-                      {filteredClients.map((client) => (
-                        <div
-                          key={client.id}
-                          onClick={() => handleClientSelect(client.id)}
-                          className={`p-3 border rounded-md cursor-pointer hover:bg-accent transition-colors ${
-                            selectedClientId === client.id ? 'bg-accent border-primary/50' : ''
-                          }`}
-                        >
-                          <div className="font-medium">{client.email}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {client.total_workouts_completed || 0} workouts completed
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center p-4 text-muted-foreground">
-                      {searchQuery ? 'No clients match your search' : 'No clients found'}
-                    </div>
-                  )}
+                  {renderClientList()}
                 </div>
               </CardContent>
             </Card>

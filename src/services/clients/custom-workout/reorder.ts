@@ -107,3 +107,43 @@ export const moveCustomWorkoutExerciseDown = async (exerciseId: string, workoutI
     throw error;
   }
 };
+
+/**
+ * Interface for the reorder update input
+ */
+interface ReorderExerciseInput {
+  id: string;
+  order_index: number;
+}
+
+/**
+ * Batch update the order of multiple exercises at once
+ * This is more efficient for drag and drop reordering
+ */
+export const reorderCustomWorkoutExercises = async (
+  workoutId: string, 
+  exercisesOrder: ReorderExerciseInput[]
+): Promise<CustomWorkoutExercise[]> => {
+  try {
+    // First, set all to a temporary negative number to avoid constraint conflicts
+    // This approach avoids unique constraint issues during reordering
+    for (let i = 0; i < exercisesOrder.length; i++) {
+      await updateCustomWorkoutExercise(exercisesOrder[i].id, { 
+        order_index: -1000 - i 
+      });
+    }
+
+    // Then, set the actual new order
+    for (const exercise of exercisesOrder) {
+      await updateCustomWorkoutExercise(exercise.id, { 
+        order_index: exercise.order_index 
+      });
+    }
+
+    // Return the updated list
+    return await fetchCustomWorkoutExercises(workoutId);
+  } catch (error) {
+    console.error('Error reordering exercises:', error);
+    throw error;
+  }
+};

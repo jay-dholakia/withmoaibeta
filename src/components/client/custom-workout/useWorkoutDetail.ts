@@ -14,7 +14,6 @@ import {
 } from '@/services/clients/custom-workout';
 
 export const useWorkoutDetail = (workoutId: string | undefined) => {
-  const navigate = useNavigate();
   const [workout, setWorkout] = useState<CustomWorkout | null>(null);
   const [exercises, setExercises] = useState<CustomWorkoutExercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,50 +25,49 @@ export const useWorkoutDetail = (workoutId: string | undefined) => {
   // Edit form state
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editDuration, setEditDuration] = useState<number | null>(null);
-  const [editWorkoutType, setEditWorkoutType] = useState<string>('strength');
+  const [editDuration, setEditDuration] = useState<number | undefined>();
+  const [editWorkoutType, setEditWorkoutType] = useState<WorkoutType>('custom');
+  
+  const navigate = useNavigate();
 
+  // Load workout details
   useEffect(() => {
-    const loadWorkoutDetails = async () => {
-      if (!workoutId) return;
-      
+    if (!workoutId) {
+      setIsLoading(false);
+      return;
+    }
+    
+    const fetchWorkoutDetails = async () => {
       try {
         setIsLoading(true);
         
-        // Fetch workout details
-        const workouts = await fetchCustomWorkouts();
-        const currentWorkout = workouts.find(w => w.id === workoutId);
-        
-        if (!currentWorkout) {
-          toast.error('Workout not found');
-          navigate('/client-dashboard/workouts');
-          return;
+        const workout = await fetchCustomWorkout(workoutId);
+        if (!workout) {
+          throw new Error('Workout not found');
         }
         
-        setWorkout(currentWorkout);
+        setWorkout(workout);
+        setEditTitle(workout.title);
+        setEditDescription(workout.description || '');
+        setEditDuration(workout.duration_minutes);
+        setEditWorkoutType(workout.workout_type as WorkoutType || 'custom');
         
-        // Initialize edit form state
-        setEditTitle(currentWorkout.title);
-        setEditDescription(currentWorkout.description || '');
-        setEditDuration(currentWorkout.duration_minutes);
-        setEditWorkoutType(currentWorkout.workout_type || 'strength');
-        
-        // Fetch workout exercises
-        const exercisesData = await fetchCustomWorkoutExercises(workoutId);
-        setExercises(exercisesData);
+        const exercises = await fetchCustomWorkoutExercises(workoutId);
+        setExercises(exercises);
       } catch (error) {
-        console.error('Error loading workout details:', error);
+        console.error('Error fetching workout details:', error);
         toast.error('Failed to load workout details');
       } finally {
         setIsLoading(false);
       }
     };
+    
+    fetchWorkoutDetails();
+  }, [workoutId]);
 
-    loadWorkoutDetails();
-  }, [workoutId, navigate]);
-
+  // Handle delete workout
   const handleDeleteWorkout = async () => {
-    if (!workoutId) return;
+    if (!workoutId || !workout) return;
     
     try {
       setIsDeleting(true);
@@ -79,54 +77,55 @@ export const useWorkoutDetail = (workoutId: string | undefined) => {
     } catch (error) {
       console.error('Error deleting workout:', error);
       toast.error('Failed to delete workout');
+    } finally {
       setIsDeleting(false);
     }
   };
 
+  // Handle move exercise up
   const handleMoveExerciseUp = async (exerciseId: string) => {
     if (!workoutId) return;
     
     try {
-      setIsReordering(true);
       const updatedExercises = await moveCustomWorkoutExerciseUp(exerciseId, workoutId);
       setExercises(updatedExercises);
     } catch (error) {
       console.error('Error moving exercise up:', error);
-      toast.error('Failed to reorder exercise');
-    } finally {
-      setIsReordering(false);
+      toast.error('Failed to update exercise order');
     }
   };
 
+  // Handle move exercise down
   const handleMoveExerciseDown = async (exerciseId: string) => {
     if (!workoutId) return;
     
     try {
-      setIsReordering(true);
       const updatedExercises = await moveCustomWorkoutExerciseDown(exerciseId, workoutId);
       setExercises(updatedExercises);
     } catch (error) {
       console.error('Error moving exercise down:', error);
-      toast.error('Failed to reorder exercise');
-    } finally {
-      setIsReordering(false);
+      toast.error('Failed to update exercise order');
     }
   };
 
+  // Handle save workout
   const handleSaveWorkout = async () => {
-    if (!workoutId || !workout) return;
+    if (!workoutId) return;
     
     try {
       setIsSaving(true);
       
-      const updatedWorkout = await updateCustomWorkout(workoutId, {
+      await updateCustomWorkout(workoutId, {
         title: editTitle,
         description: editDescription || null,
         duration_minutes: editDuration,
         workout_type: editWorkoutType
       });
       
+      // Fetch updated workout
+      const updatedWorkout = await fetchCustomWorkout(workoutId);
       setWorkout(updatedWorkout);
+      
       setIsEditing(false);
       toast.success('Workout updated successfully');
     } catch (error) {
@@ -137,17 +136,19 @@ export const useWorkoutDetail = (workoutId: string | undefined) => {
     }
   };
 
+  // Handle cancel edit
   const handleCancelEdit = () => {
-    // Reset form to current workout values
+    // Reset edit form state
     if (workout) {
       setEditTitle(workout.title);
       setEditDescription(workout.description || '');
       setEditDuration(workout.duration_minutes);
-      setEditWorkoutType(workout.workout_type || 'strength');
+      setEditWorkoutType(workout.workout_type as WorkoutType || 'custom');
     }
+    
     setIsEditing(false);
   };
-  
+
   return {
     workout,
     exercises,
@@ -170,6 +171,7 @@ export const useWorkoutDetail = (workoutId: string | undefined) => {
     handleSaveWorkout,
     handleCancelEdit,
     setIsEditing,
+    setExercises, // Exposing setExercises for direct updates
     navigate
   };
 };

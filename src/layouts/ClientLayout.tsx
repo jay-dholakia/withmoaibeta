@@ -36,7 +36,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
       <Toaster position="top-center" richColors />
       
       <header className="bg-card shadow-sm border-b border-border py-4">
-        <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
+        <div className="w-full max-w-screen-xl mx-auto px-1 md:px-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <Logo variant="client" size="md" />
@@ -46,7 +46,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
       </header>
       
       <main className={`flex-grow ${isChatRoute ? 'py-0 mb-14 flex h-[calc(100vh-8rem)]' : 'py-0 mb-14 flex'} w-full overflow-visible`}>
-        <div className={`w-full max-w-screen-xl mx-auto ${isChatRoute ? 'px-0 md:px-0 h-full flex' : 'px-4 md:px-4'} overflow-visible`}>
+        <div className={`w-full max-w-screen-xl mx-auto ${isChatRoute ? 'px-0 md:px-0 h-full flex' : 'px-1 md:px-4'} overflow-visible`}>
           <PageTransition>
             {children}
           </PageTransition>
@@ -54,7 +54,7 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
       </main>
       
       <footer className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-md z-[100]">
-        <div className="w-full max-w-screen-xl mx-auto px-4 md:px-6">
+        <div className="w-full max-w-screen-xl mx-auto px-1 md:px-6">
           <nav>
             <ul className="flex justify-evenly items-center h-14">
               <li>

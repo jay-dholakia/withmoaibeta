@@ -34,6 +34,14 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
       console.error('Error checking admin status:', adminCheckError);
     }
     
+    console.log(`Coach ${coachId} admin status:`, isAdmin);
+    
+    // If coach is admin, get all clients
+    if (isAdmin === true) {
+      console.log('Coach is admin, fetching all clients');
+      return await fetchAllClientsForAdmin();
+    }
+    
     // Get the group IDs this coach is assigned to
     const { data: groupCoaches, error: groupError } = await supabase
       .from('group_coaches')
@@ -42,19 +50,11 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
     
     if (groupError) {
       console.error('Error fetching coach groups:', groupError);
-      // If coach is admin, get all clients anyway
-      if (isAdmin) {
-        return await fetchAllClientsForAdmin();
-      }
       return [];
     }
     
     if (!groupCoaches || groupCoaches.length === 0) {
       console.log('No group assignments found for coach');
-      // If coach is admin, get all clients anyway
-      if (isAdmin) {
-        return await fetchAllClientsForAdmin();
-      }
       return [];
     }
     
@@ -208,24 +208,31 @@ export const fetchCoachClients = async (coachId: string): Promise<ClientData[]> 
  */
 const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
   try {
+    console.log("Fetching all clients for admin");
+    
     // Get all client profiles
     const { data: clientProfiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, user_type')
       .eq('user_type', 'client');
     
-    if (profilesError || !clientProfiles || clientProfiles.length === 0) {
+    if (profilesError) {
       console.error('Error fetching client profiles:', profilesError);
       return [];
     }
     
+    if (!clientProfiles || clientProfiles.length === 0) {
+      console.log('No clients found');
+      return [];
+    }
+    
+    console.log(`Found ${clientProfiles.length} clients`);
     const clientIds = clientProfiles.map(client => client.id);
     
     // Get client profile info (first_name, last_name)
     const { data: clientProfilesData, error: clientProfilesError } = await supabase
       .from('client_profiles')
-      .select('id, first_name, last_name')
-      .in('id', clientIds);
+      .select('id, first_name, last_name');
     
     if (clientProfilesError) {
       console.error('Error fetching client profile data:', clientProfilesError);
@@ -237,7 +244,7 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
         clientProfilesMap.set(cp.id, cp);
       });
     }
-    console.log('Admin: Client profiles map:', Object.fromEntries(clientProfilesMap));
+    console.log(`Fetched ${clientProfilesData?.length || 0} client profiles`);
     
     // Get emails for these clients
     const { data: emails, error: emailError } = await supabase.rpc('get_users_email', {
@@ -250,17 +257,16 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
     
     const emailMap = new Map();
     if (emails) {
-      emails.forEach(e => {
+      emails.forEach((e: { id: string; email: string }) => {
         emailMap.set(e.id, e.email);
       });
     }
-    console.log('Admin: Email map:', Object.fromEntries(emailMap));
+    console.log(`Fetched ${emails?.length || 0} emails`);
     
     // Get client workout info
     const { data: workoutInfo, error: workoutInfoError } = await supabase
       .from('client_workout_info')
-      .select('*')
-      .in('user_id', clientIds);
+      .select('*');
       
     if (workoutInfoError) {
       console.error('Error fetching client workout info:', workoutInfoError);
@@ -272,37 +278,33 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
         workoutInfoMap.set(wi.user_id, wi);
       });
     }
-    console.log('Admin: Workout info map:', Object.fromEntries(workoutInfoMap));
+    console.log(`Fetched ${workoutInfo?.length || 0} workout infos`);
     
     // Get program info
     const programIds = Array.from(workoutInfoMap.values())
-      .filter(wi => wi.current_program_id)
-      .map(wi => wi.current_program_id);
+      .filter((wi: any) => wi.current_program_id)
+      .map((wi: any) => wi.current_program_id);
     
     let programMap = new Map();
     if (programIds.length > 0) {
       const { data: programs, error: programsError } = await supabase
         .from('workout_programs')
-        .select('id, title')
-        .in('id', programIds);
+        .select('id, title');
       
       if (programsError) {
         console.error('Error fetching program titles:', programsError);
-      }
-        
-      if (programs) {
+      } else if (programs) {
         programs.forEach(p => {
           programMap.set(p.id, p);
         });
+        console.log(`Fetched ${programs.length} programs`);
       }
     }
-    console.log('Admin: Program map:', Object.fromEntries(programMap));
     
     // Get client group associations for admin view
     const { data: groupMembers, error: groupMembersError } = await supabase
       .from('group_members')
-      .select('user_id, group_id')
-      .in('user_id', clientIds);
+      .select('user_id, group_id');
     
     if (groupMembersError) {
       console.error('Error fetching group members:', groupMembersError);
@@ -316,10 +318,11 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
         }
         groupMap.get(member.user_id).push(member.group_id);
       }
+      console.log(`Fetched ${groupMembers.length} group memberships`);
     }
     
     // Transform the data to match expected format
-    return clientProfiles.map(client => {
+    const results = clientProfiles.map(client => {
       const clientWorkoutInfo = workoutInfoMap.get(client.id);
       const clientProfileInfo = clientProfilesMap.get(client.id);
       
@@ -350,9 +353,11 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
         group_ids: groupMap.get(client.id) || []
       };
       
-      console.log('Admin client result:', result);
       return result;
     });
+    
+    console.log(`Returning ${results.length} clients for admin`);
+    return results;
   } catch (error) {
     console.error('Error in admin client fetch:', error);
     return [];

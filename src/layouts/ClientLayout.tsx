@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, NavLink } from 'react-router-dom';
 import { 
   LayoutGrid,
   DumbbellIcon,
@@ -58,88 +58,111 @@ export const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
           <nav>
             <ul className="flex justify-evenly items-center h-14">
               <li>
-                <Link 
+                <NavLink 
                   to="/client-dashboard/leaderboard" 
-                  className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
-                    isActive('/leaderboard') 
+                  className={({ isActive }) => `flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
+                    isActive 
                       ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
                       : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  <LayoutGrid 
-                    className="w-6 h-6" 
-                    strokeWidth={isActive('/leaderboard') ? 2.5 : 2} 
-                  />
-                  <span className="text-xs font-medium">Dashboard</span>
-                </Link>
+                  {({ isActive }) => (
+                    <>
+                      <LayoutGrid 
+                        className="w-6 h-6" 
+                        strokeWidth={isActive ? 2.5 : 2} 
+                      />
+                      <span className="text-xs font-medium">Dashboard</span>
+                    </>
+                  )}
+                </NavLink>
               </li>
               
               <li>
-                <Link 
+                <NavLink 
                   to="/client-dashboard/workouts" 
-                  className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
-                    isActive('/workouts') 
+                  className={({ isActive }) => `flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
+                    isActive 
                       ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
                       : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  <DumbbellIcon 
-                    className="w-6 h-6" 
-                    strokeWidth={isActive('/workouts') ? 2.5 : 2} 
-                  />
-                  <span className="text-xs font-medium">Workouts</span>
-                </Link>
+                  {({ isActive }) => (
+                    <>
+                      <DumbbellIcon 
+                        className="w-6 h-6" 
+                        strokeWidth={isActive ? 2.5 : 2} 
+                      />
+                      <span className="text-xs font-medium">Workouts</span>
+                    </>
+                  )}
+                </NavLink>
               </li>
               
               <li>
-                <Link 
+                <NavLink 
                   to="/client-dashboard/moai" 
-                  className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
-                    isActive('/moai') 
+                  className={({ isActive }) => `flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
+                    isActive || location.pathname.includes('/chat')
                       ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
                       : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  <Mountain 
-                    className="w-6 h-6" 
-                    strokeWidth={isActive('/moai') ? 2.5 : 2} 
-                  />
-                  <span className="text-xs font-medium tracking-tighter whitespace-nowrap">Your Moai</span>
-                </Link>
+                  {({ isActive }) => {
+                    const active = isActive || location.pathname.includes('/chat');
+                    return (
+                      <>
+                        <Mountain 
+                          className="w-6 h-6" 
+                          strokeWidth={active ? 2.5 : 2} 
+                        />
+                        <span className="text-xs font-medium tracking-tighter whitespace-nowrap">Your Moai</span>
+                      </>
+                    );
+                  }}
+                </NavLink>
               </li>
               
               <li>
-                <Link 
+                <NavLink 
                   to="/client-dashboard/activity-feed" 
-                  className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
-                    isActive('/activity-feed') 
+                  className={({ isActive }) => `flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
+                    isActive 
                       ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
                       : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  <Globe 
-                    className="w-6 h-6" 
-                    strokeWidth={isActive('/activity-feed') ? 2.5 : 2} 
-                  />
-                  <span className="text-xs font-medium">Community</span>
-                </Link>
+                  {({ isActive }) => (
+                    <>
+                      <Globe 
+                        className="w-6 h-6" 
+                        strokeWidth={isActive ? 2.5 : 2} 
+                      />
+                      <span className="text-xs font-medium">Community</span>
+                    </>
+                  )}
+                </NavLink>
               </li>
               
               <li>
-                <Link 
+                <NavLink 
                   to="/client-dashboard/settings" 
-                  className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
-                    isActive('/settings') 
+                  className={({ isActive }) => `flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg relative ${
+                    isActive 
                       ? 'text-client dark:text-blue-300 bg-client/10 dark:bg-blue-900/40' 
                       : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  <Settings 
-                    className="w-6 h-6" 
-                    strokeWidth={isActive('/settings') ? 2.5 : 2} 
-                  />
-                  <span className="text-xs font-medium">Settings</span>
-                </Link>
+                  {({ isActive }) => (
+                    <>
+                      <Settings 
+                        className="w-6 h-6" 
+                        strokeWidth={isActive ? 2.5 : 2} 
+                      />
+                      <span className="text-xs font-medium">Settings</span>
+                    </>
+                  )}
+                </NavLink>
               </li>
             </ul>
           </nav>

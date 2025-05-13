@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,6 +33,7 @@ export default function MoaiPage() {
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [isGeneratingBuddies, setIsGeneratingBuddies] = useState(false);
   const [isRefreshingGroups, setIsRefreshingGroups] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   const currentQueryTab = searchParams.get('tab');
   const activeTab = currentQueryTab && VALID_TABS.includes(currentQueryTab) ? currentQueryTab : DEFAULT_TAB;
@@ -55,7 +55,7 @@ export default function MoaiPage() {
 
   // Refresh groups data when navigating back to the page
   useEffect(() => {
-    if (userGroups?.length) {
+    if (userGroups?.length && !isRefreshingGroups) {
       setIsRefreshingGroups(true);
       refetchUserGroups().finally(() => {
         setIsRefreshingGroups(false);
@@ -68,18 +68,30 @@ export default function MoaiPage() {
     }
   }, []);
 
+  // Handle initial routing without causing loops
   useEffect(() => {
+    if (hasInitialized) return;
+
     if (groupId) {
       setActiveGroupId(groupId);
       if (!currentQueryTab || !VALID_TABS.includes(currentQueryTab)) {
         setSearchParams({ tab: DEFAULT_TAB }, { replace: true });
       }
+      setHasInitialized(true);
     } else if (userGroups && userGroups.length > 0 && !isLoadingUserGroups) {
       const firstGroupId = userGroups[0].id;
       console.log("Redirecting to first group:", firstGroupId);
       navigate(`/client-dashboard/moai/${firstGroupId}`, { replace: true });
+      setHasInitialized(true);
     }
-  }, [groupId, userGroups, isLoadingUserGroups, navigate, currentQueryTab, setSearchParams]);
+  }, [groupId, userGroups, isLoadingUserGroups, navigate, currentQueryTab, setSearchParams, hasInitialized]);
+
+  // Update active group ID when groupId param changes without causing redirects
+  useEffect(() => {
+    if (groupId && activeGroupId !== groupId) {
+      setActiveGroupId(groupId);
+    }
+  }, [groupId, activeGroupId]);
 
   const { data: groupData, isLoading: isLoadingGroup } = useQuery({
     queryKey: ['moai-group', activeGroupId],
@@ -157,7 +169,9 @@ export default function MoaiPage() {
   };
 
   const handleGroupChange = (newGroupId: string) => {
-    navigate(`/client-dashboard/moai/${newGroupId}`, { replace: true });
+    if (newGroupId !== activeGroupId) {
+      navigate(`/client-dashboard/moai/${newGroupId}`, { replace: true });
+    }
   };
 
   if (isLoadingGroup || isLoadingProgram || isLoadingUserGroups) {

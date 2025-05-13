@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -298,11 +297,21 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         
         {directMessages.length > 0 && (
           <div className="py-2">
-            <div className="px-4 py-2">
+            <div className="px-4 py-2 flex justify-between items-center">
               <h3 className="text-sm font-medium text-muted-foreground flex items-center">
                 <MessageCircle className="h-4 w-4 mr-2" />
                 Direct Messages
               </h3>
+              
+              <Button 
+                onClick={handleOpenNewDmDialog} 
+                variant="ghost" 
+                size="icon"
+                className="h-7 w-7"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="sr-only">New Message</span>
+              </Button>
             </div>
             <div className="space-y-1">
               {directMessages.map((room) => {

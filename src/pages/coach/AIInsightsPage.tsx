@@ -327,7 +327,7 @@ const AIInsightsPage = () => {
           <div
             key={client.id}
             onClick={() => handleClientSelect(client.id)}
-            className={`p-3 border rounded-md cursor-pointer hover:bg-accent transition-colors ${
+            className={`p-3 border rounded-md cursor-pointer hover:bg-accent transition-colors text-left ${
               selectedClientId === client.id ? 'bg-accent border-primary/50' : ''
             }`}
           >
@@ -452,8 +452,8 @@ const AIInsightsPage = () => {
                           {clientInsights.insights.map((insight, index) => (
                             <Alert key={index} variant={insight.type === 'warning' ? 'destructive' : 'default'}>
                               <Info className="h-4 w-4" />
-                              <AlertTitle className="text-left">{insight.title}</AlertTitle>
-                              <AlertDescription className="text-left">
+                              <AlertTitle>{insight.title}</AlertTitle>
+                              <AlertDescription>
                                 {insight.message}
                               </AlertDescription>
                             </Alert>
@@ -482,12 +482,12 @@ const AIInsightsPage = () => {
                             ))}
                           </div>
                         ) : (
-                          <div className="text-muted-foreground">No recent activity</div>
+                          <div className="text-muted-foreground text-left">No recent activity</div>
                         )}
                       </div>
                     </>
                   ) : (
-                    <div className="p-4 text-muted-foreground">
+                    <div className="p-4 text-muted-foreground text-left">
                       Select a client to view insights
                     </div>
                   )}
@@ -523,7 +523,7 @@ const AIInsightsPage = () => {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <div className="p-4 text-muted-foreground">
+                  <div className="p-4 text-muted-foreground text-left">
                     No groups found
                   </div>
                 )}
@@ -584,8 +584,8 @@ const AIInsightsPage = () => {
                           {groupInsights.insights.map((insight, index) => (
                             <Alert key={index} variant={insight.type === 'warning' ? 'destructive' : 'default'}>
                               <Info className="h-4 w-4" />
-                              <AlertTitle className="text-left">{insight.title}</AlertTitle>
-                              <AlertDescription className="text-left">
+                              <AlertTitle>{insight.title}</AlertTitle>
+                              <AlertDescription>
                                 {insight.message}
                               </AlertDescription>
                             </Alert>
@@ -600,7 +600,7 @@ const AIInsightsPage = () => {
                       </div>
                     </>
                   ) : (
-                    <div className="p-4 text-muted-foreground">
+                    <div className="p-4 text-muted-foreground text-left">
                       Select a group to view insights
                     </div>
                   )}

@@ -43,9 +43,11 @@ export const fetchClientsForChat = async (coachId: string): Promise<ClientData[]
     const groupIds = coachGroups.map(group => group.group_id);
 
     // Get client IDs from these groups and make sure they exist in auth.users
-    // Using the "any" type to bypass TypeScript's strict checking on RPC functions
-    const { data, error: validClientsError } = await supabase
-      .rpc('get_valid_client_ids_for_chat', { group_ids: groupIds }) as any;
+    // Using a complete type assertion to bypass TypeScript's strict checking
+    const { data: validClientIdsData, error: validClientsError } = await (supabase.rpc as any)(
+      'get_valid_client_ids_for_chat', 
+      { group_ids: groupIds }
+    );
 
     if (validClientsError) {
       console.error('Error fetching valid client IDs:', validClientsError);
@@ -54,8 +56,8 @@ export const fetchClientsForChat = async (coachId: string): Promise<ClientData[]
 
     // Force cast to string array with proper type assertion and safety checks
     let validClientIds: string[] = [];
-    if (data && Array.isArray(data)) {
-      validClientIds = data as string[];
+    if (validClientIdsData && Array.isArray(validClientIdsData)) {
+      validClientIds = validClientIdsData as string[];
     }
     
     if (validClientIds.length === 0) {
@@ -82,8 +84,10 @@ export const fetchClientsForChat = async (coachId: string): Promise<ClientData[]
     }
 
     // Get emails for these clients
-    const { data: emailsData, error: emailsError } = await supabase
-      .rpc('get_users_email', { user_ids: validClientIds }) as any;
+    const { data: emailsData, error: emailsError } = await (supabase.rpc as any)(
+      'get_users_email', 
+      { user_ids: validClientIds }
+    );
     
     if (emailsError) {
       console.error('Error fetching emails:', emailsError);
@@ -131,9 +135,10 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
     console.log('Fetching all clients for admin');
     
     // First, get valid client IDs that exist in auth.users
-    // Using the "any" type to bypass TypeScript's strict checking on RPC functions
-    const { data, error: validClientsError } = await supabase
-      .rpc('get_all_valid_client_ids') as any;
+    // Using a complete type assertion to bypass TypeScript's strict checking
+    const { data: validClientIdsData, error: validClientsError } = await (supabase.rpc as any)(
+      'get_all_valid_client_ids'
+    );
 
     if (validClientsError) {
       console.error('Error fetching valid client IDs:', validClientsError);
@@ -142,8 +147,8 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
 
     // Safely handle the response with proper type checking and assertion
     let validClientIds: string[] = [];
-    if (data && Array.isArray(data)) {
-      validClientIds = data as string[];
+    if (validClientIdsData && Array.isArray(validClientIdsData)) {
+      validClientIds = validClientIdsData as string[];
     }
     
     if (validClientIds.length === 0) {
@@ -174,8 +179,10 @@ const fetchAllClientsForAdmin = async (): Promise<ClientData[]> => {
     }
 
     // Get emails for these clients
-    const { data: emailsData, error: emailsError } = await supabase
-      .rpc('get_users_email', { user_ids: validClientIds }) as any;
+    const { data: emailsData, error: emailsError } = await (supabase.rpc as any)(
+      'get_users_email', 
+      { user_ids: validClientIds }
+    );
     
     if (emailsError) {
       console.error('Error fetching emails:', emailsError);

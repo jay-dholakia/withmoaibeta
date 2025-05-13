@@ -28,7 +28,7 @@ const MoaiMemberItem: React.FC<MemberProps> = ({ member, onClick }) => {
   
   const firstName = member.profileData?.first_name || member.email.split('@')[0];
   const lastName = member.profileData?.last_name || '';
-  const displayName = firstName + (lastName ? ` ${lastName.charAt(0)}.` : '');
+  const displayName = `${firstName}${lastName ? ` ${lastName.charAt(0)}.` : ''}`;
   
   // Create initials from first and last name
   const firstInitial = firstName.charAt(0).toUpperCase();

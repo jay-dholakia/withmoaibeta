@@ -227,15 +227,26 @@ const AIInsightsPage = () => {
     const lastWorkoutDate = new Date(completions[0].completed_at);
     const daysSinceLastWorkout = Math.floor((new Date().getTime() - lastWorkoutDate.getTime()) / (1000 * 3600 * 24));
     
-    if (daysSinceLastWorkout > 5) {
+    // Check for engagement drop - prioritize this insight
+    if (daysSinceLastWorkout >= 7) {
       insights.push({
         type: 'warning',
         title: 'Engagement Drop',
         message: `It's been ${daysSinceLastWorkout} days since their last workout. Consider sending a check-in message.`
       });
+      
+      // If we have an engagement drop, don't show positive consistency insights
+      // Just add a coaching suggestion
+      insights.push({
+        type: 'info',
+        title: 'Coaching Opportunity',
+        message: 'Consider reviewing their recent workout notes for feedback they might have shared.'
+      });
+      
+      return insights;
     }
     
-    // Check consistency
+    // Only show consistency insights if there's no engagement drop
     if (completions.length >= 3) {
       insights.push({
         type: 'success',

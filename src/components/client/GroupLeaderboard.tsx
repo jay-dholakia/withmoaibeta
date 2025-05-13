@@ -42,7 +42,7 @@ export const GroupLeaderboard: React.FC<GroupLeaderboardProps> = ({ groupId, cla
 
   if (isError) {
     return (
-      <div className={`p-4 text-center mx-1.5 ${className}`}>
+      <div className={`p-4 text-center ${className}`}>
         <p className="text-destructive">Failed to load leaderboard.</p>
         <p className="text-sm text-muted-foreground mt-1">
           {error instanceof Error ? error.message : 'Unknown error occurred'}
@@ -53,14 +53,14 @@ export const GroupLeaderboard: React.FC<GroupLeaderboardProps> = ({ groupId, cla
 
   if (!leaderboardData || leaderboardData.length === 0) {
     return (
-      <div className={`p-4 text-center mx-1.5 ${className}`}>
+      <div className={`p-4 text-center ${className}`}>
         <p className="text-muted-foreground">No leaderboard data available yet.</p>
       </div>
     );
   }
 
   return (
-    <div className={`space-y-2 px-0.5 ${className}`}>
+    <div className={`space-y-3 ${className}`}>
       {leaderboardData.map((item: GroupLeaderboardItem) => (
         <GroupLeaderboardItemCard key={item.user_id} item={item} />
       ))}

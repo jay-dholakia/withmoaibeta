@@ -26,7 +26,6 @@ const ClientRoute: React.FC<ClientRouteProps> = ({ children }) => {
   
   const { user, userType, authLoading, profileLoading } = useAuth();
   
-  // If auth is loading, show loading state
   if (authLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -46,13 +45,12 @@ const ClientRoute: React.FC<ClientRouteProps> = ({ children }) => {
     );
   }
 
-  // If not authenticated as client, redirect to login
   if (!user || userType !== 'client') {
     console.log("ClientRoute: Access denied, redirecting to login", { userType });
+    // Remember the current location so we can redirect back after login
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
-  // User is authenticated as client, render children
   return <>{children}</>;
 };
 

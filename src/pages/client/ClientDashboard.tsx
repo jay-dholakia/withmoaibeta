@@ -20,7 +20,7 @@ const ClientDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Remember the current main section the user is in without causing rerenders
+  // Remember the current main section the user is in
   useEffect(() => {
     const basePath = location.pathname.split('/').slice(0, 3).join('/');
     
@@ -43,7 +43,7 @@ const ClientDashboard = () => {
     }
   }, [location.pathname]);
   
-  // Redirect to last tab if landing on index - only once on mount
+  // Redirect to last tab if landing on index
   useEffect(() => {
     if (location.pathname === '/client-dashboard') {
       const lastTab = localStorage.getItem(LAST_CLIENT_TAB_KEY);

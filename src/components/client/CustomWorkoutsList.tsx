@@ -36,7 +36,7 @@ const CustomWorkoutsList = () => {
   };
 
   return (
-    <div className="space-y-3 px-0.5">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Your Custom Workouts</h2>
         <Button asChild size="sm" className="h-8">

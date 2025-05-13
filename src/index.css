@@ -43,7 +43,7 @@
     --input: 214 30% 90%;
     --ring: 222 47% 11%;
 
-    --radius: 0.5rem;
+    --radius: 0.85rem;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5% 26%;
@@ -66,7 +66,7 @@
     --popover-foreground: 210 40% 98%;
 
     --primary: 210 40% 98%;
-    --primary-foreground: 222 47% 11%;
+    --primary-foreground: 222 47% 9%;
 
     --secondary: 217 33% 16%;
     --secondary-foreground: 210 40% 98%;
@@ -218,3 +218,4 @@
 .btn-hover-effect:hover:before {
   width: 100%;
 }
+

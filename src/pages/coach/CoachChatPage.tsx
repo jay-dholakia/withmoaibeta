@@ -87,10 +87,12 @@ const CoachChatPage: React.FC = () => {
             {(!isMobile || (isMobile && showSidebar)) && (
               <div className={`${isMobile ? 'w-full' : 'w-80 border-r'}`}>
                 <ChatSidebar 
-                  rooms={chatRooms || []}
-                  activeRoomId={selectedRoomId}
+                  chatRooms={chatRooms || []}
+                  selectedRoomId={selectedRoomId}
                   onSelectRoom={handleRoomSelect}
-                  onChatCreated={handleCreateDirectMessage}
+                  isLoading={isLoading}
+                  error={error instanceof Error ? error.message : undefined}
+                  userId={user?.id || ''}
                 />
               </div>
             )}

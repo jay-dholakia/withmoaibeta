@@ -339,7 +339,7 @@ const WorkoutsList = () => {
 
   if (isLoading) {
     return (
-      <div className="py-10 text-center px-0.5">
+      <div className="py-10 text-center">
         <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-client dark:text-blue-300" />
         <p>Loading your workouts...</p>
       </div>
@@ -348,7 +348,7 @@ const WorkoutsList = () => {
 
   if (error) {
     return (
-      <div className="py-10 text-center px-0.5">
+      <div className="py-10 text-center">
         <p className="text-red-500 dark:text-red-400 mb-4">Failed to load your assigned workouts</p>
         <Button onClick={() => window.location.reload()}>
           Try Again
@@ -373,7 +373,7 @@ const WorkoutsList = () => {
   console.log("WorkoutsList: Final group members for cards:", allGroupMembers);
 
   return (
-    <div className="space-y-4 px-0.5">
+    <div className="space-y-4">
       <ProgramProgressSection />
       
       <div className="space-y-6">
@@ -418,7 +418,7 @@ const WorkoutsList = () => {
         )}
         
         <div>
-          <h3 className="text-lg font-semibold mb-3 px-1.5">Pending Workouts</h3>
+          <h3 className="text-lg font-semibold mb-3">Pending Workouts</h3>
           {pendingWorkouts.length === 0 ? (
             <Card>
               <CardContent className="pt-4 pb-4 text-center">
@@ -429,9 +429,9 @@ const WorkoutsList = () => {
             </Card>
           ) : (
             <ScrollArea className="w-full whitespace-nowrap rounded-lg">
-              <div className="flex w-full gap-2 pb-4">
+              <div className="flex w-full gap-3 px-1 pb-4">
                 {pendingWorkouts.map((workout) => (
-                  <div key={workout.id} className="w-[95%] flex-none">
+                  <div key={workout.id} className="w-[300px] flex-none">
                     <WorkoutCard
                       workoutId={workout.id}
                       title={workout.title || workout.workout?.title || "Workout"}
@@ -456,11 +456,11 @@ const WorkoutsList = () => {
         
         {completedWorkouts.length > 0 && (
           <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-3 px-1.5">Completed Workouts</h3>
+            <h3 className="text-lg font-semibold mb-3">Completed Workouts</h3>
             <ScrollArea className="w-full whitespace-nowrap rounded-lg">
-              <div className="flex w-full gap-2 px-0 pb-4">
+              <div className="flex w-full gap-3 px-1 pb-4">
                 {completedWorkouts.map((workout) => (
-                  <div key={workout.id} className="w-[95%] flex-none">
+                  <div key={workout.id} className="w-[300px] flex-none">
                     <WorkoutCard
                       workoutId={workout.id}
                       title={workout.title || workout.workout?.title || "Workout"}
@@ -484,14 +484,14 @@ const WorkoutsList = () => {
       </div>
       
       <div className="mt-8 border-t border-border pt-6">
-        <h3 className="text-lg font-medium mb-4 px-1.5">Add Other Activity</h3>
+        <h3 className="text-lg font-medium mb-4">Add Other Activity</h3>
         
         <LogActivityButtons />
         
         <Button 
           asChild 
           variant="outline" 
-          className="w-full mt-4 mx-1.5 flex items-center justify-between text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 shadow-sm"
+          className="w-full mt-4 flex items-center justify-between text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 shadow-lg"
         >
           <Link to="/client-dashboard/workouts/one-off">
             <div className="flex items-center">

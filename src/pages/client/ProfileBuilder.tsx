@@ -4,12 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { 
-  ClientProfile, 
-  fetchClientProfile, 
-  updateClientProfile, 
-  createClientProfile 
-} from '@/services/client-service';
+import { ClientProfile, fetchClientProfile, updateClientProfile, createClientProfile } from '@/services/client-service';
 import { ProfileBuilderLayout } from '@/components/client/ProfileBuilder/ProfileBuilderLayout';
 import { ProfileBuilderStepOne } from '@/components/client/ProfileBuilder/ProfileBuilderStepOne';
 import { ProfileBuilderStepTwo } from '@/components/client/ProfileBuilder/ProfileBuilderStepTwo';
@@ -38,7 +33,7 @@ const ProfileBuilder = () => {
     onSuccess: (data) => {
       console.log('Profile created or confirmed:', data);
       if (data) {
-        setProfileData(prevData => ({ ...prevData, ...(data as Partial<ClientProfile>) }));
+        setProfileData(prevData => ({ ...prevData, ...data }));
       }
     },
     onError: (error) => {

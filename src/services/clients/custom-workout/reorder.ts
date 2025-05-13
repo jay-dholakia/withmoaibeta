@@ -29,12 +29,24 @@ export const moveCustomWorkoutExerciseUp = async (exerciseId: string, workoutId:
       throw new Error('Previous exercise not found');
     }
     
-    // Swap their order indices
+    // Store the original indices
     const currentIndex = currentExercise.order_index;
     const previousIndex = previousExercise.order_index;
     
-    await updateCustomWorkoutExercise(currentExercise.id, { order_index: previousIndex });
-    await updateCustomWorkoutExercise(previousExercise.id, { order_index: currentIndex });
+    // Update the previous exercise first (to avoid constraint conflicts)
+    await updateCustomWorkoutExercise(previousExercise.id, { 
+      order_index: -1 // Temporary index to avoid conflicts
+    });
+    
+    // Update the current exercise
+    await updateCustomWorkoutExercise(currentExercise.id, { 
+      order_index: previousIndex 
+    });
+    
+    // Now update the previous exercise to the current index
+    await updateCustomWorkoutExercise(previousExercise.id, { 
+      order_index: currentIndex 
+    });
     
     // Return the updated list
     return await fetchCustomWorkoutExercises(workoutId);
@@ -69,12 +81,24 @@ export const moveCustomWorkoutExerciseDown = async (exerciseId: string, workoutI
       throw new Error('Next exercise not found');
     }
     
-    // Swap their order indices
+    // Store the original indices
     const currentIndex = currentExercise.order_index;
     const nextIndex = nextExercise.order_index;
     
-    await updateCustomWorkoutExercise(currentExercise.id, { order_index: nextIndex });
-    await updateCustomWorkoutExercise(nextExercise.id, { order_index: currentIndex });
+    // Update the next exercise first (to avoid constraint conflicts)
+    await updateCustomWorkoutExercise(nextExercise.id, { 
+      order_index: -1 // Temporary index to avoid conflicts
+    });
+    
+    // Update the current exercise
+    await updateCustomWorkoutExercise(currentExercise.id, { 
+      order_index: nextIndex 
+    });
+    
+    // Now update the next exercise to the current index
+    await updateCustomWorkoutExercise(nextExercise.id, { 
+      order_index: currentIndex 
+    });
     
     // Return the updated list
     return await fetchCustomWorkoutExercises(workoutId);

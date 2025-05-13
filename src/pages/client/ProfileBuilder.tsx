@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,7 +38,7 @@ const ProfileBuilder = () => {
     onSuccess: (data) => {
       console.log('Profile created or confirmed:', data);
       if (data) {
-        setProfileData(prevData => ({ ...prevData, ...(data as object) }));
+        setProfileData(prevData => ({ ...prevData, ...(data as Partial<ClientProfile>) }));
       }
     },
     onError: (error) => {

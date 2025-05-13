@@ -1,4 +1,4 @@
 
-// This file now re-exports everything from the refactored chat service modules
+// This file re-exports everything from the refactored client service modules
 // for backward compatibility
-export * from './chat/index';
+export * from './clients/index';

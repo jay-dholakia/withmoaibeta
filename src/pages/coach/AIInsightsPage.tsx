@@ -27,6 +27,26 @@ interface Client {
   group_ids: string[];
 }
 
+// Define the shape of the client_profiles data in the response
+interface ClientProfileData {
+  first_name: string | null;
+  last_name: string | null;
+}
+
+// Interface for the data structure returned by the Supabase query
+interface ClientWorkoutInfo {
+  user_id: string;
+  user_type: string;
+  last_workout_at: string | null;
+  total_workouts_completed: number;
+  current_program_id: string | null;
+  profiles: {
+    id: string;
+    user_type: string;
+  };
+  client_profiles: ClientProfileData[];
+}
+
 const AIInsightsPage = () => {
   const { user } = useAuth();
   const [selectedClientId, setSelectedClientId] = useState<string>('');
@@ -70,7 +90,7 @@ const AIInsightsPage = () => {
       const emailMap = new Map(emails ? emails.map(e => [e.id, e.email]) : []);
       
       // Transform the data to match expected Client interface
-      const formattedClients = coachClients.map(client => {
+      const formattedClients = coachClients.map((client: ClientWorkoutInfo) => {
         // Fix: Properly access client_profiles array and its properties
         const clientProfile = client.client_profiles && client.client_profiles.length > 0 
           ? client.client_profiles[0] 

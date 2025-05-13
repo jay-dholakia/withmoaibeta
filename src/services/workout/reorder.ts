@@ -181,3 +181,46 @@ export const reorderWorkoutExercises = async (
     throw error;
   }
 };
+
+/**
+ * Reorder workouts within a week
+ */
+export const reorderWorkoutsInWeek = async (
+  weekId: string,
+  workoutsOrder: { id: string; priority: number }[]
+): Promise<any[]> => {
+  try {
+    console.log('Reordering workouts in week:', workoutsOrder);
+    
+    // First set temporary priorities to avoid constraint conflicts
+    for (let i = 0; i < workoutsOrder.length; i++) {
+      await supabase
+        .from('workouts')
+        .update({ priority: -1000 - i })
+        .eq('id', workoutsOrder[i].id);
+    }
+    
+    // Then set the actual new priorities
+    for (const workout of workoutsOrder) {
+      console.log(`Setting workout ${workout.id} priority to ${workout.priority}`);
+      await supabase
+        .from('workouts')
+        .update({ priority: workout.priority })
+        .eq('id', workout.id);
+    }
+    
+    // Return the updated list
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('*')
+      .eq('week_id', weekId)
+      .order('priority', { ascending: true })
+      .order('day_of_week', { ascending: true });
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error reordering workouts in week:', error);
+    throw error;
+  }
+};

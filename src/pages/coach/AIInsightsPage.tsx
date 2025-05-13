@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -314,7 +315,7 @@ const AIInsightsPage = () => {
     
     if (!filteredClients || filteredClients.length === 0) {
       return (
-        <div className="text-center p-4 text-muted-foreground">
+        <div className="p-4 text-muted-foreground">
           {searchQuery ? 'No clients match your search' : 'No clients found'}
         </div>
       );
@@ -348,7 +349,7 @@ const AIInsightsPage = () => {
   return (
     <CoachLayout>
       <div className="space-y-6">
-        <div>
+        <div className="text-left">
           <h1 className="text-3xl font-bold">AI Insights</h1>
           <p className="text-muted-foreground mt-1">
             AI-powered insights to help you coach more effectively.
@@ -360,7 +361,7 @@ const AIInsightsPage = () => {
           onValueChange={setSelectedTab}
           className="space-y-4"
         >
-          <TabsList>
+          <TabsList className="justify-start">
             <TabsTrigger value="client" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Client-Level Insights
@@ -373,7 +374,7 @@ const AIInsightsPage = () => {
           
           <TabsContent value="client" className="space-y-4">
             <Card>
-              <CardHeader>
+              <CardHeader className="text-left">
                 <CardTitle>Select a Client</CardTitle>
                 <CardDescription>
                   Find a client to view personalized insights and coaching opportunities.
@@ -398,7 +399,7 @@ const AIInsightsPage = () => {
             
             {selectedClientId && (
               <Card>
-                <CardHeader>
+                <CardHeader className="text-left">
                   <CardTitle>
                     Client Insights
                     {insightsLoading && <Loader2 className="ml-2 h-4 w-4 inline animate-spin" />}
@@ -416,26 +417,26 @@ const AIInsightsPage = () => {
                     <>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Card>
-                          <CardHeader className="py-4">
+                          <CardHeader className="py-4 text-left">
                             <CardTitle className="text-lg">Total Workouts</CardTitle>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="text-left">
                             <div className="text-3xl font-bold">{clientInsights.totalWorkouts}</div>
                           </CardContent>
                         </Card>
                         <Card>
-                          <CardHeader className="py-4">
+                          <CardHeader className="py-4 text-left">
                             <CardTitle className="text-lg">Current Streak</CardTitle>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="text-left">
                             <div className="text-3xl font-bold">{clientInsights.streakData.currentStreak} days</div>
                           </CardContent>
                         </Card>
                         <Card>
-                          <CardHeader className="py-4">
+                          <CardHeader className="py-4 text-left">
                             <CardTitle className="text-lg">Last Active</CardTitle>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="text-left">
                             <div className="text-xl font-medium">
                               {clientInsights.lastWorkout 
                                 ? new Date(clientInsights.lastWorkout).toLocaleDateString() 
@@ -446,13 +447,13 @@ const AIInsightsPage = () => {
                       </div>
 
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold">Coaching Opportunities</h3>
+                        <h3 className="text-lg font-semibold text-left">Coaching Opportunities</h3>
                         <div className="space-y-3">
                           {clientInsights.insights.map((insight, index) => (
                             <Alert key={index} variant={insight.type === 'warning' ? 'destructive' : 'default'}>
                               <Info className="h-4 w-4" />
-                              <AlertTitle>{insight.title}</AlertTitle>
-                              <AlertDescription>
+                              <AlertTitle className="text-left">{insight.title}</AlertTitle>
+                              <AlertDescription className="text-left">
                                 {insight.message}
                               </AlertDescription>
                             </Alert>
@@ -461,11 +462,11 @@ const AIInsightsPage = () => {
                       </div>
 
                       <div>
-                        <h3 className="text-lg font-semibold mb-3">Recent Activity</h3>
+                        <h3 className="text-lg font-semibold mb-3 text-left">Recent Activity</h3>
                         {clientInsights.recentWorkouts.length > 0 ? (
                           <div className="space-y-2 max-h-48 overflow-y-auto">
                             {clientInsights.recentWorkouts.map((workout, index) => (
-                              <div key={index} className="p-2 border rounded-md">
+                              <div key={index} className="p-2 border rounded-md text-left">
                                 <div className="font-medium">
                                   {workout.title || 'Workout'}
                                   {workout.workout_type && (
@@ -486,7 +487,7 @@ const AIInsightsPage = () => {
                       </div>
                     </>
                   ) : (
-                    <div className="text-center p-4 text-muted-foreground">
+                    <div className="p-4 text-muted-foreground">
                       Select a client to view insights
                     </div>
                   )}
@@ -497,7 +498,7 @@ const AIInsightsPage = () => {
           
           <TabsContent value="group" className="space-y-4">
             <Card>
-              <CardHeader>
+              <CardHeader className="text-left">
                 <CardTitle>Select a Group</CardTitle>
                 <CardDescription>
                   Choose a group to view aggregated insights and trends.
@@ -510,7 +511,7 @@ const AIInsightsPage = () => {
                   </div>
                 ) : coachGroups && coachGroups.length > 0 ? (
                   <Select onValueChange={handleGroupSelect} value={selectedGroupId || undefined}>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full text-left">
                       <SelectValue placeholder="Select a group" />
                     </SelectTrigger>
                     <SelectContent>
@@ -522,7 +523,7 @@ const AIInsightsPage = () => {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <div className="text-center p-4 text-muted-foreground">
+                  <div className="p-4 text-muted-foreground">
                     No groups found
                   </div>
                 )}
@@ -531,7 +532,7 @@ const AIInsightsPage = () => {
             
             {selectedGroupId && (
               <Card>
-                <CardHeader>
+                <CardHeader className="text-left">
                   <CardTitle>
                     Group Insights
                     {groupInsightsLoading && <Loader2 className="ml-2 h-4 w-4 inline animate-spin" />}
@@ -549,18 +550,18 @@ const AIInsightsPage = () => {
                     <>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Card>
-                          <CardHeader className="py-4">
+                          <CardHeader className="py-4 text-left">
                             <CardTitle className="text-lg">Total Members</CardTitle>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="text-left">
                             <div className="text-3xl font-bold">{groupInsights.totalMembers}</div>
                           </CardContent>
                         </Card>
                         <Card>
-                          <CardHeader className="py-4">
+                          <CardHeader className="py-4 text-left">
                             <CardTitle className="text-lg">Active Members</CardTitle>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="text-left">
                             <div className="text-3xl font-bold">{groupInsights.activeMembers}</div>
                             <div className="text-sm text-muted-foreground">
                               {Math.round((groupInsights.activeMembers / groupInsights.totalMembers) * 100)}% engaged
@@ -568,23 +569,23 @@ const AIInsightsPage = () => {
                           </CardContent>
                         </Card>
                         <Card>
-                          <CardHeader className="py-4">
+                          <CardHeader className="py-4 text-left">
                             <CardTitle className="text-lg">Total Workouts</CardTitle>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="text-left">
                             <div className="text-3xl font-bold">{groupInsights.totalWorkouts}</div>
                           </CardContent>
                         </Card>
                       </div>
 
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold">Group Coaching Opportunities</h3>
+                        <h3 className="text-lg font-semibold text-left">Group Coaching Opportunities</h3>
                         <div className="space-y-3">
                           {groupInsights.insights.map((insight, index) => (
                             <Alert key={index} variant={insight.type === 'warning' ? 'destructive' : 'default'}>
                               <Info className="h-4 w-4" />
-                              <AlertTitle>{insight.title}</AlertTitle>
-                              <AlertDescription>
+                              <AlertTitle className="text-left">{insight.title}</AlertTitle>
+                              <AlertDescription className="text-left">
                                 {insight.message}
                               </AlertDescription>
                             </Alert>
@@ -592,14 +593,14 @@ const AIInsightsPage = () => {
                         </div>
                       </div>
 
-                      <div className="flex justify-end">
+                      <div className="flex justify-start">
                         <Button>
                           Message Group
                         </Button>
                       </div>
                     </>
                   ) : (
-                    <div className="text-center p-4 text-muted-foreground">
+                    <div className="p-4 text-muted-foreground">
                       Select a group to view insights
                     </div>
                   )}

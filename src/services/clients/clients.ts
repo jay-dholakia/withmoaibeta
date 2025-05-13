@@ -21,15 +21,26 @@ export const createDirectMessage = async (
       return null;
     }
     
-    // Check if client exists in profiles before attempting to create a chat room
+    // Check if client exists in profiles AND auth.users before attempting to create a chat room
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('id')
       .eq('id', clientId)
-      .single();
+      .maybeSingle();
     
     if (profileError || !profileData) {
       console.error("Client not found in profiles:", { clientId, error: profileError });
+      return null;
+    }
+    
+    // Also check if the client exists in auth.users table using RPC function
+    const { data: userData, error: userError } = await (supabase.rpc as any)(
+      'get_users_email', 
+      { user_ids: [clientId] }
+    );
+    
+    if (userError || !userData || userData.length === 0) {
+      console.error("Client not found in auth.users:", { clientId, error: userError });
       return null;
     }
     

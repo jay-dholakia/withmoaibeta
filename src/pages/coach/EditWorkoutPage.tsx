@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, Plus, Loader2, RefreshCw, AlertTriangle, Video, ListReorder, GripVertical } from 'lucide-react';
+import { ChevronLeft, Plus, Loader2, RefreshCw, AlertTriangle, Video, ListOrdered, GripVertical } from 'lucide-react';
 import { 
   fetchWorkout, 
   updateWorkout, 
@@ -428,7 +428,7 @@ const EditWorkoutPage = () => {
                 variant={isReordering ? "secondary" : "outline"}
                 className="gap-1"
               >
-                <ListReorder className="h-4 w-4" />
+                <ListOrdered className="h-4 w-4" />
                 {isReordering ? "Done Reordering" : "Reorder"}
               </Button>
               <Button 

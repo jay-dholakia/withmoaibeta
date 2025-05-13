@@ -1,8 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { CustomWorkoutExercise } from './types';
-import { fetchCustomWorkoutExercises } from './exercises';
-import { updateCustomWorkoutExercise } from './exercises';
+import { CustomWorkoutExercise } from '@/services/clients/custom-workout/types';
+import { fetchCustomWorkoutExercises, updateCustomWorkoutExercise } from '@/services/clients/custom-workout/exercises';
 import { fetchWorkoutExercises } from '../workout-service';
 
 /**

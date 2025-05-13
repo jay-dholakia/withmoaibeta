@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { ChevronLeft, Plus, Video, ListReorder } from 'lucide-react';
+import { ChevronLeft, Plus, Video, ListOrdered } from 'lucide-react';
 import { 
   fetchWorkout, 
   fetchWorkoutExercises,
@@ -286,7 +286,7 @@ const WorkoutExercisesPage = () => {
                 variant={isReordering ? "secondary" : "outline"}
                 className="gap-1"
               >
-                <ListReorder className="h-4 w-4" />
+                <ListOrdered className="h-4 w-4" />
                 {isReordering ? "Done Reordering" : "Reorder"}
               </Button>
               <Button 

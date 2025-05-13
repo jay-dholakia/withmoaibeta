@@ -71,12 +71,17 @@ const AIInsightsPage = () => {
       
       // Transform the data to match expected Client interface
       const formattedClients = coachClients.map(client => {
+        // Fix: Properly access client_profiles array and its properties
+        const clientProfile = client.client_profiles && client.client_profiles.length > 0 
+          ? client.client_profiles[0] 
+          : null;
+        
         return {
           id: client.user_id,
           email: emailMap.get(client.user_id) || 'Unknown',
           user_type: client.user_type,
-          first_name: client.client_profiles?.[0]?.first_name || null,
-          last_name: client.client_profiles?.[0]?.last_name || null,
+          first_name: clientProfile?.first_name || null,
+          last_name: clientProfile?.last_name || null,
           last_workout_at: client.last_workout_at,
           total_workouts_completed: client.total_workouts_completed || 0,
           current_program_id: client.current_program_id,

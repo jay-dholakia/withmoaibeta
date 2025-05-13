@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday, isSameMonth, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
@@ -368,7 +367,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
   };
 
   return (
-    <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+    <div className="bg-white dark:bg-gray-800 rounded-lg">
       {renderHeader()}
       {renderDays()}
       {renderCells()}

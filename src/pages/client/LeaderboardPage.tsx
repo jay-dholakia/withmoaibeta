@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Container } from '@/components/ui/container';
 import { useAuth } from '@/contexts/AuthContext';
@@ -223,7 +224,7 @@ const LeaderboardPage = () => {
   }
   
   return (
-    <Container className="px-0 sm:px-4 mx-auto w-full max-w-screen-md">
+    <Container className="px-4 mx-auto w-full max-w-screen-md">
       <div className="w-full">
         <button 
           id="refresh-workout-history" 
@@ -247,7 +248,7 @@ const LeaderboardPage = () => {
         </div>
         
         <Card className="mt-2 dark:bg-gray-800 dark:border-gray-700">
-          <CardContent className="pt-6">
+          <CardContent className="p-4">
             {clientWorkouts && clientWorkouts.length > 0 ? (
               <MonthlyCalendarView 
                 workouts={clientWorkouts} 
@@ -272,7 +273,7 @@ const LeaderboardPage = () => {
         </Button>
         
         {selectedDayWorkouts.length > 0 && (
-          <div className="mt-6" ref={workoutDetailsRef}>
+          <div className="mt-6 mb-4" ref={workoutDetailsRef}>
             <Card className="dark:bg-gray-800 dark:border-gray-700">
               <CardHeader>
                 <CardTitle className="text-lg dark:text-white">Workout Details</CardTitle>

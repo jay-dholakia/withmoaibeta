@@ -206,7 +206,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   <div className="flex flex-col items-start">
                     <span className="truncate font-medium text-base">{room.name}</span>
                     <span className="text-xs text-muted-foreground truncate mt-0.5">
-                      {room.last_message || "No messages yet"}
+                      Accountability chat group
                     </span>
                   </div>
                 </Button>
@@ -242,7 +242,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   <div className="flex flex-col items-start">
                     <span className="truncate font-medium text-base">{room.name}</span>
                     <span className="text-xs text-muted-foreground truncate mt-0.5">
-                      {room.last_message || "No messages yet"}
+                      Group chat
                     </span>
                   </div>
                 </Button>
@@ -284,7 +284,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 >
                   <div className="relative">
                     <Avatar className="h-10 w-10 mr-3">
-                      <AvatarImage src={room.other_user_avatar || ""} alt={room.other_user_name || "User"} />
+                      <AvatarImage src={room.other_user_profile_picture || ""} alt={room.other_user_name || "User"} />
                       <AvatarFallback className="bg-green-500 text-primary-foreground text-sm">
                         {getInitials(room.other_user_name || "DM")}
                       </AvatarFallback>
@@ -305,7 +305,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       </span>
                     </div>
                     <span className="text-xs text-muted-foreground truncate mt-0.5">
-                      {room.last_message || "No messages yet"}
+                      Direct message
                     </span>
                   </div>
                 </Button>

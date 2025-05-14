@@ -1,184 +1,13 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { ChatMessage } from "./types";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 /**
- * Fetches messages for a chat room
- */
-export const fetchMessages = async (roomId: string): Promise<ChatMessage[]> => {
-  try {
-    const { data, error } = await supabase
-      .from("chat_messages")
-      .select(`
-        id,
-        content,
-        sender_id,
-        created_at,
-        room_id,
-        is_direct_message
-      `)
-      .eq("room_id", roomId)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("Error fetching chat messages:", error);
-      return [];
-    }
-
-    // For each message, get sender's name and avatar based on their user type
-    const messages: ChatMessage[] = [];
-    
-    for (const message of data) {
-      // First get user type from the profiles table
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("user_type")
-        .eq("id", message.sender_id)
-        .maybeSingle();
-      
-      let senderName = "Unknown User";
-      let senderAvatar = null;
-      
-      // Get user profile details based on user type
-      if (profileData?.user_type === 'coach') {
-        const { data: coachProfile } = await supabase
-          .from("coach_profiles")
-          .select("first_name, last_name, avatar_url")
-          .eq("id", message.sender_id)
-          .maybeSingle();
-          
-        if (coachProfile) {
-          senderName = `${coachProfile.first_name || ''} ${coachProfile.last_name || ''}`.trim();
-          senderAvatar = coachProfile.avatar_url;
-        }
-      } else if (profileData?.user_type === 'client') {
-        const { data: clientProfile } = await supabase
-          .from("client_profiles")
-          .select("first_name, last_name, avatar_url")
-          .eq("id", message.sender_id)
-          .maybeSingle();
-          
-        if (clientProfile) {
-          senderName = `${clientProfile.first_name || ''} ${clientProfile.last_name || ''}`.trim();
-          senderAvatar = clientProfile.avatar_url;
-        }
-      }
-      
-      messages.push({
-        id: message.id,
-        content: message.content,
-        sender_id: message.sender_id,
-        created_at: message.created_at,
-        room_id: message.room_id,
-        is_direct_message: message.is_direct_message,
-        sender_name: senderName,
-        sender_avatar: senderAvatar
-      });
-    }
-
-    return messages;
-  } catch (error) {
-    console.error("Error in fetchMessages:", error);
-    return [];
-  }
-};
-
-/**
- * Sends a message to a chat room
- */
-export const sendMessage = async (
-  roomId: string,
-  content: string,
-  senderId: string,
-  isDirectMessage: boolean = false
-): Promise<ChatMessage | null> => {
-  try {
-    // First verify the room exists
-    const { data: roomData, error: roomError } = await supabase
-      .from("chat_rooms")
-      .select("id")
-      .eq("id", roomId)
-      .maybeSingle();
-    
-    if (roomError || !roomData) {
-      console.error("Chat room not found:", { roomId, error: roomError });
-      return null;
-    }
-    
-    // Insert the message
-    const { data: messageData, error: messageError } = await supabase
-      .from("chat_messages")
-      .insert({
-        content,
-        sender_id: senderId,
-        room_id: roomId,
-        is_direct_message: isDirectMessage
-      })
-      .select("*")
-      .single();
-    
-    if (messageError) {
-      console.error("Error sending chat message:", messageError);
-      return null;
-    }
-    
-    // Get sender's profile info for returning complete message data
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("user_type")
-      .eq("id", senderId)
-      .maybeSingle();
-      
-    let senderName = "Unknown User";
-    let senderAvatar = null;
-    
-    if (profileData) {
-      // Based on user type, get the appropriate profile info
-      if (profileData.user_type === 'coach') {
-        const { data: coachProfile } = await supabase
-          .from("coach_profiles")
-          .select("first_name, last_name, avatar_url")
-          .eq("id", senderId)
-          .maybeSingle();
-          
-        if (coachProfile) {
-          senderName = `${coachProfile.first_name || ''} ${coachProfile.last_name || ''}`.trim();
-          senderAvatar = coachProfile.avatar_url;
-        }
-      } else {
-        const { data: clientProfile } = await supabase
-          .from("client_profiles")
-          .select("first_name, last_name, avatar_url")
-          .eq("id", senderId)
-          .maybeSingle();
-          
-        if (clientProfile) {
-          senderName = `${clientProfile.first_name || ''} ${clientProfile.last_name || ''}`.trim();
-          senderAvatar = clientProfile.avatar_url;
-        }
-      }
-    }
-    
-    return {
-      id: messageData.id,
-      content: messageData.content,
-      sender_id: messageData.sender_id,
-      created_at: messageData.created_at,
-      room_id: messageData.room_id,
-      is_direct_message: messageData.is_direct_message,
-      sender_name: senderName,
-      sender_avatar: senderAvatar
-    };
-    
-  } catch (error) {
-    console.error("Error in sendMessage:", error);
-    return null;
-  }
-};
-
-/**
- * Subscribes to new messages in a chat room
+ * Subscribe to new messages in a chat room
+ * @param roomId - The ID of the chat room
+ * @param onNewMessage - Callback function when a new message is received
+ * @returns The subscription channel
  */
 export const subscribeToRoom = (
   roomId: string,
@@ -186,70 +15,197 @@ export const subscribeToRoom = (
 ): RealtimeChannel => {
   const channel = supabase
     .channel(`room:${roomId}`)
-    .on('postgres_changes', { 
+    .on('postgres_changes', {
       event: 'INSERT',
       schema: 'public',
       table: 'chat_messages',
       filter: `room_id=eq.${roomId}`
     }, async (payload) => {
-      // When a new message is received
-      const message = payload.new as any;
+      const message = payload.new as ChatMessage;
       
-      // Get sender details
-      let senderName = "Unknown User";
-      let senderAvatar = null;
+      // Fetch additional sender information
+      const senderInfo = await fetchSenderInfo(message.sender_id);
+      message.sender_name = senderInfo.name;
+      message.sender_profile_picture = senderInfo.profile_picture;
       
-      try {
-        // First get user type
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("user_type")
-          .eq("id", message.sender_id)
-          .maybeSingle();
-          
-        if (profileData) {
-          // Based on user type, get the appropriate profile info
-          if (profileData.user_type === 'coach') {
-            const { data: coachProfile } = await supabase
-              .from("coach_profiles")
-              .select("first_name, last_name, avatar_url")
-              .eq("id", message.sender_id)
-              .maybeSingle();
-              
-            if (coachProfile) {
-              senderName = `${coachProfile.first_name || ''} ${coachProfile.last_name || ''}`.trim();
-              senderAvatar = coachProfile.avatar_url;
-            }
-          } else {
-            const { data: clientProfile } = await supabase
-              .from("client_profiles")
-              .select("first_name, last_name, avatar_url")
-              .eq("id", message.sender_id)
-              .maybeSingle();
-              
-            if (clientProfile) {
-              senderName = `${clientProfile.first_name || ''} ${clientProfile.last_name || ''}`.trim();
-              senderAvatar = clientProfile.avatar_url;
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error getting sender details:", error);
-      }
-      
-      // Call the callback with the complete message data
-      onNewMessage({
-        id: message.id,
-        content: message.content,
-        sender_id: message.sender_id,
-        created_at: message.created_at,
-        room_id: message.room_id,
-        is_direct_message: message.is_direct_message,
-        sender_name: senderName,
-        sender_avatar: senderAvatar
-      });
+      onNewMessage(message);
     })
     .subscribe();
 
   return channel;
+};
+
+/**
+ * Fetch all messages for a chat room
+ * @param roomId - The ID of the chat room
+ * @param limit - Maximum number of messages to fetch (default: 50)
+ */
+export const fetchMessages = async (
+  roomId: string,
+  limit: number = 50
+): Promise<ChatMessage[]> => {
+  try {
+    // Get all messages for the room
+    const { data: messages, error } = await supabase
+      .from('chat_messages')
+      .select('*')
+      .eq('room_id', roomId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching messages:', error);
+      return [];
+    }
+
+    // Get user information for all sender IDs
+    const senderIds = [...new Set(messages.map(message => message.sender_id))];
+    
+    // Get sender information
+    const senderInfoMap = new Map();
+    for (const senderId of senderIds) {
+      const senderInfo = await fetchSenderInfo(senderId);
+      senderInfoMap.set(senderId, senderInfo);
+    }
+    
+    // Combine message with sender information
+    const messagesWithSenderInfo = messages.map(message => {
+      const senderInfo = senderInfoMap.get(message.sender_id) || { name: "Unknown User", profile_picture: null };
+      
+      return {
+        ...message,
+        sender_name: senderInfo.name,
+        sender_profile_picture: senderInfo.profile_picture
+      };
+    });
+
+    return messagesWithSenderInfo.reverse();
+  } catch (error) {
+    console.error('Error in fetchMessages:', error);
+    return [];
+  }
+};
+
+/**
+ * Fetches information about a message sender
+ * @param senderId - The ID of the sender
+ */
+export const fetchSenderInfo = async (senderId: string): Promise<{
+  name: string;
+  profile_picture: string | null;
+}> => {
+  try {
+    // First try to fetch from client_profiles
+    const { data: clientProfile, error: clientError } = await supabase
+      .from('client_profiles')
+      .select('first_name, last_name, avatar_url')
+      .eq('id', senderId)
+      .maybeSingle();
+      
+    if (!clientError && clientProfile) {
+      const fullName = `${clientProfile.first_name || ''} ${clientProfile.last_name || ''}`.trim();
+      return {
+        name: fullName || senderId,
+        profile_picture: clientProfile.avatar_url
+      };
+    }
+    
+    // If not found, try coach_profiles
+    const { data: coachProfile, error: coachError } = await supabase
+      .from('coach_profiles')
+      .select('first_name, last_name, avatar_url')
+      .eq('id', senderId)
+      .maybeSingle();
+      
+    if (!coachError && coachProfile) {
+      const fullName = `${coachProfile.first_name || ''} ${coachProfile.last_name || ''}`.trim();
+      return {
+        name: fullName || senderId,
+        profile_picture: coachProfile.avatar_url
+      };
+    }
+    
+    // Get email as fallback
+    const { data: userData, error: userError } = await supabase.rpc(
+      'get_users_email',
+      { user_ids: [senderId] }
+    );
+    
+    if (!userError && userData && userData.length > 0) {
+      return {
+        name: userData[0].email || senderId,
+        profile_picture: null
+      };
+    }
+    
+    // Default fallback
+    return {
+      name: senderId,
+      profile_picture: null
+    };
+  } catch (error) {
+    console.error('Error fetching sender info:', error);
+    return {
+      name: senderId,
+      profile_picture: null
+    };
+  }
+};
+
+/**
+ * Send a message to a chat room
+ * @param roomId - The ID of the chat room
+ * @param content - The content of the message
+ * @param senderId - The ID of the sender
+ * @returns The sent message if successful, null otherwise
+ */
+export const sendMessage = async (
+  roomId: string,
+  content: string,
+  senderId: string
+): Promise<ChatMessage | null> => {
+  try {
+    // Check if room is a direct message room
+    const { data: roomData, error: roomError } = await supabase
+      .from('chat_rooms')
+      .select('is_group_chat')
+      .eq('id', roomId)
+      .single();
+      
+    if (roomError) {
+      console.error('Error checking room type:', roomError);
+      return null;
+    }
+    
+    const isDirectMessage = !roomData.is_group_chat;
+    
+    // Insert the message
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .insert({
+        room_id: roomId,
+        sender_id: senderId,
+        content,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error sending message:', error);
+      return null;
+    }
+
+    // Get sender information
+    const senderInfo = await fetchSenderInfo(senderId);
+    
+    // Return message with sender info
+    return {
+      ...data,
+      sender_name: senderInfo.name,
+      sender_profile_picture: senderInfo.profile_picture
+    };
+  } catch (error) {
+    console.error('Error in sendMessage:', error);
+    return null;
+  }
 };

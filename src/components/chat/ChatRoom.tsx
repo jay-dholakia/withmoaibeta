@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -244,6 +243,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
             <div className="space-y-4">
               {messages.map((message) => {
                 const isCurrentUser = message.sender_id === user?.id;
+                const senderAvatar = message.sender_profile_picture;
                 const formattedName = message.sender_name ? formatName(message.sender_name) : "Unknown";
                 
                 return (
@@ -260,7 +260,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                     )}>
                       {!isCurrentUser && (
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={message.sender_avatar || ""} />
+                          <AvatarImage src={senderAvatar || ""} />
                           <AvatarFallback>
                             {getInitials(formattedName)}
                           </AvatarFallback>

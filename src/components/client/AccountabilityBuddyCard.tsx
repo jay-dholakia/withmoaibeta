@@ -85,7 +85,7 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
       
       if (roomId) {
         // Navigate to the chat page with the room ID
-        navigate(`/client-dashboard/chat/${roomId}?buddy=true&fromGroup=${groupId}`);
+        navigate(`/client-dashboard/chat?buddy=${roomId}`);
       } else {
         toast.error("Couldn't create buddy chat room");
       }

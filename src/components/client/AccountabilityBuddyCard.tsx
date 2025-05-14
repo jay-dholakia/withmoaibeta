@@ -35,21 +35,8 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
       return;
     }
     
-    if (buddies.length === 0) {
-      toast.error("No buddies assigned for this week");
-      return;
-    }
-    
-    if (!groupId) {
-      toast.error("Group ID is required to create buddy chat");
-      return;
-    }
-    
     setIsCreatingChat(true);
     try {
-      // Get all buddy IDs including the current user
-      const allBuddyIds = [user.id, ...buddies.map(b => b.userId)];
-      
       // First find the accountability_buddies record for this group
       const weekStart = getCurrentWeekStart();
       
@@ -78,19 +65,12 @@ export const AccountabilityBuddyCard: React.FC<AccountabilityBuddyCardProps> = (
       // Get the first matching record
       const buddyRecord = buddyRecords[0];
       
-      console.log("Creating buddy chat with record ID:", buddyRecord.id);
+      console.log("Found accountability buddies record:", buddyRecord);
       
-      // Create or get the buddy chat room using the accountability buddies record ID
-      const roomId = await getBuddyChatRoom(allBuddyIds, buddyRecord.id);
-      
-      if (roomId) {
-        // Navigate to the chat page with the room ID
-        navigate(`/client-dashboard/chat?buddy=${roomId}`);
-      } else {
-        toast.error("Couldn't create buddy chat room");
-      }
+      // Navigate directly to the chat page
+      navigate(`/client-dashboard/chat?buddy=true`);
     } catch (error) {
-      console.error("Error creating buddy chat:", error);
+      console.error("Error navigating to buddy chat:", error);
       toast.error("Failed to open buddy chat");
     } finally {
       setIsCreatingChat(false);

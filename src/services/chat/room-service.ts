@@ -1,496 +1,213 @@
 
+// Import needed dependencies
 import { supabase } from "@/integrations/supabase/client";
 import { ChatRoom } from "./types";
-import { getCurrentWeekStart } from "../accountability-buddy-service";
+import { toast } from "sonner";
 
 /**
- * Fetches group chat rooms for the user
+ * Fetch all chat rooms for a user
+ * @param userId - The ID of the user
  */
-export const fetchGroupChatRooms = async (userId: string): Promise<ChatRoom[]> => {
-  if (!userId) return [];
-  
-  // First, get the groups that the user is a member of
-  const { data: userGroups, error: groupError } = await supabase
-    .from("group_members")
-    .select("group_id")
-    .eq("user_id", userId);
-
-  if (groupError) {
-    console.error("Error fetching user groups:", groupError);
-    return [];
-  }
-
-  if (!userGroups || userGroups.length === 0) {
-    return [];
-  }
-
-  // Extract the group IDs into an array
-  const groupIds = userGroups.map(item => item.group_id);
-  
-  // Then fetch the chat rooms that are group chats but not buddy chats
-  const { data, error } = await supabase
-    .from("chat_rooms")
-    .select(`
-      id,
-      name,
-      is_group_chat,
-      created_at,
-      group_id
-    `)
-    .eq("is_group_chat", true)
-    .eq("is_buddy_chat", false);
-
-  if (error) {
-    console.error("Error fetching group chat rooms:", error);
-    return [];
-  }
-
-  // Filter the rooms to only include those where the user is a member through a group
-  // This will need to be refined if we add functionality to link chat rooms with groups
-  return data || [];
-};
-
-/**
- * Fetches direct message rooms for the user
- */
-export const fetchDirectMessageRooms = async (userId: string): Promise<ChatRoom[]> => {
-  if (!userId) return [];
-  
-  const { data, error } = await supabase
+export const fetchUserChatRooms = async (userId: string): Promise<ChatRoom[]> => {
+  // Fetch direct message rooms where the user is a participant
+  const { data: directMessageRooms, error: dmError } = await supabase
     .from("direct_message_rooms")
     .select(`
-      id,
       room_id,
-      user1_id,
-      user2_id,
-      created_at,
-      chat_rooms:room_id (
-        id, 
-        name,
-        is_group_chat,
-        created_at
-      )
+      chat_rooms:room_id (id, name, is_group_chat, created_at, group_id),
+      user1:user1_id (id, profiles:id (id, full_name, profile_picture_url)),
+      user2:user2_id (id, profiles:id (id, full_name, profile_picture_url))
     `)
     .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
 
-  if (error) {
-    console.error("Error fetching direct message rooms:", error);
+  if (dmError) {
+    console.error("Error fetching direct message rooms:", dmError);
     return [];
   }
 
-  // Transform the data to include the other user's information
-  const dmRooms: ChatRoom[] = [];
-  
-  for (const room of data) {
-    const otherUserId = room.user1_id === userId ? room.user2_id : room.user1_id;
-    
-    // Get other user's profile info
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("user_type")
-      .eq("id", otherUserId)
-      .maybeSingle();
-    
-    let otherUserName = "Unknown User";
-    let otherUserAvatar = null;
-    
-    // Based on user type, get the appropriate profile
-    if (profileData?.user_type === "coach") {
-      const { data: coachProfile } = await supabase
-        .from("coach_profiles")
-        .select("first_name, last_name, avatar_url")
-        .eq("id", otherUserId)
-        .maybeSingle();
-      
-      if (coachProfile) {
-        otherUserName = `${coachProfile.first_name || ''} ${coachProfile.last_name || ''}`.trim();
-        otherUserAvatar = coachProfile.avatar_url;
-      }
-    } else {
-      const { data: clientProfile } = await supabase
-        .from("client_profiles")
-        .select("first_name, last_name, avatar_url")
-        .eq("id", otherUserId)
-        .maybeSingle();
-      
-      if (clientProfile) {
-        otherUserName = `${clientProfile.first_name || ''} ${clientProfile.last_name || ''}`.trim();
-        otherUserAvatar = clientProfile.avatar_url;
-      }
-    }
-    
-    dmRooms.push({
+  // Fetch group chat rooms where the user is a member
+  const { data: groupChatRooms, error: groupError } = await supabase
+    .from("group_chat_members")
+    .select(`
+      chat_rooms:room_id (id, name, is_group_chat, created_at, group_id)
+    `)
+    .eq("user_id", userId);
+
+  if (groupError) {
+    console.error("Error fetching group chat rooms:", groupError);
+    return [];
+  }
+
+  // Fetch buddy chat rooms
+  const { data: buddyChatRooms, error: buddyError } = await supabase
+    .from("buddy_chat_rooms")
+    .select(`
+      chat_rooms:room_id (id, name, is_group_chat, created_at, group_id),
+      accountability_buddy_id
+    `)
+    .or(`user_id_1.eq.${userId},user_id_2.eq.${userId},user_id_3.eq.${userId}`);
+
+  if (buddyError) {
+    console.error("Error fetching buddy chat rooms:", buddyError);
+  }
+
+  // Process direct message rooms to get the other user's information
+  const processedDmRooms = directMessageRooms?.map(room => {
+    const otherUser = room.user1.id === userId ? room.user2 : room.user1;
+    return {
       id: room.chat_rooms.id,
-      name: otherUserName,
+      name: room.chat_rooms.name || "Direct Message",
       is_group_chat: false,
-      other_user_id: otherUserId,
-      other_user_name: otherUserName,
-      other_user_avatar: otherUserAvatar,
-      created_at: room.chat_rooms.created_at
-    });
-  }
+      is_buddy_chat: false,
+      created_at: room.chat_rooms.created_at,
+      group_id: room.chat_rooms.group_id,
+      other_user_id: otherUser.id,
+      other_user_name: otherUser.profiles?.full_name || "Unknown User",
+      other_user_profile_picture: otherUser.profiles?.profile_picture_url || null,
+    };
+  }) || [];
 
-  return dmRooms;
+  // Process group chat rooms
+  const processedGroupRooms = groupChatRooms?.map(({ chat_rooms }) => ({
+    id: chat_rooms.id,
+    name: chat_rooms.name || "Group Chat",
+    is_group_chat: true,
+    is_buddy_chat: false,
+    created_at: chat_rooms.created_at,
+    group_id: chat_rooms.group_id,
+  })) || [];
+
+  // Process buddy chat rooms
+  const processedBuddyRooms = buddyChatRooms?.map(room => ({
+    id: room.chat_rooms.id,
+    name: "Accountability Buddies",
+    is_group_chat: true,
+    is_buddy_chat: true,
+    created_at: room.chat_rooms.created_at,
+    group_id: room.chat_rooms.group_id,
+    accountability_buddy_id: room.accountability_buddy_id,
+  })) || [];
+
+  // Combine all rooms and sort by most recent
+  const allRooms = [
+    ...processedDmRooms,
+    ...processedGroupRooms,
+    ...processedBuddyRooms
+  ].sort((a, b) => {
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  return allRooms;
 };
 
 /**
- * Fetches all chat rooms for the user
+ * Create or get a direct message room between two users
+ * @param currentUserId - The ID of the current user
+ * @param otherUserId - The ID of the other user
  */
-export const fetchAllChatRooms = async (userId: string): Promise<ChatRoom[]> => {
-  const [groupRooms, dmRooms, buddyRooms] = await Promise.all([
-    fetchGroupChatRooms(userId),
-    fetchDirectMessageRooms(userId),
-    fetchBuddyChatRooms(userId)
-  ]);
-  
-  return [...groupRooms, ...dmRooms, ...buddyRooms];
-};
-
-/**
- * Creates a direct message room between two users
- */
-export const createDirectMessageRoom = async (
-  currentUserId: string,
-  otherUserId: string
-): Promise<string | null> => {
-  if (!currentUserId || !otherUserId) return null;
-  
+export const createOrGetDirectMessageRoom = async (currentUserId: string, otherUserId: string): Promise<string | null> => {
   try {
-    // First verify both users exist in auth.users directly 
-    console.log("Verifying user IDs:", { currentUserId, otherUserId });
-    
-    // Check current user existence using the custom function
-    const { data: currentUserExists, error: currentUserError } = await supabase
-      .rpc('check_user_exists', { user_id: currentUserId });
-    
-    if (currentUserError) {
-      console.error("Error checking current user existence:", currentUserError);
-      return null;
-    }
-    
-    // Check other user existence using the custom function
-    const { data: otherUserExists, error: otherUserError } = await supabase
-      .rpc('check_user_exists', { user_id: otherUserId });
-    
-    if (otherUserError) {
-      console.error("Error checking other user existence:", otherUserError);
-      return null;
-    }
-    
-    // Log which users were found or not found
-    const foundUsers = [];
-    if (currentUserExists) foundUsers.push(currentUserId);
-    if (otherUserExists) foundUsers.push(otherUserId);
-    
-    console.log("User verification results:", { 
-      currentUserExists, 
-      otherUserExists, 
-      foundCount: foundUsers.length,
-      foundUserIds: foundUsers
-    });
-    
-    if (!currentUserExists || !otherUserExists) {
-      console.error("One or both users don't exist in auth.users:", {
-        currentUserId,
-        otherUserId,
-        foundCount: foundUsers.length,
-        foundUserIds: foundUsers
+    // Call the database function to create or get direct message room
+    const { data, error } = await supabase
+      .rpc("create_or_get_direct_message_room", {
+        user1: currentUserId,
+        user2: otherUserId
       });
+
+    if (error) {
+      console.error("Error creating/getting DM room:", error);
       return null;
     }
-    
-    // Try to create or get the direct message room
-    try {
-      const { data, error } = await supabase.rpc(
-        'create_or_get_direct_message_room',
-        {
-          user1: currentUserId,
-          user2: otherUserId
-        }
-      );
-      
-      if (error) {
-        console.error("Error creating direct message room:", error);
-        return null;
-      }
-      
-      return data as string;
-    } catch (rpcError) {
-      console.error("Exception calling create_or_get_direct_message_room RPC:", rpcError);
-      return null;
-    }
+
+    return data;
   } catch (error) {
-    console.error("Exception creating direct message room:", error);
+    console.error("Exception in createOrGetDirectMessageRoom:", error);
     return null;
   }
 };
 
 /**
- * Fetches or creates a chat room for accountability buddies
+ * Create or get a buddy chat room for accountability buddies
+ * @param userIds - Array of user IDs who are accountability buddies
+ * @param buddyRecordId - The ID of the accountability buddy record
+ * @returns The room ID if successful, null otherwise
  */
-export const getBuddyChatRoom = async (
-  buddies: string[],
-  pairingRecordId: string
-): Promise<string | null> => {
-  if (!buddies || buddies.length < 2) {
-    console.error("Cannot create buddy chat with fewer than 2 users");
-    return null;
-  }
-  
-  if (!pairingRecordId) {
-    console.error("Accountability buddy pairing record ID is required to create buddy chat room");
-    return null;
-  }
-  
-  // Create a name for the chat room
-  const roomName = `Accountability Buddies Chat`;
-  
+export const getBuddyChatRoom = async (userIds: string[], buddyRecordId: string): Promise<string | null> => {
   try {
-    // Check if a buddy chat room already exists with this accountability pairing ID
+    // Check if a buddy chat room already exists for this record
     const { data: existingRooms, error: existingError } = await supabase
-      .from("chat_rooms")
-      .select("id")
-      .eq("is_buddy_chat", true)
-      .eq("accountability_pairing_id", pairingRecordId);
-    
+      .from("buddy_chat_rooms")
+      .select("room_id")
+      .eq("accountability_buddy_id", buddyRecordId);
+      
     if (existingError) {
-      console.error("Error checking for existing buddy chat rooms:", existingError);
+      console.error("Error checking for existing buddy chat room:", existingError);
       return null;
     }
     
+    // If room exists, return it
     if (existingRooms && existingRooms.length > 0) {
-      console.log("Found existing buddy chat room:", existingRooms[0].id);
-      return existingRooms[0].id;
+      return existingRooms[0].room_id;
     }
     
-    // Create a new chat room if one doesn't exist
-    console.log("Creating new buddy chat room for buddies with pairing ID:", pairingRecordId);
-    
-    // Sort the buddy IDs to ensure consistency for the buddy_id_string
-    const sortedBuddyIds = [...buddies].sort();
-    
-    const { data: newRoom, error: roomError } = await supabase
+    // If not, create a new chat room
+    const { data: roomData, error: roomError } = await supabase
       .from("chat_rooms")
       .insert({
-        name: roomName,
-        is_group_chat: true,
-        is_buddy_chat: true,
-        accountability_pairing_id: pairingRecordId
+        name: "Accountability Buddies",
+        is_group_chat: true
       })
-      .select("id")
-      .single();
-    
-    if (roomError) {
+      .select();
+      
+    if (roomError || !roomData || roomData.length === 0) {
       console.error("Error creating buddy chat room:", roomError);
       return null;
     }
     
-    if (newRoom) {
-      console.log("Created new buddy chat room:", newRoom.id);
-      return newRoom.id;
+    const roomId = roomData[0].id;
+    
+    // Now create the buddy_chat_rooms record
+    const { error: buddyRoomError } = await supabase
+      .from("buddy_chat_rooms")
+      .insert({
+        room_id: roomId,
+        accountability_buddy_id: buddyRecordId,
+        user_id_1: userIds[0],
+        user_id_2: userIds[1],
+        user_id_3: userIds.length > 2 ? userIds[2] : null
+      });
+      
+    if (buddyRoomError) {
+      console.error("Error creating buddy chat room link:", buddyRoomError);
+      return null;
     }
     
-    return null;
+    // Add all users as members of the group chat
+    const membersToInsert = userIds.map(userId => ({
+      room_id: roomId,
+      user_id: userId
+    }));
+    
+    const { error: memberError } = await supabase
+      .from("group_chat_members")
+      .insert(membersToInsert);
+      
+    if (memberError) {
+      console.error("Error adding members to buddy chat room:", memberError);
+      // We'll still return the roomId since the room was created
+    }
+    
+    return roomId;
   } catch (error) {
-    console.error("Error in getBuddyChatRoom:", error);
+    console.error("Exception in getBuddyChatRoom:", error);
     return null;
   }
 };
 
 /**
- * Fetches buddy chat rooms for the user
+ * Fetch all chat rooms for the current user
+ * @param userId - The ID of the current user
  */
-export const fetchBuddyChatRooms = async (userId: string): Promise<ChatRoom[]> => {
-  if (!userId) return [];
-  
-  try {
-    // Get the current week start date (Monday)
-    const weekStart = getCurrentWeekStart();
-    
-    console.log(`Fetching buddy pairings for week starting ${weekStart} for user ${userId}`);
-    
-    // Find the user's accountability buddies for this week
-    const { data: buddyPairings, error: buddyError } = await supabase
-      .from("accountability_buddies")
-      .select("*")
-      .eq("week_start", weekStart)
-      .or(`user_id_1.eq.${userId},user_id_2.eq.${userId},user_id_3.eq.${userId}`);
-    
-    if (buddyError) {
-      console.error("Error fetching buddy pairings:", buddyError);
-      return [];
-    }
-    
-    if (!buddyPairings || buddyPairings.length === 0) {
-      console.log("No buddy pairings found for this week, checking for any recent pairings");
-      
-      // If no pairings found for current week, look for any recent pairings
-      const { data: recentPairings, error: recentError } = await supabase
-        .from("accountability_buddies")
-        .select("*")
-        .or(`user_id_1.eq.${userId},user_id_2.eq.${userId},user_id_3.eq.${userId}`)
-        .order("week_start", { ascending: false })
-        .limit(1);
-      
-      if (recentError || !recentPairings || recentPairings.length === 0) {
-        console.log("No buddy pairings found at all for user");
-        return [];
-      }
-      
-      console.log("Found recent pairing from week:", recentPairings[0].week_start);
-      const recentRooms = await processBuddyPairings(recentPairings, userId);
-      return recentRooms;
-    }
-    
-    console.log(`Found ${buddyPairings.length} buddy pairings for this week`);
-    const buddyRooms = await processBuddyPairings(buddyPairings, userId);
-    return buddyRooms;
-  } catch (error) {
-    console.error("Error fetching buddy chat rooms:", error);
-    return [];
-  }
-};
-
-/**
- * Process buddy pairings to create chat rooms
- */
-const processBuddyPairings = async (
-  buddyPairings: Array<{
-    id: string;
-    user_id_1: string;
-    user_id_2: string;
-    user_id_3: string | null;
-    group_id: string;
-  }>,
-  userId: string
-): Promise<ChatRoom[]> => {
-  const buddyRooms: ChatRoom[] = [];
-  
-  if (!buddyPairings || !buddyPairings.length) {
-    return [];
-  }
-  
-  for (const pairing of buddyPairings) {
-    try {
-      // Get all buddy IDs in this pairing (including current user)
-      const buddyIds: string[] = [];
-      
-      // Add valid IDs to our array
-      if (pairing.user_id_1) buddyIds.push(pairing.user_id_1);
-      if (pairing.user_id_2) buddyIds.push(pairing.user_id_2);
-      if (pairing.user_id_3) buddyIds.push(pairing.user_id_3);
-      
-      // Use the accountability_buddies.id as the unique identifier for this buddy group
-      const pairingId = pairing.id;
-      
-      if (!pairingId) {
-        console.error("No ID found in buddy pairing:", pairing);
-        continue;
-      }
-      
-      // Check if a chat room exists for this accountability buddy pairing ID
-      const { data: rooms, error: roomsError } = await supabase
-        .from("chat_rooms")
-        .select("*")
-        .eq("is_buddy_chat", true)
-        .eq("accountability_pairing_id", pairingId);
-      
-      if (roomsError) {
-        console.error("Error fetching chat rooms for buddies:", roomsError);
-        continue;
-      }
-      
-      // Process member names for room display
-      const memberNames = await getMemberNames(buddyIds, userId);
-      let roomName = generateRoomName(memberNames);
-      
-      if (rooms && rooms.length > 0) {
-        // Room exists, add it to the list
-        buddyRooms.push({
-          id: rooms[0].id,
-          name: roomName,
-          is_group_chat: true,
-          is_buddy_chat: true,
-          accountability_pairing_id: pairingId,
-          created_at: rooms[0].created_at,
-          buddy_ids: buddyIds.filter(id => id !== userId),
-        });
-      } else {
-        // Create a new chat room for these buddies
-        const roomId = await getBuddyChatRoom(buddyIds, pairingId);
-        
-        if (roomId) {
-          buddyRooms.push({
-            id: roomId,
-            name: roomName,
-            is_group_chat: true,
-            is_buddy_chat: true,
-            accountability_pairing_id: pairingId,
-            created_at: new Date().toISOString(),
-            buddy_ids: buddyIds.filter(id => id !== userId),
-          });
-        }
-      }
-    } catch (err) {
-      console.error("Error processing buddy pairing:", err);
-      // Continue with next pairing if there's an error
-    }
-  }
-  
-  return buddyRooms;
-};
-
-/**
- * Get member names for a list of user IDs
- */
-const getMemberNames = async (
-  buddyIds: string[],
-  currentUserId: string
-): Promise<string[]> => {
-  const memberNames: string[] = [];
-  
-  for (const buddyId of buddyIds) {
-    if (buddyId === currentUserId) continue; // Skip current user
-    
-    try {
-      const { data: profile, error } = await supabase
-        .from("client_profiles")
-        .select("first_name, last_name")
-        .eq("id", buddyId)
-        .maybeSingle(); // Use maybeSingle instead of single
-      
-      if (error) {
-        console.error(`Error fetching profile for buddy ${buddyId}:`, error);
-        continue;
-      }
-      
-      if (profile) {
-        // Format name to show full first name and first initial of last name
-        const firstName = profile.first_name || '';
-        const lastNameInitial = profile.last_name ? profile.last_name[0] + '.' : '';
-        const name = `${firstName} ${lastNameInitial}`.trim();
-        if (name) memberNames.push(name);
-      }
-    } catch (err) {
-      console.error(`Error getting member name for ${buddyId}:`, err);
-    }
-  }
-  
-  return memberNames;
-};
-
-/**
- * Generate a room name based on member names
- */
-const generateRoomName = (memberNames: string[]): string => {
-  if (memberNames.length === 0) {
-    return "Accountability Buddies";
-  }
-  
-  const roomName = `You, ${memberNames.join(' & ')}`;
-  if (roomName.length > 35) {
-    return `You & ${memberNames.length} accountability buddies`;
-  }
-  
-  return roomName;
+export const fetchAllChatRooms = async (userId: string): Promise<ChatRoom[]> => {
+  return await fetchUserChatRooms(userId);
 };

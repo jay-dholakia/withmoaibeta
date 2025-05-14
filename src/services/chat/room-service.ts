@@ -48,7 +48,8 @@ export const fetchUserChatRooms = async (userId: string): Promise<ChatRoom[]> =>
   }
 
   // Fetch buddy chat rooms
-  const { data: buddyChatRooms, error: buddyError } = await supabase
+  let buddyChatRoomsData: any[] = [];
+  const { data: fetchedBuddyChatRooms, error: buddyError } = await supabase
     .from("chat_rooms")
     .select("id, name, is_group_chat, is_buddy_chat, created_at, group_id")
     .eq("is_buddy_chat", true)
@@ -61,14 +62,15 @@ export const fetchUserChatRooms = async (userId: string): Promise<ChatRoom[]> =>
 
   if (buddyError) {
     console.error("Error fetching buddy chat rooms:", buddyError);
-    buddyChatRooms = [];
+  } else if (fetchedBuddyChatRooms) {
+    buddyChatRoomsData = fetchedBuddyChatRooms;
   }
 
   // Process direct message rooms to get the other user's information
   const processedDmRooms = directMessageRooms?.map(room => {
     // For direct messages, determine the other user
-    const otherUserId = room.user1.id === userId ? room.user2.id : room.user1.id;
-    const otherUserEmail = room.user1.id === userId ? room.user2.email : room.user1.email;
+    const otherUserId = room.user1?.id === userId ? room.user2?.id : room.user1?.id;
+    const otherUserEmail = room.user1?.id === userId ? room.user2?.email : room.user1?.email;
     
     return {
       id: room.chat_rooms.id,
@@ -94,7 +96,7 @@ export const fetchUserChatRooms = async (userId: string): Promise<ChatRoom[]> =>
   })) || [];
 
   // Process buddy chat rooms
-  const processedBuddyRooms = buddyChatRooms?.map(room => ({
+  const processedBuddyRooms = buddyChatRoomsData.map(room => ({
     id: room.id,
     name: "Accountability Buddies",
     is_group_chat: true,

@@ -48,6 +48,7 @@ export const fetchUserChatRooms = async (userId: string): Promise<ChatRoom[]> =>
   }
 
   // Fetch buddy chat rooms
+  // Initialize as an empty array to avoid reassignment later
   let buddyChatRoomsData: any[] = [];
   const { data: fetchedBuddyChatRooms, error: buddyError } = await supabase
     .from("chat_rooms")
@@ -69,6 +70,7 @@ export const fetchUserChatRooms = async (userId: string): Promise<ChatRoom[]> =>
   // Process direct message rooms to get the other user's information
   const processedDmRooms = directMessageRooms?.map(room => {
     // For direct messages, determine the other user
+    // Safely access properties with optional chaining to avoid TypeScript errors
     const otherUserId = room.user1?.id === userId ? room.user2?.id : room.user1?.id;
     const otherUserEmail = room.user1?.id === userId ? room.user2?.email : room.user1?.email;
     

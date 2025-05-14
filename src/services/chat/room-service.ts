@@ -70,9 +70,13 @@ export const fetchUserChatRooms = async (userId: string): Promise<ChatRoom[]> =>
   // Process direct message rooms to get the other user's information
   const processedDmRooms = directMessageRooms?.map(room => {
     // For direct messages, determine the other user
-    // Safely access properties with optional chaining to avoid TypeScript errors
-    const otherUserId = room.user1?.id === userId ? room.user2?.id : room.user1?.id;
-    const otherUserEmail = room.user1?.id === userId ? room.user2?.email : room.user1?.email;
+    // We need to handle the types properly and check if the properties exist
+    // This fixes the TypeScript errors related to user1 and user2 properties
+    const user1 = room.user1 as { id?: string; email?: string } | null;
+    const user2 = room.user2 as { id?: string; email?: string } | null;
+    
+    const otherUserId = user1 && user1.id === userId && user2 ? user2.id : user1?.id;
+    const otherUserEmail = user1 && user1.id === userId && user2 ? user2.email : user1?.email;
     
     return {
       id: room.chat_rooms.id,

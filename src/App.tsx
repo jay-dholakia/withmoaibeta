@@ -64,8 +64,9 @@ function App() {
           <Route path="/admin-login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
           <Route path="/coach-login" element={<PublicRoute><CoachLogin /></PublicRoute>} />
           
-          {/* Redirection route for /portals to home */}
+          {/* Redirection routes */}
           <Route path="/portals" element={<Navigate to="/" replace />} />
+          <Route path="/client" element={<Navigate to="/client-dashboard/moai" replace />} />
           
           {/* Admin routes */}
           <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

@@ -24,12 +24,17 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import StandaloneWorkoutForm from '@/components/coach/StandaloneWorkoutForm';
-import { fetchStandaloneWorkouts, deleteStandaloneWorkout } from '@/services/workout-service';
+import { 
+  fetchStandaloneWorkouts, 
+  deleteStandaloneWorkout,
+  reorderStandaloneWorkouts
+} from '@/services/workout-service';
 import { StandaloneWorkout } from '@/types/workout';
 import { toast } from 'sonner';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 
 const StandaloneWorkoutsPage = () => {
   const { user } = useAuth();
@@ -42,6 +47,8 @@ const StandaloneWorkoutsPage = () => {
   const [deleteWorkoutId, setDeleteWorkoutId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
   
   useEffect(() => {
     if (!user?.id) return;
@@ -103,6 +110,65 @@ const StandaloneWorkoutsPage = () => {
     setIsCreating(false);
     setIsEditingId(null);
   };
+
+  // Handle drag-and-drop reordering
+  const handleReorderWorkouts = async (result: DropResult) => {
+    if (!result.destination || result.source.index === result.destination.index) {
+      return;
+    }
+
+    if (!user?.id) return;
+
+    try {
+      setIsReordering(true);
+      
+      const sourceIndex = result.source.index;
+      const destinationIndex = result.destination.index;
+      
+      // Create a copy of the filtered workouts that are currently visible
+      const currentWorkouts = [...filteredWorkouts];
+      
+      // Remove and reinsert at the new position
+      const [movedWorkout] = currentWorkouts.splice(sourceIndex, 1);
+      currentWorkouts.splice(destinationIndex, 0, movedWorkout);
+      
+      // Update order indices
+      const updatedWorkouts = currentWorkouts.map((workout, index) => ({
+        ...workout,
+        order_index: index
+      }));
+      
+      // Optimistically update the UI
+      setWorkouts(prevWorkouts => {
+        // Create a map of the updated workouts by ID
+        const updatedWorkoutsMap = updatedWorkouts.reduce((acc, w) => {
+          acc[w.id] = w;
+          return acc;
+        }, {} as Record<string, StandaloneWorkout>);
+        
+        // Update each workout in the original array if it exists in the updated map
+        return prevWorkouts.map(w => 
+          updatedWorkoutsMap[w.id] ? updatedWorkoutsMap[w.id] : w
+        );
+      });
+      
+      // Send the updates to the server
+      await reorderStandaloneWorkouts(
+        user.id,
+        updatedWorkouts.map(w => ({ id: w.id, order_index: w.order_index }))
+      );
+      
+      // Optionally refresh the data from server
+      const refreshedWorkouts = await fetchStandaloneWorkouts(user.id);
+      setWorkouts(refreshedWorkouts);
+      
+    } catch (error) {
+      console.error('Error reordering workouts:', error);
+      toast.error('Failed to reorder workouts');
+    } finally {
+      setIsReordering(false);
+    }
+  };
   
   const filteredWorkouts = searchTerm 
     ? workouts.filter(w => 
@@ -112,9 +178,15 @@ const StandaloneWorkoutsPage = () => {
       )
     : workouts;
   
-  const sortedWorkouts = [...filteredWorkouts].sort((a, b) => 
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  // Sort workouts by order_index if available, otherwise by created_at date
+  const sortedWorkouts = [...filteredWorkouts].sort((a, b) => {
+    // First try to sort by order_index if both have it
+    if (a.order_index !== undefined && b.order_index !== undefined) {
+      return a.order_index - b.order_index;
+    }
+    // Fall back to created_at date
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
   
   return (
     <CoachLayout>
@@ -192,75 +264,107 @@ const StandaloneWorkoutsPage = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            {sortedWorkouts.map((workout) => (
-              <Card key={workout.id} className="w-full">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{workout.title}</CardTitle>
-                      {workout.category && (
-                        <CardDescription>
-                          Category: {workout.category}
-                        </CardDescription>
-                      )}
-                    </div>
-                    <div className="flex gap-1">
-                      <Dialog 
-                        open={isEditingId === workout.id} 
-                        onOpenChange={(open) => setIsEditingId(open ? workout.id : null)}
-                      >
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit workout</span>
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl">
-                          <DialogHeader>
-                            <DialogTitle>Edit Workout Template</DialogTitle>
-                          </DialogHeader>
-                          <ScrollArea className="max-h-[80vh]">
-                            <StandaloneWorkoutForm 
-                              workoutId={workout.id}
-                              mode="edit"
-                              onSave={handleSaveWorkout}
-                              onCancel={handleCancelWorkout}
-                            />
-                          </ScrollArea>
-                        </DialogContent>
-                      </Dialog>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteWorkoutId(workout.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete workout</span>
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {workout.description && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                      {workout.description}
-                    </p>
-                  )}
-                  <div className="flex justify-end">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setIsEditingId(workout.id)}
+          <DragDropContext 
+            onDragStart={() => setIsDragging(true)}
+            onDragEnd={(result) => {
+              setIsDragging(false);
+              handleReorderWorkouts(result);
+            }}
+          >
+            <Droppable droppableId="workout-templates" direction="vertical">
+              {(provided) => (
+                <div 
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full"
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                >
+                  {sortedWorkouts.map((workout, index) => (
+                    <Draggable 
+                      key={workout.id} 
+                      draggableId={workout.id} 
+                      index={index}
                     >
-                      View & Edit
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className={`${snapshot.isDragging ? 'opacity-70 shadow-lg z-50' : ''}`}
+                        >
+                          <Card className="w-full h-full">
+                            <CardHeader className="pb-2">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <CardTitle className="text-lg">{workout.title}</CardTitle>
+                                  {workout.category && (
+                                    <CardDescription>
+                                      Category: {workout.category}
+                                    </CardDescription>
+                                  )}
+                                </div>
+                                <div className="flex gap-1">
+                                  <Dialog 
+                                    open={isEditingId === workout.id} 
+                                    onOpenChange={(open) => setIsEditingId(open ? workout.id : null)}
+                                  >
+                                    <DialogTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                        <Edit className="h-4 w-4" />
+                                        <span className="sr-only">Edit workout</span>
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-4xl">
+                                      <DialogHeader>
+                                        <DialogTitle>Edit Workout Template</DialogTitle>
+                                      </DialogHeader>
+                                      <ScrollArea className="max-h-[80vh]">
+                                        <StandaloneWorkoutForm 
+                                          workoutId={workout.id}
+                                          mode="edit"
+                                          onSave={handleSaveWorkout}
+                                          onCancel={handleCancelWorkout}
+                                        />
+                                      </ScrollArea>
+                                    </DialogContent>
+                                  </Dialog>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                    onClick={() => setDeleteWorkoutId(workout.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Delete workout</span>
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              {workout.description && (
+                                <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                                  {workout.description}
+                                </p>
+                              )}
+                              <div className="flex justify-end">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setIsEditingId(workout.id)}
+                                >
+                                  View & Edit
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         )}
         
         <AlertDialog 

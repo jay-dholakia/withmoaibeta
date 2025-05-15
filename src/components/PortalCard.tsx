@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { LucideIcon } from 'lucide-react';
@@ -53,9 +54,9 @@ export const PortalCard: React.FC<PortalCardProps> = ({
       case 'coach':
         return '/coach-login';
       case 'client':
-        return '/login';
+        return '/client-login';
       default:
-        return '/login';
+        return '/client-login';
     }
   };
   

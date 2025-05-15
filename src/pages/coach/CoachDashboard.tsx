@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Dumbbell, BarChart3, Award, Heart, FileText, RefreshCw, Plus, AlertCircle } from 'lucide-react';
+import { Loader2, Users, Dumbbell, BarChart3, Award, Heart, FileText, RefreshCw, Plus, AlertCircle, Info } from 'lucide-react';
 import { CoachLayout } from '@/layouts/CoachLayout';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -471,11 +470,17 @@ const CoachDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="h-5 w-5 text-coach" />
-            <h2 className="text-xl font-semibold">Performance Analytics</h2>
+            <Info className="h-5 w-5 text-coach" />
+            <h2 className="text-xl font-semibold">AI Insights</h2>
           </div>
-          <div className="text-center py-8 bg-muted/30 rounded-lg">
-            <p>Performance analytics coming soon!</p>
+          <div className="flex flex-col items-center py-6 bg-muted/30 rounded-lg">
+            <p className="mb-4">Discover AI-powered insights about your clients' progress and engagement.</p>
+            <Button 
+              onClick={() => navigate('/coach-dashboard/ai-insights')}
+              className="bg-coach hover:bg-coach/90"
+            >
+              View AI Insights
+            </Button>
           </div>
         </Card>
 

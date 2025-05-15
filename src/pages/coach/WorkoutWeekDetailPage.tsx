@@ -21,7 +21,7 @@ import {
 } from '@/services/workout-service';
 import { deleteWorkout } from '@/services/workout-delete-service';
 import { Workout } from '@/types/workout';
-import { PlusCircle, Edit, Trash2, ChevronRight, Copy } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, ChevronRight, Copy, GripVertical, ListOrdered } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
@@ -53,6 +53,8 @@ import {
 } from "@/components/ui/dialog";
 import { EditWeekMetricsForm } from '@/components/coach/EditWeekMetricsForm';
 import { CopyWorkoutWeekDialog } from '@/components/coach/CopyWorkoutWeekDialog';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { reorderWorkoutsInWeek } from '@/services/workout/reorder';
 
 interface RouteParams {
   [key: string]: string;
@@ -79,6 +81,7 @@ const WorkoutWeekDetailPage = () => {
   const [isAddingFromTemplate, setIsAddingFromTemplate] = useState(false);
   const [standaloneWorkouts, setStandaloneWorkouts] = useState<any[]>([]);
   const [isCopyWeekModalOpen, setIsCopyWeekModalOpen] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -435,6 +438,57 @@ const WorkoutWeekDetailPage = () => {
     setIsCopyWeekModalOpen(false);
   };
 
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination || !weekId) return;
+    
+    const sourceIndex = result.source.index;
+    const destinationIndex = result.destination.index;
+    
+    if (sourceIndex === destinationIndex) return;
+    
+    try {
+      setIsSaving(true);
+      
+      // Create a copy of the workouts array
+      const reorderedWorkouts = [...workouts];
+      const [removed] = reorderedWorkouts.splice(sourceIndex, 1);
+      reorderedWorkouts.splice(destinationIndex, 0, removed);
+      
+      // Update the priority values (we use this for ordering)
+      const updatedWorkouts = reorderedWorkouts.map((workout, index) => ({
+        ...workout,
+        priority: index
+      }));
+      
+      // Optimistically update UI
+      setWorkouts(updatedWorkouts);
+      
+      // Prepare workout order data for the API
+      const workoutsOrderData = updatedWorkouts.map((workout, index) => ({
+        id: workout.id,
+        priority: index
+      }));
+      
+      // Update in database
+      await reorderWorkoutsInWeek(weekId, workoutsOrderData);
+      
+      toast.success('Workouts reordered successfully');
+    } catch (error) {
+      console.error('Error reordering workouts:', error);
+      toast.error('Failed to reorder workouts');
+      
+      // Refresh the original workout order on error
+      const refreshedWorkouts = await fetchWorkoutsForWeek(weekId);
+      setWorkouts(refreshedWorkouts);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const toggleReorderingMode = () => {
+    setIsReordering(!isReordering);
+  };
+
   if (isLoading) {
     return (
       <CoachLayout>
@@ -454,6 +508,16 @@ const WorkoutWeekDetailPage = () => {
       </CoachLayout>
     );
   }
+
+  // Sort workouts by priority first, then day_of_week
+  const sortedWorkouts = [...workouts].sort((a, b) => {
+    // First compare by priority
+    if (a.priority !== undefined && b.priority !== undefined && a.priority !== b.priority) {
+      return a.priority - b.priority;
+    }
+    // Then by day of week as fallback
+    return (a.day_of_week || 0) - (b.day_of_week || 0);
+  });
 
   return (
     <CoachLayout>
@@ -565,6 +629,15 @@ const WorkoutWeekDetailPage = () => {
           <CardHeader className="flex justify-between items-center">
             <CardTitle>Workouts</CardTitle>
             <div className="flex gap-2">
+              <Button 
+                onClick={toggleReorderingMode} 
+                size="sm"
+                variant={isReordering ? "secondary" : "outline"}
+                className="gap-1"
+              >
+                <ListOrdered className="h-4 w-4" />
+                {isReordering ? "Done Reordering" : "Reorder"}
+              </Button>
               <Button size="sm" onClick={() => setIsAddingFromTemplate(true)}>
                 Add from Template
               </Button>
@@ -575,53 +648,92 @@ const WorkoutWeekDetailPage = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Day of Week</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {workouts.map((workout) => (
-                  <TableRow key={workout.id}>
-                    <TableCell>{workout.title}</TableCell>
-                    <TableCell>{workout.day_of_week}</TableCell>
-                    <TableCell>{workout.workout_type}</TableCell>
-                    <TableCell className="text-right flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigateToWorkoutEdit(workout.id)}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:bg-destructive/10"
-                        onClick={() => setDeleteWorkoutId(workout.id)}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setCopyWorkoutId(workout.id)}
-                        title="Copy Workout"
-                      >
-                        <ChevronRight className="w-4 h-4 mr-2" />
-                        Copy
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="workouts-list">
+                {(provided) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                  >
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {isReordering && <TableHead className="w-10"></TableHead>}
+                          <TableHead>Title</TableHead>
+                          <TableHead>Day of Week</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedWorkouts.map((workout, index) => (
+                          <Draggable 
+                            key={workout.id} 
+                            draggableId={workout.id} 
+                            index={index}
+                            isDragDisabled={!isReordering}
+                          >
+                            {(provided, snapshot) => (
+                              <TableRow 
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={snapshot.isDragging ? "bg-accent/50" : ""}
+                              >
+                                {isReordering && (
+                                  <TableCell>
+                                    <div 
+                                      {...provided.dragHandleProps}
+                                      className="cursor-grab flex justify-center"
+                                    >
+                                      <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                  </TableCell>
+                                )}
+                                <TableCell>{workout.title}</TableCell>
+                                <TableCell>{workout.day_of_week}</TableCell>
+                                <TableCell>{workout.workout_type}</TableCell>
+                                <TableCell className="text-right flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => navigateToWorkoutEdit(workout.id)}
+                                    disabled={isReordering}
+                                  >
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-destructive hover:bg-destructive/10"
+                                    onClick={() => setDeleteWorkoutId(workout.id)}
+                                    disabled={isReordering}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setCopyWorkoutId(workout.id)}
+                                    title="Copy Workout"
+                                    disabled={isReordering}
+                                  >
+                                    <ChevronRight className="w-4 h-4 mr-2" />
+                                    Copy
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
           </CardContent>
         </Card>
 

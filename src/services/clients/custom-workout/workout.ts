@@ -24,6 +24,28 @@ export const fetchCustomWorkouts = async (): Promise<CustomWorkout[]> => {
 };
 
 /**
+ * Fetch a single custom workout by ID
+ */
+export const fetchCustomWorkout = async (workoutId: string): Promise<CustomWorkout | null> => {
+  const { data, error } = await supabase
+    .from('client_custom_workouts')
+    .select('*')
+    .eq('id', workoutId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // No rows returned
+      return null;
+    }
+    console.error('Error fetching custom workout:', error);
+    throw error;
+  }
+
+  return data as CustomWorkout;
+};
+
+/**
  * Create a new custom workout
  */
 export const createCustomWorkout = async (data: {

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -339,7 +338,7 @@ const WorkoutsList = () => {
 
   if (isLoading) {
     return (
-      <div className="py-10 text-center">
+      <div className="py-10 text-center px-0.5">
         <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-client dark:text-blue-300" />
         <p>Loading your workouts...</p>
       </div>
@@ -348,7 +347,7 @@ const WorkoutsList = () => {
 
   if (error) {
     return (
-      <div className="py-10 text-center">
+      <div className="py-10 text-center px-0.5">
         <p className="text-red-500 dark:text-red-400 mb-4">Failed to load your assigned workouts</p>
         <Button onClick={() => window.location.reload()}>
           Try Again
@@ -373,7 +372,7 @@ const WorkoutsList = () => {
   console.log("WorkoutsList: Final group members for cards:", allGroupMembers);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-0.5">
       <ProgramProgressSection />
       
       <div className="space-y-6">
@@ -429,7 +428,7 @@ const WorkoutsList = () => {
             </Card>
           ) : (
             <ScrollArea className="w-full whitespace-nowrap rounded-lg">
-              <div className="flex w-full gap-3 px-1 pb-4">
+              <div className="flex w-full gap-3 pb-4">
                 {pendingWorkouts.map((workout) => (
                   <div key={workout.id} className="w-[300px] flex-none">
                     <WorkoutCard

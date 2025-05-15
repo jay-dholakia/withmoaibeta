@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { ClientLayout } from '@/layouts/ClientLayout';
 import WorkoutsPage from './WorkoutsPage';
 import MoaiPage from './MoaiPage';
@@ -20,7 +20,7 @@ const ClientDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Remember the current main section the user is in
+  // Remember the current main section the user is in without causing rerenders
   useEffect(() => {
     const basePath = location.pathname.split('/').slice(0, 3).join('/');
     
@@ -43,7 +43,7 @@ const ClientDashboard = () => {
     }
   }, [location.pathname]);
   
-  // Redirect to last tab if landing on index
+  // Redirect to last tab if landing on index - only once on mount
   useEffect(() => {
     if (location.pathname === '/client-dashboard') {
       const lastTab = localStorage.getItem(LAST_CLIENT_TAB_KEY);

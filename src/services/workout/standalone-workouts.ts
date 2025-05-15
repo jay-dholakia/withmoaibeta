@@ -1,6 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { StandaloneWorkout } from '@/types/workout';
+import { StandaloneWorkout, WorkoutExercise } from '@/types/workout';
 
 /**
  * Fetches standalone workouts
@@ -340,6 +339,123 @@ export const moveStandaloneWorkoutExerciseDown = async (exerciseId: string, work
     return updatedExercises || [];
   } catch (error) {
     console.error('Error moving standalone workout exercise down:', error);
+    throw error;
+  }
+};
+
+/**
+ * Reorders standalone workout templates
+ * This function handles reordering workouts by updating their order_index values
+ */
+export const reorderStandaloneWorkouts = async (
+  coachId: string,
+  workoutsOrder: { id: string, order_index: number }[]
+) => {
+  try {
+    // First ensure all workouts have order_index field
+    await ensureWorkoutsHaveOrderIndex(coachId);
+    
+    // Update each workout's order_index one by one
+    for (const workout of workoutsOrder) {
+      await supabase
+        .from('standalone_workouts')
+        .update({ order_index: workout.order_index })
+        .eq('id', workout.id);
+    }
+    
+    // Fetch and return the updated workout list
+    return await fetchStandaloneWorkouts(coachId);
+  } catch (error) {
+    console.error('Error reordering standalone workouts:', error);
+    throw error;
+  }
+};
+
+/**
+ * Ensures all workouts have an order_index field
+ * This is necessary for initial setup of draggable sorting
+ */
+const ensureWorkoutsHaveOrderIndex = async (coachId: string) => {
+  try {
+    // Check if workouts already have order_index
+    const { data: workouts } = await supabase
+      .from('standalone_workouts')
+      .select('id, order_index')
+      .eq('coach_id', coachId)
+      .order('created_at', { ascending: false });
+    
+    if (!workouts) return;
+    
+    // If any workout lacks an order_index, set them all based on current order
+    const needsUpdate = workouts.some(w => w.order_index === null);
+    
+    if (needsUpdate) {
+      // Update each workout with an order index
+      for (let i = 0; i < workouts.length; i++) {
+        await supabase
+          .from('standalone_workouts')
+          .update({ order_index: i })
+          .eq('id', workouts[i].id);
+      }
+    }
+  } catch (error) {
+    console.error('Error ensuring order indices:', error);
+  }
+};
+
+/**
+ * Interface for the reorder update input
+ */
+interface ReorderExerciseInput {
+  id: string;
+  order_index: number;
+}
+
+/**
+ * Reorders standalone workout exercises
+ */
+export const reorderStandaloneWorkoutExercises = async (
+  workoutId: string,
+  exercisesOrder: ReorderExerciseInput[]
+): Promise<WorkoutExercise[]> => {
+  try {
+    console.log("Reordering exercises:", exercisesOrder);
+    
+    // First, set all to a temporary negative number to avoid constraint conflicts
+    // This approach avoids unique constraint issues during reordering
+    for (let i = 0; i < exercisesOrder.length; i++) {
+      await supabase
+        .from('standalone_workout_exercises')
+        .update({ order_index: -1000 - i })
+        .eq('id', exercisesOrder[i].id);
+    }
+
+    // Then, set the actual new order
+    for (const exercise of exercisesOrder) {
+      console.log(`Setting exercise ${exercise.id} to order_index ${exercise.order_index}`);
+      await supabase
+        .from('standalone_workout_exercises')
+        .update({ order_index: exercise.order_index })
+        .eq('id', exercise.id);
+    }
+
+    // Return the updated list
+    const { data, error } = await supabase
+      .from('standalone_workout_exercises')
+      .select(`
+        *,
+        exercise:exercise_id(*)
+      `)
+      .eq('workout_id', workoutId)
+      .order('order_index', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error reordering exercises:', error);
     throw error;
   }
 };

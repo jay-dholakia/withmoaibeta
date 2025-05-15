@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -18,6 +19,8 @@ import { Exercise, StandaloneWorkout, WorkoutExercise } from '@/types/workout';
 import { supabase } from '@/integrations/supabase/client';
 import { syncTemplateExercisesToProgramWorkouts } from '@/services/program-service';
 import ExerciseSelector from '@/components/exercise/ExerciseSelector';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { reorderStandaloneWorkoutExercises } from '@/services/workout/standalone-workouts';
 
 const StandaloneWorkoutDetailsPage = () => {
   const navigate = useNavigate();
@@ -76,7 +79,12 @@ const StandaloneWorkoutDetailsPage = () => {
           ? data.workout_exercises 
           : [];
         
-        setWorkoutExercises(exercises as WorkoutExercise[]);
+        // Sort exercises by order_index
+        const sortedExercises = [...exercises].sort((a, b) => 
+          (a.order_index || 0) - (b.order_index || 0)
+        );
+        
+        setWorkoutExercises(sortedExercises as WorkoutExercise[]);
       }
     } catch (error) {
       console.error('Error fetching workout details:', error);
@@ -237,39 +245,45 @@ const StandaloneWorkoutDetailsPage = () => {
     }
   };
 
-  const reorderWorkoutExercises = async (reorderedExercises: WorkoutExercise[], workoutIdParam: string) => {
-    try {
-      for (const [index, exercise] of reorderedExercises.entries()) {
-        await supabase
-          .from('standalone_workout_exercises')
-          .update({ order_index: index })
-          .eq('id', exercise.id);
-      }
-      return true;
-    } catch (error) {
-      console.error('Error reordering exercises:', error);
-      throw error;
-    }
-  };
-
-  const onDragEnd = async (result: any) => {
-    if (!result.destination) {
+  const onDragEnd = async (result: DropResult) => {
+    const { source, destination } = result;
+    
+    // If dropped outside the list or no movement
+    if (!destination || 
+        (source.index === destination.index && 
+        source.droppableId === destination.droppableId)) {
       return;
     }
-
-    const items = Array.from(workoutExercises);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setWorkoutExercises(items);
-
+    
+    // Create a copy of workout exercises
+    const newExercises = Array.from(workoutExercises);
+    
+    // Remove the item from original position
+    const [removed] = newExercises.splice(source.index, 1);
+    
+    // Insert at new position
+    newExercises.splice(destination.index, 0, removed);
+    
+    // Update UI immediately (optimistic update)
+    setWorkoutExercises(newExercises);
+    
+    if (!workoutId) return;
+    
+    // Prepare data for API
+    const reorderData = newExercises.map((exercise, index) => ({
+      id: exercise.id,
+      order_index: index
+    }));
+    
     try {
-      await reorderWorkoutExercises(items, workoutId as string);
-      toast.success('Workout exercises reordered successfully');
+      // Send the update to the server
+      await reorderStandaloneWorkoutExercises(workoutId, reorderData);
+      toast.success('Exercise order updated');
     } catch (error) {
       console.error('Error reordering exercises:', error);
-      toast.error('Failed to reorder exercises');
-      fetchWorkoutDetails(workoutId as string);
+      toast.error('Failed to update exercise order');
+      // Revert the optimistic update on error
+      fetchWorkoutDetails(workoutId);
     }
   };
 
@@ -330,7 +344,7 @@ const StandaloneWorkoutDetailsPage = () => {
         <CardHeader>
           <CardTitle>Exercises</CardTitle>
           <CardDescription>
-            Manage the exercises in your workout.
+            Manage the exercises in your workout. Drag and drop exercises to reorder them.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -339,42 +353,72 @@ const StandaloneWorkoutDetailsPage = () => {
             Add Exercise
           </Button>
 
-          <div className="mt-4 space-y-4">
-            {workoutExercises.map((exercise, index) => (
-              <div key={exercise.id} className="border rounded-md p-4 hover:bg-muted/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-1 space-x-2">
-                    <GripVertical className="h-5 w-5 text-muted-foreground" />
-                    <div className="flex-1">
-                      <div className="font-medium">{exercise.exercise?.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {exercise.sets} sets × {exercise.reps} reps
-                        {exercise.rest_seconds && ` • ${exercise.rest_seconds}s rest`}
-                      </div>
-                      {exercise.notes && (
-                        <div className="mt-1 text-sm">{exercise.notes}</div>
-                      )}
-                    </div>
+          <div className="mt-4">
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="workout-exercises">
+                {(provided) => (
+                  <div 
+                    className="space-y-4" 
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                  >
+                    {workoutExercises.map((exercise, index) => (
+                      <Draggable 
+                        key={exercise.id} 
+                        draggableId={exercise.id} 
+                        index={index}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={`border rounded-md p-4 ${snapshot.isDragging ? 'bg-muted shadow-lg' : 'hover:bg-muted/50'}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex flex-1 space-x-2">
+                                <div 
+                                  {...provided.dragHandleProps} 
+                                  className="cursor-grab"
+                                >
+                                  <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="font-medium">{exercise.exercise?.name}</div>
+                                  <div className="text-sm text-muted-foreground mt-1">
+                                    {exercise.sets} sets × {exercise.reps} reps
+                                    {exercise.rest_seconds && ` • ${exercise.rest_seconds}s rest`}
+                                  </div>
+                                  {exercise.notes && (
+                                    <div className="mt-1 text-sm">{exercise.notes}</div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleUpdateExercise(exercise)}
+                                >
+                                  Edit
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDeleteExercise(exercise)}
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleUpdateExercise(exercise)}
-                    >
-                      Edit
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleDeleteExercise(exercise)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
+                )}
+              </Droppable>
+            </DragDropContext>
           </div>
         </CardContent>
       </Card>

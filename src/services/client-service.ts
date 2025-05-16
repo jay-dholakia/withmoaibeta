@@ -37,18 +37,21 @@ export interface PersonalRecord {
  */
 export const fetchClientProfile = async (userId: string): Promise<ClientProfile | null> => {
   try {
-    const { data, error } = await supabase
+    const result = await supabase
       .from('client_profiles')
-      .select('*')
+      .select('id, first_name, last_name, city, state, birthday, height, weight, avatar_url, fitness_goals, favorite_movements, event_type, event_date, event_name, profile_completed, created_at, updated_at')
       .eq('user_id', userId)
       .single();
+
+    const data = result.data as ClientProfile | null;
+    const error = result.error;
 
     if (error) {
       console.error('Error fetching client profile:', error);
       return null;
     }
 
-    return data || null;
+    return data;
   } catch (error) {
     console.error('Error fetching client profile:', error);
     return null;
@@ -60,7 +63,6 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile 
  */
 export const createClientProfile = async (userId: string): Promise<ClientProfile | null> => {
   try {
-    // First check if profile already exists
     const { data: existingProfile } = await supabase
       .from('client_profiles')
       .select('id')
@@ -72,7 +74,6 @@ export const createClientProfile = async (userId: string): Promise<ClientProfile
       return fetchClientProfile(userId);
     }
 
-    // Create new profile with minimal data
     const profileData = {
       id: userId,
       profile_completed: false,
@@ -139,14 +140,12 @@ export const uploadClientAvatar = async (userId: string, file: File): Promise<st
       throw uploadError;
     }
 
-    // Get the public URL for the uploaded image
     const { data } = supabase.storage
       .from('avatars')
       .getPublicUrl(filePath);
 
     const avatarUrl = data.publicUrl;
 
-    // Update the user's profile with the avatar URL
     await updateClientProfile(userId, { avatar_url: avatarUrl });
 
     return avatarUrl;
@@ -187,12 +186,12 @@ export const fetchPersonalRecords = async (userId: string): Promise<PersonalReco
       .from('personal_records')
       .select('*')
       .eq('user_id', userId);
-      
+
     if (error) {
       console.error('Error fetching personal records:', error);
       return [];
     }
-    
+
     return data || [];
   } catch (error) {
     console.error('Error fetching personal records:', error);
@@ -262,12 +261,12 @@ export const trackWorkoutSet = async (
   try {
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
-    
+
     if (!userId) {
       console.error('No authenticated user found');
       return false;
     }
-    
+
     const { error } = await supabase
       .from('workout_set_completions')
       .insert({
@@ -282,12 +281,12 @@ export const trackWorkoutSet = async (
         duration: setData.duration,
         location: setData.location
       });
-    
+
     if (error) {
       console.error('Error tracking workout set:', error);
       return false;
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error tracking workout set:', error);
@@ -314,12 +313,12 @@ export const completeWorkout = async (
       })
       .eq('id', workoutId)
       .eq('user_id', userId);
-    
+
     if (error) {
       console.error('Error completing workout:', error);
       return false;
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error completing workout:', error);
@@ -334,12 +333,12 @@ export const deleteUser = async (userId: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase
       .rpc('admin_delete_user', { user_id: userId });
-    
+
     if (error) {
       console.error('Error deleting user:', error);
       return false;
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error deleting user:', error);
@@ -355,15 +354,16 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
-    
+
     if (error) {
       console.error('Error sending password reset email:', error);
       return false;
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error sending password reset email:', error);
     return false;
   }
 };
+

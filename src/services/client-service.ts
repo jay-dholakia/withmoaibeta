@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // Define ClientProfile as an exported interface instead of importing it
@@ -366,4 +367,3 @@ export const sendPasswordResetEmail = async (email: string): Promise<boolean> =>
     return false;
   }
 };
-

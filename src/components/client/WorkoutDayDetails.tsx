@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { WorkoutHistoryItem, WorkoutExercise, PersonalRecord } from '@/types/workout';
@@ -5,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { StrengthExercise } from '@/components/client/workout/StrengthExercise';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Trash2, BookText, AlertTriangle } from 'lucide-react';
+import { Trash2, BookText, AlertTriangle, Calendar } from 'lucide-react';
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -18,8 +19,11 @@ import {
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
 import { deleteWorkoutCompletion } from '@/services/workout-delete-service';
-import { saveWorkoutJournalNotes } from '@/services/client-service';
+import { saveWorkoutJournalNotes, updateWorkoutCompletionDate } from '@/services/client-service';
 import { toast } from 'sonner';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { updateWorkoutCompletion } from '@/services/workout-edit-service';
 
 interface WorkoutDayDetailsProps {
   date: Date;
@@ -34,6 +38,7 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
 }) => {
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<{ [key: string]: boolean }>({});
+  const [isUpdatingDate, setIsUpdatingDate] = useState<{ [key: string]: boolean }>({});
   const [editExerciseStates, setEditExerciseStates] = useState<{
     [workoutId: string]: {
       [exerciseId: string]: {
@@ -176,6 +181,34 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
     }
   };
 
+  // Function to update workout date
+  const handleUpdateWorkoutDate = async (workoutId: string, newDate: Date) => {
+    try {
+      setIsUpdatingDate(prev => ({ ...prev, [workoutId]: true }));
+      
+      // Format date for database
+      const formattedDate = newDate.toISOString();
+      
+      // Call the API to update the workout date
+      const success = await updateWorkoutCompletion(workoutId, {
+        completed_at: formattedDate
+      });
+      
+      if (success) {
+        toast.success("Workout date updated successfully");
+        // Reload to show updated data
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        toast.error("Failed to update workout date");
+      }
+    } catch (error) {
+      console.error("Error updating workout date:", error);
+      toast.error("An error occurred while updating the workout date");
+    } finally {
+      setIsUpdatingDate(prev => ({ ...prev, [workoutId]: false }));
+    }
+  };
+
   if (!workouts || workouts.length === 0) {
     return (
       <div className="text-center py-8">
@@ -208,6 +241,32 @@ export const WorkoutDayDetails: React.FC<WorkoutDayDetailsProps> = ({
                   {workout.workout_type && (
                     <Badge variant="outline">{workout.workout_type}</Badge>
                   )}
+                  
+                  {/* Date picker popover */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="hover:bg-muted gap-1"
+                        disabled={isUpdatingDate[workout.id]}
+                      >
+                        <Calendar className="h-4 w-4 mr-1" />
+                        <span className="sr-only">Change date</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <CalendarComponent
+                        mode="single"
+                        selected={new Date(workout.completed_at)}
+                        onSelect={(newDate) => {
+                          if (newDate) handleUpdateWorkoutDate(workout.id, newDate);
+                        }}
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button 

@@ -30,7 +30,7 @@ export const fetchClientProfile = async (userId: string): Promise<ClientProfile 
     const result = await supabase
       .from('client_profiles')
       .select('id, first_name, last_name, city, state, birthday, height, weight, avatar_url, fitness_goals, favorite_movements, event_type, event_date, event_name, profile_completed, created_at, updated_at')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .single();
 
     const data = result.data as ClientProfile | null;
@@ -97,7 +97,7 @@ export const updateClientProfile = async (userId: string, updates: Partial<Clien
     const { data, error } = await supabase
       .from('client_profiles')
       .update(updates)
-      .eq('user_id', userId)
+      .eq('id', userId) // Changed from 'user_id' to 'id' to match the schema
       .select()
       .single();
 
@@ -106,7 +106,7 @@ export const updateClientProfile = async (userId: string, updates: Partial<Clien
       return null;
     }
 
-    return data || null;
+    return data as ClientProfile;
   } catch (error) {
     console.error('Error updating client profile:', error);
     return null;

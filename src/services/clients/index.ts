@@ -7,7 +7,7 @@ export * from './workout';
 export * from './auth';
 
 // Export ClientProfile type for use in other files
-import { ClientProfile } from './profile';
+import type { ClientProfile } from './profile';
 export type { ClientProfile };
 
 // Fix for ProfileBuilder.tsx type error

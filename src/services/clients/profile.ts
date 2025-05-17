@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-// Define the ClientProfile type
+// Define ClientProfile interface
 export interface ClientProfile {
   id: string;
   first_name: string | null;
@@ -22,66 +22,38 @@ export interface ClientProfile {
   updated_at?: string;
 }
 
-export const fetchClientProfile = async (userId: string): Promise<Partial<ClientProfile>> => {
-  if (!userId) {
-    console.error('fetchClientProfile: No user ID provided');
-    return {};
-  }
-
+/**
+ * Fetches a client profile by user ID
+ */
+export const fetchClientProfile = async (userId: string): Promise<ClientProfile | null> => {
   try {
-    const { data, error } = await supabase
+    const result = await supabase
       .from('client_profiles')
-      .select('*')
-      .eq('id', userId)
+      .select('id, first_name, last_name, city, state, birthday, height, weight, avatar_url, fitness_goals, favorite_movements, event_type, event_date, event_name, profile_completed, created_at, updated_at')
+      .eq('user_id', userId)
       .single();
+
+    const data = result.data as ClientProfile | null;
+    const error = result.error;
 
     if (error) {
       console.error('Error fetching client profile:', error);
-      throw error;
+      return null;
     }
 
-    return data as ClientProfile;
+    return data;
   } catch (error) {
-    console.error('Error in fetchClientProfile:', error);
-    throw error;
-  }
-};
-
-export const updateClientProfile = async (userId: string, profileData: Partial<ClientProfile>): Promise<Partial<ClientProfile>> => {
-  if (!userId) {
-    console.error('updateClientProfile: No user ID provided');
-    return {};
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('client_profiles')
-      .update(profileData)
-      .eq('id', userId)
-      .select('*')
-      .single();
-
-    if (error) {
-      console.error('Error updating client profile:', error);
-      throw error;
-    }
-
-    return data as ClientProfile;
-  } catch (error) {
-    console.error('Error in updateClientProfile:', error);
-    throw error;
-  }
-};
-
-// Implementation of createClientProfile function that can be imported elsewhere
-export const createClientProfileImpl = async (userId: string): Promise<Partial<ClientProfile> | null> => {
-  if (!userId) {
-    console.error('createClientProfile: No user ID provided');
+    console.error('Error fetching client profile:', error);
     return null;
   }
+};
 
+/**
+ * Creates a new client profile for a user - implementation function
+ * Used internally by the exported function to avoid circular dependencies
+ */
+export const createClientProfileImpl = async (userId: string): Promise<ClientProfile | null> => {
   try {
-    // First check if profile already exists
     const { data: existingProfile } = await supabase
       .from('client_profiles')
       .select('id')
@@ -93,7 +65,6 @@ export const createClientProfileImpl = async (userId: string): Promise<Partial<C
       return fetchClientProfile(userId);
     }
 
-    // Create new profile with minimal data
     const profileData = {
       id: userId,
       profile_completed: false,
@@ -107,17 +78,44 @@ export const createClientProfileImpl = async (userId: string): Promise<Partial<C
 
     if (error) {
       console.error('Error creating client profile:', error);
-      throw error;
+      return null;
     }
 
     console.log('New client profile created:', data);
     return data as ClientProfile;
   } catch (error) {
-    console.error('Error in createClientProfile:', error);
-    throw error;
+    console.error('Error creating client profile:', error);
+    return null;
   }
 };
 
+/**
+ * Updates a client profile
+ */
+export const updateClientProfile = async (userId: string, updates: Partial<ClientProfile>): Promise<ClientProfile | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('client_profiles')
+      .update(updates)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating client profile:', error);
+      return null;
+    }
+
+    return data || null;
+  } catch (error) {
+    console.error('Error updating client profile:', error);
+    return null;
+  }
+};
+
+/**
+ * Fetch all client profiles (for admin use)
+ */
 export const fetchAllClientProfiles = async (): Promise<ClientProfile[]> => {
   try {
     const { data, error } = await supabase
@@ -126,12 +124,12 @@ export const fetchAllClientProfiles = async (): Promise<ClientProfile[]> => {
 
     if (error) {
       console.error('Error fetching all client profiles:', error);
-      throw error;
+      return [];
     }
 
     return data as ClientProfile[];
   } catch (error) {
     console.error('Error in fetchAllClientProfiles:', error);
-    throw error;
+    return [];
   }
 };

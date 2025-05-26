@@ -1,14 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { WorkoutProgram } from '@/types/workout';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar, Users, Trash2, GripVertical } from 'lucide-react';
+import { PlusCircle, Calendar, Users, Trash2, GripVertical, Copy, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getWorkoutProgramAssignmentCount } from '@/services/workout-service';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface WorkoutProgramListProps {
   programs: WorkoutProgram[];
   isLoading: boolean;
   onDeleteProgram?: (programId: string) => void;
+  onDuplicateProgram?: (programId: string, newTitle: string) => void;
+  onRenameProgram?: (programId: string, newTitle: string) => void;
   isDraggable?: boolean;
 }
 
@@ -16,10 +27,16 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
   programs, 
   isLoading, 
   onDeleteProgram,
+  onDuplicateProgram,
+  onRenameProgram,
   isDraggable = false
 }) => {
   const navigate = useNavigate();
   const [assignmentCounts, setAssignmentCounts] = useState<Record<string, number>>({});
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
+  const [newTitle, setNewTitle] = useState('');
 
   useEffect(() => {
     const fetchAssignmentCounts = async () => {
@@ -39,6 +56,43 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
       fetchAssignmentCounts();
     }
   }, [programs]);
+
+  const handleDuplicate = (programId: string, currentTitle: string) => {
+    setSelectedProgramId(programId);
+    setNewTitle(`${currentTitle} (Copy)`);
+    setDuplicateDialogOpen(true);
+  };
+
+  const handleRename = (programId: string, currentTitle: string) => {
+    setSelectedProgramId(programId);
+    setNewTitle(currentTitle);
+    setRenameDialogOpen(true);
+  };
+
+  const confirmDuplicate = () => {
+    if (selectedProgramId && onDuplicateProgram && newTitle.trim()) {
+      onDuplicateProgram(selectedProgramId, newTitle.trim());
+      setDuplicateDialogOpen(false);
+      setSelectedProgramId(null);
+      setNewTitle('');
+    }
+  };
+
+  const confirmRename = () => {
+    if (selectedProgramId && onRenameProgram && newTitle.trim()) {
+      onRenameProgram(selectedProgramId, newTitle.trim());
+      setRenameDialogOpen(false);
+      setSelectedProgramId(null);
+      setNewTitle('');
+    }
+  };
+
+  const cancelDialog = () => {
+    setDuplicateDialogOpen(false);
+    setRenameDialogOpen(false);
+    setSelectedProgramId(null);
+    setNewTitle('');
+  };
 
   if (isLoading) {
     return (
@@ -74,67 +128,145 @@ export const WorkoutProgramList: React.FC<WorkoutProgramListProps> = ({
   }
 
   return (
-    <div className="space-y-4">
-      {programs.map((program) => (
-        <div key={program.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center">
-                {isDraggable && (
-                  <div className="mr-2 cursor-grab">
-                    <GripVertical className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                )}
-                <h3 className="font-medium text-lg text-left">{program.title}</h3>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {program.weeks} {program.weeks === 1 ? 'week' : 'weeks'}
-                </span>
-                <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  {assignmentCounts[program.id] || 0} {assignmentCounts[program.id] === 1 ? 'client' : 'clients'} assigned
-                </span>
-                <span className="bg-muted px-2 py-1 rounded-full text-xs">
-                  Created: {new Date(program.created_at).toLocaleDateString()}
-                </span>
+    <>
+      <div className="space-y-4">
+        {programs.map((program) => (
+          <div key={program.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center">
+                  {isDraggable && (
+                    <div className="mr-2 cursor-grab">
+                      <GripVertical className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  )}
+                  <h3 className="font-medium text-lg text-left">{program.title}</h3>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {program.weeks} {program.weeks === 1 ? 'week' : 'weeks'}
+                  </span>
+                  <span className="bg-muted px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {assignmentCounts[program.id] || 0} {assignmentCounts[program.id] === 1 ? 'client' : 'clients'} assigned
+                  </span>
+                  <span className="bg-muted px-2 py-1 rounded-full text-xs">
+                    Created: {new Date(program.created_at).toLocaleDateString()}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => navigate(`/coach-dashboard/workouts/${program.id}`)}
-            >
-              View Details
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate(`/coach-dashboard/workouts/${program.id}/assign`)}
-            >
-              <Users className="h-4 w-4 mr-1" />
-              Assign to Clients
-            </Button>
-            {onDeleteProgram && (
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate(`/coach-dashboard/workouts/${program.id}`)}
+              >
+                View Details
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/40"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteProgram(program.id);
-                }}
+                onClick={() => navigate(`/coach-dashboard/workouts/${program.id}/assign`)}
               >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete
+                <Users className="h-4 w-4 mr-1" />
+                Assign to Clients
               </Button>
-            )}
+              {onDuplicateProgram && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleDuplicate(program.id, program.title)}
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Duplicate
+                </Button>
+              )}
+              {onRenameProgram && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleRename(program.id, program.title)}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Rename
+                </Button>
+              )}
+              {onDeleteProgram && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/40"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteProgram(program.id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      {/* Duplicate Dialog */}
+      <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Duplicate Workout Program</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="duplicate-title">New Program Title</Label>
+              <Input
+                id="duplicate-title"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Enter title for duplicated program"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelDialog}>
+              Cancel
+            </Button>
+            <Button onClick={confirmDuplicate} disabled={!newTitle.trim()}>
+              Duplicate Program
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Workout Program</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="rename-title">Program Title</Label>
+              <Input
+                id="rename-title"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Enter new program title"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelDialog}>
+              Cancel
+            </Button>
+            <Button onClick={confirmRename} disabled={!newTitle.trim()}>
+              Rename Program
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

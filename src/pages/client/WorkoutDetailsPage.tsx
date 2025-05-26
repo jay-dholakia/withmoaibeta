@@ -60,6 +60,26 @@ const ClientWorkoutDetailsPage: React.FC = () => {
     fetchWorkouts();
   }, [user?.id]);
 
+  // Add an event listener for custom events from the WorkoutDayDetails component
+  useEffect(() => {
+    const handleWorkoutUpdated = () => {
+      // Refetch data when a workout is updated
+      if (user?.id) {
+        fetchClientWorkoutHistory(user.id).then(history => {
+          setWorkouts(processWorkoutHistory(history));
+        });
+      }
+    };
+
+    // Register the event listener
+    window.addEventListener('workout-updated', handleWorkoutUpdated);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('workout-updated', handleWorkoutUpdated);
+    };
+  }, [user?.id]);
+
   return (
     <ClientLayout>
       <div className="container mx-auto py-6">

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,12 @@ import { CoachLayout } from '@/layouts/CoachLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutProgramList } from '@/components/coach/WorkoutProgramList';
 import { PlusCircle } from 'lucide-react';
-import { fetchWorkoutPrograms, deleteWorkoutProgram } from '@/services/workout-service';
+import { 
+  fetchWorkoutPrograms, 
+  deleteWorkoutProgram,
+  duplicateWorkoutProgram,
+  renameWorkoutProgram
+} from '@/services/workout/programs';
 import { WorkoutProgram } from '@/types/workout';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -59,6 +63,36 @@ const WorkoutProgramsPage = () => {
     }
   };
 
+  const handleDuplicateProgram = async (programId: string, newTitle: string) => {
+    try {
+      const duplicatedProgram = await duplicateWorkoutProgram(programId, newTitle);
+      
+      if (duplicatedProgram) {
+        // Invalidate and refetch programs
+        queryClient.invalidateQueries({ queryKey: ['workout-programs', user?.id] });
+        toast.success('Workout program duplicated successfully');
+      }
+    } catch (error) {
+      console.error('Error duplicating program:', error);
+      toast.error('Failed to duplicate workout program');
+    }
+  };
+
+  const handleRenameProgram = async (programId: string, newTitle: string) => {
+    try {
+      const renamedProgram = await renameWorkoutProgram(programId, newTitle);
+      
+      if (renamedProgram) {
+        // Invalidate and refetch programs
+        queryClient.invalidateQueries({ queryKey: ['workout-programs', user?.id] });
+        toast.success('Workout program renamed successfully');
+      }
+    } catch (error) {
+      console.error('Error renaming program:', error);
+      toast.error('Failed to rename workout program');
+    }
+  };
+
   return (
     <CoachLayout>
       <div className="w-full px-4">
@@ -75,7 +109,9 @@ const WorkoutProgramsPage = () => {
         <WorkoutProgramList 
           programs={programs} 
           isLoading={isLoading} 
-          onDeleteProgram={setDeleteProgramId} 
+          onDeleteProgram={setDeleteProgramId}
+          onDuplicateProgram={handleDuplicateProgram}
+          onRenameProgram={handleRenameProgram}
         />
 
         <AlertDialog 

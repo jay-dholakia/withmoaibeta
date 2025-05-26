@@ -5,13 +5,9 @@ export * from './avatar';
 export * from './personal-records';
 export * from './workout';
 export * from './auth';
-export * from './custom-workout/index';
-export * from './workout-history';
-export * from './chat';
-export * from './clients';
 
 // Export ClientProfile type for use in other files
-import { ClientProfile } from './profile';
+import type { ClientProfile } from './profile';
 export type { ClientProfile };
 
 // Fix for ProfileBuilder.tsx type error

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, 
@@ -17,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { CardioLog, logCardioActivity } from "@/services/activity-logging-service";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
+import { ActivityConfirmationModal } from "./ActivityConfirmationModal";
 
 const CARDIO_TYPES = [
   'Cycling',
@@ -48,6 +48,8 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false);
   const [tempSelectedDate, setTempSelectedDate] = useState<Date | undefined>(new Date());
+  const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
+  const [confirmationDetails, setConfirmationDetails] = useState<string>("");
   const isMobile = useIsMobile();
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,8 +85,13 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
       if (result) {
         console.log("Cardio activity logged successfully:", result);
         toast.success("Cardio activity logged successfully!");
+        
+        // Create confirmation details
+        const details = `${activityType.toLowerCase()} for ${duration} minutes`;
+        setConfirmationDetails(details);
+        setShowConfirmation(true);
+        
         resetForm();
-        onOpenChange(false);
         if (onSuccess) onSuccess();
       } else {
         toast.error("Failed to log cardio activity");
@@ -130,146 +137,156 @@ export const LogCardioActivityDialog: React.FC<LogCardioActivityDialogProps> = (
   };
   
   return (
-    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-purple-700">
-            <Activity className="h-5 w-5" />
-            <span>Log Cardio Activity</span>
-          </DialogTitle>
-          <DialogDescription>
-            Record your cardio workout details.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="cardio-date">Date</Label>
-              <Popover 
-                open={datePickerOpen} 
-                onOpenChange={setDatePickerOpen}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    id="cardio-date"
-                    type="button"
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Select date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent 
-                  className="w-auto p-0" 
-                  align="start"
-                  sideOffset={4}
-                  onClick={handleCalendarClick}
+    <>
+      <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-purple-700">
+              <Activity className="h-5 w-5" />
+              <span>Log Cardio Activity</span>
+            </DialogTitle>
+            <DialogDescription>
+              Record your cardio workout details.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="cardio-date">Date</Label>
+                <Popover 
+                  open={datePickerOpen} 
+                  onOpenChange={setDatePickerOpen}
                 >
-                  <div className="p-0">
-                    <Calendar
-                      mode="single"
-                      selected={tempSelectedDate}
-                      onSelect={handleDateSelect}
-                      initialFocus
-                      disabled={(date) => date > new Date()}
-                      className="pointer-events-auto"
-                    />
-                    <div className="flex justify-end gap-2 p-2 border-t">
-                      <Button
-                        type="button" 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setDatePickerOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="button" 
-                        size="sm" 
-                        onClick={confirmDateSelection}
-                      >
-                        Confirm
-                      </Button>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="cardio-date"
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {date ? format(date, "PPP") : <span>Select date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    className="w-auto p-0" 
+                    align="start"
+                    sideOffset={4}
+                    onClick={handleCalendarClick}
+                  >
+                    <div className="p-0">
+                      <Calendar
+                        mode="single"
+                        selected={tempSelectedDate}
+                        onSelect={handleDateSelect}
+                        initialFocus
+                        disabled={(date) => date > new Date()}
+                        className="pointer-events-auto"
+                      />
+                      <div className="flex justify-end gap-2 p-2 border-t">
+                        <Button
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setDatePickerOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          onClick={confirmDateSelection}
+                        >
+                          Confirm
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="activity-type">Activity Type</Label>
-              <Select
-                value={activityType}
-                onValueChange={setActivityType}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select activity type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CARDIO_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="duration">Duration (minutes)</Label>
-              <div className="relative">
-                <Timer className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="duration"
-                  type="number"
-                  min="0"
-                  placeholder="30"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  className="pl-10"
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="activity-type">Activity Type</Label>
+                <Select
+                  value={activityType}
+                  onValueChange={setActivityType}
                   required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select activity type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CARDIO_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="duration">Duration (minutes)</Label>
+                <div className="relative">
+                  <Timer className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="duration"
+                    type="number"
+                    min="0"
+                    placeholder="30"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="notes">Notes (optional)</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="How was your workout?"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="min-h-[80px]"
                 />
               </div>
             </div>
             
-            <div className="grid gap-2">
-              <Label htmlFor="notes">Notes (optional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="How was your workout?"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="min-h-[80px]"
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-              className="outline-none focus:outline-none"
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-purple-600 hover:bg-purple-700 outline-none focus:outline-none"
-            >
-              {isSubmitting ? "Saving..." : "Save Activity"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+                className="outline-none focus:outline-none"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-purple-600 hover:bg-purple-700 outline-none focus:outline-none"
+              >
+                {isSubmitting ? "Saving..." : "Save Activity"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      <ActivityConfirmationModal
+        open={showConfirmation}
+        onOpenChange={setShowConfirmation}
+        activityType="cardio cross training"
+        activityDetails={confirmationDetails}
+        activityEmoji="🚴"
+      />
+    </>
   );
 };

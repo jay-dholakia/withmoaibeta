@@ -12,7 +12,6 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const { user, userType, authLoading } = useAuth();
   const [localLoading, setLocalLoading] = useState(false);
-  const [hasAttemptedRedirect, setHasAttemptedRedirect] = useState(false);
   const [forceSafetyReset, setForceSafetyReset] = useState(false);
 
   // Debug information
@@ -21,7 +20,6 @@ const AdminLogin = () => {
     userType,
     authLoading,
     localLoading,
-    hasAttemptedRedirect,
     pathname: window.location.pathname
   });
 
@@ -38,44 +36,36 @@ const AdminLogin = () => {
     }
   }, [localLoading]);
 
-  // Reset redirect state when auth loading changes
-  useEffect(() => {
-    if (authLoading) {
-      console.log('Auth loading changed to true - resetting redirect attempt tracking');
-      setHasAttemptedRedirect(false);
-    }
-  }, [authLoading]);
-
   // Handle redirection logic based on auth state
   useEffect(() => {
     console.log('AdminLogin redirect effect - Auth state:', {
       userId: user?.id,
       userType,
       authLoading,
-      localLoading,
-      hasAttemptedRedirect
+      localLoading
     });
     
-    // Only attempt to redirect when auth is not loading and we haven't tried yet
-    if (!authLoading && !localLoading && !hasAttemptedRedirect) {
-      setHasAttemptedRedirect(true);
-      
+    // Only attempt to redirect when auth is not loading and we're not in local loading
+    if (!authLoading && !localLoading) {
       // User is logged in as admin, redirect to dashboard
       if (user && userType === 'admin') {
         console.log('Admin user detected, navigating to dashboard');
-        navigate('/admin-dashboard');
+        navigate('/admin-dashboard', { replace: true });
+        return;
       } 
       // User is logged in but not as admin
-      else if (user && userType !== 'admin') {
+      else if (user && userType && userType !== 'admin') {
         console.log('User logged in as non-admin:', userType);
         toast.error('You are logged in but not as an admin. Please log in with an admin account.');
+        return;
       }
-      // User is not logged in at all - just stay on the login page
-      else {
+      // No user or userType not yet determined - stay on login page
+      else if (!user || !userType) {
         console.log('No user detected or user type not determined yet');
+        // Just stay on the login page
       }
     }
-  }, [user, userType, authLoading, navigate, hasAttemptedRedirect, localLoading]);
+  }, [user, userType, authLoading, localLoading, navigate]);
 
   // Show a clear loading state with debugging info
   if (authLoading || localLoading) {
@@ -109,8 +99,7 @@ const AdminLogin = () => {
           <p className="mb-2">{authLoading ? "Checking authentication..." : "Processing..."}</p>
           <p className="text-xs text-gray-500 mt-2">
             Auth loading: {authLoading ? "Yes" : "No"} | 
-            Local loading: {localLoading ? "Yes" : "No"} |
-            Attempted redirect: {hasAttemptedRedirect ? "Yes" : "No"}
+            Local loading: {localLoading ? "Yes" : "No"}
           </p>
         </div>
       </div>

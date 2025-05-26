@@ -1,18 +1,19 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import RequireAuth from "@/components/RequireAuth";
 import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
+import ClientLogin from "./pages/ClientLogin";
+import Register from "./pages/Register";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import CoachDashboard from "./pages/coach/CoachDashboard";
 import ProfileEditor from "./pages/client/ProfileEditor";
-import ClientProfileBuilder from "./pages/client/ClientProfileBuilder";
-import WorkoutDetailPage from "./pages/client/WorkoutDetailPage";
+import ProfileBuilder from "./pages/client/ProfileBuilder";
+import WorkoutDetailsPage from "./pages/client/WorkoutDetailsPage";
 import WorkoutProgramsPage from "./pages/coach/WorkoutProgramsPage";
 import CreateWorkoutProgramPage from "./pages/coach/CreateWorkoutProgramPage";
 import EditWorkoutProgramPage from "./pages/coach/EditWorkoutProgramPage";
@@ -21,7 +22,7 @@ import CreateWorkoutWeekPage from "./pages/coach/CreateWorkoutWeekPage";
 import WorkoutWeekDetailPage from "./pages/coach/WorkoutWeekDetailPage";
 import CreateWorkoutPage from "./pages/coach/CreateWorkoutPage";
 import EditWorkoutPage from "./pages/coach/EditWorkoutPage";
-import ExerciseTemplatesPage from "./pages/coach/ExerciseTemplatesPage";
+import ExerciseManagementPage from "./pages/coach/ExerciseManagementPage";
 import CreateExerciseTemplatePage from "./pages/coach/CreateExerciseTemplatePage";
 import EditExerciseTemplatePage from "./pages/coach/EditExerciseTemplatePage";
 import NotFound from "./pages/NotFound";
@@ -32,10 +33,10 @@ import EditProfile from "./pages/client/EditProfile";
 import Settings from "./pages/client/Settings";
 import WorkoutHistory from "./pages/client/WorkoutHistory";
 import WorkoutHistoryDetail from "./pages/client/WorkoutHistoryDetail";
-import StandaloneWorkoutPage from "./pages/coach/StandaloneWorkoutPage";
+import StandaloneWorkoutsPage from "./pages/coach/StandaloneWorkoutsPage";
 import EditStandaloneWorkoutPage from "./pages/coach/EditStandaloneWorkoutPage";
 import CreateStandaloneWorkoutPage from "./pages/coach/CreateStandaloneWorkoutPage";
-import ClientManagementPage from "./pages/coach/ClientManagementPage";
+import ClientsPage from "./pages/coach/ClientsPage";
 import ClientDetailPage from "./pages/coach/ClientDetailPage";
 
 function App() {
@@ -50,80 +51,80 @@ function App() {
           <AuthProvider>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
+              <Route path="/login" element={<ClientLogin />} />
+              <Route path="/signup" element={<Register />} />
 
               {/* Client Routes */}
               <Route
                 path="/client-dashboard"
                 element={
-                  <ProtectedRoute allowedUserTypes={['client']}>
+                  <RequireAuth allowedUserTypes={['client']}>
                     <ClientDashboard />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/client-dashboard/profile-editor"
                 element={
-                  <ProtectedRoute allowedUserTypes={['client']}>
+                  <RequireAuth allowedUserTypes={['client']}>
                     <ProfileEditor />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/client-profile-builder"
                 element={
-                  <ProtectedRoute allowedUserTypes={['client']}>
-                    <ClientProfileBuilder />
-                  </ProtectedRoute>
+                  <RequireAuth allowedUserTypes={['client']}>
+                    <ProfileBuilder />
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/client-dashboard/workouts/:workoutId"
                 element={
-                  <ProtectedRoute allowedUserTypes={['client']}>
-                    <WorkoutDetailPage />
-                  </ProtectedRoute>
+                  <RequireAuth allowedUserTypes={['client']}>
+                    <WorkoutDetailsPage />
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/client-dashboard/workouts/active/:workoutId"
                 element={
-                  <ProtectedRoute allowedUserTypes={['client']}>
+                  <RequireAuth allowedUserTypes={['client']}>
                     <ActiveWorkoutPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/client-dashboard/settings/edit-profile"
                 element={
-                  <ProtectedRoute allowedUserTypes={['client']}>
+                  <RequireAuth allowedUserTypes={['client']}>
                     <EditProfile />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/client-dashboard/settings"
                 element={
-                  <ProtectedRoute allowedUserTypes={['client']}>
+                  <RequireAuth allowedUserTypes={['client']}>
                     <Settings />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/client-dashboard/workout-history"
                 element={
-                  <ProtectedRoute allowedUserTypes={['client']}>
+                  <RequireAuth allowedUserTypes={['client']}>
                     <WorkoutHistory />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/client-dashboard/workout-history/:completionId"
                 element={
-                  <ProtectedRoute allowedUserTypes={['client']}>
+                  <RequireAuth allowedUserTypes={['client']}>
                     <WorkoutHistoryDetail />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
 
@@ -131,153 +132,153 @@ function App() {
               <Route
                 path="/coach-dashboard"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <CoachDashboard />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/workouts"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <WorkoutProgramsPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/workouts/create"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <CreateWorkoutProgramPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/workouts/:id/edit"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <EditWorkoutProgramPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/workouts/:id"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <ProgramDetailPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/coach-dashboard/workouts/:id/assign"
+                element={
+                  <RequireAuth allowedUserTypes={['coach']}>
+                    <AssignProgramPage />
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/workouts/:programId/create-week"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <CreateWorkoutWeekPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/workout-weeks/:id"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <WorkoutWeekDetailPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/workout-weeks/:weekId/create-workout"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <CreateWorkoutPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/workouts/:id/edit"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <EditWorkoutPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/exercise-templates"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
-                    <ExerciseTemplatesPage />
-                  </ProtectedRoute>
+                  <RequireAuth allowedUserTypes={['coach']}>
+                    <ExerciseManagementPage />
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/exercise-templates/create"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <CreateExerciseTemplatePage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/exercise-templates/:id/edit"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <EditExerciseTemplatePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/coach-dashboard/workouts/:programId/assign"
-                element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
-                    <AssignProgramPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/program-assignment"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <ProgramAssignmentPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/standalone-workouts"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
-                    <StandaloneWorkoutPage />
-                  </ProtectedRoute>
+                  <RequireAuth allowedUserTypes={['coach']}>
+                    <StandaloneWorkoutsPage />
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/standalone-workouts/create"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <CreateStandaloneWorkoutPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/standalone-workouts/:id/edit"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <EditStandaloneWorkoutPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/clients"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
-                    <ClientManagementPage />
-                  </ProtectedRoute>
+                  <RequireAuth allowedUserTypes={['coach']}>
+                    <ClientsPage />
+                  </RequireAuth>
                 }
               />
               <Route
                 path="/coach-dashboard/clients/:clientId"
                 element={
-                  <ProtectedRoute allowedUserTypes={['coach']}>
+                  <RequireAuth allowedUserTypes={['coach']}>
                     <ClientDetailPage />
-                  </ProtectedRoute>
+                  </RequireAuth>
                 }
               />
 

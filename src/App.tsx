@@ -1,4 +1,5 @@
 
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,8 +8,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminToolsProvider } from "@/contexts/AdminToolsContext";
 import RequireAuth from "@/components/RequireAuth";
+import AdminRoute from "@/components/AdminRoute";
 import Index from "./pages/Index";
 import ClientLogin from "./pages/ClientLogin";
+import AdminLogin from "./pages/AdminLogin";
 import Register from "./pages/Register";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import CoachDashboard from "./pages/coach/CoachDashboard";
@@ -31,6 +34,8 @@ import LiveRunPage from "./pages/client/LiveRunPage";
 import LogRunPage from "./pages/client/LogRunPage";
 import LogCardioPage from "./pages/client/LogCardioPage";
 import LogRestDayPage from "./pages/client/LogRestDayPage";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminSetup from "./pages/AdminSetup";
 
 function App() {
   const queryClient = new QueryClient();
@@ -47,7 +52,27 @@ function App() {
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<ClientLogin />} />
                 <Route path="/client-login" element={<ClientLogin />} />
+                <Route path="/admin-login" element={<AdminLogin />} />
+                <Route path="/admin-setup" element={<AdminSetup />} />
                 <Route path="/signup" element={<Register />} />
+
+                {/* Admin Routes */}
+                <Route
+                  path="/admin-dashboard"
+                  element={
+                    <AdminRoute>
+                      <AdminDashboard />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin-dashboard/*"
+                  element={
+                    <AdminRoute>
+                      <AdminDashboard />
+                    </AdminRoute>
+                  }
+                />
 
                 {/* Client Routes */}
                 <Route

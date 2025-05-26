@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +28,9 @@ import ProgramAssignmentPage from "./pages/coach/ProgramAssignmentPage";
 import StandaloneWorkoutsPage from "./pages/coach/StandaloneWorkoutsPage";
 import ClientsPage from "./pages/coach/ClientsPage";
 import LiveRunPage from "./pages/client/LiveRunPage";
+import LogRunPage from "./pages/client/LogRunPage";
+import LogCardioPage from "./pages/client/LogCardioPage";
+import LogRestDayPage from "./pages/client/LogRestDayPage";
 
 function App() {
   const queryClient = new QueryClient();
@@ -42,6 +46,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<ClientLogin />} />
+                <Route path="/client-login" element={<ClientLogin />} />
                 <Route path="/signup" element={<Register />} />
 
                 {/* Client Routes */}
@@ -54,10 +59,10 @@ function App() {
                   }
                 />
                 <Route
-                  path="/client-dashboard/profile-editor"
+                  path="/client-dashboard/*"
                   element={
                     <RequireAuth allowedUserTypes={['client']}>
-                      <ProfileEditor />
+                      <ClientDashboard />
                     </RequireAuth>
                   }
                 />
@@ -70,18 +75,34 @@ function App() {
                   }
                 />
                 <Route
-                  path="/client-dashboard/workouts/:workoutId"
-                  element={
-                    <RequireAuth allowedUserTypes={['client']}>
-                      <WorkoutDetailsPage />
-                    </RequireAuth>
-                  }
-                />
-                <Route
                   path="/client-dashboard/workouts/live-run"
                   element={
                     <RequireAuth allowedUserTypes={['client']}>
                       <LiveRunPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/client-dashboard/workouts/log-run"
+                  element={
+                    <RequireAuth allowedUserTypes={['client']}>
+                      <LogRunPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/client-dashboard/workouts/log-cardio"
+                  element={
+                    <RequireAuth allowedUserTypes={['client']}>
+                      <LogCardioPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/client-dashboard/workouts/log-rest"
+                  element={
+                    <RequireAuth allowedUserTypes={['client']}>
+                      <LogRestDayPage />
                     </RequireAuth>
                   }
                 />

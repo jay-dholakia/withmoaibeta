@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +26,7 @@ import AssignProgramPage from "./pages/coach/AssignProgramPage";
 import ProgramAssignmentPage from "./pages/coach/ProgramAssignmentPage";
 import StandaloneWorkoutsPage from "./pages/coach/StandaloneWorkoutsPage";
 import ClientsPage from "./pages/coach/ClientsPage";
+import LiveRunPage from "./pages/client/LiveRunPage";
 
 function App() {
   const queryClient = new QueryClient();
@@ -74,6 +74,14 @@ function App() {
                   element={
                     <RequireAuth allowedUserTypes={['client']}>
                       <WorkoutDetailsPage />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/client-dashboard/workouts/live-run"
+                  element={
+                    <RequireAuth allowedUserTypes={['client']}>
+                      <LiveRunPage />
                     </RequireAuth>
                   }
                 />

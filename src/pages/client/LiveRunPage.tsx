@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import RunTracking from '@/components/client/workout/RunTracking';
 import { Button } from '@/components/ui/button';
@@ -7,11 +7,14 @@ import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { ActivityConfirmationModal } from '@/components/client/ActivityConfirmationModal';
 
 const LiveRunPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const runId = crypto.randomUUID();
+  const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
+  const [confirmationDetails, setConfirmationDetails] = useState<string>("");
 
   const handleRunComplete = async (summary: {distance: number, duration: number, pace: number}) => {
     try {
@@ -23,17 +26,19 @@ const LiveRunPage = () => {
             user_id: user.id,
             title: `${summary.distance.toFixed(2)} mile Run`,
             description: `Completed at ${summary.pace.toFixed(2)} min/mile pace`,
-            workout_type: 'running',  // Using 'running' type for visibility in the calendar
+            workout_type: 'running',
             distance: summary.distance.toFixed(2),
             duration: summary.duration.toString(),
             location: 'Outdoor Run'
           });
         
         toast.success('Run completed and saved to your workout history');
+        
+        // Create confirmation details and show modal
+        const details = `${summary.distance.toFixed(2)} miles in ${summary.duration} minutes (${summary.pace.toFixed(2)} min/mile pace)`;
+        setConfirmationDetails(details);
+        setShowConfirmation(true);
       }
-      
-      // Navigate back to workouts page
-      navigate('/client-dashboard/workouts');
       
       // Refresh the workout history
       document.getElementById('refresh-workout-history')?.click();
@@ -44,25 +49,40 @@ const LiveRunPage = () => {
     }
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={() => navigate('/client-dashboard/workouts')}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-        <h1 className="text-2xl font-bold">Live Run Tracking</h1>
-      </div>
+  const handleConfirmationClose = () => {
+    setShowConfirmation(false);
+    navigate('/client-dashboard/workouts');
+  };
 
-      <RunTracking 
-        runId={runId} 
-        onRunComplete={handleRunComplete}
+  return (
+    <>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => navigate('/client-dashboard/workouts')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <h1 className="text-2xl font-bold">Live Run Tracking</h1>
+        </div>
+
+        <RunTracking 
+          runId={runId} 
+          onRunComplete={handleRunComplete}
+        />
+      </div>
+      
+      <ActivityConfirmationModal
+        open={showConfirmation}
+        onOpenChange={handleConfirmationClose}
+        activityType="a live run"
+        activityDetails={confirmationDetails}
+        activityEmoji="🏃"
       />
-    </div>
+    </>
   );
 };
 
